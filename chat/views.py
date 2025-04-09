@@ -6,7 +6,11 @@ from django.utils.text import slugify
 from django.db.models import Count
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from .models import Message, Room
+from .models import Room, Message, Reaction
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from collections import defaultdict
 
 def index(request):
     all_rooms = Room.objects.annotate(message_count=Count('messages')).order_by('-message_count')
@@ -45,23 +49,42 @@ def load_more_rooms(request):
 
 @login_required
 def room(request, room_name):
-    slug_room = slugify(room_name)
-    room, created = Room.objects.get_or_create(name=slug_room, defaults={'creator': request.user})
+    # Get the room or return 404
+    room = get_object_or_404(Room, name=room_name)
 
-    if created:
-        Message.objects.create(
-            user=request.user,
-            room=room,
-            content=f"🚀 {request.user.username} created this room!"
-        )
-
+    # Get messages for the room
     messages = Message.objects.filter(room=room).order_by('timestamp')
-    return render(request, 'chat/room.html', {
-        'room_name': room.name,
-        'username': request.user.username,
+
+    # Prepare reaction data
+    reactions = defaultdict(dict)
+
+    # Get all reactions for these messages
+    message_reactions = Reaction.objects.filter(
+        message__in=messages
+    ).values('message_id', 'emoji').annotate(count=Count('id'))
+
+    # Organize reactions by message_id and emoji
+    for reaction in message_reactions:
+        message_id = reaction['message_id']
+        emoji = reaction['emoji']
+        count = reaction['count']
+
+        if str(message_id) not in reactions:
+            reactions[str(message_id)] = {}
+
+        reactions[str(message_id)][emoji] = count
+
+    # Pass data to template
+    context = {
+        'room_name': room_name,
+        'room': room,
         'messages': messages,
-        'can_delete': room.creator == request.user
-    })
+        'username': request.user.username,
+        'reactions': reactions,
+        'can_delete': room.creator == request.user,
+    }
+
+    return render(request, 'chat/room.html', context)
 
 @login_required
 def delete_room(request, room_name):
@@ -80,3 +103,12 @@ def signup(request):
     else:
         form = UserCreationForm()
     return render(request, 'chat/signup.html', {'form': form})
+
+@csrf_exempt
+def upload_media(request):
+    if request.method == 'POST' and request.FILES.get('media'):
+        file = request.FILES['media']
+        path = default_storage.save(f'chat_uploads/{file.name}', ContentFile(file.read()))
+        media_url = default_storage.url(path)
+        return JsonResponse({'url': media_url})
+    return JsonResponse({'error': 'Invalid request'}, status=400)

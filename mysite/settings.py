@@ -160,3 +160,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://euphorie.com",
     "https://www.euphorie.com"
 ]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
