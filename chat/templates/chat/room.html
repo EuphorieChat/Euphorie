@@ -9,30 +9,45 @@
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
   <meta charset="UTF-8">
   <title>Room: {{ room_name|title }} 💬</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Nunito', sans-serif; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      overflow-x: hidden;
+      width: 100%;
+    }
+
+    /* Typing animation dots */
     @keyframes bounce {
       0%, 80%, 100% { transform: translateY(0); }
       40% { transform: translateY(-6px); }
     }
-    .dot { animation: bounce 0.6s infinite; }
+
+    .dot {
+      animation: bounce 0.6s infinite;
+    }
+
     .dot:nth-child(1) { animation-delay: 0s; }
     .dot:nth-child(2) { animation-delay: 0.2s; }
     .dot:nth-child(3) { animation-delay: 0.4s; }
-    /* Make emoji reactions larger and more interactive */
+
+    /* Emoji reactions */
     .emoji-reaction {
       transition: transform 0.2s ease;
     }
+
     .emoji-reaction:hover {
-      transform: scale(1.5);
+      transform: scale(1.2);
     }
+
     .emoji-reaction.reacted {
       position: relative;
     }
+
+    /* Reaction counter badge */
     .reaction-counter {
       position: absolute;
       top: -8px;
@@ -44,7 +59,8 @@
       border: 1px solid #eee;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    /* Built-in emoji panel styling */
+
+    /* Emoji panel */
     .emoji-panel {
       display: none;
       position: absolute;
@@ -53,7 +69,7 @@
       background: white;
       border: 1px solid #eee;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       padding: 8px;
       width: 270px;
       flex-wrap: wrap;
@@ -61,9 +77,19 @@
       margin-bottom: 8px;
       z-index: 1000;
     }
+
+    @media (max-width: 640px) {
+      .emoji-panel {
+        width: 240px;
+        left: auto;
+        right: 0;
+      }
+    }
+
     .emoji-panel.show {
       display: flex;
     }
+
     .emoji-btn {
       cursor: pointer;
       font-size: 20px;
@@ -73,413 +99,615 @@
       align-items: center;
       justify-content: center;
       border-radius: 4px;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
-    .emoji-btn:hover {
-      background: #f8f8f8;
+
+    .emoji-btn:hover, .emoji-btn:active {
+      background: #f0f0f0;
+      transform: scale(1.1);
+    }
+
+    /* Message bubbles */
+    .message-bubble {
+      position: relative;
+      border-radius: 16px;
+      padding: 10px 12px;
+      max-width: 80%;
+      width: fit-content;
+      margin-bottom: 8px;
+      word-break: break-word;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .message-bubble.sent {
+      background-color: #fbdae8; /* Light pink for sent messages */
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-bubble.received {
+      background-color: #fff7da; /* Light yellow for received messages */
+      margin-right: auto;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-bubble:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* Chat container sizing */
+    .chat-container {
+      height: calc(100vh - 280px);
+      min-height: 300px;
+    }
+
+    @media (max-width: 640px) {
+      .chat-container {
+        height: calc(100vh - 240px);
+      }
+    }
+
+    /* Hide scrollbar but keep functionality */
+    .hide-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+
+    /* File upload preview */
+    .file-preview {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 8px;
+      max-width: 200px;
+    }
+
+    /* Button styles */
+    .btn {
+      transition: all 0.2s ease;
+      font-weight: 600;
+      border-radius: 12px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    /* Gradient animations */
+    .gradient-text {
+      background: linear-gradient(90deg, #f472b6, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Make the user list more compact on mobile */
+    @media (max-width: 640px) {
+      .user-list-item {
+        display: inline-block;
+        margin-right: 8px;
+      }
+
+      .user-list-item:after {
+        content: ',';
+      }
+
+      .user-list-item:last-child:after {
+        content: '';
+      }
+    }
+
+    /* Top nav bar for mobile devices */
+    .mobile-top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-pink-50 via-yellow-50 to-white min-h-screen flex flex-col justify-center px-4 py-8 text-gray-800 font-sans">
+<body class="bg-gradient-to-br from-pink-50 via-yellow-50 to-white min-h-screen flex flex-col text-gray-800 font-sans">
 
-  <main class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-4xl mx-auto space-y-6 border border-yellow-100">
+  <!-- Mobile Top Navigation -->
+  <header class="sm:hidden mobile-top-bar p-3 border-b border-yellow-100 flex items-center justify-between">
+    <a href="{% url 'index' %}" class="text-pink-400">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+    </a>
+    <h1 class="text-lg font-bold text-pink-400 truncate">{{ room_name|title }}</h1>
+    <button id="mobile-user-list-toggle" class="text-pink-400">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    </button>
+  </header>
 
-    <div class="text-center space-y-1">
-      <h1 class="text-3xl font-extrabold text-pink-400">💬 Room: <span class="text-yellow-500">{{ room_name|title }}</span></h1>
+  <main class="flex-1 w-full max-w-4xl mx-auto p-4 sm:py-6">
+    <!-- Room Header - Visible on desktop -->
+    <div class="hidden sm:block text-center space-y-1 mb-4">
+      <h1 class="text-3xl font-extrabold gradient-text">💬 Room: <span class="text-yellow-500">{{ room_name|title }}</span></h1>
       <p class="text-sm text-gray-500 italic">Welcome, <span class="font-semibold">{{ username }}</span> — enjoy the chat ✨</p>
     </div>
 
-    <div id="chat-log" class="bg-white border border-yellow-200 rounded-lg p-4 h-96 overflow-y-scroll text-sm space-y-3">
-      {% for message in messages %}
-        <div
-          class="relative group bg-white px-4 py-2 rounded-xl shadow-sm w-fit max-w-[80%] {% if message.user.username == username %}ml-auto bg-pink-100{% else %}mr-auto bg-yellow-100{% endif %}"
-          data-message-id="{{ message.id }}"
-        >
-          <p class="text-sm text-gray-700">
-            <strong class="text-pink-500">{{ message.user.username }}:</strong> {{ message.content|safe }}
-          </p>
+    <!-- User List Panel - Mobile only, hidden by default -->
+    <div id="mobile-user-list" class="sm:hidden bg-white p-4 rounded-xl shadow-md border border-yellow-100 mb-3 hidden">
+      <h3 class="text-base font-semibold text-gray-700 mb-2 flex items-center">
+        <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
+        Users in this room
+      </h3>
+      <div id="mobile-user-list-content" class="text-sm text-gray-600 flex flex-wrap gap-1"></div>
+    </div>
 
-          <div class="reactions-container flex gap-1 text-xs mt-1">
-            {% with reactions|default:"{}" as reaction_map %}
-              {% with reaction_map|dict_key:message.id as emoji_counts %}
-                {% for emoji, count in emoji_counts.items %}
-                  <span data-emoji="{{ emoji }}" class="bg-gray-100 rounded-full px-2 py-1 inline-flex items-center">
-                    {{ emoji }} <span class="reaction-count ml-1">{{ count }}</span>
-                  </span>
-                {% endfor %}
+    <!-- Main Chat Box -->
+    <div class="bg-white rounded-xl shadow-lg border border-yellow-100 overflow-hidden flex flex-col">
+      <!-- Chat messages container -->
+      <div id="chat-log" class="chat-container hide-scrollbar p-4 overflow-y-auto bg-gray-50">
+        {% for message in messages %}
+          <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %} group" data-message-id="{{ message.id }}">
+            <div class="flex items-start">
+              <!-- Username and message content -->
+              <div class="flex-1">
+                <p class="text-xs font-semibold mb-0.5 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %}">
+                  {{ message.user.username }}
+                </p>
+                <div class="text-sm text-gray-700">
+                  {{ message.content|safe }}
+                </div>
+              </div>
+
+              <!-- Quick reaction buttons (visible on hover/tap) -->
+              <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                <div class="flex space-x-1">
+                  <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm">❤️</span>
+                  <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm">👍</span>
+                  <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm">😂</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reactions display -->
+            <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs">
+              {% with reactions|default:"{}" as reaction_map %}
+                {% with reaction_map|dict_key:message.id as emoji_counts %}
+                  {% for emoji, count in emoji_counts.items %}
+                    <span data-emoji="{{ emoji }}" class="bg-white rounded-full px-2 py-0.5 inline-flex items-center shadow-sm">
+                      {{ emoji }} <span class="reaction-count ml-1">{{ count }}</span>
+                    </span>
+                  {% endfor %}
+                {% endwith %}
               {% endwith %}
-            {% endwith %}
+            </div>
           </div>
+        {% endfor %}
+      </div>
 
-          <!-- floating buttons for new reactions -->
-          <div class="absolute hidden group-hover:flex gap-1 top-0 right-0 text-xs">
-            <span class="emoji-reaction cursor-pointer">❤️</span>
-            <span class="emoji-reaction cursor-pointer">😂</span>
-            <span class="emoji-reaction cursor-pointer">🔥</span>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
+      <!-- Typing indicator -->
+      <div id="typing-indicator" class="hidden px-4 py-2 text-pink-400 text-sm h-6 flex items-center">
+        <span class="dot">•</span><span class="dot">•</span><span class="dot">•</span>
+        <span class="ml-2 text-xs text-gray-500">Someone is typing...</span>
+      </div>
 
-    <div id="typing-indicator" class="hidden flex items-center gap-1 text-pink-400 text-sm h-5">
-      <span class="dot">•</span><span class="dot">•</span><span class="dot">•</span>
-    </div>
-
-    <!-- Input Row -->
-    <div class="flex gap-2 items-center justify-center relative">
-      <input id="chat-message-input" type="text" placeholder="Type something cozy..." autocomplete="off" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-yellow-300 focus:outline-none" />
-
-      <!-- Simple emoji dropdown with common emojis -->
-      <div class="relative">
-        <button id="emoji-button" type="button" class="text-xl px-2 py-1 hover:bg-yellow-50 rounded transition">😊</button>
-        <div id="emoji-panel" class="emoji-panel">
-          <!-- Common emojis grid -->
-          <div class="emoji-btn">😊</div>
-          <div class="emoji-btn">😂</div>
-          <div class="emoji-btn">❤️</div>
-          <div class="emoji-btn">👍</div>
-          <div class="emoji-btn">🔥</div>
-          <div class="emoji-btn">✨</div>
-          <div class="emoji-btn">🎉</div>
-          <div class="emoji-btn">🥰</div>
-          <div class="emoji-btn">😎</div>
-          <div class="emoji-btn">🤔</div>
-          <div class="emoji-btn">👀</div>
-          <div class="emoji-btn">💯</div>
-          <div class="emoji-btn">🙏</div>
-          <div class="emoji-btn">💪</div>
-          <div class="emoji-btn">🌟</div>
-          <div class="emoji-btn">💕</div>
-          <div class="emoji-btn">🤩</div>
-          <div class="emoji-btn">😍</div>
-          <div class="emoji-btn">🥳</div>
-          <div class="emoji-btn">😁</div>
-          <div class="emoji-btn">😄</div>
-          <div class="emoji-btn">🙄</div>
-          <div class="emoji-btn">😮</div>
-          <div class="emoji-btn">🤗</div>
+      <!-- File Preview Area -->
+      <div id="preview" class="hidden px-4 pt-2">
+        <div class="relative bg-gray-50 p-2 rounded-lg border border-yellow-100">
+          <button id="cancel-preview" class="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-6 h-6 shadow hover:bg-red-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div id="preview-content" class="flex items-center gap-2 max-w-full overflow-x-auto hide-scrollbar pb-1"></div>
         </div>
       </div>
 
-      <label for="file-input" class="cursor-pointer px-3 py-2 bg-yellow-100 text-yellow-700 font-medium rounded-xl hover:bg-yellow-200 transition">📎</label>
-      <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple />
-      <button id="chat-message-submit" class="px-5 py-2 bg-pink-300 text-white font-semibold rounded-xl hover:bg-pink-400 transition">🚀 Send</button>
+      <!-- Upload Progress -->
+      <div id="progress-container" class="hidden px-4 py-2">
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="progress-bar" class="h-2 bg-pink-400 rounded-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- Message Input Area -->
+      <div class="p-3 border-t border-yellow-100 bg-white">
+        <form id="message-form" class="flex gap-2 items-center" onsubmit="event.preventDefault(); sendMessage();">
+          <!-- Emoji Button -->
+          <div class="relative">
+            <button id="emoji-button" type="button" class="text-xl p-2 hover:bg-yellow-50 rounded-full transition flex items-center justify-center">
+              <span>😊</span>
+            </button>
+            <div id="emoji-panel" class="emoji-panel">
+              <!-- Common emojis grid -->
+              <div class="emoji-btn">😊</div>
+              <div class="emoji-btn">😂</div>
+              <div class="emoji-btn">❤️</div>
+              <div class="emoji-btn">👍</div>
+              <div class="emoji-btn">🔥</div>
+              <div class="emoji-btn">✨</div>
+              <div class="emoji-btn">🎉</div>
+              <div class="emoji-btn">🥰</div>
+              <div class="emoji-btn">😎</div>
+              <div class="emoji-btn">🤔</div>
+              <div class="emoji-btn">👀</div>
+              <div class="emoji-btn">💯</div>
+              <div class="emoji-btn">🙏</div>
+              <div class="emoji-btn">💪</div>
+              <div class="emoji-btn">🌟</div>
+              <div class="emoji-btn">💕</div>
+              <div class="emoji-btn">🤩</div>
+              <div class="emoji-btn">😍</div>
+              <div class="emoji-btn">🥳</div>
+              <div class="emoji-btn">😁</div>
+            </div>
+          </div>
+
+          <!-- Text Input -->
+          <input
+            id="chat-message-input"
+            type="text"
+            placeholder="Type something cozy..."
+            autocomplete="off"
+            class="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none text-sm"
+          />
+
+          <!-- File Upload Button -->
+          <label for="file-input" class="cursor-pointer p-2 bg-yellow-100 text-yellow-700 font-medium rounded-full hover:bg-yellow-200 transition flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+          </label>
+          <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple />
+
+          <!-- Send Button -->
+          <button id="chat-message-submit" type="submit" class="btn p-2 bg-pink-400 text-white rounded-full hover:bg-pink-500 transition flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </form>
+      </div>
     </div>
 
-    <!-- Preview -->
-    <div id="preview" class="mt-4 hidden relative w-fit">
-      <button id="cancel-preview" class="absolute top-0 right-0 bg-white text-red-500 rounded-full w-6 h-6 shadow hover:bg-red-100">❌</button>
-      <div id="preview-content" class="rounded-xl overflow-hidden shadow max-w-xs space-y-2"></div>
+    <!-- Room Information & Controls -->
+    <div class="mt-4 grid sm:grid-cols-2 gap-3">
+      <!-- Users list - Desktop version -->
+      <div class="hidden sm:block bg-white p-4 rounded-xl shadow-md border border-yellow-100">
+        <h3 class="text-base font-semibold text-gray-700 mb-2 flex items-center">
+          <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
+          Users in this room
+        </h3>
+        <ul id="user-list" class="list-disc list-inside text-sm text-gray-600 space-y-0.5"></ul>
+      </div>
+
+      <!-- Room Controls -->
+      <div class="bg-white p-4 rounded-xl shadow-md border border-yellow-100 flex flex-col sm:items-end gap-2">
+        <a href="{% url 'index' %}" class="btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Back to Lobby
+        </a>
+
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Logout
+          </button>
+        </form>
+
+        {% if can_delete %}
+        <form method="post" action="{% url 'delete_room' room_name %}" class="mt-2">
+          {% csrf_token %}
+          <button type="submit" class="btn bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete Room
+          </button>
+        </form>
+        {% endif %}
+      </div>
     </div>
-
-    <div id="progress-container" class="hidden w-full bg-gray-200 rounded-full h-2 mt-2">
-      <div id="progress-bar" class="h-2 bg-pink-400 rounded-full w-0 transition-all duration-300"></div>
-    </div>
-
-    <div>
-      <h3 class="text-lg font-semibold text-gray-700 mb-2">🟢 Users in this room</h3>
-      <ul id="user-list" class="list-disc list-inside text-sm text-gray-800 space-y-1"></ul>
-    </div>
-
-    <div class="text-center mt-4">
-      <a href="{% url 'index' %}" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-xl font-semibold transition">← Back to Lobby</a>
-    </div>
-
-    <form method="post" action="{% url 'logout' %}" class="text-center mt-2">
-      {% csrf_token %}
-      <button type="submit" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-xl font-semibold transition">🔒 Logout</button>
-    </form>
-
-    {% if can_delete %}
-      <form method="post" action="{% url 'delete_room' room_name %}" class="text-center mt-2">
-        {% csrf_token %}
-        <button type="submit" class="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-xl font-semibold transition">🗑️ Delete This Room</button>
-      </form>
-    {% endif %}
   </main>
 
-  <script>
-    const roomName = "{{ room_name }}";
-    const username = "{{ username }}"; // Store the username for later reference
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const chatSocket = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${roomName}/`);
+      <!-- Reaction User Modal -->
+    <div id="reactionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl w-80 p-4 relative">
+        <button id="closeModal" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl">&times;</button>
+        <h2 class="text-lg font-bold mb-2 text-pink-500">People who reacted</h2>
+        <ul id="reactionUserList" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
+      </div>
+    </div>
 
-    chatSocket.onopen = () => console.log("✅ WebSocket connected");
 
-    chatSocket.onmessage = function (e) {
-      const data = JSON.parse(e.data);
-      const chatLog = document.getElementById("chat-log");
+    <script>
+      (() => {
+        const roomName = "{{ room_name }}";
+        const username = "{{ username }}";
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const socket = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${roomName}/`);
 
-      if (data.type === "chat") {
-        const msg = document.createElement("div");
-        msg.className = `relative group bg-white px-4 py-2 rounded-xl shadow-sm w-fit max-w-[80%] ${data.username === username ? 'ml-auto bg-pink-100' : 'mr-auto bg-yellow-100'}`;
-
-        // Set message ID if provided, or generate one
-        if (data.id) {
-          msg.dataset.messageId = data.id;
-        } else {
-          msg.dataset.messageId = Date.now().toString();
-        }
-
-        // Create the message content
-        const msgContent = document.createElement("p");
-        msgContent.className = "text-sm text-gray-700";
-
-        // Create the username part
-        const usernameSpan = document.createElement("strong");
-        usernameSpan.className = "text-pink-500";
-        usernameSpan.textContent = data.username + ": ";
-        msgContent.appendChild(usernameSpan);
-
-        // Add the message content - using innerText for plain text and then converting emoji codes
-        const messageContent = document.createElement("span");
-        messageContent.innerHTML = data.message;
-        msgContent.appendChild(messageContent);
-
-        msg.appendChild(msgContent);
-
-        // Add reactions container (empty for new messages)
-        const reactionsContainer = document.createElement("div");
-        reactionsContainer.className = "reactions-container flex gap-1 text-xs mt-1";
-        msg.appendChild(reactionsContainer);
-
-        // Create emoji reactions
-        const reactionsDiv = document.createElement("div");
-        reactionsDiv.className = "absolute hidden group-hover:flex gap-1 top-0 right-0 text-xs";
-
-        const reactions = ["❤️", "😂", "🔥"];
-        reactions.forEach(emoji => {
-          const emojiSpan = document.createElement("span");
-          emojiSpan.className = "emoji-reaction cursor-pointer";
-          emojiSpan.textContent = emoji;
-          emojiSpan.addEventListener("click", function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Get message ID
-            const messageId = msg.dataset.messageId;
-
-            // Send the reaction to the server
-            chatSocket.send(JSON.stringify({
-              type: 'reaction',
-              message_id: messageId,
-              reaction: emoji,
-              username: username
-            }));
-
-            console.log(`Reacted with ${emoji} to message ${messageId}`);
-          });
-          reactionsDiv.appendChild(emojiSpan);
-        });
-
-        msg.appendChild(reactionsDiv);
-        chatLog.appendChild(msg);
-        chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: 'smooth' });
-      }
-
-      if (data.type === "typing") {
-        const typing = document.getElementById("typing-indicator");
-        typing.classList.remove("hidden");
-        clearTimeout(window.typingTimeout);
-        window.typingTimeout = setTimeout(() => typing.classList.add("hidden"), 2000);
-      }
-
-      if (data.type === "users") {
-        const userList = document.getElementById("user-list");
-        userList.innerHTML = '';
-        data.users.forEach(user => {
-          const li = document.createElement("li");
-          li.textContent = user;
-          userList.appendChild(li);
-        });
-      }
-
-      // Handle reaction messages
-      if (data.type === "reaction") {
-        console.log("Received reaction:", data);
-
-        // Find the message by ID
-        const target = document.querySelector(`[data-message-id="${data.message_id}"]`);
-        if (target) {
-          let container = target.querySelector(".reactions-container");
-
-          // Try to find an existing reaction of this type
-          let existing = container.querySelector(`[data-emoji="${data.reaction}"]`);
-          if (existing) {
-            // Update the counter
-            existing.querySelector(".reaction-count").textContent = data.count || 1;
-          } else {
-            // Create a new reaction element
-            const span = document.createElement("span");
-            span.className = "bg-gray-100 rounded-full px-2 py-1 inline-flex items-center";
-            span.dataset.emoji = data.reaction;
-            span.innerHTML = `${data.reaction} <span class="reaction-count ml-1">${data.count || 1}</span>`;
-            container.appendChild(span);
-          }
-        }
-      }
-    };
-
-    chatSocket.onerror = err => console.error("❌ WebSocket error:", err);
-
-    document.getElementById("chat-message-submit").addEventListener("click", sendMessage);
-    document.getElementById("chat-message-input").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        sendMessage();
-      } else {
-        // Send typing indicator
-        chatSocket.send(JSON.stringify({ type: 'typing' }));
-      }
-    });
-
-    // Simple emoji panel functionality
-    const emojiButton = document.getElementById("emoji-button");
-    const emojiPanel = document.getElementById("emoji-panel");
-
-    emojiButton.addEventListener("click", function() {
-      emojiPanel.classList.toggle("show");
-    });
-
-    // Close emoji panel when clicking elsewhere
-    document.addEventListener("click", function(e) {
-      if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
-        emojiPanel.classList.remove("show");
-      }
-    });
-
-    // Add emoji to input when clicked
-    const emojiButtons = document.querySelectorAll(".emoji-btn");
-    emojiButtons.forEach(btn => {
-      btn.addEventListener("click", function() {
+        const chatLog = document.getElementById("chat-log");
         const input = document.getElementById("chat-message-input");
-        input.value += btn.textContent;
-        input.focus();
-        emojiPanel.classList.remove("show");
-      });
-    });
+        const fileInput = document.getElementById("file-input");
+        const previewContainer = document.getElementById("preview");
+        const previewContent = document.getElementById("preview-content");
+        const progressBar = document.getElementById("progress-bar");
+        const progressWrap = document.getElementById("progress-container");
+        const cancelPreviewBtn = document.getElementById("cancel-preview");
+        let uploadedFiles = [];
 
-    async function sendMessage() {
-      const input = document.getElementById("chat-message-input");
-      const fileInput = document.getElementById("file-input");
-      const message = input.value.trim();
-      const preview = document.getElementById("preview");
-      const previewContent = document.getElementById("preview-content");
+        const uploadUrl = "{% url 'upload_media' %}";
 
-      for (const file of fileInput.files) {
-        if (file.size > 5 * 1024 * 1024) {
-          alert("File too large. Max 5MB allowed.");
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append("media", file);
-
-        try {
-          document.getElementById("progress-container").classList.remove("hidden");
-
-          const response = await fetch("/upload-media/", {
-            method: "POST",
-            body: formData,
-            credentials: "same-origin",
-          });
-
-          document.getElementById("progress-container").classList.add("hidden");
-
-          if (response.ok) {
-            const result = await response.json();
-            const fileUrl = result.url;
-            const fileName = file.name;
-            let html = '';
-
-            if (fileUrl.match(/\.(jpeg|jpg|gif|png)$/i)) {
-              html = `<img src="${fileUrl}" alt="${fileName}" class="max-w-xs rounded-xl"/>`;
-            } else if (fileUrl.match(/\.(mp4|webm|ogg)$/i)) {
-              html = `<video controls class="max-w-xs rounded-xl"><source src="${fileUrl}" type="video/mp4"></video>`;
-            } else {
-              html = `<a href="${fileUrl}" target="_blank">📎 ${fileName}</a>`;
+        function getCSRFToken() {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, 10) === "csrftoken=") {
+                cookieValue = decodeURIComponent(cookie.substring(10));
+                break;
+              }
             }
-
-            chatSocket.send(JSON.stringify({ type: 'chat', message: html }));
-          } else {
-            alert("Upload failed: " + await response.text());
           }
-        } catch (error) {
-          document.getElementById("progress-container").classList.add("hidden");
-          console.error("Error uploading file:", error);
-          alert("Upload failed due to an error");
+          return cookieValue;
         }
-      }
 
-      if (message) {
-        chatSocket.send(JSON.stringify({ type: 'chat', message: message }));
-        input.value = '';
-      }
+        socket.addEventListener("open", () => console.log("✅ WebSocket connected"));
 
-      preview.classList.add("hidden");
-      previewContent.innerHTML = '';
-      fileInput.value = '';
-    }
+        socket.addEventListener("message", (event) => {
+          const data = JSON.parse(event.data);
+          switch (data.type) {
+            case "chat": renderMessage(data); break;
+            case "reaction": updateReaction(data); break;
+            case "typing": showTyping(); break;
+            case "users": updateUserList(data.users); break;
+          }
+        });
 
-    document.getElementById("file-input").addEventListener("change", (e) => {
-      const files = Array.from(e.target.files);
-      const preview = document.getElementById("preview");
-      const previewContent = document.getElementById("preview-content");
+        function renderMessage({ username: sender, message, message_id }) {
+          const isSelf = sender === username;
+          const wrapper = document.createElement("div");
+          wrapper.className = `message-bubble ${isSelf ? "sent" : "received"} group`;
+          wrapper.dataset.messageId = message_id || Date.now().toString();
 
-      if (files.length > 0) {
-        preview.classList.remove("hidden");
-        previewContent.innerHTML = '';
+          wrapper.innerHTML = `<div class="flex items-start">
+                          <div class="flex-1">
+                            <p class="text-xs font-semibold mb-0.5 ${isSelf ? "text-pink-500" : "text-yellow-600"}">${sender}</p>
+                            <div class="text-sm text-gray-700 message-content"></div>
+                          </div>
+                          <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                            <div class="flex space-x-1">
+                              <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm">❤️</span>
+                              <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm">👍</span>
+                              <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm">😂</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs"></div>
+                      `;
 
-        files.forEach(file => {
-          if (file.type.startsWith("image/")) {
+          // Inject message as raw HTML so <img> or <video> shows
+          wrapper.querySelector(".message-content").innerHTML = message;
+
+          chatLog.appendChild(wrapper);
+          chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+
+          addReactionListeners(wrapper);
+        }
+
+        function updateReaction({ message_id, reaction, count, users }) {
+          const msg = document.querySelector(`[data-message-id="${message_id}"]`);
+          if (!msg) return;
+
+          const container = msg.querySelector(".reactions-container");
+          let span = container.querySelector(`[data-emoji="${reaction}"]`);
+
+          if (!span) {
+            span = document.createElement("span");
+            span.className = "bg-white rounded-full px-2 py-0.5 inline-flex items-center shadow-sm cursor-pointer hover:bg-yellow-100 transition";
+            span.dataset.emoji = reaction;
+            container.appendChild(span);
+            span.addEventListener("click", () => {
+              socket.send(JSON.stringify({
+                type: "reaction",
+                message_id,
+                reaction
+              }));
+            });
+          }
+
+          if (count > 0) {
+            span.innerHTML = `${reaction} <span class="reaction-count ml-1">${count}</span>`;
+            span.title = users.join(", ");
+          } else {
+            span.remove();
+          }
+        }
+
+        function showTyping() {
+          const el = document.getElementById("typing-indicator");
+          el.classList.remove("hidden");
+          clearTimeout(window.typingTimeout);
+          window.typingTimeout = setTimeout(() => el.classList.add("hidden"), 1500);
+        }
+
+        function updateUserList(users) {
+          const userList = document.getElementById("user-list");
+          const mobileList = document.getElementById("mobile-user-list-content");
+          userList.innerHTML = "";
+          mobileList.innerHTML = "";
+          users.forEach(user => {
+            const li = document.createElement("li");
+            li.textContent = user;
+            userList.appendChild(li);
+
+            const span = document.createElement("span");
+            span.className = "user-list-item";
+            span.textContent = user;
+            mobileList.appendChild(span);
+          });
+          document.getElementById("mobile-user-list").classList.remove("hidden");
+        }
+
+        fileInput.addEventListener("change", (e) => {
+          uploadedFiles = [...e.target.files];
+          previewContainer.classList.remove("hidden");
+          previewContent.innerHTML = "";
+
+          uploadedFiles.forEach(file => {
             const reader = new FileReader();
-            reader.onload = event => {
-              previewContent.innerHTML += `<img src="${event.target.result}" class="max-w-xs rounded-xl" />`;
+            reader.onload = () => {
+              const preview = document.createElement("div");
+              preview.className = "file-preview";
+              if (file.type.startsWith("image")) {
+                preview.innerHTML = `<img src="${reader.result}" class="w-full rounded" />`;
+              } else if (file.type.startsWith("video")) {
+                preview.innerHTML = `<video controls class="w-full rounded"><source src="${reader.result}" type="${file.type}"></video>`;
+              }
+              previewContent.appendChild(preview);
             };
             reader.readAsDataURL(file);
-          } else if (file.type.startsWith("video/")) {
-            const url = URL.createObjectURL(file);
-            previewContent.innerHTML += `<video controls class="max-w-xs rounded-xl"><source src="${url}" type="${file.type}"></video>`;
+          });
+        });
+
+        cancelPreviewBtn.addEventListener("click", () => {
+          uploadedFiles = [];
+          fileInput.value = "";
+          previewContainer.classList.add("hidden");
+        });
+
+        async function uploadFilesAndSend() {
+          if (uploadedFiles.length === 0) return;
+
+          const formData = new FormData();
+          uploadedFiles.forEach(f => formData.append("media", f)); // ✅ MUST be 'media'
+
+          progressWrap.classList.remove("hidden");
+          progressBar.style.width = "0%";
+
+          const uploadUrl = "{% url 'upload_media' %}";
+          const response = await fetch(uploadUrl, {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+          progressBar.style.width = "100%";
+
+          if (result.success && result.urls.length > 0) {
+            result.urls.forEach(url => {
+              const html = url.match(/\.(mp4|webm)$/i)
+                ? `<video controls class='max-w-xs rounded-lg'><source src="${url}"></video>`
+                : `<img src="${url}" class='max-w-xs rounded-lg' />`;
+
+              socket.send(JSON.stringify({
+                type: "chat",
+                message: html,
+              }));
+            });
+          }
+
+          // Reset
+          fileInput.value = "";
+          uploadedFiles = [];
+          previewContainer.classList.add("hidden");
+          progressWrap.classList.add("hidden");
+        }
+
+        function sendMessage() {
+          const msg = input.value.trim();
+          if (msg) {
+            socket.send(JSON.stringify({ type: "chat", message: msg }));
+            input.value = "";
+          } else if (uploadedFiles.length > 0) {
+            uploadFilesAndSend();
+          }
+        }
+
+        input.addEventListener("keypress", e => {
+          if (e.key === "Enter") {
+            sendMessage();
           } else {
-            previewContent.innerHTML += `<p class="text-sm text-gray-600">📎 ${file.name}</p>`;
+            socket.send(JSON.stringify({ type: "typing" }));
           }
         });
-      }
-    });
 
-    document.getElementById("cancel-preview").addEventListener("click", () => {
-      const fileInput = document.getElementById("file-input");
-      const preview = document.getElementById("preview");
-      const previewContent = document.getElementById("preview-content");
-      fileInput.value = "";
-      preview.classList.add("hidden");
-      previewContent.innerHTML = "";
-    });
+        document.getElementById("chat-message-submit").addEventListener("click", sendMessage);
 
-    // Initialize emoji reactions on page load
-    document.addEventListener("DOMContentLoaded", () => {
-      // Setup click handlers for emoji reactions
-      document.querySelectorAll(".emoji-reaction").forEach(el => {
-        el.addEventListener("click", function(e) {
-          e.preventDefault();
-          e.stopPropagation();
+        const emojiButton = document.getElementById("emoji-button");
+        const emojiPanel = document.getElementById("emoji-panel");
 
-          // Get the emoji and message
-          const emoji = this.textContent;
-          const parentMsg = this.closest("[data-message-id]");
-          const messageId = parentMsg.dataset.messageId;
-
-          // Send to server
-          chatSocket.send(JSON.stringify({
-            type: "reaction",
-            message_id: messageId,
-            reaction: emoji,
-            username: username
-          }));
-
-          console.log(`Reacted with ${emoji} to message ${messageId}`);
+        emojiButton.addEventListener("click", () => emojiPanel.classList.toggle("show"));
+        document.addEventListener("click", e => {
+          if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+            emojiPanel.classList.remove("show");
+          }
         });
-      });
-    });
-  </script>
+
+        document.querySelectorAll(".emoji-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            input.value += btn.textContent;
+            input.focus();
+            emojiPanel.classList.remove("show");
+          });
+        });
+
+        document.addEventListener("click", function (e) {
+          if (e.target.matches("[data-emoji]")) {
+            const users = e.target.title?.split(", ") || [];
+            const list = document.getElementById("reactionUserList");
+            list.innerHTML = "";
+            users.forEach(name => {
+              const li = document.createElement("li");
+              li.textContent = name;
+              list.appendChild(li);
+            });
+            document.getElementById("reactionModal").classList.remove("hidden");
+          }
+        });
+
+        document.getElementById("closeModal").addEventListener("click", () => {
+          document.getElementById("reactionModal").classList.add("hidden");
+        });
+
+        function addReactionListeners(wrapper) {
+          const messageId = wrapper.dataset.messageId;
+          wrapper.querySelectorAll(".emoji-reaction").forEach(btn => {
+            const emoji = btn.textContent;
+            console.log(`Adding click listener for ${emoji} on message ${messageId}`);
+            btn.addEventListener("click", function () {
+              console.log(`Sending emoji ${emoji} for message ${messageId}`);
+              socket.send(JSON.stringify({
+                type: "reaction",
+                message_id: messageId,
+                reaction: emoji
+              }));
+            });
+          });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
+        });
+      })();
+      </script>
+
+
 </body>
 </html>

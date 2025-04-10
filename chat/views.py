@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from collections import defaultdict
+import os
 
 def index(request):
     all_rooms = Room.objects.annotate(message_count=Count('messages')).order_by('-message_count')
@@ -27,6 +28,10 @@ def index(request):
         'user': request.user
     })
 
+def new_message(request):
+    msg = request.POST.get('data')
+    message = Message(content=msg)
+    message.save()
 
 def load_more_rooms(request):
     page = int(request.GET.get('page', 1))
@@ -106,9 +111,11 @@ def signup(request):
 
 @csrf_exempt
 def upload_media(request):
-    if request.method == 'POST' and request.FILES.get('media'):
-        file = request.FILES['media']
-        path = default_storage.save(f'chat_uploads/{file.name}', ContentFile(file.read()))
-        media_url = default_storage.url(path)
-        return JsonResponse({'url': media_url})
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    if request.method == 'POST' and request.FILES.getlist('media'):
+        urls = []
+        for f in request.FILES.getlist('media'):
+            path = default_storage.save(f'chat_uploads/{f.name}', ContentFile(f.read()))
+            urls.append(default_storage.url(path))
+        return JsonResponse({'success': True, 'urls': urls})
+    return JsonResponse({'success': False, 'error': 'No files received'}, status=400)
+

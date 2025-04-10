@@ -8,43 +8,51 @@
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
   <meta charset="UTF-8">
   <title>EUPHORIE Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Nunito', sans-serif;
+      overflow-x: hidden;
+      width: 100%;
     }
+
     .room-card:hover {
       transform: scale(1.015);
       transition: transform 0.2s ease;
     }
+
     .accordion-content {
       display: none;
     }
+
     .accordion.open .accordion-content {
       display: block;
     }
+
     .sample-msg {
       font-size: 0.85rem;
       color: #666;
       margin-top: 0.25rem;
     }
 
-    /* Animation classes */
+    /* Simplified animations */
     .floating {
       animation: floating 3s ease-in-out infinite;
     }
+
     @keyframes floating {
-      0% { transform: translateY(0px); }
+      0% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
+      100% { transform: translateY(0); }
     }
 
     .pulse {
       animation: pulse 2s infinite;
     }
+
     @keyframes pulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.05); }
@@ -53,26 +61,19 @@
 
     .fade-in {
       opacity: 0;
-      animation: fadeIn 1s forwards;
+      animation: fadeIn 0.8s forwards;
     }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
-    }
-
-    .typing-animation::after {
-      content: '|';
-      animation: blink 1s step-end infinite;
-    }
-    @keyframes blink {
-      from, to { opacity: 0; }
-      50% { opacity: 1; }
     }
 
     .gradient-text {
       background: linear-gradient(90deg, #f472b6, #fbbf24);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .bubble {
@@ -82,6 +83,7 @@
       padding: 15px;
       filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07));
     }
+
     .bubble:after {
       content: '';
       position: absolute;
@@ -95,314 +97,383 @@
       margin-left: -12px;
       margin-bottom: -12px;
     }
+
+    /* Fix horizontal overflow issues */
+    .container-fluid {
+      width: 100%;
+      padding-right: 15px;
+      padding-left: 15px;
+      margin-right: auto;
+      margin-left: auto;
+    }
+
+    /* Ensure content doesn't cause horizontal scroll */
+    .content-container {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Hide scrollbar but allow scrolling */
+    .hide-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+
+    /* Enhanced room card hover effect */
+    .room-card {
+      transition: all 0.25s ease;
+    }
+
+    .room-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border-color: #f472b6;
+    }
   </style>
 </head>
-<body class="bg-gradient-to-br from-pink-50 via-yellow-50 to-white min-h-screen flex flex-col justify-between text-gray-800 font-sans px-4 py-6">
-
-  {% if not user.is_authenticated %}
-  <!-- Hero Section for Guest Users -->
-  <div class="w-full max-w-6xl mx-auto mb-10 fade-in" style="animation-delay: 0.2s;">
-    <div class="flex flex-col md:flex-row items-center justify-between gap-8 py-8">
-      <div class="md:w-1/2 space-y-6">
-        <div class="space-y-2">
-          <h1 class="text-5xl font-extrabold gradient-text tracking-tight">EUPHORIE</h1>
-          <p class="text-lg text-yellow-600 italic">A cozy corner to chat, connect & express 💕</p>
-        </div>
-
-        <p class="text-lg text-gray-700 leading-relaxed">Experience conversations that feel like warm cups of tea on a rainy day. Browse our public rooms and see what makes our community special before joining.</p>
-
-        <div class="flex flex-col sm:flex-row gap-4 pt-4">
-          <a href="/login/?next=/" class="px-8 py-3 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl text-center transition shadow-md hover:shadow-lg">
-            🏠 Explore Rooms
-          </a>
-          <a href="{% url 'signup' %}" class="px-8 py-3 bg-white hover:bg-gray-50 text-pink-500 font-bold rounded-xl text-center transition border-2 border-pink-300 shadow-sm hover:shadow-md">
-            ✨ Join EUPHORIE
-          </a>
-        </div>
-      </div>
-
-      <!-- Chat illustration -->
-      <div class="md:w-1/2 relative">
-        <div class="bubble floating" style="animation-delay: 0.5s; top: -30px; right: 20px; z-index: 2;">
-          <span class="font-medium text-pink-500">💭 Our book club is reading "The Midnight Library" this week!</span>
-        </div>
-
-        <div class="bubble floating" style="animation-delay: 1s; bottom: -20px; left: 40px; z-index: 3;">
-          <span class="font-medium text-yellow-600">🌟 Just shared my new art. Come check it out in the creativity room!</span>
-        </div>
-
-        <div class="bg-white/80 rounded-3xl shadow-lg p-6 border-2 border-yellow-200">
-          <div class="flex items-center gap-3 border-b border-gray-100 pb-3">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold">E</div>
-            <div class="text-lg font-semibold text-pink-500">Friends Forever Room</div>
+<body class="bg-gradient-to-br from-pink-50 via-yellow-50 to-white min-h-screen flex flex-col justify-between text-gray-800 font-sans">
+  <div class="content-container px-4 py-6 w-full">
+    {% if not user.is_authenticated %}
+    <!-- Hero Section for Guest Users -->
+    <div class="w-full max-w-6xl mx-auto mb-8 fade-in">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 py-6">
+        <div class="md:w-1/2 space-y-4">
+          <div class="space-y-1">
+            <h1 class="text-4xl md:text-5xl font-extrabold gradient-text tracking-tight">EUPHORIE</h1>
+            <p class="text-lg text-yellow-600 italic">A cozy corner to chat, connect & express 💕</p>
           </div>
 
-          <div class="py-4 space-y-4">
+          <p class="text-lg text-gray-700 leading-relaxed">Experience conversations that feel like warm cups of tea on a rainy day.</p>
+
+          <div class="flex flex-col sm:flex-row gap-4 pt-3">
+            <a href="/login/?next=/" class="px-6 py-3 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl text-center transition shadow-md hover:shadow-lg">
+              🏠 Explore Rooms
+            </a>
+            <a href="{% url 'signup' %}" class="px-6 py-3 bg-white hover:bg-gray-50 text-pink-500 font-bold rounded-xl text-center transition border-2 border-pink-300 shadow-sm hover:shadow-md">
+              ✨ Join EUPHORIE
+            </a>
+          </div>
+        </div>
+
+        <!-- Chat illustration - simplified for mobile -->
+        <div class="md:w-1/2 relative mt-6 md:mt-0">
+          <div class="bubble floating hidden md:block" style="animation-delay: 0.5s; top: -30px; right: 20px; z-index: 2;">
+            <span class="font-medium text-pink-500">💭 Our book club is reading "The Midnight Library" this week!</span>
+          </div>
+
+          <div class="bg-white/80 rounded-3xl shadow-lg p-5 border-2 border-yellow-200">
+            <div class="flex items-center gap-3 border-b border-gray-100 pb-3">
+              <div class="h-10 w-10 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold">E</div>
+              <div class="text-lg font-semibold text-pink-500">Friends Forever Room</div>
+            </div>
+
+            <div class="py-4 space-y-4">
+              <div class="flex gap-3">
+                <div class="h-8 w-8 rounded-full bg-blue-100 flex-shrink-0"></div>
+                <div class="bg-gray-100 rounded-2xl px-4 py-2 max-w-[80%]">
+                  <p>Has anyone tried that new café downtown? 😊</p>
+                </div>
+              </div>
+
+              <div class="flex gap-3 justify-end">
+                <div class="bg-pink-100 rounded-2xl px-4 py-2 max-w-[80%]">
+                  <p>Yes! Their lavender latte is amazing! 💜</p>
+                </div>
+                <div class="h-8 w-8 rounded-full bg-pink-200 flex-shrink-0"></div>
+              </div>
+
+              <div class="flex gap-3">
+                <div class="h-8 w-8 rounded-full bg-yellow-100 flex-shrink-0"></div>
+                <div class="bg-gray-100 rounded-2xl px-4 py-2 max-w-[80%]">
+                  <p>We should plan a meetup there this weekend! 🙌</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Active Conversations Section -->
+    <div class="w-full max-w-6xl mx-auto mb-8 fade-in">
+      <div class="bg-white/90 p-5 rounded-2xl shadow-lg border-2 border-pink-200">
+        <div class="flex justify-between items-center mb-5">
+          <div>
+            <h3 class="text-2xl font-bold text-pink-500">🔥 Discover Active Conversations</h3>
+            <p class="text-sm text-gray-600 mt-1">Join hundreds of cozy chat rooms where people connect daily</p>
+          </div>
+          <a href="{% url 'signup' %}" class="hidden sm:block px-4 py-2 bg-pink-400 hover:bg-pink-500 text-white font-semibold rounded-xl transition shadow-sm hover:shadow-md text-sm">
+            Join Now →
+          </a>
+        </div>
+
+        <!-- Room Activity Stats - Visually enhanced -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-pink-50 to-pink-100 p-4 rounded-xl shadow-sm border border-pink-200 text-center">
+            <div class="text-3xl font-bold text-pink-500">{{ active_rooms|length|default:"28" }}</div>
+            <div class="text-sm font-medium text-gray-700">Active Rooms</div>
+          </div>
+          <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl shadow-sm border border-yellow-200 text-center">
+            <div class="text-3xl font-bold text-yellow-600">{{ total_messages|default:"1,240" }}</div>
+            <div class="text-sm font-medium text-gray-700">Messages Today</div>
+          </div>
+          <div class="bg-gradient-to-br from-pink-50 to-pink-100 p-4 rounded-xl shadow-sm border border-pink-200 text-center">
+            <div class="text-3xl font-bold text-pink-500">{{ online_users|default:"43" }}</div>
+            <div class="text-sm font-medium text-gray-700">People Online</div>
+          </div>
+        </div>
+
+        <!-- Featured Room with Preview - NEW -->
+        <div class="mb-6 bg-gradient-to-r from-pink-50 to-yellow-50 p-4 rounded-xl border border-pink-200">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="h-12 w-12 rounded-full bg-gradient-to-r from-pink-400 to-yellow-400 flex items-center justify-center text-white font-bold text-xl">
+                B
+              </div>
+              <div>
+                <h4 class="font-bold text-pink-500 text-lg">Book Lovers Club</h4>
+                <p class="text-xs text-gray-600">142 messages • 16 people chatting</p>
+              </div>
+            </div>
+            <div class="bg-pink-100 text-pink-600 text-xs font-bold px-2 py-1 rounded-full">Trending</div>
+          </div>
+
+          <!-- Sample Messages -->
+          <div class="bg-white rounded-xl p-3 shadow-sm space-y-2 mb-3">
             <div class="flex gap-3">
               <div class="h-8 w-8 rounded-full bg-blue-100 flex-shrink-0"></div>
-              <div class="bg-gray-100 rounded-2xl px-4 py-2 max-w-[80%]">
-                <p>Has anyone tried that new café downtown? 😊</p>
+              <div class="bg-gray-100 rounded-2xl px-3 py-2 max-w-[80%]">
+                <p class="text-sm">Has anyone started reading "Tomorrow, and Tomorrow, and Tomorrow" yet?</p>
               </div>
             </div>
 
             <div class="flex gap-3 justify-end">
-              <div class="bg-pink-100 rounded-2xl px-4 py-2 max-w-[80%]">
-                <p>Yes! Their lavender latte is amazing! 💜</p>
+              <div class="bg-pink-100 rounded-2xl px-3 py-2 max-w-[80%]">
+                <p class="text-sm">Yes! I'm halfway through and it's absolutely captivating! 📚✨</p>
               </div>
               <div class="h-8 w-8 rounded-full bg-pink-200 flex-shrink-0"></div>
             </div>
+          </div>
 
-            <div class="flex gap-3">
-              <div class="h-8 w-8 rounded-full bg-yellow-100 flex-shrink-0"></div>
-              <div class="bg-gray-100 rounded-2xl px-4 py-2 max-w-[80%]">
-                <p>We should plan a meetup there this weekend! Who's in? 🙌</p>
+          <a href="{% url 'signup' %}" class="block w-full text-center py-2 bg-white hover:bg-gray-50 text-pink-500 font-medium rounded-lg transition border border-pink-200 text-sm">
+            Join this conversation
+          </a>
+        </div>
+
+        <!-- Enhanced Room Categories - Visual tabs -->
+        <div class="mb-5">
+          <div class="flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
+            <button class="px-4 py-2 bg-pink-400 text-white rounded-lg font-medium text-sm whitespace-nowrap">All Rooms</button>
+            <button class="px-4 py-2 bg-white text-pink-500 rounded-lg font-medium text-sm whitespace-nowrap border border-pink-200">Book Club</button>
+            <button class="px-4 py-2 bg-white text-pink-500 rounded-lg font-medium text-sm whitespace-nowrap border border-pink-200">Art & Creativity</button>
+            <button class="px-4 py-2 bg-white text-pink-500 rounded-lg font-medium text-sm whitespace-nowrap border border-pink-200">Music</button>
+            <button class="px-4 py-2 bg-white text-pink-500 rounded-lg font-medium text-sm whitespace-nowrap border border-pink-200">Gaming</button>
+            <button class="px-4 py-2 bg-white text-pink-500 rounded-lg font-medium text-sm whitespace-nowrap border border-pink-200">Cooking</button>
+          </div>
+        </div>
+
+        <!-- Expanded Room Grid - More rooms, better presentation -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
+          {% for room in active_rooms|slice:"0:9" %}
+          <div class="relative">
+            {% if room.is_new %}<span class="absolute -top-2 -right-2 bg-pink-400 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">Hot</span>{% endif %}
+            <a href="{% url 'room' room.name %}" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold text-xs">
+                  {{ room.display_name|slice:":1" }}
+                </div>
+                <div class="text-pink-500 font-medium truncate">{{ room.display_name }}</div>
               </div>
-            </div>
-
-            <div class="typing-animation text-sm text-gray-400 ml-12">Someone is typing...</div>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">{{ room.message_count }} messages</div>
+                <div class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">{{ room.active_users|default:"3" }} active</div>
+              </div>
+              <div class="mt-2 text-xs italic text-gray-500 truncate">"{{ room.last_message|default:"Join the conversation..." }}"</div>
+            </a>
           </div>
+          {% empty %}
+          <!-- Fallback rooms if none provided by context -->
+          <div class="relative">
+            <span class="absolute -top-2 -right-2 bg-pink-400 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">Hot</span>
+            <a href="#" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold text-xs">C</div>
+                <div class="text-pink-500 font-medium truncate">Cozy Movie Nights</div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">78 messages</div>
+                <div class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">12 active</div>
+              </div>
+              <div class="mt-2 text-xs italic text-gray-500 truncate">"What's everyone watching this weekend?"</div>
+            </a>
+          </div>
+          <div class="relative">
+            <a href="#" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold text-xs">P</div>
+                <div class="text-pink-500 font-medium truncate">Plant Parents</div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">63 messages</div>
+                <div class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">9 active</div>
+              </div>
+              <div class="mt-2 text-xs italic text-gray-500 truncate">"My monstera grew three new leaves this week!"</div>
+            </a>
+          </div>
+          <div class="relative">
+            <a href="#" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold text-xs">M</div>
+                <div class="text-pink-500 font-medium truncate">Music Lovers</div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">92 messages</div>
+                <div class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">14 active</div>
+              </div>
+              <div class="mt-2 text-xs italic text-gray-500 truncate">"Anyone hear the new album by The Greeting Committee?"</div>
+            </a>
+          </div>
+          <div class="relative">
+            <a href="#" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold text-xs">F</div>
+                <div class="text-pink-500 font-medium truncate">Foodies Unite</div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">104 messages</div>
+                <div class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">17 active</div>
+              </div>
+              <div class="mt-2 text-xs italic text-gray-500 truncate">"Just made the fluffiest pancakes ever! Recipe inside ⭐"</div>
+            </a>
+          </div>
+          <div class="relative">
+            <span class="absolute -top-2 -right-2 bg-pink-400 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">New</span>
+            <a href="#" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold text-xs">A</div>
+                <div class="text-pink-500 font-medium truncate">Anime Hangout</div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">47 messages</div>
+                <div class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">8 active</div>
+              </div>
+              <div class="mt-2 text-xs italic text-gray-500 truncate">"What's your all-time favorite series?"</div>
+            </a>
+          </div>
+          <div class="relative">
+            <a href="#" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold text-xs">S</div>
+                <div class="text-pink-500 font-medium truncate">Self-Care Sunday</div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">72 messages</div>
+                <div class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">11 active</div>
+              </div>
+              <div class="mt-2 text-xs italic text-gray-500 truncate">"My favorite meditation app changed everything!"</div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- View More Button -->
+        <div class="text-center">
+          <a href="{% url 'signup' %}" class="inline-block px-6 py-3 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition">
+            See All Rooms →
+          </a>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Active Rooms Preview - Enhanced Section -->
-  <div class="w-full max-w-6xl mx-auto fade-in" style="animation-delay: 0.6s;">
-    <div class="bg-white/90 p-6 rounded-2xl shadow-lg border border-yellow-100">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-semibold text-pink-400">🔥 Active Conversations Happening Now</h3>
-        <a href="{% url 'signup' %}" class="text-sm text-pink-500 hover:text-pink-600 font-semibold">Sign up to join in →</a>
-      </div>
-
-      <!-- Featured Room Preview - Larger display for most active room -->
-      {% with featured_room=active_rooms.0 %}
-      {% if featured_room %}
-      <div class="mb-8 bg-gradient-to-r from-pink-50 to-yellow-50 p-4 rounded-xl border border-pink-200">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-r from-pink-300 to-yellow-300 flex items-center justify-center text-white font-bold">
-              {{ featured_room.display_name|slice:":1" }}
-            </div>
-            <div>
-              <h4 class="font-bold text-pink-500">{{ featured_room.display_name }}</h4>
-              <p class="text-xs text-gray-500">{{ featured_room.message_count }} messages • {{ featured_room.active_users|default:"5" }} people chatting</p>
-            </div>
-          </div>
-          <a href="{% url 'room' featured_room.name %}" class="px-3 py-1 bg-pink-400 hover:bg-pink-500 text-white text-sm font-medium rounded-lg transition">
-            Join Room
+    <!-- Final CTA - Simplified -->
+    <div class="w-full max-w-3xl mx-auto text-center my-8 fade-in">
+      <div class="bg-gradient-to-r from-pink-100 to-yellow-100 p-6 rounded-3xl shadow-md">
+        <h2 class="text-2xl font-bold mb-3 text-pink-500">Ready to join?</h2>
+        <p class="text-lg text-gray-700 mb-4">Create your account to join the conversation!</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="{% url 'signup' %}" class="pulse px-6 py-3 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl text-center transition shadow-md">
+            ✨ Sign Up Now
+          </a>
+          <a href="{% url 'login' %}" class="px-6 py-3 bg-white hover:bg-gray-50 text-pink-500 font-bold rounded-xl text-center transition border-2 border-pink-300 shadow-sm">
+            🔑 Log In
           </a>
         </div>
+      </div>
+    </div>
+    {% else %}
+    <!-- Content for logged-in users -->
+    <main class="w-full max-w-5xl mx-auto space-y-6">
+      <!-- Header -->
+      <div class="text-center space-y-1">
+        <h1 class="text-3xl font-extrabold text-pink-400 tracking-tight">EUPHORIE</h1>
+        <p class="text-sm text-yellow-600 italic">A cozy corner to chat, connect & express 💕</p>
+      </div>
 
-        <!-- Sample Messages -->
-        <div class="bg-white rounded-xl p-4 shadow-sm space-y-3 mb-3">
+      <!-- Room Entry Form -->
+      <div class="bg-white/90 p-5 rounded-2xl shadow-lg border border-yellow-100">
+        <h2 class="text-base text-center text-pink-500 font-medium mb-4">👋 Hey <span class="font-semibold">{{ user.username }}</span>, ready to dive in?</h2>
+        <form id="room-form" onsubmit="event.preventDefault(); enterRoom();" class="space-y-3">
+          <label for="room-name-input" class="block text-sm font-medium text-gray-700">💡 Start or Join a Room</label>
           <div class="flex gap-3">
-            <div class="h-8 w-8 rounded-full bg-blue-100 flex-shrink-0"></div>
-            <div class="bg-gray-100 rounded-2xl px-4 py-2 max-w-[80%]">
-              <p class="text-sm">{{ featured_room.sample_message1|default:"Has anyone checked out the new book recommendations?" }}</p>
-            </div>
+            <input id="room-name-input" type="text" placeholder="e.g. book-club" required class="flex-1 px-4 py-2 border border-gray-300 text-gray-800 rounded-xl focus:ring-pink-300 focus:outline-none" />
+            <button type="submit" class="px-5 py-2 bg-pink-300 hover:bg-pink-400 text-white font-semibold rounded-xl transition">
+              🚪 Go
+            </button>
           </div>
+        </form>
+      </div>
 
-          <div class="flex gap-3 justify-end">
-            <div class="bg-pink-100 rounded-2xl px-4 py-2 max-w-[80%]">
-              <p class="text-sm">{{ featured_room.sample_message2|default:"Yes! I'm reading 'The Midnight Library' right now and it's amazing!" }}</p>
-            </div>
-            <div class="h-8 w-8 rounded-full bg-pink-200 flex-shrink-0"></div>
+      <!-- Active Rooms -->
+      <section class="bg-white/90 p-5 rounded-2xl shadow-lg border border-yellow-100">
+        <h3 class="text-xl font-semibold mb-4 text-pink-400">🔥 Active Rooms</h3>
+        <div id="room-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {% for room in active_rooms %}
+          <div class="relative">
+            {% if room.is_new %}<span class="absolute -top-2 -right-2 bg-pink-400 text-white text-xs font-bold px-2 py-0.5 rounded-full">New</span>{% endif %}
+            <a href="/chat/{{ room.name }}/" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 px-4 py-3 rounded-xl transition shadow-sm hover:shadow-md">
+              <div class="text-pink-500 font-medium truncate">🗨️ {{ room.display_name }}</div>
+              <div class="text-xs text-gray-500">{{ room.message_count }} messages{% if room.unread_count %} • <span class="text-pink-400 font-semibold">{{ room.unread_count }} new</span>{% endif %}</div>
+            </a>
           </div>
+          {% endfor %}
+        </div>
+      </section>
 
-          <div class="flex gap-3">
-            <div class="h-8 w-8 rounded-full bg-yellow-100 flex-shrink-0"></div>
-            <div class="bg-gray-100 rounded-2xl px-4 py-2 max-w-[80%]">
-              <p class="text-sm">{{ featured_room.sample_message3|default:"I'll add that to my list! Anyone interested in a virtual reading session this weekend?" }}</p>
-            </div>
+      <!-- Feature Highlights -->
+      <section class="md:grid md:grid-cols-3 gap-4 mt-6 text-sm text-center text-gray-700">
+        <div class="accordion md:block mb-2 md:mb-0">
+          <button onclick="this.parentElement.classList.toggle('open')" class="md:hidden w-full text-left bg-yellow-100 px-4 py-2 rounded-xl font-medium">🌸 Sweet Vibes</button>
+          <div class="accordion-content md:block bg-yellow-100 p-4 rounded-xl shadow-sm">
+            <p class="font-semibold text-pink-400">Sweet Vibes</p>
+            <p>Pastel pinks and sunny yellows</p>
           </div>
         </div>
-
-        <p class="text-center text-sm text-gray-500 italic">This is a preview of conversations in {{ featured_room.display_name }} • <a href="{% url 'room' featured_room.name %}" class="text-pink-500 hover:underline">Visit room</a></p>
-      </div>
-      {% endif %}
-      {% endwith %}
-
-      <!-- Room Activity Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-yellow-100 text-center">
-          <div class="text-2xl font-bold text-pink-500">{{ active_rooms|length }}</div>
-          <div class="text-sm text-gray-600">Active Rooms</div>
+        <div class="accordion md:block mb-2 md:mb-0">
+          <button onclick="this.parentElement.classList.toggle('open')" class="md:hidden w-full text-left bg-pink-100 px-4 py-2 rounded-xl font-medium">🔐 Private Rooms</button>
+          <div class="accordion-content md:block bg-pink-100 p-4 rounded-xl shadow-sm">
+            <p class="font-semibold text-yellow-600">Private Rooms</p>
+            <p>Only you and your invited friends</p>
+          </div>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-yellow-100 text-center">
-          <div class="text-2xl font-bold text-yellow-500">{{ total_messages|default:"1,240" }}</div>
-          <div class="text-sm text-gray-600">Messages Today</div>
+        <div class="accordion md:block">
+          <button onclick="this.parentElement.classList.toggle('open')" class="md:hidden w-full text-left bg-yellow-100 px-4 py-2 rounded-xl font-medium">🤖 AI Chatbot</button>
+          <div class="accordion-content md:block bg-yellow-100 p-4 rounded-xl shadow-sm">
+            <p class="font-semibold text-pink-400">AI Chatbot Coming Soon</p>
+            <p>Talk to your virtual BFF!</p>
+          </div>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-yellow-100 text-center">
-          <div class="text-2xl font-bold text-pink-500">{{ online_users|default:"43" }}</div>
-          <div class="text-sm text-gray-600">People Online</div>
-        </div>
-      </div>
-
-      <!-- Room Grid -->
-      <h4 class="font-medium text-gray-700 mb-3">More Active Rooms:</h4>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {% for room in active_rooms|slice:"1:7" %}
-        <div class="relative">
-          {% if room.is_new %}<span class="absolute -top-2 -right-2 bg-pink-400 text-white text-xs font-bold px-2 py-0.5 rounded-full">Hot</span>{% endif %}
-          <a href="{% url 'room' room.name %}" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 px-4 py-3 rounded-xl shadow-sm hover:shadow-md transition">
-            <div class="text-pink-500 font-medium truncate">🗨️ {{ room.display_name }}</div>
-            <div class="text-xs text-gray-500">{{ room.message_count }} messages • {{ room.active_users|default:"3" }} active</div>
-            <div class="sample-msg italic">"{{ room.last_message|default:"Click to preview this room!" }}"</div>
-          </a>
-        </div>
-        {% endfor %}
-      </div>
-
-      <!-- Room Categories -->
-      <div class="mt-6 pt-4 border-t border-gray-100">
-        <h4 class="font-medium text-gray-700 mb-3">Popular Topics:</h4>
-        <div class="flex flex-wrap gap-2">
-          <a href="#" class="px-3 py-1 bg-pink-100 text-pink-600 rounded-full text-sm hover:bg-pink-200 transition">Book Club</a>
-          <a href="#" class="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-full text-sm hover:bg-yellow-200 transition">Art & Creativity</a>
-          <a href="#" class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm hover:bg-blue-200 transition">Music Lovers</a>
-          <a href="#" class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm hover:bg-green-200 transition">Plant Parents</a>
-          <a href="#" class="px-3 py-1 bg-purple-100 text-purple-600 rounded-full text-sm hover:bg-purple-200 transition">Gaming</a>
-          <a href="#" class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm hover:bg-red-200 transition">Cooking</a>
-          <a href="#" class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm hover:bg-indigo-200 transition">Technology</a>
-          <a href="#" class="px-3 py-1 bg-pink-100 text-pink-600 rounded-full text-sm hover:bg-pink-200 transition">Self-Care</a>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
+    {% endif %}
   </div>
-
-  <!-- Live Activity Feed -->
-  <div class="w-full max-w-6xl mx-auto fade-in my-8" style="animation-delay: 0.7s;">
-    <div class="bg-white/90 p-6 rounded-2xl shadow-lg border border-pink-100">
-      <h3 class="text-xl font-semibold mb-4 text-pink-400">💫 Live Activity Feed</h3>
-
-      <div class="space-y-3">
-        <!-- Activity items with different content types -->
-        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 animate-pulse">
-          <div class="h-8 w-8 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center font-medium text-blue-500">A</div>
-          <div>
-            <p class="text-sm"><span class="font-medium text-blue-500">Alex</span> just shared a photo in <span class="text-pink-500">Photography Enthusiasts</span> • 2 mins ago</p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <div class="h-8 w-8 rounded-full bg-green-100 flex-shrink-0 flex items-center justify-center font-medium text-green-500">J</div>
-          <div>
-            <p class="text-sm"><span class="font-medium text-green-500">Jamie</span> created a new room <span class="text-pink-500">Cozy Gaming Corner</span> • 14 mins ago</p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <div class="h-8 w-8 rounded-full bg-purple-100 flex-shrink-0 flex items-center justify-center font-medium text-purple-500">S</div>
-          <div>
-            <p class="text-sm"><span class="font-medium text-purple-500">Sofia</span> shared a music playlist in <span class="text-pink-500">Indie Music Fans</span> • 27 mins ago</p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <div class="h-8 w-8 rounded-full bg-yellow-100 flex-shrink-0 flex items-center justify-center font-medium text-yellow-600">T</div>
-          <div>
-            <p class="text-sm"><span class="font-medium text-yellow-600">Taylor</span> asked a question in <span class="text-pink-500">DIY Crafts</span> • 42 mins ago</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 flex justify-between items-center">
-        <p class="text-sm text-gray-500">See real-time updates from our community</p>
-        <a href="{% url 'signup' %}" class="text-sm font-medium text-pink-500 hover:text-pink-600">Join to participate →</a>
-      </div>
-    </div>
-  </div>
-
-
-
-  <!-- Final CTA -->
-  <div class="w-full max-w-3xl mx-auto text-center my-12 fade-in" style="animation-delay: 1s;">
-    <div class="bg-gradient-to-r from-pink-100 to-yellow-100 p-8 rounded-3xl shadow-md">
-      <h2 class="text-2xl md:text-3xl font-bold mb-4 text-pink-500">Enjoying EUPHORIE so far?</h2>
-      <p class="text-lg text-gray-700 mb-6">Create your account to join the conversation, create your own rooms, and unlock all features!</p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="{% url 'signup' %}" class="pulse px-8 py-3 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl text-center transition shadow-md hover:shadow-lg">
-          ✨ Sign Up Now
-        </a>
-        <a href="{% url 'login' %}" class="px-8 py-3 bg-white hover:bg-gray-50 text-pink-500 font-bold rounded-xl text-center transition border-2 border-pink-300 shadow-sm hover:shadow-md">
-          🔑 Log In
-        </a>
-      </div>
-    </div>
-  </div>
-  {% else %}
-  <!-- Original content for logged-in users -->
-  <main class="w-full max-w-5xl mx-auto space-y-6">
-    <!-- Gentle Header -->
-    <div class="text-center space-y-1">
-      <h1 class="text-3xl font-extrabold text-pink-400 tracking-tight">EUPHORIE</h1>
-      <p class="text-sm text-yellow-600 italic">A cozy corner to chat, connect & express 💕</p>
-    </div>
-
-    <!-- Room Entry Form -->
-    <div class="bg-white/90 p-6 rounded-2xl shadow-lg border border-yellow-100">
-      <h2 class="text-base text-center text-pink-500 font-medium mb-4">👋 Hey <span class="font-semibold">{{ user.username }}</span>, ready to dive in?</h2>
-      <form id="room-form" onsubmit="event.preventDefault(); enterRoom();" class="space-y-3">
-        <label for="room-name-input" class="block text-sm font-medium text-gray-700">💡 Start or Join a Room</label>
-        <div class="flex gap-3">
-          <input id="room-name-input" type="text" placeholder="e.g. book-club" required class="flex-1 px-4 py-2 border border-gray-300 text-gray-800 rounded-xl focus:ring-pink-300 focus:outline-none" />
-          <button type="submit" class="px-5 py-2 bg-pink-300 hover:bg-pink-400 text-white font-semibold rounded-xl transition">
-            🚪 Go
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Active Rooms -->
-    <section class="bg-white/90 p-6 rounded-2xl shadow-lg border border-yellow-100">
-      <h3 class="text-xl font-semibold mb-4 text-pink-400">🔥 Active Rooms</h3>
-      <div id="room-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {% for room in active_rooms %}
-        <div class="relative">
-          {% if room.is_new %}<span class="absolute -top-2 -right-2 bg-pink-400 text-white text-xs font-bold px-2 py-0.5 rounded-full">New</span>{% endif %}
-          <a href="/chat/{{ room.name }}/" class="room-card block bg-white border border-yellow-200 hover:border-pink-300 px-4 py-3 rounded-xl transition shadow-sm hover:shadow-md">
-            <div class="text-pink-500 font-medium truncate">🗨️ {{ room.display_name }}</div>
-            <div class="text-xs text-gray-500">{{ room.message_count }} messages{% if room.unread_count %} • <span class="text-pink-400 font-semibold">{{ room.unread_count }} new</span>{% endif %}</div>
-          </a>
-        </div>
-        {% endfor %}
-      </div>
-      <div id="loading" class="text-center text-sm text-gray-400 mt-3 hidden">
-        Loading more rooms...
-      </div>
-    </section>
-
-    <!-- Feature Highlights (Accordion on Mobile) -->
-    <section class="md:grid md:grid-cols-3 gap-4 mt-8 text-sm text-center text-gray-700">
-      <div class="accordion md:block">
-        <button onclick="this.parentElement.classList.toggle('open')" class="md:hidden w-full text-left bg-yellow-100 px-4 py-2 rounded-xl font-medium">🌸 Sweet Vibes</button>
-        <div class="accordion-content md:block bg-yellow-100 p-4 rounded-xl shadow-sm">
-          <p class="font-semibold text-pink-400">Sweet Vibes</p>
-          <p>Pastel pinks and sunny yellows</p>
-        </div>
-      </div>
-      <div class="accordion md:block">
-        <button onclick="this.parentElement.classList.toggle('open')" class="md:hidden w-full text-left bg-pink-100 px-4 py-2 rounded-xl font-medium">🔐 Private Rooms</button>
-        <div class="accordion-content md:block bg-pink-100 p-4 rounded-xl shadow-sm">
-          <p class="font-semibold text-yellow-600">Private Rooms</p>
-          <p>Only you and your invited friends</p>
-        </div>
-      </div>
-      <div class="accordion md:block">
-        <button onclick="this.parentElement.classList.toggle('open')" class="md:hidden w-full text-left bg-yellow-100 px-4 py-2 rounded-xl font-medium">🤖 AI Chatbot</button>
-        <div class="accordion-content md:block bg-yellow-100 p-4 rounded-xl shadow-sm">
-          <p class="font-semibold text-pink-400">AI Chatbot Coming Soon</p>
-          <p>Talk to your virtual BFF!</p>
-        </div>
-      </div>
-    </section>
-  </main>
-  {% endif %}
 
   <!-- Footer -->
-  <footer class="mt-10 text-center text-sm text-gray-500 border-t pt-4">
+  <footer class="mt-8 text-center text-sm text-gray-500 border-t pt-4 px-4">
     <p class="mb-1">&copy; 2025 <span class="font-semibold text-pink-400">Euphorie Chat</span>. All rights reserved.</p>
-    <p class="mb-1">✨ Explore more from our cozy corner of the web:</p>
     <div class="flex justify-center gap-4 text-sm mt-1">
       <a href="https://crene.com" target="_blank" class="text-blue-500 hover:underline font-medium">Crene</a>
       <a href="https://diaryvault.com" target="_blank" class="text-blue-500 hover:underline font-medium">DiaryVault</a>
@@ -414,13 +485,11 @@
       const rawInput = document.getElementById('room-name-input').value;
       const slugified = rawInput.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       if (slugified) {
-        window.location.href = `/chat/${slugified}/`;  // Make sure this has /chat/ not /room/
+        window.location.href = `/chat/${slugified}/`;
       } else {
         alert("Please enter a valid room name.");
       }
     }
-
-    // This function was removed as rooms are now directly accessible to visitors
 
     // Add fade-in animation for elements as they scroll into view
     document.addEventListener('DOMContentLoaded', function() {
@@ -434,40 +503,6 @@
 
       document.querySelectorAll('.fade-in').forEach(el => {
         observer.observe(el);
-      });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const links = document.querySelectorAll('a');
-      links.forEach(link => {
-        const originalHref = link.getAttribute('href');
-        link.addEventListener('click', function(event) {
-          console.log('Clicked link with href:', originalHref);
-
-          // If the link appears to be a Django template tag that wasn't properly rendered
-          if (originalHref && originalHref.includes('{%')) {
-            console.error('Link appears to contain unrendered Django template tag:', originalHref);
-            event.preventDefault();
-            alert('Link error: Please contact the site administrator');
-          }
-        });
-      });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const links = document.querySelectorAll('a');
-      links.forEach(link => {
-        const originalHref = link.getAttribute('href');
-        link.addEventListener('click', function(event) {
-          console.log('Clicked link with href:', originalHref);
-
-          // If the link appears to be a Django template tag that wasn't properly rendered
-          if (originalHref && originalHref.includes('{%')) {
-            console.error('Link appears to contain unrendered Django template tag:', originalHref);
-            event.preventDefault();
-            alert('Link error: Please contact the site administrator');
-          }
-        });
       });
     });
   </script>
