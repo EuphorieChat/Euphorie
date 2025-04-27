@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  {% load static %}
+<head>
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
+  <meta charset="UTF-8">
+  <title>Sign Up - Euphorie</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#FFF1F7',
+              100: '#FFE4EF',
+              200: '#FFC9DF',
+              300: '#FF9DC1',
+              400: '#FF71A3',
+              500: '#FF4585',
+              600: '#E51D63',
+              700: '#C30D55',
+              800: '#A0114A',
+              900: '#7D1441',
+            },
+            secondary: {
+              50: '#FFF8E6',
+              100: '#FFF1CD',
+              200: '#FFE29B',
+              300: '#FFD069',
+              400: '#FFBE37',
+              500: '#FF9F05',
+              600: '#DF7E00',
+              700: '#B75E00',
+              800: '#934705',
+              900: '#7A3A0A',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          animation: {
+            'gradient-x': 'gradient-x 8s ease infinite',
+          },
+          keyframes: {
+            'gradient-x': {
+              '0%, 100%': {
+                'background-size': '200% 200%',
+                'background-position': 'left center'
+              },
+              '50%': {
+                'background-size': '200% 200%',
+                'background-position': 'right center'
+              }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .form-input-focus:focus {
+      box-shadow: 0 0 0 3px rgba(255, 69, 133, 0.15);
+    }
+    .backdrop-blur {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col text-gray-800 font-sans">
+  <!-- Background with improved gradient -->
+  <div class="fixed inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,182,225,0.15),transparent_30%),radial-gradient(circle_at_80%_80%,rgba(255,228,155,0.15),transparent_40%)] bg-fixed -z-10"></div>
+
+  <!-- Header with improved styling -->
+  <header class="py-3 border-b border-pink-100/50 bg-white/90 backdrop-blur sticky top-0 z-10">
+    <div class="w-full max-w-lg mx-auto px-6 flex items-center justify-between">
+      <a href="{% url 'index' %}" class="flex items-center group">
+        <h1 class="text-xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">Euphorie</h1>
+        <span class="ml-2 px-2 py-0.5 text-xs bg-primary-50 text-primary-600 rounded-full font-medium group-hover:bg-primary-100 transition-colors duration-200">BETA</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center p-4 py-10">
+    <!-- Improved Signup Card -->
+    <div class="w-full max-w-md bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-pink-100/50 p-8 transition-all duration-300 hover:shadow-xl">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Create Your Account</h2>
+        <p class="text-sm text-gray-500">Join Euphorie and start chatting</p>
+      </div>
+
+      <!-- Social signup buttons with improved styling -->
+      <div class="space-y-3 mb-6">
+        <button type="button" class="w-full py-2.5 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-3 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-200">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.0003 12.2224C22.0003 11.4002 21.9322 10.8002 21.7847 10.178H12.2031V13.8891H17.8247C17.7122 14.8113 17.1072 16.2002 15.8297 17.1335L15.8096 17.2578L19.0514 19.6335L19.2559 19.6545C21.1514 17.9224 22.0003 15.3113 22.0003 12.2224Z" fill="#4285F4"/>
+            <path d="M12.2039 22.0001C15.1258 22.0001 17.5717 21.1112 19.2567 19.6546L15.8305 17.1335C14.9828 17.7224 13.8039 18.1335 12.2039 18.1335C9.40078 18.1335 7.02189 16.4001 6.12422 13.9779L5.99563 13.9879L2.63867 16.4446L2.59961 16.5557C4.2717 19.778 7.98078 22.0001 12.2039 22.0001Z" fill="#34A853"/>
+            <path d="M6.12421 13.9779C5.93421 13.3557 5.82205 12.6891 5.82205 12.0001C5.82205 11.3112 5.93421 10.6446 6.11308 10.0223L6.10696 9.88901L2.69992 7.37793L2.59961 7.44458C1.98088 8.8668 1.64062 10.4001 1.64062 12.0001C1.64062 13.6002 1.98088 15.1335 2.59961 16.5557L6.12421 13.9779Z" fill="#FBBC05"/>
+            <path d="M12.2039 5.86667C14.0562 5.86667 15.3094 6.67778 16.0484 7.35556L19.1039 4.48889C17.5628 3.09333 15.1261 2.22222 12.2039 2.22222C7.98078 2.22222 4.2717 4.44444 2.59961 7.66667L6.11307 10.0222C7.02189 7.6 9.40078 5.86667 12.2039 5.86667Z" fill="#EB4335"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+
+        <button type="button" class="w-full py-2.5 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-3 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-200">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11.9997 7.5C14.0624 7.5 15.8249 8.82 16.4977 10.6998H20.1552C19.3943 6.64009 16.0453 3.58005 11.9997 3.58005C7.16173 3.58005 3.25 7.48732 3.25 12.3253C3.25 17.1633 7.16173 21.0705 11.9997 21.0705C16.0453 21.0705 19.3943 18.0105 20.1552 13.9508H16.4977C15.8249 15.8305 14.0624 17.1505 11.9997 17.1505C9.3123 17.1505 7.17002 14.9929 7.17002 12.3253C7.17002 9.65768 9.3123 7.5 11.9997 7.5Z" fill="#2684FC"/>
+            <path d="M11.9996 17.1506C14.0624 17.1506 15.8249 15.8306 16.4978 13.9509H20.1552C19.3944 18.0105 16.0453 21.0706 11.9996 21.0706V17.1506Z" fill="#00AC47"/>
+            <path d="M11.9996 17.1506C9.3123 17.1506 7.17002 14.993 7.17002 12.3254H3.25C3.25 17.1633 7.16173 21.0706 11.9996 21.0706V17.1506Z" fill="#0066DA"/>
+            <path d="M7.17002 12.3253C7.17002 9.65771 9.3123 7.5 11.9996 7.5V3.58005C7.16173 3.58005 3.25 7.48732 3.25 12.3253H7.17002Z" fill="#EA4335"/>
+          </svg>
+          <span>Continue with Microsoft</span>
+        </button>
+
+        <button type="button" class="w-full py-2.5 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-3 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-200">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.0999 12.92C17.0786 10.7017 18.9069 9.1443 18.9788 9.08929C17.8352 7.39009 16.0645 7.14243 15.4336 7.12818C13.9108 6.97047 12.4452 8.0188 11.6733 8.0188C10.8869 8.0188 9.69214 7.1427 8.41446 7.17829C6.75246 7.212 5.19993 8.17499 4.342 9.64881C2.58379 12.6461 3.84286 17.0761 5.52699 19.2653C6.37924 20.3361 7.38362 21.5414 8.66842 21.4868C9.91321 21.4283 10.3948 20.66 11.889 20.66C13.3667 20.66 13.8205 21.4868 15.1222 21.4497C16.4616 21.4283 17.323 20.3696 18.1442 19.286C19.1343 18.0463 19.5404 16.8391 19.5594 16.7747C19.5214 16.7628 17.1248 15.8868 17.0999 12.92Z" fill="black"/>
+            <path d="M15.0096 5.41364C15.6882 4.57572 16.1419 3.43506 16.0182 2.28027C15.0619 2.32302 13.8601 2.95123 13.1434 3.76488C12.5106 4.47893 11.9588 5.66756 12.0968 6.77439C13.1814 6.8599 14.3072 6.2394 15.0096 5.41364Z" fill="black"/>
+          </svg>
+          <span>Continue with Apple</span>
+        </button>
+      </div>
+
+      <!-- Improved divider -->
+      <div class="flex items-center mb-6">
+        <div class="flex-1 h-px bg-gray-200"></div>
+        <span class="px-4 text-xs font-medium text-gray-500">or with email</span>
+        <div class="flex-1 h-px bg-gray-200"></div>
+      </div>
+
+      <!-- Improved Signup Form - Errors hidden until prompted -->
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+        {% for field in form %}
+          <div>
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">
+              {{ field.label }}
+            </label>
+            {{ field|safe }}
+            <script>
+              document.addEventListener("DOMContentLoaded", function () {
+                const input = document.getElementById("{{ field.id_for_label }}");
+                if (input) {
+                  input.classList.add(
+                    "w-full", "px-4", "py-2.5", "bg-gray-50", "border", "border-gray-200",
+                    "rounded-lg", "focus:outline-none", "focus:ring-2", "focus:ring-primary-300", "focus:border-primary-300",
+                    "transition-all", "duration-200", "text-gray-800", "text-sm", "form-input-focus"
+                  );
+
+                  // Add placeholder text based on field name
+                  if (input.name === "username") {
+                    input.placeholder = "Choose a username";
+                  } else if (input.name.includes("password")) {
+                    input.placeholder = input.name.includes("password1") ? "Create a password" : "Confirm your password";
+                  } else if (input.name.includes("email")) {
+                    input.placeholder = "Enter your email";
+                  }
+
+                  // Hide error messages by default - only show them when needed (e.g., after form submission)
+                  const errorContainer = input.parentElement.querySelector('.text-red-500');
+                  if (errorContainer) {
+                    errorContainer.style.display = 'none';
+
+                    // Add validation handling - will show error only after user interaction
+                    input.addEventListener('blur', function() {
+                      if (this.checkValidity() === false) {
+                        errorContainer.style.display = 'block';
+                      } else {
+                        errorContainer.style.display = 'none';
+                      }
+                    });
+                  }
+
+                  // Hide help text by default - add a small info icon that shows help on hover
+                  const helpTextElement = input.parentElement.querySelector('.text-gray-500');
+                  if (helpTextElement && helpTextElement.textContent.trim() !== '') {
+                    const helpText = helpTextElement.textContent;
+                    helpTextElement.style.display = 'none';
+
+                    const infoIcon = document.createElement('span');
+                    infoIcon.innerHTML = `
+                      <div class="relative inline-block">
+                        <svg class="w-4 h-4 text-gray-400 ml-1 cursor-help" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="hidden group-hover:block absolute z-10 w-64 p-2 -mt-1 text-xs bg-gray-800 text-white rounded-md shadow-lg opacity-0 transition-opacity duration-300 tooltip">
+                          ${helpText}
+                        </div>
+                      </div>
+                    `;
+
+                    const labelElement = input.parentElement.querySelector('label');
+                    labelElement.appendChild(infoIcon);
+
+                    // Make the tooltip container a hover target
+                    labelElement.classList.add('group', 'inline-flex', 'items-center');
+
+                    // Add hover effect to show tooltip
+                    const tooltip = infoIcon.querySelector('.tooltip');
+                    labelElement.addEventListener('mouseenter', function() {
+                      tooltip.classList.remove('opacity-0');
+                      tooltip.classList.remove('hidden');
+                    });
+                    labelElement.addEventListener('mouseleave', function() {
+                      tooltip.classList.add('opacity-0');
+                      tooltip.classList.add('hidden');
+                    });
+                  }
+                }
+              });
+            </script>
+            {% if field.errors %}
+              <p class="text-red-500 text-xs mt-1 error-message">{{ field.errors|striptags }}</p>
+            {% endif %}
+            {% if field.help_text %}
+              <p class="text-gray-500 text-xs mt-1 help-text">{{ field.help_text }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <!-- Improved terms and conditions checkbox -->
+        <div class="flex items-start">
+          <div class="flex items-center h-5">
+            <input id="terms" name="terms" type="checkbox" required class="h-4 w-4 text-primary-500 focus:ring-primary-300 border-gray-300 rounded">
+          </div>
+          <div class="ml-3 text-sm">
+            <label for="terms" class="text-gray-700">
+              I agree to the <a href="#" class="text-primary-500 hover:text-primary-600 font-medium">Terms of Service</a> and <a href="#" class="text-primary-500 hover:text-primary-600 font-medium">Privacy Policy</a>
+            </label>
+          </div>
+        </div>
+
+        <!-- Improved Signup Button -->
+        <button type="submit"
+                class="w-full py-2.5 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-medium rounded-lg hover:shadow-md transition-all duration-300 hover:scale-[1.01] animate-gradient-x focus:outline-none focus:ring-2 focus:ring-primary-300 flex justify-center items-center">
+          <span>Create Account</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </form>
+
+      <!-- Improved Login link -->
+      <p class="mt-6 text-center text-sm text-gray-600">
+        Already have an account?
+        <a href="{% url 'login' %}" class="text-primary-500 hover:text-primary-600 font-medium transition-colors">Log in</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- Improved Footer -->
+  <footer class="py-4 border-t border-pink-100/50 mt-auto bg-white/90 backdrop-blur">
+    <div class="w-full max-w-lg mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
+      <div class="mb-3 sm:mb-0 text-center sm:text-left">
+        <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1 group">
+          <h2 class="text-base font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">Euphorie</h2>
+          <span class="text-xs text-gray-400 ml-1.5 group-hover:text-gray-600 transition-colors duration-200">v1.2.0</span>
+        </a>
+        <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
+      </div>
+
+      <!-- Add minimal footer links -->
+      <div class="flex space-x-4">
+        <a href="#" class="text-xs text-gray-500 hover:text-primary-500 transition-colors">Help</a>
+        <a href="#" class="text-xs text-gray-500 hover:text-primary-500 transition-colors">Privacy</a>
+        <a href="#" class="text-xs text-gray-500 hover:text-primary-500 transition-colors">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Add script to handle form submission and validation -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const form = document.querySelector('form');
+      const errorMessages = document.querySelectorAll('.error-message');
+
+      // Hide all error messages initially
+      errorMessages.forEach(msg => {
+        msg.style.display = 'none';
+      });
+
+      // Show error messages only after form submission
+      form.addEventListener('submit', function(e) {
+        // This allows the backend validation to work
+        // If the form is invalid, Django will return with errors that will be displayed
+
+        // Add any client-side validation here if needed
+        const inputs = form.querySelectorAll('input[required]');
+        let hasError = false;
+
+        inputs.forEach(input => {
+          if (!input.checkValidity()) {
+            hasError = true;
+            const errorEl = input.parentElement.querySelector('.error-message');
+            if (errorEl) errorEl.style.display = 'block';
+          }
+        });
+
+        // Only prevent submission if doing client-side validation
+        // For now, we're letting the server handle validation
+        // if (hasError) e.preventDefault();
+      });
+    });
+  </script>
+</body>
+</html>
