@@ -16,7 +16,34 @@ import json
 import os
 from .models import Room, Message, Reaction, Category, Meetup
 
+
 def index(request):
+    # Create default categories if they don't exist - without using slug field
+    category_data = [
+        {'name': 'Technology', 'icon': '💻', 'value': 'tech'},
+        {'name': 'Social', 'icon': '👋', 'value': 'social'},
+        {'name': 'Creative', 'icon': '🎨', 'value': 'creative'},
+        {'name': 'Gaming', 'icon': '🎮', 'value': 'gaming'},
+        {'name': 'Education', 'icon': '📚', 'value': 'education'},
+        {'name': 'Health & Wellness', 'icon': '🧘', 'value': 'health'},
+        {'name': 'Music', 'icon': '🎵', 'value': 'music'},
+        {'name': 'Food & Cooking', 'icon': '🍕', 'value': 'food'},
+        {'name': 'Travel', 'icon': '✈️', 'value': 'travel'},
+        {'name': 'Finance', 'icon': '💰', 'value': 'finance'},
+        {'name': 'Sports', 'icon': '⚽', 'value': 'sports'},
+        {'name': 'Movies & TV', 'icon': '🎬', 'value': 'media'},
+        {'name': 'Books & Reading', 'icon': '📖', 'value': 'books'},
+        {'name': 'Science', 'icon': '🔬', 'value': 'science'},
+        {'name': 'Other', 'icon': '🌟', 'value': 'other'},
+    ]
+
+    # Create each category if it doesn't exist
+    for cat in category_data:
+        Category.objects.get_or_create(
+            name=cat['name'],
+            defaults={'icon': cat['icon']}
+        )
+
     # Get all categories
     categories = Category.objects.all().order_by('name')
 
@@ -55,14 +82,13 @@ def index(request):
 
     # Add an "All Rooms" category if it doesn't exist
     if not any(c.name.lower() == 'all rooms' for c in categories):
-        all_category = {'name': 'All Rooms', 'icon': 'home'}
+        all_category = {'name': 'All Rooms', 'icon': '🏠'}
         rooms_by_category['all rooms'] = rooms
 
     # For the room creation form's category dropdown
     category_choices = [(c.name.lower(), c.name) for c in categories]
 
     # Get trending rooms (rooms with the most messages in the last 7 days)
-    # Completely rewrite this section to avoid NoneType errors
     last_week = timezone.now() - timedelta(days=7)
 
     # First, get message counts for each room
@@ -94,15 +120,9 @@ def index(request):
     for activity_data in sorted_rooms:
         room_obj = activity_data['room']
 
-        # Skip rooms without categories
-        if room_obj is None or room_obj.category is None:
-            continue
-
         # Find the corresponding room data from our main rooms list
         for r in rooms:
-            if (r['category'] is not None and
-                'name' in r and
-                r['name'] == room_obj.name):
+            if 'name' in r and r['name'] == room_obj.name:
                 trending_room_data.append(r)
                 break
 
@@ -128,22 +148,26 @@ def load_more_rooms(request):
 
     # Filter by category if specified
     if category and category != 'all' and category != 'trending':
+        # Normal category filter
         room_objects = Room.objects.filter(category__name__iexact=category).order_by('-created_at')[offset:offset+page_size]
         total_count = Room.objects.filter(category__name__iexact=category).count()
     elif category == 'trending':
-        # Handle trending filter
-
-
+        # Trending filter - rooms with most activity in the last 7 days
         last_week = timezone.now() - timedelta(days=7)
-        rooms_with_counts = []
 
+        # Get message counts for all rooms in the last week
+        rooms_with_counts = []
         for room in Room.objects.all():
             count = Message.objects.filter(room=room, timestamp__gte=last_week).count()
-            rooms_with_counts.append((room, count))
+            if count > 0:  # Only include rooms with recent activity
+                rooms_with_counts.append((room, count))
 
-        # Sort by message count
+        # Sort by message count (most active first)
         rooms_with_counts.sort(key=lambda x: x[1], reverse=True)
-        room_objects = [r[0] for r in rooms_with_counts[offset:offset+page_size]]
+
+        # Get the subset for this page
+        room_subset = rooms_with_counts[offset:offset+page_size]
+        room_objects = [r[0] for r in room_subset]
         total_count = len(rooms_with_counts)
     else:
         # No category filter or "all" category
