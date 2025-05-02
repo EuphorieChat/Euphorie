@@ -88,32 +88,28 @@ def index(request):
     # For the room creation form's category dropdown
     category_choices = [(c.name.lower(), c.name) for c in categories]
 
-    # Get trending rooms (rooms with the most messages in the last 7 days)
-    last_week = timezone.now() - timedelta(days=7)
-
+    # MODIFIED: Get trending rooms (rooms with the most messages overall, top 30)
     # First, get message counts for each room
     room_activities = {}
     for room in all_rooms:
         if room is None:
             continue
 
-        recent_messages = Message.objects.filter(
-            room=room,
-            timestamp__gte=last_week
-        ).count()
+        # Count all messages in the room
+        message_count = Message.objects.filter(room=room).count()
 
-        if recent_messages > 0:
+        if message_count > 0:
             room_activities[room.id] = {
                 'room': room,
-                'recent_activity': recent_messages
+                'message_count': message_count
             }
 
-    # Sort by activity and take top 5
+    # Sort by message count and take top 30
     sorted_rooms = sorted(
         room_activities.values(),
-        key=lambda x: x['recent_activity'],
+        key=lambda x: x['message_count'],
         reverse=True
-    )[:5]
+    )[:30]  # Get top 30 most active rooms
 
     # Prepare trending room data safely
     trending_room_data = []
@@ -149,26 +145,31 @@ def load_more_rooms(request):
     # Filter by category if specified
     if category and category != 'all' and category != 'trending':
         # Normal category filter
-        room_objects = Room.objects.filter(category__name__iexact=category).order_by('-created_at')[offset:offset+page_size]
-        total_count = Room.objects.filter(category__name__iexact=category).count()
-    elif category == 'trending':
-        # Trending filter - rooms with most activity in the last 7 days
-        last_week = timezone.now() - timedelta(days=7)
+        room_objects = Room.objects.filter(
+            category__name__iexact=category
+        ).order_by('-created_at')[offset:offset+page_size]
 
-        # Get message counts for all rooms in the last week
+        total_count = Room.objects.filter(
+            category__name__iexact=category
+        ).count()
+    elif category == 'trending':
+        # MODIFIED: Get the rooms with the most messages overall (top 30)
+        # Get all rooms with their message counts
         rooms_with_counts = []
         for room in Room.objects.all():
-            count = Message.objects.filter(room=room, timestamp__gte=last_week).count()
-            if count > 0:  # Only include rooms with recent activity
-                rooms_with_counts.append((room, count))
+            count = Message.objects.filter(room=room).count()
+            rooms_with_counts.append((room, count))
 
-        # Sort by message count (most active first)
+        # Sort by message count (most messages first)
         rooms_with_counts.sort(key=lambda x: x[1], reverse=True)
 
+        # Get the top 30 rooms overall
+        top_rooms = rooms_with_counts[:30]
+
         # Get the subset for this page
-        room_subset = rooms_with_counts[offset:offset+page_size]
+        room_subset = top_rooms[offset:offset+page_size]
         room_objects = [r[0] for r in room_subset]
-        total_count = len(rooms_with_counts)
+        total_count = len(top_rooms)  # Use the count of trending rooms
     else:
         # No category filter or "all" category
         room_objects = Room.objects.all().order_by('-created_at')[offset:offset+page_size]
@@ -177,7 +178,12 @@ def load_more_rooms(request):
     rooms = []
     for room in room_objects:
         message_count = Message.objects.filter(room=room).count()
-        display_name = room.name.replace('-', ' ').title()
+
+        # Use display_name if available, otherwise format the name
+        if hasattr(room, 'display_name') and room.display_name:
+            display_name = room.display_name
+        else:
+            display_name = room.name.replace('-', ' ').title()
 
         category_name = room.category.name.lower() if room.category else 'all'
 
