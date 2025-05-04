@@ -1,17 +1,27 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const roomName = window.roomName;
-    const username = window.username;
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    // Safely get window variables with fallbacks
+    const roomName = window.roomName || '';
+    const username = window.username || 'Guest';
 
+    // Check if we're in the chat room
+    if (!roomName) {
+        console.warn("Room name is not defined. Not initializing chat functionality.");
+        return;
+    }
+
+    console.log("Initializing chat for room:", roomName, "as user:", username);
+
+    // Global variables
     let uploadedFiles = [];
     let isDrawing = false;
+    let socket = null;
 
-    // DOM Elements
+    // DOM Elements - check if they exist to prevent null reference errors
     const chatLog = document.getElementById("chat-log");
     const input = document.getElementById("chat-message-input");
     const fileInput = document.getElementById("file-input");
     const previewContainer = document.getElementById("preview");
-    const previewContent = document.getElementById("preview-content");
+    const previewContent = previewContent ? document.getElementById("preview-content") : null;
     const progressBar = document.getElementById("progress-bar");
     const progressWrap = document.getElementById("progress-container");
     const cancelPreviewBtn = document.getElementById("cancel-preview");
@@ -20,66 +30,58 @@ document.addEventListener("DOMContentLoaded", function () {
     const whiteboardCanvas = document.getElementById('whiteboard-canvas');
     const ctx = whiteboardCanvas?.getContext('2d');
 
-    // Debug WebSocket connection
-    console.log("WebSocket connection details:");
-    console.log("Room name:", roomName);
-    console.log("Protocol:", protocol);
-    console.log("Host:", window.location.host);
-    console.log("URL:", `${protocol}://${window.location.host}/ws/chat/${roomName}/`);
+    // Log missing critical elements
+    if (!chatLog) console.error("Critical element missing: chat-log");
+    if (!messageForm) console.error("Critical element missing: message-form");
 
-    // Create WebSocket URL
-    const socket = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${roomName}/`);
+    // Initialize WebSocket connection
+    function initWebSocket() {
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${protocol}://${window.location.host}/ws/chat/${roomName}/`;
 
-    // Make socket globally accessible
-    window.socket = socket;
+        console.log("WebSocket connection details:");
+        console.log("Room name:", roomName);
+        console.log("Protocol:", protocol);
+        console.log("Host:", window.location.host);
+        console.log("URL:", wsUrl);
 
-    // Replace inline event handlers with event listeners
-    if (messageForm) {
-        messageForm.addEventListener("submit", function (event) {
-            event.preventDefault();
-            if (username) {
-                sendMessage();
-            } else {
-                alert('Please log in to send messages.');
-            }
-        });
-    }
+        try {
+            socket = new WebSocket(wsUrl);
+            window.socket = socket; // Make globally accessible
 
-    // Message sending function
-    function sendMessage() {
-        const msg = input.value.trim();
+            // WebSocket event listeners
+            socket.addEventListener("open", onSocketOpen);
+            socket.addEventListener("message", onSocketMessage);
+            socket.addEventListener("error", onSocketError);
+            socket.addEventListener("close", onSocketClose);
 
-        // Debug check WebSocket state
-        if (window.socket.readyState !== WebSocket.OPEN) {
-            console.error("WebSocket is not connected! ReadyState:", window.socket.readyState);
-            return;
-        }
-
-        if (msg && window.socket.readyState === WebSocket.OPEN) {
-            window.socket.send(JSON.stringify({ type: "chat", message: msg }));
-            input.value = "";
-        } else if (uploadedFiles.length > 0 && window.socket.readyState === WebSocket.OPEN) {
-            uploadFilesAndSend();
+            return true;
+        } catch (e) {
+            console.error("Failed to create WebSocket:", e);
+            alert("Connection error. Please try refreshing the page.");
+            return false;
         }
     }
 
-    // WebSocket event listeners
-    socket.addEventListener("open", () => {
+    // Socket event handlers
+    function onSocketOpen() {
         console.log("✅ WebSocket connected to room:", roomName);
 
         // Request user list and meetups on connection
-        window.socket.send(JSON.stringify({
-            type: 'users',
-            action: 'list'
-        }));
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                type: 'users',
+                action: 'list'
+            }));
 
-        window.socket.send(JSON.stringify({
-            type: 'meetup',
-            action: 'list'
-        }));
-    });
+            socket.send(JSON.stringify({
+                type: 'meetup',
+                action: 'list'
+            }));
+        }
+    }
 
-    socket.addEventListener("message", (event) => {
+    function onSocketMessage(event) {
         console.log("📩 Message received:", event.data);
         try {
             const data = JSON.parse(event.data);
@@ -114,19 +116,62 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
             console.error("Error processing message:", e, event.data);
         }
-    });
+    }
 
-    socket.addEventListener("error", (error) => {
+    function onSocketError(error) {
         console.error("⚠️ WebSocket error:", error);
-    });
+    }
 
-    socket.addEventListener("close", (event) => {
+    function onSocketClose(event) {
         console.log("❌ WebSocket closed:", event.code, event.reason);
-    });
+
+        // Attempt to reconnect after a delay
+        if (event.code !== 1000) { // 1000 is normal closure
+            console.log("Attempting to reconnect in 5 seconds...");
+            setTimeout(() => {
+                initWebSocket();
+            }, 5000);
+        }
+    }
+
+    // Initialize message form
+    function initMessageForm() {
+        if (!messageForm) return;
+
+        messageForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+            if (username && username !== 'Guest') {
+                sendMessage();
+            } else {
+                alert('Please log in to send messages.');
+            }
+        });
+    }
+
+    // Message sending function
+    function sendMessage() {
+        if (!input) return;
+
+        const msg = input.value.trim();
+
+        // Debug check WebSocket state
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            console.error("WebSocket is not connected! ReadyState:", socket ? socket.readyState : "Socket not initialized");
+            alert("Connection lost. Please refresh the page.");
+            return;
+        }
+
+        if (msg && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "chat", message: msg }));
+            input.value = "";
+        } else if (uploadedFiles.length > 0 && socket.readyState === WebSocket.OPEN) {
+            uploadFilesAndSend();
+        }
+    }
 
     // Helper function for whiteboard messages
     function handleWhiteboardMessage(data) {
-        if (!ctx) return;
+        if (!ctx || !whiteboardCanvas) return;
 
         if (data.action === 'draw') {
             const x = data.x * whiteboardCanvas.width;
@@ -145,27 +190,30 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Render a new message
     function renderMessage({ username: sender, message, message_id }) {
+        if (!chatLog) return;
+
         const isSelf = sender === username;
         const wrapper = document.createElement("div");
         wrapper.className = `message-bubble ${isSelf ? "sent" : "received"} group`;
         wrapper.dataset.messageId = message_id || Date.now().toString();
 
         wrapper.innerHTML = `<div class="flex items-start">
-                    <div class="flex-1">
-                        <p class="text-xs font-semibold mb-0.5 ${isSelf ? "text-pink-500" : "text-yellow-600"}">${sender}</p>
-                        <div class="text-sm text-gray-700 message-content"></div>
-                    </div>
-                    <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
-                        <div class="flex space-x-1">
-                        <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">❤️</span>
-                        <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">👍</span>
-                        <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">😂</span>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold mb-0.5 ${isSelf ? "text-pink-500" : "text-yellow-600"}">${sender}</p>
+                            <div class="text-sm text-gray-700 message-content"></div>
                         </div>
-                    </div>
-                    </div>
-                    <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs"></div>
-                `;
+                        <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                            <div class="flex space-x-1">
+                            <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">❤️</span>
+                            <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">👍</span>
+                            <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">😂</span>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs"></div>
+                    `;
 
         // Inject message as raw HTML so <img> or <video> shows
         wrapper.querySelector(".message-content").innerHTML = message;
@@ -174,17 +222,16 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
 
         addReactionListeners(wrapper);
-
-        // Track media for the library
-        const mediaImages = wrapper.querySelectorAll('img');
-        const mediaVideos = wrapper.querySelectorAll('video source');
     }
 
+    // Update a message reaction
     function updateReaction({ message_id, reaction, count, users }) {
         const msg = document.querySelector(`[data-message-id="${message_id}"]`);
         if (!msg) return;
 
         const container = msg.querySelector(".reactions-container");
+        if (!container) return;
+
         let span = container.querySelector(`[data-emoji="${reaction}"]`);
 
         if (!span) {
@@ -193,11 +240,13 @@ document.addEventListener("DOMContentLoaded", function () {
             span.dataset.emoji = reaction;
             container.appendChild(span);
             span.addEventListener("click", () => {
-                window.socket.send(JSON.stringify({
-                    type: "reaction",
-                    message_id,
-                    reaction
-                }));
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: "reaction",
+                        message_id,
+                        reaction
+                    }));
+                }
             });
         }
 
@@ -209,6 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Show typing indicator
     function showTyping() {
         const el = document.getElementById("typing-indicator");
         if (!el) return;
@@ -218,18 +268,19 @@ document.addEventListener("DOMContentLoaded", function () {
         window.typingTimeout = setTimeout(() => el.classList.add("hidden"), 1500);
     }
 
+    // Update the user list
     function updateUserList(users) {
         console.log("Updating user list with:", users);
         const userList = document.getElementById("user-list");
         const mobileList = document.getElementById("mobile-user-list-content");
 
-        if (!userList || !mobileList) {
+        if (!userList && !mobileList) {
             console.error("User list elements not found!");
             return;
         }
 
-        userList.innerHTML = "";
-        mobileList.innerHTML = "";
+        if (userList) userList.innerHTML = "";
+        if (mobileList) mobileList.innerHTML = "";
 
         if (!users || users.length === 0) {
             console.log("No users in the list");
@@ -238,21 +289,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
         users.forEach(user => {
             // Desktop list with avatars
-            const li = document.createElement("li");
-            li.className = "flex items-center";
-            li.innerHTML = `
-            <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                ${user.charAt(0).toUpperCase()}
-            </div>
-            <span>${user}</span>
-            `;
-            userList.appendChild(li);
+            if (userList) {
+                const li = document.createElement("li");
+                li.className = "flex items-center";
+                li.innerHTML = `
+                <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                    ${user.charAt(0).toUpperCase()}
+                </div>
+                <span>${user}</span>
+                `;
+                userList.appendChild(li);
+            }
 
             // Mobile list (simpler)
-            const span = document.createElement("span");
-            span.className = "user-list-item";
-            span.textContent = user;
-            mobileList.appendChild(span);
+            if (mobileList) {
+                const span = document.createElement("span");
+                span.className = "user-list-item";
+                span.textContent = user;
+                mobileList.appendChild(span);
+            }
         });
 
         // Show the mobile user list if we're updating it
@@ -262,8 +317,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // File upload handling
-    if (fileInput) {
+    // Initialize file upload handling
+    function initFileUpload() {
+        if (!fileInput || !previewContainer || !previewContent || !cancelPreviewBtn) return;
+
         fileInput.addEventListener("change", (e) => {
             uploadedFiles = [...e.target.files];
             previewContainer.classList.remove("hidden");
@@ -284,9 +341,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 reader.readAsDataURL(file);
             });
         });
-    }
 
-    if (cancelPreviewBtn) {
         cancelPreviewBtn.addEventListener("click", () => {
             uploadedFiles = [];
             fileInput.value = "";
@@ -294,7 +349,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Upload files and send them
     async function uploadFilesAndSend() {
+        if (!progressWrap || !progressBar || !previewContainer) return;
         if (uploadedFiles.length === 0) return;
 
         const formData = new FormData();
@@ -314,45 +371,52 @@ document.addEventListener("DOMContentLoaded", function () {
             const result = await response.json();
             progressBar.style.width = "100%";
 
-            if (result.success && result.urls.length > 0) {
+            if (result.success && result.urls && result.urls.length > 0) {
                 result.urls.forEach(url => {
-                    const html = url.match(/\.(mp4|webm)$/i)
-                        ? `<video controls class='max-w-xs rounded-lg'><source src="${url}"></video>`
+                    const html = url.match(/\.(mp4|webm|mov)$/i)
+                        ? `<video controls class='max-w-xs rounded-lg'><source src="${url}" type="video/mp4"></video>`
                         : `<img src="${url}" class='max-w-xs rounded-lg' />`;
 
-                    window.socket.send(JSON.stringify({
-                        type: "chat",
-                        message: html,
-                    }));
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: "chat",
+                            message: html,
+                        }));
+                    }
                 });
             }
         } catch (error) {
             console.error("Error uploading files:", error);
+            alert("Error uploading files. Please try again.");
         }
 
         // Reset
-        fileInput.value = "";
+        if (fileInput) fileInput.value = "";
         uploadedFiles = [];
         previewContainer.classList.add("hidden");
         progressWrap.classList.add("hidden");
     }
 
-    // Handle typing indicator
-    if (input) {
+    // Initialize typing indicator
+    function initTypingIndicator() {
+        if (!input || !socket) return;
+
         input.addEventListener("keypress", e => {
             if (e.key === "Enter") {
                 sendMessage();
-            } else if (window.socket.readyState === WebSocket.OPEN) {
-                window.socket.send(JSON.stringify({ type: "typing" }));
+            } else if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: "typing" }));
             }
         });
     }
 
-    // Emoji panel handling
-    const emojiButton = document.getElementById("emoji-button");
-    const emojiPanel = document.getElementById("emoji-panel");
+    // Initialize emoji panel
+    function initEmojiPanel() {
+        const emojiButton = document.getElementById("emoji-button");
+        const emojiPanel = document.getElementById("emoji-panel");
 
-    if (emojiButton && emojiPanel) {
+        if (!emojiButton || !emojiPanel || !input) return;
+
         emojiButton.addEventListener("click", () => emojiPanel.classList.toggle("show"));
 
         document.addEventListener("click", e => {
@@ -370,73 +434,79 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Reaction modal functionality
-    const reactionModal = document.getElementById("reactionModal");
-    const closeModal = document.getElementById("closeModal");
+    // Initialize reaction modal
+    function initReactionModal() {
+        const reactionModal = document.getElementById("reactionModal");
+        const closeModal = document.getElementById("closeModal");
 
-    document.addEventListener("click", function (e) {
-        if (e.target.matches("[data-emoji]")) {
-            const users = e.target.title?.split(", ") || [];
-            const list = document.getElementById("reactionUserList");
-            if (!list) return;
+        if (!reactionModal || !closeModal) return;
 
-            list.innerHTML = "";
-            users.forEach(name => {
-                const li = document.createElement("li");
-                li.className = "flex items-center py-1";
-                li.innerHTML = `
-                    <div class="h-5 w-5 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                    ${name.charAt(0).toUpperCase()}
-                    </div>
-                    <span>${name}</span>
-                `;
-                list.appendChild(li);
-            });
-            reactionModal.classList.remove("hidden");
-            reactionModal.classList.add("flex");
-        }
-    });
+        document.addEventListener("click", function (e) {
+            if (e.target.matches("[data-emoji]")) {
+                const users = e.target.title?.split(", ") || [];
+                const list = document.getElementById("reactionUserList");
+                if (!list) return;
 
-    if (closeModal) {
+                list.innerHTML = "";
+                users.forEach(name => {
+                    const li = document.createElement("li");
+                    li.className = "flex items-center py-1";
+                    li.innerHTML = `
+                        <div class="h-5 w-5 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                        ${name.charAt(0).toUpperCase()}
+                        </div>
+                        <span>${name}</span>
+                    `;
+                    list.appendChild(li);
+                });
+                reactionModal.classList.remove("hidden");
+                reactionModal.classList.add("flex");
+            }
+        });
+
         closeModal.addEventListener("click", () => {
             reactionModal.classList.add("hidden");
             reactionModal.classList.remove("flex");
         });
     }
 
+    // Add reaction listeners to message bubbles
     function addReactionListeners(wrapper) {
+        if (!socket) return;
+
         const messageId = wrapper.dataset.messageId;
         wrapper.querySelectorAll(".emoji-reaction").forEach(btn => {
             const emoji = btn.textContent;
             btn.addEventListener("click", function () {
-                window.socket.send(JSON.stringify({
-                    type: "reaction",
-                    message_id: messageId,
-                    reaction: emoji
-                }));
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: "reaction",
+                        message_id: messageId,
+                        reaction: emoji
+                    }));
+                }
             });
         });
     }
 
-    // Initialize all message bubbles with reaction listeners
-    document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
-
-    // Auto-scroll to bottom of chat on load
-    if (chatLog) {
-        chatLog.scrollTo({ top: chatLog.scrollHeight });
+    // Initialize message reactions
+    function initMessageReactions() {
+        document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
     }
 
-    // Mobile user list toggle
-    const mobileUserListToggle = document.getElementById("mobile-user-list-toggle");
-    const mobileUserList = document.getElementById("mobile-user-list");
+    // Initialize mobile user list toggle
+    function initMobileUserList() {
+        const mobileUserListToggle = document.getElementById("mobile-user-list-toggle");
+        const mobileUserList = document.getElementById("mobile-user-list");
 
-    if (mobileUserListToggle && mobileUserList) {
+        if (!mobileUserListToggle || !mobileUserList) return;
+
         mobileUserListToggle.addEventListener("click", () => {
             mobileUserList.classList.toggle("hidden");
         });
     }
 
-    // Whiteboard functionality
+    // Initialize whiteboard
     function initWhiteboard() {
         const openWhiteboardBtn = document.getElementById('open-whiteboard');
         const closeWhiteboardBtn = document.getElementById('close-whiteboard');
@@ -445,7 +515,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const brushColor = document.getElementById('brush-color');
         const brushSize = document.getElementById('brush-size');
 
-        if (!openWhiteboardBtn || !whiteboardCanvas) return;
+        if (!openWhiteboardBtn || !whiteboardCanvas || !ctx) return;
 
         // Set canvas size
         function resizeCanvas() {
@@ -479,10 +549,12 @@ document.addEventListener("DOMContentLoaded", function () {
         clearWhiteboardBtn.addEventListener('click', () => {
             ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
             // Broadcast clear event
-            window.socket.send(JSON.stringify({
-                type: 'whiteboard',
-                action: 'clear'
-            }));
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'whiteboard',
+                    action: 'clear'
+                }));
+            }
         });
 
         function startDrawing(e) {
@@ -496,7 +568,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function draw(e) {
-            if (!isDrawing) return;
+            if (!isDrawing || !socket) return;
 
             ctx.lineWidth = brushSize.value;
             ctx.lineCap = 'round';
@@ -508,18 +580,20 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.moveTo(e.offsetX, e.offsetY);
 
             // Broadcast drawing data
-            window.socket.send(JSON.stringify({
-                type: 'whiteboard',
-                action: 'draw',
-                x: e.offsetX / whiteboardCanvas.width,
-                y: e.offsetY / whiteboardCanvas.height,
-                color: brushColor.value,
-                size: brushSize.value
-            }));
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'whiteboard',
+                    action: 'draw',
+                    x: e.offsetX / whiteboardCanvas.width,
+                    y: e.offsetY / whiteboardCanvas.height,
+                    color: brushColor.value,
+                    size: brushSize.value
+                }));
+            }
         }
 
         function drawTouch(e) {
-            if (!isDrawing) return;
+            if (!isDrawing || !socket) return;
             e.preventDefault();
 
             const touch = e.touches[0];
@@ -537,14 +611,16 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.moveTo(x, y);
 
             // Broadcast drawing data
-            window.socket.send(JSON.stringify({
-                type: 'whiteboard',
-                action: 'draw',
-                x: x / whiteboardCanvas.width,
-                y: y / whiteboardCanvas.height,
-                color: brushColor.value,
-                size: brushSize.value
-            }));
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'whiteboard',
+                    action: 'draw',
+                    x: x / whiteboardCanvas.width,
+                    y: y / whiteboardCanvas.height,
+                    color: brushColor.value,
+                    size: brushSize.value
+                }));
+            }
         }
 
         function stopDrawing() {
@@ -556,18 +632,25 @@ document.addEventListener("DOMContentLoaded", function () {
         window.addEventListener('resize', resizeCanvas);
     }
 
-    // Initialize whiteboard
-    initWhiteboard();
-
-    // Meetup functionality
+    // Initialize meetup planner
     function initMeetupPlanner() {
         const createMeetupBtn = document.getElementById('create-meetup-btn');
         const meetupModal = document.getElementById('meetup-modal');
         const cancelMeetupBtn = document.getElementById('cancel-meetup');
         const meetupForm = document.getElementById('meetup-form');
-        const upcomingMeetupsList = document.getElementById('upcoming-meetups');
 
-        if (!createMeetupBtn || !meetupModal) return;
+        if (!createMeetupBtn || !meetupModal || !meetupForm) return;
+
+        // Helper function to format date for the datetime-local input
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
 
         createMeetupBtn.addEventListener('click', () => {
             // Set default date to tomorrow at noon
@@ -576,7 +659,8 @@ document.addEventListener("DOMContentLoaded", function () {
             tomorrow.setHours(12, 0, 0, 0);
 
             const formattedDate = formatDateForInput(tomorrow);
-            document.getElementById('meetup-datetime').value = formattedDate;
+            const datetimeInput = document.getElementById('meetup-datetime');
+            if (datetimeInput) datetimeInput.value = formattedDate;
 
             meetupModal.classList.remove('hidden');
             meetupModal.classList.add('flex');
@@ -595,6 +679,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const location = document.getElementById('meetup-location').value;
             const description = document.getElementById('meetup-description').value;
 
+            if (!title || !datetime || !location) {
+                alert('Please fill in all required fields: title, date/time, and location.');
+                return;
+            }
+
             // Create a meetup object
             const meetup = {
                 id: Date.now().toString(),
@@ -607,39 +696,32 @@ document.addEventListener("DOMContentLoaded", function () {
             };
 
             // Send to WebSocket
-            window.socket.send(JSON.stringify({
-                type: 'meetup',
-                action: 'create',
-                meetup
-            }));
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'meetup',
+                    action: 'create',
+                    meetup
+                }));
 
-            // Close modal
-            meetupModal.classList.add('hidden');
-            meetupModal.classList.remove('flex');
+                // Close modal
+                meetupModal.classList.add('hidden');
+                meetupModal.classList.remove('flex');
 
-            // Reset form
-            meetupForm.reset();
+                // Reset form
+                meetupForm.reset();
+            } else {
+                alert('Connection error. Please refresh and try again.');
+            }
         });
-
-        // Helper function to format date for the datetime-local input
-        function formatDateForInput(date) {
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
     }
-
-    // Initialize meetup planner
-    initMeetupPlanner();
 
     // Function to render meetups
     function renderMeetups(meetups) {
         const upcomingMeetupsList = document.getElementById('upcoming-meetups');
         if (!upcomingMeetupsList) return;
+
+        // Clear existing content
+        upcomingMeetupsList.innerHTML = '';
 
         if (!meetups || meetups.length === 0) {
             upcomingMeetupsList.innerHTML = `
@@ -656,10 +738,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const newCreateBtn = document.getElementById('create-meetup-btn');
             if (newCreateBtn) {
                 const meetupModal = document.getElementById('meetup-modal');
-                newCreateBtn.addEventListener('click', () => {
-                    meetupModal.classList.remove('hidden');
-                    meetupModal.classList.add('flex');
-                });
+                if (meetupModal) {
+                    newCreateBtn.addEventListener('click', () => {
+                        meetupModal.classList.remove('hidden');
+                        meetupModal.classList.add('flex');
+                    });
+                }
             }
 
             return;
@@ -670,8 +754,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Only show upcoming meetups
         const upcomingMeetups = meetups.filter(m => new Date(m.datetime) > new Date());
-
-        upcomingMeetupsList.innerHTML = '';
 
         upcomingMeetups.forEach(meetup => {
             const meetupDate = new Date(meetup.datetime);
@@ -721,11 +803,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Add event listener for attendance button
             meetupEl.querySelector('.attend-btn').addEventListener('click', () => {
-                window.socket.send(JSON.stringify({
-                    type: 'meetup',
-                    action: isAttending ? 'leave' : 'join',
-                    meetup_id: meetup.id
-                }));
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'meetup',
+                        action: isAttending ? 'leave' : 'join',
+                        meetup_id: meetup.id
+                    }));
+                }
             });
         });
 
@@ -743,13 +827,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Re-attach the event listener
         const meetupModal = document.getElementById('meetup-modal');
-        createBtn.addEventListener('click', () => {
-            meetupModal.classList.remove('hidden');
-            meetupModal.classList.add('flex');
-        });
+        if (meetupModal) {
+            createBtn.addEventListener('click', () => {
+                meetupModal.classList.remove('hidden');
+                meetupModal.classList.add('flex');
+            });
+        }
     }
 
-    // Media Library functionality
+    // Initialize Media Library
     function initMediaLibrary() {
         const openMediaBtn = document.getElementById('open-media-library');
         const closeMediaBtn = document.getElementById('close-media-library');
@@ -760,7 +846,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const previewModal = document.getElementById('media-preview-modal');
         const previewContent = document.getElementById('media-preview-content');
 
-        if (!openMediaBtn || !mediaModal) return;
+        if (!openMediaBtn || !mediaModal || !mediaGrid) return;
 
         // Media library data structure
         let mediaLibrary = {
@@ -780,10 +866,12 @@ document.addEventListener("DOMContentLoaded", function () {
             mediaModal.classList.remove('flex');
         });
 
-        closePreviewBtn.addEventListener('click', () => {
-            previewModal.classList.add('hidden');
-            previewModal.classList.remove('flex');
-        });
+        if (closePreviewBtn && previewModal) {
+            closePreviewBtn.addEventListener('click', () => {
+                previewModal.classList.add('hidden');
+                previewModal.classList.remove('flex');
+            });
+        }
 
         // Filter handlers
         filterBtns.forEach(btn => {
@@ -802,7 +890,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 
-        // Load media from the server or local storage
+        // Load media from the chat
         function loadMediaLibrary() {
             // Scan the chat for media
             mediaLibrary = {
@@ -827,7 +915,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Render the media grid based on filter
         function renderMediaGrid(filter) {
-            if (!mediaGrid) return;
+            if (!mediaGrid || !previewModal || !previewContent) return;
 
             mediaGrid.innerHTML = '';
 
@@ -909,6 +997,26 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Initialize media library
-    initMediaLibrary();
+    // Initialize all functionality
+    function initChat() {
+        // Create WebSocket connection first
+        if (!initWebSocket()) return;
+
+        // Initialize other components
+        initMessageForm();
+        initFileUpload();
+        initTypingIndicator();
+        initEmojiPanel();
+        initReactionModal();
+        initMessageReactions();
+        initMobileUserList();
+
+        // Auto-scroll to bottom of chat on load
+        if (chatLog) {
+            chatLog.scrollTo({ top: chatLog.scrollHeight });
+        }
+    }
+
+    // Start the chat application
+    initChat();
 });
