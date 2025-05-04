@@ -18,7 +18,7 @@ from .models import Room, Message, Reaction, Category, Meetup
 
 
 def index(request):
-    # Create default categories using the model method instead of duplicating the list here
+    # Create default categories if they don't exist
     Category.create_default_categories()
 
     # Get all categories
@@ -34,7 +34,7 @@ def index(request):
             continue
 
         message_count = Message.objects.filter(room=room).count()
-        display_name = room.name.replace('-', ' ').title()
+        display_name = room.display_name if hasattr(room, 'display_name') and room.display_name else room.name.replace('-', ' ').title()
 
         # Create a room object with all needed data - with safe defaults
         room_data = {
@@ -43,9 +43,38 @@ def index(request):
             'creator': room.creator,
             'message_count': message_count,
             'category': room.category,  # This might be None, that's ok
-            'category_slug': room.category.slug if room.category else 'all',
+            'category_slug': room.category.slug if room.category and hasattr(room.category, 'slug') else room.category.name.lower() if room.category else 'all',
         }
         rooms.append(room_data)
+
+    # MODIFIED: Simplified trending logic
+    # Get all rooms with at least one message and sort by message count
+    rooms_with_counts = [
+        (room, Message.objects.filter(room=room).count())
+        for room in all_rooms
+        if Message.objects.filter(room=room).count() > 0
+    ]
+
+    # Sort by message count (most messages first)
+    sorted_rooms = sorted(
+        rooms_with_counts,
+        key=lambda x: x[1],
+        reverse=True
+    )[:20]  # Get top 20 rooms for initial display
+
+    # Create trending room data in the correct format
+    trending_room_data = []
+    for room_obj, message_count in sorted_rooms:
+        display_name = room_obj.display_name if hasattr(room_obj, 'display_name') and room_obj.display_name else room_obj.name.replace('-', ' ').title()
+
+        trending_room_data.append({
+            'name': room_obj.name,
+            'display_name': display_name,
+            'creator': room_obj.creator,
+            'message_count': message_count,
+            'category': room_obj.category,
+            'category_slug': room_obj.category.slug if room_obj.category and hasattr(room_obj.category, 'slug') else room_obj.category.name.lower() if room_obj.category else 'all',
+        })
 
     # Get rooms by category
     rooms_by_category = {}
@@ -55,50 +84,19 @@ def index(request):
             r for r in rooms
             if r['category'] is not None and r['category'].id == category.id
         ]
-        rooms_by_category[category.slug] = category_rooms
+        rooms_by_category[category.name.lower()] = category_rooms
 
-    # Add an "All Rooms" category
-    rooms_by_category['all'] = rooms
-
-    # For the room creation form's category dropdown
-    category_choices = [(c.slug, c.name) for c in categories]
-
-    # MODIFIED: Get trending rooms (rooms with the most messages overall, top 30)
-    # First, get message counts for each room
-    room_activities = {}
-    for room in all_rooms:
-        if room is None:
-            continue
-
-        # Count all messages in the room
-        message_count = Message.objects.filter(room=room).count()
-
-        if message_count > 0:
-            room_activities[room.id] = {
-                'room': room,
-                'message_count': message_count
-            }
-
-    # Sort by message count and take top 30
-    sorted_rooms = sorted(
-        room_activities.values(),
-        key=lambda x: x['message_count'],
-        reverse=True
-    )[:30]  # Get top 30 most active rooms
-
-    # Prepare trending room data safely
-    trending_room_data = []
-    for activity_data in sorted_rooms:
-        room_obj = activity_data['room']
-
-        # Find the corresponding room data from our main rooms list
-        for r in rooms:
-            if 'name' in r and r['name'] == room_obj.name:
-                trending_room_data.append(r)
-                break
+    # Add an "All Rooms" category if it doesn't exist
+    if not any(c.name.lower() == 'all rooms' for c in categories):
+        all_category = {'name': 'All Rooms', 'icon': '🏠'}
+        rooms_by_category['all rooms'] = rooms
 
     # Add trending rooms to category dict
     rooms_by_category['trending'] = trending_room_data
+
+    # For the room creation form's category dropdown
+    # Include the icon directly in the choices to avoid needing get_item filter
+    category_choices = [(c.name.lower(), f"{c.icon if c.icon else '🌟'} {c.name}") for c in categories]
 
     context = {
         'categories': categories,
@@ -117,8 +115,47 @@ def load_more_rooms(request):
     # Get category filter if provided
     category = request.GET.get('category', None)
 
-    # Filter by category if specified
-    if category and category != 'all' and category != 'trending':
+    # MODIFIED: Improved trending category handling
+    if category == 'trending':
+        # Get all rooms with their message counts
+        rooms_with_counts = [
+            (room, Message.objects.filter(room=room).count())
+            for room in Room.objects.all()
+            if Message.objects.filter(room=room).count() > 0
+        ]
+
+        # Sort by message count (most messages first)
+        rooms_with_counts.sort(key=lambda x: x[1], reverse=True)
+
+        # Get the top rooms overall
+        top_rooms = rooms_with_counts[:100]  # Limit to top 100 for efficiency
+
+        # Get the subset for this page
+        page_start = offset
+        page_end = offset + page_size
+        room_subset = top_rooms[page_start:page_end]
+
+        rooms = []
+        for room, message_count in room_subset:
+            # Use display_name if available, otherwise format the name
+            if hasattr(room, 'display_name') and room.display_name:
+                display_name = room.display_name
+            else:
+                display_name = room.name.replace('-', ' ').title()
+
+            category_name = room.category.name.lower() if room.category else 'all'
+
+            room_data = {
+                'name': room.name,
+                'display_name': display_name,
+                'message_count': message_count,  # Use the actual count we calculated
+                'category': category_name,
+                'creator': room.creator.username
+            }
+            rooms.append(room_data)
+
+        has_next = len(top_rooms) > page_end
+    elif category and category != 'all':
         # Normal category filter
         room_objects = Room.objects.filter(
             category__name__iexact=category
@@ -127,51 +164,56 @@ def load_more_rooms(request):
         total_count = Room.objects.filter(
             category__name__iexact=category
         ).count()
-    elif category == 'trending':
-        # MODIFIED: Get the rooms with the most messages overall (top 30)
-        # Get all rooms with their message counts
-        rooms_with_counts = []
-        for room in Room.objects.all():
-            count = Message.objects.filter(room=room).count()
-            rooms_with_counts.append((room, count))
 
-        # Sort by message count (most messages first)
-        rooms_with_counts.sort(key=lambda x: x[1], reverse=True)
+        rooms = []
+        for room in room_objects:
+            message_count = Message.objects.filter(room=room).count()
 
-        # Get the top 30 rooms overall
-        top_rooms = rooms_with_counts[:30]
+            # Use display_name if available, otherwise format the name
+            if hasattr(room, 'display_name') and room.display_name:
+                display_name = room.display_name
+            else:
+                display_name = room.name.replace('-', ' ').title()
 
-        # Get the subset for this page
-        room_subset = top_rooms[offset:offset+page_size]
-        room_objects = [r[0] for r in room_subset]
-        total_count = len(top_rooms)  # Use the count of trending rooms
+            category_name = room.category.name.lower() if room.category else 'all'
+
+            room_data = {
+                'name': room.name,
+                'display_name': display_name,
+                'message_count': message_count,
+                'category': category_name,
+                'creator': room.creator.username
+            }
+            rooms.append(room_data)
+
+        has_next = total_count > offset + page_size
     else:
         # No category filter or "all" category
         room_objects = Room.objects.all().order_by('-created_at')[offset:offset+page_size]
         total_count = Room.objects.count()
 
-    rooms = []
-    for room in room_objects:
-        message_count = Message.objects.filter(room=room).count()
+        rooms = []
+        for room in room_objects:
+            message_count = Message.objects.filter(room=room).count()
 
-        # Use display_name if available, otherwise format the name
-        if hasattr(room, 'display_name') and room.display_name:
-            display_name = room.display_name
-        else:
-            display_name = room.name.replace('-', ' ').title()
+            # Use display_name if available, otherwise format the name
+            if hasattr(room, 'display_name') and room.display_name:
+                display_name = room.display_name
+            else:
+                display_name = room.name.replace('-', ' ').title()
 
-        category_name = room.category.name.lower() if room.category else 'all'
+            category_name = room.category.name.lower() if room.category else 'all'
 
-        room_data = {
-            'name': room.name,
-            'display_name': display_name,
-            'message_count': message_count,
-            'category': category_name,
-            'creator': room.creator.username
-        }
-        rooms.append(room_data)
+            room_data = {
+                'name': room.name,
+                'display_name': display_name,
+                'message_count': message_count,
+                'category': category_name,
+                'creator': room.creator.username
+            }
+            rooms.append(room_data)
 
-    has_next = total_count > offset + page_size
+        has_next = total_count > offset + page_size
 
     return JsonResponse({
         'rooms': rooms,
