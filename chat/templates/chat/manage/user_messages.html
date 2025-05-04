@@ -1,0 +1,466 @@
+{% extends "chat/manage/base.html" %}
+{% load static %}
+
+{% block title %}Messages by {{ user_profile.username }} - Euphorie Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .message-row {
+    transition: all 0.2s ease;
+  }
+
+  .message-row:hover {
+    background-color: rgba(249, 250, 251, 0.8);
+  }
+
+  .message-content {
+    max-width: 60ch;
+    overflow-wrap: break-word;
+  }
+
+  .message-row.selected {
+    background-color: rgba(236, 72, 153, 0.1);
+    border-left: 3px solid #ec4899;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <header class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Messages by {{ user_profile.username }}</h1>
+                <p class="text-gray-500 mt-1">User ID: {{ user_profile.id }} • Total Messages: {{ message_count }}</p>
+            </div>
+
+            <div class="flex gap-2">
+                <a href="{% url 'admin_user_activity' %}" class="btn px-4 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+                    </svg>
+                    Back to User List
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- User info and search -->
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-pink-100 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="col-span-1">
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">User Profile</h2>
+                <div class="flex items-center mb-4">
+                    <div class="h-16 w-16 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-2xl mr-4">
+                        {{ user_profile.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-800">{{ user_profile.username }}</h3>
+                        <p class="text-gray-500 text-sm">Joined: {{ user_profile.date_joined|date:"F j, Y" }}</p>
+                    </div>
+                </div>
+                <dl class="text-sm">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <dt class="text-gray-500">Email:</dt>
+                        <dd class="text-gray-800">{{ user_profile.email|default:"Not provided" }}</dd>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <dt class="text-gray-500">Status:</dt>
+                        <dd class="text-gray-800">
+                            {% if user_profile.is_active %}
+                            <span class="text-green-600 font-medium">Active</span>
+                            {% else %}
+                            <span class="text-red-600 font-medium">Inactive</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <dt class="text-gray-500">Admin:</dt>
+                        <dd class="text-gray-800">
+                            {% if user_profile.is_staff %}
+                            <span class="text-blue-600 font-medium">Yes</span>
+                            {% else %}
+                            <span class="text-gray-600">No</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div class="col-span-1 md:col-span-2">
+                <form method="get" action="{% url 'admin_user_messages' user_id=user_profile.id %}" class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1">
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search User Messages</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="search"
+                                id="search"
+                                name="search"
+                                value="{{ search_query }}"
+                                placeholder="Search by message content or room..."
+                                class="pl-10 pr-4 py-2.5 block w-full border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="flex-none self-end">
+                        <button type="submit" class="w-full sm:w-auto px-4 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-xl shadow-sm">
+                            Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message List -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-6">
+        <div class="px-6 py-4 border-b border-pink-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h2 class="text-lg font-semibold text-gray-800">
+                {% if search_query %}
+                Search Results ({{ message_count }})
+                {% else %}
+                All Messages ({{ message_count }})
+                {% endif %}
+            </h2>
+
+            <!-- Bulk actions -->
+            <form id="bulk-action-form" method="post" action="{% url 'admin_delete_messages_ajax' %}" class="flex flex-wrap gap-2">
+                {% csrf_token %}
+                <div id="selected-count" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden">
+                    0 selected
+                </div>
+                <button id="bulk-delete-btn" type="button" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hidden">
+                    Delete Selected
+                </button>
+                <button id="select-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg">
+                    Select All
+                </button>
+                <button id="deselect-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden">
+                    Deselect All
+                </button>
+            </form>
+        </div>
+
+        <!-- Messages table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th class="px-6 py-3 text-left w-10">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="select-all-checkbox" class="rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select all messages">
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left">Room</th>
+                        <th class="px-6 py-3 text-left">Message</th>
+                        <th class="px-6 py-3 text-center">Time</th>
+                        <th class="px-6 py-3 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for message in page_obj %}
+                    <tr class="message-row border-b border-gray-100" data-message-id="{{ message.id }}">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select message in {{ message.room.name }}">
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-500 hover:underline">
+                                {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="message-content text-gray-600">{{ message.content|linebreaksbr }}</div>
+                            {% if message.media %}
+                            <div class="mt-2">
+                                <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    Media Attachment
+                                </a>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                            <div class="text-sm text-gray-500">{{ message.timestamp|date:"M d, Y" }}</div>
+                            <div class="text-xs text-gray-400">{{ message.timestamp|time:"H:i:s" }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <a href="#" class="delete-message-btn text-red-500 hover:text-red-700" data-message-id="{{ message.id }}" aria-label="Delete message in {{ message.room.name }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                </svg>
+                                {% if search_query %}
+                                <p>No messages match your search criteria</p>
+                                <a href="{% url 'admin_user_messages' user_id=user_profile.id %}" class="text-pink-600 hover:underline mt-2">Clear search and show all messages</a>
+                                {% else %}
+                                <p>No messages found for this user</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
+            <span class="text-sm text-gray-500 mb-3 sm:mb-0">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} messages
+            </span>
+
+            <div class="flex space-x-1">
+                {% if page_obj.has_previous %}
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                    Previous
+                </a>
+                {% else %}
+                <span class="px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
+                    Previous
+                </span>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="px-3 py-1 rounded-md bg-pink-500 text-white">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}" class="px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                    Next
+                </a>
+                {% else %}
+                <span class="px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
+                    Next
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const messageCheckboxes = document.querySelectorAll('.message-checkbox');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const deselectAllBtn = document.getElementById('deselect-all-btn');
+        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const selectedCount = document.getElementById('selected-count');
+        const deleteMessageBtns = document.querySelectorAll('.delete-message-btn');
+
+        // Function to update UI based on selection
+        function updateSelectionUI() {
+            const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
+            const count = checkedBoxes.length;
+
+            // Update the count display
+            selectedCount.textContent = count + " selected";
+
+            // Show/hide elements based on selection
+            if (count > 0) {
+                selectedCount.classList.remove('hidden');
+                bulkDeleteBtn.classList.remove('hidden');
+            } else {
+                selectedCount.classList.add('hidden');
+                bulkDeleteBtn.classList.add('hidden');
+            }
+
+            // Update row highlighting
+            messageCheckboxes.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                if (checkbox.checked) {
+                    row.classList.add('selected');
+                } else {
+                    row.classList.remove('selected');
+                }
+            });
+        }
+
+        // Select all checkbox functionality
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                messageCheckboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+                updateSelectionUI();
+            });
+        }
+
+        // Individual checkbox change
+        messageCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectionUI();
+
+                // Update "select all" checkbox state
+                const allChecked = document.querySelectorAll('.message-checkbox:checked').length === messageCheckboxes.length;
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = allChecked;
+                }
+            });
+        });
+
+        // Select all button
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function() {
+                messageCheckboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = true;
+                }
+                updateSelectionUI();
+
+                // Toggle buttons
+                selectAllBtn.classList.add('hidden');
+                deselectAllBtn.classList.remove('hidden');
+            });
+        }
+
+        // Deselect all button
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', function() {
+                messageCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                updateSelectionUI();
+
+                // Toggle buttons
+                deselectAllBtn.classList.add('hidden');
+                selectAllBtn.classList.remove('hidden');
+            });
+        }
+
+        // Bulk delete functionality
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.addEventListener('click', function() {
+                const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
+                const count = checkedBoxes.length;
+
+                if (count === 0) return;
+
+                if (confirm("Are you sure you want to delete " + count + " selected message(s)? This action cannot be undone.")) {
+                    const form = document.getElementById('bulk-action-form');
+                    const formData = new FormData(form);
+
+                    // Use AJAX to send the delete request
+                    fetch("{% url 'admin_delete_messages_ajax' %}", {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove deleted rows from the DOM
+                            checkedBoxes.forEach(checkbox => {
+                                const row = checkbox.closest('tr');
+                                row.remove();
+                            });
+
+                            // Show success message
+                            alert(data.message);
+
+                            // Reset UI
+                            if (selectAllCheckbox) {
+                                selectAllCheckbox.checked = false;
+                            }
+                            updateSelectionUI();
+
+                            // Toggle buttons
+                            deselectAllBtn.classList.add('hidden');
+                            selectAllBtn.classList.remove('hidden');
+                        } else {
+                            alert(data.message || 'An error occurred while deleting messages.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while deleting messages.');
+                    });
+                }
+            });
+        }
+
+        // Individual delete buttons
+        deleteMessageBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const messageId = this.getAttribute('data-message-id');
+
+                if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+                    // Use AJAX to send the delete request
+                    const formData = new FormData();
+                    formData.append('message_ids', messageId);
+
+                    fetch("{% url 'admin_delete_messages_ajax' %}", {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the row from the DOM
+                            const row = document.querySelector("tr[data-message-id='" + messageId + "']");
+                            if (row) {
+                                row.remove();
+                            }
+
+                            // Show success message
+                            alert(data.message);
+                        } else {
+                            alert(data.message || 'An error occurred while deleting the message.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while deleting the message.');
+                    });
+                }
+            });
+        });
+
+        // Initialize UI
+        updateSelectionUI();
+    });
+</script>
+{% endblock %}
+{% endblock %}
