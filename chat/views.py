@@ -18,31 +18,8 @@ from .models import Room, Message, Reaction, Category, Meetup
 
 
 def index(request):
-    # Create default categories if they don't exist - without using slug field
-    category_data = [
-        {'name': 'Technology', 'icon': '💻', 'value': 'tech'},
-        {'name': 'Social', 'icon': '👋', 'value': 'social'},
-        {'name': 'Creative', 'icon': '🎨', 'value': 'creative'},
-        {'name': 'Gaming', 'icon': '🎮', 'value': 'gaming'},
-        {'name': 'Education', 'icon': '📚', 'value': 'education'},
-        {'name': 'Health & Wellness', 'icon': '🧘', 'value': 'health'},
-        {'name': 'Music', 'icon': '🎵', 'value': 'music'},
-        {'name': 'Food & Cooking', 'icon': '🍕', 'value': 'food'},
-        {'name': 'Travel', 'icon': '✈️', 'value': 'travel'},
-        {'name': 'Finance', 'icon': '💰', 'value': 'finance'},
-        {'name': 'Sports', 'icon': '⚽', 'value': 'sports'},
-        {'name': 'Movies & TV', 'icon': '🎬', 'value': 'media'},
-        {'name': 'Books & Reading', 'icon': '📖', 'value': 'books'},
-        {'name': 'Science', 'icon': '🔬', 'value': 'science'},
-        {'name': 'Other', 'icon': '🌟', 'value': 'other'},
-    ]
-
-    # Create each category if it doesn't exist
-    for cat in category_data:
-        Category.objects.get_or_create(
-            name=cat['name'],
-            defaults={'icon': cat['icon']}
-        )
+    # Create default categories using the model method instead of duplicating the list here
+    Category.create_default_categories()
 
     # Get all categories
     categories = Category.objects.all().order_by('name')
@@ -66,7 +43,7 @@ def index(request):
             'creator': room.creator,
             'message_count': message_count,
             'category': room.category,  # This might be None, that's ok
-            'category_slug': room.category.name.lower() if room.category else 'all',
+            'category_slug': room.category.slug if room.category else 'all',
         }
         rooms.append(room_data)
 
@@ -78,15 +55,13 @@ def index(request):
             r for r in rooms
             if r['category'] is not None and r['category'].id == category.id
         ]
-        rooms_by_category[category.name.lower()] = category_rooms
+        rooms_by_category[category.slug] = category_rooms
 
-    # Add an "All Rooms" category if it doesn't exist
-    if not any(c.name.lower() == 'all rooms' for c in categories):
-        all_category = {'name': 'All Rooms', 'icon': '🏠'}
-        rooms_by_category['all rooms'] = rooms
+    # Add an "All Rooms" category
+    rooms_by_category['all'] = rooms
 
     # For the room creation form's category dropdown
-    category_choices = [(c.name.lower(), c.name) for c in categories]
+    category_choices = [(c.slug, c.name) for c in categories]
 
     # MODIFIED: Get trending rooms (rooms with the most messages overall, top 30)
     # First, get message counts for each room
@@ -283,7 +258,7 @@ def upload_media(request):
 def create_room(request):
     if request.method == 'POST':
         room_name = request.POST.get('room_name', '').strip()
-        category_name = request.POST.get('room_category', '').strip()  # Add this line
+        category_slug = request.POST.get('room_category', '').strip()  # Get slug instead of name
 
         if room_name:
             # Convert to slug format
@@ -291,17 +266,26 @@ def create_room(request):
 
             # Check if room exists
             if not Room.objects.filter(name=room_slug).exists():
-                # Find category by name
+                # Find category by slug (more reliable than name)
                 category = None
-                if category_name:
-                    category, created = Category.objects.get_or_create(
-                        name=category_name,
-                        defaults={'icon': get_category_icon(category_name)}
-                    )
+                if category_slug:
+                    try:
+                        category = Category.objects.get(slug=category_slug)
+                    except Category.DoesNotExist:
+                        # If exact slug not found, try to get by name as fallback
+                        try:
+                            category = Category.objects.get(name__iexact=category_slug)
+                        except Category.DoesNotExist:
+                            # Create a new category only if necessary
+                            category = Category.objects.create(
+                                name=category_slug.title(),
+                                icon=get_category_icon(category_slug)
+                            )
 
                 # Create room with category
                 room = Room.objects.create(
                     name=room_slug,
+                    display_name=room_name,  # Store the original name
                     creator=request.user,
                     category=category
                 )
