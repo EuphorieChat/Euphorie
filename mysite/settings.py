@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-&ja-+o3_t(lk%hg87-cin8%22n$v!0nv=q+s^9py(0q=--1xk(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['euphorie.com', 'www.euphorie.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['euphorie.com', 'www.euphorie.com', '127.0.0.1', 'localhost', '107.20.118.7']
 
 
 # Application definition
