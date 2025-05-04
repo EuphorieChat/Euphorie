@@ -22,8 +22,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Send message indicating user joined
         if self.user and not self.user.is_anonymous:
-            # Add user to active users list
-            await self.update_user_presence(True)
+            # Add user to active users list without creating a message
+            await self.update_user_presence()
 
             # Get active users list and broadcast to the new connection
             active_users = await self.get_active_users()
@@ -55,12 +55,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-        # Update user presence
+        # Send updated user list to everyone
         if self.user and not self.user.is_anonymous:
-            await self.update_user_presence(False)
-
-            # Send updated user list to everyone
-            active_users = await self.get_active_users()
+            # Get active users list without creating a message
+            active_users = await self.get_active_users_for_disconnect()
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -323,24 +321,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
 
     @database_sync_to_async
-    def update_user_presence(self, is_online):
-        # In a real app, you might update a UserPresence model
-        # For now, we'll use a simpler approach
-        room = Room.objects.get(name=self.room_name)
-
-        # For demonstration, we're simulating presence by adding a recent message
-        # In a real app, you'd have a proper presence system
-        if is_online and not Message.objects.filter(
-            room=room,
-            user=self.user,
-            timestamp__gte=timezone.now() - timedelta(minutes=5)
-        ).exists():
-            # Add a system message that user joined (could be hidden)
-            Message.objects.create(
-                user=self.user,
-                room=room,
-                content=f"<span class='hidden'>User presence update</span>"
-            )
+    def update_user_presence(self):
+        # Modified to NOT create a message when a user connects
+        # Instead, we'll just track active users in memory or via a separate model
+        # The key change is removing the Message.objects.create() call that created the
+        # hidden "User presence update" message
+        pass
 
     @database_sync_to_async
     def get_active_users(self):
@@ -357,6 +343,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
         users = list(set(recent_users))  # Convert to set to remove duplicates
         if self.user and not self.user.is_anonymous and self.user.username not in users:
             users.append(self.user.username)
+
+        return users
+
+    @database_sync_to_async
+    def get_active_users_for_disconnect(self):
+        # For disconnect events, we don't want to add the current user since they're leaving
+        room = Room.objects.get(name=self.room_name)
+
+        # Get users who sent messages in the last hour
+        recent_time = timezone.now() - timedelta(hours=1)
+        recent_users = Message.objects.filter(
+            room=room,
+            timestamp__gte=recent_time
+        ).values_list('user__username', flat=True).distinct()
+
+        # Convert to list and remove current user
+        users = list(set(recent_users))
+        if self.user and not self.user.is_anonymous and self.user.username in users:
+            users.remove(self.user.username)
 
         return users
 
