@@ -1,3 +1,5 @@
+console.log("New chat.js loaded successfully!");
+
 // Fixed chat.js - corrected syntax errors
 document.addEventListener("DOMContentLoaded", function () {
     const roomName = window.roomName;
