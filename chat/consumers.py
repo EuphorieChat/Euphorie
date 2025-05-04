@@ -354,7 +354,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         ).values_list('user__username', flat=True).distinct()
 
         # Add current user if not already included
-        users = list(recent_users)
+        users = list(set(recent_users))  # Convert to set to remove duplicates
         if self.user and not self.user.is_anonymous and self.user.username not in users:
             users.append(self.user.username)
 

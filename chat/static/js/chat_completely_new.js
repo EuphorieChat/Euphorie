@@ -239,7 +239,11 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        users.forEach(user => {
+        // Use a Set to ensure each username only appears once
+        const uniqueUsers = [...new Set(users)];
+        console.log("Unique users:", uniqueUsers);
+
+        uniqueUsers.forEach(user => {
             // Desktop list with avatars
             const li = document.createElement("li");
             li.className = "flex items-center";
