@@ -284,6 +284,24 @@
 </head>
 <body class="bg-white min-h-screen flex flex-col text-gray-800">
 
+  <div style="background: #f8f9fa; padding: 10px; margin: 10px; border: 1px solid #ddd; border-radius: 5px;">
+    <h4>Django Template Variables Debug</h4>
+    <pre>
+        Room Name: {{ room_name|default:"NOT SET" }}
+        Username: {{ username|default:"NOT SET" }}
+        Messages Count: {{ messages|length|default:"0" }}
+        Can Delete: {{ can_delete|yesno:"Yes,No" }}
+        User Authenticated: {{ user.is_authenticated|yesno:"Yes,No" }}
+    </pre>
+    <button onclick="document.getElementById('django-debug').classList.toggle('hidden')">Show/Hide Full Context</button>
+    <div id="django-debug" class="hidden">
+        <h5>All Variables:</h5>
+        <pre>
+            {% debug %}
+        </pre>
+    </div>
+</div>
+
   <!-- Mobile Top Navigation with glass effect -->
   <header class="sm:hidden mobile-top-bar p-4 border-b border-pink-100 flex items-center justify-between">
     <a href="{% url 'index' %}" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
@@ -717,6 +735,104 @@
   </script>
 
   <script src="{% static 'js/chat.js' %}?v=3" defer></script>
+
+
+  // Add this to the bottom of your HTML right before the closing </body> tag
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+      console.log("DEBUG: Document loaded");
+
+      // Safely get room name
+      const roomName = window.roomName || '';
+      if (!roomName) {
+          console.error("DEBUG: Room name is not defined");
+          return;
+      }
+
+      console.log("DEBUG: Initializing for room", roomName);
+
+      // Create WebSocket with detailed logging
+      const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+      const wsUrl = `${protocol}${window.location.host}/ws/chat/${roomName}/`;
+
+      console.log("DEBUG: Attempting WebSocket connection to:", wsUrl);
+
+      try {
+          const socket = new WebSocket(wsUrl);
+
+          socket.addEventListener("open", function(event) {
+              console.log("DEBUG: WebSocket CONNECTED!", event);
+              document.getElementById("connection-status").textContent = "Connected ✅";
+              document.getElementById("connection-status").style.color = "green";
+
+              // Test sending a simple message
+              console.log("DEBUG: Sending test ping");
+              socket.send(JSON.stringify({
+                  type: 'users',
+                  action: 'list'
+              }));
+          });
+
+          socket.addEventListener("message", function(event) {
+              console.log("DEBUG: Message received:", event.data);
+              try {
+                  const data = JSON.parse(event.data);
+                  document.getElementById("last-message").textContent = JSON.stringify(data, null, 2);
+              } catch (e) {
+                  console.error("DEBUG: Error parsing message:", e);
+              }
+          });
+
+          socket.addEventListener("error", function(event) {
+              console.error("DEBUG: WebSocket ERROR:", event);
+              document.getElementById("connection-status").textContent = "Error ❌";
+              document.getElementById("connection-status").style.color = "red";
+          });
+
+          socket.addEventListener("close", function(event) {
+              console.log("DEBUG: WebSocket CLOSED:", event.code, event.reason);
+              document.getElementById("connection-status").textContent = "Disconnected ❌";
+              document.getElementById("connection-status").style.color = "red";
+          });
+
+          window.debugSocket = socket;
+      } catch (e) {
+          console.error("DEBUG: Failed to create WebSocket:", e);
+      }
+
+      // Check if message form exists and add debug listener
+      const messageForm = document.getElementById("message-form");
+      if (messageForm) {
+          console.log("DEBUG: Message form found");
+          messageForm.addEventListener("submit", function(event) {
+              console.log("DEBUG: Form submitted");
+              // Don't prevent default here so we can see if Django is handling the form
+          });
+      } else {
+          console.error("DEBUG: Message form NOT found");
+      }
+
+      // Find all important elements and log their presence
+      const elements = [
+          "chat-log", "chat-message-input", "file-input", "preview",
+          "preview-content", "progress-bar", "progress-container",
+          "cancel-preview", "send-btn", "typing-indicator", "user-list"
+      ];
+
+      elements.forEach(id => {
+          const el = document.getElementById(id);
+          console.log(`DEBUG: Element #${id} ${el ? "FOUND" : "NOT FOUND"}`);
+      });
+  });
+  </script>
+
+  <!-- Add this debug overlay - you can remove after fixing -->
+  <div style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; z-index: 9999; font-family: monospace; max-width: 400px; max-height: 300px; overflow: auto;">
+      <h4>WebSocket Debug</h4>
+      <p>Status: <span id="connection-status">Connecting...</span></p>
+      <p>Last message:</p>
+      <pre id="last-message" style="font-size: 10px;">None</pre>
+  </div>
 
 </body>
 </html>
