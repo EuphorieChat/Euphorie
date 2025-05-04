@@ -25,6 +25,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Add user to active users list
             await self.update_user_presence(True)
 
+            # Get active users list and broadcast to the new connection
+            active_users = await self.get_active_users()
+            await self.send(json.dumps({
+                'type': 'users',
+                'users': active_users
+            }))
+
+            # Broadcast to everyone that a new user joined
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'users',
+                    'users': active_users
+                }
+            )
+
+            # Get meetups list and send to new user
+            meetups = await self.get_meetups()
+            await self.send(json.dumps({
+                'type': 'meetups',
+                'meetups': meetups
+            }))
+
     async def disconnect(self, close_code):
         # Leave room group
         await self.channel_layer.group_discard(
@@ -35,6 +58,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Update user presence
         if self.user and not self.user.is_anonymous:
             await self.update_user_presence(False)
+
+            # Send updated user list to everyone
+            active_users = await self.get_active_users()
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'users',
+                    'users': active_users
+                }
+            )
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -106,6 +139,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'type': 'users',
                     'users': active_users
                 }))
+
+                # Also broadcast to all users in the room
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'users',
+                        'users': active_users
+                    }
+                )
 
         elif message_type == 'whiteboard':
             action = text_data_json.get('action')
@@ -227,6 +269,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({
             'type': 'meetups',
             'meetups': event['meetups']
+        }))
+
+    # Added missing users event handler
+    async def users(self, event):
+        # Send users list to WebSocket
+        await self.send(json.dumps({
+            'type': 'users',
+            'users': event['users']
         }))
 
     # Database operations

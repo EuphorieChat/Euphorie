@@ -134,25 +134,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ASGI_APPLICATION = 'mysite.asgi.application'
 
-
-try:
-    import channels_redis
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                "hosts": [('127.0.0.1', 6379)],
-            },
-        },
-    }
-    print("Using Redis channel layer for Django Channels")
-except (ImportError, Exception) as e:
-    print(f"Falling back to in-memory channel layer: {e}")
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
+# Use in-memory channel layer until Redis is fixed
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+print("Using in-memory channel layer for Django Channels")
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -165,4 +153,3 @@ CSRF_TRUSTED_ORIGINS = [
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
