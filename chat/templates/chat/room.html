@@ -720,15 +720,6 @@
 
 
   <script>
-    // Add this script right after the debug div
-    document.addEventListener("DOMContentLoaded", function() {
-        // Debug elements
-        const wsStatus = document.getElementById("ws-status-text");
-        const wsUrl = document.getElementById("ws-url");
-        const wsLastMessage = document.getElementById("ws-last-message");
-        const wsTestBtn = document.getElementById("ws-test-btn");
-        const wsToggleBtn = document.getElementById("ws-toggle-btn");
-        const wsDebug = document.getElementById("websocket-debug");
 
         // Monitor the WebSocket object
         const checkSocket = setInterval(() => {
@@ -800,6 +791,18 @@
             }
         });
 
+        // Helper to update status display
+        function updateSocketStatus() {
+            if (!window.socket) return;
+
+            const states = ["Connecting", "Open", "Closing", "Closed"];
+            const colors = ["orange", "green", "orange", "red"];
+
+            wsStatus.textContent = states[window.socket.readyState];
+            wsStatus.style.color = colors[window.socket.readyState];
+        }
+    });
+    </script>
 
 </body>
 </html>
