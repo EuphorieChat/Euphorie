@@ -110,7 +110,7 @@
       transform: scale(1.1);
     }
 
-    /* Message bubbles */
+    /* Message bubbles - UPDATED FOR BETTER IMAGE CONTAINMENT */
     .message-bubble {
       position: relative;
       border-radius: 16px;
@@ -121,6 +121,7 @@
       word-break: break-word;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      overflow: hidden; /* Added to contain all content including images */
     }
 
     .message-bubble.sent {
@@ -138,6 +139,22 @@
     .message-bubble:hover {
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       transform: translateY(-1px);
+    }
+
+    /* Added specific styling for images within message bubbles */
+    .message-bubble img {
+      display: block;
+      max-width: 100%;
+      margin: 5px 0;
+      border-radius: 8px;
+    }
+
+    /* Added specific styling for videos within message bubbles */
+    .message-bubble video {
+      display: block;
+      max-width: 100%;
+      margin: 5px 0;
+      border-radius: 8px;
     }
 
     /* Chat container sizing */
@@ -716,10 +733,29 @@
     window.username = "{{ username|escapejs }}";
   </script>
 
-  <script src="{% static 'js/chat_completely_new.js' %}?t=1683021549" defer></script>
+  <script src="{% static 'js/chat_completely_new.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
 
+  <!-- WebSocket Debug Tools -->
+  <div id="websocket-debug" style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-width: 400px; max-height: 300px; overflow: auto; z-index: 9999;">
+    <h4>WebSocket Debug</h4>
+    <div id="ws-status">Status: <span id="ws-status-text">Connecting...</span></div>
+    <div id="ws-url"></div>
+    <div id="ws-messages">
+        <div>Last message: <span id="ws-last-message">None</span></div>
+    </div>
+    <button id="ws-test-btn" style="background: #ff5f9e; border: none; color: white; padding: 5px 10px; margin-top: 5px; border-radius: 3px; cursor: pointer;">Send Test</button>
+    <button id="ws-toggle-btn" style="background: #666; border: none; color: white; padding: 5px 10px; margin-top: 5px; border-radius: 3px; cursor: pointer;">Hide</button>
+  </div>
 
   <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Debug elements
+        const wsStatus = document.getElementById("ws-status-text");
+        const wsUrl = document.getElementById("ws-url");
+        const wsLastMessage = document.getElementById("ws-last-message");
+        const wsTestBtn = document.getElementById("ws-test-btn");
+        const wsToggleBtn = document.getElementById("ws-toggle-btn");
+        const wsDebug = document.getElementById("websocket-debug");
 
         // Monitor the WebSocket object
         const checkSocket = setInterval(() => {
@@ -802,7 +838,6 @@
             wsStatus.style.color = colors[window.socket.readyState];
         }
     });
-    </script>
-
+  </script>
 </body>
 </html>
