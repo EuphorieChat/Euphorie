@@ -15,7 +15,7 @@ from datetime import timedelta
 import json
 import os
 from .models import Room, Message, Reaction, Category, Meetup
-
+import time
 
 def index(request):
     # Create default categories if they don't exist
@@ -221,6 +221,9 @@ def load_more_rooms(request):
     })
 
 def room(request, room_name):
+    # Add this line at the beginning
+    request.timestamp = int(time.time())
+
     # Get the room or return 404
     room = get_object_or_404(Room, name=room_name)
 
