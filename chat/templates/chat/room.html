@@ -1,839 +1,918 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 {% load static %}
 {% load chat_extras %}
+<head>
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
+  <meta charset="UTF-8">
+  <title>Euphorie - {{ room_name|title }} 💬</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-image: radial-gradient(circle at 30% 10%, rgba(255, 182, 225, 0.1), transparent 30%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.1), transparent 40%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+      width: 100%;
+    }
 
-{% block title %}{{ room_name|title }} - Chat Room{% endblock %}
+    /* Typing animation dots */
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
 
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/chat.css' %}">
-<style>
-  body {
-    font-family: 'Inter', sans-serif;
-    background-image: radial-gradient(circle at 30% 10%, rgba(255, 182, 225, 0.1), transparent 30%),
-                      radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.1), transparent 40%);
-    background-attachment: fixed;
-    overflow-x: hidden;
-    width: 100%;
-  }
+    .dot {
+      animation: bounce 0.6s infinite;
+    }
 
-  /* Typing animation dots */
-  @keyframes bounce {
-    0%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-6px); }
-  }
+    .dot:nth-child(1) { animation-delay: 0s; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
 
-  .dot {
-    animation: bounce 0.6s infinite;
-  }
+    /* Emoji reactions */
+    .emoji-reaction {
+      transition: all 0.2s ease;
+    }
 
-  .dot:nth-child(1) { animation-delay: 0s; }
-  .dot:nth-child(2) { animation-delay: 0.2s; }
-  .dot:nth-child(3) { animation-delay: 0.4s; }
+    .emoji-reaction:hover {
+      transform: scale(1.2);
+    }
 
-  /* Emoji reactions */
-  .emoji-reaction {
-    transition: all 0.2s ease;
-  }
+    .emoji-reaction.reacted {
+      position: relative;
+    }
 
-  .emoji-reaction:hover {
-    transform: scale(1.2);
-  }
+    /* Reaction counter badge */
+    .reaction-counter {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 0 4px;
+      font-size: 10px;
+      border: 1px solid #eee;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
 
-  .emoji-reaction.reacted {
-    position: relative;
-  }
-
-  /* Reaction counter badge */
-  .reaction-counter {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #fff;
-    border-radius: 10px;
-    padding: 0 4px;
-    font-size: 10px;
-    border: 1px solid #eee;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  }
-
-  /* Emoji panel */
-  .emoji-panel {
-    display: none;
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    background: white;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    padding: 8px;
-    width: 270px;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 8px;
-    z-index: 1000;
-  }
-
-  @media (max-width: 640px) {
+    /* Emoji panel */
     .emoji-panel {
-      width: 240px;
-      left: auto;
-      right: 0;
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 8px;
+      width: 270px;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+      z-index: 1000;
     }
-  }
 
-  .emoji-panel.show {
-    display: flex;
-  }
+    @media (max-width: 640px) {
+      .emoji-panel {
+        width: 240px;
+        left: auto;
+        right: 0;
+      }
+    }
 
-  .emoji-btn {
-    cursor: pointer;
-    font-size: 20px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    transition: all 0.2s;
-  }
+    .emoji-panel.show {
+      display: flex;
+    }
 
-  .emoji-btn:hover, .emoji-btn:active {
-    background: #f0f0f0;
-    transform: scale(1.1);
-  }
+    .emoji-btn {
+      cursor: pointer;
+      font-size: 20px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
 
-  /* Message bubbles - UPDATED FOR BETTER IMAGE CONTAINMENT */
-  .message-bubble {
-    position: relative;
-    border-radius: 16px;
-    padding: 10px 12px;
-    max-width: 80%;
-    width: fit-content;
-    margin-bottom: 8px;
-    word-break: break-word;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    overflow: hidden; /* Added to contain all content including images */
-  }
+    .emoji-btn:hover, .emoji-btn:active {
+      background: #f0f0f0;
+      transform: scale(1.1);
+    }
 
-  .message-bubble.sent {
-    background-color: #fbdae8; /* Light pink for sent messages */
-    margin-left: auto;
-    border-bottom-right-radius: 4px;
-  }
+    /* Message bubbles - UPDATED FOR BETTER IMAGE CONTAINMENT */
+    .message-bubble {
+      position: relative;
+      border-radius: 16px;
+      padding: 10px 12px;
+      max-width: 80%;
+      width: fit-content;
+      margin-bottom: 8px;
+      word-break: break-word;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      overflow: hidden; /* Added to contain all content including images */
+    }
 
-  .message-bubble.received {
-    background-color: #fff7da; /* Light yellow for received messages */
-    margin-right: auto;
-    border-bottom-left-radius: 4px;
-  }
+    .message-bubble.sent {
+      background-color: #fbdae8; /* Light pink for sent messages */
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
 
-  .message-bubble:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transform: translateY(-1px);
-  }
+    .message-bubble.received {
+      background-color: #fff7da; /* Light yellow for received messages */
+      margin-right: auto;
+      border-bottom-left-radius: 4px;
+    }
 
-  /* Added specific styling for images within message bubbles */
-  .message-bubble img {
-    display: block;
-    max-width: 100%;
-    margin: 5px 0;
-    border-radius: 8px;
-  }
+    .message-bubble:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateY(-1px);
+    }
 
-  /* Added specific styling for videos within message bubbles */
-  .message-bubble video {
-    display: block;
-    max-width: 100%;
-    margin: 5px 0;
-    border-radius: 8px;
-  }
+    /* Added specific styling for images within message bubbles */
+    .message-bubble img {
+      display: block;
+      max-width: 100%;
+      margin: 5px 0;
+      border-radius: 8px;
+    }
 
-  /* Chat container sizing */
-  .chat-container {
-    height: calc(100vh - 220px); /* Increased from 280px */
-    min-height: 350px;
-  }
+    /* Added specific styling for videos within message bubbles */
+    .message-bubble video {
+      display: block;
+      max-width: 100%;
+      margin: 5px 0;
+      border-radius: 8px;
+    }
 
-  @media (max-width: 640px) {
+    /* Chat container sizing */
     .chat-container {
-      height: calc(100vh - 180px); /* Increased from 240px */
-    }
-  }
-
-  /* Hide scrollbar but keep functionality */
-  .hide-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-  }
-
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-
-  /* File upload preview */
-  .file-preview {
-    position: relative;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-top: 8px;
-    max-width: 200px;
-    transition: all 0.3s ease;
-  }
-
-  .file-preview:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-
-  /* Button styles */
-  .btn {
-    transition: all 0.2s ease;
-    font-weight: 500;
-    border-radius: 12px;
-  }
-
-  .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  }
-
-  .btn:active {
-    transform: translateY(0);
-  }
-
-  /* Gradient animations */
-  .gradient-text {
-    background: linear-gradient(135deg, #ec4899, #f97316);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Make the user list more compact on mobile */
-  @media (max-width: 640px) {
-    .user-list-item {
-      display: inline-block;
-      margin-right: 8px;
+      height: calc(100vh - 220px); /* Increased from 280px */
+      min-height: 350px;
     }
 
-    .user-list-item:after {
-      content: ',';
+    @media (max-width: 640px) {
+      .chat-container {
+        height: calc(100vh - 180px); /* Increased from 240px */
+      }
     }
 
-    .user-list-item:last-child:after {
-      content: '';
+    /* Hide scrollbar but keep functionality */
+    .hide-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
     }
-  }
 
-  /* Top nav bar for mobile devices */
-  .mobile-top-bar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-  }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
 
-  /* Guest banner pulse animation */
-  .guest-banner {
-    animation: pulse 2s infinite;
-    position: sticky;
-    top: 60px; /* Below the mobile header */
-    z-index: 50;
-  }
+    /* File upload preview */
+    .file-preview {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 8px;
+      max-width: 200px;
+      transition: all 0.3s ease;
+    }
 
-  @media (min-width: 640px) {
-    .guest-banner {
+    .file-preview:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Button styles */
+    .btn {
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-radius: 12px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    /* Gradient animations */
+    .gradient-text {
+      background: linear-gradient(135deg, #ec4899, #f97316);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Make the user list more compact on mobile */
+    @media (max-width: 640px) {
+      .user-list-item {
+        display: inline-block;
+        margin-right: 8px;
+      }
+
+      .user-list-item:after {
+        content: ',';
+      }
+
+      .user-list-item:last-child:after {
+        content: '';
+      }
+    }
+
+    /* Top nav bar for mobile devices */
+    .mobile-top-bar {
+      position: sticky;
       top: 0;
+      z-index: 100;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
     }
-  }
 
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
-  }
+    /* Guest banner pulse animation */
+    .guest-banner {
+      animation: pulse 2s infinite;
+      position: sticky;
+      top: 60px; /* Below the mobile header */
+      z-index: 50;
+    }
 
-  /* User avatar styling */
-  .user-avatar {
-    transition: all 0.3s ease;
-  }
+    @media (min-width: 640px) {
+      .guest-banner {
+        top: 0;
+      }
+    }
 
-  .user-avatar:hover {
-    transform: scale(1.05);
-  }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+    }
 
-  /* Shimmer animation for loading states */
-  @keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
-  }
+    /* User avatar styling */
+    .user-avatar {
+      transition: all 0.3s ease;
+    }
 
-  .shimmer {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
-    background-size: 1000px 100%;
-    animation: shimmer 2s infinite linear;
-  }
+    .user-avatar:hover {
+      transform: scale(1.05);
+    }
 
-  /* Input animation on focus */
-  .chat-input {
-    background-color: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(4px);
-    transition: all 0.3s ease;
-  }
+    /* Shimmer animation for loading states */
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
 
-  .chat-input:focus {
-    background-color: rgba(255, 255, 255, 1);
-    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
-    transform: translateY(-1px);
-  }
+    .shimmer {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+      background-size: 1000px 100%;
+      animation: shimmer 2s infinite linear;
+    }
 
-  /* Announcements styling */
-  .announcement-banner {
-    animation: slideIn 0.5s ease-out;
-  }
+    /* Input animation on focus */
+    .chat-input {
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(4px);
+      transition: all 0.3s ease;
+    }
 
-  @keyframes slideIn {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
+    .chat-input:focus {
+      background-color: rgba(255, 255, 255, 1);
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+      transform: translateY(-1px);
+    }
 
-  .announcement-item {
-    position: relative;
-    border-radius: 12px;
-    transition: all 0.3s ease;
-  }
+    /* Announcements styling */
+    .announcement-banner {
+      animation: slideIn 0.5s ease-out;
+    }
 
-  .announcement-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  }
+    @keyframes slideIn {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
 
-  .close-announcement {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    color: #666;
-    z-index: 10;
-  }
+    .announcement-item {
+      position: relative;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
 
-  .close-announcement:hover {
-    background-color: #f3f4f6;
-    transform: scale(1.1);
-  }
-</style>
-{% endblock %}
+    .announcement-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
 
-{% block content %}
-<!-- Mobile Top Navigation with glass effect -->
-<header class="sm:hidden mobile-top-bar p-4 border-b border-pink-100 flex items-center justify-between">
-  <a href="{% url 'index' %}" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-    </svg>
-  </a>
-  <!-- Changed the room name to be a clickable link -->
-  <a href="{% url 'index' %}" class="text-xl font-bold gradient-text hover:opacity-80 transition-opacity">{{ room_name|title }}</a>
-  <button id="mobile-user-list-toggle" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  </button>
-</header>
+    .close-announcement {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      color: #666;
+      z-index: 10;
+    }
 
-<main class="flex-1 w-full max-w-6xl mx-auto p-4 sm:py-8">
-  <!-- Room Header - Visible on desktop -->
-  <div class="hidden sm:flex items-center justify-between mb-4">
-    <div class="flex items-center">
-      <!-- Changed the room name to be a clickable link -->
-      <a href="{% url 'index' %}" class="text-3xl font-extrabold gradient-text hover:opacity-80 transition-opacity">Room: {{ room_name|title }}</a>
-      <span class="ml-3 px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">CHAT</span>
-      {% if room.is_protected %}
-      <span class="ml-3 px-3 py-1 text-xs bg-green-100 text-green-600 rounded-full font-medium flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-        PROTECTED
-      </span>
-      {% endif %}
-    </div>
+    .close-announcement:hover {
+      background-color: #f3f4f6;
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col text-gray-800">
 
-    <div class="flex items-center gap-4">
-      {% if user.is_authenticated %}
-      <div class="flex items-center bg-pink-50 rounded-full px-3 py-1.5">
-        <div class="h-6 w-6 rounded-full bg-pink-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-          {{ username|slice:":1"|upper }}
-        </div>
-        <p class="text-sm text-gray-700">{{ username }}</p>
-      </div>
-      {% endif %}
-      <a href="{% url 'index' %}" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl text-sm inline-flex items-center shadow-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-        Lobby
-      </a>
-    </div>
-  </div>
+  <!-- Mobile Top Navigation with glass effect -->
+  <header class="sm:hidden mobile-top-bar p-4 border-b border-pink-100 flex items-center justify-between">
+    <a href="{% url 'index' %}" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+    </a>
+    <!-- Changed the room name to be a clickable link -->
+    <a href="{% url 'index' %}" class="text-xl font-bold gradient-text hover:opacity-80 transition-opacity">{{ room_name|title }}</a>
+    <button id="mobile-user-list-toggle" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    </button>
+  </header>
 
-  <!-- Guest Mode Banner (only for non-authenticated users) -->
-  {% if not user.is_authenticated %}
-  <div class="bg-gradient-to-r from-pink-100 to-yellow-100 p-4 rounded-xl shadow-md mb-6 guest-banner border border-pink-200">
-    <div class="flex items-center justify-between">
-      <p class="text-pink-600 font-medium flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span class="hidden sm:inline">You're in guest mode.</span> You can view messages but need to log in to participate!
-      </p>
-      <div class="flex gap-2">
-        <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
-          Log in
-        </a>
-        <a href="{% url 'signup' %}" class="btn bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
-          Sign up
-        </a>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Announcements Banner -->
-  <div id="announcements-container" class="{% if active_announcements %}mb-6{% else %}hidden mb-6{% endif %}">
-    {% for announcement in active_announcements %}
-    <div class="announcement-item bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-2 border border-blue-200 announcement-banner {% if announcement.is_read %}hidden{% endif %}" data-announcement-id="{{ announcement.id }}">
-      <button class="close-announcement" aria-label="Dismiss announcement">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
-      <div class="flex items-start">
-        <div class="bg-blue-500 rounded-full p-2 mr-3 flex-shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+  <main class="flex-1 w-full max-w-4xl mx-auto p-4 sm:py-8">
+    <!-- Room Header - Visible on desktop -->
+    <div class="hidden sm:flex items-center justify-between mb-4">
+      <div class="flex items-center">
+        <!-- Changed the room name to be a clickable link -->
+        <a href="{% url 'index' %}" class="text-3xl font-extrabold gradient-text hover:opacity-80 transition-opacity">Room: {{ room_name|title }}</a>
+        <span class="ml-3 px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">CHAT</span>
+        {% if room.is_protected %}
+        <span class="ml-3 px-3 py-1 text-xs bg-green-100 text-green-600 rounded-full font-medium flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-        </div>
-        <div class="flex-1">
-          <h3 class="font-semibold text-blue-800">Announcement from {{ announcement.creator }}</h3>
-          <div class="text-gray-700 text-sm mt-1">{{ announcement.content|linebreaksbr }}</div>
-          <div class="text-xs text-gray-500 mt-2">{{ announcement.created_at|date:"F j, Y, g:i a" }}</div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <!-- User List Panel - Mobile only, hidden by default -->
-  <div id="mobile-user-list" class="sm:hidden bg-white p-4 rounded-xl shadow-md border border-pink-100 mb-4 hidden">
-    <h3 class="text-base font-semibold text-gray-700 mb-2 flex items-center">
-      <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
-      Users in this room
-    </h3>
-    <div id="mobile-user-list-content" class="text-sm text-gray-600 flex flex-wrap gap-1"></div>
-  </div>
-
-  <div class="grid sm:grid-cols-4 gap-4">
-    <!-- Main Chat Section - takes 3/4 of space on desktop -->
-    <div class="sm:col-span-3">
-      <!-- Main Chat Box -->
-      <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden flex flex-col">
-        <!-- Chat messages container -->
-        <div id="chat-log" class="chat-container hide-scrollbar p-4 overflow-y-auto bg-gray-50">
-          {% for message in messages %}
-            <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %} group" data-message-id="{{ message.id }}">
-              <div class="flex items-start">
-                <!-- Username and message content -->
-                <div class="flex-1">
-                  <p class="text-xs font-semibold mb-0.5 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %}">
-                    {{ message.user.username }}
-                  </p>
-                  <div class="text-sm text-gray-700">
-                    {{ message.content|safe }}
-                  </div>
-                </div>
-
-                <!-- Quick reaction buttons (visible on hover/tap) -->
-                <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
-                  <div class="flex space-x-1">
-                    <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">❤️</span>
-                    <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">👍</span>
-                    <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">😂</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Reactions display -->
-              <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs">
-                {% with reactions|default:"{}" as reaction_map %}
-                  {% with reaction_map|dict_key:message.id as emoji_counts %}
-                    {% for emoji, count in emoji_counts.items %}
-                      <span data-emoji="{{ emoji }}" class="bg-white rounded-full px-2 py-0.5 inline-flex items-center shadow-sm hover:bg-yellow-50 cursor-pointer transition-colors">
-                        {{ emoji }} <span class="reaction-count ml-1">{{ count }}</span>
-                      </span>
-                    {% endfor %}
-                  {% endwith %}
-                {% endwith %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-
-        <!-- Typing indicator -->
-        <div id="typing-indicator" class="hidden px-4 py-2 text-pink-400 text-sm h-6 flex items-center">
-          <span class="dot">•</span><span class="dot">•</span><span class="dot">•</span>
-          <span class="ml-2 text-xs text-gray-500">Someone is typing...</span>
-        </div>
-
-        <!-- File Preview Area -->
-        <div id="preview" class="hidden px-4 pt-2">
-          <div class="relative bg-gray-50 p-2 rounded-lg border border-pink-100">
-            <button id="cancel-preview" class="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-6 h-6 shadow hover:bg-red-50 flex items-center justify-center transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div id="preview-content" class="flex items-center gap-2 max-w-full overflow-x-auto hide-scrollbar pb-1"></div>
-          </div>
-        </div>
-
-        <!-- Upload Progress -->
-        <div id="progress-container" class="hidden px-4 py-2">
-          <div class="w-full bg-gray-200 rounded-full h-2.5">
-            <div id="progress-bar" class="h-2.5 bg-gradient-to-r from-pink-500 to-orange-400 rounded-full w-0 transition-all duration-300"></div>
-          </div>
-        </div>
-
-        <!-- Message Input Area -->
-        <div class="p-4 border-t border-pink-100 bg-white">
-          <form id="message-form" class="flex gap-2 items-center">
-            <!-- Emoji Button -->
-            <div class="relative">
-              <button id="emoji-button" type="button" class="text-xl p-2 hover:bg-pink-50 rounded-full transition flex items-center justify-center" {% if not user.is_authenticated %}disabled style="opacity: 0.5; pointer-events: none;"{% endif %}>
-                <span>😊</span>
-              </button>
-              <div id="emoji-panel" class="emoji-panel">
-                <!-- Common emojis grid -->
-                <div class="emoji-btn">😊</div>
-                <div class="emoji-btn">😂</div>
-                <div class="emoji-btn">❤️</div>
-                <div class="emoji-btn">👍</div>
-                <div class="emoji-btn">🔥</div>
-                <div class="emoji-btn">✨</div>
-                <div class="emoji-btn">🎉</div>
-                <div class="emoji-btn">🥰</div>
-                <div class="emoji-btn">😎</div>
-                <div class="emoji-btn">🤔</div>
-                <div class="emoji-btn">👀</div>
-                <div class="emoji-btn">💯</div>
-                <div class="emoji-btn">🙏</div>
-                <div class="emoji-btn">💪</div>
-                <div class="emoji-btn">🌟</div>
-                <div class="emoji-btn">💕</div>
-                <div class="emoji-btn">🤩</div>
-                <div class="emoji-btn">😍</div>
-                <div class="emoji-btn">🥳</div>
-                <div class="emoji-btn">😁</div>
-              </div>
-            </div>
-
-            <!-- Text Input -->
-            <input
-              id="chat-message-input"
-              type="text"
-              placeholder="{% if user.is_authenticated %}Type something cozy...{% else %}Log in to send messages{% endif %}"
-              autocomplete="off"
-              class="chat-input flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none text-sm"
-              {% if not user.is_authenticated %}disabled{% endif %}
-            />
-
-            <!-- File Upload Button -->
-            <label for="file-input" class="cursor-pointer p-2.5 bg-yellow-100 text-yellow-600 font-medium rounded-full hover:bg-yellow-200 transition flex items-center justify-center" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-            </label>
-            <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
-
-            <!-- Send Button -->
-            <button type="submit" id="send-btn" class="btn p-2.5 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-full hover:shadow-md transition flex items-center justify-center"
-            {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}
-             >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right sidebar - User List & Room Controls -->
-    <div class="sm:col-span-1 space-y-4">
-      <!-- Users list - Desktop version -->
-      <div class="hidden sm:block bg-white p-4 rounded-xl shadow-md border border-pink-100">
-        <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center">
-          <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
-          Users in this room
-        </h3>
-        <ul id="user-list" class="list-none text-sm text-gray-600 space-y-2">
-          <!-- User list will be populated by JavaScript -->
-        </ul>
+          PROTECTED
+        </span>
+        {% endif %}
       </div>
 
-      <!-- NEW: Online Friends Section -->
-      {% if user.is_authenticated %}
-      <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100">
-        <h3 class="text-base font-semibold text-gray-700 mb-3">Your Friends Online</h3>
-        <div id="online-friends-list" class="max-h-40 overflow-y-auto">
-          <div class="text-gray-400 text-xs italic py-2">
-            Loading friends...
+      <div class="flex items-center gap-4">
+        {% if user.is_authenticated %}
+        <div class="flex items-center bg-pink-50 rounded-full px-3 py-1.5">
+          <div class="h-6 w-6 rounded-full bg-pink-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+            {{ username|slice:":1"|upper }}
           </div>
+          <p class="text-sm text-gray-700">{{ username }}</p>
         </div>
-      </div>
-      {% endif %}
-
-      <!-- NEW: Room Recommendations Section -->
-      <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100">
-        <h3 class="text-base font-semibold text-gray-700 mb-3">Recommended Rooms</h3>
-        <div id="recommended-rooms-list" class="max-h-48 overflow-y-auto">
-          <div class="text-gray-400 text-xs italic py-2">
-            Loading recommendations...
-          </div>
-        </div>
-      </div>
-
-      <!-- Room Controls -->
-      <!-- Media Library Button -->
-      <button id="open-media-library" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4-4-4-4m6 8h10M4 20h16M4 4h16" />
-        </svg>
-        Media Library
-      </button>
-
-      <!-- Media Library Modal -->
-      <div id="media-library-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
-            <button id="close-media-library" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
-          </div>
-
-          <div class="flex space-x-2 mb-4">
-            <button class="media-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
-            <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
-            <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
-          </div>
-
-          <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
-            <!-- Media items will be displayed here -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Media Preview Modal -->
-      <div id="media-preview-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
-        <div class="max-w-4xl max-h-screen p-4">
-          <button id="close-media-preview" class="absolute top-4 right-4 text-white hover:text-pink-400 text-xl transition-colors z-50">&times;</button>
-          <div id="media-preview-content" class="flex items-center justify-center">
-            <!-- Preview content will be inserted here -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Meetup Planner -->
-      <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
-        <h3 class="text-base font-semibold text-gray-700 mb-1">Meetup Planner</h3>
-
-        <div id="upcoming-meetups" class="text-sm space-y-3">
-          <!-- Upcoming meetups will be listed here -->
-          <p class="text-gray-400 text-xs italic">No upcoming meetups planned yet.</p>
-
-          <button id="create-meetup-btn" class="btn w-full bg-green-100 hover:bg-green-200 text-green-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Plan a Meetup
-          </button>
-        </div>
-      </div>
-
-      <!-- Create Meetup Modal -->
-      <div id="meetup-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4">
-          <h2 class="text-lg font-bold gradient-text mb-4">Plan a Meetup</h2>
-
-          <form id="meetup-form" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Meetup Title</label>
-              <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
-              <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-              <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
-            </div>
-
-            <div class="flex justify-end space-x-3 pt-2">
-              <button type="button" id="cancel-meetup" class="btn px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">Cancel</button>
-              <button type="submit" class="btn px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl">Create Meetup</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Collaborative Whiteboard Button -->
-      <button id="open-whiteboard" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-        </svg>
-        Collaborative Whiteboard
-      </button>
-
-      <!-- Whiteboard Modal -->
-      <div id="whiteboard-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
-            <button id="close-whiteboard" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
-          </div>
-          <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-            <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
-          </div>
-          <div class="flex items-center justify-between mt-4">
-            <div class="flex items-center space-x-3">
-              <input type="color" id="brush-color" value="#000000" class="w-10 h-10 rounded cursor-pointer">
-              <select id="brush-size" class="rounded border border-gray-200 p-2">
-                <option value="2">Thin</option>
-                <option value="5" selected>Medium</option>
-                <option value="10">Thick</option>
-              </select>
-            </div>
-            <button id="clear-whiteboard" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg">Clear All</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Room Controls section with proper authentication check -->
-      <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
-        <h3 class="text-base font-semibold text-gray-700 mb-1">Room Controls</h3>
-
-        <a href="{% url 'index' %}" class="btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {% endif %}
+        <a href="{% url 'index' %}" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl text-sm inline-flex items-center shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          Back to Lobby
+          Lobby
         </a>
-
-        {% if user.is_authenticated %}
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Logout
-          </button>
-        </form>
-        {% else %}
-        <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-          </svg>
-          Login
-        </a>
-        {% endif %}
-
-        {% if can_delete and user.is_authenticated %}
-        <form method="post" action="{% url 'delete_room' room_name %}">
-          {% csrf_token %}
-          <button type="submit" class="btn bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Delete Room
-          </button>
-        </form>
-        {% endif %}
-
-        {% if user.is_staff or user.username == room.creator.username %}
-        <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Admin Panel
-        </a>
-        {% endif %}
       </div>
     </div>
-  </div>
-</main>
 
-<!-- Footer with links to other platforms - Now more compact -->
-<footer class="py-2 border-t border-pink-100 mt-8 bg-white compact-footer">
-  <div class="w-full max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
-    <div class="mb-3 sm:mb-0 text-center sm:text-left">
-      <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
-        <h2 class="text-base font-bold gradient-text">Euphorie</h2>
-        <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
-      </a>
-      <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
+    <!-- Guest Mode Banner (only for non-authenticated users) -->
+    {% if not user.is_authenticated %}
+    <div class="bg-gradient-to-r from-pink-100 to-yellow-100 p-4 rounded-xl shadow-md mb-6 guest-banner border border-pink-200">
+      <div class="flex items-center justify-between">
+        <p class="text-pink-600 font-medium flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="hidden sm:inline">You're in guest mode.</span> You can view messages but need to log in to participate!
+        </p>
+        <div class="flex gap-2">
+          <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
+            Log in
+          </a>
+          <a href="{% url 'signup' %}" class="btn bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
+            Sign up
+          </a>
+        </div>
+      </div>
     </div>
-    <div class="flex items-center gap-4 sm:gap-8 text-[13px] font-semibold tracking-wide text-gray-500">
-      <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-indigo-500 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <span class="hover:underline underline-offset-2">Crene.com</span>
-      </a>
-      <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-green-500 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-        <span class="hover:underline underline-offset-2">DiaryVault.com</span>
-      </a>
+    {% endif %}
+
+    <!-- Announcements Banner -->
+    <div id="announcements-container" class="{% if active_announcements %}mb-6{% else %}hidden mb-6{% endif %}">
+      {% for announcement in active_announcements %}
+      <div class="announcement-item bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-2 border border-blue-200 announcement-banner {% if announcement.is_read %}hidden{% endif %}" data-announcement-id="{{ announcement.id }}">
+        <button class="close-announcement" aria-label="Dismiss announcement">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="flex items-start">
+          <div class="bg-blue-500 rounded-full p-2 mr-3 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-semibold text-blue-800">Announcement from {{ announcement.creator }}</h3>
+            <div class="text-gray-700 text-sm mt-1">{{ announcement.content|linebreaksbr }}</div>
+            <div class="text-xs text-gray-500 mt-2">{{ announcement.created_at|date:"F j, Y, g:i a" }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- User List Panel - Mobile only, hidden by default -->
+    <div id="mobile-user-list" class="sm:hidden bg-white p-4 rounded-xl shadow-md border border-pink-100 mb-4 hidden">
+      <h3 class="text-base font-semibold text-gray-700 mb-2 flex items-center">
+        <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
+        Users in this room
+      </h3>
+      <div id="mobile-user-list-content" class="text-sm text-gray-600 flex flex-wrap gap-1"></div>
+    </div>
+
+    <div class="grid sm:grid-cols-4 gap-4">
+      <!-- Main Chat Section - takes 3/4 of space on desktop -->
+      <div class="sm:col-span-3">
+        <!-- Main Chat Box -->
+        <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden flex flex-col">
+          <!-- Chat messages container -->
+          <div id="chat-log" class="chat-container hide-scrollbar p-4 overflow-y-auto bg-gray-50">
+            {% for message in messages %}
+              <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %} group" data-message-id="{{ message.id }}">
+                <div class="flex items-start">
+                  <!-- Username and message content -->
+                  <div class="flex-1">
+                    <p class="text-xs font-semibold mb-0.5 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %}">
+                      {{ message.user.username }}
+                    </p>
+                    <div class="text-sm text-gray-700">
+                      {{ message.content|safe }}
+                    </div>
+                  </div>
+
+                  <!-- Quick reaction buttons (visible on hover/tap) -->
+                  <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                    <div class="flex space-x-1">
+                      <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">❤️</span>
+                      <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">👍</span>
+                      <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">😂</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Reactions display -->
+                <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs">
+                  {% with reactions|default:"{}" as reaction_map %}
+                    {% with reaction_map|dict_key:message.id as emoji_counts %}
+                      {% for emoji, count in emoji_counts.items %}
+                        <span data-emoji="{{ emoji }}" class="bg-white rounded-full px-2 py-0.5 inline-flex items-center shadow-sm hover:bg-yellow-50 cursor-pointer transition-colors">
+                          {{ emoji }} <span class="reaction-count ml-1">{{ count }}</span>
+                        </span>
+                      {% endfor %}
+                    {% endwith %}
+                  {% endwith %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Typing indicator -->
+          <div id="typing-indicator" class="hidden px-4 py-2 text-pink-400 text-sm h-6 flex items-center">
+            <span class="dot">•</span><span class="dot">•</span><span class="dot">•</span>
+            <span class="ml-2 text-xs text-gray-500">Someone is typing...</span>
+          </div>
+
+          <!-- File Preview Area -->
+          <div id="preview" class="hidden px-4 pt-2">
+            <div class="relative bg-gray-50 p-2 rounded-lg border border-pink-100">
+              <button id="cancel-preview" class="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-6 h-6 shadow hover:bg-red-50 flex items-center justify-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div id="preview-content" class="flex items-center gap-2 max-w-full overflow-x-auto hide-scrollbar pb-1"></div>
+            </div>
+          </div>
+
+          <!-- Upload Progress -->
+          <div id="progress-container" class="hidden px-4 py-2">
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+              <div id="progress-bar" class="h-2.5 bg-gradient-to-r from-pink-500 to-orange-400 rounded-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+
+          <!-- Message Input Area -->
+          <div class="p-4 border-t border-pink-100 bg-white">
+            <form id="message-form" class="flex gap-2 items-center">
+              <!-- Emoji Button -->
+              <div class="relative">
+                <button id="emoji-button" type="button" class="text-xl p-2 hover:bg-pink-50 rounded-full transition flex items-center justify-center" {% if not user.is_authenticated %}disabled style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                  <span>😊</span>
+                </button>
+                <div id="emoji-panel" class="emoji-panel">
+                  <!-- Common emojis grid -->
+                  <div class="emoji-btn">😊</div>
+                  <div class="emoji-btn">😂</div>
+                  <div class="emoji-btn">❤️</div>
+                  <div class="emoji-btn">👍</div>
+                  <div class="emoji-btn">🔥</div>
+                  <div class="emoji-btn">✨</div>
+                  <div class="emoji-btn">🎉</div>
+                  <div class="emoji-btn">🥰</div>
+                  <div class="emoji-btn">😎</div>
+                  <div class="emoji-btn">🤔</div>
+                  <div class="emoji-btn">👀</div>
+                  <div class="emoji-btn">💯</div>
+                  <div class="emoji-btn">🙏</div>
+                  <div class="emoji-btn">💪</div>
+                  <div class="emoji-btn">🌟</div>
+                  <div class="emoji-btn">💕</div>
+                  <div class="emoji-btn">🤩</div>
+                  <div class="emoji-btn">😍</div>
+                  <div class="emoji-btn">🥳</div>
+                  <div class="emoji-btn">😁</div>
+                </div>
+              </div>
+
+              <!-- Text Input -->
+              <input
+                id="chat-message-input"
+                type="text"
+                placeholder="{% if user.is_authenticated %}Type something cozy...{% else %}Log in to send messages{% endif %}"
+                autocomplete="off"
+                class="chat-input flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none text-sm"
+                {% if not user.is_authenticated %}disabled{% endif %}
+              />
+
+              <!-- File Upload Button -->
+              <label for="file-input" class="cursor-pointer p-2.5 bg-yellow-100 text-yellow-600 font-medium rounded-full hover:bg-yellow-200 transition flex items-center justify-center" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </label>
+              <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
+
+              <!-- Send Button -->
+              <button type="submit" id="send-btn" class="btn p-2.5 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-full hover:shadow-md transition flex items-center justify-center"
+              {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}
+               >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right sidebar - User List & Room Controls -->
+      <div class="sm:col-span-1 space-y-4">
+        <!-- Users list - Desktop version -->
+        <div class="hidden sm:block bg-white p-4 rounded-xl shadow-md border border-pink-100">
+          <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center">
+            <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
+            Users in this room
+          </h3>
+          <ul id="user-list" class="list-none text-sm text-gray-600 space-y-2">
+            <!-- User list will be populated by JavaScript -->
+          </ul>
+        </div>
+
+        <!-- Room Controls -->
+
+          <!-- Media Library Button -->
+          <button id="open-media-library" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4-4-4-4m6 8h10M4 20h16M4 4h16" />
+            </svg>
+            Media Library
+          </button>
+
+          <!-- Media Library Modal -->
+          <div id="media-library-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
+                <button id="close-media-library" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
+              </div>
+
+              <div class="flex space-x-2 mb-4">
+                <button class="media-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
+                <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
+                <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
+              </div>
+
+              <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
+                <!-- Media items will be displayed here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Media Preview Modal -->
+          <div id="media-preview-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+            <div class="max-w-4xl max-h-screen p-4">
+              <button id="close-media-preview" class="absolute top-4 right-4 text-white hover:text-pink-400 text-xl transition-colors z-50">&times;</button>
+              <div id="media-preview-content" class="flex items-center justify-center">
+                <!-- Preview content will be inserted here -->
+              </div>
+            </div>
+          </div>
+
+            <!-- Meetup Planner -->
+            <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
+              <h3 class="text-base font-semibold text-gray-700 mb-1">Meetup Planner</h3>
+
+              <div id="upcoming-meetups" class="text-sm space-y-3">
+                <!-- Upcoming meetups will be listed here -->
+                <p class="text-gray-400 text-xs italic">No upcoming meetups planned yet.</p>
+
+                <button id="create-meetup-btn" class="btn w-full bg-green-100 hover:bg-green-200 text-green-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Plan a Meetup
+                </button>
+              </div>
+            </div>
+
+            <!-- Create Meetup Modal -->
+            <div id="meetup-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+              <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4">
+                <h2 class="text-lg font-bold gradient-text mb-4">Plan a Meetup</h2>
+
+                <form id="meetup-form" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Meetup Title</label>
+                    <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                    <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
+                  </div>
+
+                  <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" id="cancel-meetup" class="btn px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="btn px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl">Create Meetup</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Collaborative Whiteboard Button -->
+            <button id="open-whiteboard" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Collaborative Whiteboard
+            </button>
+
+            <!-- Whiteboard Modal -->
+            <div id="whiteboard-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+              <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
+                  <button id="close-whiteboard" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
+                </div>
+                <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                  <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
+                </div>
+                <div class="flex items-center justify-between mt-4">
+                  <div class="flex items-center space-x-3">
+                    <input type="color" id="brush-color" value="#000000" class="w-10 h-10 rounded cursor-pointer">
+                    <select id="brush-size" class="rounded border border-gray-200 p-2">
+                      <option value="2">Thin</option>
+                      <option value="5" selected>Medium</option>
+                      <option value="10">Thick</option>
+                    </select>
+                  </div>
+                  <button id="clear-whiteboard" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg">Clear All</button>
+                </div>
+              </div>
+            </div>
+
+        <!-- Room Controls section with proper authentication check -->
+        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
+          <h3 class="text-base font-semibold text-gray-700 mb-1">Room Controls</h3>
+
+          <a href="{% url 'index' %}" class="btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Back to Lobby
+          </a>
+
+          {% if user.is_authenticated %}
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Logout
+            </button>
+          </form>
+          {% else %}
+          <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            Login
+          </a>
+          {% endif %}
+
+          {% if can_delete and user.is_authenticated %}
+          <form method="post" action="{% url 'delete_room' room_name %}">
+            {% csrf_token %}
+            <button type="submit" class="btn bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete Room
+            </button>
+          </form>
+          {% endif %}
+
+          {% if user.is_staff or user.username == room.creator.username %}
+          <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Admin Panel
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer with links to other platforms - Now more compact -->
+  <footer class="py-2 border-t border-pink-100 mt-8 bg-white compact-footer">
+    <div class="w-full max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
+      <div class="mb-3 sm:mb-0 text-center sm:text-left">
+        <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
+          <h2 class="text-base font-bold gradient-text">Euphorie</h2>
+          <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
+        </a>
+        <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
+      </div>
+      <div class="flex items-center gap-4 sm:gap-8 text-[13px] font-semibold tracking-wide text-gray-500">
+        <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-indigo-500 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span class="hover:underline underline-offset-2">Crene.com</span>
+        </a>
+        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-green-500 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <span class="hover:underline underline-offset-2">DiaryVault.com</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Reaction User Modal -->
+  <div id="reactionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-80 p-4 relative">
+      <button id="closeModal" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
+      <h2 class="text-lg font-bold mb-2 gradient-text">People who reacted</h2>
+      <ul id="reactionUserList" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
     </div>
   </div>
-</footer>
 
-<!-- Reaction User Modal -->
-<div id="reactionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-  <div class="bg-white rounded-xl shadow-xl w-80 p-4 relative">
-    <button id="closeModal" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
-    <h2 class="text-lg font-bold mb-2 gradient-text">People who reacted</h2>
-    <ul id="reactionUserList" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
-  </div>
-</div>
+  <script>
+    window.roomName = "{{ room_name|escapejs }}";
+    window.username = "{{ username|escapejs }}";
+  </script>
 
-<script>
-  window.roomName = "{{ room_name|escapejs }}";
-  window.username = "{{ username|escapejs }}";
-</script>
+  <script src="{% static 'js/chat_completely_new.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
 
-<script src="{% static 'js/chat_completely_new.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
-{% endblock %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Debug elements
+        const wsStatus = document.getElementById("ws-status-text");
+        const wsUrl = document.getElementById("ws-url");
+        const wsLastMessage = document.getElementById("ws-last-message");
+        const wsTestBtn = document.getElementById("ws-test-btn");
+        const wsToggleBtn = document.getElementById("ws-toggle-btn");
+
+        // Monitor the WebSocket object
+        const checkSocket = setInterval(() => {
+            if (window.socket) {
+                clearInterval(checkSocket);
+
+                // Show WebSocket URL
+                wsUrl.textContent = `URL: ${window.socket.url}`;
+
+                // Update status based on readyState
+                updateSocketStatus();
+
+                // Add WebSocket event listeners for debugging
+                window.socket.addEventListener("open", (event) => {
+                    updateSocketStatus();
+                    wsLastMessage.textContent = "Connection opened";
+                });
+
+                window.socket.addEventListener("message", (event) => {
+                    updateSocketStatus();
+                    try {
+                        // Try to format JSON
+                        const data = JSON.parse(event.data);
+                        wsLastMessage.textContent = JSON.stringify(data, null, 2).substring(0, 100) + "...";
+                    } catch (e) {
+                        wsLastMessage.textContent = event.data.substring(0, 100) + "...";
+                    }
+                });
+
+                window.socket.addEventListener("error", (event) => {
+                    updateSocketStatus();
+                    wsLastMessage.textContent = "Connection error";
+                });
+
+                window.socket.addEventListener("close", (event) => {
+                    updateSocketStatus();
+                    wsLastMessage.textContent = `Connection closed: ${event.code} ${event.reason}`;
+                });
+
+                // Test button to send a ping
+                wsTestBtn.addEventListener("click", () => {
+                    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                        window.socket.send(JSON.stringify({
+                            type: "users",
+                            action: "list"
+                        }));
+                        wsLastMessage.textContent = "Sent test users list request";
+                    } else {
+                        wsLastMessage.textContent = "Socket not open - cannot send";
+                    }
+                });
+            } else {
+                wsStatus.textContent = "Socket not found";
+                wsStatus.style.color = "red";
+            }
+        }, 500);
+
+        // Toggle debug panel
+        wsToggleBtn.addEventListener("click", () => {
+            if (wsToggleBtn.textContent === "Hide") {
+                wsDebug.style.height = "30px";
+                wsDebug.style.overflow = "hidden";
+                wsToggleBtn.textContent = "Show";
+            } else {
+                wsDebug.style.height = "auto";
+                wsDebug.style.maxHeight = "300px";
+                wsDebug.style.overflow = "auto";
+                wsToggleBtn.textContent = "Hide";
+            }
+        });
+
+        // Helper to update status display
+        function updateSocketStatus() {
+            if (!window.socket) return;
+
+            const states = ["Connecting", "Open", "Closing", "Closed"];
+            const colors = ["orange", "green", "orange", "red"];
+
+            wsStatus.textContent = states[window.socket.readyState];
+            wsStatus.style.color = colors[window.socket.readyState];
+        }
+    });
+  </script>
+</body>
+</html>
