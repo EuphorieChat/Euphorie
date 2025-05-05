@@ -67,7 +67,7 @@ urlpatterns = [
     path('api/friend_request/', api_views.send_friend_request, name='send_friend_request'),
     path('api/friend_response/', api_views.respond_to_friend_request, name='respond_to_friend_request'),
     path('api/remove_friend/', api_views.remove_friend, name='remove_friend'),
-    path('api/friend_suggestions/', api_views.get_friend_suggestions_api, name='get_friend_suggestions'),
+    path('api/friend_suggestions/', api_views.get_friend_suggestions_ajax, name='get_friend_suggestions_ajax'),
     path('api/online_friends/', api_views.get_online_friends_api, name='get_online_friends'),
 
     # API endpoints: Recommendations from first urls.py
