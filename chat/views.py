@@ -762,26 +762,31 @@ def friends_list(request):
     # Get the user's friends
     friends = UserRelationship.get_friends(request.user)
 
-    # Get user's joined rooms
-    joined_rooms = Room.objects.filter(members=request.user)
-
-    # Get user's bookmarked rooms
-    bookmarked_rooms = Room.objects.filter(
-        roombookmark__user=request.user,
-        roombookmark__is_bookmarked=True
-    ).exclude(id__in=joined_rooms.values('id'))
-
     # Get pending friend requests received by the user
     pending_requests = UserRelationship.objects.filter(
         receiver=request.user,
         status='pending'
     )
 
+    # For bookmarked rooms, use your existing query
+    bookmarked_rooms = Room.objects.filter(
+        roombookmark__user=request.user,
+        roombookmark__is_bookmarked=True
+    )
+
+    # Since there's no 'members' field, you need to find another way to get "joined" rooms
+    # This is a common approach - checking messages to see which rooms the user has participated in
+    joined_rooms = Room.objects.filter(
+        messages__user=request.user
+    ).distinct().exclude(
+        id__in=bookmarked_rooms.values('id')
+    )
+
     context = {
         'friends': friends,
         'pending_requests': pending_requests,
         'joined_rooms': joined_rooms,
-        'bookmarked_rooms': bookmarked_rooms,  # Add this
+        'bookmarked_rooms': bookmarked_rooms,
     }
 
     return render(request, 'chat/friends_list.html', context)
