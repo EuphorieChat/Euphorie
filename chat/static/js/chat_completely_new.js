@@ -76,7 +76,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Auto-scroll to bottom of chat on load
     if (chatLog) {
-        chatLog.scrollTo({ top: chatLog.scrollHeight });
+        // Delay scroll to ensure all content is rendered first
+        setTimeout(() => {
+            chatLog.scrollTo({ top: chatLog.scrollHeight });
+        }, 100);
     }
 
     // Image compression function
@@ -900,7 +903,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Announcement Functions - NEW
     function initAnnouncementHandlers() {
-        // Handle close buttons for announcements
+        // Handle close buttons for announcements in the top container
         document.querySelectorAll('.close-announcement').forEach(button => {
             button.addEventListener('click', function() {
                 const announcementItem = this.closest('.announcement-item');
@@ -910,24 +913,98 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
         });
+
+        // Process existing announcements from the page and add them to the chat
+        const announcements = document.querySelectorAll('#announcements-container .announcement-item');
+        if (announcements.length > 0) {
+            // Hide the original container since we'll show announcements in the chat
+            const container = document.getElementById('announcements-container');
+            if (container) {
+                container.classList.add('hidden');
+            }
+
+            // Get chat log
+            const chatLog = document.getElementById('chat-log');
+            if (!chatLog) return;
+
+            // Convert each announcement to a chat message
+            announcements.forEach(originalAnnouncement => {
+                // Skip if already read
+                if (originalAnnouncement.classList.contains('hidden')) return;
+
+                // Get important data
+                const announcementId = originalAnnouncement.dataset.announcementId;
+                const creator = originalAnnouncement.querySelector('.text-blue-800').textContent.replace('Announcement from ', '');
+                const content = originalAnnouncement.querySelector('.text-gray-700').innerHTML;
+                const timestamp = originalAnnouncement.querySelector('.text-gray-500').textContent;
+
+                // Create in-chat announcement element
+                const announcement = document.createElement('div');
+                announcement.className = 'message-bubble announcement-popup bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-4 mx-auto max-w-lg border border-blue-200 announcement-banner';
+                announcement.dataset.announcementId = announcementId;
+                announcement.style.width = 'fit-content';
+
+                announcement.innerHTML = `
+                    <button class="close-announcement" aria-label="Dismiss announcement">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <div class="flex items-start">
+                        <div class="bg-blue-500 rounded-full p-2 mr-3 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-blue-800">Announcement from ${creator}</h3>
+                            <div class="text-gray-700 text-sm mt-1">${content}</div>
+                            <div class="text-xs text-gray-500 mt-2">${timestamp}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Add to chat log
+                chatLog.appendChild(announcement);
+
+                // Add event listener for close button
+                announcement.querySelector('.close-announcement').addEventListener('click', function() {
+                    markAnnouncementAsRead(announcementId);
+
+                    // Add a fade-out animation
+                    announcement.style.transition = 'all 0.5s ease';
+                    announcement.style.opacity = '0';
+                    announcement.style.maxHeight = '0';
+                    announcement.style.margin = '0';
+                    announcement.style.padding = '0';
+                    announcement.style.overflow = 'hidden';
+
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        announcement.remove();
+                    }, 500);
+                });
+            });
+
+            // Scroll to make announcements visible
+            chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+        }
     }
 
     function handleAnnouncementMessage(data) {
         console.log("Handling announcement message:", data);
 
         if (data.action === 'new') {
-            // Create a new announcement element and add it to the container
-            const announcementsContainer = document.getElementById('announcements-container');
-            if (!announcementsContainer) return;
+            // Instead of using the announcements container at the top, we'll add it to the chat log
+            // as a special message bubble
+            const chatLog = document.getElementById('chat-log');
+            if (!chatLog) return;
 
-            // Make sure the container is visible
-            announcementsContainer.classList.remove('hidden');
-            announcementsContainer.classList.add('mb-6');
-
-            // Create announcement element
+            // Create announcement element that appears in the chat stream
             const announcement = document.createElement('div');
-            announcement.className = 'announcement-item bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-2 border border-blue-200 announcement-banner';
+            announcement.className = 'message-bubble announcement-popup bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-4 mx-auto max-w-lg border border-blue-200 announcement-banner';
             announcement.dataset.announcementId = data.announcement_id;
+            announcement.style.width = 'fit-content';
 
             announcement.innerHTML = `
                 <button class="close-announcement" aria-label="Dismiss announcement">
@@ -949,12 +1026,28 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
 
-            // Add to container (at the beginning)
-            announcementsContainer.insertBefore(announcement, announcementsContainer.firstChild);
+            // Add to chat log
+            chatLog.appendChild(announcement);
+
+            // Scroll to make announcement visible
+            chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
 
             // Add event listener for close button
             announcement.querySelector('.close-announcement').addEventListener('click', function() {
                 markAnnouncementAsRead(data.announcement_id);
+
+                // Add a fade-out animation
+                announcement.style.transition = 'all 0.5s ease';
+                announcement.style.opacity = '0';
+                announcement.style.maxHeight = '0';
+                announcement.style.margin = '0';
+                announcement.style.padding = '0';
+                announcement.style.overflow = 'hidden';
+
+                // Remove after animation completes
+                setTimeout(() => {
+                    announcement.remove();
+                }, 500);
             });
         }
     }
@@ -971,13 +1064,15 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Hide the announcement
-                const announcement = document.querySelector(`.announcement-item[data-announcement-id="${announcementId}"]`);
-                if (announcement) {
-                    announcement.classList.add('hidden');
+                // Hide all instances of this announcement (both in top container and in chat)
+
+                // 1. Hide in the top container if it exists
+                const topAnnouncement = document.querySelector(`#announcements-container .announcement-item[data-announcement-id="${announcementId}"]`);
+                if (topAnnouncement) {
+                    topAnnouncement.classList.add('hidden');
 
                     // Check if all announcements are hidden
-                    const visibleAnnouncements = document.querySelectorAll('.announcement-item:not(.hidden)');
+                    const visibleAnnouncements = document.querySelectorAll('#announcements-container .announcement-item:not(.hidden)');
                     if (visibleAnnouncements.length === 0) {
                         // Hide the container
                         const container = document.getElementById('announcements-container');
@@ -986,6 +1081,23 @@ document.addEventListener("DOMContentLoaded", function () {
                             container.classList.remove('mb-6');
                         }
                     }
+                }
+
+                // 2. Animate and remove from chat if it exists there
+                const chatAnnouncement = document.querySelector(`.announcement-popup[data-announcement-id="${announcementId}"]`);
+                if (chatAnnouncement) {
+                    // Add a fade-out animation
+                    chatAnnouncement.style.transition = 'all 0.5s ease';
+                    chatAnnouncement.style.opacity = '0';
+                    chatAnnouncement.style.maxHeight = '0';
+                    chatAnnouncement.style.margin = '0';
+                    chatAnnouncement.style.padding = '0';
+                    chatAnnouncement.style.overflow = 'hidden';
+
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        chatAnnouncement.remove();
+                    }, 500);
                 }
             }
         })
