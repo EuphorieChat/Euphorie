@@ -167,3 +167,54 @@ class AnnouncementReadStatus(models.Model):
 
     def __str__(self):
         return f"{self.user.username} read {self.announcement.id} at {self.read_at}"
+class UserSettings(models.Model):
+    """
+    Model for storing global user settings configuration
+    This is a singleton model - only one instance should exist
+    """
+    # Registration settings
+    allow_registration = models.BooleanField(default=True,
+                                            help_text="Allow new user registrations")
+    require_email_verification = models.BooleanField(default=True,
+                                                   help_text="Require email verification before account activation")
+    default_user_role = models.CharField(max_length=20, default='user',
+                                        help_text="Default role for new users")
+    welcome_message = models.TextField(blank=True,
+                                      help_text="Message sent to new users after registration")
+
+    # Permission settings
+    allow_room_creation = models.BooleanField(default=True,
+                                             help_text="Allow regular users to create chat rooms")
+    allow_file_uploads = models.BooleanField(default=True,
+                                            help_text="Allow users to upload files in chat")
+    allow_image_uploads = models.BooleanField(default=True,
+                                             help_text="Allow users to upload images in chat")
+    allow_private_rooms = models.BooleanField(default=True,
+                                             help_text="Allow users to create private chat rooms")
+    allow_profile_customization = models.BooleanField(default=True,
+                                                    help_text="Allow users to customize their profiles")
+
+    # Moderation settings
+    content_filtering = models.CharField(max_length=20, default='medium',
+                                        help_text="Level of automatic content filtering")
+    moderation_queue = models.BooleanField(default=False,
+                                          help_text="Flag potentially problematic messages for review")
+    auto_ban_threshold = models.IntegerField(default=0,
+                                            help_text="Number of violations before automatic ban (0 = disabled)")
+    custom_filter_words = models.TextField(blank=True,
+                                         help_text="Custom words to filter (comma separated)")
+
+    # Cleanup settings
+    inactive_user_period = models.IntegerField(default=0,
+                                              help_text="Days of inactivity before account removal (0 = never)")
+
+    # System settings
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Settings"
+        verbose_name_plural = "User Settings"
+
+    def __str__(self):
+        return "Global User Settings"

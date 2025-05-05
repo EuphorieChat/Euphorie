@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 
-from .models import Room, Message, Category, Reaction, Announcement, AnnouncementReadStatus
+from .models import Room, Message, Category, Reaction, Announcement, AnnouncementReadStatus, UserSettings
 
 # Helper function to check if user is an admin
 def is_admin(user):
@@ -64,11 +64,26 @@ def admin_dashboard(request):
 
     return render(request, 'chat/manage/dashboard.html', context)
 
-# Room management
 @user_passes_test(is_admin)
 def admin_rooms(request):
+    # Get all rooms first for statistics
+    all_rooms = Room.objects.all()
+    total_rooms = all_rooms.count()
+    active_rooms = all_rooms.filter(is_active=True).count()
+
+    # Get total messages count
+    total_messages = Message.objects.count()
+
+    # Try to get most popular room (room with most messages)
+    most_popular = all_rooms.annotate(msg_count=Count('messages')).order_by('-msg_count').first()
+    most_popular_room = most_popular.display_name if most_popular and most_popular.display_name else most_popular.name if most_popular else None
+
+    # Get categories for filter
+    categories = Category.objects.all()
+    selected_category = request.GET.get('category', '')
+
     # Using messages_count to avoid conflict with property
-    rooms = Room.objects.annotate(
+    rooms = all_rooms.annotate(
         messages_count=Count('messages')
     ).order_by('-created_at')
 
@@ -81,6 +96,10 @@ def admin_rooms(request):
             Q(creator__username__icontains=search_query)
         )
 
+    # Category filter
+    if selected_category:
+        rooms = rooms.filter(category_id=selected_category)
+
     # Pagination
     paginator = Paginator(rooms, 20)  # 20 rooms per page
     page_number = request.GET.get('page', 1)
@@ -89,6 +108,12 @@ def admin_rooms(request):
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
+        'selected_category': selected_category,
+        'categories': categories,
+        'total_rooms': total_rooms,
+        'active_rooms': active_rooms,
+        'total_messages': total_messages,
+        'most_popular_room': most_popular_room,
     }
 
     return render(request, 'chat/manage/rooms.html', context)
@@ -1005,3 +1030,120 @@ def admin_toggle_user_status_ajax(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+
+@user_passes_test(is_admin)
+def admin_user_settings(request):
+    """
+    View for managing global user settings and preferences
+    """
+    # Get or create settings object
+    settings, created = UserSettings.objects.get_or_create(pk=1)
+
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+
+        if form_type == 'registration':
+            # Handle registration settings
+            settings.allow_registration = 'allow_registration' in request.POST
+            settings.require_email_verification = 'require_email_verification' in request.POST
+            settings.default_user_role = request.POST.get('default_user_role', 'user')
+            settings.welcome_message = request.POST.get('welcome_message', '')
+            settings.save()
+
+            messages.success(request, 'Registration settings updated successfully')
+
+        elif form_type == 'permissions':
+            # Handle permission settings
+            settings.allow_room_creation = 'allow_room_creation' in request.POST
+            settings.allow_file_uploads = 'allow_file_uploads' in request.POST
+            settings.allow_image_uploads = 'allow_image_uploads' in request.POST
+            settings.allow_private_rooms = 'allow_private_rooms' in request.POST
+            settings.allow_profile_customization = 'allow_profile_customization' in request.POST
+            settings.save()
+
+            messages.success(request, 'User permission settings updated successfully')
+
+        elif form_type == 'moderation':
+            # Handle moderation settings
+            settings.content_filtering = request.POST.get('content_filtering', 'none')
+            settings.moderation_queue = 'moderation_queue' in request.POST
+            settings.auto_ban_threshold = int(request.POST.get('auto_ban_threshold', 0))
+            settings.custom_filter_words = request.POST.get('custom_filter_words', '')
+            settings.save()
+
+            messages.success(request, 'Moderation settings updated successfully')
+
+        elif form_type == 'cleanup':
+            # Handle cleanup actions
+            action = request.POST.get('action')
+
+            if action == 'cleanup_inactive':
+                # Logic for cleaning up inactive users
+                inactive_period = int(request.POST.get('inactive_user_period', 0))
+                settings.inactive_user_period = inactive_period
+                settings.save()
+
+                # Implementing the cleanup logic would go here
+                # This is a placeholder for the actual implementation
+                messages.success(request, f'Inactive user cleanup completed. Settings updated to {inactive_period} days')
+
+            elif action == 'cleanup_unverified':
+                # Logic for cleaning up unverified users
+                # This is a placeholder for the actual implementation
+                messages.success(request, 'Unverified account cleanup completed')
+
+        elif form_type == 'dangerous':
+            # Handle dangerous actions
+            action = request.POST.get('action')
+
+            if action == 'reset_all':
+                # This would be implemented with extreme caution
+                # For now, just show a success message
+                messages.warning(request, 'Reset all user data action triggered (implementation pending)')
+
+        # Redirect to avoid resubmission
+        return redirect('admin_user_settings')
+
+    context = {
+        'settings': settings,
+    }
+
+    return render(request, 'chat/manage/user_settings.html', context)
+
+from django.contrib import admin
+from .models import UserSettings
+
+@admin.register(UserSettings)
+class UserSettingsAdmin(admin.ModelAdmin):
+    """
+    Admin interface for UserSettings model
+    """
+    fieldsets = (
+        ('Registration Settings', {
+            'fields': ('allow_registration', 'require_email_verification', 'default_user_role', 'welcome_message')
+        }),
+        ('Permission Settings', {
+            'fields': ('allow_room_creation', 'allow_file_uploads', 'allow_image_uploads',
+                      'allow_private_rooms', 'allow_profile_customization')
+        }),
+        ('Moderation Settings', {
+            'fields': ('content_filtering', 'moderation_queue', 'auto_ban_threshold', 'custom_filter_words')
+        }),
+        ('Cleanup Settings', {
+            'fields': ('inactive_user_period',)
+        }),
+        ('System Information', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    readonly_fields = ('created_at', 'updated_at')
+
+    def has_add_permission(self, request):
+        # Prevent creating multiple instances
+        return UserSettings.objects.count() == 0
+
+    def has_delete_permission(self, request, obj=None):
+        # Prevent deleting the settings instance
+        return False

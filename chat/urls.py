@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 from . import admin_views
 from .admin_views import admin_create_room
+from chat.admin_views import admin_user_settings
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -60,6 +61,6 @@ urlpatterns = [
     path('manage/export-user-data/', admin_views.admin_export_user_data, name='admin_export_user_data'),
     path('manage/toggle-user-status-ajax/', admin_views.admin_toggle_user_status_ajax, name='admin_toggle_user_status_ajax'),
     path('manage/delete-message-ajax/', admin_views.admin_delete_message_ajax, name='admin_delete_message_ajax'),
-
+    path('manage/user-settings/', admin_user_settings, name='admin_user_settings'),
 
 ]
