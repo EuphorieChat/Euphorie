@@ -6,7 +6,6 @@ from django.utils import timezone
 from datetime import timedelta
 
 from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus
-# Import the new service functions
 from .services import (
     get_online_friends,
     update_user_status,
@@ -48,7 +47,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Send message indicating user joined
         if self.user and not self.user.is_anonymous:
             # Update user status to online
-            await database_sync_to_async(lambda: update_user_status(self.user, True))()
+            await database_sync_to_async(self._update_user_status)(True)
 
             # Add user to active users list without creating a message
             await self.update_user_presence()
@@ -85,10 +84,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'announcements': announcements
                     }))
 
+    def _update_user_status(self, is_online):
+        """Synchronous function to update user online status"""
+        return update_user_status(self.user, is_online)
+
     async def disconnect(self, close_code):
         # Update user status to offline
         if hasattr(self, 'user') and self.user and not self.user.is_anonymous:
-            await database_sync_to_async(lambda: update_user_status(self.user, False))()
+            await database_sync_to_async(self._update_user_status)(False)
 
         # Leave room group
         await self.channel_layer.group_discard(
@@ -125,7 +128,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 # Record user interest in the room
                 if hasattr(self, 'user') and self.user.is_authenticated:
                     room = await self.get_room()
-                    await database_sync_to_async(lambda: record_user_interest(self.user, room=room, points=1))()
+                    await database_sync_to_async(self._record_user_interest)(room)
 
                 # Send message to room group
                 await self.channel_layer.group_send(
@@ -372,8 +375,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Handle JSON decode error
             pass
 
-    # Message handlers
+    def _record_user_interest(self, room):
+        """Synchronous function to record user interest"""
+        return record_user_interest(self.user, room=room, points=1)
 
+    # Message handlers
     async def chat_message(self, event):
         # Send message to WebSocket
         await self.send(json.dumps({
@@ -455,7 +461,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     # Database operations
-
     @database_sync_to_async
     def check_room_access(self):
         """Check if room exists and if it's password protected"""
@@ -514,7 +519,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def update_user_presence(self):
-        # Modified to NOT create a message when a user connects
         # This function intentionally does nothing but must be defined
         # as a synchronous function for database_sync_to_async
         pass
@@ -690,7 +694,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # Helper methods for formatting data
     async def get_room(self):
-        """Get the current room object using database_sync_to_async"""
+        """Get the current room object"""
         return await database_sync_to_async(self._get_room)()
 
     def _get_room(self):
@@ -698,11 +702,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return Room.objects.get(name=self.room_name)
 
     async def get_user_data_list(self, users_qs):
-        """Get user data list using database_sync_to_async"""
+        """Get user data list"""
         return await database_sync_to_async(self._get_user_data_list)(users_qs)
 
     def _get_user_data_list(self, users_qs):
-        """Synchronous function to convert a QuerySet of users to a list of user data dictionaries"""
+        """Synchronous function to convert users to data list"""
         return [
             {
                 'id': user.id,
@@ -715,11 +719,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         ]
 
     async def get_room_data_list(self, rooms_qs):
-        """Get room data list using database_sync_to_async"""
+        """Get room data list"""
         return await database_sync_to_async(self._get_room_data_list)(rooms_qs)
 
     def _get_room_data_list(self, rooms_qs):
-        """Synchronous function to convert a QuerySet of rooms to a list of room data dictionaries"""
+        """Synchronous function to convert rooms to data list"""
         return [
             {
                 'id': room.id,
