@@ -1,5 +1,3 @@
-console.log("Chatroom.js loaded successfully!");
-
 document.addEventListener("DOMContentLoaded", function () {
     // Configuration and Globals
     const roomName = window.roomName;
@@ -32,16 +30,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const ctx = whiteboardCanvas?.getContext('2d');
     const typingIndicator = document.getElementById("typing-indicator");
 
-    // Debug WebSocket connection with more details
-    console.log("WebSocket connection details:", {
-        roomName,
-        protocol,
-        host: window.location.host,
-        url: `${protocol}://${window.location.host}/ws/chat/${roomName}/`,
-        userAuthenticated: !!username
-    });
-
-    // Initialize WebSocket connection with improved error handling and reconnection logic
     function connectWebSocket() {
         const wsUrl = `${protocol}://${window.location.host}/ws/chat/${roomName}/`;
         console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
@@ -240,11 +228,6 @@ document.addEventListener("DOMContentLoaded", function () {
     initAnnouncementHandlers(); // Initialize announcement handlers
     initMediaLibrary(); // Initialize media library immediately
 
-    // Only initialize debug tools on desktop views
-    if (window.innerWidth >= 768) {
-        initWebSocketDebugTools();
-    }
-
     // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
 
@@ -254,42 +237,6 @@ document.addEventListener("DOMContentLoaded", function () {
         setTimeout(() => {
             chatLog.scrollTo({ top: chatLog.scrollHeight });
         }, 100);
-    }
-
-    // Enhanced alert functions
-    function alertUserOfConnectionIssue() {
-        // Add a system message to the chat
-        if (!chatLog) return;
-
-        // Check if we already have a connection warning to avoid duplicates
-        if (document.querySelector(".connection-warning")) return;
-
-        const wrapper = document.createElement("div");
-        wrapper.className = "message-bubble system-message connection-warning";
-        wrapper.innerHTML = `
-            <div class="p-2 bg-red-50 text-red-600 rounded-lg">
-                <p class="text-xs">⚠️ Connection issue detected. The app will attempt to reconnect automatically.</p>
-            </div>
-        `;
-        chatLog.appendChild(wrapper);
-        chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
-    }
-
-    function alertUserOfMaxReconnectAttempts() {
-        if (!chatLog) return;
-
-        const wrapper = document.createElement("div");
-        wrapper.className = "message-bubble system-message";
-        wrapper.innerHTML = `
-            <div class="p-2 bg-red-100 text-red-700 rounded-lg">
-                <p class="text-xs">❌ Unable to reconnect after multiple attempts. Please refresh the page to try again.</p>
-                <button class="mt-1 px-2 py-1 bg-red-500 text-white rounded text-xs" onclick="window.location.reload()">
-                    Refresh Now
-                </button>
-            </div>
-        `;
-        chatLog.appendChild(wrapper);
-        chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
     }
 
     // Image compression function
@@ -419,25 +366,6 @@ document.addEventListener("DOMContentLoaded", function () {
             setTimeout(() => {
                 document.body.removeChild(toast);
             }, 3500);
-        }
-
-        // Debug check WebSocket state
-        if (!window.socket) {
-            console.error("WebSocket not initialized!");
-            alertUserOfConnectionIssue();
-            return;
-        }
-
-        if (window.socket.readyState !== WebSocket.OPEN) {
-            console.error(`WebSocket is not connected! ReadyState: ${window.socket.readyState}`);
-            alertUserOfConnectionIssue();
-
-            // Try to reconnect
-            if (window.socket.readyState === WebSocket.CLOSED) {
-                console.log("Attempting to reconnect closed socket...");
-                connectWebSocket();
-            }
-            return;
         }
 
         // Send text message
