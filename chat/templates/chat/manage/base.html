@@ -104,6 +104,12 @@
       .desktop-hidden {
         display: none !important;
       }
+
+      /* IMPORTANT: Hide overlay completely on desktop */
+      #sidebar-overlay {
+        display: none !important;
+        pointer-events: none !important;
+      }
     }
 
     /* Tablet and mobile: below 1024px */
@@ -118,10 +124,12 @@
 
       .overlay {
         display: none;
+        pointer-events: none;
       }
 
       .overlay.active {
         display: block;
+        pointer-events: auto;
         animation: fadeIn 0.2s ease-out forwards;
       }
 
@@ -216,7 +224,7 @@
   </div>
 
   <!-- Overlay for mobile, improved animation -->
-  <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-30 overlay"></div>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-30 overlay" style="pointer-events: none;"></div>
 
   <!-- Admin sidebar - improved design -->
   <aside id="admin-sidebar" class="admin-sidebar fixed top-0 left-0 h-full bg-white border-r border-pink-100 overflow-y-auto">
@@ -375,13 +383,18 @@
 
           // Show the mobile menu button
           document.querySelector('.desktop-hidden').style.display = '';
+
+          // Make sure overlay is properly configured for mobile
+          overlay.style.pointerEvents = adminSidebar.classList.contains('open') ? 'auto' : 'none';
         } else {
           // On desktop, always show the sidebar
           adminSidebar.classList.add('desktop-mode');
           adminSidebar.style.transform = 'translateX(0)';
 
-          // Hide overlay if visible
+          // Reset overlay
           overlay.classList.remove('active');
+          overlay.style.pointerEvents = 'none';
+          overlay.style.display = 'none';
 
           // Reset body overflow
           document.body.style.overflow = '';
@@ -397,6 +410,8 @@
           e.stopPropagation();
           adminSidebar.classList.add('open');
           overlay.classList.add('active');
+          overlay.style.pointerEvents = 'auto';
+
           // Prevent scrolling on the body when sidebar is open
           document.body.style.overflow = 'hidden';
         });
@@ -408,6 +423,7 @@
             if (isMobile()) {
               adminSidebar.classList.remove('open');
               overlay.classList.remove('active');
+              overlay.style.pointerEvents = 'none';
               document.body.style.overflow = '';
             }
           });
@@ -419,6 +435,7 @@
             if (isMobile()) {
               adminSidebar.classList.remove('open');
               overlay.classList.remove('active');
+              overlay.style.pointerEvents = 'none';
               document.body.style.overflow = '';
             }
           });
@@ -431,6 +448,7 @@
             if (isMobile()) {
               adminSidebar.classList.remove('open');
               overlay.classList.remove('active');
+              overlay.style.pointerEvents = 'none';
               document.body.style.overflow = '';
             }
           });
