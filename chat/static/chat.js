@@ -1,13 +1,13 @@
 console.log("Enhanced chat.js loaded successfully!");
 
 document.addEventListener("DOMContentLoaded", function () {
-    initFriendsAndRecommendations();
-
     // Configuration and Globals
     const roomName = window.roomName;
     const username = window.username;
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    const reconnectDelay = 3000; // 3 seconds
     let uploadedFiles = [];
     let isDrawing = false;
 
@@ -32,25 +32,85 @@ document.addEventListener("DOMContentLoaded", function () {
     const ctx = whiteboardCanvas?.getContext('2d');
     const typingIndicator = document.getElementById("typing-indicator");
 
-    // Debug WebSocket connection
+    // Debug WebSocket connection with more details
     console.log("WebSocket connection details:", {
         roomName,
         protocol,
         host: window.location.host,
-        url: `${protocol}://${window.location.host}/ws/chat/${roomName}/`
+        url: `${protocol}://${window.location.host}/ws/chat/${roomName}/`,
+        userAuthenticated: !!username
     });
 
-    // Create WebSocket connection
-    const socket = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${roomName}/`);
+    // Initialize WebSocket connection with improved error handling and reconnection logic
+    function connectWebSocket() {
+        const wsUrl = `${protocol}://${window.location.host}/ws/chat/${roomName}/`;
+        console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
 
-    // Make socket globally accessible for debugging
-    window.socket = socket;
+        try {
+            const socket = new WebSocket(wsUrl);
 
-    // WebSocket Event Listeners
-    socket.addEventListener("open", handleSocketOpen);
-    socket.addEventListener("message", handleSocketMessage);
-    socket.addEventListener("error", handleSocketError);
-    socket.addEventListener("close", handleSocketClose);
+            // Make socket globally accessible for debugging
+            window.socket = socket;
+
+            // WebSocket Event Listeners with improved logging
+            socket.addEventListener("open", (event) => {
+                console.log(`✅ WebSocket connected to room: ${roomName}`);
+                reconnectAttempts = 0; // Reset reconnect counter on successful connection
+
+                // Request user list and meetups on connection
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'users',
+                        action: 'list'
+                    }));
+
+                    socket.send(JSON.stringify({
+                        type: 'meetup',
+                        action: 'list'
+                    }));
+                } else {
+                    console.warn("Socket not in OPEN state when trying to send initial requests");
+                }
+            });
+
+            socket.addEventListener("message", handleSocketMessage);
+
+            socket.addEventListener("error", (error) => {
+                console.error("⚠️ WebSocket error:", error);
+                alertUserOfConnectionIssue();
+            });
+
+            socket.addEventListener("close", (event) => {
+                console.log(`❌ WebSocket closed: ${event.code}, reason: ${event.reason || 'No reason provided'}`);
+
+                // Auto-reconnect after a short delay
+                if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) { // 1000 = normal closure
+                    reconnectAttempts++;
+                    const delay = reconnectDelay * Math.min(reconnectAttempts, 5); // Exponential backoff capped at 5x
+                    console.log(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts}) in ${delay/1000} seconds...`);
+
+                    setTimeout(() => {
+                        console.log("Reconnecting WebSocket...");
+                        connectWebSocket();
+                    }, delay);
+                } else if (reconnectAttempts >= maxReconnectAttempts) {
+                    console.error("Maximum reconnection attempts reached. Please refresh the page.");
+                    alertUserOfMaxReconnectAttempts();
+                }
+
+                alertUserOfConnectionIssue();
+            });
+
+            return socket;
+        } catch (e) {
+            console.error("Failed to create WebSocket connection:", e);
+            alertUserOfConnectionIssue();
+            return null;
+        }
+    }
+
+    // Initialize WebSocket connection
+    const socket = connectWebSocket();
 
     // Message form setup
     if (messageForm) {
@@ -65,6 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Init functions
+    initFriendsAndRecommendations();
     initFileUpload();
     initEmojiPanel();
     initReactionModal();
@@ -72,6 +133,7 @@ document.addEventListener("DOMContentLoaded", function () {
     initMeetupPlanner();
     initMobileUserList();
     initAnnouncementHandlers(); // Initialize announcement handlers
+    initWebSocketDebugTools(); // Initialize debug tools
 
     // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
@@ -82,6 +144,42 @@ document.addEventListener("DOMContentLoaded", function () {
         setTimeout(() => {
             chatLog.scrollTo({ top: chatLog.scrollHeight });
         }, 100);
+    }
+
+    // Enhanced alert functions
+    function alertUserOfConnectionIssue() {
+        // Add a system message to the chat
+        if (!chatLog) return;
+
+        // Check if we already have a connection warning to avoid duplicates
+        if (document.querySelector(".connection-warning")) return;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "message-bubble system-message connection-warning";
+        wrapper.innerHTML = `
+            <div class="p-2 bg-red-50 text-red-600 rounded-lg">
+                <p class="text-xs">⚠️ Connection issue detected. The app will attempt to reconnect automatically.</p>
+            </div>
+        `;
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+    }
+
+    function alertUserOfMaxReconnectAttempts() {
+        if (!chatLog) return;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "message-bubble system-message";
+        wrapper.innerHTML = `
+            <div class="p-2 bg-red-100 text-red-700 rounded-lg">
+                <p class="text-xs">❌ Unable to reconnect after multiple attempts. Please refresh the page to try again.</p>
+                <button class="mt-1 px-2 py-1 bg-red-500 text-white rounded text-xs" onclick="window.location.reload()">
+                    Refresh Now
+                </button>
+            </div>
+        `;
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
     }
 
     // Image compression function
@@ -130,101 +228,80 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // WebSocket Event Handler Functions
-    function handleSocketOpen() {
-        console.log("✅ WebSocket connected to room:", roomName);
-
-        // Request user list and meetups on connection
-        window.socket.send(JSON.stringify({
-            type: 'users',
-            action: 'list'
-        }));
-
-        window.socket.send(JSON.stringify({
-            type: 'meetup',
-            action: 'list'
-        }));
-    }
-
+    // WebSocket Message Handler Function with improved robustness
     function handleSocketMessage(event) {
-        console.log("📩 Message received:", event.data);
+        // Log incoming data for debugging
+        console.log("📩 Message received:", event.data.substring(0, 200) + (event.data.length > 200 ? '...' : ''));
+
         try {
             const data = JSON.parse(event.data);
-            switch (data.type) {
+            const messageType = data.type || 'unknown';
+
+            console.log(`Processing message of type: ${messageType}`);
+
+            switch (messageType) {
                 case "chat":
                     console.log("Chat message:", data);
                     renderMessage(data);
                     // Track media in the message for media library
                     trackMediaInMessage(data.message);
                     break;
+
                 case "reaction":
-                    console.log("Reaction:", data);
+                    console.log("Reaction update:", data);
                     updateReaction(data);
                     break;
+
                 case "typing":
                     console.log("Typing indicator:", data);
                     showTyping();
                     break;
+
                 case "users":
                     console.log("User list update:", data);
-                    updateUserList(data.users);
+                    if (Array.isArray(data.users)) {
+                        updateUserList(data.users);
+                    } else {
+                        console.error("Invalid users data:", data.users);
+                    }
                     break;
+
                 case "whiteboard":
                     console.log("Whiteboard update:", data);
                     handleWhiteboardMessage(data);
                     break;
+
                 case "meetups":
                     console.log("Meetups update:", data);
                     renderMeetups(data.meetups);
                     break;
+
                 case "announcement":
                     console.log("Announcement update:", data);
                     handleAnnouncementMessage(data);
                     break;
+
+                case "friends":
+                    console.log("Friends update:", data);
+                    handleFriendsMessage(data);
+                    break;
+
+                case "recommendations":
+                    console.log("Recommendations update:", data);
+                    handleRecommendationsMessage(data);
+                    break;
+
+                case "pong":
+                    console.log("Pong received from server");
+                    break;
+
                 default:
-                    console.log("Unknown message type:", data.type, data);
+                    console.log("Unknown message type:", messageType, data);
             }
         } catch (e) {
-            console.error("Error processing message:", e, event.data);
+            console.error("Error processing message:", e);
+            console.error("Raw message data:", event.data);
         }
-    }
-
-    function handleSocketError(error) {
-        console.error("⚠️ WebSocket error:", error);
-        alertUserOfConnectionIssue();
-    }
-
-    function handleSocketClose(event) {
-        console.log("❌ WebSocket closed:", event.code, event.reason);
-
-        // Auto-reconnect after a short delay
-        if (event.code !== 1000) { // 1000 = normal closure
-            setTimeout(() => {
-                console.log("Attempting to reconnect WebSocket...");
-                const newSocket = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${roomName}/`);
-                window.socket = newSocket;
-                // Attach event listeners to new socket
-                newSocket.addEventListener("open", handleSocketOpen);
-                newSocket.addEventListener("message", handleSocketMessage);
-                newSocket.addEventListener("error", handleSocketError);
-                newSocket.addEventListener("close", handleSocketClose);
-            }, 3000);
-        }
-
-        alertUserOfConnectionIssue();
-    }
-
-    function alertUserOfConnectionIssue() {
-        // Add a system message to the chat
-        const wrapper = document.createElement("div");
-        wrapper.className = "message-bubble system-message";
-        wrapper.innerHTML = `
-            <div class="p-2 bg-red-50 text-red-600 rounded-lg">
-                <p class="text-xs">⚠️ Connection issue detected. The app will attempt to reconnect automatically.</p>
-            </div>
-        `;
-        chatLog?.appendChild(wrapper);
-        chatLog?.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
     }
 
     // Media tracking function - CRITICAL for media library
@@ -268,21 +345,54 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Message Functions
+    // Enhanced sendMessage function with error handling
     function sendMessage() {
         const msg = input.value.trim();
 
-        // Debug check WebSocket state
-        if (window.socket.readyState !== WebSocket.OPEN) {
-            console.error("WebSocket is not connected! ReadyState:", window.socket.readyState);
+        // Check authentication first
+        if (!window.username) {
+            alert('Please log in to send messages.');
             return;
         }
 
-        if (msg && window.socket.readyState === WebSocket.OPEN) {
-            window.socket.send(JSON.stringify({ type: "chat", message: msg }));
-            input.value = "";
-        } else if (uploadedFiles.length > 0 && window.socket.readyState === WebSocket.OPEN) {
-            uploadFilesAndSend();
+        // Debug check WebSocket state
+        if (!window.socket) {
+            console.error("WebSocket not initialized!");
+            alertUserOfConnectionIssue();
+            return;
+        }
+
+        if (window.socket.readyState !== WebSocket.OPEN) {
+            console.error(`WebSocket is not connected! ReadyState: ${window.socket.readyState}`);
+            alertUserOfConnectionIssue();
+
+            // Try to reconnect
+            if (window.socket.readyState === WebSocket.CLOSED) {
+                console.log("Attempting to reconnect closed socket...");
+                connectWebSocket();
+            }
+            return;
+        }
+
+        // Send text message
+        if (msg) {
+            try {
+                window.socket.send(JSON.stringify({
+                    type: "chat",
+                    message: msg
+                }));
+                input.value = "";
+                console.log("Text message sent successfully");
+            } catch (error) {
+                console.error("Error sending text message:", error);
+                alertUserOfConnectionIssue();
+            }
+        }
+        // Send file uploads
+        else if (uploadedFiles.length > 0) {
+            uploadFilesAndSend().catch(error => {
+                console.error("Error in file upload process:", error);
+            });
         }
     }
 
@@ -465,81 +575,157 @@ document.addEventListener("DOMContentLoaded", function () {
             input.addEventListener("keypress", e => {
                 if (e.key === "Enter") {
                     sendMessage();
-                } else if (window.socket.readyState === WebSocket.OPEN) {
+                } else if (window.socket && window.socket.readyState === WebSocket.OPEN) {
                     window.socket.send(JSON.stringify({ type: "typing" }));
                 }
             });
         }
     }
 
+    // Enhanced CSRF token handling function
+    function getCsrfToken() {
+        // Try multiple methods to get the CSRF token
+
+        // Method 1: From cookies
+        try {
+            const name = 'csrftoken=';
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const cookieArray = decodedCookie.split(';');
+
+            for (let cookie of cookieArray) {
+                cookie = cookie.trim();
+                if (cookie.indexOf(name) === 0) {
+                    return cookie.substring(name.length);
+                }
+            }
+        } catch (e) {
+            console.warn("Error getting CSRF token from cookies:", e);
+        }
+
+        // Method 2: From meta tag
+        try {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) {
+                return csrfMeta.getAttribute('content');
+            }
+        } catch (e) {
+            console.warn("Error getting CSRF token from meta tag:", e);
+        }
+
+        // Method 3: From hidden input field
+        try {
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                return csrfInput.value;
+            }
+        } catch (e) {
+            console.warn("Error getting CSRF token from input field:", e);
+        }
+
+        console.error("CSRF token not found. This may cause issues with AJAX requests.");
+        return '';
+    }
+
+    // Enhanced file upload function with better error handling and CSRF token
     async function uploadFilesAndSend() {
         if (uploadedFiles.length === 0) return;
 
         const formData = new FormData();
+        const csrfToken = getCsrfToken();
 
         // Compress images before uploading
-        for (const file of uploadedFiles) {
-            if (file.type.startsWith('image/')) {
-                const compressedFile = await compressImage(file);
-                formData.append("media", compressedFile);
-                console.log("Added compressed image to upload: original size:", file.size, "compressed size:", compressedFile.size);
-            } else {
-                formData.append("media", file);
-            }
-        }
-
-        progressWrap.classList.remove("hidden");
-        progressBar.style.width = "0%";
-
-        // Use the actual URL path
-        const uploadUrl = "/api/upload_media/";
         try {
+            for (const file of uploadedFiles) {
+                try {
+                    if (file.type.startsWith('image/')) {
+                        const compressedFile = await compressImage(file);
+                        formData.append("media", compressedFile);
+                        console.log("Added compressed image to upload: original size:", file.size, "compressed size:", compressedFile.size);
+                    } else {
+                        formData.append("media", file);
+                    }
+                } catch (error) {
+                    console.error(`Error processing file ${file.name}:`, error);
+                    // Continue with other files
+                }
+            }
+
+            progressWrap.classList.remove("hidden");
+            progressBar.style.width = "0%";
+
+            // Use the actual URL path
+            const uploadUrl = "/api/upload_media/";
+
+            // Add CSRF token to request headers
             const response = await fetch(uploadUrl, {
                 method: "POST",
                 body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
             });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
 
             const result = await response.json();
             progressBar.style.width = "100%";
 
-            if (result.success && result.urls.length > 0) {
+            if (result.success && result.urls && result.urls.length > 0) {
                 result.urls.forEach(url => {
                     const html = url.match(/\.(mp4|webm)$/i)
                         ? `<video controls class='max-w-xs rounded-lg'><source src="${url}"></video>`
                         : `<img src="${url}" class='max-w-xs rounded-lg' />`;
 
-                    window.socket.send(JSON.stringify({
-                        type: "chat",
-                        message: html,
-                    }));
+                    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                        window.socket.send(JSON.stringify({
+                            type: "chat",
+                            message: html,
+                        }));
 
-                    // Add to media library immediately after sending
-                    if (url.match(/\.(mp4|webm)$/i)) {
-                        if (!window.mediaLibrary.videos.includes(url)) {
-                            window.mediaLibrary.videos.push(url);
+                        // Add to media library immediately after sending
+                        if (url.match(/\.(mp4|webm)$/i)) {
+                            if (!window.mediaLibrary.videos.includes(url)) {
+                                window.mediaLibrary.videos.push(url);
+                            }
+                        } else {
+                            if (!window.mediaLibrary.images.includes(url)) {
+                                window.mediaLibrary.images.push(url);
+                            }
                         }
                     } else {
-                        if (!window.mediaLibrary.images.includes(url)) {
-                            window.mediaLibrary.images.push(url);
-                        }
+                        console.error("WebSocket not connected. Cannot send media message.");
+                        alertUserOfConnectionIssue();
                     }
                 });
+            } else {
+                console.error("Upload succeeded but no URLs returned:", result);
+                throw new Error("No media URLs returned from server");
             }
         } catch (error) {
             console.error("Error uploading files:", error);
             // Show upload error to user
             const errorMsg = document.createElement("div");
             errorMsg.className = "text-red-500 text-xs mt-1";
-            errorMsg.textContent = "Upload failed. Please try again.";
-            progressWrap.parentNode.appendChild(errorMsg);
-            setTimeout(() => errorMsg.remove(), 3000);
-        }
+            errorMsg.textContent = "Upload failed: " + (error.message || "Please try again.");
 
-        // Reset
-        fileInput.value = "";
-        uploadedFiles = [];
-        previewContainer.classList.add("hidden");
-        progressWrap.classList.add("hidden");
+            if (progressWrap && progressWrap.parentNode) {
+                progressWrap.parentNode.appendChild(errorMsg);
+                setTimeout(() => errorMsg.remove(), 5000);  // Show for 5 seconds
+            }
+            throw error; // Re-throw so caller can handle it
+        } finally {
+            // Reset UI regardless of outcome
+            fileInput.value = "";
+            uploadedFiles = [];
+            previewContainer.classList.add("hidden");
+
+            // Delay hiding progress to make success visible
+            setTimeout(() => {
+                progressWrap.classList.add("hidden");
+            }, 1000);
+        }
     }
 
     // Emoji Panel Functions
@@ -607,11 +793,16 @@ document.addEventListener("DOMContentLoaded", function () {
         wrapper.querySelectorAll(".emoji-reaction").forEach(btn => {
             const emoji = btn.textContent;
             btn.addEventListener("click", function () {
-                window.socket.send(JSON.stringify({
-                    type: "reaction",
-                    message_id: messageId,
-                    reaction: emoji
-                }));
+                if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                    window.socket.send(JSON.stringify({
+                        type: "reaction",
+                        message_id: messageId,
+                        reaction: emoji
+                    }));
+                } else {
+                    console.error("Cannot send reaction: WebSocket not connected");
+                    alertUserOfConnectionIssue();
+                }
             });
         });
     }
@@ -671,10 +862,15 @@ document.addEventListener("DOMContentLoaded", function () {
         clearWhiteboardBtn.addEventListener('click', () => {
             ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
             // Broadcast clear event
-            window.socket.send(JSON.stringify({
-                type: 'whiteboard',
-                action: 'clear'
-            }));
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                window.socket.send(JSON.stringify({
+                    type: 'whiteboard',
+                    action: 'clear'
+                }));
+            } else {
+                console.error("Cannot clear whiteboard: WebSocket not connected");
+                alertUserOfConnectionIssue();
+            }
         });
 
         function startDrawing(e) {
@@ -700,14 +896,16 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.moveTo(e.offsetX, e.offsetY);
 
             // Broadcast drawing data
-            window.socket.send(JSON.stringify({
-                type: 'whiteboard',
-                action: 'draw',
-                x: e.offsetX / whiteboardCanvas.width,
-                y: e.offsetY / whiteboardCanvas.height,
-                color: brushColor.value,
-                size: brushSize.value
-            }));
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                window.socket.send(JSON.stringify({
+                    type: 'whiteboard',
+                    action: 'draw',
+                    x: e.offsetX / whiteboardCanvas.width,
+                    y: e.offsetY / whiteboardCanvas.height,
+                    color: brushColor.value,
+                    size: brushSize.value
+                }));
+            }
         }
 
         function drawTouch(e) {
@@ -729,14 +927,16 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.moveTo(x, y);
 
             // Broadcast drawing data
-            window.socket.send(JSON.stringify({
-                type: 'whiteboard',
-                action: 'draw',
-                x: x / whiteboardCanvas.width,
-                y: y / whiteboardCanvas.height,
-                color: brushColor.value,
-                size: brushSize.value
-            }));
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                window.socket.send(JSON.stringify({
+                    type: 'whiteboard',
+                    action: 'draw',
+                    x: x / whiteboardCanvas.width,
+                    y: y / whiteboardCanvas.height,
+                    color: brushColor.value,
+                    size: brushSize.value
+                }));
+            }
         }
 
         function stopDrawing() {
@@ -815,18 +1015,23 @@ document.addEventListener("DOMContentLoaded", function () {
             };
 
             // Send to WebSocket
-            window.socket.send(JSON.stringify({
-                type: 'meetup',
-                action: 'create',
-                meetup
-            }));
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                window.socket.send(JSON.stringify({
+                    type: 'meetup',
+                    action: 'create',
+                    meetup
+                }));
 
-            // Close modal
-            meetupModal.classList.add('hidden');
-            meetupModal.classList.remove('flex');
+                // Close modal
+                meetupModal.classList.add('hidden');
+                meetupModal.classList.remove('flex');
 
-            // Reset form
-            meetupForm.reset();
+                // Reset form
+                meetupForm.reset();
+            } else {
+                console.error("Cannot create meetup: WebSocket not connected");
+                alertUserOfConnectionIssue();
+            }
         });
 
         // Helper function to format date for the datetime-local input
@@ -925,11 +1130,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Add event listener for attendance button
             meetupEl.querySelector('.attend-btn').addEventListener('click', () => {
-                window.socket.send(JSON.stringify({
-                    type: 'meetup',
-                    action: isAttending ? 'leave' : 'join',
-                    meetup_id: meetup.id
-                }));
+                if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                    window.socket.send(JSON.stringify({
+                        type: 'meetup',
+                        action: isAttending ? 'leave' : 'join',
+                        meetup_id: meetup.id
+                    }));
+                } else {
+                    console.error("Cannot update meetup attendance: WebSocket not connected");
+                    alertUserOfConnectionIssue();
+                }
             });
         });
 
@@ -1328,8 +1538,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             }
 
-            // Filter buttons
-            if (filterBtns && filterBtns.length > 0) {
+             // Filter buttons
+             if (filterBtns && filterBtns.length > 0) {
                 filterBtns.forEach(btn => {
                     btn.addEventListener('click', function() {
                         if (!btn.dataset.filter) {
@@ -1353,7 +1563,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                 });
             }
-
             console.log("Media library initialization complete");
         } catch (error) {
             console.error("Error initializing media library:", error);
@@ -1558,34 +1767,347 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function getCsrfToken() {
-        try {
-            // Get CSRF token from cookies
-            const cookies = document.cookie.split(';');
-            for (let cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'csrftoken') {
-                    return value;
+    // Friend and Recommendations Functions
+    function initFriendsAndRecommendations() {
+        console.log("Initializing friends and recommendations features");
+
+        // Get DOM elements for friends section
+        const onlineFriendsList = document.getElementById('online-friends-list');
+        const friendSuggestionsList = document.getElementById('friend-suggestions-list');
+
+        // Get DOM elements for recommendations section
+        const recommendedRoomsList = document.getElementById('recommended-rooms-list');
+
+        // If none of these elements exist, exit early
+        if (!onlineFriendsList && !friendSuggestionsList && !recommendedRoomsList) {
+            console.log("No friends/recommendations elements found - skipping initialization");
+            return;
+        }
+
+        // Request online friends if the element exists
+        if (onlineFriendsList) {
+            requestOnlineFriends();
+
+            // Set up interval to refresh online friends every 30 seconds
+            setInterval(requestOnlineFriends, 30000);
+        }
+
+        // Request friend suggestions if the element exists
+        if (friendSuggestionsList) {
+            requestFriendSuggestions();
+        }
+
+        // Request room recommendations if the element exists
+        if (recommendedRoomsList) {
+            requestRoomRecommendations();
+        }
+    }
+
+    // Request online friends from the server
+    function requestOnlineFriends() {
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            console.log("Requesting online friends");
+            window.socket.send(JSON.stringify({
+                type: 'friends',
+                action: 'list_online'
+            }));
+        } else {
+            console.warn("WebSocket not connected - cannot request online friends");
+        }
+    }
+
+    // Request friend suggestions from the server
+    function requestFriendSuggestions() {
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            console.log("Requesting friend suggestions");
+            window.socket.send(JSON.stringify({
+                type: 'friends',
+                action: 'suggestions'
+            }));
+        } else {
+            console.warn("WebSocket not connected - cannot request friend suggestions");
+        }
+    }
+
+    // Request room recommendations from the server
+    function requestRoomRecommendations() {
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            console.log("Requesting room recommendations");
+            window.socket.send(JSON.stringify({
+                type: 'recommendations',
+                action: 'get'
+            }));
+        } else {
+            console.warn("WebSocket not connected - cannot request room recommendations");
+        }
+    }
+
+    // Handle friends messages from the server
+    function handleFriendsMessage(data) {
+        if (data.action === 'online_list') {
+            renderOnlineFriends(data.friends || []);
+        } else if (data.action === 'suggestions') {
+            renderFriendSuggestions(data.suggestions || []);
+        }
+    }
+
+    // Handle recommendations messages from the server
+    function handleRecommendationsMessage(data) {
+        if (data.action === 'list') {
+            renderRoomRecommendations(data.rooms || []);
+        }
+    }
+
+    // Render online friends list
+    function renderOnlineFriends(friends) {
+        const onlineFriendsList = document.getElementById('online-friends-list');
+        if (!onlineFriendsList) return;
+
+        if (friends.length === 0) {
+            onlineFriendsList.innerHTML = `
+                <div class="text-gray-400 text-xs italic py-2">
+                    None of your friends are online right now.
+                </div>
+            `;
+            return;
+        }
+
+        onlineFriendsList.innerHTML = '';
+
+        friends.forEach(friend => {
+            const friendItem = document.createElement('div');
+            friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
+
+            friendItem.innerHTML = `
+                <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                    ${friend.avatar}
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium">${friend.username}</p>
+                    <span class="flex items-center text-xs text-green-500">
+                        <span class="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></span>
+                        Online now
+                    </span>
+                </div>
+                <a href="/chat/dm/${friend.username}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                </a>
+            `;
+
+            onlineFriendsList.appendChild(friendItem);
+        });
+    }
+
+    // Render friend suggestions list
+    function renderFriendSuggestions(suggestions) {
+        const friendSuggestionsList = document.getElementById('friend-suggestions-list');
+        if (!friendSuggestionsList) return;
+
+        if (suggestions.length === 0) {
+            friendSuggestionsList.innerHTML = `
+                <div class="text-gray-400 text-xs italic py-2">
+                    No suggestions available. Try joining more chat rooms!
+                </div>
+            `;
+            return;
+        }
+
+        friendSuggestionsList.innerHTML = '';
+
+        suggestions.forEach(friend => {
+            const friendItem = document.createElement('div');
+            friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
+
+            const fullName = friend.first_name || friend.last_name ?
+                `${friend.first_name || ''} ${friend.last_name || ''}`.trim() : '';
+
+            friendItem.innerHTML = `
+                <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                    ${friend.avatar}
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium">${friend.username}</p>
+                    ${fullName ? `<p class="text-xs text-gray-500">${fullName}</p>` : ''}
+                </div>
+                <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1 px-2 rounded transition-colors">
+                    Add
+                </button>
+            `;
+
+            // Add event listener for the add friend button
+            const addBtn = friendItem.querySelector('.add-friend-btn');
+            addBtn.addEventListener('click', function() {
+                sendFriendRequest(friend.id);
+                this.textContent = 'Sent';
+                this.disabled = true;
+                this.classList.remove('hover:bg-pink-200');
+                this.classList.add('bg-gray-100', 'text-gray-500');
+            });
+
+            friendSuggestionsList.appendChild(friendItem);
+        });
+    }
+
+    // Render room recommendations list
+    function renderRoomRecommendations(rooms) {
+        const recommendedRoomsList = document.getElementById('recommended-rooms-list');
+        if (!recommendedRoomsList) return;
+
+        if (rooms.length === 0) {
+            recommendedRoomsList.innerHTML = `
+                <div class="text-gray-400 text-xs italic py-2">
+                    No recommendations available yet. Join more chat rooms!
+                </div>
+            `;
+            return;
+        }
+
+        recommendedRoomsList.innerHTML = '';
+
+        rooms.forEach(room => {
+            const roomItem = document.createElement('div');
+            roomItem.className = 'p-2 hover:bg-pink-50 rounded-lg transition-colors';
+
+            // Determine activity status
+            const activityClass = room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500';
+            const activityLabel = room.activity === 'high' ? 'Very active' : 'Active';
+
+            roomItem.innerHTML = `
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
+                        ${room.display_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="flex-1">
+                        <a href="/chat/${room.name}/" class="text-sm font-medium text-pink-600 hover:underline">${room.display_name}</a>
+                        <div class="flex items-center text-xs text-gray-500">
+                            ${room.category ? `<span class="bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
+                            <span>${room.message_count} messages</span>
+                            <span class="ml-2 flex items-center">
+                                <span class="h-1.5 w-1.5 rounded-full mr-1 ${activityClass}"></span>
+                                ${activityLabel}
+                            </span>
+                        </div>
+                    </div>
+                    <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
+            `;
+
+            recommendedRoomsList.appendChild(roomItem);
+        });
+    }
+
+    // Send a friend request
+    function sendFriendRequest(userId) {
+        // Get CSRF token
+        const csrfToken = getCsrfToken();
+
+        fetch('/api/friend_request/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                receiver_id: userId // Changed from username to receiver_id
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Friend request response:", data);
+            if (data.success) {
+                console.log('Friend request sent successfully');
+            } else {
+                console.error('Failed to send friend request:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error sending friend request:', error);
+        });
+    }
+
+    // WebSocket Debug Tools
+    function initWebSocketDebugTools() {
+        // Add a hidden debug panel
+        const debugPanel = document.createElement('div');
+        debugPanel.id = 'ws-debug-panel';
+        debugPanel.style.cssText = 'position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 9999; max-width: 300px; max-height: 200px; overflow: auto; display: none;';
+
+        // Add a toggle button
+        const debugButton = document.createElement('button');
+        debugButton.id = 'ws-debug-button';
+        debugButton.innerHTML = '🔌';
+        debugButton.title = 'WebSocket Debug';
+        debugButton.style.cssText = 'position: fixed; bottom: 10px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.3); color: white; font-size: 16px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; z-index: 10000;';
+
+        document.body.appendChild(debugPanel);
+        document.body.appendChild(debugButton);
+
+        // Toggle debug panel
+        debugButton.addEventListener('click', () => {
+            const isVisible = debugPanel.style.display !== 'none';
+            debugPanel.style.display = isVisible ? 'none' : 'block';
+
+            if (!isVisible) {
+                updateDebugPanel();
+            }
+        });
+
+        // Function to update the debug panel
+        function updateDebugPanel() {
+            if (debugPanel.style.display === 'none') return;
+
+            const status = window.socket ? ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][window.socket.readyState] : 'NOT INITIALIZED';
+            const statusColor = window.socket && window.socket.readyState === WebSocket.OPEN ? '#0f0' : '#f00';
+
+            debugPanel.innerHTML = `
+                <div style="margin-bottom: 5px;">
+                    <strong>WebSocket Status:</strong> <span style="color: ${statusColor}">${status}</span>
+                </div>
+                <div style="margin-bottom: 5px;">
+                    <strong>Room:</strong> ${roomName}
+                </div>
+                <div style="margin-bottom: 5px;">
+                    <strong>Reconnect Attempts:</strong> ${reconnectAttempts}/${maxReconnectAttempts}
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong>URL:</strong> ${protocol}://${window.location.host}/ws/chat/${roomName}/
+                </div>
+                <div>
+                    <button id="ws-debug-reconnect" style="background: #333; color: white; border: none; padding: 3px 6px; margin-right: 5px; cursor: pointer; border-radius: 3px;">Force Reconnect</button>
+                    <button id="ws-debug-ping" style="background: #333; color: white; border: none; padding: 3px 6px; cursor: pointer; border-radius: 3px;">Send Ping</button>
+                </div>
+            `;
+
+            // Add event listeners to buttons
+            document.getElementById('ws-debug-reconnect').addEventListener('click', () => {
+                if (window.socket) {
+                    try {
+                        window.socket.close();
+                    } catch (e) {
+                        console.error("Error closing socket:", e);
+                    }
                 }
-            }
+                connectWebSocket();
+                setTimeout(updateDebugPanel, 500);
+            });
 
-            // If not found in cookies, try to find it in a meta tag
-            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-            if (csrfMeta) {
-                return csrfMeta.getAttribute('content');
-            }
+            document.getElementById('ws-debug-ping').addEventListener('click', () => {
+                if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                    window.socket.send(JSON.stringify({ type: 'ping' }));
+                    console.log("Ping sent to server");
+                } else {
+                    console.error("Cannot send ping: WebSocket not connected");
+                }
+            });
 
-            // Last resort - look for hidden input field
-            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-            if (csrfInput) {
-                return csrfInput.value;
-            }
-
-            console.warn("CSRF token not found in cookies, meta tags, or input fields");
-            return '';
-        } catch (e) {
-            console.error("Error getting CSRF token:", e);
-            return '';
+            // Update periodically
+            setTimeout(updateDebugPanel, 2000);
         }
     }
 
@@ -1598,370 +2120,16 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("Error initializing media library:", e);
         }
     }, 500);
+
+    // Send a ping every 30 seconds to keep the connection alive
+    setInterval(function() {
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            try {
+                window.socket.send(JSON.stringify({ type: 'ping' }));
+                console.log("Ping sent to server");
+            } catch (e) {
+                console.error("Error sending ping:", e);
+            }
+        }
+    }, 30000);
 });
-
-
-// Initialize friend recommendations and online friends
-function initFriendsAndRecommendations() {
-    console.log("Initializing friends and recommendations features");
-
-    // Get DOM elements for friends section
-    const onlineFriendsList = document.getElementById('online-friends-list');
-    const friendSuggestionsList = document.getElementById('friend-suggestions-list');
-
-    // Get DOM elements for recommendations section
-    const recommendedRoomsList = document.getElementById('recommended-rooms-list');
-
-    // If none of these elements exist, exit early
-    if (!onlineFriendsList && !friendSuggestionsList && !recommendedRoomsList) {
-        console.log("No friends/recommendations elements found - skipping initialization");
-        return;
-    }
-
-    // Request online friends if the element exists
-    if (onlineFriendsList) {
-        requestOnlineFriends();
-
-        // Set up interval to refresh online friends every 30 seconds
-        setInterval(requestOnlineFriends, 30000);
-    }
-
-    // Request friend suggestions if the element exists
-    if (friendSuggestionsList) {
-        requestFriendSuggestions();
-    }
-
-    // Request room recommendations if the element exists
-    if (recommendedRoomsList) {
-        requestRoomRecommendations();
-    }
-}
-
-// Request online friends from the server
-function requestOnlineFriends() {
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        console.log("Requesting online friends");
-        window.socket.send(JSON.stringify({
-            type: 'friends',
-            action: 'list_online'
-        }));
-    } else {
-        console.warn("WebSocket not connected - cannot request online friends");
-    }
-}
-
-// Request friend suggestions from the server
-function requestFriendSuggestions() {
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        console.log("Requesting friend suggestions");
-        window.socket.send(JSON.stringify({
-            type: 'friends',
-            action: 'suggestions'
-        }));
-    } else {
-        console.warn("WebSocket not connected - cannot request friend suggestions");
-    }
-}
-
-// Request room recommendations from the server
-function requestRoomRecommendations() {
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        console.log("Requesting room recommendations");
-        window.socket.send(JSON.stringify({
-            type: 'recommendations',
-            action: 'get'
-        }));
-    } else {
-        console.warn("WebSocket not connected - cannot request room recommendations");
-    }
-}
-
-// In your handleSocketMessage function, add these case handlers:
-
-function handleSocketMessage(event) {
-    console.log("📩 Message received:", event.data);
-    try {
-        const data = JSON.parse(event.data);
-        switch (data.type) {
-            // Existing cases...
-
-            case "friends":
-                console.log("Friends update:", data);
-                handleFriendsMessage(data);
-                break;
-
-            case "recommendations":
-                console.log("Recommendations update:", data);
-                handleRecommendationsMessage(data);
-                break;
-
-            // Other cases...
-        }
-    } catch (e) {
-        console.error("Error processing message:", e, event.data);
-    }
-}
-
-// Handle friends messages from the server
-function handleFriendsMessage(data) {
-    if (data.action === 'online_list') {
-        renderOnlineFriends(data.friends || []);
-    } else if (data.action === 'suggestions') {
-        renderFriendSuggestions(data.suggestions || []);
-    }
-}
-
-// Handle recommendations messages from the server
-function handleRecommendationsMessage(data) {
-    if (data.action === 'list') {
-        renderRoomRecommendations(data.rooms || []);
-    }
-}
-
-// Render online friends list
-function renderOnlineFriends(friends) {
-    const onlineFriendsList = document.getElementById('online-friends-list');
-    if (!onlineFriendsList) return;
-
-    if (friends.length === 0) {
-        onlineFriendsList.innerHTML = `
-            <div class="text-gray-400 text-xs italic py-2">
-                None of your friends are online right now.
-            </div>
-        `;
-        return;
-    }
-
-    onlineFriendsList.innerHTML = '';
-
-    friends.forEach(friend => {
-        const friendItem = document.createElement('div');
-        friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
-
-        friendItem.innerHTML = `
-            <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                ${friend.avatar}
-            </div>
-            <div class="flex-1">
-                <p class="text-sm font-medium">${friend.username}</p>
-                <span class="flex items-center text-xs text-green-500">
-                    <span class="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></span>
-                    Online now
-                </span>
-            </div>
-            <a href="/chat/dm/${friend.username}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-            </a>
-        `;
-
-        onlineFriendsList.appendChild(friendItem);
-    });
-}
-
-// Render friend suggestions list
-function renderFriendSuggestions(suggestions) {
-    const friendSuggestionsList = document.getElementById('friend-suggestions-list');
-    if (!friendSuggestionsList) return;
-
-    if (suggestions.length === 0) {
-        friendSuggestionsList.innerHTML = `
-            <div class="text-gray-400 text-xs italic py-2">
-                No suggestions available. Try joining more chat rooms!
-            </div>
-        `;
-        return;
-    }
-
-    friendSuggestionsList.innerHTML = '';
-
-    suggestions.forEach(friend => {
-        const friendItem = document.createElement('div');
-        friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
-
-        const fullName = friend.first_name || friend.last_name ?
-            `${friend.first_name || ''} ${friend.last_name || ''}`.trim() : '';
-
-        friendItem.innerHTML = `
-            <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                ${friend.avatar}
-            </div>
-            <div class="flex-1">
-                <p class="text-sm font-medium">${friend.username}</p>
-                ${fullName ? `<p class="text-xs text-gray-500">${fullName}</p>` : ''}
-            </div>
-            <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1 px-2 rounded transition-colors">
-                Add
-            </button>
-        `;
-
-        // Add event listener for the add friend button
-        const addBtn = friendItem.querySelector('.add-friend-btn');
-        addBtn.addEventListener('click', function() {
-            sendFriendRequest(friend.id);
-            this.textContent = 'Sent';
-            this.disabled = true;
-            this.classList.remove('hover:bg-pink-200');
-            this.classList.add('bg-gray-100', 'text-gray-500');
-        });
-
-        friendSuggestionsList.appendChild(friendItem);
-    });
-}
-
-// Render room recommendations list
-function renderRoomRecommendations(rooms) {
-    const recommendedRoomsList = document.getElementById('recommended-rooms-list');
-    if (!recommendedRoomsList) return;
-
-    if (rooms.length === 0) {
-        recommendedRoomsList.innerHTML = `
-            <div class="text-gray-400 text-xs italic py-2">
-                No recommendations available yet. Join more chat rooms!
-            </div>
-        `;
-        return;
-    }
-
-    recommendedRoomsList.innerHTML = '';
-
-    rooms.forEach(room => {
-        const roomItem = document.createElement('div');
-        roomItem.className = 'p-2 hover:bg-pink-50 rounded-lg transition-colors';
-
-        // Determine activity status
-        const activityClass = room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500';
-        const activityLabel = room.activity === 'high' ? 'Very active' : 'Active';
-
-        roomItem.innerHTML = `
-            <div class="flex items-center">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
-                    ${room.display_name.charAt(0).toUpperCase()}
-                </div>
-                <div class="flex-1">
-                    <a href="/chat/${room.name}/" class="text-sm font-medium text-pink-600 hover:underline">${room.display_name}</a>
-                    <div class="flex items-center text-xs text-gray-500">
-                        ${room.category ? `<span class="bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
-                        <span>${room.message_count} messages</span>
-                        <span class="ml-2 flex items-center">
-                            <span class="h-1.5 w-1.5 rounded-full mr-1 ${activityClass}"></span>
-                            ${activityLabel}
-                        </span>
-                    </div>
-                </div>
-                <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                </a>
-            </div>
-        `;
-
-        recommendedRoomsList.appendChild(roomItem);
-    });
-}
-
-
-// Send a friend request
-function sendFriendRequest(userId) {
-    // Get CSRF token
-    const csrfToken = getCsrfToken();
-
-    fetch('/api/friend_request/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            receiver_id: userId // Changed from username to receiver_id
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("Friend request response:", data);
-        if (data.success) {
-            console.log('Friend request sent successfully');
-        } else {
-            console.error('Failed to send friend request:', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error sending friend request:', error);
-    });
-}
-
-// Helper function to get CSRF token
-function getCsrfToken() {
-    // From cookies
-    const name = 'csrftoken=';
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const cookieArray = decodedCookie.split(';');
-
-    for (let i = 0; i < cookieArray.length; i++) {
-        let cookie = cookieArray[i].trim();
-        if (cookie.indexOf(name) === 0) {
-            return cookie.substring(name.length, cookie.length);
-        }
-    }
-
-    // If not found in cookies, try to find it in a meta tag
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    if (csrfMeta) {
-        return csrfMeta.getAttribute('content');
-    }
-
-    // Last resort - look for hidden input field
-    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-    if (csrfInput) {
-        return csrfInput.value;
-    }
-
-    return '';
-}
-
-
-// Enhance existing user list to include add friend button
-const originalUpdateUserList = window.updateUserList || function() {};
-
-window.updateUserList = function(users) {
-    // Call the original function first
-    originalUpdateUserList.call(this, users);
-
-    // Now enhance with add friend buttons
-    const userList = document.getElementById("user-list");
-    if (!userList) return;
-
-    const currentUsername = window.username;
-
-    // Add friend buttons to user list items
-    Array.from(userList.querySelectorAll('li')).forEach(li => {
-        const usernameEl = li.querySelector('span');
-        if (!usernameEl) return;
-
-        const username = usernameEl.textContent;
-        if (username === currentUsername) return;
-
-        // Check if this li already has a friend button
-        if (li.querySelector('.add-friend-btn')) return;
-
-        // Add the friend button
-        const button = document.createElement('button');
-        button.className = 'add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors ml-2';
-        button.textContent = 'Add Friend';
-        button.dataset.username = username;
-
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            sendFriendRequest(this.dataset.username);
-            this.textContent = 'Sent';
-            this.disabled = true;
-            this.classList.remove('hover:bg-pink-200');
-            this.classList.add('bg-gray-100', 'text-gray-500');
-        });
-
-        li.appendChild(button);
-    });
-};
