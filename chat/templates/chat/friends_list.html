@@ -338,51 +338,90 @@
             </div>
 
             <div id="joined-rooms-list" class="divide-y divide-gray-100 p-2">
-              <!-- Dynamic content from backend - Sample layout shown -->
-              {% if joined_rooms %}
-                {% for room in joined_rooms %}
-                <a href="{% url 'room' room.name %}" class="block p-3 joined-room-card bg-white hover:bg-gray-50 rounded-lg mb-2 border border-gray-100">
-                  <div class="flex items-center">
-                    <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-pink-300 to-yellow-200 text-white flex items-center justify-center mr-3 font-semibold">
-                      {{ room.display_name|slice:":1"|upper }}
-                    </div>
-                    <div class="flex-1">
-                      <div class="flex items-center justify-between">
-                        <h3 class="font-medium">{{ room.display_name }}</h3>
-                        {% if room.unread_count > 0 %}
-                          <span class="unread-badge">{{ room.unread_count }}</span>
-                        {% endif %}
+                <!-- Display both joined and bookmarked rooms -->
+                {% if joined_rooms or bookmarked_rooms %}
+                  <!-- First show joined rooms -->
+                  {% for room in joined_rooms %}
+                  <a href="{% url 'room' room.name %}" class="block p-3 joined-room-card bg-white hover:bg-gray-50 rounded-lg mb-2 border border-gray-100">
+                    <div class="flex items-center">
+                      <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-pink-300 to-yellow-200 text-white flex items-center justify-center mr-3 font-semibold">
+                        {{ room.display_name|slice:":1"|upper }}
                       </div>
-                      <div class="flex items-center justify-between mt-1">
-                        <p class="text-xs text-gray-500">
-                          {{ room.message_count }} messages
-                          {% if room.category %}
-                          • <span class="px-1.5 py-0.5 bg-pink-50 text-pink-500 rounded-full text-xs">{{ room.category }}</span>
+                      <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                          <h3 class="font-medium">{{ room.display_name }}</h3>
+                          {% if room.unread_count > 0 %}
+                            <span class="unread-badge">{{ room.unread_count }}</span>
                           {% endif %}
-                        </p>
-
-                        <div class="flex items-center">
-                          <span class="activity-indicator {% if room.activity_level == 'high' %}activity-high status-online{% elif room.activity_level == 'medium' %}activity-medium{% else %}activity-low{% endif %} mr-1.5"></span>
-                          <span class="text-xs text-gray-500">{{ room.last_active|default_if_none:"Just now"|timesince }}</span>
+                        </div>
+                        <div class="flex items-center justify-between mt-1">
+                          <p class="text-xs text-gray-500">
+                            {{ room.message_count }} messages
+                            {% if room.category %}
+                            • <span class="px-1.5 py-0.5 bg-pink-50 text-pink-500 rounded-full text-xs">{{ room.category }}</span>
+                            {% endif %}
+                          </p>
+                          <div class="flex items-center">
+                            <span class="activity-indicator {% if room.activity_level == 'high' %}activity-high status-online{% elif room.activity_level == 'medium' %}activity-medium{% else %}activity-low{% endif %} mr-1.5"></span>
+                            <span class="text-xs text-gray-500">{{ room.last_active|default_if_none:"Just now"|timesince }}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </a>
-                {% endfor %}
-              {% else %}
-                <div class="p-8 text-center text-gray-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  <h3 class="text-lg font-medium mb-2">No rooms joined yet</h3>
-                  <p class="max-w-md mx-auto mb-4">Join some chat rooms to start conversations!</p>
-                  <a href="{% url 'index' %}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-                    Explore Rooms
                   </a>
-                </div>
-              {% endif %}
-            </div>
+                  {% endfor %}
+
+                  <!-- Then show bookmarked rooms -->
+                  {% for room in bookmarked_rooms %}
+                  <a href="{% url 'room' room.name %}" class="block p-3 joined-room-card bg-white hover:bg-gray-50 rounded-lg mb-2 border border-gray-100">
+                    <div class="flex items-center">
+                      <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-indigo-300 to-blue-200 text-white flex items-center justify-center mr-3 font-semibold">
+                        {{ room.display_name|slice:":1"|upper }}
+                      </div>
+                      <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center">
+                            <h3 class="font-medium">{{ room.display_name }}</h3>
+                            <!-- Bookmark indicator -->
+                            <span class="ml-2 text-pink-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                              </svg>
+                            </span>
+                          </div>
+                          {% if room.unread_count > 0 %}
+                            <span class="unread-badge">{{ room.unread_count }}</span>
+                          {% endif %}
+                        </div>
+                        <div class="flex items-center justify-between mt-1">
+                          <p class="text-xs text-gray-500">
+                            {{ room.message_count }} messages
+                            {% if room.category %}
+                            • <span class="px-1.5 py-0.5 bg-pink-50 text-pink-500 rounded-full text-xs">{{ room.category }}</span>
+                            {% endif %}
+                          </p>
+                          <div class="flex items-center">
+                            <span class="activity-indicator {% if room.activity_level == 'high' %}activity-high status-online{% elif room.activity_level == 'medium' %}activity-medium{% else %}activity-low{% endif %} mr-1.5"></span>
+                            <span class="text-xs text-gray-500">{{ room.last_active|default_if_none:"Just now"|timesince }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                  {% endfor %}
+                {% else %}
+                  <div class="p-8 text-center text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <h3 class="text-lg font-medium mb-2">No rooms joined or bookmarked yet</h3>
+                    <p class="max-w-md mx-auto mb-4">Join or bookmark some chat rooms to start conversations!</p>
+                    <a href="{% url 'index' %}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+                      Explore Rooms
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
 
             <!-- Popular/Recommended rooms teaser -->
             {% if popular_rooms %}
