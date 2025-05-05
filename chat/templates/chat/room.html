@@ -364,6 +364,80 @@
     .activity-indicator.medium .dot {
       background-color: #f59e0b;
     }
+
+    /* Clickable usernames */
+    .username-link {
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .username-link:hover {
+      color: #ec4899;
+    }
+
+    .username-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 1px;
+      bottom: 0;
+      left: 0;
+      background-color: #ec4899;
+      transition: width 0.3s ease;
+    }
+
+    .username-link:hover::after {
+      width: 100%;
+    }
+
+    /* Room card hover effects */
+    .room-card-interactive {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .room-card-interactive:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(236, 72, 153, 0.1);
+    }
+
+    /* Notification toast */
+    .notification-toast {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #ec4899, #f97316);
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: toastIn 0.3s forwards, toastOut 0.3s forwards 3s;
+    }
+
+    @keyframes toastIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateY(20px); }
+    }
+
+    /* Bookmark button */
+    .bookmark-btn {
+      transition: all 0.2s ease;
+    }
+
+    .bookmark-btn:hover {
+      transform: scale(1.2);
+    }
+
+    .bookmark-btn.active {
+      color: #ec4899;
+      fill: #ec4899;
+    }
   </style>
 </head>
 <body class="bg-white min-h-screen flex flex-col text-gray-800">
@@ -399,6 +473,13 @@
           PROTECTED
         </span>
         {% endif %}
+
+        <!-- Add bookmark/subscribe button -->
+        <button id="bookmark-room" class="ml-3 bookmark-btn p-1.5 text-gray-400 hover:text-pink-500 rounded-full hover:bg-pink-50 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+        </button>
       </div>
 
       <div class="flex items-center gap-4">
@@ -489,7 +570,9 @@
                   <!-- Username and message content -->
                   <div class="flex-1">
                     <p class="text-xs font-semibold mb-0.5 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %}">
-                      {{ message.user.username }}
+                      <a href="{% url 'direct_message' username=message.user.username %}" class="username-link hover:underline">
+                        {{ message.user.username }}
+                      </a>
                     </p>
                     <div class="text-sm text-gray-700 message-content">
                       {{ message.content|safe }}
@@ -907,6 +990,11 @@
       <h2 class="text-lg font-bold mb-2 gradient-text">People who reacted</h2>
       <ul id="reactionUserList" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
     </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="notification-toast" class="notification-toast hidden">
+    <span id="notification-message"></span>
   </div>
 
   <script>
