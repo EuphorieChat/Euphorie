@@ -6,7 +6,7 @@ import json
 
 from django.contrib.auth.models import User
 from .models import UserRelationship, Room, Message, Category
-from .user_services import get_room_recommendations, get_friend_suggestions
+from .user_services import get_room_recommendations, get_friend_suggestions, get_online_friends
 
 @login_required
 @csrf_protect
@@ -175,6 +175,34 @@ def get_recommended_rooms(request):
         return JsonResponse({
             'success': True,
             'rooms': formatted_rooms
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def get_online_friends_api(request):
+    """
+    API view to get online friends for the current user
+    """
+    try:
+        online_friends = get_online_friends(request.user)
+
+        # Format the online friends for the response
+        formatted_friends = [
+            {
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'avatar': user.username[:1].upper()
+            }
+            for user in online_friends
+        ]
+
+        return JsonResponse({
+            'success': True,
+            'friends': formatted_friends
         })
 
     except Exception as e:
