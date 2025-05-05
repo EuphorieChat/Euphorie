@@ -3,6 +3,7 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 import json
+from .models import Room, RoomBookmark
 
 from django.contrib.auth.models import User
 from .models import UserRelationship, Room, Message, Category
@@ -205,5 +206,34 @@ def get_online_friends_api(request):
             'friends': formatted_friends
         })
 
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_POST
+def toggle_bookmark_room(request):
+    data = json.loads(request.body)
+    room_name = data.get('room_name')
+    bookmarked = data.get('bookmarked', False)
+
+    try:
+        room = Room.objects.get(name=room_name)
+
+        # Update or create bookmark
+        bookmark, created = RoomBookmark.objects.get_or_create(
+            user=request.user,
+            room=room,
+            defaults={'is_bookmarked': bookmarked}
+        )
+
+        if not created:
+            # Update existing bookmark
+            bookmark.is_bookmarked = bookmarked
+            bookmark.save()
+
+        return JsonResponse({'success': True})
+
+    except Room.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Room not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})

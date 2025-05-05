@@ -376,3 +376,12 @@ class UserInterest(models.Model):
         elif self.category:
             return f"{self.user.username} interest in category {self.category.name}: {self.engagement_score}"
         return f"{self.user.username} interest: {self.engagement_score}"
+
+class RoomBookmark(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    is_bookmarked = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'room')
