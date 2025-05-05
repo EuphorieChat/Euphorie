@@ -1,7 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
@@ -49,7 +48,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Send message indicating user joined
         if self.user and not self.user.is_anonymous:
             # Update user status to online
-            await database_sync_to_async(update_user_status)(self.user, True)
+            await database_sync_to_async(lambda: update_user_status(self.user, True))()
 
             # Add user to active users list without creating a message
             await self.update_user_presence()
@@ -89,7 +88,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         # Update user status to offline
         if hasattr(self, 'user') and self.user and not self.user.is_anonymous:
-            await database_sync_to_async(update_user_status)(self.user, False)
+            await database_sync_to_async(lambda: update_user_status(self.user, False))()
 
         # Leave room group
         await self.channel_layer.group_discard(
@@ -125,10 +124,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
                 # Record user interest in the room
                 if hasattr(self, 'user') and self.user.is_authenticated:
-                    room = await database_sync_to_async(self.get_room)()
-                    await database_sync_to_async(record_user_interest)(
-                        self.user, room=room, points=1
-                    )
+                    room = await self.get_room()
+                    await database_sync_to_async(lambda: record_user_interest(self.user, room=room, points=1))()
 
                 # Send message to room group
                 await self.channel_layer.group_send(
@@ -322,7 +319,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'announcement_id': announcement_id
                         }))
 
-            # NEW: Add handlers for friends and recommendations message types
+            # Add handlers for friends and recommendations message types
             elif message_type == 'friends':
                 action = text_data_json.get('action', '')
 
@@ -331,7 +328,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     online_friends = []
                     if hasattr(self, 'user') and self.user.is_authenticated:
                         online_friends_qs = await database_sync_to_async(get_online_friends)(self.user)
-                        online_friends = await database_sync_to_async(self.get_user_data_list)(online_friends_qs)
+                        online_friends = await self.get_user_data_list(online_friends_qs)
 
                     # Send response
                     await self.send(json.dumps({
@@ -345,7 +342,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     suggestions = []
                     if hasattr(self, 'user') and self.user.is_authenticated:
                         suggestions_list = await database_sync_to_async(get_friend_suggestions)(self.user)
-                        suggestions = await database_sync_to_async(self.get_user_data_list)(suggestions_list)
+                        suggestions = await self.get_user_data_list(suggestions_list)
 
                     # Send response
                     await self.send(json.dumps({
@@ -362,7 +359,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     recommendations = []
                     if hasattr(self, 'user'):
                         recommendations_qs = await database_sync_to_async(get_room_recommendations)(self.user)
-                        recommendations = await database_sync_to_async(self.get_room_data_list)(recommendations_qs)
+                        recommendations = await self.get_room_data_list(recommendations_qs)
 
                     # Send response
                     await self.send(json.dumps({
@@ -439,7 +436,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'created_at': event['created_at']
         }))
 
-    # NEW: Add handlers for friends and recommendations
+    # Add handlers for friends and recommendations
     async def friends(self, event):
         # Send friends update to WebSocket
         await self.send(json.dumps({
@@ -518,9 +515,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_user_presence(self):
         # Modified to NOT create a message when a user connects
-        # Instead, we'll just track active users in memory or via a separate model
-        # The key change is removing the Message.objects.create() call that created the
-        # hidden "User presence update" message
+        # This function intentionally does nothing but must be defined
+        # as a synchronous function for database_sync_to_async
         pass
 
     @database_sync_to_async
@@ -692,16 +688,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         return result
 
-    # NEW: Add helper methods for formatting data
-    @database_sync_to_async
-    def get_room(self):
-        """Get the current room object"""
-        from .models import Room
+    # Helper methods for formatting data
+    async def get_room(self):
+        """Get the current room object using database_sync_to_async"""
+        return await database_sync_to_async(self._get_room)()
+
+    def _get_room(self):
+        """Synchronous function to get room object"""
         return Room.objects.get(name=self.room_name)
 
-    @database_sync_to_async
-    def get_user_data_list(self, users_qs):
-        """Convert a QuerySet of users to a list of user data dictionaries"""
+    async def get_user_data_list(self, users_qs):
+        """Get user data list using database_sync_to_async"""
+        return await database_sync_to_async(self._get_user_data_list)(users_qs)
+
+    def _get_user_data_list(self, users_qs):
+        """Synchronous function to convert a QuerySet of users to a list of user data dictionaries"""
         return [
             {
                 'id': user.id,
@@ -713,9 +714,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             for user in users_qs
         ]
 
-    @database_sync_to_async
-    def get_room_data_list(self, rooms_qs):
-        """Convert a QuerySet of rooms to a list of room data dictionaries"""
+    async def get_room_data_list(self, rooms_qs):
+        """Get room data list using database_sync_to_async"""
+        return await database_sync_to_async(self._get_room_data_list)(rooms_qs)
+
+    def _get_room_data_list(self, rooms_qs):
+        """Synchronous function to convert a QuerySet of rooms to a list of room data dictionaries"""
         return [
             {
                 'id': room.id,
