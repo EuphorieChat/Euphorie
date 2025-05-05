@@ -8,7 +8,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let uploadedFiles = [];
     let isDrawing = false;
-    let mediaLibrary = {
+
+    // Make media library globally accessible for persistence
+    window.mediaLibrary = {
         images: [],
         videos: []
     };
@@ -66,7 +68,6 @@ document.addEventListener("DOMContentLoaded", function () {
     initReactionModal();
     initWhiteboard();
     initMeetupPlanner();
-    initMediaLibrary();
     initMobileUserList();
 
     // Initialize all message bubbles with reaction listeners
@@ -77,7 +78,7 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog.scrollTo({ top: chatLog.scrollHeight });
     }
 
-    // Image compression function - MAJOR IMPROVEMENT
+    // Image compression function
     async function compressImage(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -90,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Calculate new dimensions (maintaining aspect ratio)
                     let width = img.width;
                     let height = img.height;
-                    const maxDimension = 1200; // Adjust based on your needs
+                    const maxDimension = 900; // Maximum dimension
 
                     if (width > maxDimension || height > maxDimension) {
                         if (width > height) {
@@ -115,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             type: 'image/jpeg',
                             lastModified: Date.now()
                         }));
-                    }, 'image/jpeg', 0.7); // Adjust quality (0.7 = 70%)
+                    }, 'image/jpeg', 0.5); // Adjust quality (0.7 = 70%)
                 };
                 img.src = event.target.result;
             };
@@ -147,7 +148,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 case "chat":
                     console.log("Chat message:", data);
                     renderMessage(data);
-                    trackMediaForLibrary(data.message);
+                    // This is critical for media library
+                    trackMediaInMessage(data.message);
                     break;
                 case "reaction":
                     console.log("Reaction:", data);
@@ -215,6 +217,33 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog?.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
     }
 
+    // Media tracking function - CRITICAL for media library
+    function trackMediaInMessage(message) {
+        console.log("Tracking media in message:", message);
+
+        // Create a temporary div to parse the HTML content
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = message;
+
+        // Find and track images
+        const images = tempDiv.querySelectorAll('img');
+        images.forEach(img => {
+            if (img.src && !window.mediaLibrary.images.includes(img.src)) {
+                console.log("Adding image to library:", img.src);
+                window.mediaLibrary.images.push(img.src);
+            }
+        });
+
+        // Find and track videos
+        const videos = tempDiv.querySelectorAll('video source');
+        videos.forEach(source => {
+            if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+                console.log("Adding video to library:", source.src);
+                window.mediaLibrary.videos.push(source.src);
+            }
+        });
+    }
+
     // Message Functions
     function sendMessage() {
         const msg = input.value.trim();
@@ -262,32 +291,6 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
 
         addReactionListeners(wrapper);
-    }
-
-    function trackMediaForLibrary(message) {
-        // Create a temporary div to parse the HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = message;
-
-        // Track media elements in the message
-        const mediaImages = tempDiv.querySelectorAll('img');
-        const mediaVideos = tempDiv.querySelectorAll('video source');
-
-        // Add images to the library
-        mediaImages.forEach(img => {
-            if (!mediaLibrary.images.includes(img.src)) {
-                mediaLibrary.images.push(img.src);
-                console.log("Added image to media library:", img.src);
-            }
-        });
-
-        // Add videos to the library
-        mediaVideos.forEach(source => {
-            if (!mediaLibrary.videos.includes(source.src)) {
-                mediaLibrary.videos.push(source.src);
-                console.log("Added video to media library:", source.src);
-            }
-        });
     }
 
     function updateReaction({ message_id, reaction, count, users }) {
@@ -890,8 +893,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Media Library Functions - FIXED
+    // Media Library Functions - COMPLETELY REWRITTEN
     function initMediaLibrary() {
+        console.log("Initializing media library...");
+
+        // Get DOM elements
         const openMediaBtn = document.getElementById('open-media-library');
         const closeMediaBtn = document.getElementById('close-media-library');
         const mediaModal = document.getElementById('media-library-modal');
@@ -901,159 +907,219 @@ document.addEventListener("DOMContentLoaded", function () {
         const previewModal = document.getElementById('media-preview-modal');
         const previewContent = document.getElementById('media-preview-content');
 
-        if (!openMediaBtn || !mediaModal) return;
+        // Debug check for necessary elements
+        console.log("Media library elements:", {
+            openMediaBtn: !!openMediaBtn,
+            closeMediaBtn: !!closeMediaBtn,
+            mediaModal: !!mediaModal,
+            mediaGrid: !!mediaGrid,
+            filterButtons: filterBtns?.length,
+            previewModal: !!previewModal,
+            previewContent: !!previewContent
+        });
 
-        // Open and close handlers
-        openMediaBtn.addEventListener('click', () => {
-            // Scan the DOM for media before opening
-            scanChatForMedia();
+        if (!openMediaBtn || !mediaModal || !mediaGrid) {
+            console.error("Required media library elements not found!");
+            return;
+        }
+
+        // Initial scan for media in the DOM
+        scanDOMForMedia();
+
+        // Open media library button
+        openMediaBtn.addEventListener('click', function() {
+            console.log("Opening media library");
+
+            // Scan again to make sure we have the latest media
+            scanDOMForMedia();
+
+            // Apply the "all" filter by default
+            // First reset all filter buttons
+            filterBtns.forEach(btn => {
+                if (btn.dataset.filter === 'all') {
+                    btn.classList.remove('bg-gray-200', 'text-gray-700');
+                    btn.classList.add('bg-pink-500', 'text-white');
+                } else {
+                    btn.classList.remove('bg-pink-500', 'text-white');
+                    btn.classList.add('bg-gray-200', 'text-gray-700');
+                }
+            });
+
+            // Render the media grid with all media
             renderMediaGrid('all');
 
+            // Show the modal
             mediaModal.classList.remove('hidden');
             mediaModal.classList.add('flex');
         });
 
-        closeMediaBtn.addEventListener('click', () => {
-            mediaModal.classList.add('hidden');
-            mediaModal.classList.remove('flex');
-        });
+        // Close media library button
+        if (closeMediaBtn) {
+            closeMediaBtn.addEventListener('click', function() {
+                console.log("Closing media library");
+                mediaModal.classList.add('hidden');
+                mediaModal.classList.remove('flex');
+            });
+        }
 
+        // Close preview button
         if (closePreviewBtn && previewModal) {
-            closePreviewBtn.addEventListener('click', () => {
+            closePreviewBtn.addEventListener('click', function() {
+                console.log("Closing media preview");
                 previewModal.classList.add('hidden');
                 previewModal.classList.remove('flex');
             });
         }
 
-        // Filter handlers
+        // Filter buttons
         filterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', function() {
+                console.log("Filter clicked:", btn.dataset.filter);
+
                 // Update active state
                 filterBtns.forEach(b => {
                     b.classList.remove('bg-pink-500', 'text-white');
                     b.classList.add('bg-gray-200', 'text-gray-700');
                 });
+
                 btn.classList.remove('bg-gray-200', 'text-gray-700');
                 btn.classList.add('bg-pink-500', 'text-white');
 
                 // Apply filter
-                const filter = btn.dataset.filter;
-                renderMediaGrid(filter);
+                renderMediaGrid(btn.dataset.filter);
             });
         });
 
-        // Scan the chat for media
-        function scanChatForMedia() {
-            // Reset the media library
-            mediaLibrary = {
-                images: [],
-                videos: []
-            };
+        // Scan DOM for media
+        function scanDOMForMedia() {
+            console.log("Scanning DOM for media...");
 
             // Find all images in the chat
             document.querySelectorAll('.message-content img').forEach(img => {
-                if (img.src && !mediaLibrary.images.includes(img.src)) {
-                    mediaLibrary.images.push(img.src);
-                    console.log("Found image in chat:", img.src);
+                if (img.src && !window.mediaLibrary.images.includes(img.src)) {
+                    console.log("Found image in DOM:", img.src);
+                    window.mediaLibrary.images.push(img.src);
                 }
             });
 
             // Find all videos in the chat
             document.querySelectorAll('.message-content video source').forEach(source => {
-                if (source.src && !mediaLibrary.videos.includes(source.src)) {
-                    mediaLibrary.videos.push(source.src);
-                    console.log("Found video in chat:", source.src);
+                if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+                    console.log("Found video in DOM:", source.src);
+                    window.mediaLibrary.videos.push(source.src);
                 }
             });
 
-            console.log("Updated media library:", mediaLibrary);
+            console.log("Media library after scan:", {
+                images: window.mediaLibrary.images.length,
+                videos: window.mediaLibrary.videos.length
+            });
         }
 
-        // Render the media grid based on filter
+        // Render media grid
         function renderMediaGrid(filter) {
-            if (!mediaGrid) return;
+            console.log(`Rendering media grid with filter: ${filter}`);
 
+            if (!mediaGrid) {
+                console.error("Media grid element not found!");
+                return;
+            }
+
+            // Clear the grid
             mediaGrid.innerHTML = '';
 
+            // Collect media items based on filter
             let mediaItems = [];
+
             if (filter === 'all' || filter === 'images') {
-                mediaLibrary.images.forEach(src => {
-                    mediaItems.push({
-                        type: 'image',
-                        src: src
-                    });
+                window.mediaLibrary.images.forEach(src => {
+                    mediaItems.push({ type: 'image', src });
                 });
             }
 
             if (filter === 'all' || filter === 'videos') {
-                mediaLibrary.videos.forEach(src => {
-                    mediaItems.push({
-                        type: 'video',
-                        src: src
-                    });
+                window.mediaLibrary.videos.forEach(src => {
+                    mediaItems.push({ type: 'video', src });
                 });
             }
 
-            // If no media items, show empty state
+            console.log(`Found ${mediaItems.length} media items for filter '${filter}'`);
+
+            // Show empty state if no media
             if (mediaItems.length === 0) {
                 mediaGrid.innerHTML = `
                     <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p class="text-center">No media found in this room yet.<br>Share images or videos in the chat to see them here.</p>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p class="text-center">No media found in this room yet.<br>Share images or videos in the chat to see them here.</p>
                     </div>
                 `;
                 return;
             }
 
-            // Create grid items for each media
-            mediaItems.forEach(item => {
+            // Create media items
+            mediaItems.forEach((item, index) => {
                 const mediaItem = document.createElement('div');
                 mediaItem.className = 'media-item rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer bg-gray-100 aspect-square flex items-center justify-center';
 
                 if (item.type === 'image') {
-                    mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item" />`;
+                    mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item ${index}" />`;
                 } else {
                     mediaItem.innerHTML = `
-                    <div class="relative w-full h-full">
-                        <video class="object-cover w-full h-full">
-                        <source src="${item.src}">
-                        </video>
-                        <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="bg-black bg-opacity-50 rounded-full p-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                        <div class="relative w-full h-full">
+                            <video class="object-cover w-full h-full">
+                                <source src="${item.src}">
+                            </video>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="bg-black bg-opacity-50 rounded-full p-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
-                        </div>
-                    </div>
                     `;
                 }
 
-                // Add click event to show preview
-                mediaItem.addEventListener('click', () => {
-                    if (!previewModal || !previewContent) return;
+                // Add preview functionality
+                mediaItem.addEventListener('click', function() {
+                    console.log("Media item clicked:", item);
 
+                    if (!previewModal || !previewContent) {
+                        console.error("Preview elements not found!");
+                        return;
+                    }
+
+                    // Clear previous content
                     previewContent.innerHTML = '';
 
+                    // Add appropriate content based on type
                     if (item.type === 'image') {
                         previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" alt="Media preview" />`;
                     } else {
                         previewContent.innerHTML = `
-                            <video controls class="max-w-full max-h-[80vh] object-contain">
-                            <source src="${item.src}">
+                            <video controls autoplay class="max-w-full max-h-[80vh] object-contain">
+                                <source src="${item.src}">
                             </video>
                         `;
                     }
 
+                    // Show the preview modal
                     previewModal.classList.remove('hidden');
                     previewModal.classList.add('flex');
                 });
 
+                // Add to grid
                 mediaGrid.appendChild(mediaItem);
             });
         }
     }
+
+    // Delayed initialization of media library to ensure DOM is fully loaded
+    setTimeout(function() {
+        console.log("Initializing media library with delay");
+        initMediaLibrary();
+    }, 500);
 });
