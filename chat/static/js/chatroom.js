@@ -57,26 +57,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log(`✅ WebSocket connected to room: ${roomName}`);
                 reconnectAttempts = 0; // Reset reconnect counter on successful connection
 
-                // Request user list and meetups on connection
-                if (socket.readyState === WebSocket.OPEN) {
-                    // Only send these requests if the user is authenticated
-                    if (username) {
-                        socket.send(JSON.stringify({
-                            type: 'users',
-                            action: 'list'
-                        }));
+                // Request user list immediately on connection
+                socket.send(JSON.stringify({
+                    type: 'users',
+                    action: 'list'
+                }));
 
-                        socket.send(JSON.stringify({
-                            type: 'meetup',
-                            action: 'list'
-                        }));
+                // Request other initial data
+                if (window.username) {
+                    socket.send(JSON.stringify({
+                        type: 'meetup',
+                        action: 'list'
+                    }));
 
-                        // Request friends and recommendations immediately upon connection
-                        requestOnlineFriends();
-                        requestRoomRecommendations();
-                    }
-                } else {
-                    console.warn("Socket not in OPEN state when trying to send initial requests");
+                    // Request friends and recommendations
+                    requestOnlineFriends();
+                    requestRoomRecommendations();
                 }
             });
 
@@ -91,9 +87,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log(`❌ WebSocket closed: ${event.code}, reason: ${event.reason || 'No reason provided'}`);
 
                 // Auto-reconnect after a short delay
-                if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) { // 1000 = normal closure
+                if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
                     reconnectAttempts++;
-                    const delay = reconnectDelay * Math.min(reconnectAttempts, 5); // Exponential backoff capped at 5x
+                    const delay = reconnectDelay * Math.min(reconnectAttempts, 5);
                     console.log(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts}) in ${delay/1000} seconds...`);
 
                     setTimeout(() => {
@@ -116,8 +112,110 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    function handleSocketMessage(event) {
+        // Log incoming data for debugging
+        console.log("📩 Message received:", event.data.substring(0, 200) + (event.data.length > 200 ? '...' : ''));
+
+        try {
+            const data = JSON.parse(event.data);
+            const messageType = data.type || 'unknown';
+
+            console.log(`Processing message of type: ${messageType}`);
+
+            switch (messageType) {
+                case "chat":
+                    console.log("Chat message:", data);
+                    renderMessage(data);
+                    // Track media in the message for media library
+                    trackMediaInMessage(data.message);
+                    break;
+
+                case "reaction":
+                    console.log("Reaction update:", data);
+                    updateReaction(data);
+                    break;
+
+                case "typing":
+                    console.log("Typing indicator:", data);
+                    showTyping(data.username);
+                    break;
+
+                case "users":
+                    console.log("User list update received:", data);
+                    if (data.users && Array.isArray(data.users)) {
+                        updateUserList(data.users);
+                    } else {
+                        console.error("Invalid users data:", data.users);
+                    }
+                    break;
+
+                case "whiteboard":
+                    console.log("Whiteboard update:", data);
+                    handleWhiteboardMessage(data);
+                    break;
+
+                case "meetups":
+                    console.log("Meetups update:", data);
+                    renderMeetups(data.meetups);
+                    break;
+
+                case "announcement":
+                    console.log("Announcement update:", data);
+                    handleAnnouncementMessage(data);
+                    break;
+
+                case "friends":
+                    console.log("Friends update:", data);
+                    handleFriendsMessage(data);
+                    break;
+
+                case "recommendations":
+                    console.log("Recommendations update:", data);
+                    handleRecommendationsMessage(data);
+                    break;
+
+                case "pong":
+                    console.log("Pong received from server");
+                    break;
+
+                case "error":
+                    console.error("Error from server:", data.message);
+                    if (data.message && data.message.includes("authentication")) {
+                        // Handle authentication errors specially
+                        console.log("Authentication issue detected - user may need to log in");
+                    }
+                    break;
+
+                default:
+                    console.log("Unknown message type:", messageType, data);
+            }
+        } catch (e) {
+            console.error("Error processing message:", e);
+            console.error("Raw message data:", event.data);
+        }
+    }
+
+    function requestUserList() {
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            console.log("Manually requesting user list");
+            window.socket.send(JSON.stringify({
+                type: 'users',
+                action: 'list'
+            }));
+        } else {
+            console.error("Cannot request user list: WebSocket not connected");
+        }
+    }
+
     // Initialize WebSocket connection
     const socket = connectWebSocket();
+
+    setTimeout(() => {
+        // Request user list again after a short delay to ensure connection is established
+        requestUserList();
+    }, 1000);
+
+
 
     // Message form setup
     if (messageForm) {
@@ -238,90 +336,6 @@ document.addEventListener("DOMContentLoaded", function () {
             };
             reader.readAsDataURL(file);
         });
-    }
-
-    // WebSocket Message Handler Function with improved robustness
-    function handleSocketMessage(event) {
-        // Log incoming data for debugging
-        console.log("📩 Message received:", event.data.substring(0, 200) + (event.data.length > 200 ? '...' : ''));
-
-        try {
-            const data = JSON.parse(event.data);
-            const messageType = data.type || 'unknown';
-
-            console.log(`Processing message of type: ${messageType}`);
-
-            switch (messageType) {
-                case "chat":
-                    console.log("Chat message:", data);
-                    renderMessage(data);
-                    // Track media in the message for media library
-                    trackMediaInMessage(data.message);
-                    break;
-
-                case "reaction":
-                    console.log("Reaction update:", data);
-                    updateReaction(data);
-                    break;
-
-                case "typing":
-                    console.log("Typing indicator:", data);
-                    showTyping(data.username);
-                    break;
-
-                case "users":
-                    console.log("User list update:", data);
-                    if (Array.isArray(data.users)) {
-                        updateUserList(data.users);
-                    } else {
-                        console.error("Invalid users data:", data.users);
-                    }
-                    break;
-
-                case "whiteboard":
-                    console.log("Whiteboard update:", data);
-                    handleWhiteboardMessage(data);
-                    break;
-
-                case "meetups":
-                    console.log("Meetups update:", data);
-                    renderMeetups(data.meetups);
-                    break;
-
-                case "announcement":
-                    console.log("Announcement update:", data);
-                    handleAnnouncementMessage(data);
-                    break;
-
-                case "friends":
-                    console.log("Friends update:", data);
-                    handleFriendsMessage(data);
-                    break;
-
-                case "recommendations":
-                    console.log("Recommendations update:", data);
-                    handleRecommendationsMessage(data);
-                    break;
-
-                case "pong":
-                    console.log("Pong received from server");
-                    break;
-
-                case "error":
-                    console.error("Error from server:", data.message);
-                    if (data.message && data.message.includes("authentication")) {
-                        // Handle authentication errors specially
-                        console.log("Authentication issue detected - user may need to log in");
-                    }
-                    break;
-
-                default:
-                    console.log("Unknown message type:", messageType, data);
-            }
-        } catch (e) {
-            console.error("Error processing message:", e);
-            console.error("Raw message data:", event.data);
-        }
     }
 
     // Media tracking function - CRITICAL for media library
@@ -553,11 +567,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const uniqueUsers = [...new Set(users)];
         console.log("Unique users:", uniqueUsers);
 
-        // Filter current user for desktop display
+        // Create list items for each user
         uniqueUsers.forEach(user => {
             // Create desktop list item
             const li = document.createElement("li");
-            li.className = "flex items-center justify-between";
+            li.className = "flex items-center justify-between py-1";
 
             // Skip the add friend button for current user
             if (user === currentUsername) {
@@ -2099,96 +2113,4 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 3000);
         }
     }
-
-    // WebSocket Debug Tools
-    function initWebSocketDebugTools() {
-        // Add a hidden debug panel
-        const debugPanel = document.createElement('div');
-        debugPanel.id = 'ws-debug-panel';
-        debugPanel.style.cssText = 'position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 9999; max-width: 300px; max-height: 200px; overflow: auto; display: none;';
-
-        // Add a toggle button
-        const debugButton = document.createElement('button');
-        debugButton.id = 'ws-debug-button';
-        debugButton.innerHTML = '🔌';
-        debugButton.title = 'WebSocket Debug';
-        debugButton.style.cssText = 'position: fixed; bottom: 10px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.3); color: white; font-size: 16px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; z-index: 10000;';
-
-        document.body.appendChild(debugPanel);
-        document.body.appendChild(debugButton);
-
-        // Toggle debug panel
-        debugButton.addEventListener('click', () => {
-            const isVisible = debugPanel.style.display !== 'none';
-            debugPanel.style.display = isVisible ? 'none' : 'block';
-
-            if (!isVisible) {
-                updateDebugPanel();
-            }
-        });
-
-        // Function to update the debug panel
-        function updateDebugPanel() {
-            if (debugPanel.style.display === 'none') return;
-
-            const status = window.socket ? ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][window.socket.readyState] : 'NOT INITIALIZED';
-            const statusColor = window.socket && window.socket.readyState === WebSocket.OPEN ? '#0f0' : '#f00';
-
-            debugPanel.innerHTML = `
-                <div style="margin-bottom: 5px;">
-                    <strong>WebSocket Status:</strong> <span style="color: ${statusColor}">${status}</span>
-                </div>
-                <div style="margin-bottom: 5px;">
-                    <strong>Room:</strong> ${roomName}
-                </div>
-                <div style="margin-bottom: 5px;">
-                    <strong>Reconnect Attempts:</strong> ${reconnectAttempts}/${maxReconnectAttempts}
-                </div>
-                <div style="margin-bottom: 10px;">
-                    <strong>URL:</strong> ${protocol}://${window.location.host}/ws/chat/${roomName}/
-                </div>
-                <div>
-                    <button id="ws-debug-reconnect" style="background: #333; color: white; border: none; padding: 3px 6px; margin-right: 5px; cursor: pointer; border-radius: 3px;">Force Reconnect</button>
-                    <button id="ws-debug-ping" style="background: #333; color: white; border: none; padding: 3px 6px; cursor: pointer; border-radius: 3px;">Send Ping</button>
-                </div>
-            `;
-
-            // Add event listeners to buttons
-            document.getElementById('ws-debug-reconnect').addEventListener('click', () => {
-                if (window.socket) {
-                    try {
-                        window.socket.close();
-                    } catch (e) {
-                        console.error("Error closing socket:", e);
-                    }
-                }
-                connectWebSocket();
-                setTimeout(updateDebugPanel, 500);
-            });
-
-            document.getElementById('ws-debug-ping').addEventListener('click', () => {
-                if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-                    window.socket.send(JSON.stringify({ type: 'ping' }));
-                    console.log("Ping sent to server");
-                } else {
-                    console.error("Cannot send ping: WebSocket not connected");
-                }
-            });
-
-            // Update periodically
-            setTimeout(updateDebugPanel, 2000);
-        }
-    }
-
-    // Send a ping every 30 seconds to keep the connection alive
-    setInterval(function() {
-        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-            try {
-                window.socket.send(JSON.stringify({ type: 'ping' }));
-                console.log("Ping sent to server");
-            } catch (e) {
-                console.error("Error sending ping:", e);
-            }
-        }
-    }, 30000);
 });
