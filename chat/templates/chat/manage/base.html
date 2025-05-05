@@ -364,10 +364,32 @@
         return window.innerWidth < 1024;
       }
 
-      // Initialize correct state on page load
-      if (!isMobile()) {
-        adminSidebar.classList.add('desktop-mode');
+      // Initialize sidebar on page load - FIXED
+      function setSidebarState() {
+        if (isMobile()) {
+          // On mobile, hide the sidebar by default (but don't override if it's open)
+          if (!adminSidebar.classList.contains('open')) {
+            adminSidebar.classList.remove('desktop-mode');
+            adminSidebar.style.transform = ''; // Let CSS handle this
+          }
+
+          // Show the mobile menu button
+          document.querySelector('.desktop-hidden').style.display = '';
+        } else {
+          // On desktop, always show the sidebar
+          adminSidebar.classList.add('desktop-mode');
+          adminSidebar.style.transform = 'translateX(0)';
+
+          // Hide overlay if visible
+          overlay.classList.remove('active');
+
+          // Reset body overflow
+          document.body.style.overflow = '';
+        }
       }
+
+      // Run on page load
+      setSidebarState();
 
       if (mobileMenuButton && adminSidebar) {
         // Open sidebar with improved animation
@@ -414,14 +436,9 @@
           });
         });
 
-        // Ensure sidebar state is correct on window resize
+        // Ensure sidebar state is correct on window resize - FIXED
         window.addEventListener('resize', function() {
-          if (!isMobile()) {
-            overlay.classList.remove('active');
-            document.body.style.overflow = '';
-          } else if (adminSidebar.classList.contains('open')) {
-            overlay.classList.add('active');
-          }
+          setSidebarState();
         });
       }
 
