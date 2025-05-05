@@ -69,7 +69,7 @@ def admin_rooms(request):
     # Get all rooms first for statistics
     all_rooms = Room.objects.all()
     total_rooms = all_rooms.count()
-    active_rooms = all_rooms.filter(is_active=True).count()
+    active_rooms = all_rooms.count()
 
     # Get total messages count
     total_messages = Message.objects.count()
