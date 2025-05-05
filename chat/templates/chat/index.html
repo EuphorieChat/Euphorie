@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 {% load static %}
@@ -224,6 +225,16 @@
           </div>
           <p class="text-sm text-gray-700 hidden xs:block">{{ user.username }}</p>
         </div>
+        <a href="{% url 'friends_list' %}" class="p-1.5 text-pink-500 relative rounded-full hover:bg-pink-50">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          {% if pending_friend_requests_count > 0 %}
+          <span class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+            {{ pending_friend_requests_count }}
+          </span>
+          {% endif %}
+        </a>
         <form method="post" action="{% url 'logout' %}" class="inline">
           {% csrf_token %}
           <button type="submit" class="p-1.5 text-pink-500 rounded-full hover:bg-pink-50">
@@ -309,7 +320,7 @@
             <span class="mr-1.5">🔥</span> Trending
           </button>
           {% for category in categories %}
-          <button data-category="{{ category.name|lower }}" class="category-btn whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-gray-50 text-gray-600 hover:bg-gray-100">
+          <button data-category="{{ category.slug|default:category.name|lower }}" class="category-btn whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-gray-50 text-gray-600 hover:bg-gray-100">
             <span class="mr-1.5">{{ category.icon|default:"🌟" }}</span> {{ category.name }}
           </button>
           {% endfor %}
@@ -407,7 +418,7 @@
     <div class="bg-white rounded-xl shadow-sm p-4 border border-pink-100 mb-5">
       <div class="flex justify-between items-center mb-3">
         <h3 class="text-base font-bold text-gray-800">My Rooms</h3>
-        <span class="text-xs text-gray-500">Manage rooms you've created</span>
+        <a href="{% url 'explore_rooms' %}" class="text-xs text-pink-500 hover:underline">Explore more rooms</a>
       </div>
 
       <div class="overflow-x-auto">
@@ -485,7 +496,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="rooms-container">
       {% if active_rooms %}
         {% for room in active_rooms %}
-        <a href="{% url 'room' room.name %}" class="room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative" data-category="{% if room.category %}{{ room.category.name|lower }}{% else %}all{% endif %}">
+        <a href="{% url 'room' room.name %}" class="room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
           <div class="p-4">
               <div class="flex justify-between items-start mb-3">
                 <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">{{ room.display_name }}</h3>
@@ -578,6 +589,7 @@
   </footer>
 
   <script>
+
     document.addEventListener('DOMContentLoaded', () => {
       // Room search functionality
       const roomSearch = document.getElementById('room-search');
@@ -738,7 +750,7 @@
         });
       }
 
-      // NEW: Room Categories functionality with improved trending support
+      // Room Categories functionality with improved trending support
       const categoryButtons = document.querySelectorAll('.category-btn');
 
       if (categoryButtons.length > 0) {
@@ -969,80 +981,166 @@
           })
           .catch(error => {
             console.error('Error fetching trending rooms:', error);
-            // Error handling code...
+            roomsContainer.innerHTML = `
+              <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100">
+                <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Error loading trending rooms</h3>
+                <p class="text-gray-500 mb-4">There was a problem fetching the trending rooms.</p>
+                <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+                  View All Rooms
+                </button>
+              </div>
+            `;
           });
       }
 
-      // NEW: Personalized Room Recommendations
-      function loadRecommendations() {
-        const recommendationsContainer = document.getElementById('recommendations-container');
-        if (!recommendationsContainer) return;
+      // Initialize friend recommendations and online friends
+      function initFriendsAndRecommendations() {
+        // Request online friends list on page load
+        requestOnlineFriends();
 
-        setTimeout(() => {
-          // Mock data - would come from your recommendation engine
-          const mockRecommendations = [
-            {
-              id: 'python-developers',
-              name: 'Python Developers',
-              reason: 'Based on your interest in technology',
-              messageCount: 76,
-              activity: 'high'
-            },
-            {
-              id: 'creative-writing-workshop',
-              name: 'Creative Writing Workshop',
-              reason: 'Similar to rooms you\'ve visited',
-              messageCount: 42,
-              activity: 'medium'
-            },
-            {
-              id: 'digital-nomads',
-              name: 'Digital Nomads',
-              reason: 'Popular in your area',
-              messageCount: 89,
-              activity: 'high'
-            }
-          ];
+        // And refresh every 30 seconds
+        setInterval(requestOnlineFriends, 30000);
 
-          // Hide the placeholder, show the content
-          const placeholderEl = recommendationsContainer.querySelector('.recommendations-placeholder');
-          const contentEl = recommendationsContainer.querySelector('.recommendations-content');
-
-          if (placeholderEl && contentEl) {
-            placeholderEl.classList.add('hidden');
-            contentEl.classList.remove('hidden');
-
-            // Populate the recommendations
-            mockRecommendations.forEach(room => {
-              const roomEl = document.createElement('a');
-              roomEl.href = `/chat/${room.id}`;
-              roomEl.className = 'recommendation-card group flex items-center bg-gray-50 hover:bg-pink-50 p-2.5 rounded-lg transition-colors';
-              roomEl.innerHTML = `
-                <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-pink-400 to-orange-300 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                  ${room.name.charAt(0)}
-                </div>
-                <div class="ml-2.5 flex-1">
-                  <h4 class="font-medium text-gray-800 group-hover:text-pink-600 text-sm">${room.name}</h4>
-                  <p class="text-xs text-gray-500">${room.reason}</p>
-                </div>
-                <div class="text-right">
-                  <div class="text-xs font-medium text-gray-700">${room.messageCount} msgs</div>
-                  <div class="flex items-center justify-end mt-0.5">
-                    <span class="h-1.5 w-1.5 rounded-full mr-1 ${room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500'}"></span>
-                    <span class="text-xs text-gray-500">
-                      ${room.activity === 'high' ? 'Very active' : 'Active'}
-                    </span>
-                  </div>
-                </div>
-              `;
-              contentEl.appendChild(roomEl);
-            });
-          }
-        }, 1500); // Simulate loading time
+        // Initialize recommended rooms section
+        initRoomRecommendations();
       }
 
-      // Initialize recommendations
-      loadRecommendations();
+      // Function to request online friends from the server
+      function requestOnlineFriends() {
+        fetch('/api/online_friends/')
+            .then(response => response.json())
+            .then(data => {
+                renderOnlineFriends(data.friends || []);
+            })
+            .catch(error => {
+                console.error('Error fetching online friends:', error);
+            });
+      }
+
+      // Function to render the online friends list
+      function renderOnlineFriends(friends) {
+        const container = document.getElementById('online-friends-container');
+        if (!container) return;
+
+        if (friends.length === 0) {
+            container.innerHTML = `
+                <div class="text-center w-full py-1">
+                    <p class="text-sm text-gray-400">No friends online right now</p>
+                    <a href="/friends/" class="text-xs text-pink-500 hover:underline">Find friends</a>
+                </div>
+            `;
+            return;
+        }
+
+        // Clear container and add friends
+        container.innerHTML = '';
+
+        friends.forEach(friend => {
+            const friendEl = document.createElement('div');
+            friendEl.className = 'flex flex-col items-center';
+            friendEl.innerHTML = `
+                <div class="relative">
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-br from-pink-300 to-orange-200 flex items-center justify-center text-white font-medium text-xs">
+                        ${friend.username.charAt(0).toUpperCase()}
+                    </div>
+                    <span class="absolute bottom-0 right-0 h-2 w-2 bg-green-400 rounded-full border-2 border-white online-indicator"></span>
+                </div>
+                <span class="text-xs mt-0.5 font-medium">${friend.username}</span>
+            `;
+            container.appendChild(friendEl);
+        });
+      }
+
+      // Initialize recommended rooms section
+      function initRoomRecommendations() {
+        const container = document.getElementById('recommendations-container');
+        if (!container) return;
+
+        // Get the placeholder and content elements
+        const placeholder = container.querySelector('.recommendations-placeholder');
+        const content = container.querySelector('.recommendations-content');
+
+        // Show placeholder, hide content initially
+        if (placeholder && content) {
+            placeholder.classList.remove('hidden');
+            content.classList.add('hidden');
+        }
+
+        // Fetch recommended rooms
+        fetch('/api/recommended_rooms/')
+            .then(response => response.json())
+            .then(data => {
+                // Hide placeholder, show content
+                if (placeholder && content) {
+                    placeholder.classList.add('hidden');
+                    content.classList.remove('hidden');
+                }
+
+                renderRecommendedRooms(data.rooms || [], content);
+            })
+            .catch(error => {
+                console.error('Error fetching recommended rooms:', error);
+                // Show error message in container
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center py-2">
+                            <p class="text-sm text-red-500">Could not load recommendations</p>
+                        </div>
+                    `;
+                }
+            });
+      }
+
+      // Function to render recommended rooms
+      function renderRecommendedRooms(rooms, container) {
+        if (!container) return;
+
+        if (rooms.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-2">
+                    <p class="text-sm text-gray-400">No recommendations available yet</p>
+                    <p class="text-xs text-gray-500">Join more rooms to get personalized suggestions</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Clear container
+        container.innerHTML = '';
+
+        // Add each recommended room
+        rooms.forEach(room => {
+            const roomEl = document.createElement('a');
+            roomEl.href = `/chat/${room.name}/`;
+            roomEl.className = 'recommendation-card group flex items-center bg-gray-50 hover:bg-pink-50 p-2.5 rounded-lg transition-colors';
+
+            roomEl.innerHTML = `
+                <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-pink-400 to-orange-300 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                    ${room.display_name.charAt(0).toUpperCase()}
+                </div>
+                <div class="ml-2.5 flex-1">
+                    <h4 class="font-medium text-gray-800 group-hover:text-pink-600 text-sm">${room.display_name}</h4>
+                    <p class="text-xs text-gray-500">${room.reason || 'Recommended for you'}</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs font-medium text-gray-700">${room.message_count} msgs</div>
+                    <div class="flex items-center justify-end mt-0.5">
+                        <span class="h-1.5 w-1.5 rounded-full mr-1 ${room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500'}"></span>
+                        <span class="text-xs text-gray-500">
+                            ${room.activity === 'high' ? 'Very active' : 'Active'}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(roomEl);
+        });
+      }
 
       // Category scroll buttons functionality
       const scrollLeftBtn = document.getElementById('scroll-left');
@@ -1094,155 +1192,8 @@
         // Handle window resize
         window.addEventListener('resize', updateScrollButtons);
       }
-    });
 
-
-    // Initialize friend recommendations and online friends
-    function initFriendsAndRecommendations() {
-      // Request online friends list on page load
-      requestOnlineFriends();
-
-      // And refresh every 30 seconds
-      setInterval(requestOnlineFriends, 30000);
-
-      // Initialize recommended rooms section
-      initRoomRecommendations();
-    }
-
-    // Function to request online friends from the server
-    function requestOnlineFriends() {
-      fetch('/api/online_friends/')
-          .then(response => response.json())
-          .then(data => {
-              renderOnlineFriends(data.friends || []);
-          })
-          .catch(error => {
-              console.error('Error fetching online friends:', error);
-          });
-    }
-
-    // Function to render the online friends list
-    function renderOnlineFriends(friends) {
-      const container = document.getElementById('online-friends-container');
-      if (!container) return;
-
-      if (friends.length === 0) {
-          container.innerHTML = `
-              <div class="text-center w-full py-1">
-                  <p class="text-sm text-gray-400">No friends online right now</p>
-                  <a href="/friends/" class="text-xs text-pink-500 hover:underline">Find friends</a>
-              </div>
-          `;
-          return;
-      }
-
-      // Clear container and add friends
-      container.innerHTML = '';
-
-      friends.forEach(friend => {
-          const friendEl = document.createElement('div');
-          friendEl.className = 'flex flex-col items-center';
-          friendEl.innerHTML = `
-              <div class="relative">
-                  <div class="h-8 w-8 rounded-full bg-gradient-to-br from-pink-300 to-orange-200 flex items-center justify-center text-white font-medium text-xs">
-                      ${friend.username.charAt(0).toUpperCase()}
-                  </div>
-                  <span class="absolute bottom-0 right-0 h-2 w-2 bg-green-400 rounded-full border-2 border-white online-indicator"></span>
-              </div>
-              <span class="text-xs mt-0.5 font-medium">${friend.username}</span>
-          `;
-          container.appendChild(friendEl);
-      });
-    }
-
-    // Initialize recommended rooms section
-    function initRoomRecommendations() {
-      const container = document.getElementById('recommendations-container');
-      if (!container) return;
-
-      // Get the placeholder and content elements
-      const placeholder = container.querySelector('.recommendations-placeholder');
-      const content = container.querySelector('.recommendations-content');
-
-      // Show placeholder, hide content initially
-      if (placeholder && content) {
-          placeholder.classList.remove('hidden');
-          content.classList.add('hidden');
-      }
-
-      // Fetch recommended rooms
-      fetch('/api/recommended_rooms/')
-          .then(response => response.json())
-          .then(data => {
-              // Hide placeholder, show content
-              if (placeholder && content) {
-                  placeholder.classList.add('hidden');
-                  content.classList.remove('hidden');
-              }
-
-              renderRecommendedRooms(data.rooms || [], content);
-          })
-          .catch(error => {
-              console.error('Error fetching recommended rooms:', error);
-              // Show error message in container
-              if (container) {
-                  container.innerHTML = `
-                      <div class="text-center py-2">
-                          <p class="text-sm text-red-500">Could not load recommendations</p>
-                      </div>
-                  `;
-              }
-          });
-    }
-
-    // Function to render recommended rooms
-    function renderRecommendedRooms(rooms, container) {
-      if (!container) return;
-
-      if (rooms.length === 0) {
-          container.innerHTML = `
-              <div class="text-center py-2">
-                  <p class="text-sm text-gray-400">No recommendations available yet</p>
-                  <p class="text-xs text-gray-500">Join more rooms to get personalized suggestions</p>
-              </div>
-          `;
-          return;
-      }
-
-      // Clear container
-      container.innerHTML = '';
-
-      // Add each recommended room
-      rooms.forEach(room => {
-          const roomEl = document.createElement('a');
-          roomEl.href = `/chat/${room.name}/`;
-          roomEl.className = 'recommendation-card group flex items-center bg-gray-50 hover:bg-pink-50 p-2.5 rounded-lg transition-colors';
-
-          roomEl.innerHTML = `
-              <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-pink-400 to-orange-300 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                  ${room.display_name.charAt(0).toUpperCase()}
-              </div>
-              <div class="ml-2.5 flex-1">
-                  <h4 class="font-medium text-gray-800 group-hover:text-pink-600 text-sm">${room.display_name}</h4>
-                  <p class="text-xs text-gray-500">${room.reason || 'Recommended for you'}</p>
-              </div>
-              <div class="text-right">
-                  <div class="text-xs font-medium text-gray-700">${room.message_count} msgs</div>
-                  <div class="flex items-center justify-end mt-0.5">
-                      <span class="h-1.5 w-1.5 rounded-full mr-1 ${room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500'}"></span>
-                      <span class="text-xs text-gray-500">
-                          ${room.activity === 'high' ? 'Very active' : 'Active'}
-                      </span>
-                  </div>
-              </div>
-          `;
-
-          container.appendChild(roomEl);
-      });
-    }
-
-    // Call this function when the DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
+      // Call this function when the DOM is loaded
       initFriendsAndRecommendations();
     });
 
