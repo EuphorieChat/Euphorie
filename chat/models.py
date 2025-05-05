@@ -58,6 +58,7 @@ class Room(models.Model):
     display_name = models.CharField(max_length=100, blank=True)  # Added for better UI display
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_dm = models.BooleanField(default=False, help_text="Whether this room is for direct messages")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='rooms')
 
     # New fields for password protection

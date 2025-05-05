@@ -11,6 +11,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from collections import defaultdict
 from django.utils import timezone
+from django.contrib.auth.models import User
 from datetime import timedelta
 from django.db import models
 import json
@@ -773,3 +774,46 @@ def friends_list(request):
     }
 
     return render(request, 'chat/friends_list.html', context)
+
+@login_required
+def direct_message(request, username):
+    """
+    View for direct messaging between users
+    """
+    from django.shortcuts import get_object_or_404
+
+    # Get the user to message
+    recipient = get_object_or_404(User, username=username)
+
+    # Check if the users are friends
+    is_friend = UserRelationship.get_friendship(request.user, recipient)
+
+    # Get or create a DM room
+    # We'll create a special room name for DMs by combining usernames alphabetically
+    usernames = sorted([request.user.username, username])
+    room_name = f"dm_{usernames[0]}_{usernames[1]}"
+
+    # Get or create the room
+    room, created = Room.objects.get_or_create(
+        name=room_name,
+        defaults={
+            'display_name': f"Chat with {username}",
+            'creator': request.user,
+            'is_dm': True,  # Flag for direct message rooms
+        }
+    )
+
+    # Get messages for this room
+    messages = Message.objects.filter(room=room).order_by('timestamp')
+
+    context = {
+        'room_name': room_name,
+        'room': room,
+        'username': request.user.username,
+        'recipient': recipient,
+        'messages': messages,
+        'is_friend': is_friend and is_friend.status == 'accepted',
+        'timestamp': timezone.now().timestamp(),
+    }
+
+    return render(request, 'chat/room.html', context)
