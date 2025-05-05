@@ -1,3 +1,5 @@
+console.log("Enhanced chat.js loaded successfully!");
+
 document.addEventListener("DOMContentLoaded", function () {
     // Configuration and Globals
     const roomName = window.roomName;
@@ -60,24 +62,14 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Init functions - Call them all to ensure they're initialized
+    // Init functions
     initFileUpload();
     initEmojiPanel();
     initReactionModal();
     initWhiteboard();
     initMeetupPlanner();
     initMobileUserList();
-    initAnnouncementHandlers(); // Announcement handling
-
-    // Initialize media library with a slight delay to ensure DOM is loaded
-    setTimeout(function() {
-        try {
-            console.log("Initializing media library");
-            initMediaLibrary();
-        } catch (e) {
-            console.error("Error initializing media library:", e);
-        }
-    }, 500);
+    initAnnouncementHandlers(); // Initialize announcement handlers
 
     // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
@@ -160,7 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 case "chat":
                     console.log("Chat message:", data);
                     renderMessage(data);
-                    // This is critical for media library - always track media
+                    // Track media in the message for media library
                     trackMediaInMessage(data.message);
                     break;
                 case "reaction":
@@ -235,29 +227,43 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Media tracking function - CRITICAL for media library
     function trackMediaInMessage(message) {
-        console.log("Tracking media in message:", message);
-
-        // Create a temporary div to parse the HTML content
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = message;
-
-        // Find and track images
-        const images = tempDiv.querySelectorAll('img');
-        images.forEach(img => {
-            if (img.src && !window.mediaLibrary.images.includes(img.src)) {
-                console.log("Adding image to library:", img.src);
-                window.mediaLibrary.images.push(img.src);
+        try {
+            if (!message) {
+                console.warn("No message content to track media from");
+                return;
             }
-        });
 
-        // Find and track videos
-        const videos = tempDiv.querySelectorAll('video source');
-        videos.forEach(source => {
-            if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
-                console.log("Adding video to library:", source.src);
-                window.mediaLibrary.videos.push(source.src);
+            console.log("Tracking media in message");
+
+            // Ensure mediaLibrary exists
+            if (!window.mediaLibrary) {
+                window.mediaLibrary = { images: [], videos: [] };
             }
-        });
+
+            // Create a temporary div to parse the HTML content
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = message;
+
+            // Find and track images
+            const images = tempDiv.querySelectorAll('img');
+            images.forEach(img => {
+                if (img.src && !window.mediaLibrary.images.includes(img.src)) {
+                    console.log("Adding image to library:", img.src);
+                    window.mediaLibrary.images.push(img.src);
+                }
+            });
+
+            // Find and track videos
+            const videos = tempDiv.querySelectorAll('video source');
+            videos.forEach(source => {
+                if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+                    console.log("Adding video to library:", source.src);
+                    window.mediaLibrary.videos.push(source.src);
+                }
+            });
+        } catch (error) {
+            console.error("Error tracking media in message:", error);
+        }
     }
 
     // Message Functions
@@ -923,57 +929,149 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Announcement Functions - UPDATED
+    // Announcement Functions - FIXED VERSION
     function initAnnouncementHandlers() {
         console.log("Initializing announcement handlers");
+
         // Handle close buttons for announcements in the top container
-        document.querySelectorAll('.close-announcement').forEach(button => {
-            button.addEventListener('click', function() {
-                const announcementItem = this.closest('.announcement-item');
-                if (announcementItem) {
-                    const announcementId = announcementItem.dataset.announcementId;
-                    markAnnouncementAsRead(announcementId);
-                }
+        const closeButtons = document.querySelectorAll('.close-announcement');
+        if (closeButtons.length > 0) {
+            console.log(`Found ${closeButtons.length} close buttons`);
+            closeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const announcementItem = this.closest('.announcement-item, .announcement-popup');
+                    if (announcementItem) {
+                        const announcementId = announcementItem.dataset.announcementId;
+                        if (announcementId) {
+                            markAnnouncementAsRead(announcementId);
+                        } else {
+                            console.error("No announcement ID found on item", announcementItem);
+                        }
+                    }
+                });
             });
-        });
+        } else {
+            console.log("No close buttons found");
+        }
 
         // Process existing announcements from the page and add them to the chat
-        const announcements = document.querySelectorAll('#announcements-container .announcement-item');
-        if (announcements.length > 0) {
-            console.log(`Found ${announcements.length} announcements in the container`);
+        const chatLog = document.getElementById('chat-log');
+        const container = document.getElementById('announcements-container');
+        const announcements = container ? container.querySelectorAll('.announcement-item:not(.hidden)') : [];
 
-            // Hide the original container since we'll show announcements in the chat
-            const container = document.getElementById('announcements-container');
+        if (announcements.length > 0 && chatLog) {
+            console.log(`Found ${announcements.length} visible announcements to process`);
+
+            // Hide the original container
             if (container) {
                 container.classList.add('hidden');
             }
 
-            // Get chat log
-            const chatLog = document.getElementById('chat-log');
-            if (!chatLog) return;
-
             // Convert each announcement to a chat message
             announcements.forEach(originalAnnouncement => {
-                // Skip if already read
-                if (originalAnnouncement.classList.contains('hidden')) return;
+                try {
+                    // Get important data with null checks
+                    const announcementId = originalAnnouncement.dataset.announcementId;
+                    if (!announcementId) {
+                        console.error("Missing announcement ID", originalAnnouncement);
+                        return;
+                    }
 
-                // Get important data
-                const announcementId = originalAnnouncement.dataset.announcementId;
-                const creator = originalAnnouncement.querySelector('.text-blue-800')?.textContent.replace('Announcement from ', '');
-                const content = originalAnnouncement.querySelector('.text-gray-700')?.innerHTML;
-                const timestamp = originalAnnouncement.querySelector('.text-gray-500')?.textContent;
+                    // Safely get announcement content
+                    const creatorElement = originalAnnouncement.querySelector('.text-blue-800');
+                    const contentElement = originalAnnouncement.querySelector('.text-gray-700');
+                    const timestampElement = originalAnnouncement.querySelector('.text-gray-500');
 
-                if (!announcementId || !creator || !content) {
-                    console.error("Missing required announcement data", {
-                        announcementId, creator, content
-                    });
+                    const creator = creatorElement ? creatorElement.textContent.replace('Announcement from ', '') : 'Admin';
+                    const content = contentElement ? contentElement.innerHTML : '';
+                    const timestamp = timestampElement ? timestampElement.textContent : new Date().toLocaleString();
+
+                    // Create in-chat announcement element
+                    const announcement = document.createElement('div');
+                    announcement.className = 'message-bubble announcement-popup bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-4 mx-auto max-w-lg border border-blue-200 announcement-banner';
+                    announcement.dataset.announcementId = announcementId;
+                    announcement.style.width = 'fit-content';
+
+                    announcement.innerHTML = `
+                        <button class="close-announcement" aria-label="Dismiss announcement">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <div class="flex items-start">
+                            <div class="bg-blue-500 rounded-full p-2 mr-3 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-blue-800">Announcement from ${creator}</h3>
+                                <div class="text-gray-700 text-sm mt-1">${content}</div>
+                                <div class="text-xs text-gray-500 mt-2">${timestamp}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Add to chat log
+                    chatLog.appendChild(announcement);
+
+                    // Add event listener for close button
+                    const closeBtn = announcement.querySelector('.close-announcement');
+                    if (closeBtn) {
+                        closeBtn.addEventListener('click', function() {
+                            markAnnouncementAsRead(announcementId);
+
+                            // Add a fade-out animation
+                            announcement.style.transition = 'all 0.5s ease';
+                            announcement.style.opacity = '0';
+                            announcement.style.maxHeight = '0';
+                            announcement.style.margin = '0';
+                            announcement.style.padding = '0';
+                            announcement.style.overflow = 'hidden';
+
+                            // Remove after animation completes
+                            setTimeout(() => {
+                                announcement.remove();
+                            }, 500);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error processing announcement:", e);
+                }
+            });
+
+            // Scroll to make announcements visible
+            chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+        } else {
+            console.log("No announcements to process or chat log not found", {
+                chatLogExists: !!chatLog,
+                announcements: announcements.length
+            });
+        }
+    }
+
+    function handleAnnouncementMessage(data) {
+        console.log("Handling announcement message:", data);
+
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) {
+            console.error("Chat log element not found");
+            return;
+        }
+
+        if (data.action === 'new') {
+            try {
+                // Check if this announcement is already displayed
+                const existingAnnouncement = document.querySelector(`.announcement-popup[data-announcement-id="${data.announcement_id}"]`);
+                if (existingAnnouncement) {
+                    console.log("Announcement already displayed, not showing again");
                     return;
                 }
 
-                // Create in-chat announcement element
+                // Create announcement element that appears in the chat stream
                 const announcement = document.createElement('div');
                 announcement.className = 'message-bubble announcement-popup bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-4 mx-auto max-w-lg border border-blue-200 announcement-banner';
-                announcement.dataset.announcementId = announcementId;
+                announcement.dataset.announcementId = data.announcement_id;
                 announcement.style.width = 'fit-content';
 
                 announcement.innerHTML = `
@@ -989,9 +1087,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             </svg>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-semibold text-blue-800">Announcement from ${creator}</h3>
-                            <div class="text-gray-700 text-sm mt-1">${content}</div>
-                            <div class="text-xs text-gray-500 mt-2">${timestamp || 'Just now'}</div>
+                            <h3 class="font-semibold text-blue-800">Announcement from ${data.creator || 'Admin'}</h3>
+                            <div class="text-gray-700 text-sm mt-1">${data.content ? data.content.replace(/\n/g, '<br>') : 'New announcement'}</div>
+                            <div class="text-xs text-gray-500 mt-2">${
+                                data.created_at ? new Date(data.created_at).toLocaleString() : new Date().toLocaleString()
+                            }</div>
                         </div>
                     </div>
                 `;
@@ -999,100 +1099,32 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Add to chat log
                 chatLog.appendChild(announcement);
 
+                // Scroll to make announcement visible
+                chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+
                 // Add event listener for close button
-                announcement.querySelector('.close-announcement').addEventListener('click', function() {
-                    markAnnouncementAsRead(announcementId);
+                const closeBtn = announcement.querySelector('.close-announcement');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function() {
+                        markAnnouncementAsRead(data.announcement_id);
 
-                    // Add a fade-out animation
-                    announcement.style.transition = 'all 0.5s ease';
-                    announcement.style.opacity = '0';
-                    announcement.style.maxHeight = '0';
-                    announcement.style.margin = '0';
-                    announcement.style.padding = '0';
-                    announcement.style.overflow = 'hidden';
+                        // Add a fade-out animation
+                        announcement.style.transition = 'all 0.5s ease';
+                        announcement.style.opacity = '0';
+                        announcement.style.maxHeight = '0';
+                        announcement.style.margin = '0';
+                        announcement.style.padding = '0';
+                        announcement.style.overflow = 'hidden';
 
-                    // Remove after animation completes
-                    setTimeout(() => {
-                        announcement.remove();
-                    }, 500);
-                });
-            });
-
-            // Scroll to make announcements visible
-            chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
-        } else {
-            console.log("No announcements found in the container");
-        }
-    }
-
-    function handleAnnouncementMessage(data) {
-        console.log("Handling announcement message:", data);
-
-        if (data.action === 'new') {
-            // Instead of using the announcements container at the top, we'll add it to the chat log
-            // as a special message bubble
-            const chatLog = document.getElementById('chat-log');
-            if (!chatLog) {
-                console.error("Chat log element not found");
-                return;
+                        // Remove after animation completes
+                        setTimeout(() => {
+                            announcement.remove();
+                        }, 500);
+                    });
+                }
+            } catch (e) {
+                console.error("Error handling announcement message:", e);
             }
-
-            // Check if this announcement is already displayed
-            const existingAnnouncement = document.querySelector(`.announcement-popup[data-announcement-id="${data.announcement_id}"]`);
-            if (existingAnnouncement) {
-                console.log("Announcement already displayed, not showing again");
-                return;
-            }
-
-            // Create announcement element that appears in the chat stream
-            const announcement = document.createElement('div');
-            announcement.className = 'message-bubble announcement-popup bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-4 mx-auto max-w-lg border border-blue-200 announcement-banner';
-            announcement.dataset.announcementId = data.announcement_id;
-            announcement.style.width = 'fit-content';
-
-            announcement.innerHTML = `
-                <button class="close-announcement" aria-label="Dismiss announcement">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-                <div class="flex items-start">
-                    <div class="bg-blue-500 rounded-full p-2 mr-3 flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-blue-800">Announcement from ${data.creator}</h3>
-                        <div class="text-gray-700 text-sm mt-1">${data.content.replace(/\n/g, '<br>')}</div>
-                        <div class="text-xs text-gray-500 mt-2">${formatDate(new Date(data.created_at))}</div>
-                    </div>
-                </div>
-            `;
-
-            // Add to chat log
-            chatLog.appendChild(announcement);
-
-            // Scroll to make announcement visible
-            chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
-
-            // Add event listener for close button
-            announcement.querySelector('.close-announcement').addEventListener('click', function() {
-                markAnnouncementAsRead(data.announcement_id);
-
-                // Add a fade-out animation
-                announcement.style.transition = 'all 0.5s ease';
-                announcement.style.opacity = '0';
-                announcement.style.maxHeight = '0';
-                announcement.style.margin = '0';
-                announcement.style.padding = '0';
-                announcement.style.overflow = 'hidden';
-
-                // Remove after animation completes
-                setTimeout(() => {
-                    announcement.remove();
-                }, 500);
-            });
         }
     }
 
@@ -1104,12 +1136,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
         console.log(`Marking announcement ${announcementId} as read`);
 
+        // Get CSRF token
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            console.error("Could not get CSRF token");
+        }
+
         // Send request to mark announcement as read
         fetch(`/api/announcement/${announcementId}/mark_read/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
+                'X-CSRFToken': csrfToken
             }
         })
         .then(response => {
@@ -1163,119 +1201,186 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Media Library Functions - IMPROVED VERSION
+    // Media Library Functions - ROBUST VERSION
     function initMediaLibrary() {
-        console.log("Initializing media library...");
+        try {
+            console.log("Initializing media library...");
 
-        // Get DOM elements
-        const openMediaBtn = document.getElementById('open-media-library');
-        const closeMediaBtn = document.getElementById('close-media-library');
-        const mediaModal = document.getElementById('media-library-modal');
-        const mediaGrid = document.getElementById('media-grid');
-        const filterBtns = document.querySelectorAll('.media-filter-btn');
-        const closePreviewBtn = document.getElementById('close-media-preview');
-        const previewModal = document.getElementById('media-preview-modal');
-        const previewContent = document.getElementById('media-preview-content');
+            // If the global media library doesn't exist, create it
+            if (!window.mediaLibrary) {
+                window.mediaLibrary = {
+                    images: [],
+                    videos: []
+                };
+            }
 
-        // Debug check for necessary elements
-        console.log("Media library elements:", {
-            openMediaBtn: !!openMediaBtn,
-            closeMediaBtn: !!closeMediaBtn,
-            mediaModal: !!mediaModal,
-            mediaGrid: !!mediaGrid,
-            filterButtons: filterBtns?.length,
-            previewModal: !!previewModal,
-            previewContent: !!previewContent
-        });
+            // Get DOM elements with null checks
+            const openMediaBtn = document.getElementById('open-media-library');
+            const closeMediaBtn = document.getElementById('close-media-library');
+            const mediaModal = document.getElementById('media-library-modal');
+            const mediaGrid = document.getElementById('media-grid');
+            const filterBtns = document.querySelectorAll('.media-filter-btn');
+            const closePreviewBtn = document.getElementById('close-media-preview');
+            const previewModal = document.getElementById('media-preview-modal');
+            const previewContent = document.getElementById('media-preview-content');
 
-        if (!openMediaBtn || !mediaModal || !mediaGrid) {
-            console.error("Required media library elements not found!");
-            return;
-        }
+            // Debug check for necessary elements
+            console.log("Media library elements:", {
+                openMediaBtn: !!openMediaBtn,
+                closeMediaBtn: !!closeMediaBtn,
+                mediaModal: !!mediaModal,
+                mediaGrid: !!mediaGrid,
+                filterButtons: filterBtns?.length,
+                previewModal: !!previewModal,
+                previewContent: !!previewContent
+            });
 
-        // Initial scan for media in the DOM - this is critical for the media library
-        scanDOMForMedia();
+            // Check for required elements and exit if missing
+            if (!openMediaBtn) {
+                console.error("Media library button not found - cannot initialize");
+                return;
+            }
 
-        // Open media library button
-        openMediaBtn.addEventListener('click', function() {
-            console.log("Opening media library");
+            if (!mediaModal || !mediaGrid) {
+                console.error("Media library modal or grid not found - cannot initialize fully");
+                // We can still attach the event listener to the button, but we'll show an error when clicked
+                openMediaBtn.addEventListener('click', function() {
+                    alert("Media library functionality is not available. Please contact support.");
+                });
+                return;
+            }
 
-            // Scan again to make sure we have the latest media
+            // Initial scan for media in the DOM
             scanDOMForMedia();
 
-            // Apply the "all" filter by default
-            // First reset all filter buttons
-            filterBtns.forEach(btn => {
-                if (btn.dataset.filter === 'all') {
-                    btn.classList.remove('bg-gray-200', 'text-gray-700');
-                    btn.classList.add('bg-pink-500', 'text-white');
-                } else {
-                    btn.classList.remove('bg-pink-500', 'text-white');
-                    btn.classList.add('bg-gray-200', 'text-gray-700');
+            // Open media library button
+            openMediaBtn.addEventListener('click', function() {
+                console.log("Opening media library");
+
+                // Scan again to make sure we have the latest media
+                scanDOMForMedia();
+
+                // Apply the "all" filter by default
+                if (filterBtns && filterBtns.length > 0) {
+                    // First reset all filter buttons
+                    filterBtns.forEach(btn => {
+                        if (btn.dataset.filter === 'all') {
+                            btn.classList.remove('bg-gray-200', 'text-gray-700');
+                            btn.classList.add('bg-pink-500', 'text-white');
+                        } else {
+                            btn.classList.remove('bg-pink-500', 'text-white');
+                            btn.classList.add('bg-gray-200', 'text-gray-700');
+                        }
+                    });
+                }
+
+                // Render the media grid with all media
+                renderMediaGrid('all');
+
+                // Show the modal
+                if (mediaModal) {
+                    mediaModal.classList.remove('hidden');
+                    mediaModal.classList.add('flex');
                 }
             });
 
-            // Render the media grid with all media
-            renderMediaGrid('all');
-
-            // Show the modal
-            mediaModal.classList.remove('hidden');
-            mediaModal.classList.add('flex');
-        });
-
-        // Close media library button
-        if (closeMediaBtn) {
-            closeMediaBtn.addEventListener('click', function() {
-                console.log("Closing media library");
-                mediaModal.classList.add('hidden');
-                mediaModal.classList.remove('flex');
-            });
-        }
-
-        // Close preview button
-        if (closePreviewBtn && previewModal) {
-            closePreviewBtn.addEventListener('click', function() {
-                console.log("Closing media preview");
-                previewModal.classList.add('hidden');
-                previewModal.classList.remove('flex');
-            });
-        }
-
-        // Filter buttons
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                console.log("Filter clicked:", btn.dataset.filter);
-
-                // Update active state
-                filterBtns.forEach(b => {
-                    b.classList.remove('bg-pink-500', 'text-white');
-                    b.classList.add('bg-gray-200', 'text-gray-700');
+            // Close media library button
+            if (closeMediaBtn) {
+                closeMediaBtn.addEventListener('click', function() {
+                    console.log("Closing media library");
+                    if (mediaModal) {
+                        mediaModal.classList.add('hidden');
+                        mediaModal.classList.remove('flex');
+                    }
                 });
+            }
 
-                btn.classList.remove('bg-gray-200', 'text-gray-700');
-                btn.classList.add('bg-pink-500', 'text-white');
+            // Close preview button
+            if (closePreviewBtn && previewModal) {
+                closePreviewBtn.addEventListener('click', function() {
+                    console.log("Closing media preview");
+                    previewModal.classList.add('hidden');
+                    previewModal.classList.remove('flex');
+                });
+            }
 
-                // Apply filter
-                renderMediaGrid(btn.dataset.filter);
-            });
-        });
+            // Filter buttons
+            if (filterBtns && filterBtns.length > 0) {
+                filterBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        if (!btn.dataset.filter) {
+                            console.error("Filter button missing data-filter attribute");
+                            return;
+                        }
 
-        // Scan DOM for media
-        function scanDOMForMedia() {
+                        console.log("Filter clicked:", btn.dataset.filter);
+
+                        // Update active state
+                        filterBtns.forEach(b => {
+                            b.classList.remove('bg-pink-500', 'text-white');
+                            b.classList.add('bg-gray-200', 'text-gray-700');
+                        });
+
+                        btn.classList.remove('bg-gray-200', 'text-gray-700');
+                        btn.classList.add('bg-pink-500', 'text-white');
+
+                        // Apply filter
+                        renderMediaGrid(btn.dataset.filter);
+                    });
+                });
+            }
+
+            console.log("Media library initialization complete");
+        } catch (error) {
+            console.error("Error initializing media library:", error);
+        }
+    }
+
+    // Scan DOM for media with robust error handling
+    function scanDOMForMedia() {
+        try {
             console.log("Scanning DOM for media...");
 
-            // Find all images in the chat
-            document.querySelectorAll('.message-content img').forEach(img => {
+            // Ensure mediaLibrary exists
+            if (!window.mediaLibrary) {
+                window.mediaLibrary = { images: [], videos: [] };
+            }
+
+            // Use a more comprehensive approach to find media
+            // 1. Find all images in message content
+            const messageImages = document.querySelectorAll('.message-content img');
+            messageImages.forEach(img => {
                 if (img.src && !window.mediaLibrary.images.includes(img.src)) {
-                    console.log("Found image in DOM:", img.src);
+                    console.log("Found image in message:", img.src);
                     window.mediaLibrary.images.push(img.src);
                 }
             });
 
-            // Find all videos in the chat
-            document.querySelectorAll('.message-content video source').forEach(source => {
+            // 2. Find all standalone images
+            const standaloneImages = document.querySelectorAll('img:not(.message-content img)');
+            standaloneImages.forEach(img => {
+                if (img.src &&
+                    !img.src.includes('data:image') && // Skip inline data URLs
+                    !window.mediaLibrary.images.includes(img.src)) {
+                    console.log("Found standalone image:", img.src);
+                    window.mediaLibrary.images.push(img.src);
+                }
+            });
+
+            // 3. Find all videos in message content
+            const messageVideos = document.querySelectorAll('.message-content video source');
+            messageVideos.forEach(source => {
                 if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
-                    console.log("Found video in DOM:", source.src);
+                    console.log("Found video in message:", source.src);
+                    window.mediaLibrary.videos.push(source.src);
+                }
+            });
+
+            // 4. Find all standalone videos
+            const standaloneVideos = document.querySelectorAll('video:not(.message-content video) source');
+            standaloneVideos.forEach(source => {
+                if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+                    console.log("Found standalone video:", source.src);
                     window.mediaLibrary.videos.push(source.src);
                 }
             });
@@ -1284,15 +1389,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 images: window.mediaLibrary.images.length,
                 videos: window.mediaLibrary.videos.length
             });
+        } catch (error) {
+            console.error("Error scanning DOM for media:", error);
         }
+    }
 
-        // Render media grid
-        function renderMediaGrid(filter) {
+    // Render media grid with robust error handling
+    function renderMediaGrid(filter) {
+        try {
             console.log(`Rendering media grid with filter: ${filter}`);
 
+            const mediaGrid = document.getElementById('media-grid');
             if (!mediaGrid) {
                 console.error("Media grid element not found!");
                 return;
+            }
+
+            // Ensure the media library exists
+            if (!window.mediaLibrary) {
+                window.mediaLibrary = { images: [], videos: [] };
             }
 
             // Clear the grid
@@ -1302,14 +1417,14 @@ document.addEventListener("DOMContentLoaded", function () {
             let mediaItems = [];
 
             if (filter === 'all' || filter === 'images') {
-                window.mediaLibrary.images.forEach(src => {
-                    mediaItems.push({ type: 'image', src });
+                (window.mediaLibrary.images || []).forEach(src => {
+                    if (src) mediaItems.push({ type: 'image', src });
                 });
             }
 
             if (filter === 'all' || filter === 'videos') {
-                window.mediaLibrary.videos.forEach(src => {
-                    mediaItems.push({ type: 'video', src });
+                (window.mediaLibrary.videos || []).forEach(src => {
+                    if (src) mediaItems.push({ type: 'video', src });
                 });
             }
 
@@ -1330,86 +1445,133 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Create media items
             mediaItems.forEach((item, index) => {
+                if (!item.src) return; // Skip items with no source
+
                 const mediaItem = document.createElement('div');
                 mediaItem.className = 'media-item rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer bg-gray-100 aspect-square flex items-center justify-center';
 
-                if (item.type === 'image') {
-                    mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item ${index}" />`;
-                } else {
-                    mediaItem.innerHTML = `
-                        <div class="relative w-full h-full">
-                            <video class="object-cover w-full h-full">
-                                <source src="${item.src}">
-                            </video>
-                            <div class="absolute inset-0 flex items-center justify-center">
-                                <div class="bg-black bg-opacity-50 rounded-full p-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                try {
+                    if (item.type === 'image') {
+                        mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item ${index}" />`;
+                    } else {
+                        mediaItem.innerHTML = `
+                            <div class="relative w-full h-full">
+                                <video class="object-cover w-full h-full">
+                                    <source src="${item.src}">
+                                </video>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="bg-black bg-opacity-50 rounded-full p-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                }
-
-                // Add preview functionality
-                mediaItem.addEventListener('click', function() {
-                    console.log("Media item clicked:", item);
-
-                    if (!previewModal || !previewContent) {
-                        console.error("Preview elements not found!");
-                        return;
-                    }
-
-                    // Clear previous content
-                    previewContent.innerHTML = '';
-
-                    // Add appropriate content based on type
-                    if (item.type === 'image') {
-                        previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" alt="Media preview" />`;
-                    } else {
-                        previewContent.innerHTML = `
-                            <video controls autoplay class="max-w-full max-h-[80vh] object-contain">
-                                <source src="${item.src}">
-                            </video>
                         `;
                     }
 
-                    // Show the preview modal
-                    previewModal.classList.remove('hidden');
-                    previewModal.classList.add('flex');
-                });
+                    // Get references to modal elements
+                    const previewModal = document.getElementById('media-preview-modal');
+                    const previewContent = document.getElementById('media-preview-content');
 
-                // Add to grid
-                mediaGrid.appendChild(mediaItem);
+                    // Add preview functionality
+                    mediaItem.addEventListener('click', function() {
+                        console.log("Media item clicked:", item);
+
+                        if (!previewModal || !previewContent) {
+                            console.error("Preview elements not found!");
+                            alert("Preview functionality is not available");
+                            return;
+                        }
+
+                        try {
+                            // Clear previous content
+                            previewContent.innerHTML = '';
+
+                            // Add appropriate content based on type
+                            if (item.type === 'image') {
+                                previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" alt="Media preview" />`;
+                            } else {
+                                previewContent.innerHTML = `
+                                    <video controls autoplay class="max-w-full max-h-[80vh] object-contain"><source src="${item.src}">
+                                    </video>
+                                `;
+                            }
+
+                            // Show the preview modal
+                            previewModal.classList.remove('hidden');
+                            previewModal.classList.add('flex');
+                        } catch (error) {
+                            console.error("Error showing preview:", error);
+                        }
+                    });
+
+                    // Add to grid
+                    mediaGrid.appendChild(mediaItem);
+                } catch (error) {
+                    console.error("Error creating media item:", error);
+                }
             });
+        } catch (error) {
+            console.error("Error rendering media grid:", error);
         }
     }
 
     // Helper Functions
     function formatDate(date) {
-        return date.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        try {
+            return date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error("Error formatting date:", error);
+            return date.toString();
+        }
     }
 
     function getCsrfToken() {
-        // Get CSRF token from cookies
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrftoken') {
-                return value;
+        try {
+            // Get CSRF token from cookies
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
             }
+
+            // If not found in cookies, try to find it in a meta tag
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) {
+                return csrfMeta.getAttribute('content');
+            }
+
+            // Last resort - look for hidden input field
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                return csrfInput.value;
+            }
+
+            console.warn("CSRF token not found in cookies, meta tags, or input fields");
+            return '';
+        } catch (e) {
+            console.error("Error getting CSRF token:", e);
+            return '';
         }
-        return '';
     }
 
-    // Log successful initialization
-    console.log("Enhanced chat.js loaded successfully!");
+    // Initialize media library with a slight delay
+    setTimeout(function() {
+        try {
+            console.log("Initializing media library with delay");
+            initMediaLibrary();
+        } catch (e) {
+            console.error("Error initializing media library:", e);
+        }
+    }, 500);
 });
