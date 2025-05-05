@@ -1811,6 +1811,7 @@ function renderFriendSuggestions(suggestions) {
 }
 
 // Render room recommendations list
+// Render room recommendations list
 function renderRoomRecommendations(rooms) {
     const recommendedRoomsList = document.getElementById('recommended-rooms-list');
     if (!recommendedRoomsList) return;
@@ -1830,6 +1831,10 @@ function renderRoomRecommendations(rooms) {
         const roomItem = document.createElement('div');
         roomItem.className = 'p-2 hover:bg-pink-50 rounded-lg transition-colors';
 
+        // Determine activity status
+        const activityClass = room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500';
+        const activityLabel = room.activity === 'high' ? 'Very active' : 'Active';
+
         roomItem.innerHTML = `
             <div class="flex items-center">
                 <div class="w-8 h-8 rounded-full bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
@@ -1840,6 +1845,10 @@ function renderRoomRecommendations(rooms) {
                     <div class="flex items-center text-xs text-gray-500">
                         ${room.category ? `<span class="bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
                         <span>${room.message_count} messages</span>
+                        <span class="ml-2 flex items-center">
+                            <span class="h-1.5 w-1.5 rounded-full mr-1 ${activityClass}"></span>
+                            ${activityLabel}
+                        </span>
                     </div>
                 </div>
                 <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
@@ -1854,8 +1863,9 @@ function renderRoomRecommendations(rooms) {
     });
 }
 
+
 // Send a friend request
-function sendFriendRequest(username) {
+function sendFriendRequest(userId) {
     // Get CSRF token
     const csrfToken = getCsrfToken();
 
@@ -1866,7 +1876,7 @@ function sendFriendRequest(username) {
             'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
-            username: username
+            receiver_id: userId // Changed from username to receiver_id
         })
     })
     .then(response => response.json())

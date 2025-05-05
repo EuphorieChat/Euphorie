@@ -341,6 +341,29 @@
       background-color: #f3f4f6;
       transform: scale(1.1);
     }
+
+    /* Activity indicator */
+    .activity-indicator {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .activity-indicator .dot {
+      height: 0.375rem;
+      width: 0.375rem;
+      border-radius: 9999px;
+      margin-right: 0.25rem;
+    }
+
+    .activity-indicator.high .dot {
+      background-color: #10b981;
+    }
+
+    .activity-indicator.medium .dot {
+      background-color: #f59e0b;
+    }
   </style>
 </head>
 <body class="bg-white min-h-screen flex flex-col text-gray-800">
@@ -468,7 +491,7 @@
                     <p class="text-xs font-semibold mb-0.5 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %}">
                       {{ message.user.username }}
                     </p>
-                    <div class="text-sm text-gray-700">
+                    <div class="text-sm text-gray-700 message-content">
                       {{ message.content|safe }}
                     </div>
                   </div>
@@ -623,128 +646,176 @@
           </ul>
         </div>
 
-        <!-- Room Controls -->
-
-          <!-- Media Library Button -->
-          <button id="open-media-library" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4-4-4-4m6 8h10M4 20h16M4 4h16" />
-            </svg>
-            Media Library
-          </button>
-
-          <!-- Media Library Modal -->
-          <div id="media-library-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
-              <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
-                <button id="close-media-library" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
+        <!-- Recommended Rooms -->
+        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
+          <h3 class="text-base font-semibold text-gray-700 mb-1">Recommended Rooms</h3>
+          <div id="recommended-rooms-list" class="text-sm space-y-2">
+            <!-- Recommendations will be populated by JavaScript -->
+            <div class="animate-pulse space-y-2">
+              <!-- Placeholder loading state -->
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 rounded-lg bg-gray-200"></div>
+                <div class="flex-1 space-y-1">
+                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
+                </div>
               </div>
-
-              <div class="flex space-x-2 mb-4">
-                <button class="media-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
-                <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
-                <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
-              </div>
-
-              <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
-                <!-- Media items will be displayed here -->
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 rounded-lg bg-gray-200"></div>
+                <div class="flex-1 space-y-1">
+                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Media Preview Modal -->
-          <div id="media-preview-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
-            <div class="max-w-4xl max-h-screen p-4">
-              <button id="close-media-preview" class="absolute top-4 right-4 text-white hover:text-pink-400 text-xl transition-colors z-50">&times;</button>
-              <div id="media-preview-content" class="flex items-center justify-center">
-                <!-- Preview content will be inserted here -->
+        <!-- Friends Section -->
+        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
+          <h3 class="text-base font-semibold text-gray-700 mb-1">Friends Online</h3>
+          <div id="online-friends-list" class="text-sm space-y-2">
+            <!-- Online friends will be populated by JavaScript -->
+            <div class="animate-pulse space-y-2">
+              <!-- Placeholder loading state -->
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 rounded-full bg-gray-200"></div>
+                <div class="flex-1 space-y-1">
+                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 rounded-full bg-gray-200"></div>
+                <div class="flex-1 space-y-1">
+                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-            <!-- Meetup Planner -->
-            <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
-              <h3 class="text-base font-semibold text-gray-700 mb-1">Meetup Planner</h3>
+        <!-- Media Library Button -->
+        <button id="open-media-library" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4-4-4-4m6 8h10M4 20h16M4 4h16" />
+          </svg>
+          Media Library
+        </button>
 
-              <div id="upcoming-meetups" class="text-sm space-y-3">
-                <!-- Upcoming meetups will be listed here -->
-                <p class="text-gray-400 text-xs italic">No upcoming meetups planned yet.</p>
-
-                <button id="create-meetup-btn" class="btn w-full bg-green-100 hover:bg-green-200 text-green-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Plan a Meetup
-                </button>
-              </div>
+        <!-- Media Library Modal -->
+        <div id="media-library-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+          <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
+              <button id="close-media-library" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
             </div>
 
-            <!-- Create Meetup Modal -->
-            <div id="meetup-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-              <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4">
-                <h2 class="text-lg font-bold gradient-text mb-4">Plan a Meetup</h2>
-
-                <form id="meetup-form" class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Meetup Title</label>
-                    <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
-                    <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
-                  </div>
-
-                  <div class="flex justify-end space-x-3 pt-2">
-                    <button type="button" id="cancel-meetup" class="btn px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="btn px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl">Create Meetup</button>
-                  </div>
-                </form>
-              </div>
+            <div class="flex space-x-2 mb-4">
+              <button class="media-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
+              <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
+              <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
             </div>
 
-            <!-- Collaborative Whiteboard Button -->
-            <button id="open-whiteboard" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
+            <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
+              <!-- Media items will be displayed here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Media Preview Modal -->
+        <div id="media-preview-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+          <div class="max-w-4xl max-h-screen p-4">
+            <button id="close-media-preview" class="absolute top-4 right-4 text-white hover:text-pink-400 text-xl transition-colors z-50">&times;</button>
+            <div id="media-preview-content" class="flex items-center justify-center">
+              <!-- Preview content will be inserted here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Meetup Planner -->
+        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
+          <h3 class="text-base font-semibold text-gray-700 mb-1">Meetup Planner</h3>
+
+          <div id="upcoming-meetups" class="text-sm space-y-3">
+            <!-- Upcoming meetups will be listed here -->
+            <p class="text-gray-400 text-xs italic">No upcoming meetups planned yet.</p>
+
+            <button id="create-meetup-btn" class="btn w-full bg-green-100 hover:bg-green-200 text-green-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Collaborative Whiteboard
+              Plan a Meetup
             </button>
+          </div>
+        </div>
 
-            <!-- Whiteboard Modal -->
-            <div id="whiteboard-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-              <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                  <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
-                  <button id="close-whiteboard" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
-                </div>
-                <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                  <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
-                </div>
-                <div class="flex items-center justify-between mt-4">
-                  <div class="flex items-center space-x-3">
-                    <input type="color" id="brush-color" value="#000000" class="w-10 h-10 rounded cursor-pointer">
-                    <select id="brush-size" class="rounded border border-gray-200 p-2">
-                      <option value="2">Thin</option>
-                      <option value="5" selected>Medium</option>
-                      <option value="10">Thick</option>
-                    </select>
-                  </div>
-                  <button id="clear-whiteboard" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg">Clear All</button>
-                </div>
+        <!-- Create Meetup Modal -->
+        <div id="meetup-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+          <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4">
+            <h2 class="text-lg font-bold gradient-text mb-4">Plan a Meetup</h2>
+
+            <form id="meetup-form" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Meetup Title</label>
+                <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
               </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
+              </div>
+
+              <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" id="cancel-meetup" class="btn px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">Cancel</button>
+                <button type="submit" class="btn px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl">Create Meetup</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Collaborative Whiteboard Button -->
+        <button id="open-whiteboard" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          Collaborative Whiteboard
+        </button>
+
+        <!-- Whiteboard Modal -->
+        <div id="whiteboard-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+          <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
+              <button id="close-whiteboard" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
             </div>
+            <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+              <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
+            </div>
+            <div class="flex items-center justify-between mt-4">
+              <div class="flex items-center space-x-3">
+                <input type="color" id="brush-color" value="#000000" class="w-10 h-10 rounded cursor-pointer">
+                <select id="brush-size" class="rounded border border-gray-200 p-2">
+                  <option value="2">Thin</option>
+                  <option value="5" selected>Medium</option>
+                  <option value="10">Thick</option>
+                </select>
+              </div>
+              <button id="clear-whiteboard" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg">Clear All</button>
+            </div>
+          </div>
+        </div>
 
         <!-- Room Controls section with proper authentication check -->
         <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
@@ -847,93 +918,107 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Debug elements
-        const wsStatus = document.getElementById("ws-status-text");
-        const wsUrl = document.getElementById("ws-url");
-        const wsLastMessage = document.getElementById("ws-last-message");
-        const wsTestBtn = document.getElementById("ws-test-btn");
-        const wsToggleBtn = document.getElementById("ws-toggle-btn");
+      // Enhance existing user list to include add friend button
+      const originalUpdateUserList = window.updateUserList || function() {};
 
-        // Monitor the WebSocket object
-        const checkSocket = setInterval(() => {
-            if (window.socket) {
-                clearInterval(checkSocket);
+      window.updateUserList = function(users) {
+        // Call the original function first
+        originalUpdateUserList.call(this, users);
 
-                // Show WebSocket URL
-                wsUrl.textContent = `URL: ${window.socket.url}`;
+        // Now enhance with add friend buttons
+        const userList = document.getElementById("user-list");
+        if (!userList) return;
 
-                // Update status based on readyState
-                updateSocketStatus();
+        const currentUsername = window.username;
 
-                // Add WebSocket event listeners for debugging
-                window.socket.addEventListener("open", (event) => {
-                    updateSocketStatus();
-                    wsLastMessage.textContent = "Connection opened";
-                });
+        // Add friend buttons to user list items
+        Array.from(userList.querySelectorAll('li')).forEach(li => {
+          const usernameEl = li.querySelector('span');
+          if (!usernameEl) return;
 
-                window.socket.addEventListener("message", (event) => {
-                    updateSocketStatus();
-                    try {
-                        // Try to format JSON
-                        const data = JSON.parse(event.data);
-                        wsLastMessage.textContent = JSON.stringify(data, null, 2).substring(0, 100) + "...";
-                    } catch (e) {
-                        wsLastMessage.textContent = event.data.substring(0, 100) + "...";
-                    }
-                });
+          const username = usernameEl.textContent;
+          if (username === currentUsername) return;
 
-                window.socket.addEventListener("error", (event) => {
-                    updateSocketStatus();
-                    wsLastMessage.textContent = "Connection error";
-                });
+          // Check if this li already has a friend button
+          if (li.querySelector('.add-friend-btn')) return;
 
-                window.socket.addEventListener("close", (event) => {
-                    updateSocketStatus();
-                    wsLastMessage.textContent = `Connection closed: ${event.code} ${event.reason}`;
-                });
+          // Add the friend button
+          const button = document.createElement('button');
+          button.className = 'add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors ml-2';
+          button.textContent = 'Add Friend';
+          button.dataset.userId = username; // Using user ID instead of username
 
-                // Test button to send a ping
-                wsTestBtn.addEventListener("click", () => {
-                    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-                        window.socket.send(JSON.stringify({
-                            type: "users",
-                            action: "list"
-                        }));
-                        wsLastMessage.textContent = "Sent test users list request";
-                    } else {
-                        wsLastMessage.textContent = "Socket not open - cannot send";
-                    }
-                });
-            } else {
-                wsStatus.textContent = "Socket not found";
-                wsStatus.style.color = "red";
-            }
-        }, 500);
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            sendFriendRequest(this.dataset.userId);
+            this.textContent = 'Sent';
+            this.disabled = true;
+            this.classList.remove('hover:bg-pink-200');
+            this.classList.add('bg-gray-100', 'text-gray-500');
+          });
 
-        // Toggle debug panel
-        wsToggleBtn.addEventListener("click", () => {
-            if (wsToggleBtn.textContent === "Hide") {
-                wsDebug.style.height = "30px";
-                wsDebug.style.overflow = "hidden";
-                wsToggleBtn.textContent = "Show";
-            } else {
-                wsDebug.style.height = "auto";
-                wsDebug.style.maxHeight = "300px";
-                wsDebug.style.overflow = "auto";
-                wsToggleBtn.textContent = "Hide";
-            }
+          li.appendChild(button);
         });
+      };
 
-        // Helper to update status display
-        function updateSocketStatus() {
-            if (!window.socket) return;
+      // Updated friend request function
+      function sendFriendRequest(userId) {
+        // Get CSRF token
+        const csrfToken = getCsrfToken();
 
-            const states = ["Connecting", "Open", "Closing", "Closed"];
-            const colors = ["orange", "green", "orange", "red"];
+        fetch('/api/friend_request/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({
+            receiver_id: userId // Changed from username to receiver_id
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Friend request response:", data);
+          if (data.success) {
+            console.log('Friend request sent successfully');
+          } else {
+            console.error('Failed to send friend request:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending friend request:', error);
+        });
+      }
 
-            wsStatus.textContent = states[window.socket.readyState];
-            wsStatus.style.color = colors[window.socket.readyState];
+      // Helper function to get CSRF token
+      function getCsrfToken() {
+        // From cookies
+        const name = 'csrftoken=';
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const cookieArray = decodedCookie.split(';');
+
+        for (let i = 0; i < cookieArray.length; i++) {
+          let cookie = cookieArray[i].trim();
+          if (cookie.indexOf(name) === 0) {
+            return cookie.substring(name.length, cookie.length);
+          }
         }
+
+        // If not found in cookies, try to find it in a meta tag
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+          return csrfMeta.getAttribute('content');
+        }
+
+        // Last resort - look for hidden input field
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (csrfInput) {
+          return csrfInput.value;
+        }
+
+        return '';
+      }
     });
   </script>
 </body>
