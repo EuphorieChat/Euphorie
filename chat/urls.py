@@ -53,4 +53,13 @@ urlpatterns = [
     path('manage/export-chat/<str:room_name>/', admin_views.admin_export_chat, name='admin_export_chat'),
 
     path('manage/rooms/create/', admin_create_room, name='admin_create_room'),
+
+    # Add these URL patterns to your existing urlpatterns list
+    path('manage/export-users/', admin_views.admin_export_users, name='admin_export_users'),
+    path('manage/user-settings/', admin_views.admin_user_settings, name='admin_user_settings'),
+    path('manage/export-user-data/', admin_views.admin_export_user_data, name='admin_export_user_data'),
+    path('manage/toggle-user-status-ajax/', admin_views.admin_toggle_user_status_ajax, name='admin_toggle_user_status_ajax'),
+    path('manage/delete-message-ajax/', admin_views.admin_delete_message_ajax, name='admin_delete_message_ajax'),
+
+
 ]

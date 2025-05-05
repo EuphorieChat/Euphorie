@@ -752,3 +752,256 @@ def admin_create_room(request):
         # Process form data and create the room
         pass
     return render(request, 'chat/manage/create_room.html')
+
+
+@user_passes_test(is_admin)
+def admin_export_users(request):
+    """
+    Export all users data as a CSV file.
+    """
+    import csv
+    from django.http import HttpResponse
+    from django.contrib.auth import get_user_model
+    from django.db.models import Count, Max
+
+    # Get User model
+    User = get_user_model()
+
+    # Query all users with additional stats
+    users = User.objects.all().annotate(
+        messages_count=Count('message'),
+        last_activity=Max('message__timestamp')
+    ).order_by('-last_activity')
+
+    # Create the HttpResponse with CSV header
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="euphorie_users_export.csv"'
+
+    # Create CSV writer
+    writer = csv.writer(response)
+
+    # Write header row
+    writer.writerow([
+        'User ID',
+        'Username',
+        'Email',
+        'Date Joined',
+        'Last Login',
+        'Is Active',
+        'Is Staff',
+        'Total Messages',
+        'Last Activity'
+    ])
+
+    # Write data rows
+    for user in users:
+        writer.writerow([
+            user.id,
+            user.username,
+            user.email,
+            user.date_joined,
+            user.last_login or '',
+            user.is_active,
+            user.is_staff,
+            user.messages_count,
+            user.last_activity or ''
+        ])
+
+    return response
+
+@user_passes_test(is_admin)
+def admin_user_settings(request):
+    """
+    View for managing user settings and configurations.
+    """
+    from django.contrib.auth import get_user_model
+    from django.contrib import messages
+
+    User = get_user_model()
+
+    # Handle form submission for changing settings
+    if request.method == 'POST':
+        # Process form data here
+        # Example: Update user registration settings
+        if 'allow_registration' in request.POST:
+            # Save setting to database or settings file
+            messages.success(request, 'User registration settings updated successfully!')
+
+        # Example: Update moderation settings
+        if 'enable_moderation' in request.POST:
+            # Save setting to database or settings file
+            messages.success(request, 'Content moderation settings updated successfully!')
+
+    # Prepare context data for the template
+    context = {
+        'user_count': User.objects.count(),
+        'active_user_count': User.objects.filter(is_active=True).count(),
+        'staff_user_count': User.objects.filter(is_staff=True).count(),
+        # Add any other settings you want to display/edit
+    }
+
+    return render(request, 'chat/manage/user_settings.html', context)
+
+
+@user_passes_test(is_admin)
+def admin_export_user_data(request):
+    """
+    Export data for a specific user in CSV or JSON format.
+    """
+    import csv
+    import json
+    from django.http import HttpResponse
+    from django.shortcuts import redirect, get_object_or_404
+    from django.contrib.auth import get_user_model
+
+    if request.method != 'POST':
+        return redirect('admin_user_activity')
+
+    # Get parameters
+    user_id = request.POST.get('user_id')
+    export_messages = request.POST.get('export_messages') == '1'
+    export_profile = request.POST.get('export_profile') == '1'
+    export_activity = request.POST.get('export_activity') == '1'
+    export_format = request.POST.get('export_format', 'csv')
+
+    # Get User model and user
+    User = get_user_model()
+    user = get_object_or_404(User, id=user_id)
+
+    # Prepare data
+    data = {
+        'user_id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
+        'last_login': user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else '',
+        'is_active': user.is_active,
+        'is_staff': user.is_staff,
+    }
+
+    # Add messages if requested
+    if export_messages:
+        messages_list = Message.objects.filter(user=user).select_related('room').order_by('-timestamp')
+        data['messages'] = [{
+            'id': msg.id,
+            'room': msg.room.name,
+            'room_display_name': msg.room.display_name or msg.room.name,
+            'content': msg.content,
+            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        } for msg in messages_list]
+
+    # Add activity logs if requested
+    if export_activity:
+        # This is a placeholder - add your actual activity log retrieval logic
+        data['activity_logs'] = []
+
+    # Generate appropriate response based on format
+    if export_format == 'json':
+        response = HttpResponse(json.dumps(data, indent=4), content_type='application/json')
+        response['Content-Disposition'] = f'attachment; filename="user_{user.id}_data.json"'
+        return response
+
+    else:  # Default to CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="user_{user.id}_data.csv"'
+
+        writer = csv.writer(response)
+
+        # Write profile data
+        if export_profile:
+            writer.writerow(['=== User Profile ==='])
+            for key, value in data.items():
+                if key not in ['messages', 'activity_logs']:
+                    writer.writerow([key, value])
+            writer.writerow([])  # Empty row for separation
+
+        # Write messages data
+        if export_messages and 'messages' in data:
+            writer.writerow(['=== Messages ==='])
+            writer.writerow(['ID', 'Room', 'Content', 'Timestamp'])
+            for msg in data['messages']:
+                writer.writerow([
+                    msg['id'],
+                    msg['room_display_name'],
+                    msg['content'],
+                    msg['timestamp']
+                ])
+            writer.writerow([])  # Empty row for separation
+
+        # Write activity logs data
+        if export_activity and 'activity_logs' in data:
+            writer.writerow(['=== Activity Logs ==='])
+            # Implement as needed
+
+        return response
+
+@user_passes_test(is_admin)
+def admin_delete_message_ajax(request):
+    """
+    AJAX endpoint to delete a single message.
+    """
+    import json
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            message_id = data.get('message_id')
+
+            if not message_id:
+                return JsonResponse({'success': False, 'error': 'No message ID provided'})
+
+            message = get_object_or_404(Message, id=message_id)
+
+            # Delete all reactions to this message first
+            Reaction.objects.filter(message=message).delete()
+
+            # Then delete the message
+            message.delete()
+
+            return JsonResponse({
+                'success': True,
+                'message': f"Message ID {message_id} has been deleted."
+            })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+
+
+@user_passes_test(is_admin)
+def admin_toggle_user_status_ajax(request):
+    """
+    AJAX endpoint to activate or deactivate a user.
+    """
+    import json
+    from django.contrib.auth import get_user_model
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('user_id')
+            action = data.get('action')  # 'activate' or 'deactivate'
+
+            if not user_id or not action:
+                return JsonResponse({'success': False, 'error': 'Missing required parameters'})
+
+            if action not in ['activate', 'deactivate']:
+                return JsonResponse({'success': False, 'error': 'Invalid action specified'})
+
+            User = get_user_model()
+            user = get_object_or_404(User, id=user_id)
+
+            # Set user active status based on action
+            user.is_active = (action == 'activate')
+            user.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': f"User has been {'activated' if user.is_active else 'deactivated'} successfully."
+            })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
