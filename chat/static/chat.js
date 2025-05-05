@@ -59,15 +59,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Request user list and meetups on connection
                 if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({
-                        type: 'users',
-                        action: 'list'
-                    }));
+                    // Only send these requests if the user is authenticated
+                    if (username) {
+                        socket.send(JSON.stringify({
+                            type: 'users',
+                            action: 'list'
+                        }));
 
-                    socket.send(JSON.stringify({
-                        type: 'meetup',
-                        action: 'list'
-                    }));
+                        socket.send(JSON.stringify({
+                            type: 'meetup',
+                            action: 'list'
+                        }));
+                    }
                 } else {
                     console.warn("Socket not in OPEN state when trying to send initial requests");
                 }
@@ -108,6 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return null;
         }
     }
+
 
     // Initialize WebSocket connection
     const socket = connectWebSocket();
@@ -295,6 +299,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     console.log("Pong received from server");
                     break;
 
+                case "error":
+                    console.error("Error from server:", data.message);
+                    if (data.message && data.message.includes("authentication")) {
+                        // Handle authentication errors specially
+                        console.log("Authentication issue detected - user may need to log in");
+                    }
+                    break;
+
                 default:
                     console.log("Unknown message type:", messageType, data);
             }
@@ -351,8 +363,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Check authentication first
         if (!window.username) {
-            alert('Please log in to send messages.');
+            // Instead of alert, we could show a more user-friendly message
+            console.log('Cannot send: User not authenticated');
+
+            if (document.querySelector('.guest-banner')) {
+                // Highlight the guest banner to draw attention
+                const guestBanner = document.querySelector('.guest-banner');
+                guestBanner.classList.add('highlight-banner');
+                setTimeout(() => {
+                    guestBanner.classList.remove('highlight-banner');
+                }, 2000);
+            } else {
+                // Show a small notification
+                showLoginPrompt();
+            }
             return;
+        }
+
+        function showLoginPrompt() {
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Please log in to send messages</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Remove toast after animation
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 3500);
         }
 
         // Debug check WebSocket state

@@ -25,8 +25,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f'chat_{self.room_name}'
         self.user = self.scope.get('user', None)
 
+        # Track if user is authenticated
+        self.is_authenticated = self.user and not self.user.is_anonymous
+
         # Log connection attempt
-        logger.info(f"WebSocket connect attempt: room={self.room_name}, user={self.user.username if self.user and not self.user.is_anonymous else 'anonymous'}")
+        logger.info(f"WebSocket connect attempt: room={self.room_name}, user={self.user.username if self.is_authenticated else 'anonymous'}")
 
         # Check if room exists and user has access (password check)
         room_access = await self.check_room_access()
@@ -54,14 +57,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
             await self.accept()
-            logger.info(f"WebSocket connected successfully: room={self.room_name}, user={self.user.username if self.user and not self.user.is_anonymous else 'anonymous'}")
+            logger.info(f"WebSocket connected successfully: room={self.room_name}, user={self.user.username if self.is_authenticated else 'anonymous'}")
 
-            # Send message indicating user joined
-            if self.user and not self.user.is_anonymous:
+            # Additional operations only for authenticated users
+            if self.is_authenticated:
                 # Update user status to online
                 await database_sync_to_async(self._update_user_status)(True)
 
-                # Add user to active users list without creating a message
+                # Add user to active users list
                 await self.update_user_presence()
 
                 # Get active users list and broadcast to the new connection
@@ -88,13 +91,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }))
 
                 # Get active announcements and send to the user
-                if self.user.is_authenticated:
-                    announcements = await self.get_active_announcements()
-                    if announcements:
-                        await self.send(json.dumps({
-                            'type': 'announcements',
-                            'announcements': announcements
-                        }))
+                announcements = await self.get_active_announcements()
+                if announcements:
+                    await self.send(json.dumps({
+                        'type': 'announcements',
+                        'announcements': announcements
+                    }))
 
         except Exception as e:
             logger.error(f"Error during WebSocket connection: {str(e)}", exc_info=True)
@@ -103,28 +105,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _update_user_status(self, is_online):
         """Synchronous function to update user online status"""
         try:
-            return update_user_status(self.user, is_online)
+            if self.is_authenticated:
+                return update_user_status(self.user, is_online)
+            return False
         except Exception as e:
             logger.error(f"Error updating user status: {str(e)}")
             return False
 
     async def disconnect(self, close_code):
-        logger.info(f"WebSocket disconnecting: room={self.room_name}, user={self.user.username if self.user and not self.user.is_anonymous else 'anonymous'}, code={close_code}")
+        logger.info(f"WebSocket disconnecting: room={self.room_name}, user={self.user.username if self.is_authenticated else 'anonymous'}, code={close_code}")
 
         try:
-            # Update user status to offline
-            if hasattr(self, 'user') and self.user and not self.user.is_anonymous:
+            # Update user status to offline - only for authenticated users
+            if self.is_authenticated:
                 await database_sync_to_async(self._update_user_status)(False)
 
-            # Leave room group
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
-
-            # Send updated user list to everyone
-            if self.user and not self.user.is_anonymous:
-                # Get active users list without creating a message
+                # Send updated user list to everyone
                 active_users = await self.get_active_users_for_disconnect()
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -134,7 +130,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-            logger.info(f"WebSocket disconnected: room={self.room_name}, user={self.user.username if self.user and not self.user.is_anonymous else 'anonymous'}")
+            # Leave room group
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+
+            logger.info(f"WebSocket disconnected: room={self.room_name}, user={self.user.username if self.is_authenticated else 'anonymous'}")
         except Exception as e:
             logger.error(f"Error during WebSocket disconnect: {str(e)}", exc_info=True)
 
@@ -153,22 +155,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
 
             # Log message reception
-            logger.debug(f"Received {message_type} message from {self.user.username if self.user and not self.user.is_anonymous else 'anonymous'}")
+            logger.debug(f"Received {message_type} message from {self.user.username if self.is_authenticated else 'anonymous'}")
+
+            # For most message types, require authentication
+            requires_auth = ['chat', 'typing', 'reaction', 'whiteboard', 'meetup', 'announcement', 'friends', 'recommendations']
+
+            if message_type in requires_auth and not self.is_authenticated:
+                await self.send(json.dumps({
+                    'type': 'error',
+                    'message': 'Authentication required for this action'
+                }))
+                return
 
             if message_type == 'chat':
                 message = text_data_json.get('message', '')
 
-                if not message or not self.user or self.user.is_anonymous:
-                    logger.warning("Chat message rejected: empty message or anonymous user")
+                if not message:
+                    logger.warning("Chat message rejected: empty message")
                     return
 
                 # Save message to database
                 message_id = await self.save_message(message)
 
                 # Record user interest in the room
-                if hasattr(self, 'user') and self.user.is_authenticated:
-                    room = await self.get_room()
-                    await database_sync_to_async(self._record_user_interest)(room)
+                room = await self.get_room()
+                await database_sync_to_async(self._record_user_interest)(room)
 
                 # Send message to room group
                 await self.channel_layer.group_send(
@@ -182,9 +193,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
 
             elif message_type == 'typing':
-                if not self.user or self.user.is_anonymous:
-                    return
-
                 # Send typing notification to room group
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -198,8 +206,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 message_id = text_data_json.get('message_id')
                 reaction = text_data_json.get('reaction')
 
-                if not message_id or not reaction or not self.user or self.user.is_anonymous:
-                    logger.warning("Reaction rejected: missing data or anonymous user")
+                if not message_id or not reaction:
+                    logger.warning("Reaction rejected: missing data")
                     return
 
                 # Toggle reaction in database
@@ -229,19 +237,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'users': active_users
                     }))
 
-                    # Also broadcast to all users in the room
-                    await self.channel_layer.group_send(
-                        self.room_group_name,
-                        {
-                            'type': 'users',
-                            'users': active_users
-                        }
-                    )
-
             elif message_type == 'whiteboard':
                 action = text_data_json.get('action')
 
-                if not action or not self.user or self.user.is_anonymous:
+                if not action:
                     return
 
                 # Simply forward whiteboard data to all clients
@@ -259,9 +258,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             elif message_type == 'meetup':
                 action = text_data_json.get('action', '')
-
-                if not self.user or self.user.is_anonymous:
-                    return
 
                 if action == 'create':
                     meetup_data = text_data_json.get('meetup', {})
@@ -318,9 +314,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             elif message_type == 'announcement':
                 action = text_data_json.get('action', '')
 
-                if not self.user or self.user.is_anonymous:
-                    return
-
                 if action == 'create':
                     # Check if user is admin or room creator
                     is_admin = await self.check_if_admin()
@@ -370,7 +363,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if action == 'list_online':
                     # Get online friends
                     online_friends = []
-                    if hasattr(self, 'user') and self.user.is_authenticated:
+                    if self.is_authenticated:
                         online_friends_qs = await database_sync_to_async(get_online_friends)(self.user)
                         online_friends = await self.get_user_data_list(online_friends_qs)
 
@@ -384,7 +377,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 elif action == 'suggestions':
                     # Get friend suggestions
                     suggestions = []
-                    if hasattr(self, 'user') and self.user.is_authenticated:
+                    if self.is_authenticated:
                         suggestions_list = await database_sync_to_async(get_friend_suggestions)(self.user)
                         suggestions = await self.get_user_data_list(suggestions_list)
 
@@ -401,7 +394,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if action == 'get':
                     # Get room recommendations
                     recommendations = []
-                    if hasattr(self, 'user'):
+                    if self.is_authenticated:
                         recommendations_qs = await database_sync_to_async(get_room_recommendations)(self.user)
                         recommendations = await self.get_room_data_list(recommendations_qs)
 
@@ -421,7 +414,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _record_user_interest(self, room):
         """Synchronous function to record user interest"""
         try:
-            return record_user_interest(self.user, room=room, points=1)
+            if self.is_authenticated:
+                return record_user_interest(self.user, room=room, points=1)
+            return False
         except Exception as e:
             logger.error(f"Error recording user interest: {str(e)}")
             return False
@@ -610,7 +605,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             # Add current user if not already included
             users = list(set(recent_users))  # Convert to set to remove duplicates
-            if self.user and not self.user.is_anonymous and self.user.username not in users:
+            if self.is_authenticated and self.user.username not in users:
                 users.append(self.user.username)
 
             return users
@@ -633,7 +628,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             # Convert to list and remove current user
             users = list(set(recent_users))
-            if self.user and not self.user.is_anonymous and self.user.username in users:
+            if self.is_authenticated and self.user.username in users:
                 users.remove(self.user.username)
 
             return users
@@ -712,7 +707,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def check_if_admin(self):
         """Check if the current user is an admin or room creator"""
         try:
-            if not self.user or self.user.is_anonymous:
+            if not self.is_authenticated:
                 return False
 
             # Check if user is staff or superuser
