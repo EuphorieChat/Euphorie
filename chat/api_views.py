@@ -6,7 +6,7 @@ import json
 
 from django.contrib.auth.models import User
 from .models import UserRelationship, Room, Message, Category
-from .user_services import get_room_recommendations, get_friend_suggestions, get_online_friends
+from .services import get_room_recommendations, get_friend_suggestions, get_online_friends
 
 @login_required
 @csrf_protect
