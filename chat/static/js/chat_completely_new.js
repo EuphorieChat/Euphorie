@@ -1,5 +1,3 @@
-console.log("Enhanced chat.js loaded successfully!");
-
 document.addEventListener("DOMContentLoaded", function () {
     // Configuration and Globals
     const roomName = window.roomName;
@@ -62,14 +60,24 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Init functions
+    // Init functions - Call them all to ensure they're initialized
     initFileUpload();
     initEmojiPanel();
     initReactionModal();
     initWhiteboard();
     initMeetupPlanner();
     initMobileUserList();
-    initAnnouncementHandlers(); // New function for announcement handling
+    initAnnouncementHandlers(); // Announcement handling
+
+    // Initialize media library with a slight delay to ensure DOM is loaded
+    setTimeout(function() {
+        try {
+            console.log("Initializing media library");
+            initMediaLibrary();
+        } catch (e) {
+            console.error("Error initializing media library:", e);
+        }
+    }, 500);
 
     // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
@@ -152,7 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 case "chat":
                     console.log("Chat message:", data);
                     renderMessage(data);
-                    // This is critical for media library
+                    // This is critical for media library - always track media
                     trackMediaInMessage(data.message);
                     break;
                 case "reaction":
@@ -299,6 +307,9 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
 
         addReactionListeners(wrapper);
+
+        // Make sure to track media in the message for the media library
+        trackMediaInMessage(message);
     }
 
     function updateReaction({ message_id, reaction, count, users }) {
@@ -450,7 +461,7 @@ document.addEventListener("DOMContentLoaded", function () {
         progressWrap.classList.remove("hidden");
         progressBar.style.width = "0%";
 
-        // Use the actual URL path instead of Django template tag
+        // Use the actual URL path
         const uploadUrl = "/api/upload_media/";
         try {
             const response = await fetch(uploadUrl, {
@@ -471,6 +482,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         type: "chat",
                         message: html,
                     }));
+
+                    // Add to media library immediately after sending
+                    if (url.match(/\.(mp4|webm)$/i)) {
+                        if (!window.mediaLibrary.videos.includes(url)) {
+                            window.mediaLibrary.videos.push(url);
+                        }
+                    } else {
+                        if (!window.mediaLibrary.images.includes(url)) {
+                            window.mediaLibrary.images.push(url);
+                        }
+                    }
                 });
             }
         } catch (error) {
@@ -901,8 +923,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Announcement Functions - NEW
+    // Announcement Functions - UPDATED
     function initAnnouncementHandlers() {
+        console.log("Initializing announcement handlers");
         // Handle close buttons for announcements in the top container
         document.querySelectorAll('.close-announcement').forEach(button => {
             button.addEventListener('click', function() {
@@ -917,6 +940,8 @@ document.addEventListener("DOMContentLoaded", function () {
         // Process existing announcements from the page and add them to the chat
         const announcements = document.querySelectorAll('#announcements-container .announcement-item');
         if (announcements.length > 0) {
+            console.log(`Found ${announcements.length} announcements in the container`);
+
             // Hide the original container since we'll show announcements in the chat
             const container = document.getElementById('announcements-container');
             if (container) {
@@ -934,9 +959,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Get important data
                 const announcementId = originalAnnouncement.dataset.announcementId;
-                const creator = originalAnnouncement.querySelector('.text-blue-800').textContent.replace('Announcement from ', '');
-                const content = originalAnnouncement.querySelector('.text-gray-700').innerHTML;
-                const timestamp = originalAnnouncement.querySelector('.text-gray-500').textContent;
+                const creator = originalAnnouncement.querySelector('.text-blue-800')?.textContent.replace('Announcement from ', '');
+                const content = originalAnnouncement.querySelector('.text-gray-700')?.innerHTML;
+                const timestamp = originalAnnouncement.querySelector('.text-gray-500')?.textContent;
+
+                if (!announcementId || !creator || !content) {
+                    console.error("Missing required announcement data", {
+                        announcementId, creator, content
+                    });
+                    return;
+                }
 
                 // Create in-chat announcement element
                 const announcement = document.createElement('div');
@@ -959,7 +991,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="flex-1">
                             <h3 class="font-semibold text-blue-800">Announcement from ${creator}</h3>
                             <div class="text-gray-700 text-sm mt-1">${content}</div>
-                            <div class="text-xs text-gray-500 mt-2">${timestamp}</div>
+                            <div class="text-xs text-gray-500 mt-2">${timestamp || 'Just now'}</div>
                         </div>
                     </div>
                 `;
@@ -988,6 +1020,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Scroll to make announcements visible
             chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+        } else {
+            console.log("No announcements found in the container");
         }
     }
 
@@ -998,7 +1032,17 @@ document.addEventListener("DOMContentLoaded", function () {
             // Instead of using the announcements container at the top, we'll add it to the chat log
             // as a special message bubble
             const chatLog = document.getElementById('chat-log');
-            if (!chatLog) return;
+            if (!chatLog) {
+                console.error("Chat log element not found");
+                return;
+            }
+
+            // Check if this announcement is already displayed
+            const existingAnnouncement = document.querySelector(`.announcement-popup[data-announcement-id="${data.announcement_id}"]`);
+            if (existingAnnouncement) {
+                console.log("Announcement already displayed, not showing again");
+                return;
+            }
 
             // Create announcement element that appears in the chat stream
             const announcement = document.createElement('div');
@@ -1053,6 +1097,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function markAnnouncementAsRead(announcementId) {
+        if (!announcementId) {
+            console.error("No announcement ID provided");
+            return;
+        }
+
+        console.log(`Marking announcement ${announcementId} as read`);
+
         // Send request to mark announcement as read
         fetch(`/api/announcement/${announcementId}/mark_read/`, {
             method: 'POST',
@@ -1061,8 +1112,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log("Announcement marked as read response:", data);
             if (data.success) {
                 // Hide all instances of this announcement (both in top container and in chat)
 
@@ -1106,30 +1163,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Helper Functions
-    function formatDate(date) {
-        return date.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-
-    function getCsrfToken() {
-        // Get CSRF token from cookies
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrftoken') {
-                return value;
-            }
-        }
-        return '';
-    }
-
-    // Media Library Functions
+    // Media Library Functions - IMPROVED VERSION
     function initMediaLibrary() {
         console.log("Initializing media library...");
 
@@ -1159,7 +1193,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Initial scan for media in the DOM
+        // Initial scan for media in the DOM - this is critical for the media library
         scanDOMForMedia();
 
         // Open media library button
@@ -1353,9 +1387,29 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Delayed initialization of media library to ensure DOM is fully loaded
-    setTimeout(function() {
-        console.log("Initializing media library with delay");
-        initMediaLibrary();
-    }, 500);
+    // Helper Functions
+    function formatDate(date) {
+        return date.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function getCsrfToken() {
+        // Get CSRF token from cookies
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') {
+                return value;
+            }
+        }
+        return '';
+    }
+
+    // Log successful initialization
+    console.log("Enhanced chat.js loaded successfully!");
 });
