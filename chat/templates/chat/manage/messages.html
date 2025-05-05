@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <style>
+  /* Base styles - improved readability and accessibility */
   .message-row {
     transition: all 0.2s ease;
   }
@@ -16,6 +17,7 @@
   .message-content {
     max-width: 60ch;
     overflow-wrap: break-word;
+    line-height: 1.5;
   }
 
   .message-row.selected {
@@ -23,7 +25,30 @@
     border-left: 3px solid #ec4899;
   }
 
-  /* Mobile-specific styles */
+  /* Improved focus states for accessibility */
+  button:focus,
+  a:focus,
+  input:focus,
+  select:focus {
+    outline: 2px solid #ec4899;
+    outline-offset: 2px;
+  }
+
+  /* Enhanced card design */
+  .message-card {
+    transition: transform 0.2s ease;
+  }
+
+  .message-card:active {
+    transform: scale(0.99);
+  }
+
+  .message-card.selected {
+    background-color: rgba(236, 72, 153, 0.1);
+    border-left: 3px solid #ec4899;
+  }
+
+  /* Improved mobile experience */
   @media (max-width: 640px) {
     .message-content {
       max-width: 100%;
@@ -37,26 +62,152 @@
     .mobile-full-width {
       width: 100%;
     }
+
+    /* Larger touch targets for mobile */
+    .message-card {
+      padding: 0.75rem;
+    }
+
+    /* Make buttons easier to tap on mobile */
+    button,
+    .btn,
+    [role="button"],
+    a.delete-message-btn {
+      min-height: 2.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Add breathing room to form controls */
+    input, select {
+      font-size: 1rem;
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+  }
+
+  /* Enhanced component styling */
+  .form-card {
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .form-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Enhanced animation effects */
+  .btn {
+    transition: all 0.2s ease;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  /* Custom scrollbar for tables */
+  .table-container::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    background: #ec4899;
+    border-radius: 10px;
+  }
+
+  /* Skeleton loader animation for async operations */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .skeleton {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
+    background-size: 1000px 100%;
+  }
+
+  /* Toast notification styling */
+  .toast {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    padding: 1rem;
+    background: #ec4899;
+    color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateY(1rem);
+    transition: all 0.3s ease;
+    z-index: 50;
+  }
+
+  .toast.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Badge styling */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
-    <header class="mb-4 sm:mb-6">
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Message Management</h1>
-        <p class="text-sm sm:text-base text-gray-500 mt-1">Monitor and moderate messages across all rooms</p>
+<div class="container mx-auto px-4 py-6">
+    <header class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div class="mb-4 sm:mb-0">
+                <h1 class="text-2xl font-bold text-gray-800">Message Management</h1>
+                <p class="text-sm text-gray-500 mt-1">Monitor and moderate messages across all rooms</p>
+            </div>
+            <div class="stats flex gap-3 flex-wrap">
+                <div class="stat-card bg-white rounded-lg shadow-sm p-3 border border-pink-100">
+                    <div class="text-xs text-gray-500">Total Messages</div>
+                    <div class="text-xl font-semibold text-gray-800">{{ message_count }}</div>
+                </div>
+                {% if filter_active or search_query or time_filter %}
+                <div class="stat-card bg-white rounded-lg shadow-sm p-3 border border-pink-100">
+                    <div class="text-xs text-gray-500">Filter Results</div>
+                    <div class="text-xl font-semibold text-pink-600">{{ page_obj.paginator.count }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </header>
 
     <!-- Search and Filter -->
-    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-pink-100 mb-4 sm:mb-6">
-        <form method="get" action="{% url 'admin_messages' %}" class="space-y-3 sm:space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+    <div class="form-card bg-white rounded-xl shadow-sm p-5 border border-pink-100 mb-6">
+        <form method="get" action="{% url 'admin_messages' %}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search Messages</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
@@ -66,136 +217,203 @@
                             name="search"
                             value="{{ search_query }}"
                             placeholder="Search by content, username, or room..."
-                            class="pl-10 pr-4 py-2 text-sm sm:text-base block w-full border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none"
+                            class="pl-10 pr-4 py-2.5 block w-full border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 focus:outline-none shadow-sm"
+                            autocomplete="off"
                         >
                     </div>
                 </div>
 
                 <div>
                     <label for="timeframe" class="block text-sm font-medium text-gray-700 mb-1">Time Filter</label>
-                    <select id="timeframe" name="timeframe" class="block w-full py-2 px-4 text-sm sm:text-base border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
-                        <option value="" {% if not time_filter %}selected{% endif %}>All Time</option>
-                        <option value="day" {% if time_filter == 'day' %}selected{% endif %}>Last 24 Hours</option>
-                        <option value="week" {% if time_filter == 'week' %}selected{% endif %}>Last Week</option>
-                        <option value="month" {% if time_filter == 'month' %}selected{% endif %}>Last Month</option>
-                    </select>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <select id="timeframe" name="timeframe" class="pl-10 pr-4 py-2.5 block w-full border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 shadow-sm">
+                            <option value="" {% if not time_filter %}selected{% endif %}>All Time</option>
+                            <option value="day" {% if time_filter == 'day' %}selected{% endif %}>Last 24 Hours</option>
+                            <option value="week" {% if time_filter == 'week' %}selected{% endif %}>Last Week</option>
+                            <option value="month" {% if time_filter == 'month' %}selected{% endif %}>Last Month</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-end">
-                <button type="submit" class="px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-pink-500 hover:bg-pink-600 text-white rounded-xl shadow-sm">
-                    Apply Filters
-                </button>
-            </div>
-        </form>
-    </div>
+            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <!-- Keywords filter inline -->
+                <div class="w-full sm:w-2/3">
+                    <label for="keywords" class="block text-sm font-medium text-gray-700 mb-1">Filter by Keywords</label>
+                    <input
+                        type="text"
+                        id="keywords"
+                        name="keywords"
+                        value="{{ keywords|default:'' }}"
+                        placeholder="Enter keywords to filter (e.g., prohibited terms)"
+                        class="px-4 py-2.5 block w-full border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 shadow-sm"
+                    >
+                </div>
 
-    <!-- Keyword Filter -->
-    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-pink-100 mb-4 sm:mb-6">
-        <h2 class="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-3">Filter by Keywords</h2>
-        <form method="get" action="{% url 'admin_filter_messages' %}" class="flex flex-col sm:flex-row gap-3">
-            <div class="flex-1">
-                <label for="keywords" class="sr-only">Filter by Keywords</label>
-                <input
-                    type="text"
-                    id="keywords"
-                    name="keywords"
-                    value="{{ keywords|default:'' }}"
-                    placeholder="Enter keywords to filter (e.g., prohibited terms)"
-                    class="px-4 py-2 text-sm sm:text-base block w-full border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none"
-                >
+                <div class="w-full sm:w-1/3 flex justify-end items-end">
+                    <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg shadow-sm flex items-center justify-center transition-all">
+                        <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        Apply Filters
+                    </button>
+                </div>
             </div>
 
-            <div class="flex-none">
-                <button type="submit" class="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl shadow-sm">
-                    Filter Messages
-                </button>
+            {% if search_query or time_filter or keywords %}
+            <div class="flex items-center pt-2">
+                <div class="mr-2 text-sm text-gray-500">Active filters:</div>
+                <div class="flex flex-wrap gap-2">
+                    {% if search_query %}
+                    <span class="badge bg-pink-100 text-pink-700">Search: {{ search_query }}</span>
+                    {% endif %}
+                    {% if time_filter %}
+                    <span class="badge bg-blue-100 text-blue-700">Time: {% if time_filter == 'day' %}Last 24 Hours{% elif time_filter == 'week' %}Last Week{% elif time_filter == 'month' %}Last Month{% endif %}</span>
+                    {% endif %}
+                    {% if keywords %}
+                    <span class="badge bg-yellow-100 text-yellow-700">Keywords: {{ keywords }}</span>
+                    {% endif %}
+                    <a href="{% url 'admin_messages' %}" class="badge bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        Clear All
+                    </a>
+                </div>
             </div>
+            {% endif %}
         </form>
     </div>
 
     <!-- Message List -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-4 sm:mb-6">
-        <div class="px-3 sm:px-6 py-3 sm:py-4 border-b border-pink-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3">
-            <h2 class="text-base sm:text-lg font-semibold text-gray-800">
+    <div class="form-card bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-6">
+        <div class="px-5 py-4 border-b border-pink-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
                 {% if filter_active %}
-                Filtered Messages ({{ message_count }})
+                <svg class="h-5 w-5 mr-2 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filtered Messages
                 {% elif search_query or time_filter %}
-                Search Results ({{ message_count }})
+                <svg class="h-5 w-5 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Search Results
                 {% else %}
-                Recent Messages ({{ message_count }})
+                <svg class="h-5 w-5 mr-2 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                Recent Messages
                 {% endif %}
+                <span class="ml-2 text-pink-600 inline-block px-2 py-0.5 bg-pink-50 rounded-full text-sm font-medium">
+                    {{ page_obj.paginator.count }}
+                </span>
             </h2>
 
             <!-- Bulk actions -->
             <form id="bulk-action-form" method="post" action="{% url 'admin_delete_messages_ajax' %}" class="flex flex-wrap gap-2">
                 {% csrf_token %}
-                <div id="selected-count" class="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hidden">
-                    0 selected
+                <div id="selected-count" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hidden flex items-center">
+                    <svg class="h-4 w-4 mr-1 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>0 selected</span>
                 </div>
-                <button id="bulk-delete-btn" type="button" class="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-100 text-red-700 rounded-lg text-sm hidden">
+                <button id="bulk-delete-btn" type="button" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm hidden flex items-center hover:bg-red-200 transition-all">
+                    <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                     Delete Selected
                 </button>
-                <button id="select-all-btn" type="button" class="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">
+                <button id="select-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm flex items-center hover:bg-gray-200 transition-all">
+                    <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
                     Select All
                 </button>
-                <button id="deselect-all-btn" type="button" class="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hidden">
+                <button id="deselect-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hidden flex items-center hover:bg-gray-200 transition-all">
+                    <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                     Deselect All
                 </button>
             </form>
         </div>
 
         <!-- Mobile view for messages (cards) -->
-        <div class="block sm:hidden">
+        <div class="block sm:hidden divide-y divide-gray-100">
             {% for message in page_obj %}
-            <div class="message-card p-3 border-b border-gray-100" data-message-id="{{ message.id }}">
-                <div class="flex items-center justify-between mb-2">
+            <div class="message-card p-4 border-l-0 transition-all" data-message-id="{{ message.id }}">
+                <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center">
-                        <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox mr-2 rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select message from {{ message.user.username }}">
-                        <div class="h-6 w-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-xs mr-2">
+                        <label class="relative inline-flex items-center mr-2 cursor-pointer">
+                            <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox sr-only peer" aria-label="Select message from {{ message.user.username }}">
+                            <div class="w-5 h-5 border border-gray-300 rounded peer-checked:bg-pink-500 peer-checked:border-pink-500 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white hidden peer-checked:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        </label>
+                        <div class="h-8 w-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-sm mr-2 shadow-sm">
                             {{ message.user.username|slice:":1"|upper }}
                         </div>
                         <a href="{% url 'admin_user_messages' user_id=message.user.id %}" class="font-medium text-pink-600 hover:underline text-sm">
                             {{ message.user.username }}
                         </a>
                     </div>
-                    <a href="#" class="delete-message-btn text-red-500 hover:text-red-700" data-message-id="{{ message.id }}" aria-label="Delete message from {{ message.user.username }}">
+                    <button type="button" class="delete-message-btn p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50 transition-all" data-message-id="{{ message.id }}" aria-label="Delete message from {{ message.user.username }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                    </a>
+                    </button>
                 </div>
-                <div class="mb-2">
-                    <div class="text-xs text-gray-500">Room:
-                        <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-500 hover:underline">
-                            {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
-                        </a>
+                <div class="mb-3">
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <div class="badge bg-blue-100 text-blue-700 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                            </svg>
+                            <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="hover:underline">
+                                {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
+                            </a>
+                        </div>
+                        <div class="badge bg-gray-100 text-gray-700 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {{ message.timestamp|date:"M d, Y" }} at {{ message.timestamp|time:"H:i" }}
+                        </div>
                     </div>
-                    <div class="message-content text-sm text-gray-600 mt-1">{{ message.content|linebreaksbr }}</div>
+                    <div class="message-content text-gray-600 bg-gray-50 p-3 rounded-lg">{{ message.content|linebreaksbr }}</div>
                     {% if message.media %}
                     <div class="mt-2">
-                        <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center text-xs bg-blue-50 px-3 py-2 rounded-lg inline-flex">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            Media Attachment
+                            View Media Attachment
                         </a>
                     </div>
                     {% endif %}
                 </div>
-                <div class="text-xs text-gray-400">{{ message.timestamp|date:"M d, Y" }} at {{ message.timestamp|time:"H:i:s" }}</div>
             </div>
             {% empty %}
-            <div class="p-6 text-center text-gray-500">
+            <div class="p-8 text-center text-gray-500">
                 <div class="flex flex-col items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                     </svg>
                     {% if search_query or time_filter or keywords %}
-                    <p class="text-sm">No messages match your search criteria</p>
-                    <a href="{% url 'admin_messages' %}" class="text-pink-600 hover:underline mt-2 text-sm">Clear filters and show all messages</a>
+                    <p class="text-lg font-medium mb-2">No messages match your search criteria</p>
+                    <p class="text-sm text-gray-400 mb-4">Try adjusting your search terms or filters</p>
+                    <a href="{% url 'admin_messages' %}" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg shadow-sm transition-all">
+                        Clear filters and show all messages
+                    </a>
                     {% else %}
-                    <p class="text-sm">No messages found</p>
+                    <p class="text-lg font-medium mb-2">No messages found</p>
+                    <p class="text-sm text-gray-400">Messages will appear here when users start chatting</p>
                     {% endif %}
                 </div>
             </div>
@@ -203,33 +421,43 @@
         </div>
 
         <!-- Desktop view for messages (table) -->
-        <div class="hidden sm:block overflow-x-auto">
+        <div class="hidden sm:block overflow-x-auto table-container">
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 text-gray-600">
                     <tr>
-                        <th class="px-4 sm:px-6 py-2 sm:py-3 text-left w-10">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="select-all-checkbox" class="rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select all messages">
-                            </div>
+                        <th class="px-6 py-3 text-left w-10">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="select-all-checkbox" class="sr-only peer" aria-label="Select all messages">
+                                <div class="w-5 h-5 border border-gray-300 rounded peer-checked:bg-pink-500 peer-checked:border-pink-500 flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white hidden peer-checked:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            </label>
                         </th>
-                        <th class="px-4 sm:px-6 py-2 sm:py-3 text-left">User</th>
-                        <th class="px-4 sm:px-6 py-2 sm:py-3 text-left">Room</th>
-                        <th class="px-4 sm:px-6 py-2 sm:py-3 text-left">Message</th>
-                        <th class="px-4 sm:px-6 py-2 sm:py-3 text-center">Time</th>
-                        <th class="px-4 sm:px-6 py-2 sm:py-3 text-center">Actions</th>
+                        <th class="px-6 py-3 text-left">User</th>
+                        <th class="px-6 py-3 text-left">Room</th>
+                        <th class="px-6 py-3 text-left">Message</th>
+                        <th class="px-6 py-3 text-center">Time</th>
+                        <th class="px-6 py-3 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for message in page_obj %}
-                    <tr class="message-row border-b border-gray-100" data-message-id="{{ message.id }}">
-                        <td class="px-4 sm:px-6 py-3 sm:py-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select message from {{ message.user.username }}">
-                            </div>
+                    <tr class="message-row border-b border-gray-100 hover:bg-gray-50 transition-all" data-message-id="{{ message.id }}">
+                        <td class="px-6 py-4">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox sr-only peer" aria-label="Select message from {{ message.user.username }}">
+                                <div class="w-5 h-5 border border-gray-300 rounded peer-checked:bg-pink-500 peer-checked:border-pink-500 flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white hidden peer-checked:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            </label>
                         </td>
-                        <td class="px-4 sm:px-6 py-3 sm:py-4">
+                        <td class="px-6 py-4">
                             <div class="flex items-center">
-                                <div class="h-8 w-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-sm mr-2">
+                                <div class="h-9 w-9 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-sm mr-2 shadow-sm">
                                     {{ message.user.username|slice:":1"|upper }}
                                 </div>
                                 <a href="{% url 'admin_user_messages' user_id=message.user.id %}" class="font-medium text-pink-600 hover:underline">
@@ -237,48 +465,55 @@
                                 </a>
                             </div>
                         </td>
-                        <td class="px-4 sm:px-6 py-3 sm:py-4">
-                            <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-500 hover:underline">
+                        <td class="px-6 py-4">
+                            <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-500 hover:underline flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                                </svg>
                                 {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
                             </a>
                         </td>
-                        <td class="px-4 sm:px-6 py-3 sm:py-4">
-                            <div class="message-content text-gray-600">{{ message.content|linebreaksbr }}</div>
+                        <td class="px-6 py-4">
+                            <div class="message-content text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-100">{{ message.content|linebreaksbr }}</div>
                             {% if message.media %}
                             <div class="mt-2">
-                                <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center">
+                                <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center text-xs bg-blue-50 px-2 py-1 rounded-lg inline-flex">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    Media Attachment
+                                    View Media Attachment
                                 </a>
                             </div>
                             {% endif %}
                         </td>
-                        <td class="px-4 sm:px-6 py-3 sm:py-4 text-center whitespace-nowrap">
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
                             <div class="text-sm text-gray-500">{{ message.timestamp|date:"M d, Y" }}</div>
                             <div class="text-xs text-gray-400">{{ message.timestamp|time:"H:i:s" }}</div>
                         </td>
-                        <td class="px-4 sm:px-6 py-3 sm:py-4 text-center">
-                            <a href="#" class="delete-message-btn text-red-500 hover:text-red-700" data-message-id="{{ message.id }}" aria-label="Delete message from {{ message.user.username }}">
+                        <td class="px-6 py-4 text-center">
+                            <button type="button" class="delete-message-btn p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50 transition-all" data-message-id="{{ message.id }}" aria-label="Delete message from {{ message.user.username }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                            </a>
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="6" class="px-6 py-8 text-center text-gray-500">
                             <div class="flex flex-col items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                                 </svg>
                                 {% if search_query or time_filter or keywords %}
-                                <p>No messages match your search criteria</p>
-                                <a href="{% url 'admin_messages' %}" class="text-pink-600 hover:underline mt-2">Clear filters and show all messages</a>
+                                <p class="text-lg font-medium mb-2">No messages match your search criteria</p>
+                                <p class="text-sm text-gray-400 mb-4">Try adjusting your search terms or filters</p>
+                                <a href="{% url 'admin_messages' %}" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg shadow-sm transition-all">
+                                    Clear filters and show all messages
+                                </a>
                                 {% else %}
-                                <p>No messages found</p>
+                                <p class="text-lg font-medium mb-2">No messages found</p>
+                                <p class="text-sm text-gray-400">Messages will appear here when users start chatting</p>
                                 {% endif %}
                             </div>
                         </td>
@@ -290,39 +525,63 @@
 
         <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-        <div class="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
-            <span class="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-0">
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <span class="text-sm text-gray-500 order-2 sm:order-1">
                 Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} messages
             </span>
 
-            <div class="flex flex-wrap justify-center gap-1">
+            <div class="flex justify-center gap-1 order-1 sm:order-2">
                 {% if page_obj.has_previous %}
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if time_filter %}timeframe={{ time_filter }}&{% endif %}{% if keywords %}keywords={{ keywords }}&{% endif %}page={{ page_obj.previous_page_number }}" class="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if time_filter %}timeframe={{ time_filter }}&{% endif %}{% if keywords %}keywords={{ keywords }}&{% endif %}page={{ page_obj.previous_page_number }}" class="flex items-center px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                    <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
                     Previous
                 </a>
                 {% else %}
-                <span class="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
+                <span class="flex items-center px-3 py-1.5 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
+                    <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
                     Previous
                 </span>
                 {% endif %}
 
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                    <span class="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md bg-pink-500 text-white">{{ num }}</span>
-                    {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
-                    <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if time_filter %}timeframe={{ time_filter }}&{% endif %}{% if keywords %}keywords={{ keywords }}&{% endif %}page={{ num }}" class="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
-                        {{ num }}
-                    </a>
-                    {% endif %}
-                {% endfor %}
+                <div class="hidden md:flex gap-1">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <span class="px-3 py-1.5 rounded-md bg-pink-500 text-white font-medium">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if time_filter %}timeframe={{ time_filter }}&{% endif %}{% if keywords %}keywords={{ keywords }}&{% endif %}page={{ num }}" class="px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                            {{ num }}
+                        </a>
+                        {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if time_filter %}timeframe={{ time_filter }}&{% endif %}{% if keywords %}keywords={{ keywords }}&{% endif %}page={{ num }}" class="px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                            {{ num }}
+                        </a>
+                        {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                        <span class="px-3 py-1.5 text-gray-500">...</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="flex md:hidden items-center px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600">
+                    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </div>
 
                 {% if page_obj.has_next %}
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if time_filter %}timeframe={{ time_filter }}&{% endif %}{% if keywords %}keywords={{ keywords }}&{% endif %}page={{ page_obj.next_page_number }}" class="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if time_filter %}timeframe={{ time_filter }}&{% endif %}{% if keywords %}keywords={{ keywords }}&{% endif %}page={{ page_obj.next_page_number }}" class="flex items-center px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">
                     Next
+                    <svg class="h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
                 </a>
                 {% else %}
-                <span class="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
+                <span class="flex items-center px-3 py-1.5 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
                     Next
+                    <svg class="h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
                 </span>
                 {% endif %}
             </div>
@@ -330,6 +589,9 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Toast notification container -->
+<div id="toast-container" class="hidden"></div>
 
 {% block extra_js %}
 <script>
@@ -341,32 +603,134 @@
         const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
         const selectedCount = document.getElementById('selected-count');
         const deleteMessageBtns = document.querySelectorAll('.delete-message-btn');
+        const toastContainer = document.getElementById('toast-container');
 
-        // Function to update UI based on selection
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            // Remove any existing toasts
+            while (toastContainer.firstChild) {
+                toastContainer.removeChild(toastContainer.firstChild);
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+
+            let bgColor, icon;
+            if (type === 'success') {
+                bgColor = 'bg-green-500';
+                icon = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+            } else if (type === 'error') {
+                bgColor = 'bg-red-500';
+                icon = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>';
+            } else if (type === 'warning') {
+                bgColor = 'bg-yellow-500';
+                icon = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
+            } else {
+                bgColor = 'bg-pink-500';
+                icon = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+            }
+
+            toast.className = `toast ${bgColor} flex items-center justify-between`;
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    ${icon}
+                    <span>${message}</span>
+                </div>
+                <button type="button" class="ml-4 text-white" onclick="this.parentNode.remove()">
+                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+
+            // Add to container and show
+            toastContainer.appendChild(toast);
+            toastContainer.classList.remove('hidden');
+
+            // Activate toast with slight delay for animation
+            setTimeout(() => {
+                toast.classList.add('active');
+            }, 10);
+
+            // Auto-remove after 4 seconds
+            setTimeout(() => {
+                toast.classList.remove('active');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+
+                    // Hide container if no more toasts
+                    if (!toastContainer.firstChild) {
+                        toastContainer.classList.add('hidden');
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // Enhanced UI update function
         function updateSelectionUI() {
             const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
             const count = checkedBoxes.length;
 
-            // Update the count display
+            // Update the count display with animation
             if (selectedCount) {
-                selectedCount.textContent = count + " selected";
+                const countSpan = selectedCount.querySelector('span');
+                if (countSpan) {
+                    // Add animation class
+                    countSpan.classList.add('animate-pulse');
+
+                    // Update text
+                    countSpan.textContent = count + " selected";
+
+                    // Remove animation class after a short delay
+                    setTimeout(() => {
+                        countSpan.classList.remove('animate-pulse');
+                    }, 500);
+                }
             }
 
-            // Show/hide elements based on selection
+            // Show/hide elements based on selection with smooth transitions
             if (count > 0) {
-                if (selectedCount) selectedCount.classList.remove('hidden');
-                if (bulkDeleteBtn) bulkDeleteBtn.classList.remove('hidden');
+                if (selectedCount) {
+                    selectedCount.classList.remove('hidden');
+                    selectedCount.classList.add('flex');
+                }
+                if (bulkDeleteBtn) {
+                    bulkDeleteBtn.classList.remove('hidden');
+                    bulkDeleteBtn.classList.add('flex');
+                }
             } else {
-                if (selectedCount) selectedCount.classList.add('hidden');
-                if (bulkDeleteBtn) bulkDeleteBtn.classList.add('hidden');
+                if (selectedCount) {
+                    selectedCount.classList.add('hidden');
+                    selectedCount.classList.remove('flex');
+                }
+                if (bulkDeleteBtn) {
+                    bulkDeleteBtn.classList.add('hidden');
+                    bulkDeleteBtn.classList.remove('flex');
+                }
             }
 
-            // Update row highlighting
+            // Toggle select/deselect buttons
+            if (count === messageCheckboxes.length && count > 0) {
+                if (selectAllBtn) selectAllBtn.classList.add('hidden');
+                if (deselectAllBtn) deselectAllBtn.classList.remove('hidden');
+                deselectAllBtn.classList.add('flex');
+            } else {
+                if (selectAllBtn) selectAllBtn.classList.remove('hidden');
+                if (deselectAllBtn) deselectAllBtn.classList.add('hidden');
+                deselectAllBtn.classList.remove('flex');
+            }
+
+            // Update row highlighting with smooth transitions
             messageCheckboxes.forEach(function(checkbox) {
                 const row = checkbox.closest('tr') || checkbox.closest('.message-card');
                 if (row) {
                     if (checkbox.checked) {
                         row.classList.add('selected');
+                        // Reset any transform from hover effect
+                        row.style.transform = 'none';
                     } else {
                         row.classList.remove('selected');
                     }
@@ -384,9 +748,14 @@
             });
         }
 
-        // Individual checkbox change
+        // Individual checkbox change with improved feedback
         messageCheckboxes.forEach(function(checkbox) {
             checkbox.addEventListener('change', function() {
+                // Provide tactile feedback on mobile
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+
                 updateSelectionUI();
 
                 // Update "select all" checkbox state
@@ -400,6 +769,9 @@
         // Select all button
         if (selectAllBtn) {
             selectAllBtn.addEventListener('click', function() {
+                // Add animation class
+                this.classList.add('animate-pulse');
+
                 messageCheckboxes.forEach(function(checkbox) {
                     checkbox.checked = true;
                 });
@@ -408,15 +780,22 @@
                 }
                 updateSelectionUI();
 
-                // Toggle buttons
-                selectAllBtn.classList.add('hidden');
-                if (deselectAllBtn) deselectAllBtn.classList.remove('hidden');
+                // Show feedback
+                showToast('All messages selected');
+
+                // Remove animation class after a short delay
+                setTimeout(() => {
+                    this.classList.remove('animate-pulse');
+                }, 500);
             });
         }
 
         // Deselect all button
         if (deselectAllBtn) {
             deselectAllBtn.addEventListener('click', function() {
+                // Add animation class
+                this.classList.add('animate-pulse');
+
                 messageCheckboxes.forEach(function(checkbox) {
                     checkbox.checked = false;
                 });
@@ -425,13 +804,17 @@
                 }
                 updateSelectionUI();
 
-                // Toggle buttons
-                deselectAllBtn.classList.add('hidden');
-                if (selectAllBtn) selectAllBtn.classList.remove('hidden');
+                // Show feedback
+                showToast('All messages deselected');
+
+                // Remove animation class after a short delay
+                setTimeout(() => {
+                    this.classList.remove('animate-pulse');
+                }, 500);
             });
         }
 
-        // Bulk delete functionality
+        // Enhanced bulk delete functionality
         if (bulkDeleteBtn) {
             bulkDeleteBtn.addEventListener('click', function() {
                 const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
@@ -439,11 +822,74 @@
 
                 if (count === 0) return;
 
-                if (confirm('Are you sure you want to delete ' + count + ' selected message(s)? This action cannot be undone.')) {
+                // Create a better confirmation dialog
+                const confirmDialog = document.createElement('div');
+                confirmDialog.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
+                confirmDialog.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4 transform transition-all">
+                        <div class="flex items-center justify-center bg-red-100 h-16 w-16 rounded-full mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Confirm Deletion</h3>
+                        <p class="text-center text-gray-500 mb-6">Are you sure you want to delete ${count} selected message(s)? This action cannot be undone.</p>
+                        <div class="flex justify-center gap-3">
+                            <button id="cancel-delete" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-all">
+                                Cancel
+                            </button>
+                            <button id="confirm-delete" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all">
+                                Delete ${count} Messages
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(confirmDialog);
+
+                // Prevent scrolling on the background
+                document.body.style.overflow = 'hidden';
+
+                // Add event listeners to the dialog buttons
+                document.getElementById('cancel-delete').addEventListener('click', function() {
+                    document.body.removeChild(confirmDialog);
+                    document.body.style.overflow = '';
+                });
+
+                document.getElementById('confirm-delete').addEventListener('click', function() {
+                    document.body.removeChild(confirmDialog);
+                    document.body.style.overflow = '';
+
+                    // Show a loading indicator
+                    const loadingToast = document.createElement('div');
+                    loadingToast.className = 'toast bg-blue-500 flex items-center active';
+                    loadingToast.innerHTML = `
+                        <div class="flex items-center">
+                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Deleting messages...</span>
+                        </div>
+                    `;
+
+                    toastContainer.innerHTML = '';
+                    toastContainer.appendChild(loadingToast);
+                    toastContainer.classList.remove('hidden');
+
                     const form = document.getElementById('bulk-action-form');
                     if (!form) return;
 
                     const formData = new FormData(form);
+
+                    // Mark selected rows with a visual effect
+                    checkedBoxes.forEach(function(checkbox) {
+                        const row = checkbox.closest('tr') || checkbox.closest('.message-card');
+                        if (row) {
+                            row.style.transition = 'all 0.5s ease';
+                            row.style.backgroundColor = 'rgba(254, 202, 202, 0.2)';
+                        }
+                    });
 
                     // Use AJAX to send the delete request
                     fetch(form.action, {
@@ -458,45 +904,117 @@
                         return response.json();
                     })
                     .then(function(data) {
+                        // Remove loading toast
+                        toastContainer.innerHTML = '';
+
                         if (data.success) {
-                            // Remove deleted rows from the DOM
+                            // Animate removal of deleted rows
                             checkedBoxes.forEach(function(checkbox) {
                                 const row = checkbox.closest('tr') || checkbox.closest('.message-card');
-                                if (row) row.remove();
+                                if (row) {
+                                    row.style.transition = 'all 0.3s ease';
+                                    row.style.opacity = '0';
+                                    row.style.maxHeight = '0';
+                                    row.style.overflow = 'hidden';
+
+                                    setTimeout(() => {
+                                        if (row.parentNode) {
+                                            row.parentNode.removeChild(row);
+                                        }
+                                    }, 300);
+                                }
                             });
 
                             // Show success message
-                            alert(data.message);
+                            showToast(`Successfully deleted ${count} message(s)`, 'success');
 
                             // Reset UI
                             if (selectAllCheckbox) {
                                 selectAllCheckbox.checked = false;
                             }
                             updateSelectionUI();
-
-                            // Toggle buttons
-                            if (deselectAllBtn) deselectAllBtn.classList.add('hidden');
-                            if (selectAllBtn) selectAllBtn.classList.remove('hidden');
                         } else {
-                            alert(data.message || 'An error occurred while deleting messages.');
+                            showToast(data.message || 'An error occurred while deleting messages.', 'error');
                         }
                     })
                     .catch(function(error) {
                         console.error('Error:', error);
-                        alert('An error occurred while deleting messages.');
+                        showToast('An error occurred while deleting messages.', 'error');
                     });
-                }
+                });
             });
         }
 
-        // Individual delete buttons
+       // Enhanced individual delete buttons
         deleteMessageBtns.forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
 
                 const messageId = this.getAttribute('data-message-id');
+                const row = document.querySelector('tr[data-message-id="' + messageId + '"]') ||
+                            document.querySelector('.message-card[data-message-id="' + messageId + '"]');
 
-                if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+                // Create a custom confirm dialog similar to bulk delete
+                const confirmDialog = document.createElement('div');
+                confirmDialog.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
+                confirmDialog.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4 transform transition-all">
+                        <div class="flex items-center justify-center bg-red-100 h-16 w-16 rounded-full mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Confirm Deletion</h3>
+                        <p class="text-center text-gray-500 mb-6">Are you sure you want to delete this message? This action cannot be undone.</p>
+                        <div class="flex justify-center gap-3">
+                            <button id="cancel-delete" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-all">
+                                Cancel
+                            </button>
+                            <button id="confirm-delete" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all">
+                                Delete Message
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(confirmDialog);
+
+                // Prevent scrolling on the background
+                document.body.style.overflow = 'hidden';
+
+                // Add event listeners to the dialog buttons
+                document.getElementById('cancel-delete').addEventListener('click', function() {
+                    document.body.removeChild(confirmDialog);
+                    document.body.style.overflow = '';
+                });
+
+                document.getElementById('confirm-delete').addEventListener('click', function() {
+                    document.body.removeChild(confirmDialog);
+                    document.body.style.overflow = '';
+
+                    // Highlight the row being deleted
+                    if (row) {
+                        row.style.transition = 'all 0.3s ease';
+                        row.style.backgroundColor = 'rgba(254, 202, 202, 0.2)';
+                    }
+
+                    // Show a loading indicator
+                    const loadingToast = document.createElement('div');
+                    loadingToast.className = 'toast bg-blue-500 flex items-center active';
+                    loadingToast.innerHTML = `
+                        <div class="flex items-center">
+                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Deleting message...</span>
+                        </div>
+                    `;
+
+                    toastContainer.innerHTML = '';
+                    toastContainer.appendChild(loadingToast);
+                    toastContainer.classList.remove('hidden');
+
                     // Use AJAX to send the delete request
                     const formData = new FormData();
                     formData.append('message_ids', messageId);
@@ -513,31 +1031,253 @@
                         return response.json();
                     })
                     .then(function(data) {
+                        // Remove loading toast
+                        toastContainer.innerHTML = '';
+
                         if (data.success) {
-                            // Remove the row from the DOM
-                            const row = document.querySelector('tr[data-message-id="' + messageId + '"]') ||
-                                        document.querySelector('.message-card[data-message-id="' + messageId + '"]');
+                            // Animate row removal
                             if (row) {
-                                row.remove();
+                                row.style.transition = 'all 0.5s ease';
+                                row.style.opacity = '0';
+                                row.style.maxHeight = '0';
+                                row.style.overflow = 'hidden';
+
+                                setTimeout(() => {
+                                    if (row.parentNode) {
+                                        row.parentNode.removeChild(row);
+                                    }
+
+                                    // Update message count in the UI if available
+                                    const countElement = document.querySelector('.stat-card .text-xl.font-semibold.text-gray-800');
+                                    if (countElement) {
+                                        const currentCount = parseInt(countElement.textContent);
+                                        if (!isNaN(currentCount) && currentCount > 0) {
+                                            countElement.textContent = (currentCount - 1).toString();
+                                        }
+                                    }
+                                }, 500);
                             }
 
                             // Show success message
-                            alert(data.message);
+                            showToast('Message deleted successfully', 'success');
                         } else {
-                            alert(data.message || 'An error occurred while deleting the message.');
+                            // Show error message
+                            showToast(data.message || 'An error occurred while deleting the message.', 'error');
                         }
                     })
                     .catch(function(error) {
                         console.error('Error:', error);
-                        alert('An error occurred while deleting the message.');
+                        showToast('An error occurred while deleting the message.', 'error');
+
+                        // Reset row style if deletion failed
+                        if (row) {
+                            row.style.backgroundColor = '';
+                        }
                     });
-                }
+                });
             });
         });
 
-        // Initialize UI
-        updateSelectionUI();
+// Add keyboard navigation support
+document.addEventListener('keydown', function(e) {
+    // Escape key closes any open modal
+    if (e.key === 'Escape') {
+        const openModal = document.querySelector('.fixed.inset-0.flex.items-center.justify-center');
+        if (openModal) {
+            document.body.removeChild(openModal);
+            document.body.style.overflow = '';
+        } else if (deselectAllBtn && !deselectAllBtn.classList.contains('hidden')) {
+            deselectAllBtn.click();
+        }
+    }
+
+    // Delete key triggers bulk delete when items are selected
+    if (e.key === 'Delete' && bulkDeleteBtn && !bulkDeleteBtn.classList.contains('hidden')) {
+        bulkDeleteBtn.click();
+    }
+
+    // Ctrl+A or Cmd+A to select all messages
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (selectAllBtn && !selectAllBtn.classList.contains('hidden')) {
+            selectAllBtn.click();
+        }
+    }
+});
+
+// Show toast notification function
+function showToast(message, type = 'info') {
+    // Remove any existing toasts
+    toastContainer.innerHTML = '';
+
+    // Create toast element
+    const toast = document.createElement('div');
+
+    let bgColor, iconSvg;
+    if (type === 'success') {
+        bgColor = 'bg-green-500';
+        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+    } else if (type === 'error') {
+        bgColor = 'bg-red-500';
+        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>';
+    } else if (type === 'warning') {
+        bgColor = 'bg-yellow-500';
+        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
+    } else {
+        bgColor = 'bg-pink-500';
+        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+    }
+
+    toast.className = `toast ${bgColor} flex items-center justify-between`;
+    toast.innerHTML = `
+        <div class="flex items-center">
+            ${iconSvg}
+            <span>${message}</span>
+        </div>
+        <button type="button" class="ml-4 text-white" onclick="this.parentNode.remove()">
+            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    `;
+
+    // Add to container and show
+    toastContainer.appendChild(toast);
+    toastContainer.classList.remove('hidden');
+
+    // Activate toast with slight delay for animation
+    setTimeout(() => {
+        toast.classList.add('active');
+    }, 10);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        toast.classList.remove('active');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+
+            // Hide container if no more toasts
+            if (toastContainer.children.length === 0) {
+                toastContainer.classList.add('hidden');
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Add message card tap functionality for mobile
+const messageCards = document.querySelectorAll('.message-card');
+messageCards.forEach(function(card) {
+    card.addEventListener('click', function(e) {
+        // Only trigger if not clicking on a button, link, or checkbox
+        if (!e.target.closest('button') &&
+            !e.target.closest('a') &&
+            !e.target.closest('input')) {
+            const checkbox = this.querySelector('.message-checkbox');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+
+                // Trigger the change event manually
+                const event = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(event);
+
+                // Add haptic feedback if available
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+            }
+        }
     });
+});
+
+// Checkboxes styling enhancement
+const allCheckboxLabels = document.querySelectorAll('.message-checkbox');
+allCheckboxLabels.forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+        // Find closest parent container
+        const container = this.closest('tr') || this.closest('.message-card');
+        if (container) {
+            if (this.checked) {
+                container.classList.add('selected');
+            } else {
+                container.classList.remove('selected');
+            }
+        }
+    });
+});
+
+// Handle empty state - show better messages
+if (document.querySelectorAll('.message-row, .message-card').length === 0) {
+    // Check if we have empty message placeholders and enhance them
+    const emptyStates = document.querySelectorAll('td[colspan="6"], .p-8.text-center');
+    emptyStates.forEach(function(emptyState) {
+        if (!emptyState.querySelector('svg')) {
+            return;
+        }
+
+        // Add animation to empty state icon
+        const svg = emptyState.querySelector('svg');
+        if (svg) {
+            svg.classList.add('animate-pulse');
+        }
+    });
+}
+
+// Initial UI update
+updateSelectionUI();
+
+// Handle user idle state - offer refresh after 5 minutes
+let idleTimer;
+const resetIdleTimer = function() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function() {
+        // Create refresh suggestion toast
+        const toast = document.createElement('div');
+        toast.className = 'toast bg-blue-500 flex items-center justify-between';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Would you like to refresh messages?</span>
+            </div>
+            <div class="flex items-center">
+                <button type="button" id="refresh-btn" class="bg-white bg-opacity-20 text-white px-2 py-1 rounded hover:bg-opacity-30 transition-all mr-2">
+                    Refresh
+                </button>
+                <button type="button" class="text-white ml-2" onclick="this.parentNode.parentNode.remove()">
+                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        `;
+
+        // Add to container and show
+        toastContainer.appendChild(toast);
+        toastContainer.classList.remove('hidden');
+
+        // Activate toast
+        setTimeout(() => {
+            toast.classList.add('active');
+        }, 10);
+
+        // Add refresh button functionality
+        document.getElementById('refresh-btn').addEventListener('click', function() {
+            window.location.reload();
+        });
+    }, 300000); // 5 minutes
+};
+
+// Reset timer on user interactions
+document.addEventListener('mousemove', resetIdleTimer);
+document.addEventListener('keypress', resetIdleTimer);
+document.addEventListener('click', resetIdleTimer);
+
+// Start the idle timer
+resetIdleTimer();
+});
 </script>
 {% endblock %}
 {% endblock %}

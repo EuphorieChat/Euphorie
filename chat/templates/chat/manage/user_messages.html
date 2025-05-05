@@ -5,68 +5,693 @@
 
 {% block extra_css %}
 <style>
+  /* Base theme variables for consistent styling */
+  :root {
+    --primary: #ec4899;
+    --primary-light: rgba(236, 72, 153, 0.1);
+    --primary-lighter: rgba(236, 72, 153, 0.05);
+    --primary-dark: #db2777;
+    --gray-dark: #1f2937;
+    --gray-medium: #6b7280;
+    --gray-light: #f3f4f6;
+    --success: #10b981;
+    --success-light: rgba(16, 185, 129, 0.1);
+    --warning: #f59e0b;
+    --warning-light: rgba(245, 158, 11, 0.1);
+    --danger: #ef4444;
+    --danger-light: rgba(239, 68, 68, 0.1);
+    --info: #3b82f6;
+    --info-light: rgba(59, 130, 246, 0.1);
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Improved focus styles for accessibility */
+  button:focus,
+  a:focus,
+  input:focus,
+  select:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Enhanced message row styling */
   .message-row {
     transition: all 0.2s ease;
+    position: relative;
   }
 
   .message-row:hover {
-    background-color: rgba(249, 250, 251, 0.8);
+    background-color: var(--primary-lighter);
   }
 
   .message-content {
     max-width: 100%;
     overflow-wrap: break-word;
+    line-height: 1.5;
   }
 
   .message-row.selected {
-    background-color: rgba(236, 72, 153, 0.1);
-    border-left: 3px solid #ec4899;
+    background-color: var(--primary-light);
+    border-left: 3px solid var(--primary);
   }
 
-  /* Mobile optimizations */
+  /* Enhanced card styling */
+  .dashboard-card {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    border: 1px solid #f0f0f0;
+  }
+
+  .dashboard-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    transform: translateY(-2px);
+  }
+
+  /* User profile card */
+  .profile-card {
+    border-radius: 1rem;
+    border: 1px solid #f0f0f0;
+    background-color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .profile-header {
+    background: linear-gradient(to right, var(--primary-light), rgba(236, 72, 153, 0.05));
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .profile-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50% 0 0 0;
+  }
+
+  .profile-avatar {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    background-color: white;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 6px rgba(236, 72, 153, 0.2);
+    border: 2px solid white;
+  }
+
+  .profile-content {
+    padding: 1.5rem;
+  }
+
+  .profile-stat {
+    background-color: var(--gray-light);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    margin-top: 1rem;
+  }
+
+  .profile-stat-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .profile-stat-value {
+    font-weight: 600;
+    color: var(--gray-dark);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .profile-stat-label {
+    color: var(--gray-medium);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Badge styling */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    line-height: 1;
+  }
+
+  .badge-primary {
+    background-color: var(--primary-light);
+    color: var(--primary);
+  }
+
+  .badge-success {
+    background-color: var(--success-light);
+    color: var(--success);
+  }
+
+  .badge-danger {
+    background-color: var(--danger-light);
+    color: var(--danger);
+  }
+
+  .badge-info {
+    background-color: var(--info-light);
+    color: var(--info);
+  }
+
+  /* Enhanced buttons styling */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+  }
+
+  .btn:active::after {
+    opacity: 1;
+    transform: scale(50, 50) translate(-50%);
+    transition: all 0.5s ease;
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .btn-secondary {
+    background-color: white;
+    color: var(--gray-dark);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--gray-light);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Search input styling */
+  .search-container {
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+    border: 1px solid var(--gray-light);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background-color: white;
+  }
+
+  .search-input:hover {
+    border-color: #d1d5db;
+  }
+
+  .search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-medium);
+  }
+
+  /* Enhanced mobile message card */
+  .message-card {
+    border-radius: 0.75rem;
+    border: 1px solid #f0f0f0;
+    background-color: white;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+
+  .message-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .message-card.selected {
+    border-left: 3px solid var(--primary);
+    background-color: var(--primary-light);
+  }
+
+  .message-card__header {
+    padding: 0.875rem 1rem;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .message-card__content {
+    padding: 1rem;
+    background-color: white;
+  }
+
+  .message-card__footer {
+    padding: 0.75rem 1rem;
+    background-color: #f9fafb;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Action buttons */
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-1px);
+    background-color: var(--primary-lighter);
+  }
+
+  .action-btn.delete {
+    color: var(--danger);
+  }
+
+  .action-btn.delete:hover {
+    background-color: var(--danger-light);
+  }
+
+  /* Empty state styling */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+    text-align: center;
+  }
+
+  .empty-state__icon {
+    color: #e5e7eb;
+    margin-bottom: 1.5rem;
+  }
+
+  .empty-state__title {
+    color: var(--gray-dark);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+  }
+
+  .empty-state__text {
+    color: var(--gray-medium);
+    max-width: 24rem;
+    margin: 0 auto 1.5rem;
+  }
+
+  /* Enhanced table styling */
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .data-table th {
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    color: var(--gray-dark);
+    white-space: nowrap;
+    border-bottom: 2px solid var(--gray-light);
+  }
+
+  .data-table td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--gray-light);
+  }
+
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table tr:hover td {
+    background-color: var(--primary-lighter);
+  }
+
+  /* Checkbox styling */
+  .custom-checkbox {
+    position: relative;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+    background-color: white;
+  }
+
+  .custom-checkbox input:checked ~ .checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
+  }
+
+  /* Enhanced pagination styling */
+  .pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 0.25rem;
+  }
+
+  .pagination-item {
+    min-width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .pagination-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--gray-dark);
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+  }
+
+  .pagination-link:hover {
+    background-color: var(--gray-light);
+  }
+
+  .pagination-item.active .pagination-link {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .pagination-item.disabled .pagination-link {
+    color: #9ca3af;
+    cursor: not-allowed;
+    background-color: #f3f4f6;
+  }
+
+  /* Toast notification styling */
+  .toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .toast {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    min-width: 18rem;
+    max-width: 24rem;
+    transform: translateY(1rem);
+    opacity: 0;
+    transition: all 0.3s ease;
+    border-left: 4px solid;
+  }
+
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .toast-success {
+    border-left-color: var(--success);
+  }
+
+  .toast-error {
+    border-left-color: var(--danger);
+  }
+
+  .toast-warning {
+    border-left-color: var(--warning);
+  }
+
+  .toast-info {
+    border-left-color: var(--info);
+  }
+
+  .toast-icon {
+    margin-right: 0.75rem;
+  }
+
+  .toast-content {
+    flex: 1;
+  }
+
+  .toast-close {
+    color: var(--gray-medium);
+    transition: all 0.2s ease;
+    padding: 0.25rem;
+    margin-left: 0.5rem;
+  }
+
+  .toast-close:hover {
+    color: var(--gray-dark);
+  }
+
+  /* Confirmation dialog */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .modal.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .modal-content {
+    background-color: white;
+    border-radius: 0.75rem;
+    max-width: 28rem;
+    width: 90%;
+    padding: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+  }
+
+  .modal.show .modal-content {
+    transform: translateY(0);
+  }
+
+  .modal-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-icon.danger {
+    background-color: var(--danger-light);
+    color: var(--danger);
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .modal-text {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--gray-medium);
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  /* Animation utilities */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  /* Responsive adaptations */
   @media (max-width: 640px) {
     .message-table-container {
       margin: 0 -1rem;
       width: calc(100% + 2rem);
     }
 
-    .mobile-table-view td,
-    .mobile-table-view th {
-      padding: 0.75rem 0.5rem;
+    .profile-avatar {
+      width: 3rem;
+      height: 3rem;
+      font-size: 1.25rem;
     }
 
-    .mobile-message-card {
-      border: 1px solid #f3f4f6;
-      border-radius: 0.5rem;
-      margin-bottom: 0.75rem;
-      background: white;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    .profile-header {
+      padding: 1rem;
     }
 
-    .mobile-message-card__header,
-    .mobile-message-card__content,
-    .mobile-message-card__footer {
+    .profile-content {
+      padding: 1rem;
+    }
+
+    .message-card {
+      margin-bottom: 0.625rem;
+    }
+
+    .message-card__header,
+    .message-card__content,
+    .message-card__footer {
       padding: 0.75rem;
     }
 
-    .mobile-message-card__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #f3f4f6;
-      background-color: #f9fafb;
-      border-top-left-radius: 0.5rem;
-      border-top-right-radius: 0.5rem;
+    .search-input {
+      font-size: 1rem;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
     }
 
-    .mobile-message-card__footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px solid #f3f4f6;
-      background-color: #f9fafb;
-      border-bottom-left-radius: 0.5rem;
-      border-bottom-right-radius: 0.5rem;
+    .pagination {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .modal-content {
+      padding: 1.25rem;
     }
   }
 </style>
@@ -77,68 +702,164 @@
     <header class="mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Messages by {{ user_profile.username }}</h1>
-                <p class="text-sm text-gray-500 mt-1">User ID: {{ user_profile.id }} • Total: {{ message_count }}</p>
+                <a href="{% url 'admin_user_activity' %}" class="inline-flex items-center text-gray-500 hover:text-gray-700 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span class="text-sm">Back to All Users</span>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800">Messages by {{ user_profile.username }}</h1>
+                <div class="flex items-center mt-1 text-sm text-gray-500">
+                    <span class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                        User ID: {{ user_profile.id }}
+                    </span>
+                    <span class="mx-2">•</span>
+                    <span class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        Total Messages: {{ message_count }}
+                    </span>
+                </div>
             </div>
 
             <div class="flex gap-2">
-                <a href="{% url 'admin_user_activity' %}" class="btn px-3 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+                <button type="button" id="export-user-btn" class="btn btn-secondary px-3 py-2 rounded-lg flex items-center text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Back
-                </a>
+                    Export Data
+                </button>
+
+                {% if user_profile.is_active %}
+                <button type="button" id="deactivate-user-btn" class="btn btn-secondary px-3 py-2 rounded-lg flex items-center text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    Deactivate User
+                </button>
+                {% else %}
+                <button type="button" id="activate-user-btn" class="btn btn-secondary px-3 py-2 rounded-lg flex items-center text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Activate User
+                </button>
+                {% endif %}
             </div>
         </div>
     </header>
 
     <!-- User info and search -->
-    <div class="bg-white rounded-xl shadow-sm p-4 border border-pink-100 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- User profile -->
-            <div class="col-span-1">
-                <h2 class="text-lg font-semibold text-gray-800 mb-2">User Profile</h2>
-                <div class="flex items-center mb-4">
-                    <div class="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-xl sm:text-2xl mr-3 sm:mr-4 flex-shrink-0">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- User profile card -->
+        <div class="profile-card animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="profile-header">
+                <div class="flex items-center">
+                    <div class="profile-avatar">
                         {{ user_profile.username|slice:":1"|upper }}
                     </div>
-                    <div>
-                        <h3 class="text-base sm:text-lg font-medium text-gray-800">{{ user_profile.username }}</h3>
-                        <p class="text-xs sm:text-sm text-gray-500">Joined: {{ user_profile.date_joined|date:"F j, Y" }}</p>
+                    <div class="ml-4">
+                        <h3 class="text-xl font-semibold text-gray-800">{{ user_profile.username }}</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <span class="inline-flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Joined: {{ user_profile.date_joined|date:"M d, Y" }}
+                            </span>
+                        </p>
                     </div>
                 </div>
-                <dl class="text-xs sm:text-sm grid grid-cols-2 gap-2">
-                    <dt class="text-gray-500">Email:</dt>
-                    <dd class="text-gray-800">{{ user_profile.email|default:"Not provided" }}</dd>
-
-                    <dt class="text-gray-500">Status:</dt>
-                    <dd class="text-gray-800">
-                        {% if user_profile.is_active %}
-                        <span class="text-green-600 font-medium">Active</span>
-                        {% else %}
-                        <span class="text-red-600 font-medium">Inactive</span>
-                        {% endif %}
-                    </dd>
-
-                    <dt class="text-gray-500">Admin:</dt>
-                    <dd class="text-gray-800">
-                        {% if user_profile.is_staff %}
-                        <span class="text-blue-600 font-medium">Yes</span>
-                        {% else %}
-                        <span class="text-gray-600">No</span>
-                        {% endif %}
-                    </dd>
-                </dl>
             </div>
 
-            <!-- Search form -->
-            <div class="col-span-1 md:col-span-2">
-                <form method="get" action="{% url 'admin_user_messages' user_id=user_profile.id %}" class="flex flex-col sm:flex-row gap-3">
-                    <div class="flex-1">
-                        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search User Messages</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="profile-content">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm text-gray-500 font-medium">Email</div>
+                        <div class="mt-1 text-gray-800">
+                            {% if user_profile.email %}
+                            {{ user_profile.email }}
+                            {% else %}
+                            <span class="text-gray-400">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm text-gray-500 font-medium">Status</div>
+                        <div class="mt-1">
+                            {% if user_profile.is_active %}
+                            <span class="badge badge-success">Active</span>
+                            {% else %}
+                            <span class="badge badge-danger">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm text-gray-500 font-medium">Admin Access</div>
+                        <div class="mt-1">
+                            {% if user_profile.is_staff %}
+                            <span class="badge badge-info">Admin</span>
+                            {% else %}
+                            <span class="badge badge-primary">User</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm text-gray-500 font-medium">Last Login</div>
+                        <div class="mt-1 text-gray-800">
+                            {% if user_profile.last_login %}
+                            {{ user_profile.last_login|date:"M d, Y" }}
+                            {% else %}
+                            <span class="text-gray-400">Never</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-stat">
+                    <div class="profile-stat-icon text-pink-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="profile-stat-value">{{ message_count }}</div>
+                        <div class="profile-stat-label">Total Messages</div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a href="{% url 'admin_user_activity' %}" class="btn btn-secondary py-2 px-4 rounded-lg w-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        View All Users
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Messages Summary -->
+        <div class="lg:col-span-2">
+            <div class="dashboard-card animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="p-5 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Search User Messages
+                    </h2>
+                    <form method="get" action="{% url 'admin_user_messages' user_id=user_profile.id %}" class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex-1 search-container">
+                            <div class="search-icon">
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
@@ -147,117 +868,186 @@
                                 id="search"
                                 name="search"
                                 value="{{ search_query }}"
-                                placeholder="Search messages or rooms..."
-                                class="pl-10 pr-4 py-2 block w-full border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none text-sm"
+                                placeholder="Search message content or room names..."
+                                class="search-input"
                             >
                         </div>
-                    </div>
 
-                    <div class="flex-none self-end">
-                        <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl shadow-sm text-sm">
-                            Search
-                        </button>
+                        <div class="flex-none">
+                            <button type="submit" class="btn btn-primary px-5 py-2.5 rounded-lg w-full sm:w-auto">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="p-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm text-gray-500 mb-1">Most Active Room</div>
+                            <div class="font-medium text-gray-800">{{ most_active_room|default:"No activity" }}</div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm text-gray-500 mb-1">Last Message</div>
+                            <div class="font-medium text-gray-800">{{ last_message_date|default:"No messages" }}</div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm text-gray-500 mb-1">Average Daily Messages</div>
+                            <div class="font-medium text-gray-800">{{ avg_daily_messages|default:"0" }}</div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm text-gray-500 mb-1">Account Age</div>
+                            <div class="font-medium text-gray-800">{{ account_age_days }} days</div>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Message List -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-6">
-        <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-pink-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <h2 class="text-base sm:text-lg font-semibold text-gray-800">
+    <div class="dashboard-card animate-fade-in" style="animation-delay: 0.3s;">
+        <div class="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
                 {% if search_query %}
-                Search Results ({{ message_count }})
+                <span>Search Results</span>
+                <span class="ml-2 badge badge-primary">{{ message_count }}</span>
                 {% else %}
-                All Messages ({{ message_count }})
+                <span>All Messages</span>
+                <span class="ml-2 badge badge-primary">{{ message_count }}</span>
                 {% endif %}
             </h2>
 
             <!-- Bulk actions -->
             <form id="bulk-action-form" method="post" action="{% url 'admin_delete_messages_ajax' %}" class="flex flex-wrap gap-2">
                 {% csrf_token %}
-                <div id="selected-count" class="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg hidden text-xs sm:text-sm">
-                    0 selected
+                <div id="selected-count" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>0 selected</span>
                 </div>
-                <button id="bulk-delete-btn" type="button" class="px-2 py-1 bg-red-100 text-red-700 rounded-lg hidden text-xs sm:text-sm">
+
+                <button id="bulk-delete-btn" type="button" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hidden text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                     Delete Selected
                 </button>
-                <button id="select-all-btn" type="button" class="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm">
+
+                <button id="select-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm flex items-center hover:bg-gray-200 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
                     Select All
                 </button>
-                <button id="deselect-all-btn" type="button" class="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg hidden text-xs sm:text-sm">
+
+                <button id="deselect-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-sm flex items-center hover:bg-gray-200 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                     Deselect All
                 </button>
+
+                {% if search_query %}
+                <a href="{% url 'admin_user_messages' user_id=user_profile.id %}" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm flex items-center hover:bg-blue-200 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Clear Search
+                </a>
+                {% endif %}
             </form>
         </div>
 
         <!-- Desktop Messages table (hidden on mobile) -->
-        <div class="hidden sm:block overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 text-gray-600">
+        <div class="hidden sm:block">
+            <table class="w-full data-table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left w-10">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="select-all-checkbox" class="rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select all messages">
-                            </div>
+                        <th class="w-10">
+                            <label class="custom-checkbox">
+                                <input type="checkbox" id="select-all-checkbox">
+                                <span class="checkmark"></span>
+                            </label>
                         </th>
-                        <th class="px-6 py-3 text-left">Room</th>
-                        <th class="px-6 py-3 text-left">Message</th>
-                        <th class="px-6 py-3 text-center">Time</th>
-                        <th class="px-6 py-3 text-center">Actions</th>
+                        <th>Room</th>
+                        <th>Message</th>
+                        <th class="text-center w-32">Time</th>
+                        <th class="text-center w-16">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for message in page_obj %}
-                    <tr class="message-row border-b border-gray-100" data-message-id="{{ message.id }}">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select message in {{ message.room.name }}">
-                            </div>
+                    <tr class="message-row" data-message-id="{{ message.id }}">
+                        <td>
+                            <label class="custom-checkbox">
+                                <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox">
+                                <span class="checkmark"></span>
+                            </label>
                         </td>
-                        <td class="px-6 py-4">
-                            <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-500 hover:underline">
+                        <td>
+                            <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                                </svg>
                                 {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
                             </a>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="message-content text-gray-600">{{ message.content|linebreaksbr }}</div>
+                        <td>
+                            <div class="message-content text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{{ message.content|linebreaksbr }}</div>
                             {% if message.media %}
                             <div class="mt-2">
-                                <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <a href="{{ message.media.url }}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline bg-blue-50 px-2 py-1 rounded-lg text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    Media Attachment
+                                    View Attachment
                                 </a>
                             </div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 text-center whitespace-nowrap">
-                            <div class="text-sm text-gray-500">{{ message.timestamp|date:"M d, Y" }}</div>
-                            <div class="text-xs text-gray-400">{{ message.timestamp|time:"H:i:s" }}</div>
+                        <td class="text-center">
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-gray-700">{{ message.timestamp|date:"M d, Y" }}</span>
+                                <span class="text-xs text-gray-400 mt-0.5">{{ message.timestamp|time:"H:i:s" }}</span>
+                            </div>
                         </td>
-                        <td class="px-6 py-4 text-center">
-                            <a href="#" class="delete-message-btn text-red-500 hover:text-red-700" data-message-id="{{ message.id }}" aria-label="Delete message in {{ message.room.name }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </a>
+                        <td>
+                            <div class="flex justify-center">
+                                <button type="button" class="delete-message-btn action-btn delete" data-message-id="{{ message.id }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                            <div class="flex flex-col items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                                 </svg>
                                 {% if search_query %}
-                                <p>No messages match your search criteria</p>
-                                <a href="{% url 'admin_user_messages' user_id=user_profile.id %}" class="text-pink-600 hover:underline mt-2">Clear search and show all messages</a>
+                                <h3 class="empty-state__title">No matches found</h3>
+                                <p class="empty-state__text">No messages match your search criteria.</p>
+                                <a href="{% url 'admin_user_messages' user_id=user_profile.id %}" class="btn btn-primary px-4 py-2 rounded-lg mt-2">
+                                    Show All Messages
+                                </a>
                                 {% else %}
-                                <p>No messages found for this user</p>
+                                <h3 class="empty-state__title">No messages found</h3>
+                                <p class="empty-state__text">This user hasn't sent any messages yet.</p>
                                 {% endif %}
                             </div>
                         </td>
@@ -268,319 +1058,750 @@
         </div>
 
         <!-- Mobile Messages Card View (shown only on mobile) -->
-        <div class="sm:hidden px-4 py-3">
+        <div class="sm:hidden p-4">
             {% for message in page_obj %}
-            <div class="mobile-message-card message-row" data-message-id="{{ message.id }}">
-                <div class="mobile-message-card__header">
+            <div class="message-card" data-message-id="{{ message.id }}">
+                <div class="message-card__header">
                     <div class="flex items-center">
-                        <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4 mr-2" aria-label="Select message">
-                        <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-500 text-sm font-medium hover:underline truncate max-w-40">
+                        <label class="custom-checkbox mr-2">
+                            <input type="checkbox" name="message_ids" value="{{ message.id }}" class="message-checkbox">
+                            <span class="checkmark"></span>
+                        </label>
+                        <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-blue-600 hover:text-blue-800 hover:underline font-medium truncate max-w-[150px]">
                             {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
                         </a>
                     </div>
                     <div class="text-right">
-                        <div class="text-xs text-gray-500">{{ message.timestamp|date:"M d, Y" }}</div>
-                        <div class="text-xs text-gray-400">{{ message.timestamp|time:"H:i:s" }}</div>
+                        <div class="text-xs font-medium text-gray-700">{{ message.timestamp|date:"M d, Y" }}</div>
+                        <div class="text-xs text-gray-500">{{ message.timestamp|time:"H:i" }}</div>
                     </div>
                 </div>
-                <div class="mobile-message-card__content">
-                    <div class="message-content text-sm text-gray-600">{{ message.content|linebreaksbr }}</div>
+                <div class="message-card__content">
+                    <div class="message-content text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{{ message.content|linebreaksbr }}</div>
                     {% if message.media %}
                     <div class="mt-2">
-                        <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <a href="{{ message.media.url }}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline bg-blue-50 px-2 py-1 rounded-lg text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            Media Attachment
+                            View Attachment
                         </a>
                     </div>
                     {% endif %}
                 </div>
-                <div class="mobile-message-card__footer">
-                    <div></div>
-                    <a href="#" class="delete-message-btn text-red-500 hover:text-red-700" data-message-id="{{ message.id }}" aria-label="Delete message">
+                <div class="message-card__footer">
+                    <div class="text-xs text-gray-500">
+                        Message ID: {{ message.id }}
+                    </div>
+                    <button type="button" class="delete-message-btn action-btn delete" data-message-id="{{ message.id }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                    </a>
+                    </button>
                 </div>
             </div>
             {% empty %}
-            <div class="py-8 text-center text-gray-500">
-                <div class="flex flex-col items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                    {% if search_query %}
-                    <p class="text-sm">No messages match your search criteria</p>
-                    <a href="{% url 'admin_user_messages' user_id=user_profile.id %}" class="text-pink-600 hover:underline mt-2 text-sm">Clear search</a>
-                    {% else %}
-                    <p class="text-sm">No messages found for this user</p>
-                    {% endif %}
-                </div>
+            <div class="empty-state py-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                {% if search_query %}
+                <h3 class="empty-state__title text-base">No matches found</h3>
+                <p class="empty-state__text text-sm">No messages match your search criteria.</p>
+                <a href="{% url 'admin_user_messages' user_id=user_profile.id %}" class="btn btn-primary px-4 py-2 rounded-lg mt-2 text-sm">
+                    Show All Messages
+                </a>
+                {% else %}
+                <h3 class="empty-state__title text-base">No messages found</h3>
+                <p class="empty-state__text text-sm">This user hasn't sent any messages yet.</p>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
 
-        <!-- Pagination (updated for mobile) -->
+        <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-        <div class="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
-            <span class="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-0">
-                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <span class="text-sm text-gray-500">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} messages
             </span>
 
-            <div class="flex space-x-1">
-                {% if page_obj.has_previous %}
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}" class="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm">
-                    Prev
-                </a>
-                {% else %}
-                <span class="px-2 sm:px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed text-xs sm:text-sm">
-                    Prev
-                </span>
-                {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                    <span class="px-2 sm:px-3 py-1 rounded-md bg-pink-500 text-white text-xs sm:text-sm">{{ num }}</span>
-                    {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
-                    <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}" class="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm">
-                        {{ num }}
-                    </a>
+            <nav aria-label="Pagination">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="pagination-item">
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}" class="pagination-link" aria-label="Previous page">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="pagination-item disabled">
+                        <span class="pagination-link" aria-disabled="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </span>
+                    </li>
                     {% endif %}
-                {% endfor %}
 
-                {% if page_obj.has_next %}
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}" class="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm">
-                    Next
-                </a>
-                {% else %}
-                <span class="px-2 sm:px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed text-xs sm:text-sm">
-                    Next
-                </span>
-                {% endif %}
-            </div>
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="pagination-item active" aria-current="page">
+                            <span class="pagination-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="pagination-item">
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}" class="pagination-link">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                        <li class="pagination-item">
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}" class="pagination-link">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                        <li class="pagination-item">
+                            <span class="pagination-link">…</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="pagination-item">
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}" class="pagination-link" aria-label="Next page">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="pagination-item disabled">
+                        <span class="pagination-link" aria-disabled="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
         {% endif %}
     </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div id="delete-confirmation-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-icon danger">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </div>
+        <h3 class="modal-title">Confirm Deletion</h3>
+        <p class="modal-text" id="modal-message">Are you sure you want to delete this message? This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button type="button" id="modal-cancel-btn" class="btn btn-secondary px-4 py-2 rounded-lg">
+                Cancel
+            </button>
+            <button type="button" id="modal-confirm-btn" class="btn btn-primary bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Active/Deactive User Modal -->
+<div id="user-status-modal" class="modal">
+    <div class="modal-content">
+        <div id="user-status-icon" class="modal-icon danger">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+        </div>
+        <h3 id="user-status-title" class="modal-title">Deactivate User</h3>
+        <p id="user-status-message" class="modal-text">Are you sure you want to deactivate this user? They will be logged out and unable to access the platform.</p>
+        <div class="modal-actions">
+            <button type="button" id="user-status-cancel-btn" class="btn btn-secondary px-4 py-2 rounded-lg">
+                Cancel
+            </button>
+            <button type="button" id="user-status-confirm-btn" class="btn btn-primary bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg">
+                Deactivate
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Export User Data Modal -->
+<div id="export-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-icon text-blue-500" style="background-color: rgba(59, 130, 246, 0.1);">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+        </div>
+        <h3 class="modal-title">Export User Data</h3>
+        <p class="modal-text">Choose the data you'd like to export for {{ user_profile.username }}.</p>
+
+        <div class="mt-4 space-y-3">
+            <label class="flex items-start">
+                <input type="checkbox" id="export-messages" class="mt-1 mr-3">
+                <div>
+                    <div class="text-gray-800 font-medium">Messages</div>
+                    <div class="text-xs text-gray-500">All messages sent by this user.</div>
+                </div>
+            </label>
+
+            <label class="flex items-start">
+                <input type="checkbox" id="export-profile" class="mt-1 mr-3" checked>
+                <div>
+                    <div class="text-gray-800 font-medium">Profile Information</div>
+                    <div class="text-xs text-gray-500">Basic profile data including join date and activity.</div>
+                </div>
+            </label>
+
+            <label class="flex items-start">
+                <input type="checkbox" id="export-activity" class="mt-1 mr-3">
+                <div>
+                    <div class="text-gray-800 font-medium">Activity Log</div>
+                    <div class="text-xs text-gray-500">Login history and platform usage metrics.</div>
+                </div>
+            </label>
+        </div>
+
+        <div class="mt-6 flex justify-between">
+            <select id="export-format" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="csv">CSV Format</option>
+                <option value="json">JSON Format</option>
+                <option value="xlsx">Excel (XLSX)</option>
+            </select>
+
+            <div class="modal-actions">
+                <button type="button" id="export-cancel-btn" class="btn btn-secondary px-4 py-2 rounded-lg">
+                    Cancel
+                </button>
+                <button type="button" id="export-confirm-btn" class="btn btn-primary px-4 py-2 rounded-lg">
+                    Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const selectAllCheckbox = document.getElementById('select-all-checkbox');
-        const messageCheckboxes = document.querySelectorAll('.message-checkbox');
+        // Toast notification system
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            let iconSvg = '';
+            if (type === 'success') {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>`;
+            } else if (type === 'error') {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>`;
+            } else if (type === 'warning') {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>`;
+            } else {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>`;
+            }
+
+            toast.innerHTML = `
+                <div class="toast-icon">${iconSvg}</div>
+                <div class="toast-content">${message}</div>
+                <button type="button" class="toast-close">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            // Show the toast with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+
+            // Close button functionality
+            const closeButton = toast.querySelector('.toast-close');
+            closeButton.addEventListener('click', () => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            });
+
+            // Auto close after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 5000);
+        }
+
+        // Get elements
+        const deleteConfirmationModal = document.getElementById('delete-confirmation-modal');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalMessage = document.getElementById('modal-message');
+        const deleteMessageBtns = document.querySelectorAll('.delete-message-btn');
         const selectAllBtn = document.getElementById('select-all-btn');
         const deselectAllBtn = document.getElementById('deselect-all-btn');
         const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const messageCheckboxes = document.querySelectorAll('.message-checkbox');
         const selectedCount = document.getElementById('selected-count');
-        const deleteMessageBtns = document.querySelectorAll('.delete-message-btn');
+        const userStatusModal = document.getElementById('user-status-modal');
+        const deactivateUserBtn = document.getElementById('deactivate-user-btn');
+        const activateUserBtn = document.getElementById('activate-user-btn');
+        const userStatusCancelBtn = document.getElementById('user-status-cancel-btn');
+        const userStatusConfirmBtn = document.getElementById('user-status-confirm-btn');
+        const userStatusTitle = document.getElementById('user-status-title');
+        const userStatusMessage = document.getElementById('user-status-message');
+        const userStatusIcon = document.getElementById('user-status-icon');
+        const exportUserBtn = document.getElementById('export-user-btn');
+        const exportModal = document.getElementById('export-modal');
+        const exportCancelBtn = document.getElementById('export-cancel-btn');
+        const exportConfirmBtn = document.getElementById('export-confirm-btn');
 
-        // Function to update UI based on selection
-        function updateSelectionUI() {
-            const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
-            const count = checkedBoxes.length;
+        // Handle message deletion
+        let messageToDelete = null;
 
-            // Update the count display
-            selectedCount.textContent = count + " selected";
+        function openDeleteModal(messageId) {
+            messageToDelete = messageId;
+            modalMessage.textContent = 'Are you sure you want to delete this message? This action cannot be undone.';
+            deleteConfirmationModal.classList.add('show');
+        }
 
-            // Show/hide elements based on selection
-            if (count > 0) {
+        function closeDeleteModal() {
+            deleteConfirmationModal.classList.remove('show');
+            messageToDelete = null;
+        }
+
+        deleteMessageBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const messageId = btn.dataset.messageId;
+                openDeleteModal(messageId);
+            });
+        });
+
+        modalCancelBtn.addEventListener('click', closeDeleteModal);
+
+        modalConfirmBtn.addEventListener('click', () => {
+            if (messageToDelete) {
+                // Send AJAX request to delete the message
+                fetch('{% url "admin_delete_message_ajax" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        message_id: messageToDelete
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    closeDeleteModal();
+                    if (data.success) {
+                        // Remove the message from the DOM
+                        const messageRow = document.querySelector(`.message-row[data-message-id="${messageToDelete}"]`);
+                        const messageCard = document.querySelector(`.message-card[data-message-id="${messageToDelete}"]`);
+
+                        if (messageRow) {
+                            messageRow.remove();
+                        }
+
+                        if (messageCard) {
+                            messageCard.remove();
+                        }
+
+                        showToast('Message deleted successfully', 'success');
+                    } else {
+                        showToast('Failed to delete message: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    closeDeleteModal();
+                    showToast('An error occurred while deleting the message', 'error');
+                    console.error('Error:', error);
+                });
+            } else if (selectedMessageIds.length > 0) {
+                // Bulk delete implementation
+                fetch('{% url "admin_delete_messages_ajax" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        message_ids: selectedMessageIds
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    closeDeleteModal();
+                    if (data.success) {
+                        // Remove the selected messages from the DOM
+                        selectedMessageIds.forEach(id => {
+                            const messageRow = document.querySelector(`.message-row[data-message-id="${id}"]`);
+                            const messageCard = document.querySelector(`.message-card[data-message-id="${id}"]`);
+
+                            if (messageRow) {
+                                messageRow.remove();
+                            }
+
+                            if (messageCard) {
+                                messageCard.remove();
+                            }
+                        });
+
+                        // Reset selection
+                        selectedMessageIds = [];
+                        updateSelectedCount();
+                        selectAllCheckbox.checked = false;
+                        messageCheckboxes.forEach(checkbox => {
+                            checkbox.checked = false;
+                        });
+
+                        showToast(`${data.deleted_count} messages deleted successfully`, 'success');
+                    } else {
+                        showToast('Failed to delete messages: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    closeDeleteModal();
+                    showToast('An error occurred while deleting messages', 'error');
+                    console.error('Error:', error);
+                });
+            }
+        });
+
+        // Bulk selection functionality
+        let selectedMessageIds = [];
+
+        function updateSelectedCount() {
+            if (selectedMessageIds.length > 0) {
                 selectedCount.classList.remove('hidden');
+                selectedCount.querySelector('span').textContent = `${selectedMessageIds.length} selected`;
                 bulkDeleteBtn.classList.remove('hidden');
+                selectAllBtn.classList.add('hidden');
+                deselectAllBtn.classList.remove('hidden');
             } else {
                 selectedCount.classList.add('hidden');
                 bulkDeleteBtn.classList.add('hidden');
+                selectAllBtn.classList.remove('hidden');
+                deselectAllBtn.classList.add('hidden');
             }
-
-            // Update row highlighting
-            messageCheckboxes.forEach(checkbox => {
-                // For desktop view
-                const row = checkbox.closest('tr');
-                if (row) {
-                    if (checkbox.checked) {
-                        row.classList.add('selected');
-                    } else {
-                        row.classList.remove('selected');
-                    }
-                }
-
-                // For mobile view
-                const card = checkbox.closest('.mobile-message-card');
-                if (card) {
-                    if (checkbox.checked) {
-                        card.classList.add('selected');
-                    } else {
-                        card.classList.remove('selected');
-                    }
-                }
-            });
         }
 
-        // Select all checkbox functionality
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                messageCheckboxes.forEach(checkbox => {
-                    checkbox.checked = selectAllCheckbox.checked;
-                });
-                updateSelectionUI();
-            });
-        }
-
-        // Individual checkbox change
+        // Individual checkbox selection
         messageCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                updateSelectionUI();
+            checkbox.addEventListener('change', () => {
+                const messageId = checkbox.value;
 
-                // Update "select all" checkbox state
-                const allChecked = document.querySelectorAll('.message-checkbox:checked').length === messageCheckboxes.length;
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.checked = allChecked;
+                if (checkbox.checked) {
+                    if (!selectedMessageIds.includes(messageId)) {
+                        selectedMessageIds.push(messageId);
+                    }
+
+                    // Highlight selected row/card
+                    const messageRow = document.querySelector(`.message-row[data-message-id="${messageId}"]`);
+                    const messageCard = document.querySelector(`.message-card[data-message-id="${messageId}"]`);
+
+                    if (messageRow) {
+                        messageRow.classList.add('selected');
+                    }
+
+                    if (messageCard) {
+                        messageCard.classList.add('selected');
+                    }
+                } else {
+                    selectedMessageIds = selectedMessageIds.filter(id => id !== messageId);
+
+                    // Remove highlight
+                    const messageRow = document.querySelector(`.message-row[data-message-id="${messageId}"]`);
+                    const messageCard = document.querySelector(`.message-card[data-message-id="${messageId}"]`);
+
+                    if (messageRow) {
+                        messageRow.classList.remove('selected');
+                    }
+
+                    if (messageCard) {
+                        messageCard.classList.remove('selected');
+                    }
                 }
+
+                updateSelectedCount();
             });
         });
+
+        // Select all checkbox
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', () => {
+                const isChecked = selectAllCheckbox.checked;
+
+                messageCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                    const messageId = checkbox.value;
+
+                    if (isChecked) {
+                        if (!selectedMessageIds.includes(messageId)) {
+                            selectedMessageIds.push(messageId);
+                        }
+
+                        // Highlight selected row/card
+                        const messageRow = document.querySelector(`.message-row[data-message-id="${messageId}"]`);
+                        const messageCard = document.querySelector(`.message-card[data-message-id="${messageId}"]`);
+
+                        if (messageRow) {
+                            messageRow.classList.add('selected');
+                        }
+
+                        if (messageCard) {
+                            messageCard.classList.add('selected');
+                        }
+                    } else {
+                        selectedMessageIds = [];
+
+                        // Remove highlight
+                        const messageRow = document.querySelector(`.message-row[data-message-id="${messageId}"]`);
+                        const messageCard = document.querySelector(`.message-card[data-message-id="${messageId}"]`);
+
+                        if (messageRow) {
+                            messageRow.classList.remove('selected');
+                        }
+
+                        if (messageCard) {
+                            messageCard.classList.remove('selected');
+                        }
+                    }
+                });
+
+                updateSelectedCount();
+            });
+        }
 
         // Select all button
-        if (selectAllBtn) {
-            selectAllBtn.addEventListener('click', function() {
-                messageCheckboxes.forEach(checkbox => {
-                    checkbox.checked = true;
-                });
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.checked = true;
-                }
-                updateSelectionUI();
+        selectAllBtn.addEventListener('click', () => {
+            messageCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                const messageId = checkbox.value;
 
-                // Toggle buttons
-                selectAllBtn.classList.add('hidden');
-                deselectAllBtn.classList.remove('hidden');
+                if (!selectedMessageIds.includes(messageId)) {
+                    selectedMessageIds.push(messageId);
+                }
+
+                // Highlight selected row/card
+                const messageRow = document.querySelector(`.message-row[data-message-id="${messageId}"]`);
+                const messageCard = document.querySelector(`.message-card[data-message-id="${messageId}"]`);
+
+                if (messageRow) {
+                    messageRow.classList.add('selected');
+                }
+
+                if (messageCard) {
+                    messageCard.classList.add('selected');
+                }
             });
-        }
+
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = true;
+            }
+
+            updateSelectedCount();
+        });
 
         // Deselect all button
-        if (deselectAllBtn) {
-            deselectAllBtn.addEventListener('click', function() {
-                messageCheckboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.checked = false;
-                }
-                updateSelectionUI();
+        deselectAllBtn.addEventListener('click', () => {
+            messageCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const messageId = checkbox.value;
 
-                // Toggle buttons
-                deselectAllBtn.classList.add('hidden');
-                selectAllBtn.classList.remove('hidden');
+                // Remove highlight
+                const messageRow = document.querySelector(`.message-row[data-message-id="${messageId}"]`);
+                const messageCard = document.querySelector(`.message-card[data-message-id="${messageId}"]`);
+
+                if (messageRow) {
+                    messageRow.classList.remove('selected');
+                }
+
+                if (messageCard) {
+                    messageCard.classList.remove('selected');
+                }
+            });
+
+            selectedMessageIds = [];
+
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+
+            updateSelectedCount();
+        });
+
+        // Bulk delete button
+        bulkDeleteBtn.addEventListener('click', () => {
+            if (selectedMessageIds.length > 0) {
+                modalMessage.textContent = `Are you sure you want to delete ${selectedMessageIds.length} selected messages? This action cannot be undone.`;
+                deleteConfirmationModal.classList.add('show');
+            }
+        });
+
+        // User activation/deactivation
+        if (deactivateUserBtn) {
+            deactivateUserBtn.addEventListener('click', () => {
+                userStatusTitle.textContent = 'Deactivate User';
+                userStatusMessage.textContent = 'Are you sure you want to deactivate this user? They will be logged out and unable to access the platform.';
+                userStatusIcon.className = 'modal-icon danger';
+                userStatusConfirmBtn.textContent = 'Deactivate';
+                userStatusConfirmBtn.className = 'btn btn-primary bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg';
+                userStatusConfirmBtn.dataset.action = 'deactivate';
+                userStatusModal.classList.add('show');
             });
         }
 
-        // Bulk delete functionality
-        if (bulkDeleteBtn) {
-            bulkDeleteBtn.addEventListener('click', function() {
-                const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
-                const count = checkedBoxes.length;
-
-                if (count === 0) return;
-
-                if (confirm("Are you sure you want to delete " + count + " selected message(s)? This action cannot be undone.")) {
-                    const form = document.getElementById('bulk-action-form');
-                    const formData = new FormData(form);
-
-                    // Use AJAX to send the delete request
-                    fetch("{% url 'admin_delete_messages_ajax' %}", {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Remove deleted rows from the DOM
-                            checkedBoxes.forEach(checkbox => {
-                                // Remove from desktop view
-                                const row = checkbox.closest('tr');
-                                if (row) row.remove();
-
-                                // Remove from mobile view
-                                const card = checkbox.closest('.mobile-message-card');
-                                if (card) card.remove();
-                            });
-
-                            // Show success message
-                            alert(data.message);
-
-                            // Reset UI
-                            if (selectAllCheckbox) {
-                                selectAllCheckbox.checked = false;
-                            }
-                            updateSelectionUI();
-
-                            // Toggle buttons
-                            deselectAllBtn.classList.add('hidden');
-                            selectAllBtn.classList.remove('hidden');
-                        } else {
-                            alert(data.message || 'An error occurred while deleting messages.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred while deleting messages.');
-                    });
-                }
+        if (activateUserBtn) {
+            activateUserBtn.addEventListener('click', () => {
+                userStatusTitle.textContent = 'Activate User';
+                userStatusMessage.textContent = 'Are you sure you want to activate this user? They will be able to log in and access the platform.';
+                userStatusIcon.className = 'modal-icon text-green-500';
+                userStatusIcon.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                userStatusConfirmBtn.textContent = 'Activate';
+                userStatusConfirmBtn.className = 'btn btn-primary bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg';
+                userStatusConfirmBtn.dataset.action = 'activate';
+                userStatusModal.classList.add('show');
             });
         }
 
-        // Individual delete buttons
-        deleteMessageBtns.forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
+        userStatusCancelBtn.addEventListener('click', () => {
+            userStatusModal.classList.remove('show');
+        });
 
-                const messageId = this.getAttribute('data-message-id');
+        userStatusConfirmBtn.addEventListener('click', () => {
+            const action = userStatusConfirmBtn.dataset.action;
+            const userId = '{{ user_profile.id }}';
 
-                if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
-                    // Use AJAX to send the delete request
-                    const formData = new FormData();
-                    formData.append('message_ids', messageId);
+            fetch('{% url "admin_toggle_user_status_ajax" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    action: action
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                userStatusModal.classList.remove('show');
 
-                    fetch("{% url 'admin_delete_messages_ajax' %}", {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Remove from desktop view
-                            const row = document.querySelector("tr[data-message-id='" + messageId + "']");
-                            if (row) row.remove();
-
-                            // Remove from mobile view
-                            const card = document.querySelector(".mobile-message-card[data-message-id='" + messageId + "']");
-                            if (card) card.remove();
-
-                            // Show success message
-                            alert(data.message);
-                        } else {
-                            alert(data.message || 'An error occurred while deleting the message.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred while deleting the message.');
-                    });
+                if (data.success) {
+                    showToast(`User ${action === 'activate' ? 'activated' : 'deactivated'} successfully`, 'success');
+                    // Reload the page to reflect changes
+                    window.location.reload();
+                } else {
+                    showToast(`Failed to ${action} user: ${data.error}`, 'error');
                 }
+            })
+            .catch(error => {
+                userStatusModal.classList.remove('show');
+                showToast(`An error occurred while ${action === 'activate' ? 'activating' : 'deactivating'} the user`, 'error');
+                console.error('Error:', error);
             });
         });
 
-        // Initialize UI
-        updateSelectionUI();
+        // Export user data
+        exportUserBtn.addEventListener('click', () => {
+            exportModal.classList.add('show');
+        });
+
+        exportCancelBtn.addEventListener('click', () => {
+            exportModal.classList.remove('show');
+        });
+
+        exportConfirmBtn.addEventListener('click', () => {
+            const exportMessages = document.getElementById('export-messages').checked;
+            const exportProfile = document.getElementById('export-profile').checked;
+            const exportActivity = document.getElementById('export-activity').checked;
+            const exportFormat = document.getElementById('export-format').value;
+            const userId = '{{ user_profile.id }}';
+
+            if (!exportMessages && !exportProfile && !exportActivity) {
+                showToast('Please select at least one data type to export', 'warning');
+                return;
+            }
+
+            // Create and submit a form to trigger the download
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "admin_export_user_data" %}';
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = '{{ csrf_token }}';
+            form.appendChild(csrfInput);
+
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'user_id';
+            userIdInput.value = userId;
+            form.appendChild(userIdInput);
+
+            const exportMessagesInput = document.createElement('input');
+            exportMessagesInput.type = 'hidden';
+            exportMessagesInput.name = 'export_messages';
+            exportMessagesInput.value = exportMessages ? '1' : '0';
+            form.appendChild(exportMessagesInput);
+
+            const exportProfileInput = document.createElement('input');
+            exportProfileInput.type = 'hidden';
+            exportProfileInput.name = 'export_profile';
+            exportProfileInput.value = exportProfile ? '1' : '0';
+            form.appendChild(exportProfileInput);
+
+            const exportActivityInput = document.createElement('input');
+            exportActivityInput.type = 'hidden';
+            exportActivityInput.name = 'export_activity';
+            exportActivityInput.value = exportActivity ? '1' : '0';
+            form.appendChild(exportActivityInput);
+
+            const exportFormatInput = document.createElement('input');
+            exportFormatInput.type = 'hidden';
+            exportFormatInput.name = 'export_format';
+            exportFormatInput.value = exportFormat;
+            form.appendChild(exportFormatInput);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            exportModal.classList.remove('show');
+            showToast('Exporting user data...', 'info');
+        });
     });
 </script>
-{% endblock %}
 {% endblock %}

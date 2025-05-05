@@ -5,26 +5,63 @@
 
 {% block extra_css %}
 <style>
-  .message-row {
-    transition: all 0.2s ease;
+  /* Base styles with improved readability and accessibility */
+  :root {
+    --primary: #ec4899;
+    --primary-light: rgba(236, 72, 153, 0.1);
+    --primary-border: rgba(236, 72, 153, 0.2);
+    --success: #10b981;
+    --success-light: rgba(16, 185, 129, 0.1);
+    --warning: #f59e0b;
+    --warning-light: rgba(245, 158, 11, 0.1);
+    --danger: #ef4444;
+    --danger-light: rgba(239, 68, 68, 0.1);
+    --info: #6366f1;
+    --info-light: rgba(99, 102, 241, 0.1);
   }
 
-  .message-row:hover {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Improved focus states for better accessibility */
+  button:focus,
+  a:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Message rows/cards styling */
+  .message-row, .mobile-message-card {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+  }
+
+  .message-row:hover, .mobile-message-card:hover {
     background-color: rgba(249, 250, 251, 0.8);
   }
 
   .message-content {
     max-width: 100%;
     overflow-wrap: break-word;
+    line-height: 1.5;
   }
 
-  .message-row.selected {
-    background-color: rgba(236, 72, 153, 0.1);
-    border-left: 3px solid #ec4899;
+  .message-row.selected, .mobile-message-card.selected {
+    background-color: var(--primary-light);
+    border-left: 3px solid var(--primary);
   }
 
+  /* Feature cards with enhanced styling */
   .feature-card {
     transition: all 0.3s ease;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
   .feature-card:hover {
@@ -32,21 +69,38 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
+  /* Enhanced tab system */
   .card-tabs {
     border-top-left-radius: 0.75rem;
     border-top-right-radius: 0.75rem;
     overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(236, 72, 153, 0.3) transparent;
+    position: relative;
+  }
+
+  .card-tabs::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .card-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .card-tabs::-webkit-scrollbar-thumb {
+    background-color: rgba(236, 72, 153, 0.3);
+    border-radius: 6px;
   }
 
   .tab-button {
     position: relative;
     transition: all 0.2s ease;
     white-space: nowrap;
+    font-weight: 500;
   }
 
   .tab-button.active {
-    color: #ec4899;
-    font-weight: 500;
+    color: var(--primary);
   }
 
   .tab-button.active:after {
@@ -56,7 +110,7 @@
     bottom: -1px;
     width: 100%;
     height: 2px;
-    background-color: #ec4899;
+    background-color: var(--primary);
     border-radius: 2px 2px 0 0;
   }
 
@@ -66,13 +120,20 @@
 
   .tab-panel.active {
     display: block;
+    animation: fadeIn 0.3s ease-in-out;
   }
 
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Enhanced toggle switch */
   .switch {
     position: relative;
     display: inline-block;
-    width: 48px;
-    height: 24px;
+    width: 52px;
+    height: 26px;
   }
 
   .switch input {
@@ -88,48 +149,37 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
+    background-color: #e5e7eb;
     transition: .4s;
-    border-radius: 24px;
+    border-radius: 26px;
   }
 
   .slider:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
+    height: 20px;
+    width: 20px;
     left: 3px;
     bottom: 3px;
     background-color: white;
     transition: .4s;
     border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   input:checked + .slider {
-    background-color: #ec4899;
+    background-color: var(--primary);
   }
 
   input:focus + .slider {
-    box-shadow: 0 0 1px #ec4899;
+    box-shadow: 0 0 1px var(--primary);
   }
 
   input:checked + .slider:before {
-    transform: translateX(24px);
+    transform: translateX(26px);
   }
 
-  .announcement-row {
-    transition: all 0.2s ease;
-  }
-
-  .announcement-row:hover {
-    background-color: rgba(249, 250, 251, 0.8);
-  }
-
-  .announcement-content {
-    max-width: 100%;
-    overflow-wrap: break-word;
-  }
-
+  /* Status badges */
   .status-badge {
     display: inline-flex;
     align-items: center;
@@ -137,11 +187,12 @@
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 500;
+    transition: all 0.2s ease;
   }
 
   .status-active {
-    background-color: rgba(16, 185, 129, 0.1);
-    color: rgb(16, 185, 129);
+    background-color: var(--success-light);
+    color: var(--success);
   }
 
   .status-inactive {
@@ -149,135 +200,433 @@
     color: rgb(156, 163, 175);
   }
 
-  /* Mobile optimizations */
-  .mobile-action-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .mobile-action-buttons .btn {
-    flex: 1 0 calc(50% - 0.25rem);
+  /* Enhanced button styling */
+  .btn {
+    transition: all 0.2s ease;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   }
 
-  .mobile-message-card {
-    border: 1px solid rgba(236, 72, 153, 0.2);
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #db2777;
+  }
+
+  .btn-success {
+    background-color: var(--success-light);
+    color: var(--success);
+  }
+
+  .btn-success:hover {
+    background-color: rgba(16, 185, 129, 0.2);
+  }
+
+  .btn-danger {
+    background-color: var(--danger-light);
+    color: var(--danger);
+  }
+
+  .btn-danger:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .btn-warning {
+    background-color: var(--warning-light);
+    color: var(--warning);
+  }
+
+  .btn-warning:hover {
+    background-color: rgba(245, 158, 11, 0.2);
+  }
+
+  .btn-info {
+    background-color: var(--info-light);
+    color: var(--info);
+  }
+
+  .btn-info:hover {
+    background-color: rgba(99, 102, 241, 0.2);
+  }
+
+  /* Custom form controls */
+  .form-input,
+  .form-textarea,
+  .form-select {
+    width: 100%;
     border-radius: 0.75rem;
-    margin-bottom: 0.75rem;
+    border: 1px solid #e5e7eb;
+    padding: 0.625rem 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-input:focus,
+  .form-textarea:focus,
+  .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+    outline: none;
+  }
+
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #4b5563;
+  }
+
+  /* Toast notification */
+  .toast-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 50;
+  }
+
+  .toast {
+    padding: 1rem;
+    border-radius: 0.5rem;
     background-color: white;
-    overflow: hidden;
-  }
-
-  .mobile-message-card__header {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    margin-top: 0.5rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(236, 72, 153, 0.1);
-    background-color: rgba(249, 250, 251, 0.8);
-  }
-
-  .mobile-message-card__content {
-    padding: 0.75rem;
-  }
-
-  .mobile-message-card__footer {
-    display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border-top: 1px solid rgba(236, 72, 153, 0.1);
-    background-color: rgba(249, 250, 251, 0.8);
+    min-width: 250px;
+    max-width: 350px;
+    transform: translateY(1rem);
+    opacity: 0;
+    transition: all 0.3s ease;
   }
 
-  .mobile-announcement-card {
-    border: 1px solid rgba(236, 72, 153, 0.2);
-    border-radius: 0.75rem;
-    margin-bottom: 0.75rem;
-    background-color: white;
-    overflow: hidden;
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
   }
 
-  .mobile-announcement-card__header {
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(236, 72, 153, 0.1);
-    background-color: rgba(249, 250, 251, 0.8);
+  .toast-success {
+    border-left: 4px solid var(--success);
   }
 
-  .mobile-announcement-card__content {
-    padding: 0.75rem;
+  .toast-error {
+    border-left: 4px solid var(--danger);
   }
 
-  .mobile-announcement-card__footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border-top: 1px solid rgba(236, 72, 153, 0.1);
-    background-color: rgba(249, 250, 251, 0.8);
+  .toast-warning {
+    border-left: 4px solid var(--warning);
   }
 
-  .mobile-pagination {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.25rem;
+  .toast-info {
+    border-left: 4px solid var(--info);
   }
 
+  /* Enhanced mobile experiences */
   @media (max-width: 640px) {
     .card-tabs {
       display: flex;
-      overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; /* Firefox */
-    }
-
-    .card-tabs::-webkit-scrollbar {
-      display: none; /* Chrome, Safari */
     }
 
     .tab-button {
       padding: 0.75rem 1rem;
       font-size: 0.875rem;
     }
+
+    /* Improve form elements on mobile */
+    .form-input,
+    .form-textarea,
+    .form-select {
+      font-size: 1rem; /* Larger font size for better tapping */
+      padding: 0.75rem 1rem;
+    }
+
+    /* Better card layouts for mobile */
+    .mobile-card {
+      border-radius: 0.75rem;
+      overflow: hidden;
+      border: 1px solid var(--primary-border);
+      margin-bottom: 0.75rem;
+      background-color: white;
+    }
+
+    .mobile-card__header {
+      padding: 0.75rem;
+      border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+      background-color: rgba(249, 250, 251, 0.8);
+    }
+
+    .mobile-card__content {
+      padding: 0.75rem;
+    }
+
+    .mobile-card__footer {
+      padding: 0.75rem;
+      border-top: 1px solid rgba(236, 72, 153, 0.1);
+      background-color: rgba(249, 250, 251, 0.8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Enhanced touch targets for mobile */
+    .mobile-touch-target {
+      min-height: 44px;
+      min-width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Improved mobile pagination */
+    .mobile-pagination {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.375rem;
+    }
+
+    .mobile-pagination a,
+    .mobile-pagination span {
+      min-width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  /* Loading indicators */
+  .loading {
+    position: relative;
+  }
+
+  .loading:after {
+    content: "";
+    position: absolute;
+    top: calc(50% - 0.75rem);
+    left: calc(50% - 0.75rem);
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid rgba(236, 72, 153, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Empty state styling */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .empty-state svg {
+    color: #e5e7eb;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state__title {
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state__description {
+    color: #9ca3af;
+  }
+
+  /* Checkbox styling */
+  .custom-checkbox {
+    position: relative;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+  }
+
+  .custom-checkbox input:checked ~ .checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
+  }
+
+  /* Announcement styling */
+  .announcement-card {
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+
+  .announcement-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
+
+  /* Stats cards */
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: all 0.2s ease;
+  }
+
+  .stat-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .stat-card__title {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-card__value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  /* Button group */
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Alert styling */
+  .alert {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .alert-success {
+    background-color: var(--success-light);
+    color: var(--success);
+  }
+
+  .alert-error {
+    background-color: var(--danger-light);
+    color: var(--danger);
+  }
+
+  .alert-warning {
+    background-color: var(--warning-light);
+    color: var(--warning);
+  }
+
+  .alert-info {
+    background-color: var(--info-light);
+    color: var(--info);
+  }
+
+  .alert-icon {
+    margin-right: 0.75rem;
+    flex-shrink: 0;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-    <header class="mb-4 sm:mb-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="container mx-auto px-4 py-6">
+    <header class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">{{ room.display_name|default:room.name|title }}</h1>
-                <p class="text-xs sm:text-sm text-gray-500 mt-1">Created by {{ room.creator.username }} on {{ room.created_at|date:"F j, Y" }}</p>
+                <div class="flex items-center">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">{{ room.display_name|default:room.name|title }}</h1>
+                    {% if room.is_private %}
+                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        Private
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Created by {{ room.creator.username }} on {{ room.created_at|date:"F j, Y" }}</p>
             </div>
 
             <!-- Desktop action buttons -->
             <div class="hidden sm:flex flex-wrap gap-2">
-                <a href="{% url 'admin_export_chat' room_name=room.name %}" class="btn px-4 py-2 bg-green-100 text-green-700 rounded-lg flex items-center">
+                <a href="{% url 'admin_export_chat' room_name=room.name %}" class="btn btn-success px-4 py-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     Export as CSV
                 </a>
 
-                <a href="{% url 'admin_clear_room' room_name=room.name %}" class="btn px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg flex items-center">
+                <button type="button" id="clear-room-btn" class="btn btn-warning px-4 py-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                     </svg>
                     Clear Messages
-                </a>
+                </button>
 
-                <a href="{% url 'admin_delete_room' room_name=room.name %}" class="btn px-4 py-2 bg-red-100 text-red-700 rounded-lg flex items-center">
+                <button type="button" id="delete-room-btn" class="btn btn-danger px-4 py-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     Delete Room
-                </a>
+                </button>
 
-                <a href="{% url 'room' room_name=room.name %}" target="_blank" class="btn px-4 py-2 bg-purple-100 text-purple-700 rounded-lg flex items-center">
+                <a href="{% url 'room' room_name=room.name %}" target="_blank" class="btn btn-info px-4 py-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -286,62 +635,128 @@
                 </a>
             </div>
 
-            <!-- Mobile action buttons -->
-            <div class="sm:hidden mobile-action-buttons">
-                <a href="{% url 'admin_export_chat' room_name=room.name %}" class="btn py-2 bg-green-100 text-green-700 rounded-lg flex items-center text-xs">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <!-- Mobile action menu -->
+            <div class="sm:hidden">
+                <button id="mobile-action-menu-btn" type="button" class="bg-white p-2 rounded-md shadow-sm border border-gray-200 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
                     </svg>
-                    Export CSV
-                </a>
+                </button>
 
-                <a href="{% url 'admin_clear_room' room_name=room.name %}" class="btn py-2 bg-yellow-100 text-yellow-700 rounded-lg flex items-center text-xs">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                    </svg>
-                    Clear
-                </a>
+                <!-- Mobile action dropdown menu (hidden by default) -->
+                <div id="mobile-action-menu" class="hidden absolute right-4 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div class="py-1" role="menu" aria-orientation="vertical">
+                        <a href="{% url 'admin_export_chat' room_name=room.name %}" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Export as CSV
+                        </a>
 
-                <a href="{% url 'admin_delete_room' room_name=room.name %}" class="btn py-2 bg-red-100 text-red-700 rounded-lg flex items-center text-xs">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete
-                </a>
+                        <button type="button" id="mobile-clear-room-btn" class="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                            </svg>
+                            Clear Messages
+                        </button>
 
-                <a href="{% url 'room' room_name=room.name %}" target="_blank" class="btn py-2 bg-purple-100 text-purple-700 rounded-lg flex items-center text-xs">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    View
-                </a>
+                        <button type="button" id="mobile-delete-room-btn" class="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Room
+                        </button>
+
+                        <a href="{% url 'room' room_name=room.name %}" target="_blank" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Room
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
+    <!-- Room Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card">
+            <span class="stat-card__title">Total Messages</span>
+            <span class="stat-card__value">{{ message_count }}</span>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-card__title">Users</span>
+            <span class="stat-card__value">{{ user_count|default:"0" }}</span>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-card__title">Announcements</span>
+            <span class="stat-card__value">{{ active_announcements_count }}</span>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-card__title">Created</span>
+            <span class="stat-card__value text-base">{{ room.created_at|date:"M d, Y" }}</span>
+        </div>
+    </div>
+
     {% if messages %}
-    <div class="mb-4 sm:mb-6">
+    <div class="mb-6">
         {% for message in messages %}
-            <div class="p-3 sm:p-4 {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %} rounded-lg text-sm">
-                {{ message }}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %} flex rounded-lg">
+                <div class="alert-icon">
+                    {% if message.tags == 'error' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {% endif %}
+                </div>
+                <div>{{ message }}</div>
             </div>
         {% endfor %}
     </div>
     {% endif %}
 
     <!-- Room Admin Features -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-6">
+    <div class="feature-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 mb-6">
         <!-- Tabs -->
-        <div class="card-tabs flex border-b border-gray-200">
-            <button id="tab-messages" class="tab-button active py-3 sm:py-4 px-3 sm:px-6 text-gray-600 focus:outline-none text-sm sm:text-base">
-                Messages ({{ message_count }})
+        <div class="card-tabs flex border-b border-gray-200 bg-gray-50">
+            <button id="tab-messages" class="tab-button active py-4 px-6 text-gray-700 focus:outline-none">
+                <span class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    Messages
+                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {{ message_count }}
+                    </span>
+                </span>
             </button>
-            <button id="tab-password" class="tab-button py-3 sm:py-4 px-3 sm:px-6 text-gray-600 focus:outline-none text-sm sm:text-base">
-                Password
+            <button id="tab-password" class="tab-button py-4 px-6 text-gray-700 focus:outline-none">
+                <span class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Password
+                </span>
             </button>
-            <button id="tab-announcements" class="tab-button py-3 sm:py-4 px-3 sm:px-6 text-gray-600 focus:outline-none text-sm sm:text-base">
-                Announcements ({{ active_announcements_count }})
+            <button id="tab-announcements" class="tab-button py-4 px-6 text-gray-700 focus:outline-none">
+                <span class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                    Announcements
+                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {{ active_announcements_count }}
+                    </span>
+                </span>
             </button>
         </div>
 
@@ -350,37 +765,52 @@
             <!-- Messages Tab -->
             <div id="panel-messages" class="tab-panel active">
                 <!-- Room info and search -->
-                <div class="p-3 sm:p-4 border-b border-pink-100">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                <div class="p-5 border-b border-gray-200 bg-gray-50">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="col-span-1">
-                            <h2 class="text-base sm:text-lg font-semibold text-gray-800 mb-2">Room Details</h2>
-                            <dl class="text-xs sm:text-sm">
-                                <div class="grid grid-cols-2 gap-2 mb-2">
-                                    <dt class="text-gray-500">Room Name:</dt>
-                                    <dd class="text-gray-800">{{ room.name }}</dd>
-                                </div>
-                                <div class="grid grid-cols-2 gap-2 mb-2">
-                                    <dt class="text-gray-500">Display Name:</dt>
-                                    <dd class="text-gray-800">{{ room.display_name|default:"Not set" }}</dd>
-                                </div>
-                                <div class="grid grid-cols-2 gap-2 mb-2">
-                                    <dt class="text-gray-500">Category:</dt>
-                                    <dd class="text-gray-800">{{ room.category.name|default:"None" }}</dd>
-                                </div>
-                                <div class="grid grid-cols-2 gap-2 mb-2">
-                                    <dt class="text-gray-500">Password:</dt>
-                                    <dd class="text-gray-800">{{ is_password_protected|yesno:"Protected,Not protected" }}</dd>
-                                </div>
+                            <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Room Details
+                            </h2>
+                            <dl class="grid grid-cols-2 gap-2 text-sm bg-white p-4 rounded-lg shadow-sm">
+                                <dt class="text-gray-500 font-medium">Room Name:</dt>
+                                <dd class="text-gray-800">{{ room.name }}</dd>
+
+                                <dt class="text-gray-500 font-medium">Display Name:</dt>
+                                <dd class="text-gray-800">{{ room.display_name|default:"Not set" }}</dd>
+
+                                <dt class="text-gray-500 font-medium">Category:</dt>
+                                <dd class="text-gray-800">{{ room.category.name|default:"None" }}</dd>
+
+                                <dt class="text-gray-500 font-medium">Password:</dt>
+                                <dd class="text-gray-800">
+                                    {% if is_password_protected %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        Protected
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        Not protected
+                                    </span>
+                                    {% endif %}
+                                </dd>
                             </dl>
                         </div>
 
                         <div class="col-span-1 md:col-span-2">
-                            <form method="get" action="{% url 'admin_room_detail' room_name=room.name %}" class="flex flex-col sm:flex-row gap-3">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Search Messages
+                            </h2>
+                            <form method="get" action="{% url 'admin_room_detail' room_name=room.name %}" class="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-lg shadow-sm">
                                 <div class="flex-1">
-                                    <label for="search" class="sr-only">Search Messages</label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                             </svg>
                                         </div>
@@ -389,14 +819,17 @@
                                             id="search"
                                             name="search"
                                             value="{{ search_query }}"
-                                            placeholder="Search messages..."
-                                            class="pl-10 pr-4 py-2 block w-full border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none text-sm"
+                                            placeholder="Search by message content or username..."
+                                            class="form-input pl-10"
                                         >
                                     </div>
                                 </div>
 
                                 <div class="flex-none">
-                                    <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl shadow-sm text-sm">
+                                    <button type="submit" class="btn btn-primary px-5 py-2.5 rounded-lg w-full sm:w-auto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
                                         Search
                                     </button>
                                 </div>
@@ -406,25 +839,58 @@
                 </div>
 
                 <!-- Message management -->
-                <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-pink-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h2 class="text-base sm:text-lg font-semibold text-gray-800">Messages</h2>
+                <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                        {% if search_query %}
+                        <span>Search Results</span>
+                        <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {{ page_obj.paginator.count }}
+                        </span>
+                        {% else %}
+                        <span>Messages</span>
+                        {% endif %}
+                    </h2>
 
                     <!-- Bulk actions -->
                     <form id="bulk-action-form" method="post" action="{% url 'admin_delete_selected_messages' %}" class="flex flex-wrap gap-2">
                         {% csrf_token %}
                         <input type="hidden" name="room_name" value="{{ room.name }}">
-                        <div id="selected-count" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-xs sm:text-sm">
-                            0 selected
+                        <div id="selected-count" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-sm flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <span>0 selected</span>
                         </div>
-                        <button id="bulk-delete-btn" type="submit" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hidden text-xs sm:text-sm" onclick="return confirm('Are you sure you want to delete the selected messages? This action cannot be undone.');">
+
+                        <button id="bulk-delete-btn" type="button" class="px-3 py-1.5 btn btn-danger rounded-lg hidden text-sm flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                             Delete Selected
                         </button>
-                        <button id="select-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm">
+
+                        <button id="select-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm flex items-center hover:bg-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
                             Select All
                         </button>
-                        <button id="deselect-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-xs sm:text-sm">
+
+                        <button id="deselect-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-sm flex items-center hover:bg-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                             Deselect All
                         </button>
+
+                        {% if search_query %}
+                        <a href="{% url 'admin_room_detail' room_name=room.name %}" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm flex items-center hover:bg-blue-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Clear Search
+                        </a>
+                        {% endif %}
                     </form>
                 </div>
 
@@ -434,9 +900,10 @@
                         <thead class="bg-gray-50 text-gray-600">
                             <tr>
                                 <th class="px-6 py-3 text-left w-10">
-                                    <div class="flex items-center">
-                                        <input type="checkbox" id="select-all-checkbox" class="rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select all messages">
-                                    </div>
+                                    <label class="custom-checkbox">
+                                        <input type="checkbox" id="select-all-checkbox">
+                                        <span class="checkmark"></span>
+                                    </label>
                                 </th>
                                 <th class="px-6 py-3 text-left">User</th>
                                 <th class="px-6 py-3 text-left">Message</th>
@@ -446,60 +913,67 @@
                         </thead>
                         <tbody>
                             {% for message in page_obj %}
-                            <tr class="message-row border-b border-gray-100">
+                            <tr class="message-row border-b border-gray-100 hover:bg-gray-50 transition-all">
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center">
-                                        <input type="checkbox" name="message_ids" value="{{ message.id }}" form="bulk-action-form" class="message-checkbox rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4" aria-label="Select message from {{ message.user.username }}">
-                                    </div>
+                                    <label class="custom-checkbox">
+                                        <input type="checkbox" name="message_ids" value="{{ message.id }}" form="bulk-action-form" class="message-checkbox">
+                                        <span class="checkmark"></span>
+                                    </label>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center">
-                                        <div class="h-8 w-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-sm mr-2">
+                                        <div class="h-10 w-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-sm mr-3 shadow-sm">
                                             {{ message.user.username|slice:":1"|upper }}
                                         </div>
                                         <div>
-                                            <div class="font-medium text-gray-700">{{ message.user.username }}</div>
-                                            <div class="text-xs text-gray-400">ID: {{ message.user.id }}</div>
+                                            <div class="font-medium text-gray-800">{{ message.user.username }}</div>
+                                            <div class="text-xs text-gray-500 mt-0.5">ID: {{ message.user.id }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="message-content text-gray-600">{{ message.content|linebreaksbr }}</div>
+                                    <div class="message-content text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{{ message.content|linebreaksbr }}</div>
                                     {% if message.media %}
                                     <div class="mt-2">
-                                        <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <a href="{{ message.media.url }}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline bg-blue-50 px-3 py-1 rounded-lg text-xs">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                             </svg>
-                                            Media Attachment
+                                            View Attachment
                                         </a>
                                     </div>
                                     {% endif %}
                                 </td>
-                                <td class="px-6 py-4 text-center">
-                                    <div class="text-sm text-gray-500">{{ message.timestamp|date:"M d, Y" }}</div>
-                                    <div class="text-xs text-gray-400">{{ message.timestamp|time:"H:i:s" }}</div>
+                                <td class="px-6 py-4 text-center whitespace-nowrap">
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-gray-700">{{ message.timestamp|date:"M d, Y" }}</span>
+                                        <span class="text-xs text-gray-500 mt-0.5">{{ message.timestamp|time:"H:i:s" }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <a href="{% url 'admin_delete_message' message_id=message.id %}" class="text-red-500 hover:text-red-700" aria-label="Delete message from {{ message.user.username }}">
+                                    <button type="button" class="delete-message-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50" data-message-id="{{ message.id }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                    <div class="flex flex-col items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <td colspan="5" class="px-6 py-10">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                                         </svg>
                                         {% if search_query %}
-                                        <p>No messages match your search criteria</p>
-                                        <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-pink-600 hover:underline mt-2">Clear search</a>
+                                        <h3 class="empty-state__title">No messages match your search</h3>
+                                        <p class="empty-state__description">Try different search terms or clear the search</p>
+                                        <a href="{% url 'admin_room_detail' room_name=room.name %}" class="mt-4 btn btn-primary px-4 py-2 rounded-lg inline-block">
+                                            Clear Search
+                                        </a>
                                         {% else %}
-                                        <p>No messages in this room yet</p>
+                                        <h3 class="empty-state__title">No messages in this room yet</h3>
+                                        <p class="empty-state__description">Messages will appear here once users start chatting</p>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -512,57 +986,64 @@
                 <!-- Mobile Messages List (shown only on mobile) -->
                 <div class="sm:hidden px-3 py-2">
                     {% for message in page_obj %}
-                    <div class="mobile-message-card">
-                        <div class="mobile-message-card__header">
+                    <div class="mobile-card mb-3">
+                        <div class="mobile-card__header flex justify-between items-center">
                             <div class="flex items-center">
-                                <input type="checkbox" name="message_ids" value="{{ message.id }}" form="bulk-action-form" class="message-checkbox rounded border-gray-300 text-pink-600 focus:ring-pink-500 h-4 w-4 mr-2" aria-label="Select message from {{ message.user.username }}">
+                                <label class="custom-checkbox mr-2">
+                                    <input type="checkbox" name="message_ids" value="{{ message.id }}" form="bulk-action-form" class="message-checkbox">
+                                    <span class="checkmark"></span>
+                                </label>
                                 <div class="flex items-center">
-                                    <div class="h-6 w-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-xs mr-2 flex-shrink-0">
+                                    <div class="h-8 w-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-sm mr-2 shadow-sm">
                                         {{ message.user.username|slice:":1"|upper }}
                                     </div>
-                                    <div class="truncate max-w-32">
-                                        <div class="font-medium text-gray-700 text-sm truncate">{{ message.user.username }}</div>
+                                    <div class="truncate max-w-[150px]">
+                                        <div class="font-medium text-gray-800 text-sm">{{ message.user.username }}</div>
                                     </div>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-xs text-gray-500">{{ message.timestamp|date:"M d, Y" }}</div>
-                                <div class="text-xs text-gray-400">{{ message.timestamp|time:"H:i:s" }}</div>
+                                <div class="text-xs font-medium text-gray-700">{{ message.timestamp|date:"M d, Y" }}</div>
+                                <div class="text-xs text-gray-500">{{ message.timestamp|time:"H:i" }}</div>
                             </div>
                         </div>
-                        <div class="mobile-message-card__content">
-                            <div class="message-content text-sm text-gray-600">{{ message.content|linebreaksbr }}</div>
+                        <div class="mobile-card__content">
+                            <div class="message-content text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{{ message.content|linebreaksbr }}</div>
                             {% if message.media %}
                             <div class="mt-2">
-                                <a href="{{ message.media.url }}" target="_blank" class="text-blue-500 hover:underline flex items-center text-xs">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <a href="{{ message.media.url }}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-lg text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    Media Attachment
+                                    View Attachment
                                 </a>
                             </div>
                             {% endif %}
                         </div>
-                        <div class="mobile-message-card__footer">
-                            <div class="text-xs text-gray-400">ID: {{ message.user.id }}</div>
-                            <a href="{% url 'admin_delete_message' message_id=message.id %}" class="text-red-500 hover:text-red-700" aria-label="Delete message">
+                        <div class="mobile-card__footer">
+                            <div class="text-xs text-gray-500">ID: {{ message.user.id }}</div>
+                            <button type="button" class="delete-message-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50" data-message-id="{{ message.id }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                            </a>
+                            </button>
                         </div>
                     </div>
                     {% empty %}
-                    <div class="py-6 text-center text-gray-500">
-                        <div class="flex flex-col items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="py-8">
+                        <div class="empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
                             {% if search_query %}
-                            <p class="text-sm">No messages match your search criteria</p>
-                            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-pink-600 hover:underline mt-2 text-sm">Clear search</a>
+                            <h3 class="empty-state__title mt-3 text-base">No messages match your search</h3>
+                            <p class="empty-state__description text-sm">Try different search terms</p>
+                            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="mt-3 btn btn-primary px-4 py-2 rounded-lg inline-block text-sm">
+                                Clear Search
+                            </a>
                             {% else %}
-                            <p class="text-sm">No messages in this room yet</p>
+                            <h3 class="empty-state__title mt-3 text-base">No messages in this room yet</h3>
+                            <p class="empty-state__description text-sm">Messages will appear here once users start chatting</p>
                             {% endif %}
                         </div>
                     </div>
@@ -571,70 +1052,108 @@
             </div>
 
             <!-- Password Protection Tab -->
-            <div id="panel-password" class="tab-panel p-4 sm:p-6">
-                <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" id="password-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="password_action" value="update">
+            <div id="panel-password" class="tab-panel">
+                <div class="p-6">
+                    <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" id="password-form" class="max-w-3xl mx-auto">
+                        {% csrf_token %}
+                        <input type="hidden" name="password_action" value="update">
 
-                    <div class="flex items-center justify-between mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium text-gray-800 text-sm sm:text-base">Enable Password Protection</h3>
-                            <p class="text-xs sm:text-sm text-gray-500">When enabled, users will need to enter a password to access this room</p>
+                        <div class="feature-card p-5 mb-6 border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-lg text-gray-800">Password Protection</h3>
+                                    <p class="text-sm text-gray-500 mt-1">When enabled, users will need to enter a password to access this room</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" name="is_protected" id="is-protected-toggle" {% if is_password_protected %}checked{% endif %}>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
                         </div>
-                        <label class="switch">
-                            <input type="checkbox" name="is_protected" id="is-protected-toggle" {% if is_password_protected %}checked{% endif %}>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
 
-                    <div id="password-section" class="mb-4 sm:mb-6 {% if not is_password_protected %}hidden{% endif %}">
-                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Room Password</label>
-                        <input type="password" id="password" name="password"
-                            class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-xl focus:ring-pink-500 focus:border-pink-500 text-sm"
-                            placeholder="Enter a secure password"
-                            {% if is_password_protected %}required{% endif %}>
-                        <p class="text-xs text-gray-500 mt-1">Leave empty to keep the current password unchanged.</p>
-
-                        <div class="mt-4 flex items-center">
-                            <input type="checkbox" id="show-password" class="rounded border-gray-300 text-pink-600 mr-2">
-                            <label for="show-password" class="text-xs sm:text-sm text-gray-600">Show password</label>
+                        <div id="password-section" class="mb-6 bg-white rounded-xl p-5 border border-gray-200 shadow-sm {% if not is_password_protected %}hidden{% endif %}">
+                            <label for="password" class="form-label text-base">Room Password</label>
+                            <div class="relative">
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    class="form-input pr-10"
+                                    placeholder="Enter a secure password"
+                                    {% if is_password_protected %}required{% endif %}
+                                >
+                                <button
+                                    type="button"
+                                    id="toggle-password-visibility"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">Leave empty to keep the current password unchanged.</p>
                         </div>
-                    </div>
 
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-gray-100 pt-4 sm:pt-6 gap-3">
-                        <div>
-                            <p class="text-xs sm:text-sm text-gray-500">
-                                {% if is_password_protected %}
-                                This room is currently password protected
-                                {% else %}
-                                This room is currently accessible to everyone
-                                {% endif %}
-                            </p>
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-gray-200 pt-6 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">
+                                    {% if is_password_protected %}
+                                    <span class="flex items-center text-purple-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        This room is currently password protected
+                                    </span>
+                                    {% else %}
+                                    <span class="flex items-center text-gray-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                        </svg>
+                                        This room is currently accessible to everyone
+                                    </span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <button type="submit" class="btn btn-primary px-5 py-2.5 rounded-lg shadow-sm">
+                                Save Changes
+                            </button>
                         </div>
-                        <button type="submit" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl shadow-sm text-sm">
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
 
             <!-- Announcements Tab -->
-            <div id="panel-announcements" class="tab-panel p-4 sm:p-6">
+            <div id="panel-announcements" class="tab-panel">
                 <!-- Create New Announcement -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3">Create New Announcement</h3>
-                    <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}">
+                <div class="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                        Create New Announcement
+                    </h3>
+                    <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" class="bg-white rounded-xl p-5 shadow-sm border border-blue-100">
                         {% csrf_token %}
                         <input type="hidden" name="announcement_action" value="create">
                         <div class="mb-4">
-                            <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Announcement Content</label>
-                            <textarea id="content" name="content" rows="3" required
-                                class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                placeholder="Enter your announcement here..."></textarea>
-                            <p class="text-xs text-gray-500 mt-1">This will be displayed to all users in the room.</p>
+                            <label for="content" class="form-label">Announcement Content</label>
+                            <textarea
+                                id="content"
+                                name="content"
+                                rows="3"
+                                required
+                                class="form-textarea"
+                                placeholder="Enter your announcement here..."
+                            ></textarea>
+                            <p class="text-sm text-gray-500 mt-2">This will be displayed to all users in the room.</p>
                         </div>
                         <div class="flex justify-end">
-                            <button type="submit" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-sm text-sm">
+                            <button type="submit" class="btn px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                </svg>
                                 Create Announcement
                             </button>
                         </div>
@@ -642,198 +1161,242 @@
                 </div>
 
                 <!-- Announcements List -->
-                <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3">All Announcements ({{ announcements|length }})</h3>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            All Announcements
+                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {{ announcements|length }}
+                            </span>
+                        </h3>
 
-                <!-- Desktop Announcements Table (hidden on mobile) -->
-                <div class="hidden sm:block overflow-x-auto border border-gray-200 rounded-lg">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 text-gray-600">
-                            <tr>
-                                <th class="px-6 py-3 text-left">Content</th>
-                                <th class="px-6 py-3 text-center">Created By</th>
-                                <th class="px-6 py-3 text-center">Date</th>
-                                <th class="px-6 py-3 text-center">Status</th>
-                                <th class="px-6 py-3 text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for announcement in announcements %}
-                            <tr class="announcement-row border-b border-gray-100">
-                                <td class="px-6 py-4">
-                                    <div class="announcement-content text-gray-600">{{ announcement.content|linebreaksbr }}</div>
-                                </td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap">
-                                    <div class="flex items-center justify-center">
-                                        <div class="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm mr-2">
+                        <div class="text-sm">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {{ active_announcements_count }} Active
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Announcements Table (hidden on mobile) -->
+                    <div class="hidden sm:block">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-gray-600">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left">Content</th>
+                                        <th class="px-6 py-3 text-center w-32">Created By</th>
+                                        <th class="px-6 py-3 text-center w-32">Date</th>
+                                        <th class="px-6 py-3 text-center w-24">Status</th>
+                                        <th class="px-6 py-3 text-center w-24">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for announcement in announcements %}
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-all">
+                                        <td class="px-6 py-4">
+                                            <div class="announcement-content text-gray-700">{{ announcement.content|linebreaksbr }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                                            <div class="flex items-center justify-center">
+                                                <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm mr-2 shadow-sm">
+                                                    {{ announcement.creator.username|slice:":1"|upper }}
+                                                </div>
+                                                <span class="text-gray-700">{{ announcement.creator.username }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-gray-700">{{ announcement.created_at|date:"M d, Y" }}</span>
+                                                <span class="text-xs text-gray-500 mt-0.5">{{ announcement.created_at|time:"H:i" }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <span class="status-badge {% if announcement.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                                {% if announcement.is_active %}
+                                                Active
+                                                {% else %}
+                                                Inactive
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center space-x-3">
+                                                <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" class="inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="announcement_action" value="toggle">
+                                                    <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
+                                                    <button type="submit" class="mobile-touch-target p-2 {% if announcement.is_active %}text-red-500 hover:text-red-700{% else %}text-green-500 hover:text-green-700{% endif %} rounded-full hover:bg-gray-100" title="{% if announcement.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                                        {% if announcement.is_active %}
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        {% else %}
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        {% endif %}
+                                                    </button>
+                                                </form>
+
+                                                <button type="button" class="delete-announcement-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-gray-100" data-announcement-id="{{ announcement.id }}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-10">
+                                            <div class="empty-state">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                                </svg>
+                                                <h3 class="empty-state__title">No announcements have been created yet</h3>
+                                                <p class="empty-state__description">Create your first announcement using the form above</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Announcements Cards (shown only on mobile) -->
+                    <div class="sm:hidden">
+                        {% for announcement in announcements %}
+                        <div class="mobile-card announcement-card mb-3">
+                            <div class="mobile-card__header">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm mr-2 shadow-sm">
                                             {{ announcement.creator.username|slice:":1"|upper }}
                                         </div>
-                                        <span>{{ announcement.creator.username }}</span>
+                                        <span class="text-sm font-medium text-gray-700">{{ announcement.creator.username }}</span>
                                     </div>
-                                </td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap">
-                                    <div class="text-sm text-gray-500">{{ announcement.created_at|date:"M d, Y" }}</div>
-                                    <div class="text-xs text-gray-400">{{ announcement.created_at|time:"H:i:s" }}</div>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="status-badge {% if announcement.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                    <span class="status-badge {% if announcement.is_active %}status-active{% else %}status-inactive{% endif %} text-xs">
                                         {% if announcement.is_active %}
                                         Active
                                         {% else %}
                                         Inactive
                                         {% endif %}
                                     </span>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <div class="flex items-center justify-center space-x-2">
-                                        <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" class="inline">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="announcement_action" value="toggle">
-                                            <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
-                                            <button type="submit" class="text-blue-500 hover:text-blue-700" title="{% if announcement.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    {% if announcement.is_active %}
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    {% else %}
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    {% endif %}
-                                                </svg>
-                                            </button>
-                                        </form>
-
-                                        <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this announcement?');">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="announcement_action" value="delete">
-                                            <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
-                                            <button type="submit" class="text-red-500 hover:text-red-700" title="Delete">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                    <div class="flex flex-col items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                                        </svg>
-                                        <p>No announcements have been created yet</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Mobile Announcements Cards (shown only on mobile) -->
-                <div class="sm:hidden">
-                    {% for announcement in announcements %}
-                    <div class="mobile-announcement-card">
-                        <div class="mobile-announcement-card__header flex justify-between items-center">
-                            <div class="flex items-center">
-                                <div class="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs mr-2">
-                                    {{ announcement.creator.username|slice:":1"|upper }}
                                 </div>
-                                <span class="text-sm truncate max-w-32">{{ announcement.creator.username }}</span>
                             </div>
-                            <span class="status-badge {% if announcement.is_active %}status-active{% else %}status-inactive{% endif %} text-xs">
-                                {% if announcement.is_active %}
-                                Active
-                                {% else %}
-                                Inactive
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="mobile-announcement-card__content">
-                            <div class="announcement-content text-sm text-gray-600">{{ announcement.content|linebreaksbr }}</div>
-                            <div class="text-xs text-gray-500 mt-2">
-                                {{ announcement.created_at|date:"M d, Y" }} at {{ announcement.created_at|time:"H:i:s" }}
+                            <div class="mobile-card__content">
+                                <div class="announcement-content text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{{ announcement.content|linebreaksbr }}</div>
+                                <div class="text-xs text-gray-500 mt-3 flex justify-end">
+                                    {{ announcement.created_at|date:"M d, Y" }} at {{ announcement.created_at|time:"H:i" }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="mobile-announcement-card__footer">
-                            <div></div>
-                            <div class="flex space-x-3">
-                                <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="announcement_action" value="toggle">
-                                    <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
-                                    <button type="submit" class="text-blue-500 hover:text-blue-700" title="{% if announcement.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div class="mobile-card__footer">
+                                <div></div>
+                                <div class="flex space-x-4">
+                                    <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="announcement_action" value="toggle">
+                                        <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
+                                        <button type="submit" class="mobile-touch-target p-2 {% if announcement.is_active %}text-red-500 hover:text-red-700{% else %}text-green-500 hover:text-green-700{% endif %} rounded-full hover:bg-gray-100" title="{% if announcement.is_active %}Deactivate{% else %}Activate{% endif %}">
                                             {% if announcement.is_active %}
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
                                             {% else %}
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
                                             {% endif %}
-                                        </svg>
-                                    </button>
-                                </form>
+                                        </button>
+                                    </form>
 
-                                <form method="post" action="{% url 'admin_room_detail' room_name=room.name %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this announcement?');">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="announcement_action" value="delete">
-                                    <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
-                                    <button type="submit" class="text-red-500 hover:text-red-700" title="Delete">
+                                    <button type="button" class="delete-announcement-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-gray-100" data-announcement-id="{{ announcement.id }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </button>
-                                </form>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {% empty %}
-                    <div class="py-6 text-center text-gray-500">
-                        <div class="flex flex-col items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                            </svg>
-                            <p class="text-sm">No announcements have been created yet</p>
+                        {% empty %}
+                        <div class="py-8">
+                            <div class="empty-state">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                </svg>
+                                <h3 class="empty-state__title mt-3 text-base">No announcements yet</h3>
+                                <p class="empty-state__description text-sm">Create your first announcement using the form above</p>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
 
         <!-- Pagination (only for messages tab) -->
         {% if page_obj.has_other_pages %}
-        <div class="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center tab-panel active" id="pagination-messages">
-            <span class="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-0">
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center" id="pagination-messages">
+            <span class="text-sm text-gray-500 mb-3 sm:mb-0">
                 Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
             </span>
 
-            <div class="mobile-pagination sm:flex sm:space-x-1">
+            <div class="mobile-pagination">
                 {% if page_obj.has_previous %}
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}" class="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm">
-                    Prev
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}" class="flex items-center justify-center px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span class="hidden sm:inline ml-1">Previous</span>
                 </a>
                 {% else %}
-                <span class="px-2 sm:px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed text-xs sm:text-sm">
-                    Prev
+                <span class="flex items-center justify-center px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span class="hidden sm:inline ml-1">Previous</span>
                 </span>
                 {% endif %}
 
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                    <span class="px-2 sm:px-3 py-1 rounded-md bg-pink-500 text-white text-xs sm:text-sm">{{ num }}</span>
-                    {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
-                    <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}" class="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm">
-                        {{ num }}
-                    </a>
-                    {% endif %}
-                {% endfor %}
+                <div class="hidden sm:flex space-x-1">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <span class="flex items-center justify-center w-9 h-9 rounded-md bg-pink-500 text-white font-medium">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}" class="flex items-center justify-center w-9 h-9 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+                            {{ num }}
+                        </a>
+                        {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}" class="flex items-center justify-center w-9 h-9 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+                            {{ num }}
+                        </a>
+                        {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                        <span class="flex items-center justify-center w-9 h-9 text-gray-400">...</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="sm:hidden flex items-center bg-white border border-gray-200 rounded-md px-3 py-1 text-sm text-gray-700">
+                    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </div>
 
                 {% if page_obj.has_next %}
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}" class="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm">
-                    Next
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}" class="flex items-center justify-center px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+                    <span class="hidden sm:inline mr-1">Next</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
                 </a>
                 {% else %}
-                <span class="px-2 sm:px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed text-xs sm:text-sm">
-                    Next
+                <span class="flex items-center justify-center px-3 py-1 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed">
+                    <span class="hidden sm:inline mr-1">Next</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
                 </span>
                 {% endif %}
             </div>
@@ -842,10 +1405,61 @@
     </div>
 </div>
 
+<!-- Toast container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Confirmation modal template (hidden by default) -->
+<div id="confirmation-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4 transform transition-all">
+        <div id="confirmation-icon-container" class="flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-4">
+            <!-- Icon will be set dynamically -->
+        </div>
+        <h3 id="confirmation-title" class="text-xl font-bold text-center text-gray-900 mb-2"><!-- Title will be set dynamically --></h3>
+        <p id="confirmation-message" class="text-center text-gray-500 mb-6"><!-- Message will be set dynamically --></p>
+        <div class="flex justify-center gap-3">
+            <button id="confirmation-cancel" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-all">
+                Cancel
+            </button>
+            <button id="confirmation-confirm" class="px-4 py-2 rounded-lg transition-all">
+                <!-- Label will be set dynamically -->
+            </button>
+        </div>
+    </div>
+</div>
+
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Message selection functionality
+        // ===== Tab functionality =====
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        const paginationPanel = document.getElementById('pagination-messages');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and panels
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanels.forEach(panel => panel.classList.remove('active'));
+
+                // Add active class to current button
+                button.classList.add('active');
+
+                // Get panel id from button id
+                const panelId = button.id.replace('tab-', 'panel-');
+                document.getElementById(panelId).classList.add('active');
+
+                // Show/hide pagination based on active tab
+                if (paginationPanel) {
+                    if (button.id === 'tab-messages') {
+                        paginationPanel.style.display = 'flex';
+                    } else {
+                        paginationPanel.style.display = 'none';
+                    }
+                }
+            });
+        });
+
+        // ===== Message selection functionality =====
         const selectAllCheckbox = document.getElementById('select-all-checkbox');
         const messageCheckboxes = document.querySelectorAll('.message-checkbox');
         const selectAllBtn = document.getElementById('select-all-btn');
@@ -859,15 +1473,47 @@
             const count = checkedBoxes.length;
 
             // Update the count display
-            selectedCount.textContent = count + " selected";
+            if (selectedCount) {
+                const countSpan = selectedCount.querySelector('span');
+                if (countSpan) {
+                    countSpan.textContent = count + " selected";
+                }
+            }
 
             // Show/hide elements based on selection
             if (count > 0) {
-                selectedCount.classList.remove('hidden');
-                bulkDeleteBtn.classList.remove('hidden');
+                if (selectedCount) {
+                    selectedCount.classList.remove('hidden');
+                    selectedCount.classList.add('flex');
+                }
+                if (bulkDeleteBtn) {
+                    bulkDeleteBtn.classList.remove('hidden');
+                    bulkDeleteBtn.classList.add('flex');
+                }
             } else {
-                selectedCount.classList.add('hidden');
-                bulkDeleteBtn.classList.add('hidden');
+                if (selectedCount) {
+                    selectedCount.classList.add('hidden');
+                    selectedCount.classList.remove('flex');
+                }
+                if (bulkDeleteBtn) {
+                    bulkDeleteBtn.classList.add('hidden');
+                    bulkDeleteBtn.classList.remove('flex');
+                }
+            }
+
+            // Toggle select/deselect buttons
+            if (count === messageCheckboxes.length && count > 0) {
+                if (selectAllBtn) selectAllBtn.classList.add('hidden');
+                if (deselectAllBtn) {
+                    deselectAllBtn.classList.remove('hidden');
+                    deselectAllBtn.classList.add('flex');
+                }
+            } else {
+                if (selectAllBtn) selectAllBtn.classList.remove('hidden');
+                if (deselectAllBtn) {
+                    deselectAllBtn.classList.add('hidden');
+                    deselectAllBtn.classList.remove('flex');
+                }
             }
 
             // Update row/card highlighting (desktop and mobile)
@@ -883,7 +1529,7 @@
                 }
 
                 // For mobile
-                const card = checkbox.closest('.mobile-message-card');
+                const card = checkbox.closest('.mobile-card');
                 if (card) {
                     if (checkbox.checked) {
                         card.classList.add('selected');
@@ -910,8 +1556,8 @@
                 updateSelectionUI();
 
                 // Update "select all" checkbox state
-                const allChecked = document.querySelectorAll('.message-checkbox:checked').length === messageCheckboxes.length;
                 if (selectAllCheckbox) {
+                    const allChecked = document.querySelectorAll('.message-checkbox:checked').length === messageCheckboxes.length;
                     selectAllCheckbox.checked = allChecked;
                 }
             });
@@ -928,9 +1574,7 @@
                 }
                 updateSelectionUI();
 
-                // Toggle buttons
-                selectAllBtn.classList.add('hidden');
-                deselectAllBtn.classList.remove('hidden');
+                showToast('All messages selected', 'info');
             });
         }
 
@@ -945,72 +1589,402 @@
                 }
                 updateSelectionUI();
 
-                // Toggle buttons
-                deselectAllBtn.classList.add('hidden');
-                selectAllBtn.classList.remove('hidden');
+                showToast('All messages deselected', 'info');
             });
         }
 
-        // Initialize UI
-        updateSelectionUI();
-
-        // Tab functionality
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabPanels = document.querySelectorAll('.tab-panel');
-        const paginationPanel = document.getElementById('pagination-messages');
-
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active class from all buttons and panels
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabPanels.forEach(panel => panel.classList.remove('active'));
-
-                // Add active class to current button
-                button.classList.add('active');
-
-                // Get panel id from button id
-                const panelId = button.id.replace('tab-', 'panel-');
-                document.getElementById(panelId).classList.add('active');
-
-                // Show/hide pagination based on active tab
-                if (paginationPanel) {
-                    if (button.id === 'tab-messages') {
-                        paginationPanel.classList.add('active');
-                    } else {
-                        paginationPanel.classList.remove('active');
-                    }
-                }
-            });
-        });
-
-        // Password protection toggle
+        // ===== Password protection toggle =====
         const isProtectedToggle = document.getElementById('is-protected-toggle');
         const passwordSection = document.getElementById('password-section');
         const passwordInput = document.getElementById('password');
+        const togglePasswordVisibility = document.getElementById('toggle-password-visibility');
 
         if (isProtectedToggle && passwordSection) {
             isProtectedToggle.addEventListener('change', function() {
                 if (this.checked) {
                     passwordSection.classList.remove('hidden');
-                    passwordInput.setAttribute('required', 'required');
+                    setTimeout(() => {
+                        passwordInput.focus();
+                    }, 100);
                 } else {
                     passwordSection.classList.add('hidden');
-                    passwordInput.removeAttribute('required');
+                    passwordInput.value = '';
                 }
             });
         }
 
         // Show/hide password toggle
-        const showPasswordToggle = document.getElementById('show-password');
-        if (showPasswordToggle && passwordInput) {
-            showPasswordToggle.addEventListener('change', function() {
-                if (this.checked) {
-                    passwordInput.type = 'text';
+        if (togglePasswordVisibility && passwordInput) {
+            togglePasswordVisibility.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                // Change the icon
+                if (type === 'text') {
+                    this.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                    `;
                 } else {
-                    passwordInput.type = 'password';
+                    this.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    `;
                 }
             });
         }
+
+        // ===== Mobile menu functionality =====
+        const mobileActionMenuBtn = document.getElementById('mobile-action-menu-btn');
+        const mobileActionMenu = document.getElementById('mobile-action-menu');
+
+        if (mobileActionMenuBtn && mobileActionMenu) {
+            mobileActionMenuBtn.addEventListener('click', function() {
+                mobileActionMenu.classList.toggle('hidden');
+            });
+
+            // Close the menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!mobileActionMenuBtn.contains(event.target) && !mobileActionMenu.contains(event.target)) {
+                    mobileActionMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        // Map mobile buttons to desktop actions
+        const mobileClearRoomBtn = document.getElementById('mobile-clear-room-btn');
+        const clearRoomBtn = document.getElementById('clear-room-btn');
+
+        if (mobileClearRoomBtn && clearRoomBtn) {
+            mobileClearRoomBtn.addEventListener('click', function() {
+                mobileActionMenu.classList.add('hidden');
+                clearRoomBtn.click();
+            });
+        }
+
+        const mobileDeleteRoomBtn = document.getElementById('mobile-delete-room-btn');
+        const deleteRoomBtn = document.getElementById('delete-room-btn');
+
+        if (mobileDeleteRoomBtn && deleteRoomBtn) {
+            mobileDeleteRoomBtn.addEventListener('click', function() {
+                mobileActionMenu.classList.add('hidden');
+                deleteRoomBtn.click();
+            });
+        }
+
+        // ===== Bulk delete functionality =====
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.addEventListener('click', function() {
+                const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
+                const count = checkedBoxes.length;
+
+                if (count === 0) return;
+
+                // Show confirmation dialog
+                showConfirmationDialog(
+                    'Confirm Bulk Deletion',
+                    `Are you sure you want to delete ${count} selected message(s)? This action cannot be undone.`,
+                    'Delete ' + count + ' Messages',
+                    'danger',
+                    function() {
+                        // Submit the form
+                        document.getElementById('bulk-action-form').submit();
+                    }
+                );
+            });
+        }
+
+        // ===== Individual message delete functionality =====
+        const deleteMessageBtns = document.querySelectorAll('.delete-message-btn');
+
+        deleteMessageBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const messageId = this.getAttribute('data-message-id');
+
+                // Show confirmation dialog
+                showConfirmationDialog(
+                    'Confirm Deletion',
+                    'Are you sure you want to delete this message? This action cannot be undone.',
+                    'Delete Message',
+                    'danger',
+                    function() {
+                        // Create a form and submit it
+                        const form = document.createElement('form');
+                        form.method = 'post';
+                        form.action = `{% url 'admin_delete_message' message_id=0 %}`.replace('0', messageId);
+
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = '{{ csrf_token }}';
+
+                        form.appendChild(csrfInput);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                );
+            });
+        });
+
+        // ===== Delete announcement functionality =====
+        const deleteAnnouncementBtns = document.querySelectorAll('.delete-announcement-btn');
+
+        deleteAnnouncementBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const announcementId = this.getAttribute('data-announcement-id');
+
+                // Show confirmation dialog
+                showConfirmationDialog(
+                    'Confirm Deletion',
+                    'Are you sure you want to delete this announcement? This action cannot be undone.',
+                    'Delete Announcement',
+                    'danger',
+                    function() {
+                        // Create a form and submit it
+                        const form = document.createElement('form');
+                        form.method = 'post';
+                        form.action = `{% url 'admin_room_detail' room_name=room.name %}`;
+
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = '{{ csrf_token }}';
+
+                        const actionInput = document.createElement('input');
+                        actionInput.type = 'hidden';
+                        actionInput.name = 'announcement_action';
+                        actionInput.value = 'delete';
+
+                        const idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.name = 'announcement_id';
+                        idInput.value = announcementId;
+
+                        form.appendChild(csrfInput);
+                        form.appendChild(actionInput);
+                        form.appendChild(idInput);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                );
+            });
+        });
+
+        // ===== Clear room functionality =====
+        if (clearRoomBtn) {
+            clearRoomBtn.addEventListener('click', function() {
+                // Show confirmation dialog
+                showConfirmationDialog(
+                    'Confirm Clear Room',
+                    'Are you sure you want to clear all messages from this room? This action cannot be undone.',
+                    'Clear Messages',
+                    'warning',
+                    function() {
+                        // Redirect to the clear room URL
+                        window.location.href = "{% url 'admin_clear_room' room_name=room.name %}";
+                    }
+                );
+            });
+        }
+
+        // ===== Delete room functionality =====
+        if (deleteRoomBtn) {
+            deleteRoomBtn.addEventListener('click', function() {
+                // Show confirmation dialog
+                showConfirmationDialog(
+                    'Confirm Room Deletion',
+                    'Are you sure you want to delete this room? All messages and data will be permanently lost. This action cannot be undone.',
+                    'Delete Room',
+                    'danger',
+                    function() {
+                        // Redirect to the delete room URL
+                        window.location.href = "{% url 'admin_delete_room' room_name=room.name %}";
+                    }
+                );
+            });
+        }
+
+        // ===== Toast notification function =====
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            let iconSvg;
+            if (type === 'success') {
+                iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+            } else if (type === 'error') {
+                iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+            } else if (type === 'warning') {
+                iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
+            } else {
+                iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+            }
+
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    ${iconSvg}
+                    <span class="ml-2">${message}</span>
+                </div>
+                <button type="button" class="ml-4 text-gray-400 hover:text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+
+            // Add close button functionality
+            toast.querySelector('button').addEventListener('click', function() {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            });
+
+            // Add to container
+            toastContainer.appendChild(toast);
+
+            // Trigger animation after a slight delay
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 5000);
+        }
+
+        // ===== Confirmation dialog function =====
+        function showConfirmationDialog(title, message, confirmLabel, type, confirmCallback) {
+            const modal = document.getElementById('confirmation-modal');
+            const iconContainer = document.getElementById('confirmation-icon-container');
+            const titleElement = document.getElementById('confirmation-title');
+            const messageElement = document.getElementById('confirmation-message');
+            const confirmButton = document.getElementById('confirmation-confirm');
+            const cancelButton = document.getElementById('confirmation-cancel');
+
+            // Set content
+            titleElement.textContent = title;
+            messageElement.textContent = message;
+            confirmButton.textContent = confirmLabel;
+
+            // Style based on type
+            if (type === 'danger') {
+                iconContainer.className = 'flex items-center justify-center bg-red-100 h-16 w-16 rounded-full mx-auto mb-4';
+                confirmButton.className = 'px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all';
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                `;
+            } else if (type === 'warning') {
+                iconContainer.className = 'flex items-center justify-center bg-yellow-100 h-16 w-16 rounded-full mx-auto mb-4';
+                confirmButton.className = 'px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-all';
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                `;
+            } else {
+                iconContainer.className = 'flex items-center justify-center bg-blue-100 h-16 w-16 rounded-full mx-auto mb-4';
+                confirmButton.className = 'px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all';
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                `;
+            }
+
+            // Show modal
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            // Set up cancel button
+            cancelButton.onclick = function() {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            };
+
+            // Set up confirm button
+            confirmButton.onclick = function() {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+                confirmCallback();
+            };
+
+            // Close on ESC key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // Close when clicking outside the modal
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // ===== Keyboard navigation =====
+        document.addEventListener('keydown', function(e) {
+            // Escape key closes any open modals
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('.fixed.inset-0.flex.items-center.justify-center');
+                modals.forEach(modal => {
+                    if (!modal.classList.contains('hidden')) {
+                        modal.classList.add('hidden');
+                        document.body.style.overflow = '';
+                    }
+                });
+
+                // Close mobile menu if open
+                if (mobileActionMenu && !mobileActionMenu.classList.contains('hidden')) {
+                    mobileActionMenu.classList.add('hidden');
+                }
+
+                // Deselect all if there are selections
+                if (deselectAllBtn && !deselectAllBtn.classList.contains('hidden')) {
+                    deselectAllBtn.click();
+                }
+            }
+
+            // Ctrl+A to select all messages (except in input fields)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                if (selectAllBtn && !selectAllBtn.classList.contains('hidden')) {
+                    selectAllBtn.click();
+                }
+            }
+
+            // Delete key for bulk deletion
+            if (e.key === 'Delete' && bulkDeleteBtn && !bulkDeleteBtn.classList.contains('hidden')) {
+                e.preventDefault();
+                bulkDeleteBtn.click();
+            }
+        });
+
+        // Initialize UI
+        updateSelectionUI();
+
+        // Show any Django messages as toasts
+        {% if messages %}
+        {% for message in messages %}
+        showToast('{{ message }}', '{% if message.tags == "error" %}error{% else %}success{% endif %}');
+        {% endfor %}
+        {% endif %}
     });
 </script>
 {% endblock %}

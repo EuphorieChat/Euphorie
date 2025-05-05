@@ -5,40 +5,457 @@
 
 {% block extra_css %}
 <style>
-  .mobile-card {
+  /* Base theme variables for consistent styling */
+  :root {
+    --primary: #ec4899;
+    --primary-light: rgba(236, 72, 153, 0.1);
+    --primary-lighter: rgba(236, 72, 153, 0.05);
+    --primary-dark: #db2777;
+    --gray-dark: #1f2937;
+    --gray-medium: #6b7280;
+    --gray-light: #f3f4f6;
+    --success: #10b981;
+    --success-light: rgba(16, 185, 129, 0.1);
+    --warning: #f59e0b;
+    --warning-light: rgba(245, 158, 11, 0.1);
+    --danger: #ef4444;
+    --danger-light: rgba(239, 68, 68, 0.1);
+    --info: #3b82f6;
+    --info-light: rgba(59, 130, 246, 0.1);
+  }
+
+  /* Base styles and improved animation */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Improved focus states for accessibility */
+  button:focus,
+  a:focus,
+  input:focus,
+  select:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Enhanced card styling */
+  .dashboard-card {
+    background-color: white;
+    border-radius: 1rem;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    transform: translateY(-2px);
+  }
+
+  .dashboard-card__header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--gray-light);
+    background-color: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dashboard-card__title {
+    font-weight: 600;
+    color: var(--gray-dark);
+    font-size: 1.125rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .dashboard-card__title-icon {
+    margin-right: 0.5rem;
+    color: var(--primary);
+  }
+
+  .dashboard-card__body {
+    flex: 1;
+    overflow: auto;
+  }
+
+  .dashboard-card__footer {
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--gray-light);
+    background-color: #f9fafb;
+    font-size: 0.875rem;
+    color: var(--gray-medium);
+  }
+
+  /* Stats card styling */
+  .stat-card {
+    background-color: white;
     border-radius: 0.75rem;
-    border: 1px solid rgba(236, 72, 153, 0.3);
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    border: 1px solid #f0f0f0;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  .stat-card__title {
+    font-size: 0.875rem;
+    color: var(--gray-medium);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .stat-card__icon {
+    margin-right: 0.5rem;
+    color: var(--primary);
+  }
+
+  .stat-card__value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-dark);
+  }
+
+  .stat-card__label {
+    font-size: 0.875rem;
+    color: var(--gray-medium);
+    margin-top: 0.25rem;
+  }
+
+  /* Enhanced mobile card */
+  .user-card {
+    border-radius: 0.75rem;
+    border: 1px solid #f0f0f0;
     background-color: white;
     margin-bottom: 0.75rem;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
   }
 
-  .mobile-card__header {
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+  .user-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .user-card__header {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--gray-light);
     background-color: #f9fafb;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
-  .mobile-card__content {
-    padding: 0.75rem;
+  .user-card__content {
+    padding: 0.875rem 1rem;
+    background-color: white;
   }
 
-  .mobile-card__footer {
-    padding: 0.75rem;
-    border-top: 1px solid rgba(236, 72, 153, 0.1);
+  .user-card__footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--gray-light);
     background-color: #f9fafb;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
-  @media (max-width: 640px) {
-    .table-container {
-      margin: 0 -1rem;
-      width: calc(100% + 2rem);
+  /* Badge styling */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    line-height: 1;
+  }
+
+  .badge-primary {
+    background-color: var(--primary-light);
+    color: var(--primary);
+  }
+
+  .badge-success {
+    background-color: var(--success-light);
+    color: var(--success);
+  }
+
+  /* Enhanced table styling */
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .data-table th {
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    color: var(--gray-dark);
+    white-space: nowrap;
+    border-bottom: 2px solid var(--gray-light);
+  }
+
+  .data-table td {
+    padding: 0.875rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--gray-light);
+  }
+
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table tr:hover td {
+    background-color: var(--primary-lighter);
+  }
+
+  /* Action button styling */
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .action-btn.view {
+    background-color: var(--info-light);
+    color: var(--info);
+  }
+
+  .action-btn.view:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+
+  /* Tooltip for action buttons */
+  .action-btn .tooltip {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #374151;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+  }
+
+  .action-btn .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #374151 transparent transparent transparent;
+  }
+
+  .action-btn:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Search input styling */
+  .search-container {
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+    border: 1px solid var(--gray-light);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-medium);
+  }
+
+  /* Avatar styling */
+  .user-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  /* Empty state styling */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+
+  .empty-state__icon {
+    color: #e5e7eb;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state__title {
+    color: var(--gray-dark);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state__text {
+    color: var(--gray-medium);
+    max-width: 20rem;
+    margin: 0 auto;
+  }
+
+  /* Skeleton loading animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -468px 0;
     }
+    100% {
+      background-position: 468px 0;
+    }
+  }
+
+  .skeleton {
+    background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
+    background-size: 800px 104px;
+    animation: shimmer 1.5s infinite linear;
+    position: relative;
+    border-radius: 0.25rem;
+  }
+
+  /* Activity pulse animation */
+  @keyframes ping {
+    75%, 100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  .activity-ping {
+    position: relative;
+  }
+
+  .activity-ping::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--success);
+    animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    transform-origin: center;
+  }
+
+  .activity-ping::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--success);
+  }
+
+  /* Responsive adaptations */
+  @media (max-width: 640px) {
+    .dashboard-card {
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .dashboard-card__header {
+      padding: 0.75rem 1rem;
+    }
+
+    .dashboard-card__title {
+      font-size: 1rem;
+    }
+
+    .dashboard-card__body {
+      max-height: none;
+    }
+
+    .dashboard-card__footer {
+      padding: 0.625rem 1rem;
+    }
+
+    .user-card {
+      margin-bottom: 0.625rem;
+    }
+
+    .user-card__header,
+    .user-card__content,
+    .user-card__footer {
+      padding: 0.75rem;
+    }
+
+    .stat-card {
+      padding: 1rem;
+    }
+
+    .search-input {
+      font-size: 1rem;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+    }
+  }
+
+  /* Fade-in animation */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
   }
 </style>
 {% endblock %}
@@ -46,229 +463,466 @@
 {% block content %}
 <div class="container mx-auto px-4 py-6">
     <header class="mb-6">
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">User Activity</h1>
-        <p class="text-sm text-gray-500 mt-1">Monitor user activity and moderate messages</p>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">User Activity</h1>
+                <p class="text-sm sm:text-base text-gray-500 mt-1">Monitor user activity and moderate messages across the platform</p>
+            </div>
+
+            <div class="flex gap-3">
+                <a href="{% url 'admin_export_users' %}" class="inline-flex items-center bg-green-100 text-green-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export Users
+                </a>
+
+                <a href="{% url 'admin_user_settings' %}" class="inline-flex items-center bg-blue-100 text-blue-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    User Settings
+                </a>
+            </div>
+        </div>
     </header>
 
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card">
+            <div class="stat-card__title">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 stat-card__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Total Users
+            </div>
+            <div class="stat-card__value">{{ total_users }}</div>
+            <div class="stat-card__label">Registered accounts</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card__title">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 stat-card__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Active Today
+            </div>
+            <div class="stat-card__value">{{ active_today }}</div>
+            <div class="stat-card__label">Unique users in last 24h</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card__title">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 stat-card__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                Total Messages
+            </div>
+            <div class="stat-card__value">{{ total_messages }}</div>
+            <div class="stat-card__label">Messages exchanged</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card__title">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 stat-card__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Active Rooms
+            </div>
+            <div class="stat-card__value">{{ active_rooms }}</div>
+            <div class="stat-card__label">Rooms with recent activity</div>
+        </div>
+    </div>
+
     <!-- Activity Overview -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
         <!-- Last 24 Hours Activity -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100">
-            <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-pink-100">
-                <h2 class="text-base sm:text-lg font-semibold text-gray-800">Active Users (Last 24 Hours)</h2>
+        <div class="dashboard-card animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="dashboard-card__header">
+                <h2 class="dashboard-card__title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dashboard-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Active Users (Last 24 Hours)
+                </h2>
+                <span class="badge badge-primary">{{ day_activity|length }} Users</span>
             </div>
 
             <!-- Desktop view for 24 hour activity -->
-            <div class="hidden sm:block overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th class="px-6 py-3 text-left">Username</th>
-                            <th class="px-6 py-3 text-right">Messages</th>
-                            <th class="px-6 py-3 text-center">View</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        {% for user in day_activity %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 font-medium text-gray-700">{{ user.user__username }}</td>
-                            <td class="px-6 py-4 text-right font-semibold">{{ user.count }}</td>
-                            <td class="px-6 py-4 text-center">
-                                <a href="#" class="text-blue-500 hover:text-blue-700" title="View User Messages" onclick="findUserIdForUsername('{{ user.user__username }}')">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="3" class="px-6 py-4 text-center text-gray-500">No activity in the last 24 hours</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="dashboard-card__body">
+                <div class="hidden sm:block h-full">
+                    <table class="w-full data-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th class="text-right">Messages</th>
+                                <th class="text-center w-16">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in day_activity %}
+                            <tr class="user-row" data-username="{{ user.user__username }}">
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="user-avatar mr-3">
+                                            {{ user.user__username|slice:":1"|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-gray-800">{{ user.user__username }}</div>
+                                            <div class="text-xs text-gray-500">Active today</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-right">
+                                    <span class="font-semibold text-gray-800">{{ user.count }}</span>
+                                    <span class="text-gray-500 text-sm ml-1">msgs</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="#" class="action-btn view mx-auto" title="View User Messages" onclick="findUserIdForUsername('{{ user.user__username }}')">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <span class="tooltip">View Messages</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3">
+                                    <div class="empty-state py-8">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <h3 class="empty-state__title">No Recent Activity</h3>
+                                        <p class="empty-state__text text-sm">There has been no user activity in the last 24 hours.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile view for 24 hour activity -->
+                <div class="sm:hidden px-3 py-2">
+                    {% for user in day_activity %}
+                    <div class="user-card">
+                        <div class="user-card__header">
+                            <div class="flex items-center">
+                                <div class="user-avatar mr-2 activity-ping">
+                                    {{ user.user__username|slice:":1"|upper }}
+                                </div>
+                                <span class="font-medium text-gray-800 truncate max-w-40">{{ user.user__username }}</span>
+                            </div>
+                            <span class="badge badge-success">Active Today</span>
+                        </div>
+                        <div class="user-card__footer">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                </svg>
+                                <span class="font-semibold text-gray-800">{{ user.count }}</span>
+                                <span class="text-gray-500 text-sm ml-1">messages</span>
+                            </div>
+                            <a href="#" class="action-btn view" onclick="findUserIdForUsername('{{ user.user__username }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state py-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="empty-state__title text-base">No Recent Activity</h3>
+                        <p class="empty-state__text text-xs">There has been no user activity in the last 24 hours.</p>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
 
-            <!-- Mobile view for 24 hour activity -->
-            <div class="sm:hidden px-4 py-2">
-                {% for user in day_activity %}
-                <div class="mobile-card">
-                    <div class="mobile-card__header flex justify-between items-center">
-                        <span class="font-medium text-gray-700 truncate max-w-40">{{ user.user__username }}</span>
-                        <span class="font-semibold text-sm">{{ user.count }} msgs</span>
-                    </div>
-                    <div class="mobile-card__footer bg-gray-50 py-2">
-                        <span></span>
-                        <a href="#" class="text-blue-500 hover:text-blue-700" title="View User Messages" onclick="findUserIdForUsername('{{ user.user__username }}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="py-4 text-center text-gray-500 text-sm">
-                    No activity in the last 24 hours
-                </div>
-                {% endfor %}
+            {% if day_activity %}
+            <div class="dashboard-card__footer text-center">
+                Showing the {{ day_activity|length }} most active users in the last 24 hours
             </div>
+            {% endif %}
         </div>
 
         <!-- Last Week Activity -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100">
-            <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-pink-100">
-                <h2 class="text-base sm:text-lg font-semibold text-gray-800">Active Users (Last Week)</h2>
+        <div class="dashboard-card animate-fade-in" style="animation-delay: 0.2s;">
+            <div class="dashboard-card__header">
+                <h2 class="dashboard-card__title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dashboard-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Active Users (Last Week)
+                </h2>
+                <span class="badge badge-primary">{{ week_activity|length }} Users</span>
             </div>
 
             <!-- Desktop view for weekly activity -->
-            <div class="hidden sm:block overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th class="px-6 py-3 text-left">Username</th>
-                            <th class="px-6 py-3 text-right">Messages</th>
-                            <th class="px-6 py-3 text-center">View</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        {% for user in week_activity %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 font-medium text-gray-700">{{ user.user__username }}</td>
-                            <td class="px-6 py-4 text-right font-semibold">{{ user.count }}</td>
-                            <td class="px-6 py-4 text-center">
-                                <a href="#" class="text-blue-500 hover:text-blue-700" title="View User Messages" onclick="findUserIdForUsername('{{ user.user__username }}')">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="3" class="px-6 py-4 text-center text-gray-500">No activity in the last week</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="dashboard-card__body">
+                <div class="hidden sm:block h-full">
+                    <table class="w-full data-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th class="text-right">Messages</th>
+                                <th class="text-center w-16">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in week_activity %}
+                            <tr class="user-row" data-username="{{ user.user__username }}">
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="user-avatar mr-3">
+                                            {{ user.user__username|slice:":1"|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-gray-800">{{ user.user__username }}</div>
+                                            <div class="text-xs text-gray-500">Active this week</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-right">
+                                    <span class="font-semibold text-gray-800">{{ user.count }}</span>
+                                    <span class="text-gray-500 text-sm ml-1">msgs</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="#" class="action-btn view mx-auto" title="View User Messages" onclick="findUserIdForUsername('{{ user.user__username }}')">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <span class="tooltip">View Messages</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3">
+                                    <div class="empty-state py-8">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <h3 class="empty-state__title">No Weekly Activity</h3>
+                                        <p class="empty-state__text text-sm">There has been no user activity in the last week.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile view for weekly activity -->
+                <div class="sm:hidden px-3 py-2">
+                    {% for user in week_activity %}
+                    <div class="user-card">
+                        <div class="user-card__header">
+                            <div class="flex items-center">
+                                <div class="user-avatar mr-2">
+                                    {{ user.user__username|slice:":1"|upper }}
+                                </div>
+                                <span class="font-medium text-gray-800 truncate max-w-40">{{ user.user__username }}</span>
+                            </div>
+                            <span class="badge badge-primary">Weekly</span>
+                        </div>
+                        <div class="user-card__footer">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                </svg>
+                                <span class="font-semibold text-gray-800">{{ user.count }}</span>
+                                <span class="text-gray-500 text-sm ml-1">messages</span>
+                            </div>
+                            <a href="#" class="action-btn view" onclick="findUserIdForUsername('{{ user.user__username }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state py-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <h3 class="empty-state__title text-base">No Weekly Activity</h3>
+                        <p class="empty-state__text text-xs">There has been no user activity in the last week.</p>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
 
-            <!-- Mobile view for weekly activity -->
-            <div class="sm:hidden px-4 py-2">
-                {% for user in week_activity %}
-                <div class="mobile-card">
-                    <div class="mobile-card__header flex justify-between items-center">
-                        <span class="font-medium text-gray-700 truncate max-w-40">{{ user.user__username }}</span>
-                        <span class="font-semibold text-sm">{{ user.count }} msgs</span>
-                    </div>
-                    <div class="mobile-card__footer bg-gray-50 py-2">
-                        <span></span>
-                        <a href="#" class="text-blue-500 hover:text-blue-700" title="View User Messages" onclick="findUserIdForUsername('{{ user.user__username }}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="py-4 text-center text-gray-500 text-sm">
-                    No activity in the last week
-                </div>
-                {% endfor %}
+            {% if week_activity %}
+            <div class="dashboard-card__footer text-center">
+                Showing the {{ week_activity|length }} most active users in the last 7 days
             </div>
+            {% endif %}
         </div>
     </div>
 
     <!-- All Users Table -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-6">
-        <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-pink-100">
-            <h2 class="text-base sm:text-lg font-semibold text-gray-800">All Users by Activity</h2>
+    <div class="dashboard-card animate-fade-in" style="animation-delay: 0.3s;">
+        <div class="dashboard-card__header">
+            <h2 class="dashboard-card__title">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dashboard-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                All Users by Activity
+            </h2>
+            <span class="badge badge-primary">{{ active_users|length }} Users</span>
         </div>
 
         <!-- Search and Filters -->
-        <div class="p-3 sm:p-4 border-b border-gray-100 bg-gray-50">
+        <div class="p-4 border-b border-gray-100 bg-gray-50">
             <div class="flex flex-col sm:flex-row gap-4">
-                <div class="flex-1">
-                    <label for="user-search" class="sr-only">Search Users</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                        <input
-                            type="search"
-                            id="user-search"
-                            placeholder="Search for users..."
-                            class="pl-10 pr-4 py-2 text-sm block w-full border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 focus:outline-none"
-                        >
+                <div class="flex-1 search-container">
+                    <div class="search-icon">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
                     </div>
+                    <input
+                        type="search"
+                        id="user-search"
+                        placeholder="Search by username or user ID..."
+                        class="search-input"
+                    >
+                </div>
+
+                <div class="sm:w-48">
+                    <select id="activity-filter" class="search-input !pl-3">
+                        <option value="all">All Users</option>
+                        <option value="active">Active Users</option>
+                        <option value="inactive">Inactive Users</option>
+                    </select>
                 </div>
             </div>
         </div>
 
-        <!-- Desktop view for all users -->
-        <div class="hidden sm:block overflow-x-auto">
-            <table class="w-full text-sm" id="users-table">
-                <thead class="bg-gray-50 text-gray-600">
-                    <tr>
-                        <th class="px-6 py-3 text-left">Username</th>
-                        <th class="px-6 py-3 text-left">User ID</th>
-                        <th class="px-6 py-3 text-right">Total Messages</th>
-                        <th class="px-6 py-3 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% for user in active_users %}
-                    <tr class="hover:bg-gray-50 user-row" data-username="{{ user.user__username }}" data-user-id="{{ user.user__id }}">
-                        <td class="px-6 py-4 font-medium text-gray-700">{{ user.user__username }}</td>
-                        <td class="px-6 py-4 text-gray-500">{{ user.user__id }}</td>
-                        <td class="px-6 py-4 text-right font-semibold">{{ user.messages_count }}</td>
-                        <td class="px-6 py-4">
-                            <div class="flex justify-center space-x-3">
-                                <a href="{% url 'admin_user_messages' user_id=user.user__id %}" class="text-blue-500 hover:text-blue-700" title="View Messages">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        <div class="dashboard-card__body">
+            <!-- Desktop view for all users -->
+            <div class="hidden sm:block h-full">
+                <table class="w-full data-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>User ID</th>
+                            <th>Last Active</th>
+                            <th class="text-right">Total Messages</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in active_users %}
+                        <tr class="user-row" data-username="{{ user.user__username }}" data-user-id="{{ user.user__id }}">
+                            <td>
+                                <div class="flex items-center">
+                                    <div class="user-avatar mr-3">
+                                        {{ user.user__username|slice:":1"|upper }}
+                                    </div>
+                                    <div class="font-medium text-gray-800">{{ user.user__username }}</div>
+                                </div>
+                            </td>
+                            <td class="text-gray-500">{{ user.user__id }}</td>
+                            <td>
+                                <span class="text-sm text-gray-500">{{ user.last_activity|date:"M d, Y" }}</span>
+                            </td>
+                            <td class="text-right">
+                                <span class="font-semibold text-gray-800">{{ user.messages_count }}</span>
+                            </td>
+                            <td>
+                                <div class="flex justify-center gap-2">
+                                    <a href="{% url 'admin_user_messages' user_id=user.user__id %}" class="action-btn view" title="View Messages">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                        </svg>
+                                        <span class="tooltip">View Messages</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state py-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
-                                </a>
+                                    <h3 class="empty-state__title text-lg mt-3">No User Activity Found</h3>
+                                    <p class="empty-state__text">There are no active users in the system yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile view for all users -->
+            <div class="sm:hidden px-3 py-2">
+                {% for user in active_users %}
+                <div class="user-card user-row" data-username="{{ user.user__username }}" data-user-id="{{ user.user__id }}">
+                    <div class="user-card__header">
+                        <div class="flex items-center">
+                            <div class="user-avatar mr-2">
+                                {{ user.user__username|slice:":1"|upper }}
                             </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">No user activity found</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            <span class="font-medium text-gray-800 truncate max-w-40">{{ user.user__username }}</span>
+                        </div>
+                        <span class="text-xs text-gray-500">ID: {{ user.user__id }}</span>
+                    </div>
+                    <div class="user-card__content py-2">
+                        <div class="flex justify-between">
+                            <div class="text-sm text-gray-500">
+                                <span class="font-medium">Last active:</span> {{ user.last_activity|date:"M d, Y" }}
+                            </div>
+                            <div class="text-sm font-medium">
+                                {{ user.messages_count }} messages
+                            </div>
+                        </div>
+                    </div>
+                    <div class="user-card__footer">
+                        <span class="text-xs text-gray-500">Joined: {{ user.joined_date|date:"M d, Y" }}</span>
+                        <a href="{% url 'admin_user_messages' user_id=user.user__id %}" class="action-btn view">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state py-8">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <h3 class="empty-state__title text-base mt-3">No User Activity</h3>
+                    <p class="empty-state__text text-xs">There are no active users in the system yet.</p>
+                </div>
+                {% endfor %}
+            </div>
         </div>
 
-        <!-- Mobile view for all users -->
-        <div class="sm:hidden px-4 py-2">
-            {% for user in active_users %}
-            <div class="mobile-card user-row" data-username="{{ user.user__username }}" data-user-id="{{ user.user__id }}">
-                <div class="mobile-card__header flex justify-between items-center">
-                    <span class="font-medium text-gray-700 truncate max-w-40">{{ user.user__username }}</span>
-                    <span class="text-xs text-gray-500">ID: {{ user.user__id }}</span>
+        <div class="dashboard-card__footer">
+            <div class="flex justify-between items-center text-sm">
+                <div>
+                    <span id="filtered-count">{{ active_users|length }}</span> users found
                 </div>
-                <div class="mobile-card__footer">
-                    <span class="font-semibold text-sm">{{ user.messages_count }} messages</span>
-                    <a href="{% url 'admin_user_messages' user_id=user.user__id %}" class="text-blue-500 hover:text-blue-700" title="View Messages">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                        </svg>
+                <div>
+                    <a href="{% url 'admin_export_users' %}" class="text-blue-600 hover:text-blue-800 font-medium">
+                        Export All Users Data
                     </a>
                 </div>
             </div>
-            {% empty %}
-            <div class="py-4 text-center text-gray-500 text-sm">
-                No user activity found
-            </div>
-            {% endfor %}
         </div>
     </div>
 </div>
@@ -277,7 +931,17 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const userSearch = document.getElementById('user-search');
+        const activityFilter = document.getElementById('activity-filter');
         const userRows = document.querySelectorAll('.user-row');
+        const filteredCount = document.getElementById('filtered-count');
+
+        // Function to update the filtered users count
+        function updateFilteredCount() {
+            const visibleRows = document.querySelectorAll('.user-row:not(.hidden)').length;
+            if (filteredCount) {
+                filteredCount.textContent = visibleRows;
+            }
+        }
 
         // Filter users based on search input
         if (userSearch) {
@@ -288,14 +952,71 @@
                     const username = row.getAttribute('data-username').toLowerCase();
                     const userId = row.getAttribute('data-user-id');
 
-                    if (username.includes(searchValue) || userId.includes(searchValue)) {
+                    // Also consider activity filter
+                    const activityValue = activityFilter ? activityFilter.value : 'all';
+                    const isActive = row.classList.contains('active-user');
+
+                    let shouldShow = username.includes(searchValue) || userId.includes(searchValue);
+
+                    if (activityValue !== 'all') {
+                        shouldShow = shouldShow &&
+                            ((activityValue === 'active' && isActive) ||
+                            (activityValue === 'inactive' && !isActive));
+                    }
+
+                    if (shouldShow) {
                         row.classList.remove('hidden');
                     } else {
                         row.classList.add('hidden');
                     }
                 });
+
+                updateFilteredCount();
             });
         }
+
+        // Filter by activity status
+        if (activityFilter) {
+            activityFilter.addEventListener('change', function() {
+                const value = this.value;
+                const searchValue = userSearch ? userSearch.value.toLowerCase() : '';
+
+                userRows.forEach(row => {
+                    const username = row.getAttribute('data-username').toLowerCase();
+                    const userId = row.getAttribute('data-user-id');
+                    const isActive = row.classList.contains('active-user');
+
+                    let shouldShow = username.includes(searchValue) || userId.includes(searchValue);
+
+                    if (value !== 'all') {
+                        shouldShow = shouldShow &&
+                            ((value === 'active' && isActive) ||
+                            (value === 'inactive' && !isActive));
+                    }
+
+                    if (shouldShow) {
+                        row.classList.remove('hidden');
+                    } else {
+                        row.classList.add('hidden');
+                    }
+                });
+
+                updateFilteredCount();
+            });
+        }
+
+        // Add active class to users that were active in the last 24 hours
+        const dayUsernames = [];
+        {% for user in day_activity %}
+        dayUsernames.push("{{ user.user__username }}");
+        {% endfor %}
+
+        userRows.forEach(row => {
+            const username = row.getAttribute('data-username');
+            if (dayUsernames.includes(username)) {
+                row.classList.add('active-user');
+            }
+        });
     });
 
     // Function to find user ID from username and redirect
@@ -307,6 +1028,59 @@
                 window.location.href = `/admin/user-messages/${userId}/`;
             }
         }
+    }
+
+    // Sort tables on header click
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableHeaders = document.querySelectorAll('.data-table th');
+
+        tableHeaders.forEach((header, index) => {
+            // Skip the action column
+            if (!header.classList.contains('no-sort')) {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', function() {
+                    sortTable(index, this.closest('table'));
+                });
+            }
+        });
+    });
+
+    // Table sorting function
+    function sortTable(columnIndex, table) {
+        const rows = Array.from(table.querySelectorAll('tbody tr'));
+        const isNumeric = columnIndex === 3; // Assuming column index 3 is Total Messages
+        const direction = table.getAttribute('data-sort-direction') === 'asc' ? 'desc' : 'asc';
+
+        rows.sort((a, b) => {
+            const cellA = a.querySelectorAll('td')[columnIndex].innerText.trim();
+            const cellB = b.querySelectorAll('td')[columnIndex].innerText.trim();
+
+            if (isNumeric) {
+                // Extract numeric value
+                const numA = parseInt(cellA.replace(/\D/g, ''));
+                const numB = parseInt(cellB.replace(/\D/g, ''));
+
+                return direction === 'asc' ? numA - numB : numB - numA;
+            } else {
+                return direction === 'asc'
+                    ? cellA.localeCompare(cellB)
+                    : cellB.localeCompare(cellA);
+            }
+        });
+
+        // Update table
+        const tbody = table.querySelector('tbody');
+        rows.forEach(row => tbody.appendChild(row));
+
+        // Set sort direction for next click
+        table.setAttribute('data-sort-direction', direction);
+
+        // Update header styling (optional)
+        table.querySelectorAll('th').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+        });
+
+        table.querySelectorAll('th')[columnIndex].classList.add(`sort-${direction}`);
     }
 </script>
 {% endblock %}

@@ -1,94 +1,271 @@
 {% extends "chat/manage/base.html" %}
 {% load static %}
 
-{% block title %}Admin Dashboard - Euphorie{% endblock %}
+{% block title %}Admin Dashboard - Euphorie Admin{% endblock %}
 
 {% block extra_css %}
 <style>
-  @media (max-width: 640px) {
+  /* Common styles for all devices */
+  .stat-card {
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  }
+
+  .card-value {
+    font-size: 2rem;
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .section-card {
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, #ec4899, #f97316);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .section-card:hover::before {
+    opacity: 1;
+  }
+
+  .action-link, .action-button {
+    min-height: 44px;
+    touch-action: manipulation;
+    transition: all 0.2s ease;
+  }
+
+  .action-link:active, .action-button:active {
+    transform: scale(0.98);
+  }
+
+  .action-link.quick-action {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .action-link.quick-action::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: -1;
+  }
+
+  .action-link.quick-action:hover::after {
+    transform: translateX(0);
+  }
+
+  .message-content {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .scroll-indicator {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    height: 24px;
+    width: 24px;
+    background-color: rgba(236, 72, 153, 0.1);
+    color: #ec4899;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 0.9; }
+    100% { opacity: 0.5; }
+  }
+
+  /* Custom scrollbar for better UX */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(236, 72, 153, 0.3);
+    border-radius: 20px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(236, 72, 153, 0.5);
+  }
+
+  /* Responsive breakpoints with better handling */
+  @media (max-width: 767px) {
     .card-value {
       font-size: 1.5rem;
     }
 
-    .mobile-full {
-      width: 100%;
+    .mobile-hidden {
+      display: none;
+    }
+  }
+
+  /* Tablet and small laptop specific styles */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .card-value {
+      font-size: 1.75rem;
     }
 
-    .mobile-scroll {
-      overflow-x: auto;
-    }
-
-    .mobile-card {
-      padding: 0.75rem;
-    }
-
-    .mobile-text-sm {
-      font-size: 0.875rem;
-    }
-
-    .mobile-text-xs {
-      font-size: 0.75rem;
+    .tablet-hidden {
+      display: none;
     }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-    <h1 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Admin Dashboard</h1>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
-        <div class="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-pink-100">
-            <h3 class="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Total Rooms</h3>
-            <div class="text-2xl sm:text-3xl font-bold text-pink-600 card-value">{{ total_rooms }}</div>
+<div class="container mx-auto px-4 py-6">
+    <!-- Header with stats summary -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+            <h1 class="text-xl md:text-2xl font-bold text-gray-800 mb-1">Admin Dashboard</h1>
+            <p class="text-sm text-gray-500">Welcome back! Here's what's happening in your chat rooms.</p>
         </div>
-
-        <div class="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-pink-100">
-            <h3 class="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Total Messages</h3>
-            <div class="text-2xl sm:text-3xl font-bold text-pink-600 card-value">{{ total_messages }}</div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-pink-100">
-            <h3 class="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Total Users</h3>
-            <div class="text-2xl sm:text-3xl font-bold text-pink-600 card-value">{{ total_users }}</div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-pink-100">
-            <h3 class="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Messages (24h)</h3>
-            <div class="text-2xl sm:text-3xl font-bold text-pink-600 card-value">{{ messages_24h }}</div>
+        <div class="mt-4 md:mt-0">
+            <span class="text-xs md:text-sm bg-pink-50 text-pink-600 px-2 py-1 rounded-full">
+                <span class="font-medium">{{ messages_24h }}</span> new messages today
+            </span>
         </div>
     </div>
 
-    <!-- Activity Overview -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-8">
+    <!-- Stats Cards - with enhanced visuals -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5 mb-8">
+        <div class="stat-card bg-white rounded-xl shadow-sm p-4 border border-pink-100 relative">
+            <div class="absolute top-0 right-0 w-16 h-16 opacity-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-500 mb-1">Total Rooms</h3>
+            <div class="card-value font-bold">{{ total_rooms }}</div>
+            <div class="text-xs text-gray-400 mt-1">Active chat spaces</div>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl shadow-sm p-4 border border-pink-100 relative">
+            <div class="absolute top-0 right-0 w-16 h-16 opacity-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-500 mb-1">Total Messages</h3>
+            <div class="card-value font-bold">{{ total_messages }}</div>
+            <div class="text-xs text-gray-400 mt-1">All-time conversations</div>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl shadow-sm p-4 border border-pink-100 relative">
+            <div class="absolute top-0 right-0 w-16 h-16 opacity-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-500 mb-1">Total Users</h3>
+            <div class="card-value font-bold">{{ total_users }}</div>
+            <div class="text-xs text-gray-400 mt-1">Registered members</div>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl shadow-sm p-4 border border-pink-100 relative">
+            <div class="absolute top-0 right-0 w-16 h-16 opacity-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-500 mb-1">Messages (24h)</h3>
+            <div class="card-value font-bold">{{ messages_24h }}</div>
+            <div class="text-xs text-gray-400 mt-1">Recent activity</div>
+        </div>
+    </div>
+
+    <!-- Activity Overview - with tabs for better organization -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
         <!-- Most Active Rooms -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100">
-            <div class="px-3 sm:px-6 py-3 sm:py-4 border-b border-pink-100">
-                <h2 class="text-base sm:text-lg font-semibold text-gray-800">Most Active Rooms</h2>
+        <div class="section-card bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100">
+            <div class="px-4 md:px-6 py-4 flex justify-between items-center border-b border-pink-100">
+                <h2 class="text-base md:text-lg font-semibold text-gray-800 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    Most Active Rooms
+                </h2>
+                <div class="flex text-xs text-gray-500">
+                    <button class="tab-button px-2 py-1 rounded focus:outline-none" data-tab="rooms-table">Table</button>
+                    <button class="tab-button px-2 py-1 rounded ml-1 focus:outline-none" data-tab="rooms-cards">Cards</button>
+                </div>
             </div>
 
-            <!-- Mobile view (cards) -->
-            <div class="block sm:hidden">
+            <!-- Rooms in cards view -->
+            <div id="rooms-cards" class="tab-content active py-1">
                 <div class="divide-y divide-gray-100">
                     {% for room in rooms %}
-                    <div class="px-3 py-3 hover:bg-gray-50">
+                    <div class="px-4 py-3 hover:bg-gray-50 transition-colors">
                         <div class="flex justify-between items-center mb-1">
-                            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="font-medium text-pink-600 hover:underline text-sm">
-                                {% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}
+                            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="font-medium text-pink-600 hover:underline action-link flex items-center">
+                                <span class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-sm mr-2">
+                                    {{ room.name|slice:":1"|upper }}
+                                </span>
+                                <span>{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}</span>
                             </a>
-                            <span class="font-semibold text-xs">{{ room.messages_count }} msgs</span>
+                            <span class="bg-pink-50 text-pink-600 text-xs font-medium px-2 py-0.5 rounded-full">{{ room.messages_count }}</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-500">Created by: {{ room.creator.username }}</span>
+                            <span class="text-xs text-gray-500 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {{ room.creator.username }}
+                            </span>
                             <div class="flex space-x-2">
-                                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-blue-500 hover:text-blue-700" title="View Room">
+                                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-blue-500 hover:text-blue-700 p-1 action-link rounded-full hover:bg-blue-50 transition-colors" title="View Room">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
                                 </a>
-                                <a href="{% url 'admin_clear_room' room_name=room.name %}" class="text-yellow-500 hover:text-yellow-700" title="Clear Messages">
+                                <a href="{% url 'admin_clear_room' room_name=room.name %}" class="text-yellow-500 hover:text-yellow-700 p-1 action-link rounded-full hover:bg-yellow-50 transition-colors" title="Clear Messages">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -97,42 +274,53 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="px-3 py-4 text-center text-gray-500 text-sm">No rooms found</div>
+                    <div class="px-4 py-6 text-center text-gray-500 flex flex-col items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <p>No rooms found</p>
+                        <a href="{% url 'create_room' %}" class="text-pink-600 hover:text-pink-800 text-sm font-medium mt-1">+ Create New Room</a>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Desktop view (table) -->
-            <div class="hidden sm:block overflow-x-auto">
+            <!-- Rooms in table view -->
+            <div id="rooms-table" class="tab-content overflow-x-auto custom-scrollbar">
                 <table class="w-full text-sm">
                     <thead class="bg-gray-50 text-gray-600">
                         <tr>
-                            <th class="px-6 py-3 text-left">Room Name</th>
-                            <th class="px-6 py-3 text-center">Creator</th>
-                            <th class="px-6 py-3 text-right">Messages</th>
-                            <th class="px-6 py-3 text-center">Actions</th>
+                            <th class="px-4 py-3 text-left">Room Name</th>
+                            <th class="px-4 py-3 text-center">Creator</th>
+                            <th class="px-4 py-3 text-right">Messages</th>
+                            <th class="px-4 py-3 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         {% for room in rooms %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4">
-                                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="font-medium text-pink-600 hover:underline">
-                                    {% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3">
+                                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="font-medium text-pink-600 hover:underline action-link flex items-center">
+                                    <span class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-xs mr-2">
+                                        {{ room.name|slice:":1"|upper }}
+                                    </span>
+                                    <span>{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}</span>
                                 </a>
                             </td>
-                            <td class="px-6 py-4 text-center text-gray-500">{{ room.creator.username }}</td>
-                            <td class="px-6 py-4 text-right font-semibold">{{ room.messages_count }}</td>
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-4 py-3 text-center text-gray-500 text-xs">{{ room.creator.username }}</td>
+                            <td class="px-4 py-3 text-right font-medium">
+                                <span class="bg-pink-50 text-pink-600 text-xs px-2 py-0.5 rounded-full">{{ room.messages_count }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
                                 <div class="flex justify-center space-x-2">
-                                    <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-blue-500 hover:text-blue-700" title="View Room">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-blue-500 hover:text-blue-700 p-1 action-link rounded-full hover:bg-blue-50 transition-colors" title="View Room">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
                                     </a>
-                                    <a href="{% url 'admin_clear_room' room_name=room.name %}" class="text-yellow-500 hover:text-yellow-700" title="Clear Messages">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <a href="{% url 'admin_clear_room' room_name=room.name %}" class="text-yellow-500 hover:text-yellow-700 p-1 action-link rounded-full hover:bg-yellow-50 transition-colors" title="Clear Messages">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </a>
@@ -141,79 +329,251 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">No rooms found</td>
+                            <td colspan="4" class="px-4 py-6 text-center text-gray-500">
+                                <div class="flex flex-col items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                    <p>No rooms found</p>
+                                    <a href="{% url 'create_room' %}" class="text-pink-600 hover:text-pink-800 text-sm font-medium mt-1">+ Create New Room</a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50 border-t border-gray-100">
-                <a href="{% url 'admin_rooms' %}" class="text-pink-600 hover:text-pink-800 text-sm font-medium">View All Rooms →</a>
+            <div class="px-4 md:px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                <a href="{% url 'admin_rooms' %}" class="text-pink-600 hover:text-pink-800 font-medium text-sm flex items-center action-link">
+                    <span>View All Rooms</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
+                <span class="text-xs text-gray-400">{{ rooms|length }} of {{ total_rooms }} rooms</span>
             </div>
         </div>
 
         <!-- Recent Messages -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100">
-            <div class="px-3 sm:px-6 py-3 sm:py-4 border-b border-pink-100">
-                <h2 class="text-base sm:text-lg font-semibold text-gray-800">Recent Messages</h2>
+        <div class="section-card bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 relative">
+            <div class="px-4 md:px-6 py-4 border-b border-pink-100 flex justify-between items-center">
+                <h2 class="text-base md:text-lg font-semibold text-gray-800 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Recent Messages
+                </h2>
+                <div class="text-xs text-gray-500">
+                    Last 24 hours
+                </div>
             </div>
-            <div class="overflow-y-auto max-h-[350px] sm:max-h-[450px]">
+            <div class="overflow-y-auto custom-scrollbar max-h-[350px] relative">
                 <div class="divide-y divide-gray-100">
                     {% for message in recent_messages %}
-                    <div class="px-3 sm:px-6 py-2 sm:py-3 hover:bg-gray-50">
-                        <div class="flex items-center justify-between mb-1">
-                            <div class="flex items-center flex-wrap">
-                                <span class="font-semibold text-xs sm:text-sm text-pink-600">{{ message.user.username }}</span>
-                                <span class="mx-1 sm:mx-2 text-gray-300">•</span>
-                                <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-xs sm:text-sm text-blue-500 hover:underline">
-                                    {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
+                    <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center">
+                                <div class="w-7 h-7 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-xs mr-2">
+                                    {{ message.user.username|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <span class="font-medium text-gray-800 text-sm">{{ message.user.username }}</span>
+                                    <span class="mx-1.5 text-gray-300">•</span>
+                                    <a href="{% url 'admin_room_detail' room_name=message.room.name %}" class="text-xs text-blue-500 hover:underline action-link">
+                                        {% if message.room.display_name %}{{ message.room.display_name }}{% else %}{{ message.room.name }}{% endif %}
+                                    </a>
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-400 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {{ message.timestamp|date:"M d, H:i" }}
+                            </span>
+                        </div>
+                        <div class="pl-9">
+                            <p class="text-sm text-gray-600 message-content">{{ message.content|striptags }}</p>
+
+                            {% if message.media %}
+                            <div class="mt-1">
+                                <a href="{{ message.media.url }}" target="_blank" class="inline-flex items-center text-xs text-blue-500 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    Media
                                 </a>
                             </div>
-                            <span class="text-xs text-gray-400 ml-1">{{ message.timestamp|date:"M d, H:i" }}</span>
-                        </div>
-                        <p class="text-xs sm:text-sm text-gray-600 truncate">{{ message.content|striptags }}</p>
-                        <div class="mt-1 flex justify-end">
-                            <a href="{% url 'admin_delete_message' message_id=message.id %}" class="text-red-500 hover:text-red-700 text-xs">Delete</a>
+                            {% endif %}
+
+                            <div class="mt-1.5 flex justify-end">
+                                <a href="{% url 'admin_delete_message' message_id=message.id %}" class="text-red-500 hover:text-red-700 text-xs flex items-center action-link hover:bg-red-50 px-1.5 py-0.5 rounded transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete
+                                </a>
+                            </div>
                         </div>
                     </div>
                     {% empty %}
-                    <div class="px-3 sm:px-6 py-4 text-center text-gray-500 text-sm">No messages found</div>
+                    <div class="px-4 md:px-6 py-6 text-center text-gray-500 flex flex-col items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        <p>No messages found</p>
+                        <p class="text-xs text-gray-400 mt-1">Messages will appear here as they come in</p>
+                    </div>
                     {% endfor %}
                 </div>
+                <div class="scroll-indicator">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
             </div>
-            <div class="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50 border-t border-gray-100">
-                <a href="{% url 'admin_messages' %}" class="text-pink-600 hover:text-pink-800 text-sm font-medium">View All Messages →</a>
+            <div class="px-4 md:px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                <a href="{% url 'admin_messages' %}" class="text-pink-600 hover:text-pink-800 font-medium text-sm flex items-center action-link">
+                    <span>View All Messages</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
+                <span class="text-xs text-gray-400">{{ recent_messages|length }} recent message(s)</span>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-4 sm:mb-8">
-        <div class="px-3 sm:px-6 py-3 sm:py-4 border-b border-pink-100">
-            <h2 class="text-base sm:text-lg font-semibold text-gray-800">Quick Actions</h2>
+    <!-- Quick Actions Card - redesigned for better UX -->
+    <div class="section-card bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-6">
+        <div class="px-4 md:px-6 py-4 border-b border-pink-100">
+            <h2 class="text-base md:text-lg font-semibold text-gray-800 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Quick Actions
+            </h2>
         </div>
-        <div class="p-3 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            <a href="{% url 'admin_rooms' %}" class="bg-pink-50 hover:bg-pink-100 p-3 sm:p-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 md:p-6">
+            <a href="{% url 'admin_rooms' %}" class="action-link quick-action bg-gradient-to-r from-pink-50 to-pink-100 hover:from-pink-100 hover:to-pink-200 p-4 rounded-lg flex items-center justify-between transition-colors">
+                <div class="flex items-center">
+                    <div class="bg-white bg-opacity-70 p-2 rounded-lg mr-3 text-pink-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-pink-800 font-medium text-sm md:text-base">Manage Rooms</div>
+                        <div class="text-pink-600 text-xs hidden md:block">Create, edit or delete rooms</div>
+                    </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-pink-800 font-medium text-sm">Manage Rooms</span>
             </a>
 
-            <a href="{% url 'admin_messages' %}" class="bg-blue-50 hover:bg-blue-100 p-3 sm:p-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            <a href="{% url 'admin_messages' %}" class="action-link quick-action bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 p-4 rounded-lg flex items-center justify-between transition-colors">
+                <div class="flex items-center">
+                    <div class="bg-white bg-opacity-70 p-2 rounded-lg mr-3 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-blue-800 font-medium text-sm md:text-base">Moderate Messages</div>
+                        <div class="text-blue-600 text-xs hidden md:block">Review and delete messages</div>
+                    </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-blue-800 font-medium text-sm">Moderate Messages</span>
             </a>
 
-            <a href="{% url 'admin_user_activity' %}" class="bg-green-50 hover:bg-green-100 p-3 sm:p-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            <a href="{% url 'admin_user_activity' %}" class="action-link quick-action bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 p-4 rounded-lg flex items-center justify-between transition-colors">
+                <div class="flex items-center">
+                    <div class="bg-white bg-opacity-70 p-2 rounded-lg mr-3 text-green-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-green-800 font-medium text-sm md:text-base">User Activity</div>
+                        <div class="text-green-600 text-xs hidden md:block">Monitor user behavior</div>
+                    </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-green-800 font-medium text-sm">User Activity</span>
             </a>
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching functionality
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Set default active tab
+        tabButtons[0].classList.add('bg-pink-100', 'text-pink-700');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('bg-pink-100', 'text-pink-700');
+                });
+
+                // Add active class to clicked button
+                this.classList.add('bg-pink-100', 'text-pink-700');
+
+                // Hide all tab contents
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Show the selected tab content
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Show/hide scroll indicator based on scroll position
+        const messageContainer = document.querySelector('.custom-scrollbar');
+        const scrollIndicator = document.querySelector('.scroll-indicator');
+
+        if (messageContainer && scrollIndicator) {
+            function updateScrollIndicator() {
+                if (messageContainer.scrollHeight > messageContainer.clientHeight) {
+                    scrollIndicator.style.display = 'flex';
+
+                    // Hide indicator when scrolled to bottom
+                    if (messageContainer.scrollHeight - messageContainer.scrollTop <= messageContainer.clientHeight + 10) {
+                        scrollIndicator.style.opacity = '0';
+                    } else {
+                        scrollIndicator.style.opacity = '1';
+                    }
+                } else {
+                    scrollIndicator.style.display = 'none';
+                }
+            }
+
+            // Initial check
+            updateScrollIndicator();
+
+            // Add event listener
+            messageContainer.addEventListener('scroll', updateScrollIndicator);
+
+            // Update on window resize
+            window.addEventListener('resize', updateScrollIndicator);
+
+            // Hide indicator when clicked (to dismiss it)
+            scrollIndicator.addEventListener('click', function() {
+                this.style.opacity = '0';
+            });
+        }
+    });
+</script>
+{% endblock %}
 {% endblock %}
