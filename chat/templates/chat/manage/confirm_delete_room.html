@@ -3,56 +3,78 @@
 
 {% block title %}Confirm Delete Room - Euphorie Admin{% endblock %}
 
+{% block extra_css %}
+<style>
+  @media (max-width: 640px) {
+    .mobile-text-sm {
+      font-size: 0.875rem;
+    }
+
+    .mobile-text-xs {
+      font-size: 0.75rem;
+    }
+
+    .mobile-spacing {
+      margin-bottom: 0.75rem;
+    }
+
+    .mobile-padding {
+      padding: 0.75rem;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
     <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md border border-red-200 overflow-hidden">
-        <div class="px-6 py-4 bg-red-50 border-b border-red-100">
-            <h1 class="text-xl font-bold text-red-700">Confirm Room Deletion</h1>
+        <div class="px-4 sm:px-6 py-3 sm:py-4 bg-red-50 border-b border-red-100">
+            <h1 class="text-lg sm:text-xl font-bold text-red-700">Confirm Room Deletion</h1>
         </div>
 
-        <div class="p-6">
-            <div class="mb-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-2">You are about to permanently delete this room:</h2>
+        <div class="p-3 sm:p-6">
+            <div class="mb-4 sm:mb-6">
+                <h2 class="text-base sm:text-lg font-semibold text-gray-800 mb-2">You are about to permanently delete this room:</h2>
 
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
+                <div class="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 mb-3 sm:mb-4">
                     <div class="flex items-center">
-                        <div class="h-10 w-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-lg mr-3">
+                        <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium text-base sm:text-lg mr-2 sm:mr-3">
                             {{ room.name|slice:":1"|upper }}
                         </div>
                         <div>
-                            <div class="text-xl font-medium text-gray-800">{{ room.display_name|default:room.name }}</div>
-                            <div class="text-sm text-gray-400">Created by {{ room.creator.username }} on {{ room.created_at|date:"M d, Y" }}</div>
+                            <div class="text-base sm:text-xl font-medium text-gray-800">{{ room.display_name|default:room.name }}</div>
+                            <div class="text-xs sm:text-sm text-gray-400">Created by {{ room.creator.username }} on {{ room.created_at|date:"M d, Y" }}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
+                <div class="bg-red-50 p-3 sm:p-4 rounded-lg border border-red-200 mb-3 sm:mb-4">
                     <div class="flex items-start">
-                        <div class="text-red-600 mt-0.5 mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="text-red-600 mt-0.5 mr-2 sm:mr-3 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        <div class="text-red-700">
+                        <div class="text-red-700 text-sm sm:text-base">
                             <p class="font-medium mb-1">Warning: This action is permanent</p>
-                            <p class="text-sm">Deleting this room will permanently remove:</p>
-                            <ul class="text-sm mt-1 list-disc list-inside ml-1">
+                            <p class="text-xs sm:text-sm">Deleting this room will permanently remove:</p>
+                            <ul class="text-xs sm:text-sm mt-1 list-disc list-inside ml-0 sm:ml-1">
                                 <li>The room itself</li>
                                 <li>All messages in the room</li>
                                 <li>All reactions to messages</li>
                                 <li>All scheduled meetups</li>
                             </ul>
-                            <p class="text-sm mt-2 font-medium">This action cannot be undone.</p>
+                            <p class="text-xs sm:text-sm mt-2 font-medium">This action cannot be undone.</p>
                         </div>
                     </div>
                 </div>
 
                 {% if message_count %}
-                <div class="text-gray-700 mb-4">
-                    <p class="font-medium">{{ message_count }} messages will be deleted.</p>
-                    <p class="text-sm mt-1">Consider exporting the chat history before deleting the room.</p>
-                    <a href="{% url 'admin_export_chat' room_name=room.name %}" class="inline-flex items-center mt-2 text-sm text-green-600 hover:text-green-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="text-gray-700 mb-3 sm:mb-4">
+                    <p class="font-medium text-sm sm:text-base">{{ message_count }} messages will be deleted.</p>
+                    <p class="text-xs sm:text-sm mt-1">Consider exporting the chat history before deleting the room.</p>
+                    <a href="{% url 'admin_export_chat' room_name=room.name %}" class="inline-flex items-center mt-2 text-xs sm:text-sm text-green-600 hover:text-green-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         Export Chat History as CSV
@@ -61,14 +83,14 @@
                 {% endif %}
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-end gap-3">
-                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-center hover:bg-gray-200 transition">
+            <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-center hover:bg-gray-200 transition text-sm sm:text-base">
                     Cancel
                 </a>
 
-                <form method="post" action="{% url 'admin_delete_room' room_name=room.name %}">
+                <form method="post" action="{% url 'admin_delete_room' room_name=room.name %}" class="w-full sm:w-auto">
                     {% csrf_token %}
-                    <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                    <button type="submit" class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm sm:text-base">
                         Delete Room
                     </button>
                 </form>
