@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Your Friends - Euphorie{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <header class="mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Friends</h1>
+                <p class="text-sm sm:text-base text-gray-500 mt-1">Connect with friends and find new people to chat with</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Friend Requests Section -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden mb-6">
+                <div class="px-4 md:px-6 py-4 flex justify-between items-center border-b border-pink-100">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Friend Requests
+                    </h2>
+                    <span id="request-count" class="bg-pink-100 text-pink-600 text-xs px-2 py-1 rounded-full">{{ pending_requests|length }}</span>
+                </div>
+
+                <div id="friend-requests-list" class="divide-y divide-gray-100">
+                    {% if pending_requests %}
+                        {% for request in pending_requests %}
+                        <div class="p-4 transition-colors hover:bg-gray-50">
+                            <div class="flex items-center">
+                                <div class="user-avatar h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-3 font-medium text-sm">
+                                    {{ request.requester.username|slice:":1"|upper }}
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-medium">{{ request.requester.username }}</h3>
+                                    <p class="text-xs text-gray-500">Sent {{ request.created_at|timesince }} ago</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2 mt-3">
+                                <button data-id="{{ request.id }}" data-action="accept" class="respond-btn w-1/2 bg-pink-500 hover:bg-pink-600 text-white py-1.5 rounded text-sm">Accept</button>
+                                <button data-id="{{ request.id }}" data-action="decline" class="respond-btn w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded text-sm">Decline</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-6 text-center text-gray-500">
+                            <p class="text-sm">No pending friend requests</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Friend Suggestions Section -->
+            <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden">
+                <div class="px-4 md:px-6 py-4 border-b border-pink-100">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        People You May Know
+                    </h2>
+                </div>
+
+                <div id="friend-suggestions-full" class="max-h-96 overflow-y-auto">
+                    <div class="text-gray-400 text-xs italic py-2 px-4">
+                        Loading suggestions...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friends List Section -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden">
+                <div class="px-4 md:px-6 py-4 border-b border-pink-100">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            Your Friends
+                        </h2>
+
+                        <div class="relative">
+                            <input type="text" id="friend-search" placeholder="Search friends..." class="pl-8 pr-4 py-2 border border-gray-200 rounded-full text-sm focus:ring-pink-300 focus:border-pink-300 focus:outline-none">
+                            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter tabs -->
+                <div class="px-4 md:px-6 py-2 border-b border-gray-100 bg-gray-50">
+                    <div class="flex space-x-2">
+                        <button class="friend-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All Friends</button>
+                        <button class="friend-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="online">Online</button>
+                        <button class="friend-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="recent">Recent</button>
+                    </div>
+                </div>
+
+                <div id="friends-list" class="divide-y divide-gray-100">
+                    {% if friends %}
+                        {% for friend in friends %}
+                        <div class="p-4 transition-colors hover:bg-gray-50 friend-item" data-online="{{ friend.status.is_online|yesno:'true,false' }}" data-username="{{ friend.username }}">
+                            <div class="flex items-center">
+                                <div class="user-avatar h-12 w-12 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-3 font-medium">
+                                    {{ friend.username|slice:":1"|upper }}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center">
+                                        <h3 class="font-medium">{{ friend.username }}</h3>
+                                        {% if friend.status.is_online %}
+                                        <span class="ml-2 flex items-center text-xs text-green-500">
+                                            <span class="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></span>
+                                            Online
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-xs text-gray-500">Last active: {{ friend.status.last_activity|date:"M d, h:i a" }}</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <a href="/chat/dm/{{ friend.username }}/" class="text-gray-400 hover:text-pink-500 p-2 rounded-full hover:bg-pink-100 transition-colors" title="Send Message">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                    </a>
+                                    <button class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors remove-friend-btn" data-username="{{ friend.username }}" title="Remove Friend">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-8 text-center text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <h3 class="text-lg font-medium mb-2">No friends yet</h3>
+                            <p class="max-w-md mx-auto">Add friends to see who's online and chat with them directly.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize filter buttons
+        const filterButtons = document.querySelectorAll('.friend-filter-btn');
+        const friendItems = document.querySelectorAll('.friend-item');
+        const friendSearch = document.getElementById('friend-search');
+
+        // Friend filter function
+        function filterFriends() {
+            const searchText = friendSearch.value.toLowerCase();
+            const activeFilter = document.querySelector('.friend-filter-btn.bg-pink-500').dataset.filter;
+
+            friendItems.forEach(item => {
+                const username = item.dataset.username.toLowerCase();
+                const isOnline = item.dataset.online === 'true';
+
+                let visible = username.includes(searchText);
+
+                if (activeFilter === 'online') {
+                    visible = visible && isOnline;
+                } else if (activeFilter === 'recent') {
+                    // Implement recent filter logic if needed
+                }
+
+                item.style.display = visible ? 'block' : 'none';
+            });
+        }
+
+        // Set up filter button click handlers
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterButtons.forEach(b => {
+                    b.classList.remove('bg-pink-500', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+
+                btn.classList.remove('bg-gray-200', 'text-gray-700');
+                btn.classList.add('bg-pink-500', 'text-white');
+
+                filterFriends();
+            });
+        });
+
+        // Set up search functionality
+        if (friendSearch) {
+            friendSearch.addEventListener('input', filterFriends);
+        }
+
+        // Set up friend request response buttons
+        const respondBtns = document.querySelectorAll('.respond-btn');
+        respondBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const requestId = this.dataset.id;
+                const action = this.dataset.action;
+
+                // Get CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                // Send the response
+                fetch('/api/friend_response/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        relationship_id: requestId,
+                        action: action
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the request from the list
+                        const requestElement = this.closest('.p-4');
+                        requestElement.style.transition = 'all 0.3s ease';
+                        requestElement.style.opacity = '0';
+                        requestElement.style.height = '0';
+                        requestElement.style.overflow = 'hidden';
+
+                        setTimeout(() => {
+                            requestElement.remove();
+
+                            // Update count
+                            const countElement = document.getElementById('request-count');
+                            if (countElement) {
+                                const currentCount = parseInt(countElement.textContent);
+                                countElement.textContent = Math.max(0, currentCount - 1);
+                            }
+
+                            // If accepted, refresh the page to show the new friend
+                            if (action === 'accept') {
+                                window.location.reload();
+                            }
+                        }, 300);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error responding to friend request:', error);
+                });
+            });
+        });
+
+        // Set up remove friend buttons
+        const removeBtns = document.querySelectorAll('.remove-friend-btn');
+        removeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!confirm('Are you sure you want to remove this friend?')) {
+                    return;
+                }
+
+                const username = this.dataset.username;
+
+                // Get CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                // Send the request
+                fetch('/api/remove_friend/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        username: username
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the friend from the list
+                        const friendElement = this.closest('.friend-item');
+                        friendElement.style.transition = 'all 0.3s ease';
+                        friendElement.style.opacity = '0';
+                        friendElement.style.height = '0';
+                        friendElement.style.overflow = 'hidden';
+
+                        setTimeout(() => {
+                            friendElement.remove();
+                        }, 300);
+                    } else {
+                        // Show error message
+                        alert(data.error || 'Failed to remove friend');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error removing friend:', error);
+                    alert('An error occurred while removing friend');
+                });
+            });
+        });
+
+        // Request friend suggestions for the full list
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            window.socket.send(JSON.stringify({
+                type: 'friends',
+                action: 'suggestions'
+            }));
+        } else {
+            // If WebSocket not available, use AJAX
+            fetch('/api/friend_suggestions/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderFriendSuggestions(data.suggestions, 'friend-suggestions-full');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching friend suggestions:', error);
+                });
+        }
+        
+        // Function to render friend suggestions in the specified container
+        function renderFriendSuggestions(suggestions, containerId = 'friend-suggestions-list') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (suggestions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-gray-400 text-xs italic py-2 px-4">
+                        No suggestions available. Try joining more chat rooms!
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            suggestions.forEach(friend => {
+                const friendItem = document.createElement('div');
+                friendItem.className = 'p-4 transition-colors hover:bg-gray-50 border-b border-gray-100 last:border-b-0';
+
+                const fullName = friend.first_name || friend.last_name ?
+                    `${friend.first_name || ''} ${friend.last_name || ''}`.trim() : '';
+
+                friendItem.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="user-avatar h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-3 font-medium text-sm">
+                            ${friend.avatar}
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium">${friend.username}</h3>
+                            ${fullName ? `<p class="text-xs text-gray-500">${fullName}</p>` : ''}
+                        </div>
+                        <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1.5 px-3 rounded transition-colors">
+                            Add Friend
+                        </button>
+                    </div>
+                `;
+
+                // Add event listener for the add friend button
+                const addBtn = friendItem.querySelector('.add-friend-btn');
+                addBtn.addEventListener('click', function() {
+                    sendFriendRequest(friend.id);
+                    this.textContent = 'Request Sent';
+                    this.disabled = true;
+                    this.classList.remove('hover:bg-pink-200');
+                    this.classList.add('bg-gray-100', 'text-gray-500');
+                });
+
+                container.appendChild(friendItem);
+            });
+        }
+
+        // Function to send friend request
+        function sendFriendRequest(userId) {
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // Send the request
+            fetch('/api/friend_request/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    receiver_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Friend request response:", data);
+                if (data.success) {
+                    // Show toast notification if available
+                    if (typeof showToast === 'function') {
+                        showToast('Friend request sent!', 'success');
+                    }
+                } else {
+                    // Show error message
+                    if (typeof showToast === 'function') {
+                        showToast(data.error || 'Failed to send friend request', 'error');
+                    } else {
+                        alert(data.error || 'Failed to send friend request');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error sending friend request:', error);
+                if (typeof showToast === 'function') {
+                    showToast('An error occurred while sending friend request', 'error');
+                } else {
+                    alert('An error occurred while sending friend request');
+                }
+            });
+        }
+</script>
+{% endblock %}

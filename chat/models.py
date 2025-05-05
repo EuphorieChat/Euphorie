@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
 
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -218,3 +219,159 @@ class UserSettings(models.Model):
 
     def __str__(self):
         return "Global User Settings"
+
+class UserRelationship(models.Model):
+    """
+    Model for representing relationships between users (friendships)
+    """
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+    )
+
+    requester = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='relationship_requests_sent'
+    )
+    receiver = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='relationship_requests_received'
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('requester', 'receiver')
+
+    def __str__(self):
+        return f"{self.requester.username} -> {self.receiver.username}: {self.status}"
+
+    @classmethod
+    def get_friendship(cls, user1, user2):
+        """
+        Get the relationship between two users
+
+        Args:
+            user1: First User object
+            user2: Second User object
+
+        Returns:
+            UserRelationship object if found, otherwise None
+        """
+        try:
+            # Check if user1 sent a request to user2
+            return cls.objects.get(
+                (models.Q(requester=user1) & models.Q(receiver=user2)) |
+                (models.Q(requester=user2) & models.Q(receiver=user1))
+            )
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def get_friends(cls, user):
+        """
+        Get all friends of a user
+
+        Args:
+            user: User object
+
+        Returns:
+            QuerySet of User objects who are friends with the user
+        """
+        # Get friends where user is the requester
+        requester_friends = User.objects.filter(
+            relationship_requests_received__requester=user,
+            relationship_requests_received__status='accepted'
+        )
+
+        # Get friends where user is the receiver
+        receiver_friends = User.objects.filter(
+            relationship_requests_sent__receiver=user,
+            relationship_requests_sent__status='accepted'
+        )
+
+        # Combine the querysets
+        return requester_friends.union(receiver_friends)
+
+    @classmethod
+    def remove_friendship(cls, user1, user2):
+        """
+        Remove the friendship between two users
+
+        Args:
+            user1: First User object
+            user2: Second User object
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            relationship = cls.get_friendship(user1, user2)
+            if relationship and relationship.status == 'accepted':
+                relationship.delete()
+                return True
+            return False
+        except Exception:
+            return False
+
+class UserStatus(models.Model):
+    """
+    Model for tracking user online status
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='status'
+    )
+    is_online = models.BooleanField(default=False)
+    last_activity = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user.username}: {'Online' if self.is_online else 'Offline'}"
+
+class UserInterest(models.Model):
+    """
+    Model for tracking user interests in rooms and categories
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='interests'
+    )
+    room = models.ForeignKey(
+        'chat.Room',
+        on_delete=models.CASCADE,
+        related_name='user_interests',
+        null=True,
+        blank=True
+    )
+    category = models.ForeignKey(
+        'chat.Category',
+        on_delete=models.CASCADE,
+        related_name='user_interests',
+        null=True,
+        blank=True
+    )
+    engagement_score = models.IntegerField(default=0)
+    last_interaction = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [
+            ('user', 'room'),
+            ('user', 'category')
+        ]
+
+    def __str__(self):
+        if self.room:
+            return f"{self.user.username} interest in room {self.room.name}: {self.engagement_score}"
+        elif self.category:
+            return f"{self.user.username} interest in category {self.category.name}: {self.engagement_score}"
+        return f"{self.user.username} interest: {self.engagement_score}"

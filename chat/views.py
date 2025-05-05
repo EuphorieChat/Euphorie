@@ -12,9 +12,10 @@ from django.core.files.base import ContentFile
 from collections import defaultdict
 from django.utils import timezone
 from datetime import timedelta
+from django.db import models
 import json
 import os
-from .models import Room, Message, Reaction, Category, Meetup
+from .models import Room, Message, Reaction, Category, Meetup, UserRelationship
 import time
 
 def index(request):
@@ -648,3 +649,127 @@ def whiteboard_update(request, room_name):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@login_required
+def friends_list(request):
+    """
+    View for the friends list page
+    """
+    # Get pending friend requests (received by the user)
+    pending_requests = UserRelationship.objects.filter(
+        receiver=request.user,
+        status='pending'
+    ).select_related('requester')
+
+    # Get the user's friends
+    friends = UserRelationship.get_friends(request.user).select_related('status')
+
+    context = {
+        'friends': friends,
+        'pending_requests': pending_requests,
+    }
+
+    return render(request, 'chat/friends_list.html', context)
+
+
+def explore_rooms(request):
+    """
+    View for the explore rooms page
+    """
+    # Get search and filter parameters
+    search_query = request.GET.get('search', '')
+    category_id = request.GET.get('category', '')
+    sort_by = request.GET.get('sort', 'popular')
+
+    # Base queryset
+    rooms = Room.objects.all().select_related('creator', 'category')
+
+    # Apply search filter
+    if search_query:
+        rooms = rooms.filter(
+            Q(name__icontains=search_query) |
+            Q(display_name__icontains=search_query) |
+            Q(creator__username__icontains=search_query)
+        )
+
+    # Apply category filter
+    if category_id:
+        try:
+            category_id = int(category_id)
+            rooms = rooms.filter(category_id=category_id)
+        except (ValueError, TypeError):
+            pass
+
+    # Apply sorting
+    if sort_by == 'newest':
+        rooms = rooms.order_by('-created_at')
+    elif sort_by == 'oldest':
+        rooms = rooms.order_by('created_at')
+    elif sort_by == 'active':
+        # Sort by most recent message
+        rooms = rooms.annotate(
+            last_message_time=models.Max('messages__timestamp')
+        ).order_by('-last_message_time')
+    else:  # popular (default)
+        rooms = rooms.annotate(
+            message_count=Count('messages')
+        ).order_by('-message_count')
+
+    # Get all categories for the filter dropdown
+    categories = Category.objects.all()
+
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(rooms, 12)  # Show 12 rooms per page
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'rooms': page_obj,
+        'search_query': search_query,
+        'selected_category': int(category_id) if category_id and category_id.isdigit() else '',
+        'sort_by': sort_by,
+        'categories': categories,
+    }
+
+    return render(request, 'chat/explore_rooms.html', context)
+
+
+# Add this to your context processor to include the friends count in all templates
+def user_context(request):
+    """
+    Context processor to add user-related context variables to all templates
+    """
+    context = {}
+
+    if request.user.is_authenticated:
+        # Get pending friend requests count
+        pending_requests_count = UserRelationship.objects.filter(
+            receiver=request.user,
+            status='pending'
+        ).count()
+
+        context['pending_friend_requests_count'] = pending_requests_count
+
+    return context
+
+@login_required
+def friends_list(request):
+    """
+    View for the friends list page
+    """
+    # Get the user's friends
+    friends = UserRelationship.get_friends(request.user)
+
+    # Get pending friend requests received by the user
+    pending_requests = UserRelationship.objects.filter(
+        receiver=request.user,
+        status='pending'
+    )
+
+    context = {
+        'friends': friends,
+        'pending_requests': pending_requests,
+    }
+
+    return render(request, 'chat/friends_list.html', context)

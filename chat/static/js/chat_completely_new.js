@@ -1,6 +1,8 @@
 console.log("Enhanced chat.js loaded successfully!");
 
 document.addEventListener("DOMContentLoaded", function () {
+    initFriendsAndRecommendations();
+
     // Configuration and Globals
     const roomName = window.roomName;
     const username = window.username;
@@ -1575,3 +1577,318 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }, 500);
 });
+
+
+// Initialize friend recommendations and online friends
+function initFriendsAndRecommendations() {
+    console.log("Initializing friends and recommendations features");
+
+    // Get DOM elements for friends section
+    const onlineFriendsList = document.getElementById('online-friends-list');
+    const friendSuggestionsList = document.getElementById('friend-suggestions-list');
+
+    // Get DOM elements for recommendations section
+    const recommendedRoomsList = document.getElementById('recommended-rooms-list');
+
+    // If none of these elements exist, exit early
+    if (!onlineFriendsList && !friendSuggestionsList && !recommendedRoomsList) {
+        console.log("No friends/recommendations elements found - skipping initialization");
+        return;
+    }
+
+    // Request online friends if the element exists
+    if (onlineFriendsList) {
+        requestOnlineFriends();
+
+        // Set up interval to refresh online friends every 30 seconds
+        setInterval(requestOnlineFriends, 30000);
+    }
+
+    // Request friend suggestions if the element exists
+    if (friendSuggestionsList) {
+        requestFriendSuggestions();
+    }
+
+    // Request room recommendations if the element exists
+    if (recommendedRoomsList) {
+        requestRoomRecommendations();
+    }
+}
+
+// Request online friends from the server
+function requestOnlineFriends() {
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+        console.log("Requesting online friends");
+        window.socket.send(JSON.stringify({
+            type: 'friends',
+            action: 'list_online'
+        }));
+    } else {
+        console.warn("WebSocket not connected - cannot request online friends");
+    }
+}
+
+// Request friend suggestions from the server
+function requestFriendSuggestions() {
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+        console.log("Requesting friend suggestions");
+        window.socket.send(JSON.stringify({
+            type: 'friends',
+            action: 'suggestions'
+        }));
+    } else {
+        console.warn("WebSocket not connected - cannot request friend suggestions");
+    }
+}
+
+// Request room recommendations from the server
+function requestRoomRecommendations() {
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+        console.log("Requesting room recommendations");
+        window.socket.send(JSON.stringify({
+            type: 'recommendations',
+            action: 'get'
+        }));
+    } else {
+        console.warn("WebSocket not connected - cannot request room recommendations");
+    }
+}
+
+// In your handleSocketMessage function, add these case handlers:
+
+function handleSocketMessage(event) {
+    console.log("📩 Message received:", event.data);
+    try {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+            // Existing cases...
+
+            case "friends":
+                console.log("Friends update:", data);
+                handleFriendsMessage(data);
+                break;
+
+            case "recommendations":
+                console.log("Recommendations update:", data);
+                handleRecommendationsMessage(data);
+                break;
+
+            // Other cases...
+        }
+    } catch (e) {
+        console.error("Error processing message:", e, event.data);
+    }
+}
+
+// Handle friends messages from the server
+function handleFriendsMessage(data) {
+    if (data.action === 'online_list') {
+        renderOnlineFriends(data.friends || []);
+    } else if (data.action === 'suggestions') {
+        renderFriendSuggestions(data.suggestions || []);
+    }
+}
+
+// Handle recommendations messages from the server
+function handleRecommendationsMessage(data) {
+    if (data.action === 'list') {
+        renderRoomRecommendations(data.rooms || []);
+    }
+}
+
+// Render online friends list
+function renderOnlineFriends(friends) {
+    const onlineFriendsList = document.getElementById('online-friends-list');
+    if (!onlineFriendsList) return;
+
+    if (friends.length === 0) {
+        onlineFriendsList.innerHTML = `
+            <div class="text-gray-400 text-xs italic py-2">
+                None of your friends are online right now.
+            </div>
+        `;
+        return;
+    }
+
+    onlineFriendsList.innerHTML = '';
+
+    friends.forEach(friend => {
+        const friendItem = document.createElement('div');
+        friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
+
+        friendItem.innerHTML = `
+            <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                ${friend.avatar}
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-medium">${friend.username}</p>
+                <span class="flex items-center text-xs text-green-500">
+                    <span class="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></span>
+                    Online now
+                </span>
+            </div>
+            <a href="/chat/dm/${friend.username}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+            </a>
+        `;
+
+        onlineFriendsList.appendChild(friendItem);
+    });
+}
+
+// Render friend suggestions list
+function renderFriendSuggestions(suggestions) {
+    const friendSuggestionsList = document.getElementById('friend-suggestions-list');
+    if (!friendSuggestionsList) return;
+
+    if (suggestions.length === 0) {
+        friendSuggestionsList.innerHTML = `
+            <div class="text-gray-400 text-xs italic py-2">
+                No suggestions available. Try joining more chat rooms!
+            </div>
+        `;
+        return;
+    }
+
+    friendSuggestionsList.innerHTML = '';
+
+    suggestions.forEach(friend => {
+        const friendItem = document.createElement('div');
+        friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
+
+        const fullName = friend.first_name || friend.last_name ?
+            `${friend.first_name || ''} ${friend.last_name || ''}`.trim() : '';
+
+        friendItem.innerHTML = `
+            <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                ${friend.avatar}
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-medium">${friend.username}</p>
+                ${fullName ? `<p class="text-xs text-gray-500">${fullName}</p>` : ''}
+            </div>
+            <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1 px-2 rounded transition-colors">
+                Add
+            </button>
+        `;
+
+        // Add event listener for the add friend button
+        const addBtn = friendItem.querySelector('.add-friend-btn');
+        addBtn.addEventListener('click', function() {
+            sendFriendRequest(friend.id);
+            this.textContent = 'Sent';
+            this.disabled = true;
+            this.classList.remove('hover:bg-pink-200');
+            this.classList.add('bg-gray-100', 'text-gray-500');
+        });
+
+        friendSuggestionsList.appendChild(friendItem);
+    });
+}
+
+// Render room recommendations list
+function renderRoomRecommendations(rooms) {
+    const recommendedRoomsList = document.getElementById('recommended-rooms-list');
+    if (!recommendedRoomsList) return;
+
+    if (rooms.length === 0) {
+        recommendedRoomsList.innerHTML = `
+            <div class="text-gray-400 text-xs italic py-2">
+                No recommendations available yet. Join more chat rooms!
+            </div>
+        `;
+        return;
+    }
+
+    recommendedRoomsList.innerHTML = '';
+
+    rooms.forEach(room => {
+        const roomItem = document.createElement('div');
+        roomItem.className = 'p-2 hover:bg-pink-50 rounded-lg transition-colors';
+
+        roomItem.innerHTML = `
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
+                    ${room.display_name.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-1">
+                    <a href="/chat/${room.name}/" class="text-sm font-medium text-pink-600 hover:underline">${room.display_name}</a>
+                    <div class="flex items-center text-xs text-gray-500">
+                        ${room.category ? `<span class="bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
+                        <span>${room.message_count} messages</span>
+                    </div>
+                </div>
+                <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </a>
+            </div>
+        `;
+
+        recommendedRoomsList.appendChild(roomItem);
+    });
+}
+
+// Send a friend request
+function sendFriendRequest(userId) {
+    // Get CSRF token
+    const csrfToken = getCsrfToken();
+
+    // Send the request
+    fetch('/api/friend_request/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            receiver_id: userId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Friend request response:", data);
+        if (data.success) {
+            // Show toast notification
+            if (typeof showToast === 'function') {
+                showToast('Friend request sent!', 'success');
+            } else {
+                console.log('Friend request sent successfully');
+            }
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.error || 'Failed to send friend request', 'error');
+            } else {
+                console.error('Failed to send friend request:', data.error);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error sending friend request:', error);
+    });
+}
+
+// Helper function to get CSRF token
+function getCsrfToken() {
+    // Try to get from the meta tag first
+    let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) return csrfToken;
+
+    // Fall back to getting from cookies
+    const name = 'csrftoken=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const cookieArray = decodedCookie.split(';');
+
+    for (let i = 0; i < cookieArray.length; i++) {
+        let cookie = cookieArray[i].trim();
+        if (cookie.indexOf(name) === 0) {
+            return cookie.substring(name.length, cookie.length);
+        }
+    }
+
+    return '';
+}
+

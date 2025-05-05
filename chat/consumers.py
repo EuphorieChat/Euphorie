@@ -1,10 +1,20 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
-from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus
 from django.utils import timezone
 from datetime import timedelta
+
+from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus
+# Import the new service functions
+from .services import (
+    get_online_friends,
+    update_user_status,
+    get_room_recommendations,
+    record_user_interest,
+    get_friend_suggestions
+)
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -38,6 +48,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Send message indicating user joined
         if self.user and not self.user.is_anonymous:
+            # Update user status to online
+            await database_sync_to_async(update_user_status)(self.user, True)
+
             # Add user to active users list without creating a message
             await self.update_user_presence()
 
@@ -74,6 +87,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }))
 
     async def disconnect(self, close_code):
+        # Update user status to offline
+        if hasattr(self, 'user') and self.user and not self.user.is_anonymous:
+            await database_sync_to_async(update_user_status)(self.user, False)
+
         # Leave room group
         await self.channel_layer.group_discard(
             self.room_group_name,
@@ -93,209 +110,270 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message_type = text_data_json.get('type', 'chat')
+        try:
+            text_data_json = json.loads(text_data)
+            message_type = text_data_json.get('type', 'chat')
 
-        if message_type == 'chat':
-            message = text_data_json.get('message', '')
+            if message_type == 'chat':
+                message = text_data_json.get('message', '')
 
-            if not message or not self.user or self.user.is_anonymous:
-                return
+                if not message or not self.user or self.user.is_anonymous:
+                    return
 
-            # Save message to database
-            message_id = await self.save_message(message)
+                # Save message to database
+                message_id = await self.save_message(message)
 
-            # Send message to room group
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'chat_message',
-                    'message': message,
-                    'username': self.user.username,
-                    'message_id': message_id
-                }
-            )
+                # Record user interest in the room
+                if hasattr(self, 'user') and self.user.is_authenticated:
+                    room = await database_sync_to_async(self.get_room)()
+                    await database_sync_to_async(record_user_interest)(
+                        self.user, room=room, points=1
+                    )
 
-        elif message_type == 'typing':
-            if not self.user or self.user.is_anonymous:
-                return
-
-            # Send typing notification to room group
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'typing',
-                    'username': self.user.username
-                }
-            )
-
-        elif message_type == 'reaction':
-            message_id = text_data_json.get('message_id')
-            reaction = text_data_json.get('reaction')
-
-            if not message_id or not reaction or not self.user or self.user.is_anonymous:
-                return
-
-            # Toggle reaction in database
-            reaction_data = await self.toggle_reaction(message_id, reaction)
-
-            # Send reaction update to room group
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'reaction',
-                    'message_id': message_id,
-                    'reaction': reaction,
-                    'count': reaction_data['count'],
-                    'users': reaction_data['users']
-                }
-            )
-
-        elif message_type == 'users':
-            action = text_data_json.get('action', 'list')
-
-            if action == 'list':
-                # Get active users and send to client
-                active_users = await self.get_active_users()
-
-                await self.send(json.dumps({
-                    'type': 'users',
-                    'users': active_users
-                }))
-
-                # Also broadcast to all users in the room
+                # Send message to room group
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
+                        'type': 'chat_message',
+                        'message': message,
+                        'username': self.user.username,
+                        'message_id': message_id
+                    }
+                )
+
+            elif message_type == 'typing':
+                if not self.user or self.user.is_anonymous:
+                    return
+
+                # Send typing notification to room group
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'typing',
+                        'username': self.user.username
+                    }
+                )
+
+            elif message_type == 'reaction':
+                message_id = text_data_json.get('message_id')
+                reaction = text_data_json.get('reaction')
+
+                if not message_id or not reaction or not self.user or self.user.is_anonymous:
+                    return
+
+                # Toggle reaction in database
+                reaction_data = await self.toggle_reaction(message_id, reaction)
+
+                # Send reaction update to room group
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'reaction',
+                        'message_id': message_id,
+                        'reaction': reaction,
+                        'count': reaction_data['count'],
+                        'users': reaction_data['users']
+                    }
+                )
+
+            elif message_type == 'users':
+                action = text_data_json.get('action', 'list')
+
+                if action == 'list':
+                    # Get active users and send to client
+                    active_users = await self.get_active_users()
+
+                    await self.send(json.dumps({
                         'type': 'users',
                         'users': active_users
-                    }
-                )
-
-        elif message_type == 'whiteboard':
-            action = text_data_json.get('action')
-
-            if not action or not self.user or self.user.is_anonymous:
-                return
-
-            # Simply forward whiteboard data to all clients
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'whiteboard',
-                    'action': action,
-                    'x': text_data_json.get('x'),
-                    'y': text_data_json.get('y'),
-                    'color': text_data_json.get('color'),
-                    'size': text_data_json.get('size')
-                }
-            )
-
-        elif message_type == 'meetup':
-            action = text_data_json.get('action', '')
-
-            if not self.user or self.user.is_anonymous:
-                return
-
-            if action == 'create':
-                meetup_data = text_data_json.get('meetup', {})
-
-                if not meetup_data:
-                    return
-
-                # Create new meetup
-                await self.create_meetup(meetup_data)
-
-                # Get updated meetups list
-                meetups = await self.get_meetups()
-
-                # Send updated list to all clients
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type': 'meetups',
-                        'meetups': meetups
-                    }
-                )
-
-            elif action == 'list':
-                # Get meetups and send to client
-                meetups = await self.get_meetups()
-
-                await self.send(json.dumps({
-                    'type': 'meetups',
-                    'meetups': meetups
-                }))
-
-            elif action in ['join', 'leave']:
-                meetup_id = text_data_json.get('meetup_id')
-
-                if not meetup_id:
-                    return
-
-                # Update meetup attendance
-                await self.update_meetup_attendance(meetup_id, action == 'join')
-
-                # Get updated meetups list
-                meetups = await self.get_meetups()
-
-                # Send updated list to all clients
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type': 'meetups',
-                        'meetups': meetups
-                    }
-                )
-
-        # Handle announcement message types
-        elif message_type == 'announcement':
-            action = text_data_json.get('action', '')
-
-            if not self.user or self.user.is_anonymous:
-                return
-
-            if action == 'create':
-                # Check if user is admin or room creator
-                is_admin = await self.check_if_admin()
-                if not is_admin:
-                    return
-
-                content = text_data_json.get('content', '')
-                if not content:
-                    return
-
-                # Create announcement
-                announcement_data = await self.create_announcement(content)
-
-                # Broadcast to everyone
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type': 'announcement',
-                        'action': 'new',
-                        'announcement_id': announcement_data['id'],
-                        'content': announcement_data['content'],
-                        'creator': announcement_data['creator'],
-                        'created_at': announcement_data['created_at']
-                    }
-                )
-
-            elif action == 'mark_read':
-                announcement_id = text_data_json.get('announcement_id')
-                if not announcement_id:
-                    return
-
-                # Mark announcement as read
-                success = await self.mark_announcement_read(announcement_id)
-
-                # Only send confirmation to the user who marked it as read
-                if success:
-                    await self.send(json.dumps({
-                        'type': 'announcement',
-                        'action': 'marked_read',
-                        'announcement_id': announcement_id
                     }))
+
+                    # Also broadcast to all users in the room
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'users',
+                            'users': active_users
+                        }
+                    )
+
+            elif message_type == 'whiteboard':
+                action = text_data_json.get('action')
+
+                if not action or not self.user or self.user.is_anonymous:
+                    return
+
+                # Simply forward whiteboard data to all clients
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'whiteboard',
+                        'action': action,
+                        'x': text_data_json.get('x'),
+                        'y': text_data_json.get('y'),
+                        'color': text_data_json.get('color'),
+                        'size': text_data_json.get('size')
+                    }
+                )
+
+            elif message_type == 'meetup':
+                action = text_data_json.get('action', '')
+
+                if not self.user or self.user.is_anonymous:
+                    return
+
+                if action == 'create':
+                    meetup_data = text_data_json.get('meetup', {})
+
+                    if not meetup_data:
+                        return
+
+                    # Create new meetup
+                    await self.create_meetup(meetup_data)
+
+                    # Get updated meetups list
+                    meetups = await self.get_meetups()
+
+                    # Send updated list to all clients
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'meetups',
+                            'meetups': meetups
+                        }
+                    )
+
+                elif action == 'list':
+                    # Get meetups and send to client
+                    meetups = await self.get_meetups()
+
+                    await self.send(json.dumps({
+                        'type': 'meetups',
+                        'meetups': meetups
+                    }))
+
+                elif action in ['join', 'leave']:
+                    meetup_id = text_data_json.get('meetup_id')
+
+                    if not meetup_id:
+                        return
+
+                    # Update meetup attendance
+                    await self.update_meetup_attendance(meetup_id, action == 'join')
+
+                    # Get updated meetups list
+                    meetups = await self.get_meetups()
+
+                    # Send updated list to all clients
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'meetups',
+                            'meetups': meetups
+                        }
+                    )
+
+            # Handle announcement message types
+            elif message_type == 'announcement':
+                action = text_data_json.get('action', '')
+
+                if not self.user or self.user.is_anonymous:
+                    return
+
+                if action == 'create':
+                    # Check if user is admin or room creator
+                    is_admin = await self.check_if_admin()
+                    if not is_admin:
+                        return
+
+                    content = text_data_json.get('content', '')
+                    if not content:
+                        return
+
+                    # Create announcement
+                    announcement_data = await self.create_announcement(content)
+
+                    # Broadcast to everyone
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'announcement',
+                            'action': 'new',
+                            'announcement_id': announcement_data['id'],
+                            'content': announcement_data['content'],
+                            'creator': announcement_data['creator'],
+                            'created_at': announcement_data['created_at']
+                        }
+                    )
+
+                elif action == 'mark_read':
+                    announcement_id = text_data_json.get('announcement_id')
+                    if not announcement_id:
+                        return
+
+                    # Mark announcement as read
+                    success = await self.mark_announcement_read(announcement_id)
+
+                    # Only send confirmation to the user who marked it as read
+                    if success:
+                        await self.send(json.dumps({
+                            'type': 'announcement',
+                            'action': 'marked_read',
+                            'announcement_id': announcement_id
+                        }))
+
+            # NEW: Add handlers for friends and recommendations message types
+            elif message_type == 'friends':
+                action = text_data_json.get('action', '')
+
+                if action == 'list_online':
+                    # Get online friends
+                    online_friends = []
+                    if hasattr(self, 'user') and self.user.is_authenticated:
+                        online_friends_qs = await database_sync_to_async(get_online_friends)(self.user)
+                        online_friends = await database_sync_to_async(self.get_user_data_list)(online_friends_qs)
+
+                    # Send response
+                    await self.send(json.dumps({
+                        'type': 'friends',
+                        'action': 'online_list',
+                        'friends': online_friends
+                    }))
+
+                elif action == 'suggestions':
+                    # Get friend suggestions
+                    suggestions = []
+                    if hasattr(self, 'user') and self.user.is_authenticated:
+                        suggestions_list = await database_sync_to_async(get_friend_suggestions)(self.user)
+                        suggestions = await database_sync_to_async(self.get_user_data_list)(suggestions_list)
+
+                    # Send response
+                    await self.send(json.dumps({
+                        'type': 'friends',
+                        'action': 'suggestions',
+                        'suggestions': suggestions
+                    }))
+
+            elif message_type == 'recommendations':
+                action = text_data_json.get('action', '')
+
+                if action == 'get':
+                    # Get room recommendations
+                    recommendations = []
+                    if hasattr(self, 'user'):
+                        recommendations_qs = await database_sync_to_async(get_room_recommendations)(self.user)
+                        recommendations = await database_sync_to_async(self.get_room_data_list)(recommendations_qs)
+
+                    # Send response
+                    await self.send(json.dumps({
+                        'type': 'recommendations',
+                        'action': 'list',
+                        'rooms': recommendations
+                    }))
+
+        except json.JSONDecodeError:
+            # Handle JSON decode error
+            pass
 
     # Message handlers
 
@@ -359,6 +437,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'content': event['content'],
             'creator': event['creator'],
             'created_at': event['created_at']
+        }))
+
+    # NEW: Add handlers for friends and recommendations
+    async def friends(self, event):
+        # Send friends update to WebSocket
+        await self.send(json.dumps({
+            'type': 'friends',
+            'action': event.get('action', ''),
+            'friends': event.get('friends', []),
+            'suggestions': event.get('suggestions', [])
+        }))
+
+    async def recommendations(self, event):
+        # Send recommendations update to WebSocket
+        await self.send(json.dumps({
+            'type': 'recommendations',
+            'action': event.get('action', ''),
+            'rooms': event.get('rooms', [])
         }))
 
     # Database operations
@@ -595,3 +691,39 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 })
 
         return result
+
+    # NEW: Add helper methods for formatting data
+    @database_sync_to_async
+    def get_room(self):
+        """Get the current room object"""
+        from .models import Room
+        return Room.objects.get(name=self.room_name)
+
+    @database_sync_to_async
+    def get_user_data_list(self, users_qs):
+        """Convert a QuerySet of users to a list of user data dictionaries"""
+        return [
+            {
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'avatar': f"{user.username[:1].upper()}"  # First letter as avatar placeholder
+            }
+            for user in users_qs
+        ]
+
+    @database_sync_to_async
+    def get_room_data_list(self, rooms_qs):
+        """Convert a QuerySet of rooms to a list of room data dictionaries"""
+        return [
+            {
+                'id': room.id,
+                'name': room.name,
+                'display_name': room.display_name or room.name,
+                'category': room.category.name if room.category else None,
+                'message_count': room.messages.count(),
+                'is_protected': room.is_protected
+            }
+            for room in rooms_qs
+        ]
