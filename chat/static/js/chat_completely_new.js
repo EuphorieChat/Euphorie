@@ -375,21 +375,43 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        // Get current username for comparison
+        const currentUsername = window.username;
+
         // Use a Set to ensure each username only appears once
         const uniqueUsers = [...new Set(users)];
         console.log("Unique users:", uniqueUsers);
 
         uniqueUsers.forEach(user => {
-            // Desktop list with avatars
+            // Skip the current user
+            if (user === currentUsername) return;
+
+            // Desktop list with avatars and friend controls
             const li = document.createElement("li");
-            li.className = "flex items-center";
+            li.className = "flex items-center justify-between";
             li.innerHTML = `
-            <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                ${user.charAt(0).toUpperCase()}
+            <div class="flex items-center">
+              <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                  ${user.charAt(0).toUpperCase()}
+              </div>
+              <span>${user}</span>
             </div>
-            <span>${user}</span>
-            `;
+            <button data-username="${user}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors">
+              Add Friend
+            </button>`;
             userList.appendChild(li);
+
+            // Add event listener for add friend button
+            const addBtn = li.querySelector('.add-friend-btn');
+            if (addBtn) {
+                addBtn.addEventListener('click', function() {
+                    sendFriendRequest(this.dataset.username);
+                    this.textContent = 'Sent';
+                    this.disabled = true;
+                    this.classList.remove('hover:bg-pink-200');
+                    this.classList.add('bg-gray-100', 'text-gray-500');
+                });
+            }
 
             // Mobile list (simpler)
             const span = document.createElement("span");
@@ -1833,11 +1855,10 @@ function renderRoomRecommendations(rooms) {
 }
 
 // Send a friend request
-function sendFriendRequest(userId) {
+function sendFriendRequest(username) {
     // Get CSRF token
     const csrfToken = getCsrfToken();
 
-    // Send the request
     fetch('/api/friend_request/', {
         method: 'POST',
         headers: {
@@ -1845,25 +1866,16 @@ function sendFriendRequest(userId) {
             'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
-            receiver_id: userId
+            username: username
         })
     })
     .then(response => response.json())
     .then(data => {
         console.log("Friend request response:", data);
         if (data.success) {
-            // Show toast notification
-            if (typeof showToast === 'function') {
-                showToast('Friend request sent!', 'success');
-            } else {
-                console.log('Friend request sent successfully');
-            }
+            console.log('Friend request sent successfully');
         } else {
-            if (typeof showToast === 'function') {
-                showToast(data.error || 'Failed to send friend request', 'error');
-            } else {
-                console.error('Failed to send friend request:', data.error);
-            }
+            console.error('Failed to send friend request:', data.error);
         }
     })
     .catch(error => {
@@ -1873,11 +1885,7 @@ function sendFriendRequest(userId) {
 
 // Helper function to get CSRF token
 function getCsrfToken() {
-    // Try to get from the meta tag first
-    let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (csrfToken) return csrfToken;
-
-    // Fall back to getting from cookies
+    // From cookies
     const name = 'csrftoken=';
     const decodedCookie = decodeURIComponent(document.cookie);
     const cookieArray = decodedCookie.split(';');
@@ -1889,6 +1897,62 @@ function getCsrfToken() {
         }
     }
 
+    // If not found in cookies, try to find it in a meta tag
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta) {
+        return csrfMeta.getAttribute('content');
+    }
+
+    // Last resort - look for hidden input field
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (csrfInput) {
+        return csrfInput.value;
+    }
+
     return '';
 }
 
+
+// Enhance existing user list to include add friend button
+const originalUpdateUserList = window.updateUserList || function() {};
+
+window.updateUserList = function(users) {
+    // Call the original function first
+    originalUpdateUserList.call(this, users);
+
+    // Now enhance with add friend buttons
+    const userList = document.getElementById("user-list");
+    if (!userList) return;
+
+    const currentUsername = window.username;
+
+    // Add friend buttons to user list items
+    Array.from(userList.querySelectorAll('li')).forEach(li => {
+        const usernameEl = li.querySelector('span');
+        if (!usernameEl) return;
+
+        const username = usernameEl.textContent;
+        if (username === currentUsername) return;
+
+        // Check if this li already has a friend button
+        if (li.querySelector('.add-friend-btn')) return;
+
+        // Add the friend button
+        const button = document.createElement('button');
+        button.className = 'add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors ml-2';
+        button.textContent = 'Add Friend';
+        button.dataset.username = username;
+
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            sendFriendRequest(this.dataset.username);
+            this.textContent = 'Sent';
+            this.disabled = true;
+            this.classList.remove('hover:bg-pink-200');
+            this.classList.add('bg-gray-100', 'text-gray-500');
+        });
+
+        li.appendChild(button);
+    });
+};
