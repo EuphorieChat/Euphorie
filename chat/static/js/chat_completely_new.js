@@ -1,13 +1,17 @@
-console.log("New chat.js loaded successfully!");
+console.log("Enhanced chat.js loaded successfully!");
 
-// Fixed chat.js - corrected syntax errors
 document.addEventListener("DOMContentLoaded", function () {
+    // Configuration and Globals
     const roomName = window.roomName;
     const username = window.username;
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 
     let uploadedFiles = [];
     let isDrawing = false;
+    let mediaLibrary = {
+        images: [],
+        videos: []
+    };
 
     // DOM Elements
     const chatLog = document.getElementById("chat-log");
@@ -22,21 +26,29 @@ document.addEventListener("DOMContentLoaded", function () {
     const sendButton = document.getElementById("send-btn");
     const whiteboardCanvas = document.getElementById('whiteboard-canvas');
     const ctx = whiteboardCanvas?.getContext('2d');
+    const typingIndicator = document.getElementById("typing-indicator");
 
     // Debug WebSocket connection
-    console.log("WebSocket connection details:");
-    console.log("Room name:", roomName);
-    console.log("Protocol:", protocol);
-    console.log("Host:", window.location.host);
-    console.log("URL:", `${protocol}://${window.location.host}/ws/chat/${roomName}/`);
+    console.log("WebSocket connection details:", {
+        roomName,
+        protocol,
+        host: window.location.host,
+        url: `${protocol}://${window.location.host}/ws/chat/${roomName}/`
+    });
 
-    // Create WebSocket URL
+    // Create WebSocket connection
     const socket = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${roomName}/`);
 
-    // Make socket globally accessible
+    // Make socket globally accessible for debugging
     window.socket = socket;
 
-    // Replace inline event handlers with event listeners
+    // WebSocket Event Listeners
+    socket.addEventListener("open", handleSocketOpen);
+    socket.addEventListener("message", handleSocketMessage);
+    socket.addEventListener("error", handleSocketError);
+    socket.addEventListener("close", handleSocketClose);
+
+    // Message form setup
     if (messageForm) {
         messageForm.addEventListener("submit", function (event) {
             event.preventDefault();
@@ -48,26 +60,71 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Message sending function
-    function sendMessage() {
-        const msg = input.value.trim();
+    // Init functions
+    initFileUpload();
+    initEmojiPanel();
+    initReactionModal();
+    initWhiteboard();
+    initMeetupPlanner();
+    initMediaLibrary();
+    initMobileUserList();
 
-        // Debug check WebSocket state
-        if (window.socket.readyState !== WebSocket.OPEN) {
-            console.error("WebSocket is not connected! ReadyState:", window.socket.readyState);
-            return;
-        }
+    // Initialize all message bubbles with reaction listeners
+    document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
 
-        if (msg && window.socket.readyState === WebSocket.OPEN) {
-            window.socket.send(JSON.stringify({ type: "chat", message: msg }));
-            input.value = "";
-        } else if (uploadedFiles.length > 0 && window.socket.readyState === WebSocket.OPEN) {
-            uploadFilesAndSend();
-        }
+    // Auto-scroll to bottom of chat on load
+    if (chatLog) {
+        chatLog.scrollTo({ top: chatLog.scrollHeight });
     }
 
-    // WebSocket event listeners
-    socket.addEventListener("open", () => {
+    // Image compression function - MAJOR IMPROVEMENT
+    async function compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Create canvas for compression
+                    const canvas = document.createElement('canvas');
+
+                    // Calculate new dimensions (maintaining aspect ratio)
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDimension = 1200; // Adjust based on your needs
+
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height * maxDimension) / width);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width * maxDimension) / height);
+                            height = maxDimension;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Draw image on canvas
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Convert to blob with reduced quality
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        }));
+                    }, 'image/jpeg', 0.7); // Adjust quality (0.7 = 70%)
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // WebSocket Event Handler Functions
+    function handleSocketOpen() {
         console.log("✅ WebSocket connected to room:", roomName);
 
         // Request user list and meetups on connection
@@ -80,9 +137,9 @@ document.addEventListener("DOMContentLoaded", function () {
             type: 'meetup',
             action: 'list'
         }));
-    });
+    }
 
-    socket.addEventListener("message", (event) => {
+    function handleSocketMessage(event) {
         console.log("📩 Message received:", event.data);
         try {
             const data = JSON.parse(event.data);
@@ -90,6 +147,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 case "chat":
                     console.log("Chat message:", data);
                     renderMessage(data);
+                    trackMediaForLibrary(data.message);
                     break;
                 case "reaction":
                     console.log("Reaction:", data);
@@ -117,34 +175,61 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
             console.error("Error processing message:", e, event.data);
         }
-    });
+    }
 
-    socket.addEventListener("error", (error) => {
+    function handleSocketError(error) {
         console.error("⚠️ WebSocket error:", error);
-    });
+        alertUserOfConnectionIssue();
+    }
 
-    socket.addEventListener("close", (event) => {
+    function handleSocketClose(event) {
         console.log("❌ WebSocket closed:", event.code, event.reason);
-    });
 
-    // Helper function for whiteboard messages
-    function handleWhiteboardMessage(data) {
-        if (!ctx) return;
+        // Auto-reconnect after a short delay
+        if (event.code !== 1000) { // 1000 = normal closure
+            setTimeout(() => {
+                console.log("Attempting to reconnect WebSocket...");
+                const newSocket = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${roomName}/`);
+                window.socket = newSocket;
+                // Attach event listeners to new socket
+                newSocket.addEventListener("open", handleSocketOpen);
+                newSocket.addEventListener("message", handleSocketMessage);
+                newSocket.addEventListener("error", handleSocketError);
+                newSocket.addEventListener("close", handleSocketClose);
+            }, 3000);
+        }
 
-        if (data.action === 'draw') {
-            const x = data.x * whiteboardCanvas.width;
-            const y = data.y * whiteboardCanvas.height;
+        alertUserOfConnectionIssue();
+    }
 
-            ctx.lineWidth = data.size;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = data.color;
+    function alertUserOfConnectionIssue() {
+        // Add a system message to the chat
+        const wrapper = document.createElement("div");
+        wrapper.className = "message-bubble system-message";
+        wrapper.innerHTML = `
+            <div class="p-2 bg-red-50 text-red-600 rounded-lg">
+                <p class="text-xs">⚠️ Connection issue detected. The app will attempt to reconnect automatically.</p>
+            </div>
+        `;
+        chatLog?.appendChild(wrapper);
+        chatLog?.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+    }
 
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        } else if (data.action === 'clear') {
-            ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+    // Message Functions
+    function sendMessage() {
+        const msg = input.value.trim();
+
+        // Debug check WebSocket state
+        if (window.socket.readyState !== WebSocket.OPEN) {
+            console.error("WebSocket is not connected! ReadyState:", window.socket.readyState);
+            return;
+        }
+
+        if (msg && window.socket.readyState === WebSocket.OPEN) {
+            window.socket.send(JSON.stringify({ type: "chat", message: msg }));
+            input.value = "";
+        } else if (uploadedFiles.length > 0 && window.socket.readyState === WebSocket.OPEN) {
+            uploadFilesAndSend();
         }
     }
 
@@ -177,10 +262,32 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
 
         addReactionListeners(wrapper);
+    }
 
-        // Track media for the library
-        const mediaImages = wrapper.querySelectorAll('img');
-        const mediaVideos = wrapper.querySelectorAll('video source');
+    function trackMediaForLibrary(message) {
+        // Create a temporary div to parse the HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = message;
+
+        // Track media elements in the message
+        const mediaImages = tempDiv.querySelectorAll('img');
+        const mediaVideos = tempDiv.querySelectorAll('video source');
+
+        // Add images to the library
+        mediaImages.forEach(img => {
+            if (!mediaLibrary.images.includes(img.src)) {
+                mediaLibrary.images.push(img.src);
+                console.log("Added image to media library:", img.src);
+            }
+        });
+
+        // Add videos to the library
+        mediaVideos.forEach(source => {
+            if (!mediaLibrary.videos.includes(source.src)) {
+                mediaLibrary.videos.push(source.src);
+                console.log("Added video to media library:", source.src);
+            }
+        });
     }
 
     function updateReaction({ message_id, reaction, count, users }) {
@@ -213,12 +320,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function showTyping() {
-        const el = document.getElementById("typing-indicator");
-        if (!el) return;
+        if (!typingIndicator) return;
 
-        el.classList.remove("hidden");
+        typingIndicator.classList.remove("hidden");
         clearTimeout(window.typingTimeout);
-        window.typingTimeout = setTimeout(() => el.classList.add("hidden"), 1500);
+        window.typingTimeout = setTimeout(() => typingIndicator.classList.add("hidden"), 1500);
     }
 
     function updateUserList(users) {
@@ -269,43 +375,66 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // File upload handling
-    if (fileInput) {
-        fileInput.addEventListener("change", (e) => {
-            uploadedFiles = [...e.target.files];
-            previewContainer.classList.remove("hidden");
-            previewContent.innerHTML = "";
+    // File Upload Functions
+    function initFileUpload() {
+        if (fileInput) {
+            fileInput.addEventListener("change", (e) => {
+                uploadedFiles = [...e.target.files];
+                previewContainer.classList.remove("hidden");
+                previewContent.innerHTML = "";
 
-            uploadedFiles.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const preview = document.createElement("div");
-                    preview.className = "file-preview";
-                    if (file.type.startsWith("image")) {
-                        preview.innerHTML = `<img src="${reader.result}" class="w-full rounded" />`;
-                    } else if (file.type.startsWith("video")) {
-                        preview.innerHTML = `<video controls class="w-full rounded"><source src="${reader.result}" type="${file.type}"></video>`;
-                    }
-                    previewContent.appendChild(preview);
-                };
-                reader.readAsDataURL(file);
+                uploadedFiles.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const preview = document.createElement("div");
+                        preview.className = "file-preview";
+                        if (file.type.startsWith("image")) {
+                            preview.innerHTML = `<img src="${reader.result}" class="w-full rounded" />`;
+                        } else if (file.type.startsWith("video")) {
+                            preview.innerHTML = `<video controls class="w-full rounded"><source src="${reader.result}" type="${file.type}"></video>`;
+                        }
+                        previewContent.appendChild(preview);
+                    };
+                    reader.readAsDataURL(file);
+                });
             });
-        });
-    }
+        }
 
-    if (cancelPreviewBtn) {
-        cancelPreviewBtn.addEventListener("click", () => {
-            uploadedFiles = [];
-            fileInput.value = "";
-            previewContainer.classList.add("hidden");
-        });
+        if (cancelPreviewBtn) {
+            cancelPreviewBtn.addEventListener("click", () => {
+                uploadedFiles = [];
+                fileInput.value = "";
+                previewContainer.classList.add("hidden");
+            });
+        }
+
+        // Handle typing indicator
+        if (input) {
+            input.addEventListener("keypress", e => {
+                if (e.key === "Enter") {
+                    sendMessage();
+                } else if (window.socket.readyState === WebSocket.OPEN) {
+                    window.socket.send(JSON.stringify({ type: "typing" }));
+                }
+            });
+        }
     }
 
     async function uploadFilesAndSend() {
         if (uploadedFiles.length === 0) return;
 
         const formData = new FormData();
-        uploadedFiles.forEach(f => formData.append("media", f)); // ✅ MUST be 'media'
+
+        // Compress images before uploading
+        for (const file of uploadedFiles) {
+            if (file.type.startsWith('image/')) {
+                const compressedFile = await compressImage(file);
+                formData.append("media", compressedFile);
+                console.log("Added compressed image to upload: original size:", file.size, "compressed size:", compressedFile.size);
+            } else {
+                formData.append("media", file);
+            }
+        }
 
         progressWrap.classList.remove("hidden");
         progressBar.style.width = "0%";
@@ -335,6 +464,12 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         } catch (error) {
             console.error("Error uploading files:", error);
+            // Show upload error to user
+            const errorMsg = document.createElement("div");
+            errorMsg.className = "text-red-500 text-xs mt-1";
+            errorMsg.textContent = "Upload failed. Please try again.";
+            progressWrap.parentNode.appendChild(errorMsg);
+            setTimeout(() => errorMsg.remove(), 3000);
         }
 
         // Reset
@@ -344,71 +479,64 @@ document.addEventListener("DOMContentLoaded", function () {
         progressWrap.classList.add("hidden");
     }
 
-    // Handle typing indicator
-    if (input) {
-        input.addEventListener("keypress", e => {
-            if (e.key === "Enter") {
-                sendMessage();
-            } else if (window.socket.readyState === WebSocket.OPEN) {
-                window.socket.send(JSON.stringify({ type: "typing" }));
-            }
-        });
-    }
+    // Emoji Panel Functions
+    function initEmojiPanel() {
+        const emojiButton = document.getElementById("emoji-button");
+        const emojiPanel = document.getElementById("emoji-panel");
 
-    // Emoji panel handling
-    const emojiButton = document.getElementById("emoji-button");
-    const emojiPanel = document.getElementById("emoji-panel");
+        if (emojiButton && emojiPanel) {
+            emojiButton.addEventListener("click", () => emojiPanel.classList.toggle("show"));
 
-    if (emojiButton && emojiPanel) {
-        emojiButton.addEventListener("click", () => emojiPanel.classList.toggle("show"));
-
-        document.addEventListener("click", e => {
-            if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
-                emojiPanel.classList.remove("show");
-            }
-        });
-
-        document.querySelectorAll(".emoji-btn").forEach(btn => {
-            btn.addEventListener("click", () => {
-                input.value += btn.textContent;
-                input.focus();
-                emojiPanel.classList.remove("show");
+            document.addEventListener("click", e => {
+                if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+                    emojiPanel.classList.remove("show");
+                }
             });
-        });
-    }
 
-    // Reaction modal functionality
-    const reactionModal = document.getElementById("reactionModal");
-    const closeModal = document.getElementById("closeModal");
-
-    document.addEventListener("click", function (e) {
-        if (e.target.matches("[data-emoji]")) {
-            const users = e.target.title?.split(", ") || [];
-            const list = document.getElementById("reactionUserList");
-            if (!list) return;
-
-            list.innerHTML = "";
-            users.forEach(name => {
-                const li = document.createElement("li");
-                li.className = "flex items-center py-1";
-                li.innerHTML = `
-                    <div class="h-5 w-5 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                    ${name.charAt(0).toUpperCase()}
-                    </div>
-                    <span>${name}</span>
-                `;
-                list.appendChild(li);
+            document.querySelectorAll(".emoji-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    input.value += btn.textContent;
+                    input.focus();
+                    emojiPanel.classList.remove("show");
+                });
             });
-            reactionModal.classList.remove("hidden");
-            reactionModal.classList.add("flex");
         }
-    });
+    }
 
-    if (closeModal) {
-        closeModal.addEventListener("click", () => {
-            reactionModal.classList.add("hidden");
-            reactionModal.classList.remove("flex");
+    // Reaction Functions
+    function initReactionModal() {
+        const reactionModal = document.getElementById("reactionModal");
+        const closeModal = document.getElementById("closeModal");
+
+        document.addEventListener("click", function (e) {
+            if (e.target.matches("[data-emoji]")) {
+                const users = e.target.title?.split(", ") || [];
+                const list = document.getElementById("reactionUserList");
+                if (!list) return;
+
+                list.innerHTML = "";
+                users.forEach(name => {
+                    const li = document.createElement("li");
+                    li.className = "flex items-center py-1";
+                    li.innerHTML = `
+                        <div class="h-5 w-5 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                        ${name.charAt(0).toUpperCase()}
+                        </div>
+                        <span>${name}</span>
+                    `;
+                    list.appendChild(li);
+                });
+                reactionModal.classList.remove("hidden");
+                reactionModal.classList.add("flex");
+            }
         });
+
+        if (closeModal) {
+            closeModal.addEventListener("click", () => {
+                reactionModal.classList.add("hidden");
+                reactionModal.classList.remove("flex");
+            });
+        }
     }
 
     function addReactionListeners(wrapper) {
@@ -425,25 +553,19 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Initialize all message bubbles with reaction listeners
-    document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
+    // Mobile UI Functions
+    function initMobileUserList() {
+        const mobileUserListToggle = document.getElementById("mobile-user-list-toggle");
+        const mobileUserList = document.getElementById("mobile-user-list");
 
-    // Auto-scroll to bottom of chat on load
-    if (chatLog) {
-        chatLog.scrollTo({ top: chatLog.scrollHeight });
+        if (mobileUserListToggle && mobileUserList) {
+            mobileUserListToggle.addEventListener("click", () => {
+                mobileUserList.classList.toggle("hidden");
+            });
+        }
     }
 
-    // Mobile user list toggle
-    const mobileUserListToggle = document.getElementById("mobile-user-list-toggle");
-    const mobileUserList = document.getElementById("mobile-user-list");
-
-    if (mobileUserListToggle && mobileUserList) {
-        mobileUserListToggle.addEventListener("click", () => {
-            mobileUserList.classList.toggle("hidden");
-        });
-    }
-
-    // Whiteboard functionality
+    // Whiteboard Functions
     function initWhiteboard() {
         const openWhiteboardBtn = document.getElementById('open-whiteboard');
         const closeWhiteboardBtn = document.getElementById('close-whiteboard');
@@ -563,16 +685,32 @@ document.addEventListener("DOMContentLoaded", function () {
         window.addEventListener('resize', resizeCanvas);
     }
 
-    // Initialize whiteboard
-    initWhiteboard();
+    function handleWhiteboardMessage(data) {
+        if (!ctx) return;
 
-    // Meetup functionality
+        if (data.action === 'draw') {
+            const x = data.x * whiteboardCanvas.width;
+            const y = data.y * whiteboardCanvas.height;
+
+            ctx.lineWidth = data.size;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = data.color;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        } else if (data.action === 'clear') {
+            ctx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        }
+    }
+
+    // Meetup Functions
     function initMeetupPlanner() {
         const createMeetupBtn = document.getElementById('create-meetup-btn');
         const meetupModal = document.getElementById('meetup-modal');
         const cancelMeetupBtn = document.getElementById('cancel-meetup');
         const meetupForm = document.getElementById('meetup-form');
-        const upcomingMeetupsList = document.getElementById('upcoming-meetups');
 
         if (!createMeetupBtn || !meetupModal) return;
 
@@ -640,10 +778,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Initialize meetup planner
-    initMeetupPlanner();
-
-    // Function to render meetups
     function renderMeetups(meetups) {
         const upcomingMeetupsList = document.getElementById('upcoming-meetups');
         if (!upcomingMeetupsList) return;
@@ -756,7 +890,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Media Library functionality
+    // Media Library Functions - FIXED
     function initMediaLibrary() {
         const openMediaBtn = document.getElementById('open-media-library');
         const closeMediaBtn = document.getElementById('close-media-library');
@@ -769,15 +903,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!openMediaBtn || !mediaModal) return;
 
-        // Media library data structure
-        let mediaLibrary = {
-            images: [],
-            videos: []
-        };
-
         // Open and close handlers
         openMediaBtn.addEventListener('click', () => {
-            loadMediaLibrary();
+            // Scan the DOM for media before opening
+            scanChatForMedia();
+            renderMediaGrid('all');
+
             mediaModal.classList.remove('hidden');
             mediaModal.classList.add('flex');
         });
@@ -787,10 +918,12 @@ document.addEventListener("DOMContentLoaded", function () {
             mediaModal.classList.remove('flex');
         });
 
-        closePreviewBtn.addEventListener('click', () => {
-            previewModal.classList.add('hidden');
-            previewModal.classList.remove('flex');
-        });
+        if (closePreviewBtn && previewModal) {
+            closePreviewBtn.addEventListener('click', () => {
+                previewModal.classList.add('hidden');
+                previewModal.classList.remove('flex');
+            });
+        }
 
         // Filter handlers
         filterBtns.forEach(btn => {
@@ -809,27 +942,31 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 
-        // Load media from the server or local storage
-        function loadMediaLibrary() {
-            // Scan the chat for media
+        // Scan the chat for media
+        function scanChatForMedia() {
+            // Reset the media library
             mediaLibrary = {
                 images: [],
                 videos: []
             };
 
+            // Find all images in the chat
             document.querySelectorAll('.message-content img').forEach(img => {
-                if (!mediaLibrary.images.includes(img.src)) {
+                if (img.src && !mediaLibrary.images.includes(img.src)) {
                     mediaLibrary.images.push(img.src);
+                    console.log("Found image in chat:", img.src);
                 }
             });
 
+            // Find all videos in the chat
             document.querySelectorAll('.message-content video source').forEach(source => {
-                if (!mediaLibrary.videos.includes(source.src)) {
+                if (source.src && !mediaLibrary.videos.includes(source.src)) {
                     mediaLibrary.videos.push(source.src);
+                    console.log("Found video in chat:", source.src);
                 }
             });
 
-            renderMediaGrid('all');
+            console.log("Updated media library:", mediaLibrary);
         }
 
         // Render the media grid based on filter
@@ -857,13 +994,26 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             }
 
-            // Sort by most recent (for now we'll just use the order they appear)
+            // If no media items, show empty state
+            if (mediaItems.length === 0) {
+                mediaGrid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="text-center">No media found in this room yet.<br>Share images or videos in the chat to see them here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Create grid items for each media
             mediaItems.forEach(item => {
                 const mediaItem = document.createElement('div');
                 mediaItem.className = 'media-item rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer bg-gray-100 aspect-square flex items-center justify-center';
 
                 if (item.type === 'image') {
-                    mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" />`;
+                    mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item" />`;
                 } else {
                     mediaItem.innerHTML = `
                     <div class="relative w-full h-full">
@@ -882,11 +1032,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     `;
                 }
 
+                // Add click event to show preview
                 mediaItem.addEventListener('click', () => {
+                    if (!previewModal || !previewContent) return;
+
                     previewContent.innerHTML = '';
 
                     if (item.type === 'image') {
-                        previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" />`;
+                        previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" alt="Media preview" />`;
                     } else {
                         previewContent.innerHTML = `
                             <video controls class="max-w-full max-h-[80vh] object-contain">
@@ -901,21 +1054,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 mediaGrid.appendChild(mediaItem);
             });
-
-            // Show empty state if no media
-            if (mediaItems.length === 0) {
-                mediaGrid.innerHTML = `
-                    <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p class="text-center">No media found in this room yet.<br>Share images or videos in the chat to see them here.</p>
-                    </div>
-                `;
-            }
         }
     }
-
-    // Initialize media library
-    initMediaLibrary();
 });
