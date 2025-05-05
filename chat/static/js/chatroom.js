@@ -1,4 +1,4 @@
-console.log("Enhanced chat.js loaded successfully!");
+console.log("Chatroom.js loaded successfully!");
 
 document.addEventListener("DOMContentLoaded", function () {
     // Configuration and Globals
