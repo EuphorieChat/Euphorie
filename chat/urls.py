@@ -2,6 +2,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views, admin_views, api_views
 from .admin_views import admin_create_room, admin_user_settings
+from chat import api_views
 
 urlpatterns = [
     # Core views from first urls.py (priority)
@@ -75,6 +76,6 @@ urlpatterns = [
 
     # Unique paths from second urls.py (non-conflicting)
     path('dm/<str:username>/', views.direct_message, name='direct_message'),
-    path('api/toggle_bookmark_room/', views.toggle_bookmark_room, name='toggle_bookmark_room'),
+    path('api/toggle_bookmark_room/', api_views.toggle_bookmark_room, name='toggle_bookmark_room'),
 
 ]
