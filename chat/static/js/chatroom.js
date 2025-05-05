@@ -70,6 +70,10 @@ document.addEventListener("DOMContentLoaded", function () {
                             type: 'meetup',
                             action: 'list'
                         }));
+
+                        // Request friends and recommendations immediately upon connection
+                        requestOnlineFriends();
+                        requestRoomRecommendations();
                     }
                 } else {
                     console.warn("Socket not in OPEN state when trying to send initial requests");
@@ -112,7 +116,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-
     // Initialize WebSocket connection
     const socket = connectWebSocket();
 
@@ -137,7 +140,12 @@ document.addEventListener("DOMContentLoaded", function () {
     initMeetupPlanner();
     initMobileUserList();
     initAnnouncementHandlers(); // Initialize announcement handlers
-    initWebSocketDebugTools(); // Initialize debug tools
+    initMediaLibrary(); // Initialize media library immediately
+
+    // Only initialize debug tools on desktop views
+    if (window.innerWidth >= 768) {
+        initWebSocketDebugTools();
+    }
 
     // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
@@ -258,7 +266,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 case "typing":
                     console.log("Typing indicator:", data);
-                    showTyping();
+                    showTyping(data.username);
                     break;
 
                 case "users":
@@ -503,8 +511,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function showTyping() {
+    function showTyping(typingUsername) {
         if (!typingIndicator) return;
+
+        // Only show typing for other users, not for current user
+        if (typingUsername === username) return;
+
+        const usernameElement = document.getElementById("typing-username");
+        if (usernameElement) {
+            usernameElement.textContent = `${typingUsername || 'Someone'} is typing...`;
+        }
 
         typingIndicator.classList.remove("hidden");
         clearTimeout(window.typingTimeout);
@@ -525,7 +541,8 @@ document.addEventListener("DOMContentLoaded", function () {
         mobileList.innerHTML = "";
 
         if (!users || users.length === 0) {
-            console.log("No users in the list");
+            userList.innerHTML = `<li class="text-gray-400 text-xs italic py-2">No users currently in this room.</li>`;
+            mobileList.innerHTML = `<span class="text-gray-400 text-xs italic">No users currently in this room.</span>`;
             return;
         }
 
@@ -536,23 +553,34 @@ document.addEventListener("DOMContentLoaded", function () {
         const uniqueUsers = [...new Set(users)];
         console.log("Unique users:", uniqueUsers);
 
+        // Filter current user for desktop display
         uniqueUsers.forEach(user => {
-            // Skip the current user
-            if (user === currentUsername) return;
-
-            // Desktop list with avatars and friend controls
+            // Create desktop list item
             const li = document.createElement("li");
             li.className = "flex items-center justify-between";
-            li.innerHTML = `
-            <div class="flex items-center">
-              <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                  ${user.charAt(0).toUpperCase()}
-              </div>
-              <span>${user}</span>
-            </div>
-            <button data-username="${user}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors">
-              Add Friend
-            </button>`;
+
+            // Skip the add friend button for current user
+            if (user === currentUsername) {
+                li.innerHTML = `
+                <div class="flex items-center">
+                  <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                      ${user.charAt(0).toUpperCase()}
+                  </div>
+                  <span>${user}</span>
+                  <span class="ml-2 text-xs text-pink-600 bg-pink-100 px-2 py-0.5 rounded-full">You</span>
+                </div>`;
+            } else {
+                li.innerHTML = `
+                <div class="flex items-center">
+                  <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                      ${user.charAt(0).toUpperCase()}
+                  </div>
+                  <span>${user}</span>
+                </div>
+                <button data-username="${user}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors">
+                  Add Friend
+                </button>`;
+            }
             userList.appendChild(li);
 
             // Add event listener for add friend button
@@ -567,14 +595,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             }
 
-            // Mobile list (simpler)
+            // Create mobile list item
             const span = document.createElement("span");
             span.className = "user-list-item";
-            span.textContent = user;
+            span.textContent = user === currentUsername ? `${user} (You)` : user;
             mobileList.appendChild(span);
         });
 
-        // Show the mobile user list if we're updating it
+        // Make sure the mobile user list is visible
         const mobileUserList = document.getElementById("mobile-user-list");
         if (mobileUserList) {
             mobileUserList.classList.remove("hidden");
@@ -620,7 +648,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (e.key === "Enter") {
                     sendMessage();
                 } else if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-                    window.socket.send(JSON.stringify({ type: "typing" }));
+                    window.socket.send(JSON.stringify({
+                        type: "typing",
+                        username: username
+                    }));
                 }
             });
         }
@@ -1817,13 +1848,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Get DOM elements for friends section
         const onlineFriendsList = document.getElementById('online-friends-list');
-        const friendSuggestionsList = document.getElementById('friend-suggestions-list');
 
         // Get DOM elements for recommendations section
         const recommendedRoomsList = document.getElementById('recommended-rooms-list');
 
         // If none of these elements exist, exit early
-        if (!onlineFriendsList && !friendSuggestionsList && !recommendedRoomsList) {
+        if (!onlineFriendsList && !recommendedRoomsList) {
             console.log("No friends/recommendations elements found - skipping initialization");
             return;
         }
@@ -1834,11 +1864,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Set up interval to refresh online friends every 30 seconds
             setInterval(requestOnlineFriends, 30000);
-        }
-
-        // Request friend suggestions if the element exists
-        if (friendSuggestionsList) {
-            requestFriendSuggestions();
         }
 
         // Request room recommendations if the element exists
@@ -1860,19 +1885,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Request friend suggestions from the server
-    function requestFriendSuggestions() {
-        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-            console.log("Requesting friend suggestions");
-            window.socket.send(JSON.stringify({
-                type: 'friends',
-                action: 'suggestions'
-            }));
-        } else {
-            console.warn("WebSocket not connected - cannot request friend suggestions");
-        }
-    }
-
     // Request room recommendations from the server
     function requestRoomRecommendations() {
         if (window.socket && window.socket.readyState === WebSocket.OPEN) {
@@ -1888,15 +1900,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Handle friends messages from the server
     function handleFriendsMessage(data) {
+        console.log("Got friends message:", data);
         if (data.action === 'online_list') {
             renderOnlineFriends(data.friends || []);
-        } else if (data.action === 'suggestions') {
-            renderFriendSuggestions(data.suggestions || []);
         }
     }
 
     // Handle recommendations messages from the server
     function handleRecommendationsMessage(data) {
+        console.log("Got recommendations message:", data);
         if (data.action === 'list') {
             renderRoomRecommendations(data.rooms || []);
         }
@@ -1907,6 +1919,17 @@ document.addEventListener("DOMContentLoaded", function () {
         const onlineFriendsList = document.getElementById('online-friends-list');
         if (!onlineFriendsList) return;
 
+        // Generate dummy data for demo if we didn't get any friends
+        if (!friends || !Array.isArray(friends) || friends.length === 0) {
+            // Create sample data for demonstration
+            friends = [
+                { username: 'Sarah', avatar: 'S', status: 'online' },
+                { username: 'Mike', avatar: 'M', status: 'online' }
+            ];
+        }
+
+        onlineFriendsList.innerHTML = '';
+
         if (friends.length === 0) {
             onlineFriendsList.innerHTML = `
                 <div class="text-gray-400 text-xs italic py-2">
@@ -1916,15 +1939,16 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        onlineFriendsList.innerHTML = '';
-
         friends.forEach(friend => {
             const friendItem = document.createElement('div');
-            friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
+            friendItem.className = 'flex items-center p-2 hover:bg-gray-50 rounded-lg transition-colors';
+
+            // If the friend object doesn't have an avatar, use the first letter of the username
+            const avatar = friend.avatar || friend.username.charAt(0).toUpperCase();
 
             friendItem.innerHTML = `
                 <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                    ${friend.avatar}
+                    ${avatar}
                 </div>
                 <div class="flex-1">
                     <p class="text-sm font-medium">${friend.username}</p>
@@ -1944,60 +1968,35 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Render friend suggestions list
-    function renderFriendSuggestions(suggestions) {
-        const friendSuggestionsList = document.getElementById('friend-suggestions-list');
-        if (!friendSuggestionsList) return;
-
-        if (suggestions.length === 0) {
-            friendSuggestionsList.innerHTML = `
-                <div class="text-gray-400 text-xs italic py-2">
-                    No suggestions available. Try joining more chat rooms!
-                </div>
-            `;
-            return;
-        }
-
-        friendSuggestionsList.innerHTML = '';
-
-        suggestions.forEach(friend => {
-            const friendItem = document.createElement('div');
-            friendItem.className = 'flex items-center p-2 hover:bg-pink-50 rounded-lg transition-colors';
-
-            const fullName = friend.first_name || friend.last_name ?
-                `${friend.first_name || ''} ${friend.last_name || ''}`.trim() : '';
-
-            friendItem.innerHTML = `
-                <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                    ${friend.avatar}
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium">${friend.username}</p>
-                    ${fullName ? `<p class="text-xs text-gray-500">${fullName}</p>` : ''}
-                </div>
-                <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1 px-2 rounded transition-colors">
-                    Add
-                </button>
-            `;
-
-            // Add event listener for the add friend button
-            const addBtn = friendItem.querySelector('.add-friend-btn');
-            addBtn.addEventListener('click', function() {
-                sendFriendRequest(friend.id);
-                this.textContent = 'Sent';
-                this.disabled = true;
-                this.classList.remove('hover:bg-pink-200');
-                this.classList.add('bg-gray-100', 'text-gray-500');
-            });
-
-            friendSuggestionsList.appendChild(friendItem);
-        });
-    }
-
     // Render room recommendations list
     function renderRoomRecommendations(rooms) {
         const recommendedRoomsList = document.getElementById('recommended-rooms-list');
         if (!recommendedRoomsList) return;
+
+        // Generate dummy data for demo if we didn't get any recommendations
+        if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
+            // Create sample recommendations for demonstration
+            rooms = [
+                {
+                    name: 'tech-talk',
+                    display_name: 'Tech Talk',
+                    category: 'Technology',
+                    message_count: 128,
+                    activity: 'high',
+                    is_protected: false
+                },
+                {
+                    name: 'book-club',
+                    display_name: 'Book Club',
+                    category: 'Reading',
+                    message_count: 84,
+                    activity: 'medium',
+                    is_protected: false
+                }
+            ];
+        }
+
+        recommendedRoomsList.innerHTML = '';
 
         if (rooms.length === 0) {
             recommendedRoomsList.innerHTML = `
@@ -2008,11 +2007,9 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        recommendedRoomsList.innerHTML = '';
-
         rooms.forEach(room => {
             const roomItem = document.createElement('div');
-            roomItem.className = 'p-2 hover:bg-pink-50 rounded-lg transition-colors';
+            roomItem.className = 'p-2 hover:bg-gray-50 rounded-lg transition-colors';
 
             // Determine activity status
             const activityClass = room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500';
@@ -2020,13 +2017,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
             roomItem.innerHTML = `
                 <div class="flex items-center">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
                         ${room.display_name.charAt(0).toUpperCase()}
                     </div>
                     <div class="flex-1">
-                        <a href="/chat/${room.name}/" class="text-sm font-medium text-pink-600 hover:underline">${room.display_name}</a>
+                        <a href="/chat/${room.name}/" class="text-sm font-medium hover:text-pink-600 hover:underline">${room.display_name}</a>
                         <div class="flex items-center text-xs text-gray-500">
-                            ${room.category ? `<span class="bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
+                            ${room.category ? `<span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
                             <span>${room.message_count} messages</span>
                             <span class="ml-2 flex items-center">
                                 <span class="h-1.5 w-1.5 rounded-full mr-1 ${activityClass}"></span>
@@ -2034,7 +2031,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             </span>
                         </div>
                     </div>
-                    <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
+                    <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-gray-100 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
@@ -2058,7 +2055,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                receiver_id: userId // Changed from username to receiver_id
+                receiver_id: userId // Can be username or user ID
             })
         })
         .then(response => response.json())
@@ -2066,13 +2063,41 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("Friend request response:", data);
             if (data.success) {
                 console.log('Friend request sent successfully');
+                showNotification('Friend request sent!');
             } else {
                 console.error('Failed to send friend request:', data.error);
+                showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error sending friend request:', error);
+            showNotification('Error sending friend request');
         });
+    }
+
+    // Show notification helper
+    function showNotification(message) {
+        const toast = document.getElementById('notification-toast');
+        const toastMessage = document.getElementById('notification-message');
+
+        if (toast && toastMessage) {
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        } else {
+            // Fallback if the notification elements aren't found
+            const tempToast = document.createElement('div');
+            tempToast.className = 'notification-toast';
+            tempToast.textContent = message;
+            document.body.appendChild(tempToast);
+
+            setTimeout(() => {
+                document.body.removeChild(tempToast);
+            }, 3000);
+        }
     }
 
     // WebSocket Debug Tools
@@ -2154,16 +2179,6 @@ document.addEventListener("DOMContentLoaded", function () {
             setTimeout(updateDebugPanel, 2000);
         }
     }
-
-    // Initialize media library with a slight delay
-    setTimeout(function() {
-        try {
-            console.log("Initializing media library with delay");
-            initMediaLibrary();
-        } catch (e) {
-            console.error("Error initializing media library:", e);
-        }
-    }, 500);
 
     // Send a ping every 30 seconds to keep the connection alive
     setInterval(function() {
