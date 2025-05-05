@@ -110,18 +110,19 @@
       transform: scale(1.1);
     }
 
-    /* Message bubbles - UPDATED FOR BETTER IMAGE CONTAINMENT */
+    /* Message bubbles - IMPROVED FOR BETTER READABILITY */
     .message-bubble {
       position: relative;
       border-radius: 16px;
-      padding: 10px 12px;
-      max-width: 80%;
+      padding: 12px 14px;
+      max-width: 85%;
       width: fit-content;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       word-break: break-word;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-      overflow: hidden; /* Added to contain all content including images */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+      line-height: 1.5;
     }
 
     .message-bubble.sent {
@@ -137,35 +138,38 @@
     }
 
     .message-bubble:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       transform: translateY(-1px);
     }
 
-    /* Added specific styling for images within message bubbles */
+    /* Improved styling for images within message bubbles */
     .message-bubble img {
       display: block;
       max-width: 100%;
-      margin: 5px 0;
-      border-radius: 8px;
+      margin: 8px 0;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
 
-    /* Added specific styling for videos within message bubbles */
+    /* Improved styling for videos within message bubbles */
     .message-bubble video {
       display: block;
       max-width: 100%;
-      margin: 5px 0;
-      border-radius: 8px;
+      margin: 8px 0;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
 
-    /* Chat container sizing */
+    /* Chat container sizing - ENHANCED */
     .chat-container {
-      height: calc(100vh - 220px); /* Increased from 280px */
-      min-height: 350px;
+      height: calc(100vh - 230px);
+      min-height: 400px;
+      scroll-behavior: smooth; /* ADDED: Smooth scrolling */
     }
 
     @media (max-width: 640px) {
       .chat-container {
-        height: calc(100vh - 180px); /* Increased from 240px */
+        height: calc(100vh - 200px);
       }
     }
 
@@ -179,14 +183,14 @@
       display: none; /* Chrome, Safari, Opera */
     }
 
-    /* File upload preview */
+    /* Improved file upload preview */
     .file-preview {
       position: relative;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       margin-top: 8px;
-      max-width: 200px;
+      max-width: 220px;
       transition: all 0.3s ease;
     }
 
@@ -195,11 +199,13 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
-    /* Button styles */
+    /* Improved button styles */
     .btn {
       transition: all 0.2s ease;
       font-weight: 500;
       border-radius: 12px;
+      position: relative;
+      overflow: hidden;
     }
 
     .btn:hover {
@@ -209,6 +215,36 @@
 
     .btn:active {
       transform: translateY(0);
+    }
+
+    /* Button ripple effect */
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+
+    .btn:focus:not(:active)::after {
+      animation: ripple 0.6s ease-out;
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
     }
 
     /* Gradient animations */
@@ -438,6 +474,200 @@
       color: #ec4899;
       fill: #ec4899;
     }
+
+    /* NEW STYLES */
+    /* New Message indicator */
+    .new-message-indicator {
+      position: absolute;
+      bottom: 80px;
+      right: 20px;
+      background: #ec4899;
+      color: white;
+      border-radius: 24px;
+      padding: 8px 12px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .new-message-indicator.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .new-message-indicator:hover {
+      background: #db2777;
+    }
+
+    /* Dark mode toggle */
+    .dark-mode-toggle {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      background: white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      z-index: 50;
+      transition: all 0.3s ease;
+    }
+
+    .dark-mode-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Message input accessibility focus */
+    .chat-input:focus-visible {
+      outline: 2px solid #ec4899;
+      outline-offset: 2px;
+    }
+
+    /* Improved animation for new messages */
+    @keyframes messageAppear {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message-bubble.new {
+      animation: messageAppear 0.3s ease forwards;
+    }
+
+    /* Badge for unread messages count */
+    .unread-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 0 4px;
+    }
+
+    /* More responsive sidebar */
+    @media (max-width: 1024px) and (min-width: 641px) {
+      .sidebar-toggle {
+        display: block;
+      }
+      .sidebar-container {
+        position: fixed;
+        right: 0;
+        top: 0;
+        height: 100vh;
+        width: 280px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 100;
+        background: white;
+        padding: 16px;
+        box-shadow: -5px 0 20px rgba(0,0,0,0.1);
+      }
+      .sidebar-container.open {
+        transform: translateX(0);
+      }
+      .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.3);
+        z-index: 90;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      .sidebar-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+
+    /* Typing animation improvements */
+    .typing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #ec4899;
+      animation: typingBounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-8px); }
+    }
+
+    /* Jump to bottom button */
+    .jump-to-bottom {
+      position: absolute;
+      bottom: 80px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+
+    .jump-to-bottom.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .jump-to-bottom:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-white min-h-screen flex flex-col text-gray-800">
@@ -449,20 +679,23 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
       </svg>
     </a>
-    <!-- Changed the room name to be a clickable link -->
+    <!-- Room name as clickable link -->
     <a href="{% url 'index' %}" class="text-xl font-bold gradient-text hover:opacity-80 transition-opacity">{{ room_name|title }}</a>
-    <button id="mobile-user-list-toggle" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
+    <button id="mobile-user-list-toggle" class="p-2 text-pink-500 rounded-full hover:bg-pink-50 relative">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
+      <!-- Added unread badge -->
+      <span id="mobile-unread-badge" class="unread-badge hidden">0</span>
     </button>
   </header>
 
+  <!-- Main content area -->
   <main class="flex-1 w-full max-w-4xl mx-auto p-4 sm:py-8">
     <!-- Room Header - Visible on desktop -->
     <div class="hidden sm:flex items-center justify-between mb-4">
       <div class="flex items-center">
-        <!-- Changed the room name to be a clickable link -->
+        <!-- Room name as clickable link -->
         <a href="{% url 'index' %}" class="text-3xl font-extrabold gradient-text hover:opacity-80 transition-opacity">Room: {{ room_name|title }}</a>
         <span class="ml-3 px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">CHAT</span>
         {% if room.is_protected %}
@@ -474,7 +707,7 @@
         </span>
         {% endif %}
 
-        <!-- Add bookmark/subscribe button -->
+        <!-- Bookmark/subscribe button -->
         <button id="bookmark-room" class="ml-3 bookmark-btn p-1.5 text-gray-400 hover:text-pink-500 rounded-full hover:bg-pink-50 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -559,7 +792,7 @@
 
     <div class="grid sm:grid-cols-4 gap-4">
       <!-- Main Chat Section - takes 3/4 of space on desktop -->
-      <div class="sm:col-span-3">
+      <div class="sm:col-span-3 relative">
         <!-- Main Chat Box -->
         <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden flex flex-col">
           <!-- Chat messages container -->
@@ -605,10 +838,14 @@
             {% endfor %}
           </div>
 
-          <!-- Typing indicator -->
-          <div id="typing-indicator" class="hidden px-4 py-2 text-pink-400 text-sm h-6 flex items-center">
-            <span class="dot">•</span><span class="dot">•</span><span class="dot">•</span>
-            <span class="ml-2 text-xs text-gray-500">Someone is typing...</span>
+          <!-- Typing indicator - IMPROVED -->
+          <div id="typing-indicator" class="hidden px-4 py-2 text-pink-400 text-sm h-8 flex items-center">
+            <div class="typing-dots">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+            <span class="ml-2 text-xs text-gray-500" id="typing-username">Someone is typing...</span>
           </div>
 
           <!-- File Preview Area -->
@@ -663,7 +900,7 @@
                 </div>
               </div>
 
-              <!-- Text Input -->
+              <!-- Text Input - Improved accessibility -->
               <input
                 id="chat-message-input"
                 type="text"
@@ -671,26 +908,43 @@
                 autocomplete="off"
                 class="chat-input flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none text-sm"
                 {% if not user.is_authenticated %}disabled{% endif %}
+                aria-label="Message input"
               />
 
               <!-- File Upload Button -->
               <label for="file-input" class="cursor-pointer p-2.5 bg-yellow-100 text-yellow-600 font-medium rounded-full hover:bg-yellow-200 transition flex items-center justify-center" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
+                <span class="sr-only">Attach files</span>
               </label>
               <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
 
               <!-- Send Button -->
               <button type="submit" id="send-btn" class="btn p-2.5 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-full hover:shadow-md transition flex items-center justify-center"
               {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}
-               >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              aria-label="Send message">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </button>
             </form>
           </div>
+        </div>
+
+        <!-- Jump to bottom button -->
+        <button id="jump-to-bottom" class="jump-to-bottom" aria-label="Jump to bottom">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </button>
+
+        <!-- New Message Indicator -->
+        <div id="new-message-indicator" class="new-message-indicator">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+          <span>New messages</span>
         </div>
       </div>
 
@@ -841,22 +1095,22 @@
 
             <form id="meetup-form" class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Meetup Title</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-title">Meetup Title</label>
                 <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-datetime">Date & Time</label>
                 <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-location">Location</label>
                 <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-description">Description</label>
                 <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
               </div>
 
@@ -983,6 +1237,13 @@
     </div>
   </footer>
 
+  <!-- Dark Mode Toggle Button -->
+  <button id="dark-mode-toggle" class="dark-mode-toggle" aria-label="Toggle dark mode">
+    <svg id="dark-mode-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  </button>
+
   <!-- Reaction User Modal -->
   <div id="reactionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-80 p-4 relative">
@@ -996,12 +1257,13 @@
   <div id="notification-toast" class="notification-toast hidden">
     <span id="notification-message"></span>
   </div>
+
   <script>
     window.roomName = "{{ room_name|escapejs }}";
     window.username = "{{ username|escapejs }}";
   </script>
 
-  <script src="{% static 'js/chat.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
+  <script src="{% static 'js/chatroom.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -1052,6 +1314,112 @@
         });
       };
 
+      // Auto-scroll to bottom of chat on page load
+      scrollToBottom(true);
+
+      // Add scroll monitoring for showing/hiding jump-to-bottom button
+      const chatLog = document.getElementById('chat-log');
+      if (chatLog) {
+        chatLog.addEventListener('scroll', function() {
+          const scrollBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
+          const jumpButton = document.getElementById('jump-to-bottom');
+
+          if (scrollBottom > 100) {
+            jumpButton.classList.add('visible');
+          } else {
+            jumpButton.classList.remove('visible');
+          }
+        });
+      }
+
+      // Jump to bottom button click handler
+      const jumpButton = document.getElementById('jump-to-bottom');
+      if (jumpButton) {
+        jumpButton.addEventListener('click', function() {
+          scrollToBottom(true);
+        });
+      }
+
+      // Setup new message indicator
+      const newMessageIndicator = document.getElementById('new-message-indicator');
+      if (newMessageIndicator) {
+        newMessageIndicator.addEventListener('click', function() {
+          scrollToBottom(true);
+          this.classList.remove('visible');
+        });
+      }
+
+      // Dark mode toggle functionality
+      const darkModeToggle = document.getElementById('dark-mode-toggle');
+      const darkModeIcon = document.getElementById('dark-mode-icon');
+      const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      // Check for saved preference or use system preference
+      const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+      const isDarkMode = savedDarkMode !== null ? savedDarkMode : prefersDarkMode;
+
+      // Apply dark mode if needed on load
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        updateDarkModeIcon(true);
+      }
+
+      if (darkModeToggle) {
+        darkModeToggle.addEventListener('click', function() {
+          const currentMode = document.body.classList.contains('dark-mode');
+          document.body.classList.toggle('dark-mode');
+          localStorage.setItem('darkMode', !currentMode);
+          updateDarkModeIcon(!currentMode);
+        });
+      }
+
+      // Function to update dark mode icon
+      function updateDarkModeIcon(isDark) {
+        if (!darkModeIcon) return;
+
+        if (isDark) {
+          darkModeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          `;
+        } else {
+          darkModeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          `;
+        }
+      }
+
+      // Enhanced message handling - detect new messages
+      const originalAddMessage = window.addMessage || function() {};
+
+      window.addMessage = function(message, username, messageId) {
+        // Call original function
+        originalAddMessage.call(this, message, username, messageId);
+
+        // Check if user is scrolled up
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
+
+        const scrollBottom = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
+
+        // If user is scrolled up when new message arrives, show indicator instead of auto-scrolling
+        if (scrollBottom > 100) {
+          const newMessageIndicator = document.getElementById('new-message-indicator');
+          if (newMessageIndicator) {
+            newMessageIndicator.classList.add('visible');
+          }
+        } else {
+          // User is at bottom, auto-scroll
+          scrollToBottom(false);
+        }
+
+        // Add 'new' class to the newly added message for animation
+        const messages = chatLog.querySelectorAll('.message-bubble');
+        if (messages.length > 0) {
+          const lastMessage = messages[messages.length - 1];
+          lastMessage.classList.add('new');
+        }
+      };
+
       // Updated friend request function
       function sendFriendRequest(userId) {
         // Get CSRF token
@@ -1071,14 +1439,46 @@
         .then(data => {
           console.log("Friend request response:", data);
           if (data.success) {
-            console.log('Friend request sent successfully');
+            showNotification('Friend request sent successfully');
           } else {
             console.error('Failed to send friend request:', data.error);
+            showNotification('Failed to send friend request');
           }
         })
         .catch(error => {
           console.error('Error sending friend request:', error);
+          showNotification('Error sending friend request');
         });
+      }
+
+      // Helper function to scroll to bottom of chat
+      function scrollToBottom(instant) {
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
+
+        if (instant) {
+          // Turn off smooth scrolling temporarily for instant scroll
+          chatLog.style.scrollBehavior = 'auto';
+          chatLog.scrollTop = chatLog.scrollHeight;
+          // Restore smooth scrolling after a brief delay
+          setTimeout(() => {
+            chatLog.style.scrollBehavior = 'smooth';
+          }, 100);
+        } else {
+          chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // Hide the new message indicator if it's visible
+        const newMessageIndicator = document.getElementById('new-message-indicator');
+        if (newMessageIndicator) {
+          newMessageIndicator.classList.remove('visible');
+        }
+
+        // Hide the jump button
+        const jumpButton = document.getElementById('jump-to-bottom');
+        if (jumpButton) {
+          jumpButton.classList.remove('visible');
+        }
       }
     });
 
@@ -1209,6 +1609,153 @@
         }, 3000);
       }
     }
+
+    // Socket handling improvements
+    document.addEventListener('DOMContentLoaded', function() {
+      // Override the chatSocket onmessage handler to improve typing indicators
+      const originalChatSocket = window.chatSocket;
+      if (originalChatSocket && originalChatSocket.onmessage) {
+        const originalOnMessage = originalChatSocket.onmessage;
+
+        window.chatSocket.onmessage = function(e) {
+          const data = JSON.parse(e.data);
+
+          // Enhanced typing indicator handling
+          if (data.type === 'typing') {
+            const typingIndicator = document.getElementById('typing-indicator');
+            const typingUsername = document.getElementById('typing-username');
+
+            if (typingIndicator && typingUsername) {
+              if (data.is_typing && data.username !== window.username) {
+                typingIndicator.classList.remove('hidden');
+                typingUsername.textContent = `${data.username} is typing...`;
+
+                // Auto-hide typing indicator after 3 seconds if no follow-up
+                if (window.typingTimeout) {
+                  clearTimeout(window.typingTimeout);
+                }
+
+                window.typingTimeout = setTimeout(() => {
+                  typingIndicator.classList.add('hidden');
+                }, 3000);
+              } else if (!data.is_typing && data.username === window.username) {
+                typingIndicator.classList.add('hidden');
+              }
+            }
+          }
+
+          // Call the original handler for all other message types
+          originalOnMessage.call(this, e);
+        };
+      }
+    });
   </script>
+
+  <!-- Add CSS for dark mode support -->
+  <style>
+    /* Dark mode styles */
+    body.dark-mode {
+      background-color: #121212;
+      color: #e0e0e0;
+      background-image: radial-gradient(circle at 30% 10%, rgba(236, 72, 153, 0.05), transparent 30%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.05), transparent 40%);
+    }
+
+    body.dark-mode .bg-white {
+      background-color: #1e1e1e;
+    }
+
+    body.dark-mode .border-pink-100 {
+      border-color: #3a2833;
+    }
+
+    body.dark-mode .text-gray-700,
+    body.dark-mode .text-gray-800 {
+      color: #d0d0d0;
+    }
+
+    body.dark-mode .text-gray-600 {
+      color: #b0b0b0;
+    }
+
+    body.dark-mode .text-gray-500,
+    body.dark-mode .text-gray-400 {
+      color: #909090;
+    }
+
+    body.dark-mode .bg-gray-50 {
+      background-color: #252525;
+    }
+
+    body.dark-mode .message-bubble.sent {
+      background-color: #472838; /* Darker pink for sent messages */
+    }
+
+    body.dark-mode .message-bubble.received {
+      background-color: #453827; /* Darker yellow for received messages */
+    }
+
+    body.dark-mode .message-bubble .text-gray-700 {
+      color: #e0e0e0;
+    }
+
+    body.dark-mode .chat-input {
+      background-color: rgba(40, 40, 40, 0.8);
+      color: #e0e0e0;
+      border-color: #3a3a3a;
+    }
+
+    body.dark-mode .chat-input::placeholder {
+      color: #909090;
+    }
+
+    body.dark-mode .dark-mode-toggle {
+      background-color: #333;
+    }
+
+    body.dark-mode .dark-mode-toggle svg {
+      color: #f0f0f0;
+    }
+
+    body.dark-mode .emoji-panel,
+    body.dark-mode .emoji-reaction {
+      background-color: #2a2a2a;
+    }
+
+    body.dark-mode .emoji-btn:hover {
+      background-color: #3a3a3a;
+    }
+
+    body.dark-mode .reaction-counter {
+      background: #333;
+      border-color: #444;
+    }
+
+    body.dark-mode .mobile-top-bar {
+      background-color: rgba(30, 30, 30, 0.95);
+      backdrop-filter: blur(8px);
+      border-color: #333;
+    }
+
+    body.dark-mode .jump-to-bottom {
+      background: #333;
+    }
+
+    body.dark-mode .jump-to-bottom svg {
+      color: #ec4899;
+    }
+
+    /* Accessibility improvements for dark mode */
+    body.dark-mode .chat-input:focus {
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.3);
+    }
+
+    /* Smoother transition between light/dark mode */
+    body, .bg-white, .text-gray-700, .text-gray-800, .text-gray-600,
+    .text-gray-500, .text-gray-400, .bg-gray-50, .chat-input,
+    .border-pink-100, .message-bubble, .mobile-top-bar, .jump-to-bottom {
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+  </style>
 </body>
 </html>
