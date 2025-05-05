@@ -585,32 +585,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.error(f"Error toggling reaction: {str(e)}")
             raise
 
-    @database_sync_to_async
-    def update_user_presence(self):
-        # This function intentionally does nothing but must be defined
-        # as a synchronous function for database_sync_to_async
-        pass
-
-    @database_sync_to_async
-    def get_active_users(self):
+    async def update_user_presence(self):
         try:
-            room = Room.objects.get(name=self.room_name)
+            if not self.is_authenticated:
+                return
+            redis = await self.channel_layer.redis()
+            key = f"presence:{self.room_name}:{self.user.username}"
+            await redis.set(key, "1", ex=65)  # 65s TTL
+        except Exception as e:
+            logger.error(f"Error updating user presence (Redis): {str(e)}")
 
-            # Get users who sent messages in the last hour
-            recent_time = timezone.now() - timedelta(hours=1)
-            recent_users = Message.objects.filter(
-                room=room,
-                timestamp__gte=recent_time
-            ).values_list('user__username', flat=True).distinct()
-
-            # Add current user if not already included
-            users = list(set(recent_users))  # Convert to set to remove duplicates
-            if self.is_authenticated and self.user.username not in users:
-                users.append(self.user.username)
-
+    async def get_active_users(self):
+        try:
+            redis = await self.channel_layer.redis()
+            pattern = f"presence:{self.room_name}:*"
+            keys = await redis.keys(pattern)
+            users = [key.decode().split(":")[-1] for key in keys]
             return users
         except Exception as e:
-            logger.error(f"Error getting active users: {str(e)}")
+            logger.error(f"Error getting active users from Redis: {str(e)}")
             return []
 
     @database_sync_to_async
