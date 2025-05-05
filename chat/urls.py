@@ -2,6 +2,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 from . import admin_views
+from .admin_views import admin_create_room
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -50,4 +51,6 @@ urlpatterns = [
     path('manage/user-activity/', admin_views.admin_user_activity, name='admin_user_activity'),
     path('manage/user-messages/<int:user_id>/', admin_views.admin_user_messages, name='admin_user_messages'),
     path('manage/export-chat/<str:room_name>/', admin_views.admin_export_chat, name='admin_export_chat'),
+
+    path('manage/rooms/create/', admin_create_room, name='admin_create_room'),
 ]

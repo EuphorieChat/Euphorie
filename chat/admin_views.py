@@ -744,3 +744,11 @@ def room(request, room_name):
     }
 
     return render(request, 'chat/room.html', context)
+
+def admin_create_room(request):
+    # Room creation logic here
+    # This is just a placeholder function
+    if request.method == "POST":
+        # Process form data and create the room
+        pass
+    return render(request, 'chat/manage/create_room.html')

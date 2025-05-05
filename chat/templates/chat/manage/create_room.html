@@ -1,0 +1,456 @@
+{% extends "chat/manage/base.html" %}
+{% load static %}
+
+{% block title %}Create New Room - Euphorie Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Base styles with CSS variables for consistent theming */
+  :root {
+    --primary: #ec4899;
+    --primary-light: rgba(236, 72, 153, 0.1);
+    --primary-lighter: rgba(236, 72, 153, 0.05);
+    --primary-dark: #db2777;
+    --gray-dark: #1f2937;
+    --gray-medium: #6b7280;
+    --gray-light: #f3f4f6;
+    --success: #10b981;
+    --success-light: rgba(16, 185, 129, 0.1);
+    --warning: #f59e0b;
+    --warning-light: rgba(245, 158, 11, 0.1);
+    --danger: #ef4444;
+    --danger-light: rgba(239, 68, 68, 0.1);
+    --info: #3b82f6;
+    --info-light: rgba(59, 130, 246, 0.1);
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Improved focus states for accessibility */
+  button:focus,
+  a:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Form styling */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--gray-dark);
+  }
+
+  .form-hint {
+    font-size: 0.875rem;
+    color: var(--gray-medium);
+    margin-top: 0.25rem;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-control:hover {
+    border-color: #d1d5db;
+  }
+
+  .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+    outline: none;
+  }
+
+  .form-control.is-invalid {
+    border-color: var(--danger);
+  }
+
+  .invalid-feedback {
+    color: var(--danger);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Switch toggle for is_private */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 3.5rem;
+    height: 2rem;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e5e7eb;
+    transition: .4s;
+    border-radius: 2rem;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 1.5rem;
+    width: 1.5rem;
+    left: 0.25rem;
+    bottom: 0.25rem;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .toggle-slider {
+    background-color: var(--primary);
+  }
+
+  input:focus + .toggle-slider {
+    box-shadow: 0 0 1px var(--primary);
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(1.5rem);
+  }
+
+  /* Card styling */
+  .card {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+  }
+
+  .card-title {
+    font-weight: 600;
+    color: var(--gray-dark);
+    margin: 0;
+  }
+
+  .card-body {
+    padding: 1.5rem;
+  }
+
+  .card-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Button styling */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+  }
+
+  .btn-secondary {
+    background-color: white;
+    color: var(--gray-dark);
+    border: 1px solid #e5e7eb;
+  }
+
+  .btn-secondary:hover {
+    background-color: #f9fafb;
+  }
+
+  /* Responsive adaptations */
+  @media (max-width: 640px) {
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <header class="mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Create New Room</h1>
+                <p class="text-sm sm:text-base text-gray-500 mt-1">Set up a new chat room on the platform</p>
+            </div>
+
+            <a href="{% url 'admin_rooms' %}" class="flex items-center bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 py-2 px-4 rounded-lg transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Rooms
+            </a>
+        </div>
+    </header>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Room Information</h2>
+        </div>
+        <form method="post" action="{% url 'admin_create_room' %}">
+            {% csrf_token %}
+            <div class="card-body">
+                {% if form.errors %}
+                <div class="p-3 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                    <p class="font-medium">Please correct the following errors:</p>
+                    <ul class="list-disc list-inside mt-1 text-sm">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-group md:col-span-2">
+                        <label for="name" class="form-label">Room ID</label>
+                        <input type="text" id="name" name="name" class="form-control {% if form.name.errors %}is-invalid{% endif %}" placeholder="Enter a unique room identifier (e.g., general-chat)" required>
+                        <p class="form-hint">This will be used in the URL. Use only lowercase letters, numbers, and hyphens.</p>
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group md:col-span-2">
+                        <label for="display_name" class="form-label">Display Name</label>
+                        <input type="text" id="display_name" name="display_name" class="form-control {% if form.display_name.errors %}is-invalid{% endif %}" placeholder="Enter a user-friendly room name" required>
+                        <p class="form-hint">This will be displayed to users in the interface.</p>
+                        {% if form.display_name.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.display_name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category" class="form-label">Category</label>
+                        <select id="category" name="category" class="form-control {% if form.category.errors %}is-invalid{% endif %}">
+                            <option value="">-- Select Category --</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="form-hint">Group this room with similar rooms.</p>
+                        {% if form.category.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.category.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="creator" class="form-label">Creator</label>
+                        <select id="creator" name="creator" class="form-control {% if form.creator.errors %}is-invalid{% endif %}" required>
+                            {% for user in users %}
+                            <option value="{{ user.id }}" {% if user.id == request.user.id %}selected{% endif %}>{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="form-hint">User who will own this room.</p>
+                        {% if form.creator.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.creator.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group md:col-span-2">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea id="description" name="description" class="form-control {% if form.description.errors %}is-invalid{% endif %}" rows="3" placeholder="Enter a brief description of the room"></textarea>
+                        <p class="form-hint">Help users understand what this room is about.</p>
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.description.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <div class="flex items-center justify-between">
+                            <label for="is_active" class="form-label mb-0">Active Status</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="is_active" name="is_active" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <p class="form-hint">Active rooms are visible to users.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="flex items-center justify-between">
+                            <label for="is_private" class="form-label mb-0">Private Room</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="is_private" name="is_private">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <p class="form-hint">Private rooms require invitation to join.</p>
+                    </div>
+
+                    <div class="form-group md:col-span-2">
+                        <label for="password" class="form-label">Room Password</label>
+                        <input type="password" id="password" name="password" class="form-control {% if form.password.errors %}is-invalid{% endif %}" placeholder="Leave empty for no password">
+                        <p class="form-hint">Optional: Add a password to restrict access.</p>
+                        {% if form.password.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.password.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:justify-end">
+                    <a href="{% url 'admin_rooms' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Create Room
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-generate room ID from display name
+        const displayNameInput = document.getElementById('display_name');
+        const roomIdInput = document.getElementById('name');
+
+        displayNameInput.addEventListener('input', function() {
+            // Only auto-generate if the user hasn't manually entered a room ID
+            if (!roomIdInput.dataset.manuallyEntered) {
+                const displayName = this.value;
+                const roomId = displayName
+                    .toLowerCase()
+                    .replace(/[^\w\s-]/g, '') // Remove special characters
+                    .replace(/\s+/g, '-')     // Replace spaces with hyphens
+                    .replace(/-+/g, '-');     // Replace multiple hyphens with single hyphen
+
+                roomIdInput.value = roomId;
+            }
+        });
+
+        // Set a flag when user manually edits the room ID
+        roomIdInput.addEventListener('input', function() {
+            this.dataset.manuallyEntered = 'true';
+        });
+
+        // Validate form before submission
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            const roomId = roomIdInput.value.trim();
+            const displayName = displayNameInput.value.trim();
+
+            if (!roomId) {
+                event.preventDefault();
+                roomIdInput.classList.add('is-invalid');
+
+                // Add error message if not already present
+                if (!document.querySelector('.invalid-feedback')) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'invalid-feedback';
+                    errorMsg.textContent = 'Room ID is required';
+                    roomIdInput.parentNode.appendChild(errorMsg);
+                }
+            }
+
+            if (!displayName) {
+                event.preventDefault();
+                displayNameInput.classList.add('is-invalid');
+
+                // Add error message if not already present
+                if (!displayNameInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'invalid-feedback';
+                    errorMsg.textContent = 'Display name is required';
+                    displayNameInput.parentNode.appendChild(errorMsg);
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
