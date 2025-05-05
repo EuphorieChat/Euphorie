@@ -1811,7 +1811,6 @@ function renderFriendSuggestions(suggestions) {
 }
 
 // Render room recommendations list
-// Render room recommendations list
 function renderRoomRecommendations(rooms) {
     const recommendedRoomsList = document.getElementById('recommended-rooms-list');
     if (!recommendedRoomsList) return;

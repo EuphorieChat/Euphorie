@@ -996,7 +996,6 @@
   <div id="notification-toast" class="notification-toast hidden">
     <span id="notification-message"></span>
   </div>
-
   <script>
     window.roomName = "{{ room_name|escapejs }}";
     window.username = "{{ username|escapejs }}";
@@ -1006,6 +1005,9 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
+      // Initialize the bookmark button functionality
+      initializeBookmarkButton();
+
       // Enhance existing user list to include add friend button
       const originalUpdateUserList = window.updateUserList || function() {};
 
@@ -1078,50 +1080,30 @@
           console.error('Error sending friend request:', error);
         });
       }
-
-      // Helper function to get CSRF token
-      function getCsrfToken() {
-        // From cookies
-        const name = 'csrftoken=';
-        const decodedCookie = decodeURIComponent(document.cookie);
-        const cookieArray = decodedCookie.split(';');
-
-        for (let i = 0; i < cookieArray.length; i++) {
-          let cookie = cookieArray[i].trim();
-          if (cookie.indexOf(name) === 0) {
-            return cookie.substring(name.length, cookie.length);
-          }
-        }
-
-        // If not found in cookies, try to find it in a meta tag
-        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-        if (csrfMeta) {
-          return csrfMeta.getAttribute('content');
-        }
-
-        // Last resort - look for hidden input field
-        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-        if (csrfInput) {
-          return csrfInput.value;
-        }
-
-        return '';
-      }
     });
 
-    // Bookmark/Subscribe room functionality
-    const bookmarkBtn = document.getElementById('bookmark-room');
+    // Initialize the bookmark button
+    function initializeBookmarkButton() {
+      const bookmarkBtn = document.getElementById('bookmark-room');
 
-    if (bookmarkBtn) {
-      // Check if room is already bookmarked (from server or localStorage)
+      if (!bookmarkBtn) {
+        console.error("Bookmark button not found");
+        return;
+      }
+
+      console.log("Initializing bookmark button");
+
+      // Check if room is already bookmarked from localStorage
       const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
 
       // Update button appearance based on current state
       updateBookmarkButton(isBookmarked);
 
+      // Add click event listener
       bookmarkBtn.addEventListener('click', function() {
+        console.log("Bookmark button clicked");
         // Toggle bookmarked state
-        const newState = !isBookmarked;
+        const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
 
         // Get CSRF token
         const csrfToken = getCsrfToken();
@@ -1184,6 +1166,49 @@
       }
     }
 
+    // Helper function to get CSRF token
+    function getCsrfToken() {
+      // From cookies
+      const name = 'csrftoken=';
+      const decodedCookie = decodeURIComponent(document.cookie);
+      const cookieArray = decodedCookie.split(';');
+
+      for (let i = 0; i < cookieArray.length; i++) {
+        let cookie = cookieArray[i].trim();
+        if (cookie.indexOf(name) === 0) {
+          return cookie.substring(name.length, cookie.length);
+        }
+      }
+
+      // If not found in cookies, try to find it in a meta tag
+      const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      if (csrfMeta) {
+        return csrfMeta.getAttribute('content');
+      }
+
+      // Last resort - look for hidden input field
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (csrfInput) {
+        return csrfInput.value;
+      }
+
+      return '';
+    }
+
+    // Show notification function
+    function showNotification(message) {
+      const notificationToast = document.getElementById('notification-toast');
+      const notificationMessage = document.getElementById('notification-message');
+
+      if (notificationToast && notificationMessage) {
+        notificationMessage.textContent = message;
+        notificationToast.classList.remove('hidden');
+
+        setTimeout(function() {
+          notificationToast.classList.add('hidden');
+        }, 3000);
+      }
+    }
   </script>
 </body>
 </html>
