@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from django.contrib.auth.hashers import make_password, check_password
 
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -58,6 +59,10 @@ class Room(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='rooms')
 
+    # New fields for password protection
+    is_protected = models.BooleanField(default=False)
+    password = models.CharField(max_length=255, blank=True, null=True)
+
     class Meta:
         ordering = ['-created_at']  # Default ordering by newest first
 
@@ -74,6 +79,21 @@ class Room(models.Model):
     def message_count(self):
         """Returns the count of messages in this room"""
         return self.messages.count()
+
+    def set_password(self, raw_password):
+        """Set a hashed password for the room"""
+        if raw_password:
+            self.password = make_password(raw_password)
+            self.is_protected = True
+        else:
+            self.password = None
+            self.is_protected = False
+
+    def check_password(self, raw_password):
+        """Check if the provided password is correct"""
+        if not self.is_protected:
+            return True
+        return check_password(raw_password, self.password)
 
 
 class Message(models.Model):
@@ -119,3 +139,31 @@ class Meetup(models.Model):
 
     def __str__(self):
         return f"{self.title} at {self.location} on {self.datetime}"
+
+
+class Announcement(models.Model):
+    """Model for admin announcements in chat rooms"""
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='announcements')
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_announcements')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Announcement in {self.room.name} by {self.creator.username}"
+
+
+class AnnouncementReadStatus(models.Model):
+    """Tracks which users have read which announcements"""
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, related_name='read_statuses')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='announcement_reads')
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('announcement', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} read {self.announcement.id} at {self.read_at}"

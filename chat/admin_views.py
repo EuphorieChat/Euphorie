@@ -2,13 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.db.models import Count, Q
-from django.http import JsonResponse
-from django.urls import reverse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from datetime import timedelta
+import json
 
-from .models import Room, Message, Category, Reaction
+from .models import Room, Message, Category, Reaction, Announcement, AnnouncementReadStatus
 
 # Helper function to check if user is an admin
 def is_admin(user):
@@ -41,12 +42,22 @@ def admin_dashboard(request):
         timestamp__gte=day_ago
     ).values('room').distinct().count()
 
+    # Get count of password-protected rooms
+    protected_rooms_count = Room.objects.filter(is_protected=True).count()
+
+    # Get count of rooms with active announcements
+    rooms_with_announcements = Room.objects.filter(
+        announcements__is_active=True
+    ).distinct().count()
+
     context = {
         'total_rooms': total_rooms,
         'total_messages': total_messages,
         'total_users': total_users,
         'messages_24h': messages_24h,
         'active_rooms_24h': active_rooms_24h,
+        'protected_rooms_count': protected_rooms_count,
+        'rooms_with_announcements': rooms_with_announcements,
         'rooms': rooms,
         'recent_messages': recent_messages,
     }
@@ -82,10 +93,94 @@ def admin_rooms(request):
 
     return render(request, 'chat/manage/rooms.html', context)
 
-# Room detail view with messages
+# Room detail view with messages - now includes password and announcement management
 @user_passes_test(is_admin)
 def admin_room_detail(request, room_name):
     room = get_object_or_404(Room, name=room_name)
+
+    # Handle password form submission
+    if request.method == 'POST' and 'password_action' in request.POST:
+        is_protected = request.POST.get('is_protected') == 'on'
+        password = request.POST.get('password', '')
+
+        if is_protected:
+            if password:  # Only update password if a new one is provided
+                room.set_password(password)
+            elif not room.password:  # If no password exists and none provided
+                messages.error(request, "You must set a password if enabling protection")
+            else:  # Keep existing password
+                room.is_protected = True
+        else:
+            room.is_protected = False
+            room.password = None
+
+        room.save()
+        messages.success(request, f"Password protection for '{room.display_name or room.name}' has been updated")
+
+    # Handle announcement form submission
+    elif request.method == 'POST' and 'announcement_action' in request.POST:
+        action = request.POST.get('announcement_action')
+
+        if action == 'create':
+            content = request.POST.get('content', '').strip()
+            if content:
+                announcement = Announcement.objects.create(
+                    room=room,
+                    creator=request.user,
+                    content=content,
+                    is_active=True
+                )
+
+                # Broadcast the new announcement via WebSockets
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"chat_{room_name}",
+                    {
+                        'type': 'announcement',
+                        'action': 'new',
+                        'announcement_id': announcement.id,
+                        'content': announcement.content,
+                        'creator': request.user.username,
+                        'created_at': announcement.created_at.isoformat()
+                    }
+                )
+
+                messages.success(request, "Announcement created successfully")
+
+        elif action == 'toggle':
+            announcement_id = request.POST.get('announcement_id')
+            announcement = get_object_or_404(Announcement, id=announcement_id, room=room)
+            announcement.is_active = not announcement.is_active
+            announcement.save()
+            status = "activated" if announcement.is_active else "deactivated"
+            messages.success(request, f"Announcement {status} successfully")
+
+            # If reactivating, broadcast to all users
+            if announcement.is_active:
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"chat_{room_name}",
+                    {
+                        'type': 'announcement',
+                        'action': 'new',
+                        'announcement_id': announcement.id,
+                        'content': announcement.content,
+                        'creator': announcement.creator.username,
+                        'created_at': announcement.created_at.isoformat()
+                    }
+                )
+
+        elif action == 'delete':
+            announcement_id = request.POST.get('announcement_id')
+            announcement = get_object_or_404(Announcement, id=announcement_id, room=room)
+            announcement.delete()
+            messages.success(request, "Announcement deleted successfully")
 
     # Get messages for this room
     messages_list = Message.objects.filter(
@@ -100,6 +195,10 @@ def admin_room_detail(request, room_name):
             Q(user__username__icontains=search_query)
         )
 
+    # Get announcements
+    announcements = Announcement.objects.filter(room=room).order_by('-created_at')
+    active_announcements = announcements.filter(is_active=True)
+
     # Pagination
     paginator = Paginator(messages_list, 50)  # 50 messages per page
     page_number = request.GET.get('page', 1)
@@ -110,6 +209,11 @@ def admin_room_detail(request, room_name):
         'page_obj': page_obj,
         'search_query': search_query,
         'message_count': messages_list.count(),
+        'is_password_protected': room.is_protected,
+        'announcements': announcements,
+        'active_announcements': active_announcements,
+        'active_announcements_count': active_announcements.count(),
+        'total_announcements_count': announcements.count(),
     }
 
     return render(request, 'chat/manage/room_detail.html', context)
@@ -393,20 +497,250 @@ def admin_export_chat(request, room_name):
 
     return response
 
-# Simple test view to debug authentication issues
-def admin_test(request):
-    """A simple test view to check authentication status"""
+# NEW FEATURE: Room Password Management
+@user_passes_test(is_admin)
+def admin_manage_room_password(request, room_name):
+    """Admin view to set or change room password"""
+    room = get_object_or_404(Room, name=room_name)
+
+    if request.method == 'POST':
+        is_protected = request.POST.get('is_protected') == 'on'
+        password = request.POST.get('password', '')
+
+        if is_protected:
+            if password:  # Only update password if a new one is provided
+                room.set_password(password)
+            elif not room.password:  # If no password exists and none provided
+                messages.error(request, "You must set a password if enabling protection")
+                return render(request, 'chat/manage/room_password.html', {'room': room})
+            else:  # Keep existing password
+                room.is_protected = True
+        else:
+            room.is_protected = False
+            room.password = None
+
+        room.save()
+        messages.success(request, f"Password protection for '{room.display_name or room.name}' has been updated")
+        return redirect('admin_room_detail', room_name=room_name)
+
+    return render(request, 'chat/manage/room_password.html', {'room': room})
+
+# NEW FEATURE: Announcements Management
+@user_passes_test(is_admin)
+def admin_manage_announcements(request, room_name):
+    """Admin view to manage room announcements"""
+    room = get_object_or_404(Room, name=room_name)
+    announcements = Announcement.objects.filter(room=room).order_by('-created_at')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'create':
+            content = request.POST.get('content', '').strip()
+            if content:
+                announcement = Announcement.objects.create(
+                    room=room,
+                    creator=request.user,
+                    content=content,
+                    is_active=True
+                )
+
+                # Broadcast the new announcement via WebSockets
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"chat_{room_name}",
+                    {
+                        'type': 'announcement',
+                        'action': 'new',
+                        'announcement_id': announcement.id,
+                        'content': announcement.content,
+                        'creator': request.user.username,
+                        'created_at': announcement.created_at.isoformat()
+                    }
+                )
+
+                messages.success(request, "Announcement created successfully")
+
+        elif action == 'toggle':
+            announcement_id = request.POST.get('announcement_id')
+            announcement = get_object_or_404(Announcement, id=announcement_id, room=room)
+            announcement.is_active = not announcement.is_active
+            announcement.save()
+            status = "activated" if announcement.is_active else "deactivated"
+            messages.success(request, f"Announcement {status} successfully")
+
+            # If reactivating, broadcast to all users
+            if announcement.is_active:
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"chat_{room_name}",
+                    {
+                        'type': 'announcement',
+                        'action': 'new',
+                        'announcement_id': announcement.id,
+                        'content': announcement.content,
+                        'creator': announcement.creator.username,
+                        'created_at': announcement.created_at.isoformat()
+                    }
+                )
+
+        elif action == 'delete':
+            announcement_id = request.POST.get('announcement_id')
+            announcement = get_object_or_404(Announcement, id=announcement_id, room=room)
+            announcement.delete()
+            messages.success(request, "Announcement deleted successfully")
+
+        return redirect('admin_manage_announcements', room_name=room_name)
+
+    return render(request, 'chat/manage/announcements.html', {
+        'room': room,
+        'announcements': announcements
+    })
+
+# Client-side API for announcements
+@csrf_exempt
+@user_passes_test(is_admin, login_url='/login/')
+def create_announcement(request, room_name):
+    """API endpoint to create a new announcement"""
+    if request.method == 'POST':
+        try:
+            room = get_object_or_404(Room, name=room_name)
+
+            # Check if user is admin or room creator
+            if not (request.user.is_staff or request.user == room.creator):
+                return JsonResponse({'error': 'You do not have permission to create announcements'}, status=403)
+
+            # Parse request body
+            data = json.loads(request.body)
+            content = data.get('content', '').strip()
+
+            if not content:
+                return JsonResponse({'error': 'Announcement content cannot be empty'}, status=400)
+
+            # Create announcement
+            announcement = Announcement.objects.create(
+                room=room,
+                creator=request.user,
+                content=content,
+                is_active=True
+            )
+
+            # Broadcast via WebSockets
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"chat_{room_name}",
+                {
+                    'type': 'announcement',
+                    'action': 'new',
+                    'announcement_id': announcement.id,
+                    'content': announcement.content,
+                    'creator': request.user.username,
+                    'created_at': announcement.created_at.isoformat()
+                }
+            )
+
+            return JsonResponse({
+                'success': True,
+                'announcement_id': announcement.id,
+                'content': content,
+                'creator': request.user.username,
+                'created_at': announcement.created_at.isoformat()
+            })
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def mark_announcement_read(request, announcement_id):
+    """API endpoint to mark an announcement as read"""
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+
+        try:
+            announcement = get_object_or_404(Announcement, id=announcement_id)
+
+            # Create read status if it doesn't exist
+            AnnouncementReadStatus.objects.get_or_create(
+                announcement=announcement,
+                user=request.user
+            )
+
+            return JsonResponse({
+                'success': True,
+                'announcement_id': announcement_id
+            })
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+# Password protection for room access in the frontend view
+def room_password_check(request, room_name):
+    """View to check if a room password is correct"""
+    room = get_object_or_404(Room, name=room_name)
+
+    if not room.is_protected:
+        # Room is not password protected, redirect to room
+        return redirect('room', room_name=room_name)
+
+    if request.method == 'POST':
+        password = request.POST.get('password', '')
+        if room.check_password(password):
+            # Password is correct, set session variable to remember
+            request.session[f'room_access_{room_name}'] = True
+            return redirect('room', room_name=room_name)
+        else:
+            messages.error(request, 'Incorrect password. Please try again.')
+
+    return render(request, 'chat/room_password.html', {'room': room})
+
+# Add or update your room view to check for password
+def room(request, room_name):
+    room = get_object_or_404(Room, name=room_name)
+
+    # Check if room is password protected and user has access
+    if room.is_protected:
+        if not request.session.get(f'room_access_{room_name}'):
+            return redirect('room_password_check', room_name=room_name)
+
+    # Continue with your existing room view code...
+    # Get messages, etc.
+
+    # Get active announcements for this room that the user hasn't read
+    active_announcements = []
+    if request.user.is_authenticated:
+        for announcement in Announcement.objects.filter(room=room, is_active=True):
+            is_read = AnnouncementReadStatus.objects.filter(
+                announcement=announcement,
+                user=request.user
+            ).exists()
+
+            if not is_read:
+                active_announcements.append({
+                    'id': announcement.id,
+                    'content': announcement.content,
+                    'creator': announcement.creator.username,
+                    'created_at': announcement.created_at,
+                    'is_read': False
+                })
+
+    # Include announcements in template context
     context = {
-        'username': request.user.username,
-        'is_authenticated': request.user.is_authenticated,
-        'is_staff': getattr(request.user, 'is_staff', False),
-        'is_admin_result': is_admin(request.user),
+        # Your existing context...
+        'active_announcements': active_announcements
     }
-    from django.http import HttpResponse
-    return HttpResponse(f"""
-        <h1>Admin Authentication Test</h1>
-        <p>Username: {request.user.username}</p>
-        <p>Is authenticated: {request.user.is_authenticated}</p>
-        <p>Is staff: {getattr(request.user, 'is_staff', False)}</p>
-        <p>is_admin() result: {is_admin(request.user)}</p>
-    """)
+
+    return render(request, 'chat/room.html', context)

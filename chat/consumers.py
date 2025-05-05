@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
-from .models import Room, Message, Reaction, Meetup
+from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus
 from django.utils import timezone
 from datetime import timedelta
 
@@ -11,6 +11,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'chat_{self.room_name}'
         self.user = self.scope.get('user', None)
+
+        # Check if room exists and user has access (password check)
+        room_access = await self.check_room_access()
+        if not room_access['exists']:
+            # Room doesn't exist, reject the connection
+            await self.close()
+            return
+
+        # Check if room is password protected and user has access
+        if room_access['is_protected']:
+            # Get session from scope
+            session = self.scope.get('session', None)
+            if not session or not session.get(f'room_access_{self.room_name}'):
+                # User hasn't entered the password, reject connection
+                await self.close()
+                return
 
         # Join room group
         await self.channel_layer.group_add(
@@ -47,6 +63,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'type': 'meetups',
                 'meetups': meetups
             }))
+
+            # Get active announcements and send to the user
+            if self.user.is_authenticated:
+                announcements = await self.get_active_announcements()
+                if announcements:
+                    await self.send(json.dumps({
+                        'type': 'announcements',
+                        'announcements': announcements
+                    }))
 
     async def disconnect(self, close_code):
         # Leave room group
@@ -223,6 +248,55 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
+        # Handle announcement message types
+        elif message_type == 'announcement':
+            action = text_data_json.get('action', '')
+
+            if not self.user or self.user.is_anonymous:
+                return
+
+            if action == 'create':
+                # Check if user is admin or room creator
+                is_admin = await self.check_if_admin()
+                if not is_admin:
+                    return
+
+                content = text_data_json.get('content', '')
+                if not content:
+                    return
+
+                # Create announcement
+                announcement_data = await self.create_announcement(content)
+
+                # Broadcast to everyone
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'announcement',
+                        'action': 'new',
+                        'announcement_id': announcement_data['id'],
+                        'content': announcement_data['content'],
+                        'creator': announcement_data['creator'],
+                        'created_at': announcement_data['created_at']
+                    }
+                )
+
+            elif action == 'mark_read':
+                announcement_id = text_data_json.get('announcement_id')
+                if not announcement_id:
+                    return
+
+                # Mark announcement as read
+                success = await self.mark_announcement_read(announcement_id)
+
+                # Only send confirmation to the user who marked it as read
+                if success:
+                    await self.send(json.dumps({
+                        'type': 'announcement',
+                        'action': 'marked_read',
+                        'announcement_id': announcement_id
+                    }))
+
     # Message handlers
 
     async def chat_message(self, event):
@@ -269,7 +343,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'meetups': event['meetups']
         }))
 
-    # Added missing users event handler
     async def users(self, event):
         # Send users list to WebSocket
         await self.send(json.dumps({
@@ -277,7 +350,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'users': event['users']
         }))
 
+    async def announcement(self, event):
+        # Send announcement to WebSocket
+        await self.send(json.dumps({
+            'type': 'announcement',
+            'action': event['action'],
+            'announcement_id': event['announcement_id'],
+            'content': event['content'],
+            'creator': event['creator'],
+            'created_at': event['created_at']
+        }))
+
     # Database operations
+
+    @database_sync_to_async
+    def check_room_access(self):
+        """Check if room exists and if it's password protected"""
+        try:
+            room = Room.objects.get(name=self.room_name)
+            return {
+                'exists': True,
+                'is_protected': room.is_protected
+            }
+        except Room.DoesNotExist:
+            return {
+                'exists': False,
+                'is_protected': False
+            }
 
     @database_sync_to_async
     def save_message(self, content):
@@ -417,3 +516,82 @@ class ChatConsumer(AsyncWebsocketConsumer):
             meetup.attendees.add(self.user)
         else:
             meetup.attendees.remove(self.user)
+
+    @database_sync_to_async
+    def check_if_admin(self):
+        """Check if the current user is an admin or room creator"""
+        if not self.user or self.user.is_anonymous:
+            return False
+
+        # Check if user is staff or superuser
+        if self.user.is_staff or self.user.is_superuser:
+            return True
+
+        # Check if user is the room creator
+        try:
+            room = Room.objects.get(name=self.room_name)
+            return room.creator == self.user
+        except Room.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def create_announcement(self, content):
+        """Create a new announcement in the room"""
+        room = Room.objects.get(name=self.room_name)
+
+        announcement = Announcement.objects.create(
+            room=room,
+            creator=self.user,
+            content=content,
+            is_active=True
+        )
+
+        return {
+            'id': announcement.id,
+            'content': announcement.content,
+            'creator': self.user.username,
+            'created_at': announcement.created_at.isoformat()
+        }
+
+    @database_sync_to_async
+    def mark_announcement_read(self, announcement_id):
+        """Mark an announcement as read by the current user"""
+        try:
+            announcement = Announcement.objects.get(id=announcement_id)
+            AnnouncementReadStatus.objects.get_or_create(
+                announcement=announcement,
+                user=self.user
+            )
+            return True
+        except Announcement.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def get_active_announcements(self):
+        """Get all active announcements for this room that the user hasn't read"""
+        room = Room.objects.get(name=self.room_name)
+
+        # Get all active announcements
+        announcements = Announcement.objects.filter(
+            room=room,
+            is_active=True
+        )
+
+        result = []
+        for announcement in announcements:
+            # Check if user has read this announcement
+            is_read = AnnouncementReadStatus.objects.filter(
+                announcement=announcement,
+                user=self.user
+            ).exists()
+
+            # Only include unread announcements
+            if not is_read:
+                result.append({
+                    'id': announcement.id,
+                    'content': announcement.content,
+                    'creator': announcement.creator.username,
+                    'created_at': announcement.created_at.isoformat()
+                })
+
+        return result

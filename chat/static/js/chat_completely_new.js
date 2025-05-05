@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
     initWhiteboard();
     initMeetupPlanner();
     initMobileUserList();
+    initAnnouncementHandlers(); // New function for announcement handling
 
     // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
@@ -116,7 +117,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             type: 'image/jpeg',
                             lastModified: Date.now()
                         }));
-                    }, 'image/jpeg', 0.5); // Adjust quality (0.7 = 70%)
+                    }, 'image/jpeg', 0.5); // Adjust quality (0.5 = 50%)
                 };
                 img.src = event.target.result;
             };
@@ -170,6 +171,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 case "meetups":
                     console.log("Meetups update:", data);
                     renderMeetups(data.meetups);
+                    break;
+                case "announcement":
+                    console.log("Announcement update:", data);
+                    handleAnnouncementMessage(data);
                     break;
                 default:
                     console.log("Unknown message type:", data.type, data);
@@ -893,7 +898,126 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Media Library Functions - COMPLETELY REWRITTEN
+    // Announcement Functions - NEW
+    function initAnnouncementHandlers() {
+        // Handle close buttons for announcements
+        document.querySelectorAll('.close-announcement').forEach(button => {
+            button.addEventListener('click', function() {
+                const announcementItem = this.closest('.announcement-item');
+                if (announcementItem) {
+                    const announcementId = announcementItem.dataset.announcementId;
+                    markAnnouncementAsRead(announcementId);
+                }
+            });
+        });
+    }
+
+    function handleAnnouncementMessage(data) {
+        console.log("Handling announcement message:", data);
+
+        if (data.action === 'new') {
+            // Create a new announcement element and add it to the container
+            const announcementsContainer = document.getElementById('announcements-container');
+            if (!announcementsContainer) return;
+
+            // Make sure the container is visible
+            announcementsContainer.classList.remove('hidden');
+            announcementsContainer.classList.add('mb-6');
+
+            // Create announcement element
+            const announcement = document.createElement('div');
+            announcement.className = 'announcement-item bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-2 border border-blue-200 announcement-banner';
+            announcement.dataset.announcementId = data.announcement_id;
+
+            announcement.innerHTML = `
+                <button class="close-announcement" aria-label="Dismiss announcement">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <div class="flex items-start">
+                    <div class="bg-blue-500 rounded-full p-2 mr-3 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-blue-800">Announcement from ${data.creator}</h3>
+                        <div class="text-gray-700 text-sm mt-1">${data.content.replace(/\n/g, '<br>')}</div>
+                        <div class="text-xs text-gray-500 mt-2">${formatDate(new Date(data.created_at))}</div>
+                    </div>
+                </div>
+            `;
+
+            // Add to container (at the beginning)
+            announcementsContainer.insertBefore(announcement, announcementsContainer.firstChild);
+
+            // Add event listener for close button
+            announcement.querySelector('.close-announcement').addEventListener('click', function() {
+                markAnnouncementAsRead(data.announcement_id);
+            });
+        }
+    }
+
+    function markAnnouncementAsRead(announcementId) {
+        // Send request to mark announcement as read
+        fetch(`/api/announcement/${announcementId}/mark_read/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hide the announcement
+                const announcement = document.querySelector(`.announcement-item[data-announcement-id="${announcementId}"]`);
+                if (announcement) {
+                    announcement.classList.add('hidden');
+
+                    // Check if all announcements are hidden
+                    const visibleAnnouncements = document.querySelectorAll('.announcement-item:not(.hidden)');
+                    if (visibleAnnouncements.length === 0) {
+                        // Hide the container
+                        const container = document.getElementById('announcements-container');
+                        if (container) {
+                            container.classList.add('hidden');
+                            container.classList.remove('mb-6');
+                        }
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error marking announcement as read:', error);
+        });
+    }
+
+    // Helper Functions
+    function formatDate(date) {
+        return date.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function getCsrfToken() {
+        // Get CSRF token from cookies
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') {
+                return value;
+            }
+        }
+        return '';
+    }
+
+    // Media Library Functions
     function initMediaLibrary() {
         console.log("Initializing media library...");
 

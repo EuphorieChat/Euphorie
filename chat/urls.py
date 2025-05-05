@@ -9,6 +9,13 @@ urlpatterns = [
     path('create_room/', views.create_room, name='create_room'),
     path('delete_room/<str:room_name>/', views.delete_room, name='delete_room'),
 
+    # Password protection route
+    path('room/<str:room_name>/password/', admin_views.room_password_check, name='room_password_check'),
+
+    # Announcements API routes
+    path('api/announcement/<int:announcement_id>/mark_read/', admin_views.mark_announcement_read, name='mark_announcement_read'),
+    path('api/room/<str:room_name>/create_announcement/', admin_views.create_announcement, name='create_announcement'),
+
     path('signup/', views.signup, name='signup'),
     path('login/', auth_views.LoginView.as_view(template_name='chat/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='chat/logged_out.html'), name='logout'),
@@ -29,7 +36,7 @@ urlpatterns = [
     path('api/room/<str:room_name>/create_meetup/', views.create_meetup, name='create_meetup'),
     path('api/room/<str:room_name>/whiteboard_update/', views.whiteboard_update, name='whiteboard_update'),
 
-    # Room management URLs (renamed from 'euphorie-admin')
+    # Room management URLs
     path('manage/dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
     path('manage/rooms/', admin_views.admin_rooms, name='admin_rooms'),
     path('manage/room/<str:room_name>/', admin_views.admin_room_detail, name='admin_room_detail'),
