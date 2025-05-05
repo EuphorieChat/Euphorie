@@ -474,17 +474,26 @@ document.addEventListener("DOMContentLoaded", function () {
         const userList = document.getElementById("user-list");
         const mobileList = document.getElementById("mobile-user-list-content");
 
-        if (!userList || !mobileList) {
-            console.error("User list elements not found!");
+        // Early error handling with more descriptive console messages
+        if (!userList) {
+            console.error("Desktop user list element not found! Make sure element with id 'user-list' exists.");
             return;
         }
 
+        // Clear the existing content
         userList.innerHTML = "";
-        mobileList.innerHTML = "";
 
+        // Handle the mobile list if it exists
+        if (mobileList) {
+            mobileList.innerHTML = "";
+        }
+
+        // Check if we have users to display
         if (!users || users.length === 0) {
             userList.innerHTML = `<li class="text-gray-400 text-xs italic py-2">No users currently in this room.</li>`;
-            mobileList.innerHTML = `<span class="text-gray-400 text-xs italic">No users currently in this room.</span>`;
+            if (mobileList) {
+                mobileList.innerHTML = `<span class="text-gray-400 text-xs italic">No users currently in this room.</span>`;
+            }
             return;
         }
 
@@ -501,23 +510,26 @@ document.addEventListener("DOMContentLoaded", function () {
             const li = document.createElement("li");
             li.className = "flex items-center justify-between py-1";
 
-            // Skip the add friend button for current user
+            // User's initial for avatar
+            const userInitial = user && user.length > 0 ? user.charAt(0).toUpperCase() : '?';
+
+            // Different layout for current user
             if (user === currentUsername) {
                 li.innerHTML = `
                 <div class="flex items-center">
                   <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                      ${user.charAt(0).toUpperCase()}
+                      ${userInitial}
                   </div>
-                  <span>${user}</span>
+                  <span class="truncate max-w-[100px]">${user}</span>
                   <span class="ml-2 text-xs text-pink-600 bg-pink-100 px-2 py-0.5 rounded-full">You</span>
                 </div>`;
             } else {
                 li.innerHTML = `
                 <div class="flex items-center">
                   <div class="user-avatar h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
-                      ${user.charAt(0).toUpperCase()}
+                      ${userInitial}
                   </div>
-                  <span>${user}</span>
+                  <span class="truncate max-w-[100px]">${user}</span>
                 </div>
                 <button data-username="${user}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors">
                   Add Friend
@@ -525,26 +537,62 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             userList.appendChild(li);
 
-            // Add event listener for add friend button
-            const addBtn = li.querySelector('.add-friend-btn');
-            if (addBtn) {
-                addBtn.addEventListener('click', function() {
-                    sendFriendRequest(this.dataset.username);
-                    this.textContent = 'Sent';
-                    this.disabled = true;
-                    this.classList.remove('hover:bg-pink-200');
-                    this.classList.add('bg-gray-100', 'text-gray-500');
-                });
-            }
+            // If mobile list exists, populate it as well
+            if (mobileList) {
+                const mobileItem = document.createElement("div");
+                mobileItem.className = "user-list-item flex items-center justify-between py-1";
 
-            // Create mobile list item
-            const span = document.createElement("span");
-            span.className = "user-list-item";
-            span.textContent = user === currentUsername ? `${user} (You)` : user;
-            mobileList.appendChild(span);
+                if (user === currentUsername) {
+                    mobileItem.innerHTML = `
+                    <div class="flex items-center">
+                      <div class="h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                          ${userInitial}
+                      </div>
+                      <span>${user}</span>
+                      <span class="ml-2 text-xs text-pink-600 bg-pink-100 px-2 py-0.5 rounded-full">You</span>
+                    </div>`;
+                } else {
+                    mobileItem.innerHTML = `
+                    <div class="flex items-center">
+                      <div class="h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+                          ${userInitial}
+                      </div>
+                      <span>${user}</span>
+                    </div>
+                    <button data-username="${user}" class="mobile-add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors">
+                      Add
+                    </button>`;
+                }
+
+                mobileList.appendChild(mobileItem);
+            }
         });
 
-        // Make sure the mobile user list is visible
+        // Add event listeners for add friend buttons (after all elements are added to DOM)
+        document.querySelectorAll('.add-friend-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const username = this.dataset.username;
+                sendFriendRequest(username);
+                this.textContent = 'Sent';
+                this.disabled = true;
+                this.classList.remove('hover:bg-pink-200');
+                this.classList.add('bg-gray-100', 'text-gray-500');
+            });
+        });
+
+        // Add event listeners for mobile add friend buttons
+        document.querySelectorAll('.mobile-add-friend-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const username = this.dataset.username;
+                sendFriendRequest(username);
+                this.textContent = 'Sent';
+                this.disabled = true;
+                this.classList.remove('hover:bg-pink-200');
+                this.classList.add('bg-gray-100', 'text-gray-500');
+            });
+        });
+
+        // Make sure the mobile user list is visible if it exists
         const mobileUserList = document.getElementById("mobile-user-list");
         if (mobileUserList) {
             mobileUserList.classList.remove("hidden");
