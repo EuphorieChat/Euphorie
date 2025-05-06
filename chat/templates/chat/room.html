@@ -26,22 +26,57 @@
       opacity: 0 !important;
     }
 
-    /* Recommended rooms section */
+    /* Recommended rooms section - improved styling */
+    #recommended-rooms-list a {
+      text-decoration: none;
+      display: block;
+    }
+
     #recommended-rooms-list .flex {
-      align-items: flex-start;
+      align-items: center;
     }
 
     #recommended-rooms-list .flex-1 {
-      min-width: 0; /* This is crucial for text truncation to work */
+      min-width: 0; /* Critical for text truncation */
       overflow: hidden;
     }
 
-    #recommended-rooms-list .h-3,
-    #recommended-rooms-list .h-2 {
+    /* Add a subtle hover effect */
+    #recommended-rooms-list a:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Enhanced truncation for text elements */
+    #recommended-rooms-list .truncate {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       width: 100%;
+    }
+
+    /* Make category/tag badges look better */
+    #recommended-rooms-list .room-category {
+      font-size: 0.6rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 1rem;
+      background-color: #f9d5e5;
+      color: #be185d;
+      margin-left: 0.5rem;
+      white-space: nowrap;
+    }
+
+    /* Add a nice gradient to the room icons */
+    #recommended-rooms-list .room-icon {
+      transition: all 0.2s ease;
+      background-size: 150% 150%;
+      animation: gradientShift 3s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     /* Make sure the room items don't break the layout */
@@ -1218,20 +1253,43 @@
           </ul>
         </div>
 
-        <!-- Recommended Rooms -->
+        <!-- Recommended Rooms - Improved UI/UX -->
         <div class="sidebar-section">
-          <h3>Recommended Rooms</h3>
-          <div id="recommended-rooms-list" class="space-y-2 text-sm">
-            <div class="animate-pulse space-y-2">
-              <div class="flex items-center gap-2">
-                <div class="h-8 w-8 rounded-lg bg-gray-200"></div>
-                <div class="flex-1 space-y-1">
-                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
+            <h3 class="flex items-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            Recommended Rooms
+            </h3>
+            <div id="recommended-rooms-list" class="space-y-2.5">
+            <!-- Room item skeleton (for loading state) -->
+            <div class="animate-pulse">
+                <div class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-lg bg-gray-200 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                    <div class="h-3.5 bg-gray-200 rounded w-3/4 mb-1.5"></div>
+                    <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+                    </div>
                 </div>
-              </div>
+                </div>
             </div>
-          </div>
+
+            <!-- Template for actual room items (will be populated by JS) -->
+            <!--
+            <a href="/chat/room-name/" class="block p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all group">
+                <div class="flex items-center gap-2.5">
+                <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 flex items-center justify-center text-white font-medium text-sm group-hover:scale-105 transition-transform">
+                    RM
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-medium text-gray-700 truncate group-hover:text-pink-600 transition-colors">Room Name</div>
+                    <div class="text-xs text-gray-500 truncate">12 users online • 24 messages today</div>
+                </div>
+                </div>
+            </a>
+            -->
+            </div>
         </div>
 
         <!-- Friends Online -->
@@ -2520,5 +2578,143 @@
         }
     }
     </script>
-  </body>
-  </html>
+
+
+    <script>
+    // Function to populate recommended rooms
+    function populateRecommendedRooms() {
+        const roomsList = document.getElementById('recommended-rooms-list');
+
+        // Clear loading state
+        roomsList.innerHTML = '';
+
+        // Example data - replace with your actual API call
+        const recommendedRooms = [
+        {
+            name: 'music-lovers',
+            displayName: 'Music Lovers',
+            category: 'Entertainment',
+            usersOnline: 8,
+            messagesCount: 42
+        },
+        {
+            name: 'photography',
+            displayName: 'Photography',
+            category: 'Arts',
+            usersOnline: 5,
+            messagesCount: 17
+        },
+        {
+            name: 'coding-help',
+            displayName: 'Coding Help',
+            category: 'Tech',
+            usersOnline: 12,
+            messagesCount: 73
+        }
+        ];
+
+        // Create room items
+        recommendedRooms.forEach(room => {
+        // Create room element
+        const roomElement = document.createElement('a');
+        roomElement.href = `/chat/${room.name}/`;
+        roomElement.className = 'block p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all group';
+
+        // Generate initials for room icon
+        const initials = room.displayName.split(' ')
+            .map(word => word[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+
+        // Get a color based on room name (for consistency)
+        const colorClasses = getColorClassForRoom(room.name);
+
+        roomElement.innerHTML = `
+            <div class="flex items-center gap-2.5">
+            <div class="h-9 w-9 rounded-lg ${colorClasses} flex-shrink-0 flex items-center justify-center text-white font-medium text-sm group-hover:scale-105 transition-transform room-icon">
+                ${initials}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-700 truncate group-hover:text-pink-600 transition-colors">
+                ${room.displayName}
+                <span class="room-category">${room.category}</span>
+                </div>
+                <div class="text-xs text-gray-500 truncate">${room.usersOnline} users online • ${room.messagesCount} messages today</div>
+            </div>
+            </div>
+        `;
+
+        roomsList.appendChild(roomElement);
+        });
+    }
+
+    // Helper function to get consistent colors for rooms
+    function getColorClassForRoom(roomName) {
+        // Simple hash function to get a number from a string
+        const hash = roomName.split('').reduce((acc, char) => {
+        return acc + char.charCodeAt(0);
+        }, 0);
+
+        // List of color gradient classes
+        const colorClasses = [
+        'bg-gradient-to-br from-pink-400 to-purple-500',
+        'bg-gradient-to-br from-blue-400 to-indigo-500',
+        'bg-gradient-to-br from-green-400 to-teal-500',
+        'bg-gradient-to-br from-orange-400 to-red-500',
+        'bg-gradient-to-br from-purple-400 to-indigo-500'
+        ];
+
+        // Determine color based on hash
+        return colorClasses[hash % colorClasses.length];
+    }
+
+    // Call the function when document is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        populateRecommendedRooms();
+    });
+    </script>
+
+    <script>
+    // Make the room name in the header redirect to the lobby
+    document.addEventListener("DOMContentLoaded", function() {
+        // For desktop header
+        const desktopRoomTitle = document.querySelector('.hidden.sm\\:flex .gradient-text');
+        if (desktopRoomTitle) {
+        // Check if it's already wrapped in a link
+        if (!desktopRoomTitle.closest('a')) {
+            const wrapper = document.createElement('a');
+            wrapper.href = "/"; // This will redirect to index.html (lobby)
+            wrapper.className = "hover:opacity-80 transition-opacity";
+            wrapper.setAttribute('title', 'Back to Lobby');
+
+            // Replace the element with our wrapped version
+            desktopRoomTitle.parentNode.insertBefore(wrapper, desktopRoomTitle);
+            wrapper.appendChild(desktopRoomTitle);
+        } else {
+            // If already in a link, make sure href is correct
+            desktopRoomTitle.closest('a').href = "/";
+        }
+        }
+
+        // For mobile header
+        const mobileRoomTitle = document.querySelector('.app-header .gradient-text');
+        if (mobileRoomTitle) {
+        // Mobile already has a link, just make sure it points to index
+        const parent = mobileRoomTitle.parentElement;
+        if (parent.tagName === 'A') {
+            parent.href = "/";
+        } else {
+            // If not already wrapped, create a wrapper
+            const wrapper = document.createElement('a');
+            wrapper.href = "/";
+            wrapper.setAttribute('title', 'Back to Lobby');
+            parent.insertBefore(wrapper, mobileRoomTitle);
+            wrapper.appendChild(mobileRoomTitle);
+        }
+        }
+    });
+    <script>
+
+</body>
+</html>
