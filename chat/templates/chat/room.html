@@ -14,174 +14,341 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Fully remove the WebSocket debug plug (panel, icon, and animations) */
-    #ws-debug-panel,
-    [id^="ws-debug-"],
-    .ws-debug-icon,
-    .websocket-debug,
-    .websocket-plugin {
-      display: none !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-      opacity: 0 !important;
-    }
+    /* Base styles */
     body {
       font-family: 'Inter', sans-serif;
-      background-image: radial-gradient(circle at 30% 10%, rgba(255, 182, 225, 0.1), transparent 30%),
-                        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.1), transparent 40%);
+      background-color: #fefefe;
+      background-image:
+        radial-gradient(circle at 20% 10%, rgba(255, 182, 225, 0.08), transparent 25%),
+        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.08), transparent 30%);
       background-attachment: fixed;
       overflow-x: hidden;
       width: 100%;
+      color: #334155;
+      --primary: #ec4899;
+      --primary-light: #fce7f3;
+      --primary-dark: #be185d;
+      --secondary: #f97316;
+      --secondary-light: #fff7ed;
+      --gray-light: #f8fafc;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Modern, uniform transitions */
+    .transition-all {
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Gradient text for branding */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Primary button */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    /* Secondary button */
+    .btn-secondary {
+      background: white;
+      color: var(--primary);
+      border: 1px solid #f9d5e5;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--primary-light);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    /* Improved chat container */
+    .chat-container {
+      height: calc(100vh - 220px);
+      min-height: 400px;
+      scroll-behavior: smooth;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* Message bubbles */
+    .message-bubble {
+      position: relative;
+      border-radius: 1rem;
+      padding: 0.75rem 1rem;
+      max-width: 85%;
+      width: fit-content;
+      word-break: break-word;
+      box-shadow: var(--shadow-sm);
+      line-height: 1.5;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    .message-bubble.sent {
+      background-color: var(--primary-light);
+      margin-left: auto;
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .message-bubble.received {
+      background-color: var(--secondary-light);
+      margin-right: auto;
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .message-bubble:hover {
+      box-shadow: var(--shadow);
+    }
+
+    /* User avatar */
+    .avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s;
+    }
+
+    .avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .avatar-pink {
+      background: linear-gradient(135deg, #ec4899, #f472b6);
+    }
+
+    .avatar-orange {
+      background: linear-gradient(135deg, #f97316, #fb923c);
+    }
+
+    .avatar-blue {
+      background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    }
+
+    .avatar-green {
+      background: linear-gradient(135deg, #10b981, #34d399);
+    }
+
+    .avatar-purple {
+      background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    }
+
+    /* Modern app header */
+    .app-header {
+      padding: 1rem;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    /* User list item */
+    .user-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .user-item:hover {
+      background-color: var(--gray-light);
+    }
+
+    /* Sidebar section */
+    .sidebar-section {
+      background-color: white;
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(236, 72, 153, 0.1);
+    }
+
+    .sidebar-section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: #374151;
+    }
+
+    /* Input area */
+    .input-area {
+      background-color: white;
+      border-top: 1px solid rgba(236, 72, 153, 0.1);
+      padding: 1rem;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+    }
+
+    .chat-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 1.5rem;
+      border: 1px solid #e2e8f0;
+      background-color: var(--gray-light);
+      transition: all 0.2s;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+      background-color: white;
+    }
+
+    /* Improved animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes pulseLight {
+      0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.2); }
+      70% { box-shadow: 0 0 0 6px rgba(236, 72, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
     }
 
     /* Typing animation dots */
-    @keyframes bounce {
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 1rem;
+      width: fit-content;
+      box-shadow: var(--shadow-sm);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .typing-dots {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-right: 0.5rem;
+    }
+
+    .typing-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background-color: var(--primary);
+      opacity: 0.6;
+      animation: typingBounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
       0%, 80%, 100% { transform: translateY(0); }
       40% { transform: translateY(-6px); }
     }
 
-    .dot {
-      animation: bounce 0.6s infinite;
-    }
-
-    .dot:nth-child(1) { animation-delay: 0s; }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
-
-    /* Emoji reactions */
-    .emoji-reaction {
-      transition: all 0.2s ease;
-    }
-
-    .emoji-reaction:hover {
-      transform: scale(1.2);
-    }
-
-    .emoji-reaction.reacted {
-      position: relative;
-    }
-
-    /* Reaction counter badge */
-    .reaction-counter {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: #fff;
-      border-radius: 10px;
-      padding: 0 4px;
-      font-size: 10px;
-      border: 1px solid #eee;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
     /* Emoji panel */
     .emoji-panel {
-      display: none;
       position: absolute;
       bottom: 100%;
       left: 0;
       background: white;
-      border: 1px solid #eee;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 8px;
-      width: 270px;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 8px;
-      z-index: 1000;
-    }
-
-    @media (max-width: 640px) {
-      .emoji-panel {
-        width: 240px;
-        left: auto;
-        right: 0;
-      }
+      border-radius: 1rem;
+      box-shadow: var(--shadow-md);
+      padding: 0.75rem;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.375rem;
+      margin-bottom: 0.5rem;
+      z-index: 100;
+      animation: fadeIn 0.2s ease;
+      display: none;
     }
 
     .emoji-panel.show {
-      display: flex;
+      display: grid;
     }
 
     .emoji-btn {
-      cursor: pointer;
-      font-size: 20px;
-      width: 36px;
-      height: 36px;
+      width: 2.25rem;
+      height: 2.25rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
+      font-size: 1.25rem;
+      cursor: pointer;
+      border-radius: 0.5rem;
       transition: all 0.2s;
     }
 
-    .emoji-btn:hover, .emoji-btn:active {
-      background: #f0f0f0;
+    .emoji-btn:hover {
+      background-color: var(--gray-light);
       transform: scale(1.1);
     }
 
-    /* Message bubbles - IMPROVED FOR BETTER READABILITY */
-    .message-bubble {
+    /* Tooltips */
+    .tooltip {
       position: relative;
-      border-radius: 16px;
-      padding: 12px 14px;
-      max-width: 85%;
-      width: fit-content;
-      margin-bottom: 10px;
-      word-break: break-word;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      overflow: hidden;
-      line-height: 1.5;
     }
 
-    .message-bubble.sent {
-      background-color: #fbdae8; /* Light pink for sent messages */
-      margin-left: auto;
-      border-bottom-right-radius: 4px;
+    .tooltip:before {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.25rem 0.5rem;
+      background-color: #334155;
+      color: white;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      pointer-events: none;
+      margin-bottom: 0.25rem;
     }
 
-    .message-bubble.received {
-      background-color: #fff7da; /* Light yellow for received messages */
-      margin-right: auto;
-      border-bottom-left-radius: 4px;
-    }
-
-    .message-bubble:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      transform: translateY(-1px);
-    }
-
-    /* Improved styling for images within message bubbles */
-    .message-bubble img {
-      display: block;
-      max-width: 100%;
-      margin: 8px 0;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    /* Improved styling for videos within message bubbles */
-    .message-bubble video {
-      display: block;
-      max-width: 100%;
-      margin: 8px 0;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    /* Chat container sizing - ENHANCED */
-    .chat-container {
-      height: calc(100vh - 230px);
-      min-height: 400px;
-      scroll-behavior: smooth; /* ADDED: Smooth scrolling */
-    }
-
-    @media (max-width: 640px) {
-      .chat-container {
-        height: calc(100vh - 200px);
-      }
+    .tooltip:hover:before {
+      opacity: 1;
+      visibility: visible;
     }
 
     /* Hide scrollbar but keep functionality */
@@ -194,442 +361,20 @@
       display: none; /* Chrome, Safari, Opera */
     }
 
-    /* Improved file upload preview */
-    .file-preview {
-      position: relative;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-top: 8px;
-      max-width: 220px;
-      transition: all 0.3s ease;
-    }
-
-    .file-preview:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    /* Improved button styles */
-    .btn {
-      transition: all 0.2s ease;
-      font-weight: 500;
-      border-radius: 12px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-
-    .btn:active {
-      transform: translateY(0);
-    }
-
-    /* Button ripple effect */
-    .btn::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 5px;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.5);
-      opacity: 0;
-      border-radius: 100%;
-      transform: scale(1, 1) translate(-50%);
-      transform-origin: 50% 50%;
-    }
-
-    .btn:focus:not(:active)::after {
-      animation: ripple 0.6s ease-out;
-    }
-
-    @keyframes ripple {
-      0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-      }
-      100% {
-        transform: scale(20, 20);
-        opacity: 0;
-      }
-    }
-
-    /* Gradient animations */
-    .gradient-text {
-      background: linear-gradient(135deg, #ec4899, #f97316);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* Make the user list more compact on mobile */
-    @media (max-width: 640px) {
-      .user-list-item {
-        display: inline-block;
-        margin-right: 8px;
-      }
-
-      .user-list-item:after {
-        content: ',';
-      }
-
-      .user-list-item:last-child:after {
-        content: '';
-      }
-    }
-
-    /* Top nav bar for mobile devices */
-    .mobile-top-bar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-    }
-
-    /* Guest banner pulse animation */
-    .guest-banner {
-      animation: pulse 2s infinite;
-      position: sticky;
-      top: 60px; /* Below the mobile header */
-      z-index: 50;
-    }
-
-    @media (min-width: 640px) {
-      .guest-banner {
-        top: 0;
-      }
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
-    }
-
-    /* User avatar styling */
-    .user-avatar {
-      transition: all 0.3s ease;
-    }
-
-    .user-avatar:hover {
-      transform: scale(1.05);
-    }
-
-    /* Shimmer animation for loading states */
-    @keyframes shimmer {
-      0% { background-position: -1000px 0; }
-      100% { background-position: 1000px 0; }
-    }
-
-    .shimmer {
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
-      background-size: 1000px 100%;
-      animation: shimmer 2s infinite linear;
-    }
-
-    /* Input animation on focus */
-    .chat-input {
-      background-color: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(4px);
-      transition: all 0.3s ease;
-    }
-
-    .chat-input:focus {
-      background-color: rgba(255, 255, 255, 1);
-      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
-      transform: translateY(-1px);
-    }
-
-    /* Announcements styling */
-    .announcement-banner {
-      animation: slideIn 0.5s ease-out;
-    }
-
-    @keyframes slideIn {
-      from { transform: translateY(-100%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .announcement-item {
-      position: relative;
-      border-radius: 12px;
-      transition: all 0.3s ease;
-    }
-
-    .announcement-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    }
-
-    .close-announcement {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background-color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      color: #666;
-      z-index: 10;
-    }
-
-    .close-announcement:hover {
-      background-color: #f3f4f6;
-      transform: scale(1.1);
-    }
-
-    /* Activity indicator */
-    .activity-indicator {
-      display: inline-flex;
-      align-items: center;
-      font-size: 0.75rem;
-      color: #6b7280;
-    }
-
-    .activity-indicator .dot {
-      height: 0.375rem;
-      width: 0.375rem;
-      border-radius: 9999px;
-      margin-right: 0.25rem;
-    }
-
-    .activity-indicator.high .dot {
-      background-color: #10b981;
-    }
-
-    .activity-indicator.medium .dot {
-      background-color: #f59e0b;
-    }
-
-    /* Clickable usernames */
-    .username-link {
-      transition: all 0.2s ease;
-      position: relative;
-    }
-
-    .username-link:hover {
-      color: #ec4899;
-    }
-
-    .username-link::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 1px;
-      bottom: 0;
-      left: 0;
-      background-color: #ec4899;
-      transition: width 0.3s ease;
-    }
-
-    .username-link:hover::after {
-      width: 100%;
-    }
-
-    /* Room card hover effects */
-    .room-card-interactive {
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-
-    .room-card-interactive:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(236, 72, 153, 0.1);
-    }
-
-    /* Notification toast */
-    .notification-toast {
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      padding: 12px 16px;
-      background: linear-gradient(135deg, #ec4899, #f97316);
-      color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 1000;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: toastIn 0.3s forwards, toastOut 0.3s forwards 3s;
-    }
-
-    @keyframes toastIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes toastOut {
-      to { opacity: 0; transform: translateY(20px); }
-    }
-
-    /* Bookmark button */
-    .bookmark-btn {
-      transition: all 0.2s ease;
-    }
-
-    .bookmark-btn:hover {
-      transform: scale(1.2);
-    }
-
-    .bookmark-btn.active {
-      color: #ec4899;
-      fill: #ec4899;
-    }
-
-    /* NEW STYLES */
-    /* New Message indicator */
-    .new-message-indicator {
-      position: absolute;
-      bottom: 80px;
-      right: 20px;
-      background: #ec4899;
-      color: white;
-      border-radius: 24px;
-      padding: 8px 12px;
-      font-size: 14px;
-      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-      cursor: pointer;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.3s ease;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .new-message-indicator.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .new-message-indicator:hover {
-      background: #db2777;
-    }
-
-    /* Message input accessibility focus */
-    .chat-input:focus-visible {
-      outline: 2px solid #ec4899;
-      outline-offset: 2px;
-    }
-
-    /* Improved animation for new messages */
-    @keyframes messageAppear {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .message-bubble.new {
-      animation: messageAppear 0.3s ease forwards;
-    }
-
-    /* Badge for unread messages count */
-    .unread-badge {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      background: #ef4444;
-      color: white;
-      font-size: 10px;
-      min-width: 18px;
-      height: 18px;
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      padding: 0 4px;
-    }
-
-    /* More responsive sidebar */
-    @media (max-width: 1024px) and (min-width: 641px) {
-      .sidebar-toggle {
-        display: block;
-      }
-      .sidebar-container {
-        position: fixed;
-        right: 0;
-        top: 0;
-        height: 100vh;
-        width: 280px;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        z-index: 100;
-        background: white;
-        padding: 16px;
-        box-shadow: -5px 0 20px rgba(0,0,0,0.1);
-      }
-      .sidebar-container.open {
-        transform: translateX(0);
-      }
-      .sidebar-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.3);
-        z-index: 90;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-      }
-      .sidebar-backdrop.open {
-        opacity: 1;
-        pointer-events: auto;
-      }
-    }
-
-    /* Typing animation improvements */
-    .typing-dots {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-    }
-
-    .typing-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: #ec4899;
-      animation: typingBounce 1.4s infinite ease-in-out;
-    }
-
-    .typing-dot:nth-child(1) { animation-delay: 0s; }
-    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes typingBounce {
-      0%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-8px); }
-    }
-
     /* Jump to bottom button */
     .jump-to-bottom {
       position: absolute;
-      bottom: 80px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
+      bottom: 5rem;
+      right: 1.25rem;
+      width: 2.5rem;
+      height: 2.5rem;
       border-radius: 50%;
       background: white;
+      color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow);
       cursor: pointer;
       opacity: 0;
       transform: scale(0.8);
@@ -644,10 +389,132 @@
 
     .jump-to-bottom:hover {
       transform: scale(1.1);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--shadow-md);
     }
 
-    /* Reduced motion preference */
+    /* Modal style */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+    }
+
+    .modal.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background-color: white;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 32rem;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Guest banner */
+    .guest-banner {
+      background: linear-gradient(135deg, rgba(255, 182, 225, 0.15), rgba(255, 228, 155, 0.15));
+      border: 1px solid rgba(236, 72, 153, 0.2);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      animation: pulseLight 2s infinite;
+    }
+
+    /* Reaction styles */
+    .reactions-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin-top: 0.25rem;
+    }
+
+    .reaction {
+      background-color: white;
+      border-radius: 1rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .reaction:hover {
+      background-color: var(--gray-light);
+      transform: scale(1.05);
+    }
+
+    /* Announcement styles */
+    .announcement {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 0.75rem;
+      margin-bottom: 0.75rem;
+      animation: slideIn 0.5s ease;
+      position: relative;
+    }
+
+    .announcement-content {
+      padding: 0.75rem 1rem;
+    }
+
+    .dismiss-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .dismiss-btn:hover {
+      background-color: #f3f4f6;
+      transform: scale(1.1);
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 640px) {
+      .chat-container {
+        height: calc(100vh - 200px);
+      }
+
+      .emoji-panel {
+        right: 0;
+        left: auto;
+        width: 280px;
+      }
+
+      .message-bubble {
+        max-width: 90%;
+      }
+    }
+
+    /* Accessibility improvements */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -656,225 +523,67 @@
         scroll-behavior: auto !important;
       }
     }
-  </style>
 
-  <style>
-    /* Friend request button styling */
-    .friend-btn {
-      opacity: 0;
-      transition: all 0.2s ease;
-      font-size: 0.7rem;
-      padding: 2px 6px;
-      border-radius: 6px;
-      white-space: nowrap;
-      margin-left: 4px;
-    }
-
-    .user-item:hover .friend-btn {
-      opacity: 1;
-    }
-
-    .friend-btn-add {
-      background-color: #fce7f3;
-      color: #be185d;
-    }
-
-    .friend-btn-add:hover {
-      background-color: #fbcfe8;
-    }
-
-    .friend-btn-pending {
-      background-color: #e5e7eb;
-      color: #6b7280;
-      cursor: default;
-    }
-
-    .friend-btn-friends {
-      background-color: #d1fae5;
-      color: #047857;
-      cursor: default;
-    }
-
-    /* Animation for request sent */
-    @keyframes pulse-success {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-
-    .request-sent {
-      animation: pulse-success 0.5s ease;
-    }
-
-    /* Username popover styling */
-    #user-options-popover {
-      min-width: 180px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-      animation: popover-appear 0.2s ease;
-    }
-
-    @keyframes popover-appear {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* Focus styles for keyboard navigation */
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
     }
   </style>
-
-  <style>
-    /* Profile Picture Modal Styles */
-    .profile-pic-container {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .profile-pic-container img {
-        object-fit: cover;
-        object-position: center;
-    }
-
-    .avatar-option {
-        transition: all 0.2s ease;
-    }
-
-    .avatar-option:hover {
-        transform: scale(1.05);
-    }
-
-    .avatar-option.selected {
-        transform: scale(1.05);
-    }
-
-    /* Enhanced user avatars */
-    .user-avatar.with-image {
-        background-size: cover;
-        background-position: center;
-    }
-
-    .user-avatar.with-image::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Avatar hover effects */
-    .user-avatar {
-        position: relative;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .user-avatar:hover {
-        transform: scale(1.05);
-        box-shadow: 0 2px 10px rgba(236, 72, 153, 0.3);
-    }
-
-    /* Profile menu dropdown */
-    .profile-menu {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        margin-top: 0.5rem;
-        width: 200px;
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        padding: 0.5rem;
-        z-index: 100;
-        opacity: 0;
-        transform: translateY(10px);
-        pointer-events: none;
-        transition: all 0.2s ease;
-    }
-
-    .profile-menu.open {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-    }
-
-    .profile-menu-item {
-        display: flex;
-        align-items: center;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        color: #4b5563;
-        border-radius: 0.5rem;
-        transition: all 0.2s ease;
-    }
-
-    .profile-menu-item:hover {
-        background-color: #f3f4f6;
-        color: #ec4899;
-    }
-
-    .profile-menu-item svg {
-        margin-right: 0.5rem;
-    }
-</style>
-
 </head>
-<body class="bg-white min-h-screen flex flex-col text-gray-800">
-
-  <!-- Mobile Top Navigation with glass effect -->
-  <header class="sm:hidden mobile-top-bar p-4 border-b border-pink-100 flex items-center justify-between">
-    <a href="{% url 'index' %}" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+<body>
+  <!-- Mobile Header -->
+  <header class="app-header sm:hidden flex items-center justify-between">
+    <a href="{% url 'index' %}" class="flex items-center" aria-label="Back to lobby">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
       </svg>
     </a>
-    <!-- Room name as clickable link -->
-    <a href="{% url 'index' %}" class="text-xl font-bold gradient-text hover:opacity-80 transition-opacity">{{ room_name|title }}</a>
-    <button id="mobile-user-list-toggle" class="p-2 text-pink-500 rounded-full hover:bg-pink-50 relative">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    <h1 class="text-lg font-bold gradient-text">{{ room_name|title }}</h1>
+    <button id="mobile-menu-toggle" class="relative" aria-label="Toggle user menu">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
       </svg>
-      <!-- Added unread badge -->
-      <span id="mobile-unread-badge" class="unread-badge hidden">0</span>
+      <span id="notification-badge" class="hidden absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
     </button>
   </header>
 
-  <!-- Main content area -->
-  <main class="flex-1 w-full max-w-4xl mx-auto p-4 sm:py-8">
-    <!-- Room Header - Visible on desktop -->
-    <div class="hidden sm:flex items-center justify-between mb-4">
+  <!-- Main Content -->
+  <main class="max-w-4xl mx-auto p-4 sm:p-6">
+    <!-- Desktop Header -->
+    <div class="hidden sm:flex items-center justify-between mb-6">
       <div class="flex items-center">
-        <!-- Room name as clickable link -->
-        <a href="{% url 'index' %}" class="text-3xl font-extrabold gradient-text hover:opacity-80 transition-opacity">Room: {{ room_name|title }}</a>
-        <span class="ml-3 px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">CHAT</span>
+        <h1 class="text-2xl font-bold gradient-text mr-2">{{ room_name|title }}</h1>
+        <span class="px-2 py-0.5 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">CHAT</span>
         {% if room.is_protected %}
-        <span class="ml-3 px-3 py-1 text-xs bg-green-100 text-green-600 rounded-full font-medium flex items-center">
+        <span class="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-600 rounded-full font-medium flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
           PROTECTED
         </span>
         {% endif %}
-
-        <!-- Bookmark/subscribe button -->
-        <button id="bookmark-room" class="ml-3 bookmark-btn p-1.5 text-gray-400 hover:text-pink-500 rounded-full hover:bg-pink-50 transition-colors">
+        <button id="bookmark-room" class="tooltip ml-2 p-1.5 text-gray-400 hover:text-pink-500 rounded-full hover:bg-pink-50" data-tooltip="Bookmark room">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
           </svg>
         </button>
       </div>
 
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
         {% if user.is_authenticated %}
-        <div class="flex items-center bg-pink-50 rounded-full px-3 py-1.5">
-          <div class="h-6 w-6 rounded-full bg-pink-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+        <div id="user-profile-toggle" class="flex items-center bg-gray-50 hover:bg-gray-100 rounded-full px-3 py-1.5 cursor-pointer transition-all">
+          <div class="avatar avatar-pink h-7 w-7 text-sm mr-2">
             {{ username|slice:":1"|upper }}
           </div>
-          <p class="text-sm text-gray-700">{{ username }}</p>
+          <span class="text-sm font-medium">{{ username }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
         {% endif %}
-        <a href="{% url 'index' %}" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl text-sm inline-flex items-center shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <a href="{% url 'index' %}" class="btn-secondary flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
           Lobby
@@ -882,125 +591,121 @@
       </div>
     </div>
 
-    <!-- Guest Mode Banner (only for non-authenticated users) -->
+    <!-- Guest banner -->
     {% if not user.is_authenticated %}
-    <div class="bg-gradient-to-r from-pink-100 to-yellow-100 p-4 rounded-xl shadow-md mb-6 guest-banner border border-pink-200">
-      <div class="flex items-center justify-between">
-        <p class="text-pink-600 font-medium flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="guest-banner mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p class="text-pink-700 font-medium flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="hidden sm:inline">You're in guest mode.</span> You can view messages but need to log in to participate!
+          <span>You're in guest mode. Sign in to join the conversation!</span>
         </p>
         <div class="flex gap-2">
-          <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
-            Log in
-          </a>
-          <a href="{% url 'signup' %}" class="btn bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
-            Sign up
-          </a>
+          <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn-primary">Log in</a>
+          <a href="{% url 'signup' %}" class="btn-secondary">Sign up</a>
         </div>
       </div>
     </div>
     {% endif %}
 
-    <!-- Announcements Banner -->
-    <div id="announcements-container" class="{% if active_announcements %}mb-6{% else %}hidden mb-6{% endif %}">
+    <!-- Announcements -->
+    <div id="announcements-container" class="{% if active_announcements %}space-y-3 mb-6{% else %}hidden{% endif %}">
       {% for announcement in active_announcements %}
-      <div class="announcement-item bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-xl shadow-md mb-2 border border-blue-200 announcement-banner {% if announcement.is_read %}hidden{% endif %}" data-announcement-id="{{ announcement.id }}">
-        <button class="close-announcement" aria-label="Dismiss announcement">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="announcement {% if announcement.is_read %}hidden{% endif %}" data-announcement-id="{{ announcement.id }}">
+        <button class="dismiss-btn" aria-label="Dismiss announcement">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-
-        <div class="flex items-start">
-          <div class="bg-blue-500 rounded-full p-2 mr-3 flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-            </svg>
-          </div>
-          <div class="flex-1">
-            <h3 class="font-semibold text-blue-800">Announcement from {{ announcement.creator }}</h3>
-            <div class="text-gray-700 text-sm mt-1">{{ announcement.content|linebreaksbr }}</div>
-            <div class="text-xs text-gray-500 mt-2">{{ announcement.created_at|date:"F j, Y, g:i a" }}</div>
+        <div class="announcement-content">
+          <div class="flex items-start">
+            <div class="flex-shrink-0 bg-blue-500 rounded-full p-2 mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-blue-800">Announcement from {{ announcement.creator }}</h3>
+              <div class="text-gray-700 text-sm mt-1">{{ announcement.content|linebreaksbr }}</div>
+              <div class="text-xs text-gray-500 mt-2">{{ announcement.created_at|date:"F j, Y, g:i a" }}</div>
+            </div>
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
 
-    <!-- User List Panel - Mobile only, hidden by default -->
-    <div id="mobile-user-list" class="sm:hidden bg-white p-4 rounded-xl shadow-md border border-pink-100 mb-4 hidden">
-      <h3 class="text-base font-semibold text-gray-700 mb-2 flex items-center">
-        <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
-        Users in this room
-      </h3>
-      <div id="mobile-user-list-content" class="text-sm text-gray-600 flex flex-wrap gap-1"></div>
-    </div>
-
-    <div class="grid sm:grid-cols-4 gap-4">
-      <!-- Main Chat Section - takes 3/4 of space on desktop -->
-      <div class="sm:col-span-3 relative">
-        <!-- Main Chat Box -->
-        <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden flex flex-col">
+    <!-- Chat Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <!-- Main Chat Area -->
+      <div class="lg:col-span-3">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative h-full">
           <!-- Chat messages container -->
-          <div id="chat-log" class="chat-container hide-scrollbar p-4 overflow-y-auto bg-gray-50">
+          <div id="chat-log" class="chat-container hide-scrollbar bg-gray-50">
             {% for message in messages %}
-              <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %} group" data-message-id="{{ message.id }}">
-                <div class="flex items-start">
-                  <!-- Username and message content -->
-                  <div class="flex-1">
-                    <p class="text-xs font-semibold mb-0.5 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %}">
-                      <a href="{% url 'direct_message' username=message.user.username %}" class="username-link hover:underline">
-                        {{ message.user.username }}
-                      </a>
-                    </p>
-                    <div class="text-sm text-gray-700 message-content">
-                      {{ message.content|safe }}
+            <div class="flex items-start gap-2 group" data-message-id="{{ message.id }}">
+              <!-- Avatar -->
+              <div class="avatar avatar-{% if message.user.username == username %}pink{% else %}orange{% endif %} h-8 w-8 flex-shrink-0 text-sm">
+                {{ message.user.username|slice:":1"|upper }}
+              </div>
+
+              <!-- Message content -->
+              <div class="flex-1">
+                <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %}">
+                  <div class="flex items-start justify-between">
+                    <a href="{% url 'direct_message' username=message.user.username %}" class="text-xs font-semibold mb-1 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %} hover:underline">
+                      {{ message.user.username }}
+                    </a>
+
+                    <!-- Quick reaction buttons (desktop only) -->
+                    <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                      <div class="flex space-x-1">
+                        <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
+                        <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
+                        <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+                      </div>
                     </div>
                   </div>
 
-                  <!-- Quick reaction buttons (visible on hover/tap) -->
-                  <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
-                    <div class="flex space-x-1">
-                      <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">❤️</span>
-                      <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">👍</span>
-                      <span class="emoji-reaction cursor-pointer bg-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm hover:bg-pink-50">😂</span>
-                    </div>
+                  <div class="text-sm text-gray-700 message-content">
+                    {{ message.content|safe }}
                   </div>
                 </div>
 
-                <!-- Reactions display -->
-                <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs">
+                <!-- Reactions -->
+                <div class="reactions-container">
                   {% with reactions|default:"{}" as reaction_map %}
                     {% with reaction_map|dict_key:message.id as emoji_counts %}
                       {% for emoji, count in emoji_counts.items %}
-                        <span data-emoji="{{ emoji }}" class="bg-white rounded-full px-2 py-0.5 inline-flex items-center shadow-sm hover:bg-yellow-50 cursor-pointer transition-colors">
-                          {{ emoji }} <span class="reaction-count ml-1">{{ count }}</span>
-                        </span>
+                      <div class="reaction" data-emoji="{{ emoji }}">
+                        {{ emoji }} <span class="reaction-count">{{ count }}</span>
+                      </div>
                       {% endfor %}
                     {% endwith %}
                   {% endwith %}
                 </div>
               </div>
-            {% endfor %}
-          </div>
-
-          <!-- Typing indicator - IMPROVED -->
-          <div id="typing-indicator" class="hidden px-4 py-2 text-pink-400 text-sm h-8 flex items-center">
-            <div class="typing-dots">
-              <div class="typing-dot"></div>
-              <div class="typing-dot"></div>
-              <div class="typing-dot"></div>
             </div>
-            <span class="ml-2 text-xs text-gray-500" id="typing-username">Someone is typing...</span>
+            {% endfor %}
+
+            <!-- Typing indicator -->
+            <div id="typing-indicator" class="hidden">
+              <div class="typing-indicator">
+                <div class="typing-dots">
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                </div>
+                <span class="text-xs text-gray-500" id="typing-username">Someone is typing...</span>
+              </div>
+            </div>
           </div>
 
           <!-- File Preview Area -->
-          <div id="preview" class="hidden px-4 pt-2">
-            <div class="relative bg-gray-50 p-2 rounded-lg border border-pink-100">
-              <button id="cancel-preview" class="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-6 h-6 shadow hover:bg-red-50 flex items-center justify-center transition-colors">
+          <div id="preview" class="hidden p-3 border-t border-gray-100">
+            <div class="relative bg-gray-50 p-2 rounded-lg border border-gray-200">
+              <button id="cancel-preview" class="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-6 h-6 shadow hover:bg-red-50 flex items-center justify-center" aria-label="Cancel upload">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1011,21 +716,21 @@
 
           <!-- Upload Progress -->
           <div id="progress-container" class="hidden px-4 py-2">
-            <div class="w-full bg-gray-200 rounded-full h-2.5">
-              <div id="progress-bar" class="h-2.5 bg-gradient-to-r from-pink-500 to-orange-400 rounded-full w-0 transition-all duration-300"></div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div id="progress-bar" class="h-2 bg-gradient-to-r from-pink-500 to-orange-400 rounded-full w-0 transition-all"></div>
             </div>
           </div>
 
-          <!-- Message Input Area -->
-          <div class="p-4 border-t border-pink-100 bg-white">
+          <!-- Input Area -->
+          <div class="input-area">
             <form id="message-form" class="flex gap-2 items-center">
               <!-- Emoji Button -->
               <div class="relative">
-                <button id="emoji-button" type="button" class="text-xl p-2 hover:bg-pink-50 rounded-full transition flex items-center justify-center" {% if not user.is_authenticated %}disabled style="opacity: 0.5; pointer-events: none;"{% endif %}>
-                  <span>😊</span>
+                <button id="emoji-button" type="button" class="p-2 text-xl hover:bg-gray-100 rounded-full transition-all tooltip" data-tooltip="Emojis" {% if not user.is_authenticated %}disabled style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                  <span aria-label="Emoji picker">😊</span>
                 </button>
                 <div id="emoji-panel" class="emoji-panel">
-                  <!-- Common emojis grid -->
+                  <!-- Emojis grid -->
                   <div class="emoji-btn">😊</div>
                   <div class="emoji-btn">😂</div>
                   <div class="emoji-btn">❤️</div>
@@ -1049,20 +754,20 @@
                 </div>
               </div>
 
-              <!-- Text Input - Improved accessibility -->
+              <!-- Message Input -->
               <input
                 id="chat-message-input"
                 type="text"
-                placeholder="{% if user.is_authenticated %}Type something cozy...{% else %}Log in to send messages{% endif %}"
+                placeholder="{% if user.is_authenticated %}Type a message...{% else %}Log in to join the conversation{% endif %}"
                 autocomplete="off"
-                class="chat-input flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none text-sm"
+                class="chat-input"
                 {% if not user.is_authenticated %}disabled{% endif %}
                 aria-label="Message input"
               />
 
-              <!-- File Upload Button -->
-              <label for="file-input" class="cursor-pointer p-2.5 bg-yellow-100 text-yellow-600 font-medium rounded-full hover:bg-yellow-200 transition flex items-center justify-center" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <!-- File Upload -->
+              <label for="file-input" class="tooltip p-2.5 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition-all cursor-pointer flex items-center justify-center" data-tooltip="Attach files" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
                 <span class="sr-only">Attach files</span>
@@ -1070,75 +775,55 @@
               <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
 
               <!-- Send Button -->
-              <button type="submit" id="send-btn" class="btn p-2.5 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-full hover:shadow-md transition flex items-center justify-center"
-              {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}
-              aria-label="Send message">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
+              <button type="submit" id="send-btn" class="p-2.5 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-full hover:shadow transition-all flex items-center justify-center tooltip" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                <span class="sr-only">Send message</span>
+              </button>
             </form>
           </div>
-        </div>
 
-        <!-- Jump to bottom button -->
-        <button id="jump-to-bottom" class="jump-to-bottom" aria-label="Jump to bottom">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
-        </button>
-
-        <!-- New Message Indicator -->
-        <div id="new-messages-btn" class="hidden">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7m14-8l-7 7-7-7" />
-          </svg>
-          <span>New Messages</span>
+          <!-- Jump to bottom button -->
+          <button id="jump-to-bottom" class="jump-to-bottom" aria-label="Jump to bottom">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <!-- Right sidebar - User List & Room Controls -->
-      <div class="sm:col-span-1 space-y-4">
-        <!-- Users list - Desktop version -->
-        <div class="hidden sm:block bg-white p-4 rounded-xl shadow-md border border-pink-100">
-          <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center">
+      <!-- Sidebar -->
+      <div class="lg:col-span-1 space-y-4">
+        <!-- Users list -->
+        <div class="sidebar-section">
+          <h3 class="flex items-center">
             <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
-            Users in this room
+            Users in Room
           </h3>
-          <ul id="user-list" class="list-none text-sm text-gray-600 space-y-2 max-h-[300px] overflow-y-auto pr-1">
-            <!-- Users will be populated here by JavaScript -->
-            <li class="flex items-center justify-between animate-pulse">
-              <div class="flex items-center">
-                <div class="h-6 w-6 rounded-full bg-gray-200 mr-2"></div>
+          <ul id="user-list" class="space-y-1 max-h-48 overflow-y-auto hide-scrollbar">
+            <!-- User list populated by JS -->
+            <li class="user-item flex items-center justify-between animate-pulse">
+              <div class="flex items-center gap-2">
+                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
                 <div class="h-3 w-20 bg-gray-200 rounded"></div>
               </div>
-              <div class="h-5 w-16 bg-gray-200 rounded"></div>
             </li>
-            <li class="flex items-center justify-between animate-pulse">
-              <div class="flex items-center">
-                <div class="h-6 w-6 rounded-full bg-gray-200 mr-2"></div>
+            <li class="user-item flex items-center justify-between animate-pulse">
+              <div class="flex items-center gap-2">
+                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
                 <div class="h-3 w-24 bg-gray-200 rounded"></div>
               </div>
-              <div class="h-5 w-16 bg-gray-200 rounded"></div>
             </li>
           </ul>
         </div>
 
         <!-- Recommended Rooms -->
-        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
-          <h3 class="text-base font-semibold text-gray-700 mb-1">Recommended Rooms</h3>
-          <div id="recommended-rooms-list" class="text-sm space-y-2">
-            <!-- Recommendations will be populated by JavaScript -->
+        <div class="sidebar-section">
+          <h3>Recommended Rooms</h3>
+          <div id="recommended-rooms-list" class="space-y-2 text-sm">
             <div class="animate-pulse space-y-2">
-              <!-- Placeholder loading state -->
-              <div class="flex items-center space-x-3">
-                <div class="h-8 w-8 rounded-lg bg-gray-200"></div>
-                <div class="flex-1 space-y-1">
-                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-3">
+              <div class="flex items-center gap-2">
                 <div class="h-8 w-8 rounded-lg bg-gray-200"></div>
                 <div class="flex-1 space-y-1">
                   <div class="h-3 bg-gray-200 rounded w-3/4"></div>
@@ -1149,21 +834,12 @@
           </div>
         </div>
 
-        <!-- Friends Section -->
-        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
-          <h3 class="text-base font-semibold text-gray-700 mb-1">Friends Online</h3>
-          <div id="online-friends-list" class="text-sm space-y-2">
-            <!-- Online friends will be populated by JavaScript -->
+        <!-- Friends Online -->
+        <div class="sidebar-section">
+          <h3>Friends Online</h3>
+          <div id="online-friends-list" class="space-y-2 text-sm">
             <div class="animate-pulse space-y-2">
-              <!-- Placeholder loading state -->
-              <div class="flex items-center space-x-3">
-                <div class="h-8 w-8 rounded-full bg-gray-200"></div>
-                <div class="flex-1 space-y-1">
-                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-3">
+              <div class="flex items-center gap-2">
                 <div class="h-8 w-8 rounded-full bg-gray-200"></div>
                 <div class="flex-1 space-y-1">
                   <div class="h-3 bg-gray-200 rounded w-3/4"></div>
@@ -1174,202 +850,106 @@
           </div>
         </div>
 
-        <!-- Media Library Button -->
-        <button id="open-media-library" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4-4-4-4m6 8h10M4 20h16M4 4h16" />
-          </svg>
-          Media Library
-        </button>
+        <!-- Feature Buttons -->
+        <div class="grid grid-cols-2 gap-3">
+          <button id="open-media-library" class="btn-secondary text-sm flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Media Library
+          </button>
 
-        <!-- Media Library Modal -->
-        <div id="media-library-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-          <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
-              <button id="close-media-library" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
-            </div>
+          <button id="open-whiteboard" class="btn-secondary text-sm flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Whiteboard
+          </button>
 
-            <div class="flex space-x-2 mb-4">
-              <button class="media-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
-              <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
-              <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
-              <!-- Media items will be displayed here -->
-            </div>
-          </div>
+          <button id="create-meetup-btn" class="btn-secondary text-sm flex items-center justify-center col-span-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Plan a Meetup
+          </button>
         </div>
 
-        <!-- Media Preview Modal -->
-        <div id="media-preview-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
-          <div class="max-w-4xl max-h-screen p-4">
-            <button id="close-media-preview" class="absolute top-4 right-4 text-white hover:text-pink-400 text-xl transition-colors z-50">&times;</button>
-            <div id="media-preview-content" class="flex items-center justify-center">
-              <!-- Preview content will be inserted here -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Meetup Planner -->
-        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
-          <h3 class="text-base font-semibold text-gray-700 mb-1">Meetup Planner</h3>
-
-          <div id="upcoming-meetups" class="text-sm space-y-3">
-            <!-- Upcoming meetups will be listed here -->
-            <p class="text-gray-400 text-xs italic">No upcoming meetups planned yet.</p>
-
-            <button id="create-meetup-btn" class="btn w-full bg-green-100 hover:bg-green-200 text-green-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        <!-- Room Controls -->
+        <div class="sidebar-section">
+          <h3>Room Controls</h3>
+          <div class="flex flex-col gap-2">
+            <a href="{% url 'index' %}" class="btn-secondary text-sm flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              Plan a Meetup
-            </button>
-          </div>
-        </div>
+              Back to Lobby
+            </a>
 
-        <!-- Create Meetup Modal -->
-        <div id="meetup-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-          <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4">
-            <h2 class="text-lg font-bold gradient-text mb-4">Plan a Meetup</h2>
-
-            <form id="meetup-form" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-title">Meetup Title</label>
-                <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-datetime">Date & Time</label>
-                <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-location">Location</label>
-                <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-description">Description</label>
-                <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
-              </div>
-
-              <div class="flex justify-end space-x-3 pt-2">
-                <button type="button" id="cancel-meetup" class="btn px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">Cancel</button>
-                <button type="submit" class="btn px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl">Create Meetup</button>
-              </div>
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-secondary text-sm flex items-center w-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
             </form>
-          </div>
-        </div>
-
-        <!-- Collaborative Whiteboard Button -->
-        <button id="open-whiteboard" class="bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-          Collaborative Whiteboard
-        </button>
-
-        <!-- Whiteboard Modal -->
-        <div id="whiteboard-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-          <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-4 m-4 h-5/6 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
-              <button id="close-whiteboard" class="text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
-            </div>
-            <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-              <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
-            </div>
-            <div class="flex items-center justify-between mt-4">
-              <div class="flex items-center space-x-3">
-                <input type="color" id="brush-color" value="#000000" class="w-10 h-10 rounded cursor-pointer">
-                <select id="brush-size" class="rounded border border-gray-200 p-2">
-                  <option value="2">Thin</option>
-                  <option value="5" selected>Medium</option>
-                  <option value="10">Thick</option>
-                </select>
-              </div>
-              <button id="clear-whiteboard" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg">Clear All</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Room Controls section with proper authentication check -->
-        <div class="bg-white p-4 rounded-xl shadow-md border border-pink-100 flex flex-col gap-3">
-          <h3 class="text-base font-semibold text-gray-700 mb-1">Room Controls</h3>
-
-          <a href="{% url 'index' %}" class="btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Back to Lobby
-          </a>
-
-          {% if user.is_authenticated %}
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            {% else %}
+            <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn-secondary text-sm flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>
-              Logout
-            </button>
-          </form>
-          {% else %}
-          <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-            </svg>
-            Login
-          </a>
-          {% endif %}
+              Login
+            </a>
+            {% endif %}
 
-          {% if can_delete and user.is_authenticated %}
-          <form method="post" action="{% url 'delete_room' room_name %}">
-            {% csrf_token %}
-            <button type="submit" class="btn bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-xl transition text-sm inline-flex items-center w-full">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            {% if can_delete and user.is_authenticated %}
+            <form method="post" action="{% url 'delete_room' room_name %}">
+              {% csrf_token %}
+              <button type="submit" class="w-full bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-xl transition-all text-sm flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Room
+              </button>
+            </form>
+            {% endif %}
+
+            {% if user.is_staff or user.username == room.creator.username %}
+            <a href="{% url 'admin_room_detail' room_name=room_name %}" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl transition-all text-sm flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              Delete Room
-            </button>
-          </form>
-          {% endif %}
-
-          {% if user.is_staff or user.username == room.creator.username %}
-          <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl transition text-sm inline-flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Admin Panel
-          </a>
-          {% endif %}
+              Admin Panel
+            </a>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Footer with links to other platforms - Now more compact -->
-  <footer class="py-2 border-t border-pink-100 mt-8 bg-white compact-footer">
-    <div class="w-full max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
+  <!-- Footer -->
+  <footer class="py-4 border-t border-gray-100 mt-8 text-sm text-gray-500">
+    <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
       <div class="mb-3 sm:mb-0 text-center sm:text-left">
-        <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
+        <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start">
           <h2 class="text-base font-bold gradient-text">Euphorie</h2>
           <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
         </a>
-        <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
+        <p class="text-xs">© 2025 Euphorie. All rights reserved.</p>
       </div>
-      <div class="flex items-center gap-4 sm:gap-8 text-[13px] font-semibold tracking-wide text-gray-500">
-        <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-indigo-500 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="flex items-center gap-6 text-xs">
+        <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-indigo-500 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <span class="hover:underline underline-offset-2">Crene.com</span>
         </a>
-        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-green-500 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-green-500 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
           <span class="hover:underline underline-offset-2">DiaryVault.com</span>
@@ -1378,625 +958,494 @@
     </div>
   </footer>
 
+  <!-- Modals -->
+  <!-- Profile Menu -->
+  <div id="profile-menu" class="hidden absolute right-4 top-16 bg-white rounded-xl shadow-md border border-gray-100 w-64 p-3 z-50">
+    <div class="flex items-center p-2 border-b border-gray-100 mb-2">
+      <div class="avatar avatar-pink h-10 w-10 mr-3">
+        {{ username|slice:":1"|upper }}
+      </div>
+      <div>
+        <p class="font-medium text-gray-800">{{ username }}</p>
+        <p class="text-xs text-gray-500">{{ user.email }}</p>
+      </div>
+    </div>
+    <div class="space-y-1">
+      <a href="#" id="change-avatar-btn" class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <span class="text-sm">Change Avatar</span>
+      </a>
+      <a href="{% url 'user_profile' username=user.username %}" class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span class="text-sm">Profile Settings</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Media Library Modal -->
+  <div id="media-library-modal" class="modal">
+    <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
+        <button id="close-media-library" class="text-gray-400 hover:text-red-400 text-xl transition-colors" aria-label="Close">×</button>
+      </div>
+      <div class="flex space-x-2 mb-4">
+        <button class="media-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
+        <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
+        <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
+      </div>
+      <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
+        <!-- Media items loaded by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Whiteboard Modal -->
+  <div id="whiteboard-modal" class="modal">
+    <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
+        <button id="close-whiteboard" class="text-gray-400 hover:text-red-400 text-xl transition-colors" aria-label="Close">×</button>
+      </div>
+      <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+        <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
+      </div>
+      <div class="flex items-center justify-between mt-4">
+        <div class="flex items-center space-x-3">
+          <input type="color" id="brush-color" value="#000000" class="w-10 h-10 rounded cursor-pointer">
+          <select id="brush-size" class="rounded border border-gray-200 p-2 text-sm">
+            <option value="2">Thin</option>
+            <option value="5" selected>Medium</option>
+            <option value="10">Thick</option>
+          </select>
+        </div>
+        <button id="clear-whiteboard" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meetup Modal -->
+  <div id="meetup-modal" class="modal">
+    <div class="modal-content max-w-md p-6">
+      <h2 class="text-lg font-bold gradient-text mb-4">Plan a Meetup</h2>
+      <form id="meetup-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-title">Meetup Title</label>
+          <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-datetime">Date & Time</label>
+          <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-location">Location</label>
+          <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-description">Description</label>
+          <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
+        </div>
+        <div class="flex justify-end space-x-3 pt-2">
+          <button type="button" id="cancel-meetup" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl transition-all text-sm">Cancel</button>
+          <button type="submit" class="btn-primary">Create Meetup</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Profile Picture Modal -->
+  <div id="profile-pic-modal" class="modal">
+    <div class="modal-content max-w-md p-6">
+      <h2 class="text-lg font-bold gradient-text mb-4">Change Profile Picture</h2>
+      <div class="flex items-center justify-center mb-6">
+        <div id="profile-preview" class="avatar avatar-pink h-24 w-24 text-xl">
+          {{ username|slice:":1"|upper }}
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="profile-pic-upload">Upload Image</label>
+          <input type="file" id="profile-pic-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
+          <p class="text-xs text-gray-500 mt-1">Recommended: Square image, 500x500 pixels</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Choose Avatar Style</label>
+          <div class="grid grid-cols-4 gap-2">
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-pink-400 to-orange-300">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-blue-400 to-indigo-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-green-400 to-teal-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-purple-400 to-pink-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-yellow-400 to-orange-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-red-400 to-pink-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-cyan-400 to-blue-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-emerald-400 to-green-500">
+              {{ username|slice:":1"|upper }}
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end space-x-3 pt-2">
+          <button type="button" id="cancel-profile-pic" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl transition-all text-sm">Cancel</button>
+          <button type="button" id="save-profile-pic" class="btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Popover -->
+  <div id="user-options-popover" class="hidden absolute bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
+    <div class="space-y-1">
+      <a href="#" class="flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        <span>Send Message</span>
+      </a>
+      <button class="w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        </svg>
+        <span>Add Friend</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Reaction User Modal -->
-  <div id="reactionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-xl w-80 p-4 relative">
-      <button id="closeModal" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl transition-colors">&times;</button>
-      <h2 class="text-lg font-bold mb-2 gradient-text">People who reacted</h2>
-      <ul id="reactionUserList" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
+  <div id="reaction-modal" class="modal">
+    <div class="modal-content max-w-xs p-4">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-bold gradient-text">People who reacted</h2>
+        <button id="close-reaction-modal" class="text-gray-400 hover:text-red-400 text-xl transition-colors" aria-label="Close">×</button>
+      </div>
+      <ul id="reaction-user-list" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
+    </div>
+  </div>
+
+  <!-- Media Preview Modal -->
+  <div id="media-preview-modal" class="modal">
+    <div class="max-w-4xl max-h-screen p-4">
+      <button id="close-media-preview" class="absolute top-4 right-4 text-white hover:text-pink-400 text-xl transition-colors z-50" aria-label="Close">×</button>
+      <div id="media-preview-content" class="flex items-center justify-center"></div>
     </div>
   </div>
 
   <!-- Notification Toast -->
-  <div id="notification-toast" class="notification-toast hidden">
-    <span id="notification-message"></span>
+  <div id="notification-toast" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-orange-400 text-white shadow-md z-50 transition-all transform translate-y-10 opacity-0">
+    <span id="notification-message">Message sent successfully!</span>
   </div>
-
-  <!-- Profile Pictures -->
-      <div id="profile-pic-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4">
-            <h2 class="text-lg font-bold gradient-text mb-4">Change Profile Picture</h2>
-
-            <div class="flex items-center justify-center mb-4">
-                <div id="profile-preview" class="h-24 w-24 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center text-2xl font-medium profile-pic-container">
-                    {{ username|slice:":1"|upper }}
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="profile-pic-upload">Upload Image</label>
-                    <input type="file" id="profile-pic-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
-                    <p class="text-xs text-gray-500 mt-1">Recommended: Square image, 500x500 pixels</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Choose Avatar Style</label>
-                    <div class="grid grid-cols-4 gap-2">
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-pink-400 to-orange-300"></div>
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-blue-400 to-indigo-400"></div>
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-green-400 to-teal-400"></div>
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-purple-400 to-pink-400"></div>
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-yellow-400 to-orange-400"></div>
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-red-400 to-pink-400"></div>
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-cyan-400 to-blue-400"></div>
-                        <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-emerald-400 to-green-500"></div>
-                    </div>
-                </div>
-
-                <div class="flex justify-end space-x-3 pt-2">
-                    <button type="button" id="cancel-profile-pic" class="btn px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">Cancel</button>
-                    <button type="button" id="save-profile-pic" class="btn px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced User Dropdown Menu -->
-    <!-- Replace or modify your existing user display in the top navbar with this -->
-    {% if user.is_authenticated %}
-    <div class="relative" id="user-profile-dropdown">
-        <div class="flex items-center bg-pink-50 rounded-full px-3 py-1.5 cursor-pointer" id="user-profile-toggle">
-            <div id="user-top-avatar" class="h-6 w-6 rounded-full bg-pink-300 text-white flex items-center justify-center mr-2 font-medium text-xs user-avatar">
-                {{ username|slice:":1"|upper }}
-            </div>
-            <p class="text-sm text-gray-700">{{ username }}</p>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-        </div>
-
-        <div class="profile-menu" id="profile-menu">
-            <div class="flex items-center p-2 border-b border-gray-100 mb-1">
-                <div id="menu-user-avatar" class="h-10 w-10 rounded-full bg-pink-300 text-white flex items-center justify-center mr-3 font-medium user-avatar">
-                    {{ username|slice:":1"|upper }}
-                </div>
-                <div>
-                    <p class="font-medium text-gray-800">{{ username }}</p>
-                    <p class="text-xs text-gray-500">{{ user.email }}</p>
-                </div>
-            </div>
-
-            <a href="#" class="profile-menu-item" id="change-avatar-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Change Avatar
-            </a>
-
-            <a href="{% url 'user_profile' username=user.username %}" class="profile-menu-item">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Profile Settings
-            </a>
-
-            <a href="{% url 'index' %}" class="profile-menu-item">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Go to Lobby
-            </a>
-
-            <form method="post" action="{% url 'logout' %}" class="border-t border-gray-100 mt-1 pt-1">
-                {% csrf_token %}
-                <button type="submit" class="profile-menu-item w-full text-left">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Logout
-                </button>
-            </form>
-        </div>
-    </div>
-    {% endif %}
 
   <script>
     window.roomName = "{{ room_name|escapejs }}";
     window.username = "{{ username|escapejs }}";
   </script>
+</body>
+</html>
 
   <script src="{% static 'js/chatroom.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Initialize the bookmark button functionality
-      initializeBookmarkButton();
-
-      // Enhance existing user list to include add friend button
-      const originalUpdateUserList = window.updateUserList || function() {};
-
-      window.updateUserList = function(users) {
-        // Call the original function first
-        originalUpdateUserList.call(this, users);
-
-        // Now enhance with add friend buttons
-        const userList = document.getElementById("user-list");
-        if (!userList) return;
-
-        const currentUsername = window.username;
-
-        // Add friend buttons to user list items
-        Array.from(userList.querySelectorAll('li')).forEach(li => {
-          const usernameEl = li.querySelector('span');
-          if (!usernameEl) return;
-
-          const username = usernameEl.textContent;
-          if (username === currentUsername) return;
-
-          // Check if this li already has a friend button
-          if (li.querySelector('.add-friend-btn')) return;
-
-          // Add the friend button
-          const button = document.createElement('button');
-          button.className = 'add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-0.5 px-2 rounded transition-colors ml-2';
-          button.textContent = 'Add Friend';
-          button.dataset.userId = username; // Using user ID instead of username
-
-          button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            sendFriendRequest(this.dataset.userId);
-            this.textContent = 'Sent';
-            this.disabled = true;
-            this.classList.remove('hover:bg-pink-200');
-            this.classList.add('bg-gray-100', 'text-gray-500');
-          });
-
-          li.appendChild(button);
-        });
-      };
-
-      // Auto-scroll to bottom of chat on page load
-      scrollToBottom(true);
-
-      // Add scroll monitoring for showing/hiding jump-to-bottom button
+      // Initialize variables
       const chatLog = document.getElementById('chat-log');
+      const messageForm = document.getElementById('message-form');
+      const messageInput = document.getElementById('chat-message-input');
+      const jumpToBottomBtn = document.getElementById('jump-to-bottom');
+      const userProfileToggle = document.getElementById('user-profile-toggle');
+      const profileMenu = document.getElementById('profile-menu');
+      const modals = document.querySelectorAll('.modal');
+
+      // Show/hide jump to bottom button based on scroll position
       if (chatLog) {
         chatLog.addEventListener('scroll', function() {
           const scrollBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
-          const jumpButton = document.getElementById('jump-to-bottom');
-
           if (scrollBottom > 100) {
-            jumpButton.classList.add('visible');
+            jumpToBottomBtn.classList.add('visible');
           } else {
-            jumpButton.classList.remove('visible');
+            jumpToBottomBtn.classList.remove('visible');
           }
         });
+
+        // Initial scroll to bottom
+        scrollToBottom(true);
       }
 
-      // Jump to bottom button click handler
-      const jumpButton = document.getElementById('jump-to-bottom');
-      if (jumpButton) {
-        jumpButton.addEventListener('click', function() {
+      // Jump to bottom button functionality
+      if (jumpToBottomBtn) {
+        jumpToBottomBtn.addEventListener('click', function() {
           scrollToBottom(true);
         });
       }
 
-      // Setup new message indicator
-      const newMessageIndicator = document.getElementById('new-message-indicator');
-      if (newMessageIndicator) {
-        newMessageIndicator.addEventListener('click', function() {
-          scrollToBottom(true);
-          this.classList.remove('visible');
+      // Toggle profile menu
+      if (userProfileToggle && profileMenu) {
+        userProfileToggle.addEventListener('click', function(e) {
+          e.stopPropagation();
+          profileMenu.classList.toggle('hidden');
+        });
+
+        // Close when clicking elsewhere
+        document.addEventListener('click', function(e) {
+          if (!userProfileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+            profileMenu.classList.add('hidden');
+          }
         });
       }
 
-      // Enhanced message handling - detect new messages
-      const originalAddMessage = window.addMessage || function() {};
+      // Initialize emoji picker
+      const emojiButton = document.getElementById('emoji-button');
+      const emojiPanel = document.getElementById('emoji-panel');
 
-      window.addMessage = function(message, username, messageId) {
-        // Call original function
-        originalAddMessage.call(this, message, username, messageId);
+      if (emojiButton && emojiPanel) {
+        emojiButton.addEventListener('click', function(e) {
+          e.stopPropagation();
+          emojiPanel.classList.toggle('show');
+        });
 
-        // Check if user is scrolled up
-        const chatLog = document.getElementById('chat-log');
-        if (!chatLog) return;
-
-        const scrollBottom = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
-
-        // If user is scrolled up when new message arrives, show indicator instead of auto-scrolling
-        if (scrollBottom > 100) {
-          const newMessageIndicator = document.getElementById('new-message-indicator');
-          if (newMessageIndicator) {
-            newMessageIndicator.classList.add('visible');
+        // Close emoji panel when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+            emojiPanel.classList.remove('show');
           }
-        } else {
-          // User is at bottom, auto-scroll
-          scrollToBottom(false);
-        }
+        });
 
-        // Add 'new' class to the newly added message for animation
-        const messages = chatLog.querySelectorAll('.message-bubble');
-        if (messages.length > 0) {
-          const lastMessage = messages[messages.length - 1];
-          lastMessage.classList.add('new');
-        }
-      };
-
-      // Updated friend request function
-      function sendFriendRequest(userId) {
-        // Get CSRF token
-        const csrfToken = getCsrfToken();
-
-        fetch('/api/friend_request/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-          },
-          body: JSON.stringify({
-            receiver_id: userId // Changed from username to receiver_id
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log("Friend request response:", data);
-          if (data.success) {
-            showNotification('Friend request sent successfully');
-          } else {
-            console.error('Failed to send friend request:', data.error);
-            showNotification('Failed to send friend request');
-          }
-        })
-        .catch(error => {
-          console.error('Error sending friend request:', error);
-          showNotification('Error sending friend request');
+        // Add emoji to message input when clicked
+        const emojiButtons = document.querySelectorAll('.emoji-btn');
+        emojiButtons.forEach(btn => {
+          btn.addEventListener('click', function() {
+            if (messageInput) {
+              messageInput.value += this.textContent;
+              messageInput.focus();
+              emojiPanel.classList.remove('show');
+            }
+          });
         });
       }
+
+      // Modal handling
+      document.querySelectorAll('[id$="-modal"]').forEach(modal => {
+        const closeBtn = modal.querySelector('[id^="close-"]');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            modal.classList.remove('open');
+          });
+        }
+      });
+
+      // Open modal functions
+      const mediaLibraryBtn = document.getElementById('open-media-library');
+      const mediaLibraryModal = document.getElementById('media-library-modal');
+      if (mediaLibraryBtn && mediaLibraryModal) {
+        mediaLibraryBtn.addEventListener('click', () => {
+          mediaLibraryModal.classList.add('open');
+        });
+      }
+
+      const whiteboardBtn = document.getElementById('open-whiteboard');
+      const whiteboardModal = document.getElementById('whiteboard-modal');
+      if (whiteboardBtn && whiteboardModal) {
+        whiteboardBtn.addEventListener('click', () => {
+          whiteboardModal.classList.add('open');
+        });
+      }
+
+      const meetupBtn = document.getElementById('create-meetup-btn');
+      const meetupModal = document.getElementById('meetup-modal');
+      if (meetupBtn && meetupModal) {
+        meetupBtn.addEventListener('click', () => {
+          meetupModal.classList.add('open');
+        });
+      }
+
+      const cancelMeetupBtn = document.getElementById('cancel-meetup');
+      if (cancelMeetupBtn && meetupModal) {
+        cancelMeetupBtn.addEventListener('click', () => {
+          meetupModal.classList.remove('open');
+        });
+      }
+
+      // Avatar change modal
+      const changeAvatarBtn = document.getElementById('change-avatar-btn');
+      const profilePicModal = document.getElementById('profile-pic-modal');
+      const cancelProfilePicBtn = document.getElementById('cancel-profile-pic');
+
+      if (changeAvatarBtn && profilePicModal) {
+        changeAvatarBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (profileMenu) profileMenu.classList.add('hidden');
+          profilePicModal.classList.add('open');
+        });
+      }
+
+      if (cancelProfilePicBtn && profilePicModal) {
+        cancelProfilePicBtn.addEventListener('click', () => {
+          profilePicModal.classList.remove('open');
+        });
+      }
+
+      // Avatar option selection
+      document.querySelectorAll('.avatar-option').forEach(option => {
+        option.addEventListener('click', function() {
+          document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+          this.classList.add('selected');
+
+          // Update the preview
+          const gradient = this.getAttribute('data-gradient');
+          const profilePreview = document.getElementById('profile-preview');
+          if (profilePreview) {
+            profilePreview.className = 'avatar h-24 w-24 text-xl';
+            profilePreview.classList.add('bg-gradient-to-br', ...gradient.split(' '));
+          }
+        });
+      });
+
+      // Save avatar changes
+      const saveProfilePicBtn = document.getElementById('save-profile-pic');
+      if (saveProfilePicBtn) {
+        saveProfilePicBtn.addEventListener('click', () => {
+          // Here you would handle the actual saving of the avatar
+          // Then show a notification and close the modal
+          showNotification('Profile picture updated successfully');
+          profilePicModal.classList.remove('open');
+        });
+      }
+
+      // Initialize mobile menu toggle
+      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+      if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+          // Toggle mobile sidebar visibility
+          const sidebar = document.querySelector('.lg\\:col-span-1');
+          if (sidebar) {
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('fixed');
+            sidebar.classList.toggle('inset-0');
+            sidebar.classList.toggle('z-50');
+            sidebar.classList.toggle('pt-16');
+            sidebar.classList.toggle('bg-white');
+            sidebar.classList.toggle('overflow-y-auto');
+          }
+        });
+      }
+
+      // Initialize bookmark functionality
+      initializeBookmarkButton();
 
       // Helper function to scroll to bottom of chat
       function scrollToBottom(instant) {
-        const chatLog = document.getElementById('chat-log');
         if (!chatLog) return;
 
         if (instant) {
-          // Turn off smooth scrolling temporarily for instant scroll
           chatLog.style.scrollBehavior = 'auto';
           chatLog.scrollTop = chatLog.scrollHeight;
-          // Restore smooth scrolling after a brief delay
           setTimeout(() => {
             chatLog.style.scrollBehavior = 'smooth';
           }, 100);
         } else {
           chatLog.scrollTop = chatLog.scrollHeight;
         }
-
-        // Hide the new message indicator if it's visible
-        const newMessageIndicator = document.getElementById('new-message-indicator');
-        if (newMessageIndicator) {
-          newMessageIndicator.classList.remove('visible');
-        }
-
-        // Hide the jump button
-        const jumpButton = document.getElementById('jump-to-bottom');
-        if (jumpButton) {
-          jumpButton.classList.remove('visible');
-        }
-      }
-    });
-
-    function initializeBookmarkButton() {
-      const bookmarkBtn = document.getElementById('bookmark-room');
-
-      if (!bookmarkBtn) {
-          console.error("Bookmark button not found");
-          return;
       }
 
-      console.log("Initializing bookmark button");
+      // Show notification function
+      window.showNotification = function(message) {
+        const toast = document.getElementById('notification-toast');
+        const messageEl = document.getElementById('notification-message');
 
-      // Check if room is already bookmarked from localStorage
-      const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
+        if (toast && messageEl) {
+          messageEl.textContent = message;
+          toast.classList.remove('translate-y-10', 'opacity-0');
 
-      // Update button appearance based on current state
-      updateBookmarkButton(isBookmarked);
+          setTimeout(() => {
+            toast.classList.add('translate-y-10', 'opacity-0');
+          }, 3000);
+        }
+      };
 
-      // Add click event listener
-      bookmarkBtn.addEventListener('click', function() {
-          console.log("Bookmark button clicked");
-          // Toggle bookmarked state
+      // Initialize bookmark button
+      function initializeBookmarkButton() {
+        const bookmarkBtn = document.getElementById('bookmark-room');
+        if (!bookmarkBtn) return;
+
+        // Check if room is already bookmarked
+        const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
+        updateBookmarkButton(isBookmarked);
+
+        // Add click event
+        bookmarkBtn.addEventListener('click', function() {
           const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
 
-          // Get CSRF token
+          // Get CSRF token and send request to server
           const csrfToken = getCsrfToken();
-
-          // Send bookmark request to server
           fetch('/api/toggle_bookmark_room/', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRFToken': csrfToken
-              },
-              body: JSON.stringify({
-                  room_name: window.roomName,
-                  bookmarked: newState
-              })
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+              room_name: window.roomName,
+              bookmarked: newState
+            })
           })
           .then(response => response.json())
           .then(data => {
-              if (data.success) {
-                  // Store bookmark state in localStorage
-                  localStorage.setItem(`bookmarked_${window.roomName}`, newState);
-
-                  // Update button appearance
-                  updateBookmarkButton(newState);
-
-                  // Show notification
-                  showNotification(newState ? 'Room bookmarked!' : 'Room bookmark removed');
-
-                  // Update recommendations to reflect the new bookmark state
-                  // This ensures the bookmarked rooms section updates immediately
-                  requestRoomRecommendations();
-              } else {
-                  showNotification('Failed to update bookmark: ' + (data.error || 'Unknown error'));
-              }
+            if (data.success) {
+              localStorage.setItem(`bookmarked_${window.roomName}`, newState);
+              updateBookmarkButton(newState);
+              showNotification(newState ? 'Room bookmarked!' : 'Bookmark removed');
+            } else {
+              showNotification('Failed to update bookmark');
+            }
           })
           .catch(error => {
-              console.error('Error toggling room bookmark:', error);
-              showNotification('An error occurred while updating bookmark');
+            console.error('Error toggling bookmark:', error);
+            showNotification('An error occurred');
           });
-      });
-    }
-
-
-    // Function to update bookmark button appearance
-    function updateBookmarkButton(isBookmarked) {
-      const bookmarkBtn = document.getElementById('bookmark-room');
-      if (!bookmarkBtn) return;
-
-      if (isBookmarked) {
-          // Bookmarked state - filled icon
-          bookmarkBtn.classList.add('active');
-          bookmarkBtn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-          `;
-          bookmarkBtn.setAttribute('title', 'Remove bookmark');
-      } else {
-          // Not bookmarked state - outlined icon
-          bookmarkBtn.classList.remove('active');
-          bookmarkBtn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-          `;
-          bookmarkBtn.setAttribute('title', 'Bookmark this room');
+        });
       }
-    }
 
-    // Helper function to get CSRF token
-    function getCsrfToken() {
-      // From cookies
-      const name = 'csrftoken=';
-      const decodedCookie = decodeURIComponent(document.cookie);
-      const cookieArray = decodedCookie.split(';');
+      // Helper function to update bookmark button appearance
+      function updateBookmarkButton(isBookmarked) {
+        const bookmarkBtn = document.getElementById('bookmark-room');
+        if (!bookmarkBtn) return;
 
-      for (let i = 0; i < cookieArray.length; i++) {
-        let cookie = cookieArray[i].trim();
-        if (cookie.indexOf(name) === 0) {
-          return cookie.substring(name.length, cookie.length);
+        if (isBookmarked) {
+          bookmarkBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          `;
+          bookmarkBtn.classList.add('text-pink-500');
+          bookmarkBtn.setAttribute('data-tooltip', 'Remove bookmark');
+        } else {
+          bookmarkBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          `;
+          bookmarkBtn.classList.remove('text-pink-500');
+          bookmarkBtn.setAttribute('data-tooltip', 'Bookmark room');
         }
       }
 
-      // If not found in cookies, try to find it in a meta tag
-      const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-      if (csrfMeta) {
-        return csrfMeta.getAttribute('content');
-      }
-
-      // Last resort - look for hidden input field
-      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-      if (csrfInput) {
-        return csrfInput.value;
-      }
-
-      return '';
-    }
-
-    // Show notification function
-    function showNotification(message) {
-      const notificationToast = document.getElementById('notification-toast');
-      const notificationMessage = document.getElementById('notification-message');
-
-      if (notificationToast && notificationMessage) {
-        notificationMessage.textContent = message;
-        notificationToast.classList.remove('hidden');
-
-        setTimeout(function() {
-          notificationToast.classList.add('hidden');
-        }, 3000);
-      }
-    }
-
-  </script>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // Enhance username clicks throughout the chat
-      enhanceUsernameLinks();
-
-      // Store reference to the original updateUserList function
-      const originalUpdateUserList = window.updateUserList || function() {};
-
-      // Replace with enhanced version that adds friend request buttons
-      window.updateUserList = function(users) {
-        // First call the original function
-        originalUpdateUserList.call(this, users);
-
-        // Then enhance the user list with friend buttons
-        const userList = document.getElementById("user-list");
-        if (!userList) return;
-
-        // Get all user list items
-        const listItems = userList.querySelectorAll('li');
-
-        // Process each list item
-        listItems.forEach(li => {
-          // Add user-item class for hover effects
-          li.classList.add('user-item');
-
-          // Get the username
-          const nameSpan = li.querySelector('span');
-          if (!nameSpan) return;
-
-          const username = nameSpan.textContent;
-
-          // Skip if it's the current user
-          if (username === window.username) return;
-
-          // Skip if already has a friend button
-          if (li.querySelector('.friend-btn')) return;
-
-          // Get the actions container or create one if it doesn't exist
-          let actionsContainer = li.querySelector('div:last-child');
-          if (!actionsContainer) {
-            actionsContainer = document.createElement('div');
-            actionsContainer.className = 'flex items-center';
-            li.appendChild(actionsContainer);
-          }
-
-          // Create Add Friend button
-          const friendBtn = document.createElement('button');
-          friendBtn.className = 'friend-btn friend-btn-add';
-          friendBtn.textContent = 'Add Friend';
-          friendBtn.onclick = () => sendFriendRequest(username);
-
-          // Insert before any existing actions
-          actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
-        });
-      };
-
-      // Enhance all username links in the chat with popover menu
-      function enhanceUsernameLinks() {
-        // Find all username links and enhance them
-        document.addEventListener('click', function(e) {
-          // Check if clicked element is a username link
-          if (e.target.classList.contains('username-link') ||
-              e.target.parentElement.classList.contains('username-link')) {
-            e.preventDefault(); // Prevent default navigation
-
-            // Get the username
-            const link = e.target.classList.contains('username-link') ?
-                        e.target : e.target.parentElement;
-            const username = link.textContent.trim();
-
-            // Skip if it's the current user
-            if (username === window.username) return;
-
-            // Create or show popover menu
-            showUserOptions(link, username);
-          }
-        });
-      }
-
-      // Show user interaction options popover
-      function showUserOptions(element, username) {
-        // Remove any existing popovers
-        const existingPopover = document.getElementById('user-options-popover');
-        if (existingPopover) {
-          existingPopover.remove();
-        }
-
-        // Create popover element
-        const popover = document.createElement('div');
-        popover.id = 'user-options-popover';
-        popover.className = 'bg-white rounded-lg shadow-xl border border-gray-200 p-2 absolute z-50';
-
-        // Set position near the username
-        const rect = element.getBoundingClientRect();
-        popover.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-        popover.style.left = (rect.left + window.scrollX) + 'px';
-
-        // Add options
-        const optionsList = document.createElement('div');
-        optionsList.className = 'space-y-1';
-
-        // DM option
-        const dmOption = document.createElement('a');
-        dmOption.href = `/dm/${username}/`;
-        dmOption.className = 'flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
-        dmOption.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span class="text-sm text-gray-700">Send Message</span>
-        `;
-
-        // Add Friend option
-        const friendOption = document.createElement('button');
-        friendOption.className = 'w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
-        friendOption.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          <span class="text-sm text-gray-700">Add Friend</span>
-        `;
-        friendOption.onclick = function() {
-          sendFriendRequest(username);
-          popover.remove();
-        };
-
-        // Add options to list
-        optionsList.appendChild(dmOption);
-        optionsList.appendChild(friendOption);
-        popover.appendChild(optionsList);
-
-        // Add to page
-        document.body.appendChild(popover);
-
-        // Close when clicking outside
-        document.addEventListener('click', function closePopover(e) {
-          if (!popover.contains(e.target) && e.target !== element) {
-            popover.remove();
-            document.removeEventListener('click', closePopover);
-          }
-        });
-      }
-
-      // Function to send friend request
-      window.sendFriendRequest = function(otherUser) {
-        // Get CSRF token
-        const csrfToken = getCsrfToken();
-
-        fetch('/api/friend_request/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-          },
-          body: JSON.stringify({
-            receiver_id: otherUser  // This matches your API expectation
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            showNotification(`Friend request sent to ${otherUser}`);
-
-            // Find and update any friend buttons for this user
-            document.querySelectorAll('.friend-btn').forEach(btn => {
-              if (btn.parentElement.previousElementSibling &&
-                  btn.parentElement.previousElementSibling.querySelector('span') &&
-                  btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
-                btn.className = 'friend-btn friend-btn-pending request-sent';
-                btn.textContent = 'Pending';
-                btn.onclick = null;
-              }
-            });
-          } else {
-            showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
-          }
-        })
-        .catch(error => {
-          console.error('Error sending friend request:', error);
-          showNotification('An error occurred while sending friend request');
-        });
-      };
-
-      // Helper function for CSRF token
+      // Helper function to get CSRF token
       function getCsrfToken() {
         const name = 'csrftoken=';
         const decodedCookie = decodeURIComponent(document.cookie);
@@ -2009,84 +1458,55 @@
           }
         }
 
-        // If not found in cookies, try to find it in a meta tag
-        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-        if (csrfMeta) {
-          return csrfMeta.getAttribute('content');
-        }
-
-        // Last resort - look for hidden input field
         const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-        if (csrfInput) {
-          return csrfInput.value;
-        }
-
-        return '';
+        return csrfInput ? csrfInput.value : '';
       }
 
-      // Show notification function (if not already defined)
-      if (!window.showNotification) {
-        window.showNotification = function(message) {
-          let notificationToast = document.getElementById('notification-toast');
-          let notificationMessage = document.getElementById('notification-message');
+      // Enhanced message handling
+      if (typeof window.addMessage === 'function') {
+        const originalAddMessage = window.addMessage;
+        window.addMessage = function(message, username, messageId) {
+          originalAddMessage.call(this, message, username, messageId);
 
-          // If the notification elements don't exist, create them
-          if (!notificationToast) {
-            notificationToast = document.createElement('div');
-            notificationToast.id = 'notification-toast';
-            notificationToast.className = 'notification-toast hidden';
-            document.body.appendChild(notificationToast);
+          const chatLog = document.getElementById('chat-log');
+          if (!chatLog) return;
 
-            notificationMessage = document.createElement('span');
-            notificationMessage.id = 'notification-message';
-            notificationToast.appendChild(notificationMessage);
+          const scrollBottom = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
+
+          // If user is scrolled up, show indicator
+          if (scrollBottom > 100) {
+            jumpToBottomBtn.classList.add('visible');
+          } else {
+            // User is at bottom, auto-scroll
+            scrollToBottom(false);
           }
-
-          // Display the notification
-          notificationMessage.textContent = message;
-          notificationToast.classList.remove('hidden');
-
-          // Hide it after a delay
-          setTimeout(function() {
-            notificationToast.classList.add('hidden');
-          }, 3000);
         };
       }
+
+      // Close announcement banners
+      document.querySelectorAll('.dismiss-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const announcement = this.closest('.announcement');
+          if (announcement) {
+            announcement.classList.add('hidden');
+
+            // If you want to mark it as read on the server
+            const announcementId = announcement.getAttribute('data-announcement-id');
+            if (announcementId) {
+              const csrfToken = getCsrfToken();
+              fetch('/api/mark_announcement_read/', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                  announcement_id: announcementId
+                })
+              });
+            }
+          }
+        });
+      });
     });
   </script>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Profile dropdown functionality
-        const profileToggle = document.getElementById('user-profile-toggle');
-        const profileMenu = document.getElementById('profile-menu');
-        const changeAvatarBtn = document.getElementById('change-avatar-btn');
-        const profilePicModal = document.getElementById('profile-pic-modal');
-
-        if (profileToggle && profileMenu) {
-            profileToggle.addEventListener('click', function() {
-                profileMenu.classList.toggle('open');
-            });
-
-            // Close when clicking elsewhere
-            document.addEventListener('click', function(e) {
-                if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
-                    profileMenu.classList.remove('open');
-                }
-            });
-        }
-
-        // Open profile picture modal from dropdown
-        if (changeAvatarBtn && profilePicModal) {
-            changeAvatarBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                profileMenu.classList.remove('open');
-                profilePicModal.classList.add('flex');
-                profilePicModal.classList.remove('hidden');
-            });
-        }
-    });
-  </script>
-
-</body>
-</html>
