@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-{% load static %}
-{% load chat_extras %}
 <head>
-  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
-  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
   <meta charset="UTF-8">
   <title>Euphorie - Chat Rooms 💬</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -16,10 +10,8 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-image: radial-gradient(circle at 30% 10%, rgba(255, 182, 225, 0.1), transparent 30%),
-                       radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.1), transparent 40%);
-      background-attachment: fixed;
-      padding-top: 60px; /* Add space for fixed header */
+      background-color: #f9fafb;
+      padding-top: 60px;
     }
 
     .hide-scrollbar {
@@ -31,21 +23,6 @@
       display: none;
     }
 
-    .btn {
-      transition: all 0.2s ease;
-      font-weight: 500;
-      border-radius: 12px;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-
-    .btn:active {
-      transform: translateY(0);
-    }
-
     .gradient-text {
       background: linear-gradient(135deg, #ec4899, #f97316);
       -webkit-background-clip: text;
@@ -53,100 +30,188 @@
       background-clip: text;
     }
 
-    /* Enhanced room card animations */
     .room-card {
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      border-radius: 16px;
+      transition: all 0.3s ease;
+      border-radius: 12px;
       overflow: hidden;
-      opacity: 0; /* Start with opacity 0 */
-      transform: translateY(20px) scale(0.98); /* Start slightly smaller and lower */
-      box-shadow: 0 6px 16px -8px rgba(0,0,0,0.05);
-      animation: fadeInUp 0.5s forwards;
-      animation-fill-mode: both;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
-    /* Add sequential delay to room cards */
-    .rooms-container > .room-card:nth-child(1) { animation-delay: 0.05s; }
-    .rooms-container > .room-card:nth-child(2) { animation-delay: 0.1s; }
-    .rooms-container > .room-card:nth-child(3) { animation-delay: 0.15s; }
-    .rooms-container > .room-card:nth-child(4) { animation-delay: 0.2s; }
-    .rooms-container > .room-card:nth-child(5) { animation-delay: 0.25s; }
-    .rooms-container > .room-card:nth-child(6) { animation-delay: 0.3s; }
-    .rooms-container > .room-card:nth-child(7) { animation-delay: 0.35s; }
-    .rooms-container > .room-card:nth-child(8) { animation-delay: 0.4s; }
-    .rooms-container > .room-card:nth-child(9) { animation-delay: 0.45s; }
-
-    /* Fade in up animation */
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.98);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    /* Fade out down animation */
-    @keyframes fadeOutDown {
-      from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-      to {
-        opacity: 0;
-        transform: translateY(20px) scale(0.98);
-      }
-    }
-
-    /* Hover effect with pop-up animation */
     .room-card:hover {
-      transform: translateY(-5px) scale(1.02);
-      box-shadow: 0 16px 30px -12px rgba(0,0,0,0.15);
-      z-index: 10;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+      border-color: #f9a8d4;
     }
 
-    /* Add subtle rocking animation on hover */
-    .room-card:hover .room-card-content {
-      animation: subtleRock 2s ease infinite;
-    }
-
-    @keyframes subtleRock {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(0.5deg); }
-      75% { transform: rotate(-0.5deg); }
-    }
-
-    /* Pulse effect for badges */
-    .room-badge {
-      background: linear-gradient(135deg, rgba(249, 168, 212, 0.2), rgba(251, 191, 36, 0.2));
+    .compact-room-card {
+      border-radius: 8px;
       transition: all 0.3s ease;
     }
 
-    .room-card:hover .room-badge {
-      animation: badgePulse 1.5s ease infinite;
+    .compact-room-card:hover {
+      background-color: #fdf2f8;
+      transform: translateY(-1px);
     }
 
-    @keyframes badgePulse {
-      0%, 100% {
-        transform: scale(1);
-        background: linear-gradient(135deg, rgba(249, 168, 212, 0.2), rgba(251, 191, 36, 0.2));
-      }
-      50% {
-        transform: scale(1.05);
-        background: linear-gradient(135deg, rgba(249, 168, 212, 0.3), rgba(251, 191, 36, 0.3));
+    .top-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background-color: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .category-btn {
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .category-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .category-btn.active {
+      background-color: #ec4899;
+      color: white;
+      box-shadow: 0 2px 5px rgba(236, 72, 153, 0.25);
+    }
+
+    .search-input {
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+    }
+
+    .room-badge {
+      font-size: 0.65rem;
+      transition: all 0.2s ease;
+    }
+
+    .compact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 1024px) {
+      .compact-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       }
     }
 
-    /* Add new animation for room card buttons */
-    .join-btn {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
+    @media (min-width: 1280px) {
+      .compact-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      }
+    }
+
+    .rooms-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .rooms-container {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .rooms-container {
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      }
+    }
+
+    /* Pulse animation for active indicators */
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    .pulse-animation {
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    /* Add some subtle background patterns */
+    .subtle-pattern {
+      background-image:
+        radial-gradient(circle at 30% 20%, rgba(255, 182, 225, 0.1), transparent 20%),
+        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.1), transparent 20%);
+      background-attachment: fixed;
+    }
+
+    /* View toggle button styles */
+    .view-toggle-btn {
+      transition: all 0.2s ease;
+    }
+
+    .view-toggle-btn.active {
+      background-color: #f9a8d4;
+      color: #831843;
+    }
+
+    /* Enhanced friend indicators */
+    .friend-indicator {
       position: relative;
+      transition: all 0.2s ease;
     }
 
-    .join-btn:after {
+    .friend-indicator:hover {
+      transform: scale(1.05);
+    }
+
+    .online-dot {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      height: 8px;
+      width: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      border: 1.5px solid white;
+    }
+
+    /* Activity indicator */
+    .activity-indicator {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    .activity-high {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: #065f46;
+    }
+
+    .activity-medium {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: #92400e;
+    }
+
+    .activity-low {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: #b91c1c;
+    }
+
+    /* Enhanced create room button */
+    .create-btn {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .create-btn:after {
       content: '';
       position: absolute;
       top: 50%;
@@ -160,8 +225,8 @@
       transform-origin: 50% 50%;
     }
 
-    .room-card:hover .join-btn:after {
-      animation: ripple 1.2s ease-out;
+    .create-btn:hover:after {
+      animation: ripple 1s ease-out;
     }
 
     @keyframes ripple {
@@ -170,188 +235,17 @@
         opacity: 0.5;
       }
       100% {
-        transform: scale(20, 20);
+        transform: scale(30, 30);
         opacity: 0;
       }
     }
-
-    /* Animation for newly added rooms */
-    .new-room {
-      animation: highlightNew 1.5s ease;
-    }
-
-    @keyframes highlightNew {
-      0%, 100% { box-shadow: 0 6px 16px -8px rgba(0,0,0,0.05); }
-      50% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.5); }
-    }
-
-    /* For dynamically loaded rooms */
-    .room-enter {
-      opacity: 0;
-      transform: translateY(20px) scale(0.98);
-    }
-
-    .room-enter-active {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      transition: opacity 0.5s, transform 0.5s;
-    }
-
-    /* For removing rooms */
-    .room-exit {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .room-exit-active {
-      opacity: 0;
-      transform: translateY(20px) scale(0.98);
-      transition: opacity 0.5s, transform 0.5s;
-    }
-
-    @keyframes shimmer {
-      0% { background-position: -1000px 0; }
-      100% { background-position: 1000px 0; }
-    }
-
-    .shimmer {
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
-      background-size: 1000px 100%;
-      animation: shimmer 2s infinite linear;
-    }
-
-    .create-room-btn {
-      transition: all 0.3s ease;
-    }
-
-    .create-room-btn:hover {
-      transform: scale(1.03);
-      background-size: 200% 200%;
-    }
-
-    .guest-banner {
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
-    }
-
-    .top-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .search-input {
-      background-color: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(4px);
-      transition: all 0.2s ease;
-    }
-
-    .search-input:focus {
-      background-color: rgba(255, 255, 255, 1);
-      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
-    }
-
-    .footer-link {
-      position: relative;
-      transition: all 0.2s ease;
-    }
-
-    .footer-link:after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 0;
-      height: 1px;
-      background-color: #ec4899;
-      transition: width 0.3s ease;
-    }
-
-    .footer-link:hover:after {
-      width: 100%;
-    }
-
-    /* Animation for category buttons */
-    .category-btn {
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .category-btn:hover {
-      transform: translateY(-2px);
-    }
-
-    .category-btn.active {
-      animation: pulse-light 2s infinite;
-    }
-
-    @keyframes pulse-light {
-      0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.2); }
-      70% { box-shadow: 0 0 0 6px rgba(236, 72, 153, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
-    }
-
-    /* Animation for recommendations */
-    .recommendation-card {
-      transition: all 0.3s ease;
-    }
-
-    .recommendation-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 16px -4px rgba(236, 72, 153, 0.1);
-    }
-
-    /* Compact header and footer */
-    .compact-header {
-      padding: 0.5rem 1rem;
-    }
-
-    .compact-footer {
-      padding: 1rem 0;
-    }
-
-    /* Enhanced trending indicators */
-    .trending-indicator {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      background: linear-gradient(135deg, #ec4899, #f97316);
-      color: white;
-      font-size: 0.65rem;
-      font-weight: 600;
-      padding: 0.2rem 0.5rem;
-      border-radius: 1rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      z-index: 10;
-    }
-
-    .trending-pulse {
-      animation: trending-pulse 2s infinite;
-    }
-
-    @keyframes trending-pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
   </style>
 </head>
-<body class="bg-white min-h-screen flex flex-col text-gray-800">
+<body class="subtle-pattern">
 
   <!-- Sticky Top Navigation with glass effect -->
-  <header class="top-header py-2 border-b border-pink-100 compact-header">
-    <div class="w-full max-w-6xl mx-auto px-4 flex items-center justify-between">
+  <header class="top-header py-2 border-b border-pink-100">
+    <div class="w-full max-w-7xl mx-auto px-4 flex items-center justify-between">
       <a href="{% url 'index' %}" class="flex items-center">
         <h1 class="text-xl font-bold gradient-text">Euphorie</h1>
         <span class="ml-2 px-2 py-0.5 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">BETA</span>
@@ -397,13 +291,61 @@
     </div>
   </header>
 
-  <main class="flex-1 w-full max-w-6xl mx-auto p-4 pt-2 sm:py-6">
-    <!-- Improved Create New Room Form with visual enhancement and category selection -->
+  <main class="w-full max-w-7xl mx-auto p-4 pt-2 sm:py-6">
+    <!-- Layout controls and search bar -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-5 items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-pink-100">
+      <div class="w-full sm:w-auto flex items-center gap-3">
+        <div class="relative w-full sm:w-64">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <input
+            type="text"
+            id="room-search"
+            placeholder="Search rooms..."
+            class="search-input w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50"
+          />
+        </div>
+        <!-- View Toggle Buttons -->
+        <div class="hidden sm:flex bg-gray-100 p-1 rounded-lg">
+          <button id="grid-view" class="view-toggle-btn active p-1.5 rounded-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
+          <button id="compact-view" class="view-toggle-btn p-1.5 rounded-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {% if user.is_authenticated %}
+      <button id="create-room-toggle" class="create-btn w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg text-sm font-medium shadow-sm flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        Create New Room
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Create New Room Form (initially hidden) -->
     {% if user.is_authenticated %}
-    <div class="bg-white rounded-2xl shadow-md p-5 mb-6 border border-pink-100">
-      <div class="mb-3">
-        <h2 class="text-lg font-semibold text-gray-800">Create a New Room</h2>
-        <p class="text-sm text-gray-500">Start a conversation or discuss a topic of your choice</p>
+    <div id="create-room-form-container" class="bg-white rounded-xl shadow-sm p-5 mb-5 border border-pink-100 hidden transform transition-all duration-300 scale-95 opacity-0">
+      <div class="mb-3 flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800">Create a New Room</h2>
+          <p class="text-sm text-gray-500">Start a conversation or discuss a topic of your choice</p>
+        </div>
+        <button id="close-create-form" class="text-gray-400 hover:text-gray-600 p-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       <form method="post" action="{% url 'create_room' %}" class="space-y-3" id="create-room-form">
         {% csrf_token %}
@@ -415,8 +357,7 @@
             class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50"
             required
           />
-            <!-- Room category dropdown with standardized options -->
-            <select
+          <select
             name="room_category"
             class="px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50 text-gray-700 appearance-none sm:w-1/3"
             required
@@ -428,7 +369,7 @@
           </select>
         </div>
         <div class="flex justify-end">
-          <button type="submit" class="create-room-btn btn bg-gradient-to-r from-pink-500 to-orange-400 text-white px-5 py-2 rounded-xl shadow-md font-semibold">
+          <button type="submit" class="btn bg-gradient-to-r from-pink-500 to-rose-500 text-white px-5 py-2 rounded-xl shadow-md font-semibold hover:shadow-lg transition-all">
             Create Room
           </button>
         </div>
@@ -436,151 +377,271 @@
     </div>
     {% endif %}
 
-    <!-- NEW: Animated Room Categories -->
-    <div class="mb-5 relative">
-      <div class="flex items-center gap-2 mb-2">
-        <h3 class="text-sm font-semibold text-gray-700">Browse by category</h3>
-        <div class="flex-1 h-px bg-gray-100"></div>
-      </div>
-
-      <!-- Left scroll button -->
-      <button id="scroll-left" class="absolute left-0 top-10 z-10 bg-white rounded-full shadow-md p-1.5 border border-pink-100 text-pink-500 hover:bg-pink-50 hidden md:flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      <!-- Category list with scroll container -->
-      <div class="overflow-hidden relative mx-8">
-        <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar scroll-smooth" id="room-categories">
-          <button data-category="all" class="category-btn active whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-pink-500 text-white shadow-md">
-            <span class="mr-1.5">🏠</span> All Rooms
-          </button>
-          <button data-category="trending" class="category-btn whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-gray-50 text-gray-600 hover:bg-gray-100">
-            <span class="mr-1.5">🔥</span> Trending
-          </button>
-          {% for category in categories %}
-          <button data-category="{{ category.slug|default:category.name|lower }}" class="category-btn whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-gray-50 text-gray-600 hover:bg-gray-100">
-            <span class="mr-1.5">{{ category.icon|default:"🌟" }}</span> {{ category.name }}
-          </button>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- Right scroll button -->
-      <button id="scroll-right" class="absolute right-0 top-10 z-10 bg-white rounded-full shadow-md p-1.5 border border-pink-100 text-pink-500 hover:bg-pink-50 flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
-
-    <!-- NEW: User Presence Indicators (Friends Online) - Made more compact -->
+    <!-- Online Friends Bar -->
     {% if user.is_authenticated %}
-    <div class="mb-5 bg-white rounded-xl p-3 shadow-sm border border-pink-100">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="text-sm font-semibold text-gray-700">Friends Online</h3>
-        <a href="{% url 'friends_list' %}" class="text-xs text-pink-500 hover:underline">View all</a>
-      </div>
-      <div id="online-friends-container" class="flex gap-3 overflow-x-auto pb-1 hide-scrollbar">
-        <!-- Loading placeholder -->
-        <div class="animate-pulse flex gap-3">
-          {% for i in "12345"|make_list %}
-          <div class="flex flex-col items-center">
-            <div class="h-8 w-8 rounded-full bg-gray-200"></div>
-            <div class="h-2 w-10 bg-gray-200 rounded mt-1"></div>
+    <div class="flex flex-col md:flex-row gap-4 mb-5">
+      <!-- Online Friends -->
+      <div class="bg-white rounded-xl p-3 shadow-sm border border-pink-100 flex-shrink-0 w-full md:w-64">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-700">Friends Online</h3>
+          <a href="{% url 'friends_list' %}" class="text-xs text-pink-500 hover:underline">View all</a>
+        </div>
+        <div id="online-friends-container" class="flex flex-wrap gap-2 pb-1">
+          <!-- Loading placeholder -->
+          <div class="animate-pulse flex gap-2 flex-wrap">
+            {% for i in "12345"|make_list %}
+            <div class="friend-indicator flex flex-col items-center w-12">
+              <div class="h-8 w-8 rounded-full bg-gray-200"></div>
+              <div class="h-2 w-10 bg-gray-200 rounded mt-1"></div>
+            </div>
+            {% endfor %}
           </div>
-          {% endfor %}
         </div>
       </div>
-    </div>
-    {% endif %}
 
-    <!-- NEW: Personalized Room Recommendations - Add after online friends section -->
-    {% if user.is_authenticated %}
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-pink-100 mb-5" id="recommendations-container">
-      <h3 class="text-base font-bold mb-3">Recommended for You</h3>
-      <!-- Loading placeholder -->
-      <div class="animate-pulse space-y-3 recommendations-placeholder">
-        <div class="flex items-center space-x-3">
-          <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
-          <div class="flex-1 space-y-1.5">
-            <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
-            <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
-          </div>
+      <!-- Room categories -->
+      <div class="bg-white rounded-xl p-3 shadow-sm border border-pink-100 flex-1">
+        <div class="flex items-center gap-2 mb-2">
+          <h3 class="text-sm font-semibold text-gray-700">Browse by category</h3>
         </div>
-        <div class="flex items-center space-x-3">
-          <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
-          <div class="flex-1 space-y-1.5">
-            <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
-            <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        </div>
-        <div class="flex items-center space-x-3">
-          <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
-          <div class="flex-1 space-y-1.5">
-            <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
-            <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        </div>
-      </div>
-      <div class="grid gap-2 hidden recommendations-content">
-        <!-- Will be populated via JavaScript -->
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Enhanced Room filters and search -->
-    <div class="flex flex-col sm:flex-row gap-3 mb-5 items-center">
-      <div class="flex-1">
-        <h2 class="text-xl font-bold text-gray-800">Active Chat Rooms</h2>
-        <p class="text-sm text-gray-500 mt-0.5">Join existing conversations or create your own</p>
-      </div>
-      <div class="w-full sm:w-auto">
         <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
+          <!-- Category slider -->
+          <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar" id="room-categories">
+            <button data-category="all" class="category-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-pink-500 text-white shadow-sm">
+              <span class="mr-1.5">🏠</span> All Rooms
+            </button>
+            <button data-category="trending" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">🔥</span> Trending
+            </button>
+            <button data-category="quick" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">⚡</span> Quick Chats
+            </button>
+            <button data-category="technology" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">💻</span> Technology
+            </button>
+            <button data-category="gaming" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">🎮</span> Gaming
+            </button>
+            <button data-category="art" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">🎨</span> Art & Creativity
+            </button>
+            <button data-category="music" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">🎵</span> Music
+            </button>
+            <button data-category="sports" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">⚽</span> Sports
+            </button>
+            <button data-category="movies" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">🎬</span> Movies & TV
+            </button>
+            <button data-category="food" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
+              <span class="mr-1.5">🍔</span> Food & Cooking
+            </button>
           </div>
-          <input
-            type="text"
-            id="room-search"
-            placeholder="Search rooms..."
-            class="search-input w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none"
-          />
         </div>
       </div>
     </div>
+    {% endif %}
 
-    <!-- Add this section after the "Active Chat Rooms" section and before the rooms grid in index.html -->
+    <!-- My Rooms and Recommendations Section -->
     {% if user.is_authenticated %}
-    <div class="bg-white rounded-xl shadow-sm p-4 border border-pink-100 mb-5">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-base font-bold text-gray-800">My Rooms</h3>
-        <a href="{% url 'explore_rooms' %}" class="text-xs text-pink-500 hover:underline">Explore more rooms</a>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+      <!-- My Rooms (compact list) -->
+      <div class="md:col-span-2 bg-white rounded-xl shadow-sm p-4 border border-pink-100 h-full overflow-hidden">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-base font-bold text-gray-800">My Rooms</h3>
+          <a href="{% url 'explore_rooms' %}" class="text-xs text-pink-500 hover:underline">Explore more</a>
+        </div>
+
+        <div class="max-h-56 overflow-y-auto pr-2">
+          {% for room in active_rooms %}
+            {% if room.creator == user %}
+            <a href="{% url 'room' room.name %}" class="compact-room-card flex items-center justify-between p-2 border-b border-gray-100 hover:bg-pink-50">
+              <div class="flex items-center">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white font-bold mr-3">
+                  {{ room.display_name|slice:":1"|upper }}
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800 text-sm">{{ room.display_name }}</p>
+                  <p class="text-xs text-gray-500">
+                    {% if room.category %}{{ room.category.name }}{% else %}General{% endif %}
+                    • {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button class="text-gray-400 hover:text-blue-500" title="Enter Room">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
+                <a href="{% url 'delete_room' room.name %}" class="text-gray-400 hover:text-red-500" title="Delete Room" onclick="return confirm('Are you sure you want to delete this room?');">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </a>
+              </div>
+            </a>
+            {% endif %}
+          {% empty %}
+            <div class="text-center py-4 text-gray-500">
+              You haven't created any rooms yet.
+            </div>
+          {% endfor %}
+        </div>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-gray-50 text-gray-600 rounded-lg">
-            <tr>
-              <th class="px-3 py-2 text-left">Room Name</th>
-              <th class="px-3 py-2 text-center">Category</th>
-              <th class="px-3 py-2 text-right">Messages</th>
-              <th class="px-3 py-2 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            {% for room in active_rooms %}
-              {% if room.creator == user %}
-              <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-3 py-2">
+      <!-- Recommended Rooms -->
+      <div class="bg-white rounded-xl shadow-sm p-4 border border-pink-100 h-full">
+        <h3 class="text-base font-bold mb-3">Recommended for You</h3>
+        <!-- Loading placeholder -->
+        <div class="animate-pulse space-y-3 recommendations-placeholder">
+          <div class="flex items-center space-x-3">
+            <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
+            <div class="flex-1 space-y-1.5">
+              <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
+              <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
+            <div class="flex-1 space-y-1.5">
+              <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
+              <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
+            <div class="flex-1 space-y-1.5">
+              <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
+              <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-2 hidden recommendations-content max-h-56 overflow-y-auto">
+          <!-- Will be populated via JavaScript -->
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Rooms Section Title -->
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-xl font-bold text-gray-800">Active Chat Rooms</h2>
+        <p class="text-sm text-gray-500">Join conversations that interest you</p>
+      </div>
+      <div class="hidden sm:block">
+        <span class="text-sm text-gray-500" id="rooms-count">Showing <span class="font-medium text-gray-700">{{ active_rooms|length }}</span> rooms</span>
+      </div>
+    </div>
+
+    <!-- Main Room Grid Container -->
+    <div id="main-view-container">
+      <!-- Regular grid view (default) -->
+      <div id="grid-view-container" class="rooms-container">
+        {% if active_rooms %}
+          {% for room in active_rooms %}
+          <a href="{% url 'room' room.name %}" class="room-card bg-white shadow-sm border border-gray-100 hover:border-pink-200 group" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
+            <div class="p-4 flex-1">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">{{ room.display_name }}</h3>
+                {% if room.message_count > 50 %}
+                <span class="activity-indicator activity-high">
+                  <span class="pulse-animation mr-1">●</span>Active
+                </span>
+                {% elif room.message_count > 20 %}
+                <span class="activity-indicator activity-medium">
+                  <span class="mr-1">●</span>Active
+                </span>
+                {% else %}
+                <span class="activity-indicator activity-low">
+                  <span class="mr-1">●</span>Quiet
+                </span>
+                {% endif %}
+              </div>
+
+              {% if room.category %}
+              <span class="room-badge bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full inline-block mb-2">
+                {{ room.category.name }}
+              </span>
+              {% endif %}
+
+              <div class="flex justify-between items-center text-xs text-gray-500">
+                <span class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  {{ room.creator.username }}
+                </span>
+                <span>
+                  {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors mt-auto">
+              <div class="flex items-center justify-between text-sm text-pink-600 font-medium">
+                <span class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Join Chat
+                </span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+        {% else %}
+          <!-- Empty state -->
+          <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100">
+            <div class="mx-auto w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">No active rooms yet</h3>
+            <p class="text-gray-500 mb-5 max-w-md mx-auto">{% if user.is_authenticated %}Create a new room to start chatting with others!{% else %}Sign in to create your first chat room and start connecting{% endif %}</p>
+
+            {% if user.is_authenticated %}
+            <button id="empty-create-room" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+              Create Your First Room
+            </button>
+            {% else %}
+            <a href="{% url 'login' %}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+              Login to Get Started
+            </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Compact list view (initially hidden) -->
+      <div id="compact-view-container" class="hidden">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+          <table class="w-full text-sm table-fixed">
+            <thead class="bg-gray-50 text-gray-600">
+              <tr>
+                <th class="px-4 py-3 text-left">Room Name</th>
+                <th class="px-3 py-3 text-center w-24 hidden sm:table-cell">Category</th>
+                <th class="px-3 py-3 text-center w-20 hidden sm:table-cell">Messages</th>
+                <th class="px-3 py-3 text-center w-20">Activity</th>
+                <th class="px-3 py-3 text-center w-24">Created By</th>
+                <th class="px-3 py-3 text-center w-20">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for room in active_rooms %}
+              <tr class="hover:bg-pink-50 transition-colors" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
+                <td class="px-4 py-3">
                   <a href="{% url 'room' room.name %}" class="font-medium text-pink-600 hover:underline">
                     {{ room.display_name }}
                   </a>
                 </td>
-                <td class="px-3 py-2 text-center">
+                <td class="px-3 py-3 text-center hidden sm:table-cell">
                   {% if room.category %}
                   <span class="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full text-xs font-medium">
                     {{ room.category.name }}
@@ -589,121 +650,52 @@
                   <span class="text-gray-400 text-xs">—</span>
                   {% endif %}
                 </td>
-                <td class="px-3 py-2 text-right font-medium">{{ room.message_count }}</td>
-                <td class="px-3 py-2">
-                  <div class="flex justify-center space-x-2">
-                    <a href="{% url 'room' room.name %}" class="text-blue-500 hover:text-blue-700" title="Enter Room">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </a>
-                    <a href="{% url 'delete_room' room.name %}" class="text-red-500 hover:text-red-700" title="Delete Room" onclick="return confirm('Are you sure you want to delete this room?');">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </a>
-                  </div>
+                <td class="px-3 py-3 text-center font-medium hidden sm:table-cell">{{ room.message_count }}</td>
+                <td class="px-3 py-3 text-center">
+                  {% if room.message_count > 50 %}
+                  <span class="inline-flex items-center activity-indicator activity-high text-center">
+                    <span class="pulse-animation mr-1">●</span>High
+                  </span>
+                  {% elif room.message_count > 20 %}
+                  <span class="inline-flex items-center activity-indicator activity-medium text-center">
+                    <span class="mr-1">●</span>Med
+                  </span>
+                  {% else %}
+                  <span class="inline-flex items-center activity-indicator activity-low text-center">
+                    <span class="mr-1">●</span>Low
+                  </span>
+                  {% endif %}
+                </td>
+                <td class="px-3 py-3 text-center text-xs text-gray-500">{{ room.creator.username }}</td>
+                <td class="px-3 py-3 text-center">
+                  <a href="{% url 'room' room.name %}" class="inline-flex items-center justify-center bg-pink-100 hover:bg-pink-200 text-pink-600 p-1.5 rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </a>
                 </td>
               </tr>
-              {% endif %}
-            {% empty %}
-              <tr>
-                <td colspan="4" class="px-3 py-4 text-center text-gray-500">
-                  You haven't created any rooms yet.
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      {% if request.user.is_staff %}
-      <div class="mt-3 flex justify-end">
-        <a href="{% url 'admin_dashboard' %}" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium inline-flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Admin Dashboard
-        </a>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Improved Rooms Grid with better card design -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 rooms-container" id="rooms-container">
-      {% if active_rooms %}
-        {% for room in active_rooms %}
-        <a href="{% url 'room' room.name %}" class="room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
-          <div class="room-card-content p-4">
-              <div class="flex justify-between items-start mb-3">
-                <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">{{ room.display_name }}</h3>
-                <span class="room-badge text-pink-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                  {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
-                </span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-xs text-gray-500 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Created by {{ room.creator.username }}
-                </span>
-                <span class="inline-flex items-center">
-                  <svg class="w-3 h-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 005 10a6 6 0 0010 0c0-.552-.448-1-1-1H8z" clip-rule="evenodd"></path>
-                  </svg>
-                  <span class="text-xs text-gray-500">Active now</span>
-                </span>
-              </div>
-            </div>
-            <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors">
-              <div class="join-btn flex items-center text-sm text-pink-600 font-medium">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                Join Conversation
-              </div>
-            </div>
-          </a>
-        {% endfor %}
-      {% else %}
-        <!-- Improved Empty state -->
-        <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100">
-          <div class="mx-auto w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 mb-2">No active rooms yet</h3>
-          <p class="text-gray-500 mb-5 max-w-md mx-auto">{% if user.is_authenticated %}Create a new room to start chatting with others!{% else %}Sign in to create your first chat room and start connecting{% endif %}</p>
-
-          {% if user.is_authenticated %}
-          <a href="#" onclick="document.querySelector('input[name=room_name]').focus(); return false;" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-            Create Your First Room
-          </a>
-          {% else %}
-          <a href="{% url 'login' %}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-            Login to Get Started
-          </a>
-          {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      {% endif %}
+      </div>
     </div>
 
-    <!-- Improved Load More Rooms Button -->
+    <!-- Load More Button -->
     <div class="text-center mt-6 hidden" id="load-more-container">
-      <button id="load-more-button" class="btn bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-6 py-2 rounded-xl shadow-sm font-medium">
+      <button id="load-more-button" class="bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-6 py-2 rounded-xl shadow-sm font-medium inline-flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
         Load More Rooms
       </button>
     </div>
   </main>
 
-  <!-- Footer with links to other platforms - Now more compact -->
-  <footer class="py-4 border-t border-pink-100 mt-8 bg-white compact-footer">
-    <div class="w-full max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
+  <!-- Footer -->
+  <footer class="py-4 border-t border-pink-100 mt-8 bg-white">
+    <div class="w-full max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
       <div class="mb-3 sm:mb-0 text-center sm:text-left">
         <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
           <h2 class="text-base font-bold gradient-text">Euphorie</h2>
@@ -729,754 +721,332 @@
   </footer>
 
   <script>
-
     document.addEventListener('DOMContentLoaded', () => {
+      // Toggle between grid and list views
+      const gridViewBtn = document.getElementById('grid-view');
+      const compactViewBtn = document.getElementById('compact-view');
+      const gridViewContainer = document.getElementById('grid-view-container');
+      const compactViewContainer = document.getElementById('compact-view-container');
+
+      if(gridViewBtn && compactViewBtn) {
+        gridViewBtn.addEventListener('click', function() {
+          // Switch to grid view
+          gridViewContainer.classList.remove('hidden');
+          compactViewContainer.classList.add('hidden');
+
+          // Update button styles
+          gridViewBtn.classList.add('active');
+          compactViewBtn.classList.remove('active');
+
+          // Save preference
+          localStorage.setItem('preferred_view', 'grid');
+        });
+
+        compactViewBtn.addEventListener('click', function() {
+          // Switch to compact view
+          gridViewContainer.classList.add('hidden');
+          compactViewContainer.classList.remove('hidden');
+
+          // Update button styles
+          gridViewBtn.classList.remove('active');
+          compactViewBtn.classList.add('active');
+
+          // Save preference
+          localStorage.setItem('preferred_view', 'compact');
+        });
+
+        // Check for saved preference
+        const savedView = localStorage.getItem('preferred_view');
+        if(savedView === 'compact') {
+          compactViewBtn.click();
+        }
+      }
+
+      // Create Room Form Toggle
+      const createRoomToggle = document.getElementById('create-room-toggle');
+      const createFormContainer = document.getElementById('create-room-form-container');
+      const closeCreateForm = document.getElementById('close-create-form');
+      const emptyCreateRoom = document.getElementById('empty-create-room');
+
+      function showCreateForm() {
+        createFormContainer.classList.remove('hidden', 'scale-95', 'opacity-0');
+        setTimeout(() => {
+          document.querySelector('input[name=room_name]').focus();
+        }, 300);
+      }
+
+      function hideCreateForm() {
+        createFormContainer.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+          createFormContainer.classList.add('hidden');
+        }, 300);
+      }
+
+      if(createRoomToggle && createFormContainer) {
+        createRoomToggle.addEventListener('click', showCreateForm);
+      }
+
+      if(closeCreateForm) {
+        closeCreateForm.addEventListener('click', hideCreateForm);
+      }
+
+      if(emptyCreateRoom) {
+        emptyCreateRoom.addEventListener('click', showCreateForm);
+      }
+
       // Room search functionality
       const roomSearch = document.getElementById('room-search');
-      const roomsContainer = document.getElementById('rooms-container');
       const roomCards = document.querySelectorAll('.room-card');
+      const tableRows = document.querySelectorAll('#compact-view-container tbody tr');
+      const roomsCount = document.getElementById('rooms-count');
 
       if (roomSearch) {
         roomSearch.addEventListener('input', function() {
           const searchValue = this.value.toLowerCase();
+          let visibleCount = 0;
 
+          // Filter grid view
           roomCards.forEach(card => {
             const roomName = card.querySelector('h3').textContent.toLowerCase();
             if (roomName.includes(searchValue)) {
               card.classList.remove('hidden');
-              // Add subtle highlight animation for matching results
-              if (searchValue !== '') {
-                card.classList.add('search-match');
-                setTimeout(() => {
-                  card.classList.remove('search-match');
-                }, 1500);
-              }
+              visibleCount++;
             } else {
-              // Animate out before hiding
-              if (!card.classList.contains('hidden')) {
-                card.style.animation = 'fadeOutDown 0.3s forwards';
-                setTimeout(() => {
-                  card.classList.add('hidden');
-                  card.style.animation = '';
-                }, 300);
-              }
+              card.classList.add('hidden');
             }
           });
 
-          // Show a message if no rooms match the search
-          const visibleCards = [...roomCards].filter(card => !card.classList.contains('hidden'));
-          const noResultsMessage = document.getElementById('no-results');
-
-          if (visibleCards.length === 0 && searchValue !== '') {
-            if (!noResultsMessage) {
-              const message = document.createElement('div');
-              message.id = 'no-results';
-              message.className = 'col-span-full text-center py-6';
-              message.innerHTML = `
-                <p class="text-gray-500">No rooms found matching "${searchValue}"</p>
-                <button class="mt-2 text-pink-500 text-sm hover:underline" onclick="document.getElementById('room-search').value = ''; document.getElementById('room-search').dispatchEvent(new Event('input'));">
-                  Clear search
-                </button>
-              `;
-              // Animate in the no results message
-              message.style.opacity = '0';
-              message.style.transform = 'translateY(10px)';
-              roomsContainer.appendChild(message);
-
-              setTimeout(() => {
-                message.style.transition = 'all 0.3s ease';
-                message.style.opacity = '1';
-                message.style.transform = 'translateY(0)';
-              }, 10);
+          // Filter table view
+          tableRows.forEach(row => {
+            const roomName = row.querySelector('a').textContent.toLowerCase();
+            if (roomName.includes(searchValue)) {
+              row.classList.remove('hidden');
+            } else {
+              row.classList.add('hidden');
             }
-          } else if (noResultsMessage) {
-            // Animate out the no results message before removing
-            noResultsMessage.style.opacity = '0';
-            noResultsMessage.style.transform = 'translateY(10px)';
+          });
 
-            setTimeout(() => {
-              noResultsMessage.remove();
-            }, 300);
+          // Update count
+          if(roomsCount) {
+            roomsCount.innerHTML = `Showing <span class="font-medium text-gray-700">${visibleCount}</span> rooms`;
           }
+
+          // Show no results message if needed
+          updateNoResultsMessage(visibleCount, searchValue);
         });
       }
 
-      // Load more rooms functionality
-      let currentPage = 1;
-      let currentCategory = 'all';
-      const loadMoreBtn = document.getElementById('load-more-button');
-      const loadMoreContainer = document.getElementById('load-more-container');
+      // Handle "no results" message
+      function updateNoResultsMessage(visibleCount, searchValue) {
+        const noResultsId = 'no-results-message';
+        let noResultsMessage = document.getElementById(noResultsId);
 
-      if (roomCards.length >= 20) { // Show load more button if we have full set of initial rooms
-        loadMoreContainer.classList.remove('hidden');
-      }
-
-      if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', async function() {
-          try {
-            // Get the current page and category from data attributes or use defaults
-            const page = parseInt(this.getAttribute('data-page') || currentPage + 1);
-            const category = this.getAttribute('data-category') || currentCategory;
-
-            // Show loading state
-            loadMoreBtn.innerHTML = `
-              <svg class="animate-spin h-5 w-5 text-pink-500 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Loading...
+        if (visibleCount === 0 && searchValue !== '') {
+          if (!noResultsMessage) {
+            // Create message if it doesn't exist
+            noResultsMessage = document.createElement('div');
+            noResultsMessage.id = noResultsId;
+            noResultsMessage.className = 'text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100 mt-4';
+            noResultsMessage.innerHTML = `
+              <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-gray-800 mb-2">No rooms found</h3>
+              <p class="text-gray-500 mb-4">No rooms match "${searchValue}"</p>
+              <button onclick="document.getElementById('room-search').value = ''; document.getElementById('room-search').dispatchEvent(new Event('input'));" class="px-4 py-2 bg-pink-100 text-pink-600 rounded-lg font-medium">
+                Clear search
+              </button>
             `;
-
-            // Fetch next page of rooms
-            let url = `/api/load_more_rooms/?page=${page}`;
-            if (category && category !== 'all') {
-              url += `&category=${category}`;
-            }
-
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.rooms && data.rooms.length > 0) {
-              // Add new rooms to container
-              data.rooms.forEach((room, index) => {
-                const roomCard = document.createElement('a');
-                roomCard.href = `/chat/${room.name}/`;
-                roomCard.className = 'room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative room-enter';
-                roomCard.setAttribute('data-category', room.category || 'all');
-                roomCard.style.animationDelay = `${index * 0.075}s`;
-
-                // Add trending badge if this room came from trending category
-                if (category === 'trending') {
-                  roomCard.setAttribute('data-trending', 'true');
-                }
-
-                roomCard.innerHTML = `
-                  ${category === 'trending' ? '<div class="trending-indicator trending-pulse">🔥 Trending <span class="ml-1 text-xs font-normal bg-white bg-opacity-30 px-1.5 py-0.5 rounded-full">' + room.message_count + ' msgs</span></div>' : ''}
-                  <div class="room-card-content p-4">
-                    <div class="flex justify-between items-start mb-3">
-                      <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">${room.display_name}</h3>
-                      <span class="room-badge text-pink-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                        ${room.message_count} ${room.message_count === 1 ? 'message' : 'messages'}
-                      </span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                      <span class="text-xs text-gray-500 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        Created by ${room.creator}
-                      </span>
-                      <span class="inline-flex items-center">
-                        <svg class="w-3 h-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 005 10a6 6 0 0010 0c0-.552-.448-1-1-1H8z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-xs text-gray-500">Active now</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors">
-                    <div class="join-btn flex items-center text-sm text-pink-600 font-medium">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      Join Conversation
-                    </div>
-                  </div>
-                `;
-
-                roomsContainer.appendChild(roomCard);
-
-                // Trigger animation after element is added
-                setTimeout(() => {
-                  roomCard.classList.add('room-enter-active');
-                  roomCard.classList.remove('room-enter');
-                }, 50);
-              });
-
-              // Reset button text and update data attributes
-              loadMoreBtn.innerHTML = 'Load More Rooms';
-              loadMoreBtn.setAttribute('data-page', page + 1);
-              loadMoreBtn.setAttribute('data-category', category);
-
-              // Update current state
-              currentPage = page;
-              currentCategory = category;
-
-              // Hide button if no more rooms
-              if (!data.has_next) {
-                loadMoreContainer.classList.add('hidden');
-              } else {
-                loadMoreContainer.classList.remove('hidden');
-              }
-            } else {
-              // No more rooms
-              loadMoreBtn.innerHTML = 'No More Rooms';
-              loadMoreBtn.disabled = true;
-              setTimeout(() => {
-                loadMoreContainer.classList.add('hidden');
-              }, 2000);
-            }
-          } catch (error) {
-            console.error('Error loading more rooms:', error);
-            loadMoreBtn.innerHTML = 'Error Loading Rooms';
-            setTimeout(() => {
-              loadMoreBtn.innerHTML = 'Try Again';
-            }, 2000);
+            document.getElementById('main-view-container').appendChild(noResultsMessage);
+          } else {
+            // Update existing message
+            noResultsMessage.querySelector('p').textContent = `No rooms match "${searchValue}"`;
           }
-        });
-      }
-
-      // Room Categories functionality with improved trending support
-      function initCategoryButtons() {
-        const categoryButtons = document.querySelectorAll('.category-btn');
-
-        if (categoryButtons.length > 0) {
-          categoryButtons.forEach(button => {
-            // Remove any existing event listeners to prevent duplicates
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
-
-            newButton.addEventListener('click', function() {
-              // Update active button styling
-              document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.classList.remove('active', 'bg-pink-500', 'text-white', 'shadow-md');
-                btn.classList.add('bg-gray-50', 'text-gray-600');
-              });
-
-              this.classList.remove('bg-gray-50', 'text-gray-600');
-              this.classList.add('active', 'bg-pink-500', 'text-white', 'shadow-md');
-
-              const selectedCategory = this.getAttribute('data-category');
-              console.log('Selected category:', selectedCategory);
-
-              // Special handling for trending
-              if (selectedCategory === 'trending') {
-                // If trending is selected, we'll fetch trending rooms from the server
-                fetchTrendingRooms();
-              } else {
-                // For all other categories, use client-side filtering
-                filterRoomsByCategory(selectedCategory);
-              }
-
-              // Update current category for load more functionality
-              currentCategory = selectedCategory;
-
-              // Reset load more button if visible
-              if (loadMoreBtn) {
-                loadMoreBtn.setAttribute('data-page', '2');
-                loadMoreBtn.setAttribute('data-category', selectedCategory);
-                loadMoreBtn.innerHTML = 'Load More Rooms';
-                loadMoreBtn.disabled = false;
-              }
-            });
-          });
+        } else if (noResultsMessage) {
+          // Remove message if there are results
+          noResultsMessage.remove();
         }
       }
 
-      // Initialize category buttons
-      initCategoryButtons();
+      // Category filtering
+      const categoryButtons = document.querySelectorAll('.category-btn');
 
-      // Filter rooms by category (client-side)
+      if(categoryButtons.length > 0) {
+        categoryButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            // Update active button
+            categoryButtons.forEach(btn => {
+              btn.classList.remove('active', 'bg-pink-500', 'text-white', 'shadow-sm');
+              btn.classList.add('bg-gray-50', 'text-gray-600');
+            });
+
+            this.classList.remove('bg-gray-50', 'text-gray-600');
+            this.classList.add('active', 'bg-pink-500', 'text-white', 'shadow-sm');
+
+            const category = this.getAttribute('data-category');
+            filterRoomsByCategory(category);
+          });
+        });
+      }
+
       function filterRoomsByCategory(category) {
-        const roomCards = document.querySelectorAll('.room-card');
         let visibleCount = 0;
-        let hiddenCount = 0;
-        let animationDelay = 0;
 
-        // First, fade out cards that don't match category
+        // Filter grid cards
         roomCards.forEach(card => {
           const roomCategory = card.getAttribute('data-category');
-          if (category !== 'all' && roomCategory !== category) {
-            card.style.animation = `fadeOutDown 0.3s forwards`;
-            card.style.animationDelay = `${hiddenCount * 0.05}s`;
-            hiddenCount++;
-            setTimeout(() => {
-              card.classList.add('hidden');
-              card.style.animation = '';
-            }, 300 + (hiddenCount * 50));
+          if (category === 'all' || roomCategory === category) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
           }
         });
 
-        // Then, fade in cards that match
-        setTimeout(() => {
-          roomCards.forEach(card => {
-            const roomCategory = card.getAttribute('data-category');
-            if (category === 'all' || roomCategory === category) {
-              card.classList.remove('hidden');
-              card.style.opacity = '0';
-              card.style.transform = 'translateY(20px) scale(0.98)';
-
-              setTimeout(() => {
-                card.style.animation = `fadeInUp 0.4s forwards`;
-                card.style.animationDelay = `${animationDelay * 0.075}s`;
-                visibleCount++;
-                animationDelay++;
-              }, 10);
-            }
-          });
-        }, hiddenCount > 0 ? 350 : 0);
-
-        // Show a message if no rooms in this category
-        const noCategoryMessage = document.getElementById('no-category-message');
-
-        if (visibleCount === 0) {
-          if (!noCategoryMessage) {
-            setTimeout(() => {
-              const message = document.createElement('div');
-              message.id = 'no-category-message';
-              message.className = 'col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100';
-              message.style.opacity = '0';
-              message.style.transform = 'translateY(20px)';
-              message.innerHTML = `
-                <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800 mb-2">No rooms in the "${category}" category</h3>
-                <p class="text-gray-500 mb-4 max-w-md mx-auto">Why not create the first room in this category?</p>
-                <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-                  View All Rooms
-                </button>
-              `;
-              roomsContainer.appendChild(message);
-
-              // Animate in the message
-              setTimeout(() => {
-                message.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
-                message.style.opacity = '1';
-                message.style.transform = 'translateY(0)';
-              }, 100);
-            }, hiddenCount > 0 ? 400 : 50);
+        // Filter table rows
+        tableRows.forEach(row => {
+          const rowCategory = row.getAttribute('data-category');
+          if (category === 'all' || rowCategory === category) {
+            row.classList.remove('hidden');
+          } else {
+            row.classList.add('hidden');
           }
+        });
 
-          // Hide load more button
-          if (loadMoreContainer) {
-            loadMoreContainer.classList.add('hidden');
-          }
-        } else {
-          if (noCategoryMessage) {
-            // Animate out the message
-            noCategoryMessage.style.opacity = '0';
-            noCategoryMessage.style.transform = 'translateY(20px)';
+        // Update count
+        if(roomsCount) {
+          roomsCount.innerHTML = `Showing <span class="font-medium text-gray-700">${visibleCount}</span> rooms`;
+        }
 
-            setTimeout(() => {
-              noCategoryMessage.remove();
-            }, 300);
-          }
-
-          // Show load more button if we have enough rooms
-          if (loadMoreContainer && visibleCount >= 20) {
+        // Update load more button
+        const loadMoreContainer = document.getElementById('load-more-container');
+        if(loadMoreContainer) {
+          if(visibleCount >= 20) {
             loadMoreContainer.classList.remove('hidden');
+          } else {
+            loadMoreContainer.classList.add('hidden');
           }
         }
       }
 
-      // Update the fetchTrendingRooms function to match how other rooms are displayed
-      function fetchTrendingRooms() {
-        const roomsContainer = document.getElementById('rooms-container');
-
-        // Show loading state with animation
-        roomsContainer.innerHTML = `
-          <div class="col-span-full text-center py-12 animate-fadeIn">
-            <div class="animate-spin h-12 w-12 border-4 border-pink-200 rounded-full border-t-pink-500 mx-auto mb-6"></div>
-            <p class="text-gray-500 text-lg">Finding the top rooms with most messages...</p>
-          </div>
-        `;
-
-        // Fetch trending rooms from the server
-        fetch('/api/load_more_rooms/?category=trending&page=1')
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('Network response was not ok');
-            }
-            return response.json();
-          })
-          .then(data => {
-            // Clear loading state
-            roomsContainer.innerHTML = '';
-
-            // Add a description about trending criteria
-            const trendingDescription = document.createElement('div');
-            trendingDescription.className = 'col-span-full mb-4 bg-white p-3 rounded-lg border border-pink-100 shadow-sm';
-            trendingDescription.innerHTML = `
-              <div class="flex items-center gap-2">
-                <div class="flex-shrink-0 h-8 w-8 bg-pink-100 rounded-full flex items-center justify-center text-pink-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-sm font-semibold text-gray-700">Top Most Active Rooms</h3>
-                  <p class="text-xs text-gray-500">Showing rooms with the highest total message counts</p>
-                </div>
-              </div>
-            `;
-            roomsContainer.appendChild(trendingDescription);
-
-            if (data.rooms && data.rooms.length > 0) {
-              // Add trending rooms to container with staggered animations
-              data.rooms.forEach((room, index) => {
-                const roomCard = document.createElement('a');
-                roomCard.href = `/chat/${room.name}/`;
-                roomCard.className = 'room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative';
-                roomCard.setAttribute('data-category', room.category || 'all');
-                roomCard.setAttribute('data-trending', 'true');
-                // Set animation delay based on index
-                roomCard.style.animationDelay = `${index * 0.075}s`;
-
-                roomCard.innerHTML = `
-                  <div class="trending-indicator trending-pulse">
-                    🔥 Trending
-                    <span class="ml-1 text-xs font-normal bg-white bg-opacity-30 px-1.5 py-0.5 rounded-full">
-                      ${room.message_count} msgs
-                    </span>
-                  </div>
-                  <div class="room-card-content p-4">
-                    <div class="flex justify-between items-start mb-3">
-                      <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">${room.display_name}</h3>
-                      <span class="room-badge text-pink-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                        ${room.message_count} ${room.message_count === 1 ? 'message' : 'messages'}
-                      </span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                      <span class="text-xs text-gray-500 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        Created by ${room.creator}
-                      </span>
-                      <span class="inline-flex items-center">
-                        <svg class="w-3 h-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 005 10a6 6 0 0010 0c0-.552-.448-1-1-1H8z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-xs text-gray-500">Active now</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors">
-                    <div class="join-btn flex items-center text-sm text-pink-600 font-medium">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      Join Conversation
-                    </div>
-                  </div>
-                `;
-
-                roomsContainer.appendChild(roomCard);
-              });
-
-              // Show load more button if there are more rooms
-              if (data.has_next) {
-                if (loadMoreContainer) {
-                  loadMoreContainer.classList.remove('hidden');
-
-                  // Update load more button to fetch trending rooms
-                  if (loadMoreBtn) {
-                    loadMoreBtn.setAttribute('data-page', '2');
-                    loadMoreBtn.setAttribute('data-category', 'trending');
-                    loadMoreBtn.innerHTML = 'Load More Trending Rooms';
-                    loadMoreBtn.disabled = false;
-                  }
-                }
-              } else {
-                if (loadMoreContainer) {
-                  loadMoreContainer.classList.add('hidden');
-                }
-              }
-
-              // Reinitialize category buttons to fix the bug with trending
-              setTimeout(() => {
-                initCategoryButtons();
-              }, 200);
-            } else {
-              // No trending rooms found - animated empty state
-              roomsContainer.innerHTML = `
-                <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100 opacity-0 transform translate-y-4" style="animation: fadeInUp 0.5s forwards 0.2s;">
-                  <div class="mx-auto w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <h3 class="text-xl font-bold text-gray-800 mb-2">No trending rooms found</h3>
-                  <p class="text-gray-500 mb-5 max-w-md mx-auto">Get some conversations going to see trending rooms appear here!</p>
-                  <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-                    View All Rooms
-                  </button>
-                </div>
-              `;
-
-              // Hide load more button
-              if (loadMoreContainer) {
-                loadMoreContainer.classList.add('hidden');
-              }
-            }
-          })
-                      .catch(error => {
-            console.error('Error fetching trending rooms:', error);
-            roomsContainer.innerHTML = `
-              <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100 opacity-0 transform translate-y-4" style="animation: fadeInUp 0.5s forwards 0.2s;">
-                <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800 mb-2">Error loading trending rooms</h3>
-                <p class="text-gray-500 mb-4">There was a problem fetching the trending rooms.</p>
-                <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-                  View All Rooms
-                </button>
-              </div>
-            `;
-
-            // Reinitialize category buttons to fix the bug with trending
-            setTimeout(() => {
-              initCategoryButtons();
-            }, 200);
-          });
-      }
-
-      // Initialize friend recommendations and online friends
+      // Mock functions for demonstrating online friends
       function initFriendsAndRecommendations() {
-        // Request online friends list on page load
-        requestOnlineFriends();
+        // Simulate loading online friends
+        setTimeout(() => {
+          renderOnlineFriends([
+            { username: 'alex', status: 'online' },
+            { username: 'taylor', status: 'online' },
+            { username: 'sam', status: 'online' },
+            { username: 'jordan', status: 'online' }
+          ]);
+        }, 700);
 
-        // And refresh every 30 seconds
-        setInterval(requestOnlineFriends, 30000);
-
-        // Initialize recommended rooms section
-        initRoomRecommendations();
+        // Simulate loading recommendations
+        setTimeout(() => {
+          renderRecommendations([
+            { name: 'Technology Chat', display_name: 'Technology Chat', activity: 'high', message_count: 124, reason: 'Based on your interests' },
+            { name: 'Gaming Lounge', display_name: 'Gaming Lounge', activity: 'high', message_count: 87, reason: 'Popular in your network' },
+            { name: 'UI Design Talk', display_name: 'UI Design Talk', activity: 'medium', message_count: 36, reason: 'Similar to rooms you\'ve joined' }
+          ]);
+        }, 900);
       }
 
-      // Function to request online friends from the server
-      function requestOnlineFriends() {
-        fetch('/api/online_friends/')
-            .then(response => response.json())
-            .then(data => {
-                renderOnlineFriends(data.friends || []);
-            })
-            .catch(error => {
-                console.error('Error fetching online friends:', error);
-            });
-      }
-
-      // Function to render the online friends list
       function renderOnlineFriends(friends) {
         const container = document.getElementById('online-friends-container');
         if (!container) return;
 
         if (friends.length === 0) {
-            container.innerHTML = `
-                <div class="text-center w-full py-1">
-                    <p class="text-sm text-gray-400">No friends online right now</p>
-                    <a href="/friends/" class="text-xs text-pink-500 hover:underline">Find friends</a>
-                </div>
-            `;
-            return;
+          container.innerHTML = `
+            <div class="text-center w-full py-1">
+              <p class="text-sm text-gray-400">No friends online right now</p>
+              <a href="/friends/" class="text-xs text-pink-500 hover:underline">Find friends</a>
+            </div>
+          `;
+          return;
         }
 
-        // Clear container and add friends
+        // Add friends with animation
         container.innerHTML = '';
-
         friends.forEach((friend, index) => {
-            const friendEl = document.createElement('div');
-            friendEl.className = 'flex flex-col items-center opacity-0';
-            friendEl.style.animation = `fadeInUp 0.3s forwards ${index * 0.05}s`;
-            friendEl.innerHTML = `
-                <div class="relative">
-                    <div class="h-8 w-8 rounded-full bg-gradient-to-br from-pink-300 to-orange-200 flex items-center justify-center text-white font-medium text-xs">
-                        ${friend.username.charAt(0).toUpperCase()}
-                    </div>
-                    <span class="absolute bottom-0 right-0 h-2 w-2 bg-green-400 rounded-full border-2 border-white online-indicator"></span>
-                </div>
-                <span class="text-xs mt-0.5 font-medium">${friend.username}</span>
-            `;
-            container.appendChild(friendEl);
+          const friendEl = document.createElement('div');
+          friendEl.className = 'friend-indicator flex flex-col items-center w-12';
+          friendEl.style.opacity = '0';
+          friendEl.style.transform = 'translateY(10px)';
+          friendEl.style.transition = 'all 0.3s ease';
+          friendEl.style.transitionDelay = `${index * 0.05}s`;
+
+          friendEl.innerHTML = `
+            <div class="relative">
+              <div class="h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white font-medium text-xs">
+                ${friend.username.charAt(0).toUpperCase()}
+              </div>
+              <span class="online-dot"></span>
+            </div>
+            <span class="text-xs mt-1 font-medium">${friend.username}</span>
+          `;
+
+          container.appendChild(friendEl);
+
+          // Trigger animation
+          setTimeout(() => {
+            friendEl.style.opacity = '1';
+            friendEl.style.transform = 'translateY(0)';
+          }, 10);
         });
       }
 
-      // Initialize recommended rooms section with animations
-      function initRoomRecommendations() {
-        const container = document.getElementById('recommendations-container');
-        if (!container) return;
+      function renderRecommendations(rooms) {
+        const placeholder = document.querySelector('.recommendations-placeholder');
+        const content = document.querySelector('.recommendations-content');
 
-        // Get the placeholder and content elements
-        const placeholder = container.querySelector('.recommendations-placeholder');
-        const content = container.querySelector('.recommendations-content');
+        if (!placeholder || !content) return;
 
-        // Show placeholder, hide content initially
-        if (placeholder && content) {
-            placeholder.classList.remove('hidden');
-            content.classList.add('hidden');
-        }
+        // Hide placeholder, show content
+        placeholder.classList.add('hidden');
+        content.classList.remove('hidden');
 
-        // Fetch recommended rooms
-        fetch('/api/recommended_rooms/')
-            .then(response => response.json())
-            .then(data => {
-                // Hide placeholder, show content
-                if (placeholder && content) {
-                    placeholder.classList.add('hidden');
-                    content.classList.remove('hidden');
-
-                    // Add entrance animation to the content
-                    content.style.opacity = '0';
-                    content.style.transform = 'translateY(10px)';
-                    setTimeout(() => {
-                        content.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
-                        content.style.opacity = '1';
-                        content.style.transform = 'translateY(0)';
-                    }, 50);
-                }
-
-                renderRecommendedRooms(data.rooms || [], content);
-            })
-            .catch(error => {
-                console.error('Error fetching recommended rooms:', error);
-                // Show error message in container
-                if (container) {
-                    container.innerHTML = `
-                        <div class="text-center py-2">
-                            <p class="text-sm text-red-500">Could not load recommendations</p>
-                        </div>
-                    `;
-                }
-            });
-      }
-
-      // Function to render recommended rooms with staggered animations
-      function renderRecommendedRooms(rooms, container) {
-        if (!container) return;
-
-        if (rooms.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-2 opacity-0" style="animation: fadeInUp 0.5s forwards">
-                    <p class="text-sm text-gray-400">No recommendations available yet</p>
-                    <p class="text-xs text-gray-500">Join more rooms to get personalized suggestions</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Clear container
-        container.innerHTML = '';
-
-        // Add each recommended room with staggered animation
+        // Add rooms with animation
+        content.innerHTML = '';
         rooms.forEach((room, index) => {
-            const roomEl = document.createElement('a');
-            roomEl.href = `/chat/${room.name}/`;
-            roomEl.className = 'recommendation-card group flex items-center bg-gray-50 hover:bg-pink-50 p-2.5 rounded-lg transition-colors opacity-0';
-            roomEl.style.animation = `fadeInUp 0.3s forwards ${index * 0.075}s`;
+          const roomEl = document.createElement('a');
+          roomEl.href = `/chat/${room.name}/`;
+          roomEl.className = 'flex items-center p-2 rounded-lg hover:bg-pink-50 transition-all';
+          roomEl.style.opacity = '0';
+          roomEl.style.transform = 'translateY(8px)';
+          roomEl.style.transition = 'all 0.3s ease';
+          roomEl.style.transitionDelay = `${index * 0.075}s`;
 
-            roomEl.innerHTML = `
-                <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-pink-400 to-orange-300 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                    ${room.display_name.charAt(0).toUpperCase()}
-                </div>
-                <div class="ml-2.5 flex-1">
-                    <h4 class="font-medium text-gray-800 group-hover:text-pink-600 text-sm">${room.display_name}</h4>
-                    <p class="text-xs text-gray-500">${room.reason || 'Recommended for you'}</p>
-                </div>
-                <div class="text-right">
-                    <div class="text-xs font-medium text-gray-700">${room.message_count} msgs</div>
-                    <div class="flex items-center justify-end mt-0.5">
-                        <span class="h-1.5 w-1.5 rounded-full mr-1 ${room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500'}"></span>
-                        <span class="text-xs text-gray-500">
-                            ${room.activity === 'high' ? 'Very active' : 'Active'}
-                        </span>
-                    </div>
-                </div>
-            `;
+          roomEl.innerHTML = `
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white font-bold text-sm mr-3 flex-shrink-0">
+              ${room.display_name.charAt(0).toUpperCase()}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-gray-800 text-sm truncate">${room.display_name}</h4>
+              <div class="flex items-center text-xs">
+                <span class="text-gray-500 truncate">${room.reason}</span>
+                <span class="mx-1 text-gray-300">•</span>
+                <span class="activity-indicator ${room.activity === 'high' ? 'activity-high' : 'activity-medium'} py-0 px-1">
+                  ${room.message_count} msgs
+                </span>
+              </div>
+            </div>
+          `;
 
-            container.appendChild(roomEl);
+          content.appendChild(roomEl);
+
+          // Trigger animation
+          setTimeout(() => {
+            roomEl.style.opacity = '1';
+            roomEl.style.transform = 'translateY(0)';
+          }, 10);
         });
       }
 
-      // Category scroll buttons functionality
-      const scrollLeftBtn = document.getElementById('scroll-left');
-      const scrollRightBtn = document.getElementById('scroll-right');
-      const categoriesContainer = document.getElementById('room-categories');
-
-      if (scrollLeftBtn && scrollRightBtn && categoriesContainer) {
-        // Function to check scroll position and show/hide buttons
-        function updateScrollButtons() {
-          const { scrollLeft, scrollWidth, clientWidth } = categoriesContainer;
-
-          // Show/hide left button based on scroll position
-          if (scrollLeft > 20) {
-            scrollLeftBtn.classList.remove('hidden');
-          } else {
-            scrollLeftBtn.classList.add('hidden');
-          }
-
-          // Show/hide right button based on whether there's more content to scroll
-          if (scrollLeft + clientWidth >= scrollWidth - 20) {
-            scrollRightBtn.classList.add('hidden');
-          } else {
-            scrollRightBtn.classList.remove('hidden');
-          }
-        }
-
-        // Initial check
-        updateScrollButtons();
-
-        // Handle scroll events
-        categoriesContainer.addEventListener('scroll', updateScrollButtons);
-
-        // Scroll left button click
-        scrollLeftBtn.addEventListener('click', () => {
-          categoriesContainer.scrollBy({
-            left: -200,
-            behavior: 'smooth'
-          });
-        });
-
-        // Scroll right button click
-        scrollRightBtn.addEventListener('click', () => {
-          categoriesContainer.scrollBy({
-            left: 200,
-            behavior: 'smooth'
-          });
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', updateScrollButtons);
-      }
-
-      // Add animation when a new room is created
-      const createRoomForm = document.getElementById('create-room-form');
-      if (createRoomForm) {
-        createRoomForm.addEventListener('submit', function() {
-          // Store the form data to use after redirection
-          const roomName = this.querySelector('input[name="room_name"]').value;
-          localStorage.setItem('new_room_created', roomName);
-        });
-
-        // Check if we just created a room and need to highlight it
-        const newRoomName = localStorage.getItem('new_room_created');
-        if (newRoomName) {
-          // Find the room card and apply the highlight animation
-          const roomCards = document.querySelectorAll('.room-card');
-          roomCards.forEach(card => {
-            const cardName = card.querySelector('h3').textContent;
-            if (cardName === newRoomName) {
-              card.classList.add('new-room');
-              // Scroll the card into view
-              setTimeout(() => {
-                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }, 500);
-            }
-          });
-
-          // Clear the storage
-          localStorage.removeItem('new_room_created');
-        }
-      }
-
-      // Call this function when the DOM is loaded
+      // Initialize components
       initFriendsAndRecommendations();
     });
-
   </script>
 </body>
 </html>
