@@ -8,40 +8,48 @@
   /* Base styles with improved readability and accessibility */
   :root {
     --primary: #ec4899;
-    --primary-light: rgba(236, 72, 153, 0.1);
-    --primary-border: rgba(236, 72, 153, 0.2);
-    --success: #10b981;
-    --success-light: rgba(16, 185, 129, 0.1);
-    --warning: #f59e0b;
-    --warning-light: rgba(245, 158, 11, 0.1);
+    --primary-hover: #db2777;
+    --primary-light: #fce7f3;
+    --secondary: #9333ea;
+    --secondary-light: #f3e8ff;
+    --accent: #f97316;
+    --accent-light: #fff7ed;
+    --dark: #1f2937;
+    --light: #f9fafb;
     --danger: #ef4444;
-    --danger-light: rgba(239, 68, 68, 0.1);
-    --info: #6366f1;
-    --info-light: rgba(99, 102, 241, 0.1);
+    --success: #10b981;
+    --info: #3b82f6;
+    --warning: #f59e0b;
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+    --surface-active: #f1f5f9;
+    --border: #e2e8f0;
+    --border-focus: #cbd5e1;
+    --text-primary: #334155;
+    --text-secondary: #64748b;
+    --text-tertiary: #94a3b8;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 0.15s;
+    --duration-normal: 0.25s;
+    --duration-slow: 0.35s;
   }
 
-  body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Improved focus states for better accessibility */
-  button:focus,
-  a:focus,
-  input:focus,
-  select:focus,
-  textarea:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-  }
-
-  /* Message rows/cards styling */
-  .message-row, .mobile-message-card {
+  /* Message row styling */
+  .message-row {
     transition: all 0.2s ease;
     border-left: 3px solid transparent;
   }
 
-  .message-row:hover, .mobile-message-card:hover {
+  .message-row:hover {
     background-color: rgba(249, 250, 251, 0.8);
   }
 
@@ -51,9 +59,38 @@
     line-height: 1.5;
   }
 
-  .message-row.selected, .mobile-message-card.selected {
-    background-color: var(--primary-light);
+  .message-row.selected {
+    background-color: rgba(236, 72, 153, 0.1);
     border-left: 3px solid var(--primary);
+  }
+
+  /* Mobile message card styling */
+  .mobile-message-card {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+  }
+
+  .mobile-message-card:hover {
+    background-color: rgba(249, 250, 251, 0.8);
+  }
+
+  .mobile-message-card.selected {
+    background-color: rgba(236, 72, 153, 0.1);
+    border-left: 3px solid var(--primary);
+  }
+
+  /* Surface card styling */
+  .surface-card {
+    background-color: var(--surface);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .surface-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-focus);
   }
 
   /* Feature cards with enhanced styling */
@@ -128,76 +165,51 @@
     to { opacity: 1; }
   }
 
-  /* Enhanced toggle switch */
-  .switch {
+  /* Checkbox styling */
+  .custom-checkbox {
     position: relative;
-    display: inline-block;
-    width: 52px;
-    height: 26px;
+    width: 1.25rem;
+    height: 1.25rem;
   }
 
-  .switch input {
+  .custom-checkbox input {
+    position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
   }
 
-  .slider {
+  .checkmark {
     position: absolute;
-    cursor: pointer;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #e5e7eb;
-    transition: .4s;
-    border-radius: 26px;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  input:checked + .slider {
-    background-color: var(--primary);
-  }
-
-  input:focus + .slider {
-    box-shadow: 0 0 1px var(--primary);
-  }
-
-  input:checked + .slider:before {
-    transform: translateX(26px);
-  }
-
-  /* Status badges */
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.25rem;
     transition: all 0.2s ease;
   }
 
-  .status-active {
-    background-color: var(--success-light);
-    color: var(--success);
+  .custom-checkbox input:checked ~ .checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
   }
 
-  .status-inactive {
-    background-color: rgba(156, 163, 175, 0.1);
-    color: rgb(156, 163, 175);
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
   }
 
   /* Enhanced button styling */
@@ -225,20 +237,11 @@
   }
 
   .btn-primary:hover {
-    background-color: #db2777;
-  }
-
-  .btn-success {
-    background-color: var(--success-light);
-    color: var(--success);
-  }
-
-  .btn-success:hover {
-    background-color: rgba(16, 185, 129, 0.2);
+    background-color: var(--primary-hover);
   }
 
   .btn-danger {
-    background-color: var(--danger-light);
+    background-color: rgba(239, 68, 68, 0.1);
     color: var(--danger);
   }
 
@@ -247,7 +250,7 @@
   }
 
   .btn-warning {
-    background-color: var(--warning-light);
+    background-color: rgba(245, 158, 11, 0.1);
     color: var(--warning);
   }
 
@@ -256,41 +259,47 @@
   }
 
   .btn-info {
-    background-color: var(--info-light);
+    background-color: rgba(59, 130, 246, 0.1);
     color: var(--info);
   }
 
   .btn-info:hover {
-    background-color: rgba(99, 102, 241, 0.2);
+    background-color: rgba(59, 130, 246, 0.2);
   }
 
-  /* Custom form controls */
-  .form-input,
-  .form-textarea,
-  .form-select {
-    width: 100%;
-    border-radius: 0.75rem;
-    border: 1px solid #e5e7eb;
-    padding: 0.625rem 1rem;
+  /* Status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
     transition: all 0.2s ease;
   }
 
-  .form-input:focus,
-  .form-textarea:focus,
-  .form-select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
-    outline: none;
+  .status-active {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
   }
 
-  .form-label {
-    display: block;
-    margin-bottom: 0.5rem;
+  .status-inactive {
+    background-color: rgba(156, 163, 175, 0.1);
+    color: rgb(156, 163, 175);
+  }
+
+  /* Badge styling */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.75rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    color: #4b5563;
   }
 
-  /* Toast notification */
+  /* Toast notification styling */
   .toast-container {
     position: fixed;
     bottom: 1rem;
@@ -335,31 +344,66 @@
     border-left: 4px solid var(--info);
   }
 
+  /* Empty state styling */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .empty-state svg {
+    color: #e5e7eb;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state__title {
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state__description {
+    color: #9ca3af;
+  }
+
+  /* Stat Card styles */
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: all 0.2s ease;
+  }
+
+  .stat-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .stat-card__title {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-card__value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
   /* Enhanced mobile experiences */
   @media (max-width: 640px) {
-    .card-tabs {
-      display: flex;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .tab-button {
-      padding: 0.75rem 1rem;
-      font-size: 0.875rem;
-    }
-
-    /* Improve form elements on mobile */
-    .form-input,
-    .form-textarea,
-    .form-select {
-      font-size: 1rem; /* Larger font size for better tapping */
-      padding: 0.75rem 1rem;
-    }
-
-    /* Better card layouts for mobile */
+    /* Mobile card layouts */
     .mobile-card {
       border-radius: 0.75rem;
       overflow: hidden;
-      border: 1px solid var(--primary-border);
+      border: 1px solid var(--border);
       margin-bottom: 0.75rem;
       background-color: white;
     }
@@ -410,179 +454,43 @@
     }
   }
 
-  /* Loading indicators */
-  .loading {
-    position: relative;
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
-  .loading:after {
-    content: "";
-    position: absolute;
-    top: calc(50% - 0.75rem);
-    left: calc(50% - 0.75rem);
-    width: 1.5rem;
-    height: 1.5rem;
-    border: 3px solid rgba(236, 72, 153, 0.2);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  /* Animation keyframes */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+  .fadeInUp {
+    animation: fadeInUp 0.4s var(--ease) forwards;
   }
 
-  /* Empty state styling */
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 2rem;
+  /* Custom scrollbar for tables */
+  .table-container::-webkit-scrollbar {
+    height: 6px;
   }
 
-  .empty-state svg {
-    color: #e5e7eb;
-    margin-bottom: 1rem;
+  .table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
   }
 
-  .empty-state__title {
-    font-weight: 600;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-  }
-
-  .empty-state__description {
-    color: #9ca3af;
-  }
-
-  /* Checkbox styling */
-  .custom-checkbox {
-    position: relative;
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-
-  .custom-checkbox input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .checkmark {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 1.25rem;
-    height: 1.25rem;
-    border: 2px solid #d1d5db;
-    border-radius: 0.25rem;
-    transition: all 0.2s ease;
-  }
-
-  .custom-checkbox input:checked ~ .checkmark {
-    background-color: var(--primary);
-    border-color: var(--primary);
-  }
-
-  .checkmark:after {
-    content: "";
-    position: absolute;
-    display: none;
-    left: 7px;
-    top: 3px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-
-  .custom-checkbox input:checked ~ .checkmark:after {
-    display: block;
-  }
-
-  /* Announcement styling */
-  .announcement-card {
-    border-radius: 0.75rem;
-    transition: all 0.2s ease;
-    overflow: hidden;
-  }
-
-  .announcement-card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transform: translateY(-2px);
-  }
-
-  /* Stats cards */
-  .stat-card {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    background-color: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #f3f4f6;
-    transition: all 0.2s ease;
-  }
-
-  .stat-card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-
-  .stat-card__title {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-  }
-
-  .stat-card__value {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #111827;
-  }
-
-  /* Button group */
-  .btn-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  /* Alert styling */
-  .alert {
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: flex-start;
-  }
-
-  .alert-success {
-    background-color: var(--success-light);
-    color: var(--success);
-  }
-
-  .alert-error {
-    background-color: var(--danger-light);
-    color: var(--danger);
-  }
-
-  .alert-warning {
-    background-color: var(--warning-light);
-    color: var(--warning);
-  }
-
-  .alert-info {
-    background-color: var(--info-light);
-    color: var(--info);
-  }
-
-  .alert-icon {
-    margin-right: 0.75rem;
-    flex-shrink: 0;
+  .table-container::-webkit-scrollbar-thumb {
+    background: #ec4899;
+    border-radius: 10px;
   }
 </style>
 {% endblock %}
@@ -605,7 +513,7 @@
 
             <!-- Desktop action buttons -->
             <div class="hidden sm:flex flex-wrap gap-2">
-                <a href="{% url 'admin_export_chat' room_name=room.name %}" class="btn btn-success px-4 py-2 rounded-lg">
+                <a href="{% url 'admin_export_chat' room_name=room.name %}" class="btn btn-info px-4 py-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -626,7 +534,7 @@
                     Delete Room
                 </button>
 
-                <a href="{% url 'room' room_name=room.name %}" target="_blank" class="btn btn-info px-4 py-2 rounded-lg">
+                <a href="{% url 'room' room_name=room.name %}" target="_blank" class="btn btn-primary px-4 py-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -647,7 +555,7 @@
                 <div id="mobile-action-menu" class="hidden absolute right-4 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                     <div class="py-1" role="menu" aria-orientation="vertical">
                         <a href="{% url 'admin_export_chat' room_name=room.name %}" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                             Export as CSV
@@ -668,7 +576,7 @@
                         </button>
 
                         <a href="{% url 'room' room_name=room.name %}" target="_blank" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
@@ -820,7 +728,7 @@
                                             name="search"
                                             value="{{ search_query }}"
                                             placeholder="Search by message content or username..."
-                                            class="form-input pl-10"
+                                            class="pl-10 pr-4 py-2.5 block w-full border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 focus:outline-none shadow-sm"
                                         >
                                     </div>
                                 </div>
@@ -869,14 +777,14 @@
                             Delete Selected
                         </button>
 
-                        <button id="select-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm flex items-center hover:bg-gray-200">
+                        <button id="select-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm flex items-center hover:bg-gray-200 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                             Select All
                         </button>
 
-                        <button id="deselect-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-sm flex items-center hover:bg-gray-200">
+                        <button id="deselect-all-btn" type="button" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hidden text-sm flex items-center hover:bg-gray-200 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -895,7 +803,7 @@
                 </div>
 
                 <!-- Desktop Messages table (hidden on mobile) -->
-                <div class="hidden sm:block overflow-x-auto">
+                <div class="hidden sm:block overflow-x-auto table-container">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50 text-gray-600">
                             <tr>
@@ -951,7 +859,7 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <button type="button" class="delete-message-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50" data-message-id="{{ message.id }}">
+                                    <button type="button" class="delete-message-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50 transition-all" data-message-id="{{ message.id }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
@@ -1022,7 +930,7 @@
                         </div>
                         <div class="mobile-card__footer">
                             <div class="text-xs text-gray-500">ID: {{ message.user.id }}</div>
-                            <button type="button" class="delete-message-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50" data-message-id="{{ message.id }}">
+                            <button type="button" class="delete-message-btn mobile-touch-target p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50 transition-all" data-message-id="{{ message.id }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
@@ -1072,13 +980,13 @@
                         </div>
 
                         <div id="password-section" class="mb-6 bg-white rounded-xl p-5 border border-gray-200 shadow-sm {% if not is_password_protected %}hidden{% endif %}">
-                            <label for="password" class="form-label text-base">Room Password</label>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Room Password</label>
                             <div class="relative">
                                 <input
                                     type="password"
                                     id="password"
                                     name="password"
-                                    class="form-input pr-10"
+                                    class="pl-4 pr-10 py-2.5 block w-full border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 focus:outline-none shadow-sm"
                                     placeholder="Enter a secure password"
                                     {% if is_password_protected %}required{% endif %}
                                 >
@@ -1138,19 +1046,19 @@
                         {% csrf_token %}
                         <input type="hidden" name="announcement_action" value="create">
                         <div class="mb-4">
-                            <label for="content" class="form-label">Announcement Content</label>
+                            <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Announcement Content</label>
                             <textarea
                                 id="content"
                                 name="content"
                                 rows="3"
                                 required
-                                class="form-textarea"
+                                class="pl-4 pr-4 py-2.5 block w-full border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 focus:outline-none shadow-sm"
                                 placeholder="Enter your announcement here..."
                             ></textarea>
                             <p class="text-sm text-gray-500 mt-2">This will be displayed to all users in the room.</p>
                         </div>
                         <div class="flex justify-end">
-                            <button type="submit" class="btn px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm">
+                            <button type="submit" class="btn btn-primary px-5 py-2.5 rounded-lg shadow-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                                 </svg>
@@ -1270,7 +1178,7 @@
                     <!-- Mobile Announcements Cards (shown only on mobile) -->
                     <div class="sm:hidden">
                         {% for announcement in announcements %}
-                        <div class="mobile-card announcement-card mb-3">
+                        <div class="mobile-card mb-3">
                             <div class="mobile-card__header">
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center">

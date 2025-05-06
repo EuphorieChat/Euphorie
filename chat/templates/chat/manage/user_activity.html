@@ -8,12 +8,15 @@
   /* Base theme variables for consistent styling */
   :root {
     --primary: #ec4899;
-    --primary-light: rgba(236, 72, 153, 0.1);
+    --primary-light: #fce7f3;
     --primary-lighter: rgba(236, 72, 153, 0.05);
     --primary-dark: #db2777;
-    --gray-dark: #1f2937;
-    --gray-medium: #6b7280;
-    --gray-light: #f3f4f6;
+    --secondary: #9333ea;
+    --secondary-light: #f3e8ff;
+    --accent: #f97316;
+    --accent-light: #fff7ed;
+    --dark: #1f2937;
+    --light: #f9fafb;
     --success: #10b981;
     --success-light: rgba(16, 185, 129, 0.1);
     --warning: #f59e0b;
@@ -22,6 +25,27 @@
     --danger-light: rgba(239, 68, 68, 0.1);
     --info: #3b82f6;
     --info-light: rgba(59, 130, 246, 0.1);
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+    --surface-active: #f1f5f9;
+    --border: #e2e8f0;
+    --border-focus: #cbd5e1;
+    --text-primary: #334155;
+    --text-secondary: #64748b;
+    --text-tertiary: #94a3b8;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 0.15s;
+    --duration-normal: 0.25s;
+    --duration-slow: 0.35s;
   }
 
   /* Base styles and improved animation */
@@ -41,26 +65,29 @@
 
   /* Enhanced card styling */
   .dashboard-card {
-    background-color: white;
-    border-radius: 1rem;
-    border: 1px solid #f0f0f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    transition: all 0.3s ease;
+    background-color: var(--surface);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-normal) var(--ease);
     overflow: hidden;
     height: 100%;
     display: flex;
     flex-direction: column;
+    opacity: 0;
+    animation: fadeIn 0.4s var(--ease) forwards;
   }
 
   .dashboard-card:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
+    border-color: var(--border-focus);
   }
 
   .dashboard-card__header {
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--gray-light);
-    background-color: #f9fafb;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--surface-hover);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -68,7 +95,7 @@
 
   .dashboard-card__title {
     font-weight: 600;
-    color: var(--gray-dark);
+    color: var(--text-primary);
     font-size: 1.125rem;
     display: flex;
     align-items: center;
@@ -86,30 +113,38 @@
 
   .dashboard-card__footer {
     padding: 0.75rem 1.5rem;
-    border-top: 1px solid var(--gray-light);
-    background-color: #f9fafb;
+    border-top: 1px solid var(--border);
+    background-color: var(--surface-hover);
     font-size: 0.875rem;
-    color: var(--gray-medium);
+    color: var(--text-secondary);
   }
 
   /* Stats card styling */
   .stat-card {
-    background-color: white;
-    border-radius: 0.75rem;
+    background-color: var(--surface);
+    border-radius: var(--radius-xl);
     padding: 1.25rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    border: 1px solid #f0f0f0;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-normal) var(--ease);
+    border: 1px solid var(--border);
+    opacity: 0;
+    animation: fadeIn 0.4s var(--ease) forwards;
   }
 
   .stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-focus);
   }
+
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
 
   .stat-card__title {
     font-size: 0.875rem;
-    color: var(--gray-medium);
+    color: var(--text-secondary);
     margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
@@ -123,35 +158,42 @@
   .stat-card__value {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--gray-dark);
+    color: var(--text-primary);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .stat-card__label {
     font-size: 0.875rem;
-    color: var(--gray-medium);
+    color: var(--text-secondary);
     margin-top: 0.25rem;
   }
 
   /* Enhanced mobile card */
   .user-card {
-    border-radius: 0.75rem;
-    border: 1px solid #f0f0f0;
-    background-color: white;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    background-color: var(--surface);
     margin-bottom: 0.75rem;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-normal) var(--ease);
+    opacity: 0;
+    animation: fadeIn 0.4s var(--ease) forwards;
   }
 
   .user-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
   }
 
   .user-card__header {
     padding: 0.875rem 1rem;
-    border-bottom: 1px solid var(--gray-light);
-    background-color: #f9fafb;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--surface-hover);
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -160,13 +202,13 @@
 
   .user-card__content {
     padding: 0.875rem 1rem;
-    background-color: white;
+    background-color: var(--surface);
   }
 
   .user-card__footer {
     padding: 0.75rem 1rem;
-    border-top: 1px solid var(--gray-light);
-    background-color: #f9fafb;
+    border-top: 1px solid var(--border);
+    background-color: var(--surface-hover);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -177,7 +219,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.25rem 0.625rem;
+    padding: 0.25rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 500;
     border-radius: 9999px;
@@ -205,15 +247,33 @@
     font-weight: 600;
     text-align: left;
     padding: 0.75rem 1rem;
-    color: var(--gray-dark);
+    color: var(--text-primary);
     white-space: nowrap;
-    border-bottom: 2px solid var(--gray-light);
+    border-bottom: 2px solid var(--border);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+  }
+
+  .data-table th:hover {
+    background-color: var(--surface-active);
+  }
+
+  .data-table th.sort-asc::after {
+    content: '↑';
+    margin-left: 0.25rem;
+    color: var(--primary);
+  }
+
+  .data-table th.sort-desc::after {
+    content: '↓';
+    margin-left: 0.25rem;
+    color: var(--primary);
   }
 
   .data-table td {
     padding: 0.875rem 1rem;
     vertical-align: middle;
-    border-bottom: 1px solid var(--gray-light);
+    border-bottom: 1px solid var(--border);
   }
 
   .data-table tr:last-child td {
@@ -232,12 +292,12 @@
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 9999px;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
     position: relative;
   }
 
   .action-btn:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
 
   .action-btn.view {
@@ -255,16 +315,17 @@
     top: -30px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #374151;
+    background-color: var(--dark);
     color: white;
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
     white-space: nowrap;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
     pointer-events: none;
+    z-index: 10;
   }
 
   .action-btn .tooltip::after {
@@ -275,7 +336,7 @@
     transform: translateX(-50%);
     border-width: 5px;
     border-style: solid;
-    border-color: #374151 transparent transparent transparent;
+    border-color: var(--dark) transparent transparent transparent;
   }
 
   .action-btn:hover .tooltip {
@@ -290,16 +351,21 @@
 
   .search-input {
     width: 100%;
-    padding: 0.625rem 1rem 0.625rem 2.5rem;
-    border: 1px solid var(--gray-light);
-    border-radius: 0.5rem;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     font-size: 0.875rem;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .search-input:hover {
+    border-color: var(--border-focus);
   }
 
   .search-input:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--primary-light);
+    outline: none;
   }
 
   .search-icon {
@@ -307,7 +373,8 @@
     left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--gray-medium);
+    color: var(--text-secondary);
+    pointer-events: none;
   }
 
   /* Avatar styling */
@@ -315,8 +382,8 @@
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 9999px;
-    background-color: var(--primary-light);
-    color: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -335,38 +402,20 @@
   }
 
   .empty-state__icon {
-    color: #e5e7eb;
+    color: var(--border);
     margin-bottom: 1rem;
   }
 
   .empty-state__title {
-    color: var(--gray-dark);
+    color: var(--text-primary);
     font-weight: 500;
     margin-bottom: 0.5rem;
   }
 
   .empty-state__text {
-    color: var(--gray-medium);
+    color: var(--text-secondary);
     max-width: 20rem;
     margin: 0 auto;
-  }
-
-  /* Skeleton loading animation */
-  @keyframes shimmer {
-    0% {
-      background-position: -468px 0;
-    }
-    100% {
-      background-position: 468px 0;
-    }
-  }
-
-  .skeleton {
-    background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
-    background-size: 800px 104px;
-    animation: shimmer 1.5s infinite linear;
-    position: relative;
-    border-radius: 0.25rem;
   }
 
   /* Activity pulse animation */
@@ -408,7 +457,7 @@
   /* Responsive adaptations */
   @media (max-width: 640px) {
     .dashboard-card {
-      border-radius: 0.75rem;
+      border-radius: var(--radius-lg);
       margin-bottom: 1rem;
     }
 
@@ -454,8 +503,66 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out forwards;
+  /* Button styling */
+  .btn {
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    padding: 0.625rem 1rem;
+    border-radius: var(--radius-lg);
+    transition: all var(--duration-normal) var(--ease);
+    cursor: pointer;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform 0.5s, opacity 0.8s;
+  }
+
+  .btn:active::after {
+    transform: scale(0, 0);
+    opacity: 0.3;
+    transition: 0s;
+  }
+
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn-export {
+    background-color: var(--success-light);
+    color: var(--success);
+  }
+
+  .btn-export:hover {
+    background-color: rgba(16, 185, 129, 0.2);
+  }
+
+  .btn-settings {
+    background-color: var(--info-light);
+    color: var(--info);
+  }
+
+  .btn-settings:hover {
+    background-color: rgba(59, 130, 246, 0.2);
   }
 </style>
 {% endblock %}
@@ -470,14 +577,14 @@
             </div>
 
             <div class="flex gap-3">
-                <a href="{% url 'admin_export_users' %}" class="inline-flex items-center bg-green-100 text-green-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm">
+                <a href="{% url 'admin_export_users' %}" class="btn btn-export">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     Export Users
                 </a>
 
-                <a href="{% url 'admin_user_settings' %}" class="inline-flex items-center bg-blue-100 text-blue-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm">
+                <a href="{% url 'admin_user_settings' %}" class="btn btn-settings">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -538,7 +645,7 @@
     <!-- Activity Overview -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
         <!-- Last 24 Hours Activity -->
-        <div class="dashboard-card animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="dashboard-card" style="animation-delay: 0.1s;">
             <div class="dashboard-card__header">
                 <h2 class="dashboard-card__title">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dashboard-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -557,7 +664,7 @@
                             <tr>
                                 <th>User</th>
                                 <th class="text-right">Messages</th>
-                                <th class="text-center w-16">Actions</th>
+                                <th class="text-center w-16 no-sort">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -565,7 +672,7 @@
                             <tr class="user-row" data-username="{{ user.user__username }}">
                                 <td>
                                     <div class="flex items-center">
-                                        <div class="user-avatar mr-3">
+                                        <div class="user-avatar mr-3 activity-ping">
                                             {{ user.user__username|slice:":1"|upper }}
                                         </div>
                                         <div>
@@ -608,7 +715,7 @@
                 <!-- Mobile view for 24 hour activity -->
                 <div class="sm:hidden px-3 py-2">
                     {% for user in day_activity %}
-                    <div class="user-card">
+                    <div class="user-card" style="animation-delay: {{ forloop.counter|add:'3' }}0ms;">
                         <div class="user-card__header">
                             <div class="flex items-center">
                                 <div class="user-avatar mr-2 activity-ping">
@@ -654,7 +761,7 @@
         </div>
 
         <!-- Last Week Activity -->
-        <div class="dashboard-card animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="dashboard-card" style="animation-delay: 0.2s;">
             <div class="dashboard-card__header">
                 <h2 class="dashboard-card__title">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dashboard-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -673,7 +780,7 @@
                             <tr>
                                 <th>User</th>
                                 <th class="text-right">Messages</th>
-                                <th class="text-center w-16">Actions</th>
+                                <th class="text-center w-16 no-sort">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -724,7 +831,7 @@
                 <!-- Mobile view for weekly activity -->
                 <div class="sm:hidden px-3 py-2">
                     {% for user in week_activity %}
-                    <div class="user-card">
+                    <div class="user-card" style="animation-delay: {{ forloop.counter|add:'3' }}0ms;">
                         <div class="user-card__header">
                             <div class="flex items-center">
                                 <div class="user-avatar mr-2">
@@ -771,7 +878,7 @@
     </div>
 
     <!-- All Users Table -->
-    <div class="dashboard-card animate-fade-in" style="animation-delay: 0.3s;">
+    <div class="dashboard-card" style="animation-delay: 0.3s;">
         <div class="dashboard-card__header">
             <h2 class="dashboard-card__title">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dashboard-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -819,7 +926,7 @@
                             <th>User ID</th>
                             <th>Last Active</th>
                             <th class="text-right">Total Messages</th>
-                            <th class="text-center">Actions</th>
+                            <th class="text-center no-sort">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -871,7 +978,7 @@
             <!-- Mobile view for all users -->
             <div class="sm:hidden px-3 py-2">
                 {% for user in active_users %}
-                <div class="user-card user-row" data-username="{{ user.user__username }}" data-user-id="{{ user.user__id }}">
+                <div class="user-card user-row" data-username="{{ user.user__username }}" data-user-id="{{ user.user__id }}" style="animation-delay: {{ forloop.counter|add:'5' }}0ms;">
                     <div class="user-card__header">
                         <div class="flex items-center">
                             <div class="user-avatar mr-2">
@@ -926,6 +1033,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block extra_js %}
 <script>
@@ -1017,21 +1125,8 @@
                 row.classList.add('active-user');
             }
         });
-    });
 
-    // Function to find user ID from username and redirect
-    function findUserIdForUsername(username) {
-        const userRow = document.querySelector(`.user-row[data-username="${username}"]`);
-        if (userRow) {
-            const userId = userRow.getAttribute('data-user-id');
-            if (userId) {
-                window.location.href = `/admin/user-messages/${userId}/`;
-            }
-        }
-    }
-
-    // Sort tables on header click
-    document.addEventListener('DOMContentLoaded', function() {
+        // Sort tables on header click
         const tableHeaders = document.querySelectorAll('.data-table th');
 
         tableHeaders.forEach((header, index) => {
@@ -1044,6 +1139,17 @@
             }
         });
     });
+
+    // Function to find user ID from username and redirect
+    function findUserIdForUsername(username) {
+        const userRow = document.querySelector(`.user-row[data-username="${username}"]`);
+        if (userRow) {
+            const userId = userRow.getAttribute('data-user-id');
+            if (userId) {
+                window.location.href = `/admin/user-messages/${userId}/`;
+            }
+        }
+    }
 
     // Table sorting function
     function sortTable(columnIndex, table) {
@@ -1075,7 +1181,7 @@
         // Set sort direction for next click
         table.setAttribute('data-sort-direction', direction);
 
-        // Update header styling (optional)
+        // Update header styling
         table.querySelectorAll('th').forEach(th => {
             th.classList.remove('sort-asc', 'sort-desc');
         });
@@ -1083,5 +1189,4 @@
         table.querySelectorAll('th')[columnIndex].classList.add(`sort-${direction}`);
     }
 </script>
-{% endblock %}
 {% endblock %}

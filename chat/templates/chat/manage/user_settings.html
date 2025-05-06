@@ -5,19 +5,63 @@
 
 {% block extra_css %}
 <style>
-  /* Settings page specific styles */
+  :root {
+    --primary: #ec4899;
+    --primary-hover: #db2777;
+    --primary-light: rgba(236, 72, 153, 0.1);
+    --primary-lighter: rgba(236, 72, 153, 0.05);
+    --primary-dark: #db2777;
+    --secondary: #9333ea;
+    --secondary-light: rgba(147, 51, 234, 0.1);
+    --gray-dark: #1f2937;
+    --gray-medium: #6b7280;
+    --gray-light: #f3f4f6;
+    --success: #10b981;
+    --success-light: rgba(16, 185, 129, 0.1);
+    --warning: #f59e0b;
+    --warning-light: rgba(245, 158, 11, 0.1);
+    --danger: #ef4444;
+    --danger-light: rgba(239, 68, 68, 0.1);
+    --info: #3b82f6;
+    --info-light: rgba(59, 130, 246, 0.1);
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 0.15s;
+    --duration-normal: 0.25s;
+    --duration-slow: 0.35s;
+  }
+
+  /* Animation utilities */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  /* Settings card styling */
   .settings-card {
     background-color: white;
-    border-radius: 1rem;
+    border-radius: var(--radius-xl);
     border: 1px solid #f0f0f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-normal) var(--ease);
     overflow: hidden;
     margin-bottom: 1.5rem;
   }
 
   .settings-card:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
   }
 
   .settings-card__header {
@@ -46,7 +90,7 @@
     padding: 1.5rem;
   }
 
-  /* Form styles */
+  /* Form elements */
   .form-group {
     margin-bottom: 1.5rem;
   }
@@ -73,9 +117,9 @@
     width: 100%;
     padding: 0.75rem 1rem;
     border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     font-size: 0.875rem;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
   }
 
   .form-input:focus {
@@ -88,7 +132,7 @@
     width: 100%;
     padding: 0.75rem 1rem;
     border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     font-size: 0.875rem;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     background-position: right 0.5rem center;
@@ -118,45 +162,69 @@
 
   /* Button styles */
   .btn {
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 500;
+    border-radius: var(--radius-lg);
     padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
     cursor: pointer;
   }
 
-  .btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.4);
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+  }
+
+  .btn:active::after {
+    opacity: 1;
+    transform: scale(50, 50) translate(-50%);
+    transition: all 0.5s ease;
   }
 
   .btn-primary {
-    background-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    border: none;
-  }
-
-  .btn-primary:hover {
-    background-color: var(--primary-dark);
+    box-shadow: var(--shadow-sm);
   }
 
   .btn-secondary {
     background-color: white;
     color: var(--gray-dark);
     border: 1px solid #e5e7eb;
+    box-shadow: var(--shadow-sm);
   }
 
   .btn-secondary:hover {
-    background-color: #f9fafb;
+    background-color: var(--gray-light);
   }
 
   .btn-danger {
     background-color: var(--danger);
     color: white;
     border: none;
+    box-shadow: var(--shadow-sm);
   }
 
   .btn-danger:hover {
@@ -203,10 +271,11 @@
     background-color: white;
     transition: .4s;
     border-radius: 50%;
+    box-shadow: var(--shadow-sm);
   }
 
   input:checked + .toggle-slider {
-    background-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
   }
 
   input:focus + .toggle-slider {
@@ -230,6 +299,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .settings-list-item:hover {
+    background-color: var(--primary-lighter);
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: var(--radius-md);
   }
 
   .settings-list-item:last-child {
@@ -252,65 +331,39 @@
     color: var(--gray-medium);
   }
 
-  /* Avatar upload */
-  .avatar-upload {
-    position: relative;
-    width: 8rem;
-    height: 8rem;
-    margin: 0 auto 1.5rem auto;
-  }
-
-  .avatar-upload__img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  }
-
-  .avatar-upload__placeholder {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background-color: #f3f4f6;
-    display: flex;
+  /* Badges */
+  .badge {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: #9ca3af;
-    border: 4px solid white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    line-height: 1;
   }
 
-  .avatar-upload__btn {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    background-color: var(--primary);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid white;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  .badge-success {
+    background-color: var(--success-light);
+    color: var(--success);
   }
 
-  .avatar-upload__btn:hover {
-    background-color: var(--primary-dark);
-    transform: scale(1.05);
+  .badge-danger {
+    background-color: var(--danger-light);
+    color: var(--danger);
   }
 
-  .avatar-upload__input {
-    display: none;
+  .badge-warning {
+    background-color: var(--warning-light);
+    color: var(--warning);
   }
 
-  /* Responsive adjustments */
+  .badge-info {
+    background-color: var(--info-light);
+    color: var(--info);
+  }
+
+  /* Responsive adaptations */
   @media (max-width: 640px) {
     .settings-card__header,
     .settings-card__body {
@@ -346,7 +399,7 @@
             </div>
 
             <div class="flex gap-3">
-                <a href="{% url 'admin_export_users' %}" class="inline-flex items-center bg-green-100 text-green-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm">
+                <a href="{% url 'admin_export_users' %}" class="btn btn-secondary px-4 py-2 rounded-lg flex items-center text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -360,7 +413,7 @@
         <!-- Left column for account settings -->
         <div class="lg:col-span-2">
             <!-- Registration Settings -->
-            <div class="settings-card">
+            <div class="settings-card animate-fade-in" style="animation-delay: 0.1s;">
                 <div class="settings-card__header">
                     <h2 class="settings-card__title">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 settings-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -418,7 +471,7 @@
             </div>
 
             <!-- User Permissions -->
-            <div class="settings-card">
+            <div class="settings-card animate-fade-in" style="animation-delay: 0.2s;">
                 <div class="settings-card__header">
                     <h2 class="settings-card__title">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 settings-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -515,7 +568,7 @@
         <!-- Right column for moderation settings -->
         <div>
             <!-- Moderation Settings -->
-            <div class="settings-card">
+            <div class="settings-card animate-fade-in" style="animation-delay: 0.3s;">
                 <div class="settings-card__header">
                     <h2 class="settings-card__title">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 settings-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -578,7 +631,7 @@
             </div>
 
             <!-- Account Cleanup -->
-            <div class="settings-card">
+            <div class="settings-card animate-fade-in" style="animation-delay: 0.4s;">
                 <div class="settings-card__header">
                     <h2 class="settings-card__title">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 settings-card__title-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -627,7 +680,7 @@
             </div>
 
             <!-- Dangerous Zone -->
-            <div class="settings-card border-red-100">
+            <div class="settings-card border-red-100 animate-fade-in" style="animation-delay: 0.5s;">
                 <div class="settings-card__header bg-red-50 border-red-100">
                     <h2 class="settings-card__title text-red-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -661,6 +714,9 @@
         </div>
     </div>
 </div>
+
+<!-- Toast Notification Container -->
+<div class="toast-container" id="toast-container"></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -679,33 +735,67 @@
             });
         });
 
-        // Handle file upload preview for avatar
-        const avatarInput = document.getElementById('avatar_upload');
-        const avatarPreview = document.getElementById('avatar_preview');
-
-        if (avatarInput && avatarPreview) {
-            avatarInput.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                    const reader = new FileReader();
-
-                    reader.onload = function(e) {
-                        avatarPreview.src = e.target.result;
-                    }
-
-                    reader.readAsDataURL(this.files[0]);
-                }
-            });
-        }
-
         // Toast notification system
         window.showToast = function(message, type = 'success') {
-            // Call the global toast function from base.html
-            if (typeof window.showToast === 'function') {
-                window.showToast(message, type);
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            let iconSvg = '';
+            if (type === 'success') {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>`;
+            } else if (type === 'error') {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>`;
+            } else if (type === 'warning') {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>`;
+            } else {
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>`;
             }
+
+            toast.innerHTML = `
+                <div class="toast-icon">${iconSvg}</div>
+                <div class="toast-content">${message}</div>
+                <button type="button" class="toast-close">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            // Show the toast with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+
+            // Close button functionality
+            const closeButton = toast.querySelector('.toast-close');
+            closeButton.addEventListener('click', () => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            });
+
+            // Auto close after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 5000);
         };
 
-        // Show toast for form submission if needed
+        // Check for URL params to show toast
         const urlParams = new URLSearchParams(window.location.search);
         const status = urlParams.get('status');
         const message = urlParams.get('message');
@@ -717,6 +807,36 @@
             const newUrl = window.location.pathname;
             history.replaceState({}, document.title, newUrl);
         }
+
+        // Add subtle hover effects to settings card
+        const settingsCards = document.querySelectorAll('.settings-card');
+        settingsCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-4px)';
+                this.style.boxShadow = 'var(--shadow-lg)';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = 'var(--shadow-md)';
+            });
+        });
+
+        // Add animation to toggle switches
+        const toggleSwitches = document.querySelectorAll('.toggle-switch input');
+        toggleSwitches.forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const slider = this.nextElementSibling;
+                slider.style.transition = 'all 0.3s var(--ease)';
+
+                if (this.checked) {
+                    slider.style.transform = 'scale(1.05)';
+                    setTimeout(() => {
+                        slider.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            });
+        });
     });
 </script>
 {% endblock %}
