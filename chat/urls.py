@@ -31,6 +31,7 @@ urlpatterns = [
     path('manage/user-settings/', admin_user_settings, name='admin_user_settings'),
     path('manage/export-users/', admin_views.admin_export_users, name='admin_export_users'),
     path('manage/export-user-data/', admin_views.admin_export_user_data, name='admin_export_user_data'),
+    path('manage/user/<str:username>/', admin_views.admin_user_profile, name='user_profile'),
 
     # Admin message and room management from first urls.py
     path('manage/delete-message/<int:message_id>/', admin_views.admin_delete_message, name='admin_delete_message'),

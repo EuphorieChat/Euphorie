@@ -1,0 +1,603 @@
+{% extends "chat/manage/base.html" %}
+{% load static %}
+
+{% block title %}{{ profile_user.username }}'s Profile | Euphorie Admin{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-5xl mx-auto px-4 py-8">
+    <div class="mb-6 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'admin_dashboard' %}" class="text-pink-500 hover:text-pink-600 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+        {% if not is_own_profile %}
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'admin_user_messages' user_id=profile_user.id %}" class="btn bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl transition text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                View Messages
+            </a>
+
+            {% if request.user.is_staff %}
+            <a href="{% url 'admin_user_activity' %}?user_id={{ profile_user.id }}" class="btn bg-green-100 hover:bg-green-200 text-green-700 px-4 py-2 rounded-xl transition text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                View Activity
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Left Column - Profile Card -->
+        <div class="md:col-span-1">
+            <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden">
+                <!-- Profile Header -->
+                <div class="bg-gradient-to-r from-pink-400 to-orange-300 text-white p-6 flex flex-col items-center">
+                    <!-- Profile Picture -->
+                    <div id="profile-large-avatar" class="h-28 w-28 rounded-full bg-white flex items-center justify-center text-4xl font-medium mb-4 user-avatar" data-username="{{ profile_user.username }}">
+                        {{ profile_user.username|slice:":1"|upper }}
+                    </div>
+
+                    <h1 class="text-2xl font-bold">{{ profile_user.username }}</h1>
+
+                    {% if is_own_profile %}
+                    <button id="change-profile-pic-btn" class="mt-3 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1.5 rounded-lg text-sm inline-flex items-center transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Change Avatar
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Profile Stats -->
+                <div class="p-6">
+                    <div class="mb-4">
+                        <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">User Info</h2>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Status:</span>
+                                <span class="text-gray-800 font-medium">
+                                    {% if profile_user.is_active %}
+                                    <span class="text-green-600">Active</span>
+                                    {% else %}
+                                    <span class="text-red-600">Disabled</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Email:</span>
+                                <span class="text-gray-800 font-medium">{{ profile_user.email }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Role:</span>
+                                <span class="text-gray-800 font-medium">
+                                    {% if profile_user.is_superuser %}
+                                    <span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs">Admin</span>
+                                    {% elif profile_user.is_staff %}
+                                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">Staff</span>
+                                    {% else %}
+                                    <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs">User</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Last Login:</span>
+                                <span class="text-gray-800 font-medium">{{ profile_user.last_login|date:"F j, Y" }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Joined:</span>
+                                <span class="text-gray-800 font-medium">{{ profile_user.date_joined|date:"F j, Y" }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">Stats</h2>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-gray-50 p-3 rounded-lg text-center">
+                                <p class="text-sm text-gray-500">Messages</p>
+                                <p class="text-lg font-semibold text-gray-800">{{ message_count }}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg text-center">
+                                <p class="text-sm text-gray-500">Rooms</p>
+                                <p class="text-lg font-semibold text-gray-800">{{ rooms|length }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if is_own_profile %}
+                    <div class="mt-6">
+                        <a href="{% url 'admin_dashboard' %}" class="w-full inline-block text-center btn bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-xl transition text-sm">
+                            Go to Dashboard
+                        </a>
+                    </div>
+                    {% else %}
+                    {% if request.user.is_staff %}
+                    <div class="mt-6 flex flex-col gap-2">
+                        <a href="{% url 'direct_message' username=profile_user.username %}" class="w-full inline-block text-center btn bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-xl transition text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            Send Message
+                        </a>
+
+                        <button id="toggle-user-status" data-user-id="{{ profile_user.id }}" data-is-active="{{ profile_user.is_active|yesno:'true,false' }}" class="btn {% if profile_user.is_active %}bg-red-100 text-red-700 hover:bg-red-200{% else %}bg-green-100 text-green-700 hover:bg-green-200{% endif %} px-4 py-2 rounded-xl transition text-sm inline-flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            {% if profile_user.is_active %}Disable Account{% else %}Enable Account{% endif %}
+                        </button>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Activity & Rooms -->
+        <div class="md:col-span-2">
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-xl shadow-md border border-pink-100 p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Recent Activity
+                </h2>
+
+                <div id="activity-feed" class="space-y-4">
+                    <!-- This would be populated with user activity if you have that data -->
+                    <p class="text-gray-500 text-sm italic">No recent activity to display.</p>
+                </div>
+            </div>
+
+            <!-- Rooms Joined -->
+            <div class="bg-white rounded-xl shadow-md border border-pink-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Rooms Joined
+                </h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% if rooms %}
+                        {% for room in rooms %}
+                            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="room-card-interactive p-4 rounded-lg border border-gray-200 hover:border-pink-200 transition-colors">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br {{ room.is_protected|yesno:'from-yellow-400 to-orange-300,from-pink-400 to-orange-300' }} text-white flex items-center justify-center mr-3 font-medium">
+                                        {{ room.display_name|slice:":1"|upper }}
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium text-gray-800">{{ room.display_name }}</h3>
+                                        <div class="flex items-center text-xs text-gray-500">
+                                            {% if room.category %}
+                                                <span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs mr-2">{{ room.category }}</span>
+                                            {% endif %}
+                                            <span class="flex items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                                {{ room.members.count }} members
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-gray-500 text-sm italic col-span-2">No rooms joined yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Picture Modal (reuse the one from the room template) -->
+<div id="profile-pic-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4">
+        <h2 class="text-lg font-bold gradient-text mb-4">Change Profile Picture</h2>
+
+        <div class="flex items-center justify-center mb-4">
+            <div id="profile-preview" class="h-24 w-24 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center text-2xl font-medium profile-pic-container">
+                {{ profile_user.username|slice:":1"|upper }}
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="profile-pic-upload">Upload Image</label>
+                <input type="file" id="profile-pic-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
+                <p class="text-xs text-gray-500 mt-1">Recommended: Square image, 500x500 pixels</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Choose Avatar Style</label>
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-pink-400 to-orange-300"></div>
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-blue-400 to-indigo-400"></div>
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-green-400 to-teal-400"></div>
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-purple-400 to-pink-400"></div>
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-yellow-400 to-orange-400"></div>
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-red-400 to-pink-400"></div>
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-cyan-400 to-blue-400"></div>
+                    <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-emerald-400 to-green-500"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" id="cancel-profile-pic" class="btn px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">Cancel</button>
+                <button type="button" id="save-profile-pic" class="btn px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for the profile page -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initialize profile picture from data
+        initializeProfilePicture();
+
+        // Set up profile picture modal
+        const changeAvatarBtn = document.getElementById('change-profile-pic-btn');
+        const profilePicModal = document.getElementById('profile-pic-modal');
+        const cancelBtn = document.getElementById('cancel-profile-pic');
+        const saveBtn = document.getElementById('save-profile-pic');
+
+        // Show modal when clicking the change button
+        if (changeAvatarBtn && profilePicModal) {
+            changeAvatarBtn.addEventListener('click', function() {
+                profilePicModal.classList.remove('hidden');
+                profilePicModal.classList.add('flex');
+            });
+        }
+
+        // Close modal on cancel
+        if (cancelBtn && profilePicModal) {
+            cancelBtn.addEventListener('click', function() {
+                profilePicModal.classList.add('hidden');
+                profilePicModal.classList.remove('flex');
+            });
+        }
+
+        // Set up avatar options
+        setupProfilePictureOptions();
+
+        // Toggle user status button
+        const toggleStatusBtn = document.getElementById('toggle-user-status');
+        if (toggleStatusBtn) {
+            toggleStatusBtn.addEventListener('click', function() {
+                const userId = this.dataset.userId;
+                const isActive = this.dataset.isActive === 'true';
+
+                // Toggle user status via API
+                toggleUserStatus(userId, !isActive);
+            });
+        }
+    });
+
+    function initializeProfilePicture() {
+        // Get profile picture data from the server-provided context
+        const profilePictureData = {{ profile_picture_data|safe }};
+        const username = '{{ profile_user.username }}';
+
+        // Update the large avatar on the profile page
+        const largeAvatar = document.getElementById('profile-large-avatar');
+
+        if (largeAvatar && profilePictureData) {
+            if (profilePictureData.type === 'image' && profilePictureData.data) {
+                largeAvatar.className = 'h-28 w-28 rounded-full user-avatar with-image';
+                largeAvatar.style.backgroundImage = `url(${profilePictureData.data})`;
+                largeAvatar.style.backgroundSize = 'cover';
+                largeAvatar.style.backgroundPosition = 'center';
+                largeAvatar.innerHTML = '';
+            } else if (profilePictureData.type === 'gradient' && profilePictureData.gradient) {
+                largeAvatar.className = `h-28 w-28 rounded-full bg-gradient-to-br ${profilePictureData.gradient} text-white flex items-center justify-center text-4xl font-medium user-avatar`;
+                largeAvatar.style.backgroundImage = '';
+                largeAvatar.innerHTML = username.charAt(0).toUpperCase();
+            }
+        }
+
+        // Also update the preview in the modal
+        const preview = document.getElementById('profile-preview');
+
+        if (preview && profilePictureData) {
+            if (profilePictureData.type === 'image' && profilePictureData.data) {
+                preview.className = 'h-24 w-24 rounded-full profile-pic-container';
+                preview.style.backgroundImage = `url(${profilePictureData.data})`;
+                preview.style.backgroundSize = 'cover';
+                preview.style.backgroundPosition = 'center';
+                preview.innerHTML = '';
+                preview.dataset.imageData = profilePictureData.data;
+            } else if (profilePictureData.type === 'gradient' && profilePictureData.gradient) {
+                preview.className = `h-24 w-24 rounded-full bg-gradient-to-br ${profilePictureData.gradient} text-white flex items-center justify-center text-2xl font-medium profile-pic-container`;
+                preview.style.backgroundImage = '';
+                preview.innerHTML = username.charAt(0).toUpperCase();
+                preview.dataset.gradient = profilePictureData.gradient;
+            }
+        }
+    }
+
+    function setupProfilePictureOptions() {
+        const fileInput = document.getElementById('profile-pic-upload');
+        const preview = document.getElementById('profile-preview');
+        const avatarOptions = document.querySelectorAll('.avatar-option');
+        const saveBtn = document.getElementById('save-profile-pic');
+        const username = '{{ profile_user.username }}';
+
+        // Set initial content for avatar options
+        avatarOptions.forEach(option => {
+            option.textContent = username.charAt(0).toUpperCase();
+
+            // Add click event
+            option.addEventListener('click', function() {
+                // Reset file input
+                if (fileInput) fileInput.value = '';
+
+                // Update selected state
+                avatarOptions.forEach(el => {
+                    el.classList.remove('selected', 'ring-2', 'ring-pink-500', 'ring-offset-2');
+                });
+                this.classList.add('selected', 'ring-2', 'ring-pink-500', 'ring-offset-2');
+
+                // Update preview
+                if (preview) {
+                    const gradient = this.dataset.gradient;
+                    preview.className = `h-24 w-24 rounded-full bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-2xl font-medium profile-pic-container`;
+                    preview.style.backgroundImage = '';
+                    preview.innerHTML = username.charAt(0).toUpperCase();
+                    preview.dataset.gradient = gradient;
+                    delete preview.dataset.imageData;
+                }
+            });
+        });
+
+        // Handle file upload preview
+        if (fileInput && preview) {
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        // Reset gradient classes
+                        preview.className = 'h-24 w-24 rounded-full profile-pic-container';
+                        preview.style.backgroundImage = `url(${e.target.result})`;
+                        preview.style.backgroundSize = 'cover';
+                        preview.style.backgroundPosition = 'center';
+                        preview.innerHTML = '';
+
+                        // Store the image data for saving
+                        preview.dataset.imageData = e.target.result;
+
+                        // Reset selected gradients
+                        avatarOptions.forEach(el => {
+                            el.classList.remove('selected', 'ring-2', 'ring-pink-500', 'ring-offset-2');
+                        });
+                    };
+
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+
+        // Handle save button
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                saveProfilePicture();
+            });
+        }
+    }
+
+    function saveProfilePicture() {
+        const preview = document.getElementById('profile-preview');
+        const profilePicModal = document.getElementById('profile-pic-modal');
+        const largeAvatar = document.getElementById('profile-large-avatar');
+
+        if (!preview) return;
+
+        const profileData = {};
+
+        // Check if we have image data
+        if (preview.dataset.imageData) {
+            profileData.type = 'image';
+            profileData.data = preview.dataset.imageData;
+        }
+        // Otherwise, use gradient
+        else if (preview.dataset.gradient) {
+            profileData.type = 'gradient';
+            profileData.gradient = preview.dataset.gradient;
+        }
+        // Default fallback
+        else {
+            profileData.type = 'gradient';
+            profileData.gradient = 'from-pink-400 to-orange-300';
+        }
+
+        // Save to localStorage
+        localStorage.setItem(`profilePic_{{ profile_user.username }}`, JSON.stringify(profileData));
+
+        // Update the large avatar immediately
+        if (largeAvatar) {
+            if (profileData.type === 'image' && profileData.data) {
+                largeAvatar.className = 'h-28 w-28 rounded-full user-avatar with-image';
+                largeAvatar.style.backgroundImage = `url(${profileData.data})`;
+                largeAvatar.style.backgroundSize = 'cover';
+                largeAvatar.style.backgroundPosition = 'center';
+                largeAvatar.innerHTML = '';
+            } else if (profileData.type === 'gradient' && profileData.gradient) {
+                largeAvatar.className = `h-28 w-28 rounded-full bg-gradient-to-br ${profileData.gradient} text-white flex items-center justify-center text-4xl font-medium user-avatar`;
+                largeAvatar.style.backgroundImage = '';
+                largeAvatar.innerHTML = '{{ profile_user.username|slice:":1"|upper }}';
+            }
+        }
+
+        // Hide the modal
+        if (profilePicModal) {
+            profilePicModal.classList.add('hidden');
+            profilePicModal.classList.remove('flex');
+        }
+
+        // Save via API
+        const csrfToken = getCsrfToken();
+
+        fetch('/api/update_profile/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                profile_picture: profileData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Profile picture updated successfully');
+            } else {
+                showNotification('Error updating profile picture: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error("Error saving profile to server:", error);
+            showNotification('Error connecting to server');
+        });
+
+        // Send WebSocket update if available
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            window.socket.send(JSON.stringify({
+                type: 'profile_update',
+                profile_data: profileData
+            }));
+        }
+    }
+
+    function toggleUserStatus(userId, newActiveState) {
+        // Get CSRF token
+        const csrfToken = getCsrfToken();
+
+        fetch('/manage/toggle-user-status-ajax/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                is_active: newActiveState
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update toggle button
+                const toggleBtn = document.getElementById('toggle-user-status');
+                if (toggleBtn) {
+                    toggleBtn.dataset.isActive = newActiveState.toString();
+
+                    if (newActiveState) {
+                        toggleBtn.textContent = 'Disable Account';
+                        toggleBtn.classList.remove('bg-green-100', 'text-green-700', 'hover:bg-green-200');
+                        toggleBtn.classList.add('bg-red-100', 'text-red-700', 'hover:bg-red-200');
+                    } else {
+                        toggleBtn.textContent = 'Enable Account';
+                        toggleBtn.classList.remove('bg-red-100', 'text-red-700', 'hover:bg-red-200');
+                        toggleBtn.classList.add('bg-green-100', 'text-green-700', 'hover:bg-green-200');
+                    }
+                }
+
+                // Update status display
+                const statusElement = document.querySelector('.text-green-600, .text-red-600');
+                if (statusElement) {
+                    if (newActiveState) {
+                        statusElement.textContent = 'Active';
+                        statusElement.className = 'text-green-600';
+                    } else {
+                        statusElement.textContent = 'Disabled';
+                        statusElement.className = 'text-red-600';
+                    }
+                }
+
+                showNotification(`User ${newActiveState ? 'enabled' : 'disabled'} successfully`);
+            } else {
+                showNotification('Error updating user status: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error("Error toggling user status:", error);
+            showNotification('Error connecting to server');
+        });
+    }
+
+    // Get CSRF token for API requests
+    function getCsrfToken() {
+        // Method 1: From cookies
+        try {
+            const name = 'csrftoken=';
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const cookieArray = decodedCookie.split(';');
+
+            for (let cookie of cookieArray) {
+                cookie = cookie.trim();
+                if (cookie.indexOf(name) === 0) {
+                    return cookie.substring(name.length);
+                }
+            }
+        } catch (e) {}
+
+        // Method 2: From meta tag
+        try {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) {
+                return csrfMeta.getAttribute('content');
+            }
+        } catch (e) {}
+
+        // Method 3: From hidden input field
+        try {
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                return csrfInput.value;
+            }
+        } catch (e) {}
+
+        return '';
+    }
+
+    // Show notification
+    function showNotification(message) {
+        // Create a toast if it doesn't exist
+        let toast = document.getElementById('notification-toast');
+
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'notification-toast';
+            toast.className = 'fixed bottom-4 right-4 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-lg shadow-md z-50 opacity-0 transform translate-y-4 transition-all duration-300';
+            document.body.appendChild(toast);
+        }
+
+        // Set message and show
+        toast.textContent = message;
+        toast.classList.remove('opacity-0', 'translate-y-4');
+        toast.classList.add('opacity-100', 'translate-y-0');
+
+        // Hide after delay
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-4');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+        }, 3000);
+    }
+</script>
+{% endblock %}

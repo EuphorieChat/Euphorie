@@ -1,16 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.db import models
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
+
 from django.utils import timezone
 from datetime import timedelta
 import json
 from django.contrib.auth.decorators import login_required
-from .models import Room, RoomBookmark
+from .models import Room, RoomBookmark, UserProfile
 
 from .models import Room, Message, Category, Reaction, Announcement, AnnouncementReadStatus, UserSettings
 
@@ -1151,3 +1153,51 @@ class UserSettingsAdmin(admin.ModelAdmin):
         # Prevent deleting the settings instance
         return False
 
+
+@login_required
+def admin_user_profile(request, username):
+    """
+    Display and handle updates to a user's profile page.
+    """
+    # Get the profile user (could be current user or someone else)
+    profile_user = get_object_or_404(User, username=username)
+
+    # Check if the current user is viewing their own profile or someone else's
+    is_own_profile = request.user == profile_user
+
+    # Get or create the UserProfile
+    profile, created = UserProfile.objects.get_or_create(user=profile_user)
+
+    # Initialize profile data
+    profile_picture_data = {}
+    if profile.profile_picture_data:
+        try:
+            profile_picture_data = json.loads(profile.profile_picture_data)
+        except:
+            # Default fallback if JSON is invalid
+            profile_picture_data = {
+                'type': 'gradient',
+                'gradient': 'from-pink-400 to-orange-300'
+            }
+
+    # Get user's joined rooms
+    rooms = Room.objects.filter(members=profile_user).order_by('-created_at')
+
+    # Count messages sent
+    # If you have a Message model with a user field:
+    # message_count = Message.objects.filter(user=profile_user).count()
+    message_count = 0  # Placeholder - replace with actual query if you have a Message model
+
+    # Get basic stats for this user
+    context = {
+        'profile_user': profile_user,
+        'is_own_profile': is_own_profile,
+        'profile_picture_data': profile_picture_data,
+        'rooms': rooms,
+        'message_count': message_count,
+        'date_joined': profile_user.date_joined,
+        'profile': profile
+    }
+
+    # Render the template
+    return render(request, 'chat/manage/user_profile.html', context)
