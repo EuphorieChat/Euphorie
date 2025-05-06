@@ -2,12 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.db import models
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from datetime import timedelta
 import json
+from django.contrib.auth.decorators import login_required
+from .models import Room, RoomBookmark
 
 from .models import Room, Message, Category, Reaction, Announcement, AnnouncementReadStatus, UserSettings
 
@@ -1147,3 +1150,64 @@ class UserSettingsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Prevent deleting the settings instance
         return False
+
+@login_required
+def get_recommendations(request):
+    """API endpoint to get room recommendations and bookmarked rooms"""
+    try:
+        # Get popular rooms as recommendations
+        recommended_rooms = []
+
+        # Get rooms with message counts
+        active_rooms = Room.objects.annotate(
+            message_count=models.Count('messages')
+        ).order_by('-message_count')[:5]
+
+        for room in active_rooms:
+            # Skip rooms the user has already bookmarked (to avoid duplication)
+            if RoomBookmark.objects.filter(user=request.user, room=room, is_bookmarked=True).exists():
+                continue
+
+            recommended_rooms.append({
+                'name': room.name,
+                'display_name': room.display_name or room.name.replace('-', ' ').title(),
+                'category': room.category.name if room.category else None,
+                'message_count': room.message_count,  # This comes from the annotation
+                'activity': 'high' if room.message_count > 50 else 'medium',
+                'is_protected': getattr(room, 'is_protected', False)
+            })
+
+        # Get bookmarked rooms
+        bookmarked_rooms = []
+        bookmarks = RoomBookmark.objects.filter(
+            user=request.user,
+            is_bookmarked=True
+        ).select_related('room', 'room__category')
+
+        for bookmark in bookmarks:
+            room = bookmark.room
+            if not room:
+                continue
+
+            bookmarked_rooms.append({
+                'name': room.name,
+                'display_name': room.display_name or room.name.replace('-', ' ').title(),
+                'category': room.category.name if room.category else None,
+                'message_count': Message.objects.filter(room=room).count(),
+                'activity': 'high' if Message.objects.filter(room=room).count() > 50 else 'medium',
+                'is_protected': getattr(room, 'is_protected', False)
+            })
+
+        return JsonResponse({
+            'success': True,
+            'rooms': recommended_rooms,
+            'bookmarked_rooms': bookmarked_rooms
+        })
+
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)

@@ -378,10 +378,17 @@ class UserInterest(models.Model):
         return f"{self.user.username} interest: {self.engagement_score}"
 
 class RoomBookmark(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    """Model to track user bookmarks of rooms"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='room_bookmarks')
+    room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='bookmarks')
     is_bookmarked = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('user', 'room')
+        verbose_name = 'Room Bookmark'
+        verbose_name_plural = 'Room Bookmarks'
+
+    def __str__(self):
+        return f"{self.user.username}'s bookmark of {self.room.name}"

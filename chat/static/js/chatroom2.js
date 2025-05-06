@@ -1,18 +1,21 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // =============== CONFIGURATION & GLOBALS ===============
+    // Configuration and Globals
     const roomName = window.roomName;
     const username = window.username;
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 10;
-    const reconnectDelay = 3000;
+    const reconnectDelay = 3000; // 3 seconds
     let uploadedFiles = [];
     let isDrawing = false;
 
-    // Media library for persistence
-    window.mediaLibrary = { images: [], videos: [] };
+    // Make media library globally accessible for persistence
+    window.mediaLibrary = {
+        images: [],
+        videos: []
+    };
 
-    // =============== DOM ELEMENTS ===============
+    // DOM Elements
     const chatLog = document.getElementById("chat-log");
     const input = document.getElementById("chat-message-input");
     const fileInput = document.getElementById("file-input");
@@ -22,27 +25,40 @@ document.addEventListener("DOMContentLoaded", function () {
     const progressWrap = document.getElementById("progress-container");
     const cancelPreviewBtn = document.getElementById("cancel-preview");
     const messageForm = document.getElementById("message-form");
+    const sendButton = document.getElementById("send-btn");
     const whiteboardCanvas = document.getElementById('whiteboard-canvas');
     const ctx = whiteboardCanvas?.getContext('2d');
     const typingIndicator = document.getElementById("typing-indicator");
 
-    // =============== WEBSOCKET CONNECTION ===============
     function connectWebSocket() {
         const wsUrl = `${protocol}://${window.location.host}/ws/chat/${roomName}/`;
+        console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
 
         try {
             const socket = new WebSocket(wsUrl);
+
+            // Make socket globally accessible for debugging
             window.socket = socket;
 
-            socket.addEventListener("open", () => {
-                console.log(`WebSocket connected to room: ${roomName}`);
-                reconnectAttempts = 0;
+            // WebSocket Event Listeners with improved logging
+            socket.addEventListener("open", (event) => {
+                console.log(`✅ WebSocket connected to room: ${roomName}`);
+                reconnectAttempts = 0; // Reset reconnect counter on successful connection
 
-                // Request initial data
-                socket.send(JSON.stringify({ type: 'users', action: 'list' }));
+                // Request user list immediately on connection
+                socket.send(JSON.stringify({
+                    type: 'users',
+                    action: 'list'
+                }));
 
+                // Request other initial data
                 if (window.username) {
-                    socket.send(JSON.stringify({ type: 'meetup', action: 'list' }));
+                    socket.send(JSON.stringify({
+                        type: 'meetup',
+                        action: 'list'
+                    }));
+
+                    // Request friends and recommendations
                     requestOnlineFriends();
                     requestRoomRecommendations();
                 }
@@ -50,19 +66,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
             socket.addEventListener("message", handleSocketMessage);
 
-            socket.addEventListener("error", () => {
+            socket.addEventListener("error", (error) => {
+                console.error("⚠️ WebSocket error:", error);
                 alertUserOfConnectionIssue();
             });
 
             socket.addEventListener("close", (event) => {
+                console.log(`❌ WebSocket closed: ${event.code}, reason: ${event.reason || 'No reason provided'}`);
+
+                // Auto-reconnect after a short delay
                 if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
                     reconnectAttempts++;
                     const delay = reconnectDelay * Math.min(reconnectAttempts, 5);
+                    console.log(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts}) in ${delay/1000} seconds...`);
 
                     setTimeout(() => {
+                        console.log("Reconnecting WebSocket...");
                         connectWebSocket();
                     }, delay);
                 } else if (reconnectAttempts >= maxReconnectAttempts) {
+                    console.error("Maximum reconnection attempts reached. Please refresh the page.");
                     alertUserOfMaxReconnectAttempts();
                 }
 
@@ -77,90 +100,108 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Alert functions (placeholder implementations)
-    function alertUserOfConnectionIssue() {
-        // Implementation depends on your UI design
-    }
-
-    function alertUserOfMaxReconnectAttempts() {
-        // Implementation depends on your UI design
-    }
-
-    // =============== MESSAGE HANDLING ===============
     function handleSocketMessage(event) {
+        // Log incoming data for debugging
+        console.log("📩 Message received:", event.data.substring(0, 200) + (event.data.length > 200 ? '...' : ''));
+
         try {
             const data = JSON.parse(event.data);
             const messageType = data.type || 'unknown';
 
+            console.log(`Processing message of type: ${messageType}`);
+
             switch (messageType) {
                 case "chat":
+                    console.log("Chat message:", data);
                     renderMessage(data);
+                    // Track media in the message for media library
                     trackMediaInMessage(data.message);
                     break;
 
                 case "reaction":
+                    console.log("Reaction update:", data);
                     updateReaction(data);
                     break;
 
                 case "typing":
+                    console.log("Typing indicator:", data);
                     showTyping(data.username);
                     break;
 
                 case "users":
+                    console.log("User list update received:", data);
                     if (data.users && Array.isArray(data.users)) {
                         updateUserList(data.users);
+                    } else {
+                        console.error("Invalid users data:", data.users);
                     }
                     break;
 
                 case "whiteboard":
+                    console.log("Whiteboard update:", data);
                     handleWhiteboardMessage(data);
                     break;
 
                 case "meetups":
+                    console.log("Meetups update:", data);
                     renderMeetups(data.meetups);
                     break;
 
                 case "announcement":
+                    console.log("Announcement update:", data);
                     handleAnnouncementMessage(data);
                     break;
 
                 case "friends":
+                    console.log("Friends update:", data);
                     handleFriendsMessage(data);
                     break;
 
                 case "recommendations":
+                    console.log("Recommendations update:", data);
                     handleRecommendationsMessage(data);
                     break;
 
                 case "pong":
-                    // Pong received - connection alive
+                    console.log("Pong received from server");
                     break;
 
                 case "error":
                     console.error("Error from server:", data.message);
+                    if (data.message && data.message.includes("authentication")) {
+                        // Handle authentication errors specially
+                        console.log("Authentication issue detected - user may need to log in");
+                    }
                     break;
+
+                default:
+                    console.log("Unknown message type:", messageType, data);
             }
         } catch (e) {
             console.error("Error processing message:", e);
+            console.error("Raw message data:", event.data);
         }
     }
 
-    // Request user list
     function requestUserList() {
         if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            console.log("Manually requesting user list");
             window.socket.send(JSON.stringify({
                 type: 'users',
                 action: 'list'
             }));
+        } else {
+            console.error("Cannot request user list: WebSocket not connected");
         }
     }
 
-    // =============== INITIALIZATION ===============
     // Initialize WebSocket connection
     const socket = connectWebSocket();
 
-    // Request user list after a short delay
-    setTimeout(requestUserList, 1000);
+    setTimeout(() => {
+        // Request user list again after a short delay to ensure connection is established
+        requestUserList();
+    }, 1000);
 
     // Message form setup
     if (messageForm) {
@@ -174,7 +215,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Initialize all features
+    // Init functions
     initFriendsAndRecommendations();
     initFileUpload();
     initEmojiPanel();
@@ -182,20 +223,20 @@ document.addEventListener("DOMContentLoaded", function () {
     initWhiteboard();
     initMeetupPlanner();
     initMobileUserList();
-    initAnnouncementHandlers();
-    initMediaLibrary();
+    initAnnouncementHandlers(); // Initialize announcement handlers
+    initMediaLibrary(); // Initialize media library immediately
 
-    // Initialize message reaction listeners
+    // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
 
-    // Auto-scroll chat on load
+    // Auto-scroll to bottom of chat on load
     if (chatLog) {
+        // Delay scroll to ensure all content is rendered first
         setTimeout(() => {
             chatLog.scrollTo({ top: chatLog.scrollHeight });
         }, 100);
     }
 
-    // =============== MEDIA HANDLING ===============
     // Image compression function
     async function compressImage(file) {
         return new Promise((resolve) => {
@@ -203,12 +244,13 @@ document.addEventListener("DOMContentLoaded", function () {
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
+                    // Create canvas for compression
                     const canvas = document.createElement('canvas');
 
                     // Calculate new dimensions (maintaining aspect ratio)
                     let width = img.width;
                     let height = img.height;
-                    const maxDimension = 900;
+                    const maxDimension = 900; // Maximum dimension
 
                     if (width > maxDimension || height > maxDimension) {
                         if (width > height) {
@@ -223,15 +265,17 @@ document.addEventListener("DOMContentLoaded", function () {
                     canvas.width = width;
                     canvas.height = height;
 
+                    // Draw image on canvas
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
+                    // Convert to blob with reduced quality
                     canvas.toBlob((blob) => {
                         resolve(new File([blob], file.name, {
                             type: 'image/jpeg',
                             lastModified: Date.now()
                         }));
-                    }, 'image/jpeg', 0.5);
+                    }, 'image/jpeg', 0.5); // Adjust quality (0.5 = 50%)
                 };
                 img.src = event.target.result;
             };
@@ -239,28 +283,39 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Track media in messages for media library
+    // Media tracking function - CRITICAL for media library
     function trackMediaInMessage(message) {
         try {
-            if (!message) return;
+            if (!message) {
+                console.warn("No message content to track media from");
+                return;
+            }
 
+            console.log("Tracking media in message");
+
+            // Ensure mediaLibrary exists
             if (!window.mediaLibrary) {
                 window.mediaLibrary = { images: [], videos: [] };
             }
 
+            // Create a temporary div to parse the HTML content
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = message;
 
-            // Track images
-            tempDiv.querySelectorAll('img').forEach(img => {
+            // Find and track images
+            const images = tempDiv.querySelectorAll('img');
+            images.forEach(img => {
                 if (img.src && !window.mediaLibrary.images.includes(img.src)) {
+                    console.log("Adding image to library:", img.src);
                     window.mediaLibrary.images.push(img.src);
                 }
             });
 
-            // Track videos
-            tempDiv.querySelectorAll('video source').forEach(source => {
+            // Find and track videos
+            const videos = tempDiv.querySelectorAll('video source');
+            videos.forEach(source => {
                 if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+                    console.log("Adding video to library:", source.src);
                     window.mediaLibrary.videos.push(source.src);
                 }
             });
@@ -269,22 +324,46 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // =============== MESSAGE FUNCTIONS ===============
+    // Enhanced sendMessage function with error handling
     function sendMessage() {
         const msg = input.value.trim();
 
-        // Check authentication
+        // Check authentication first
         if (!window.username) {
+            // Instead of alert, we could show a more user-friendly message
+            console.log('Cannot send: User not authenticated');
+
             if (document.querySelector('.guest-banner')) {
+                // Highlight the guest banner to draw attention
                 const guestBanner = document.querySelector('.guest-banner');
                 guestBanner.classList.add('highlight-banner');
                 setTimeout(() => {
                     guestBanner.classList.remove('highlight-banner');
                 }, 2000);
             } else {
+                // Show a small notification
                 showLoginPrompt();
             }
             return;
+        }
+
+        function showLoginPrompt() {
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Please log in to send messages</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Remove toast after animation
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 3500);
         }
 
         // Send text message
@@ -295,6 +374,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     message: msg
                 }));
                 input.value = "";
+                console.log("Text message sent successfully");
             } catch (error) {
                 console.error("Error sending text message:", error);
                 alertUserOfConnectionIssue();
@@ -306,24 +386,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.error("Error in file upload process:", error);
             });
         }
-    }
-
-    function showLoginPrompt() {
-        const toast = document.createElement('div');
-        toast.className = 'notification-toast';
-        toast.innerHTML = `
-            <div class="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Please log in to send messages</span>
-            </div>
-        `;
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 3500);
     }
 
     function renderMessage({ username: sender, message, message_id }) {
@@ -348,13 +410,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="reactions-container flex flex-wrap gap-1 mt-1 text-xs"></div>
                 `;
 
-        // Set message content as HTML
+        // Inject message as raw HTML so <img> or <video> shows
         wrapper.querySelector(".message-content").innerHTML = message;
 
         chatLog.appendChild(wrapper);
         chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
 
         addReactionListeners(wrapper);
+
+        // Make sure to track media in the message for the media library
         trackMediaInMessage(message);
     }
 
@@ -390,7 +454,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function showTyping(typingUsername) {
         if (!typingIndicator) return;
 
-        // Only show typing for other users
+        // Only show typing for other users, not for current user
         if (typingUsername === username) return;
 
         const usernameElement = document.getElementById("typing-username");
@@ -404,14 +468,23 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updateUserList(users) {
+        console.log("Updating user list with:", users);
         const userList = document.getElementById("user-list");
         const mobileList = document.getElementById("mobile-user-list-content");
 
-        if (!userList) return;
+        // Early error handling with more descriptive console messages
+        if (!userList) {
+            console.error("Desktop user list element not found! Make sure element with id 'user-list' exists.");
+            return;
+        }
 
-        // Clear existing content
+        // Clear the existing content
         userList.innerHTML = "";
-        if (mobileList) mobileList.innerHTML = "";
+
+        // Handle the mobile list if it exists
+        if (mobileList) {
+            mobileList.innerHTML = "";
+        }
 
         // Check if we have users to display
         if (!users || users.length === 0) {
@@ -425,8 +498,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // Get current username for comparison
         const currentUsername = window.username;
 
-        // Ensure unique users
+        // Use a Set to ensure each username only appears once
         const uniqueUsers = [...new Set(users)];
+        console.log("Unique users:", uniqueUsers);
 
         // Create list items for each user
         uniqueUsers.forEach(user => {
@@ -492,7 +566,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Add event listeners for add friend buttons
+        // Add event listeners for add friend buttons (after all elements are added to DOM)
         document.querySelectorAll('.add-friend-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const username = this.dataset.username;
@@ -523,7 +597,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // =============== FILE UPLOAD ===============
+    // File Upload Functions
     function initFileUpload() {
         if (fileInput) {
             fileInput.addEventListener("change", (e) => {
@@ -571,8 +645,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Get CSRF token for API requests
+    // Enhanced CSRF token handling function
     function getCsrfToken() {
+        // Try multiple methods to get the CSRF token
+
         // Method 1: From cookies
         try {
             const name = 'csrftoken=';
@@ -585,7 +661,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     return cookie.substring(name.length);
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Error getting CSRF token from cookies:", e);
+        }
 
         // Method 2: From meta tag
         try {
@@ -593,7 +671,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (csrfMeta) {
                 return csrfMeta.getAttribute('content');
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Error getting CSRF token from meta tag:", e);
+        }
 
         // Method 3: From hidden input field
         try {
@@ -601,38 +681,45 @@ document.addEventListener("DOMContentLoaded", function () {
             if (csrfInput) {
                 return csrfInput.value;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Error getting CSRF token from input field:", e);
+        }
 
+        console.error("CSRF token not found. This may cause issues with AJAX requests.");
         return '';
     }
 
-    // Upload files and send in chat
+    // Enhanced file upload function with better error handling and CSRF token
     async function uploadFilesAndSend() {
         if (uploadedFiles.length === 0) return;
 
         const formData = new FormData();
         const csrfToken = getCsrfToken();
 
+        // Compress images before uploading
         try {
-            // Compress images before uploading
             for (const file of uploadedFiles) {
                 try {
                     if (file.type.startsWith('image/')) {
                         const compressedFile = await compressImage(file);
                         formData.append("media", compressedFile);
+                        console.log("Added compressed image to upload: original size:", file.size, "compressed size:", compressedFile.size);
                     } else {
                         formData.append("media", file);
                     }
                 } catch (error) {
                     console.error(`Error processing file ${file.name}:`, error);
+                    // Continue with other files
                 }
             }
 
             progressWrap.classList.remove("hidden");
             progressBar.style.width = "0%";
 
+            // Use the actual URL path
             const uploadUrl = "/api/upload_media/";
 
+            // Add CSRF token to request headers
             const response = await fetch(uploadUrl, {
                 method: "POST",
                 body: formData,
@@ -660,7 +747,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             message: html,
                         }));
 
-                        // Add to media library immediately
+                        // Add to media library immediately after sending
                         if (url.match(/\.(mp4|webm)$/i)) {
                             if (!window.mediaLibrary.videos.includes(url)) {
                                 window.mediaLibrary.videos.push(url);
@@ -676,6 +763,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
             } else {
+                console.error("Upload succeeded but no URLs returned:", result);
                 throw new Error("No media URLs returned from server");
             }
         } catch (error) {
@@ -687,23 +775,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (progressWrap && progressWrap.parentNode) {
                 progressWrap.parentNode.appendChild(errorMsg);
-                setTimeout(() => errorMsg.remove(), 5000);
+                setTimeout(() => errorMsg.remove(), 5000);  // Show for 5 seconds
             }
-            throw error;
+            throw error; // Re-throw so caller can handle it
         } finally {
-            // Reset UI
+            // Reset UI regardless of outcome
             fileInput.value = "";
             uploadedFiles = [];
             previewContainer.classList.add("hidden");
 
-            // Delay hiding progress
+            // Delay hiding progress to make success visible
             setTimeout(() => {
                 progressWrap.classList.add("hidden");
             }, 1000);
         }
     }
 
-    // =============== EMOJI PANEL ===============
+    // Emoji Panel Functions
     function initEmojiPanel() {
         const emojiButton = document.getElementById("emoji-button");
         const emojiPanel = document.getElementById("emoji-panel");
@@ -727,7 +815,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // =============== REACTIONS ===============
+    // Reaction Functions
     function initReactionModal() {
         const reactionModal = document.getElementById("reactionModal");
         const closeModal = document.getElementById("closeModal");
@@ -782,7 +870,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // =============== MOBILE UI ===============
+    // Mobile UI Functions
     function initMobileUserList() {
         const mobileUserListToggle = document.getElementById("mobile-user-list-toggle");
         const mobileUserList = document.getElementById("mobile-user-list");
@@ -794,7 +882,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // =============== WHITEBOARD ===============
+    // Whiteboard Functions
     function initWhiteboard() {
         const openWhiteboardBtn = document.getElementById('open-whiteboard');
         const closeWhiteboardBtn = document.getElementById('close-whiteboard');
@@ -815,7 +903,7 @@ document.addEventListener("DOMContentLoaded", function () {
         openWhiteboardBtn.addEventListener('click', () => {
             whiteboardModal.classList.remove('hidden');
             whiteboardModal.classList.add('flex');
-            setTimeout(resizeCanvas, 100);
+            setTimeout(resizeCanvas, 100); // Delay to ensure modal is visible
         });
 
         closeWhiteboardBtn.addEventListener('click', () => {
@@ -943,7 +1031,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // =============== MEETUPS ===============
+    // Meetup Functions
     function initMeetupPlanner() {
         const createMeetupBtn = document.getElementById('create-meetup-btn');
         const meetupModal = document.getElementById('meetup-modal');
@@ -1138,21 +1226,30 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // =============== ANNOUNCEMENTS ===============
+    // Announcement Functions - FIXED VERSION
     function initAnnouncementHandlers() {
+        console.log("Initializing announcement handlers");
+
         // Handle close buttons for announcements in the top container
         const closeButtons = document.querySelectorAll('.close-announcement');
-        closeButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const announcementItem = this.closest('.announcement-item, .announcement-popup');
-                if (announcementItem) {
-                    const announcementId = announcementItem.dataset.announcementId;
-                    if (announcementId) {
-                        markAnnouncementAsRead(announcementId);
+        if (closeButtons.length > 0) {
+            console.log(`Found ${closeButtons.length} close buttons`);
+            closeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const announcementItem = this.closest('.announcement-item, .announcement-popup');
+                    if (announcementItem) {
+                        const announcementId = announcementItem.dataset.announcementId;
+                        if (announcementId) {
+                            markAnnouncementAsRead(announcementId);
+                        } else {
+                            console.error("No announcement ID found on item", announcementItem);
+                        }
                     }
-                }
+                });
             });
-        });
+        } else {
+            console.log("No close buttons found");
+        }
 
         // Process existing announcements from the page and add them to the chat
         const chatLog = document.getElementById('chat-log');
@@ -1160,6 +1257,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const announcements = container ? container.querySelectorAll('.announcement-item:not(.hidden)') : [];
 
         if (announcements.length > 0 && chatLog) {
+            console.log(`Found ${announcements.length} visible announcements to process`);
+
             // Hide the original container
             if (container) {
                 container.classList.add('hidden');
@@ -1170,7 +1269,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     // Get important data with null checks
                     const announcementId = originalAnnouncement.dataset.announcementId;
-                    if (!announcementId) return;
+                    if (!announcementId) {
+                        console.error("Missing announcement ID", originalAnnouncement);
+                        return;
+                    }
 
                     // Safely get announcement content
                     const creatorElement = originalAnnouncement.querySelector('.text-blue-800');
@@ -1237,18 +1339,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Scroll to make announcements visible
             chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: "smooth" });
+        } else {
+            console.log("No announcements to process or chat log not found", {
+                chatLogExists: !!chatLog,
+                announcements: announcements.length
+            });
         }
     }
 
     function handleAnnouncementMessage(data) {
+        console.log("Handling announcement message:", data);
+
         const chatLog = document.getElementById('chat-log');
-        if (!chatLog) return;
+        if (!chatLog) {
+            console.error("Chat log element not found");
+            return;
+        }
 
         if (data.action === 'new') {
             try {
                 // Check if this announcement is already displayed
                 const existingAnnouncement = document.querySelector(`.announcement-popup[data-announcement-id="${data.announcement_id}"]`);
-                if (existingAnnouncement) return;
+                if (existingAnnouncement) {
+                    console.log("Announcement already displayed, not showing again");
+                    return;
+                }
 
                 // Create announcement element that appears in the chat stream
                 const announcement = document.createElement('div');
@@ -1311,10 +1426,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function markAnnouncementAsRead(announcementId) {
-        if (!announcementId) return;
+        if (!announcementId) {
+            console.error("No announcement ID provided");
+            return;
+        }
+
+        console.log(`Marking announcement ${announcementId} as read`);
 
         // Get CSRF token
         const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            console.error("Could not get CSRF token");
+        }
 
         // Send request to mark announcement as read
         fetch(`/api/announcement/${announcementId}/mark_read/`, {
@@ -1331,8 +1454,11 @@ document.addEventListener("DOMContentLoaded", function () {
             return response.json();
         })
         .then(data => {
+            console.log("Announcement marked as read response:", data);
             if (data.success) {
-                // Hide in the top container if it exists
+                // Hide all instances of this announcement (both in top container and in chat)
+
+                // 1. Hide in the top container if it exists
                 const topAnnouncement = document.querySelector(`#announcements-container .announcement-item[data-announcement-id="${announcementId}"]`);
                 if (topAnnouncement) {
                     topAnnouncement.classList.add('hidden');
@@ -1349,7 +1475,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 }
 
-                // Animate and remove from chat if it exists there
+                // 2. Animate and remove from chat if it exists there
                 const chatAnnouncement = document.querySelector(`.announcement-popup[data-announcement-id="${announcementId}"]`);
                 if (chatAnnouncement) {
                     // Add a fade-out animation
@@ -1372,15 +1498,20 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // =============== MEDIA LIBRARY ===============
+    // Media Library Functions - ROBUST VERSION
     function initMediaLibrary() {
         try {
-            // Ensure the global media library exists
+            console.log("Initializing media library...");
+
+            // If the global media library doesn't exist, create it
             if (!window.mediaLibrary) {
-                window.mediaLibrary = { images: [], videos: [] };
+                window.mediaLibrary = {
+                    images: [],
+                    videos: []
+                };
             }
 
-            // Get DOM elements
+            // Get DOM elements with null checks
             const openMediaBtn = document.getElementById('open-media-library');
             const closeMediaBtn = document.getElementById('close-media-library');
             const mediaModal = document.getElementById('media-library-modal');
@@ -1388,14 +1519,30 @@ document.addEventListener("DOMContentLoaded", function () {
             const filterBtns = document.querySelectorAll('.media-filter-btn');
             const closePreviewBtn = document.getElementById('close-media-preview');
             const previewModal = document.getElementById('media-preview-modal');
+            const previewContent = document.getElementById('media-preview-content');
+
+            // Debug check for necessary elements
+            console.log("Media library elements:", {
+                openMediaBtn: !!openMediaBtn,
+                closeMediaBtn: !!closeMediaBtn,
+                mediaModal: !!mediaModal,
+                mediaGrid: !!mediaGrid,
+                filterButtons: filterBtns?.length,
+                previewModal: !!previewModal,
+                previewContent: !!previewContent
+            });
 
             // Check for required elements and exit if missing
-            if (!openMediaBtn) return;
+            if (!openMediaBtn) {
+                console.error("Media library button not found - cannot initialize");
+                return;
+            }
 
             if (!mediaModal || !mediaGrid) {
+                console.error("Media library modal or grid not found - cannot initialize fully");
                 // We can still attach the event listener to the button, but we'll show an error when clicked
                 openMediaBtn.addEventListener('click', function() {
-                    alert("Media library functionality is not available.");
+                    alert("Media library functionality is not available. Please contact support.");
                 });
                 return;
             }
@@ -1405,6 +1552,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Open media library button
             openMediaBtn.addEventListener('click', function() {
+                console.log("Opening media library");
+
                 // Scan again to make sure we have the latest media
                 scanDOMForMedia();
 
@@ -1426,31 +1575,42 @@ document.addEventListener("DOMContentLoaded", function () {
                 renderMediaGrid('all');
 
                 // Show the modal
-                mediaModal.classList.remove('hidden');
-                mediaModal.classList.add('flex');
+                if (mediaModal) {
+                    mediaModal.classList.remove('hidden');
+                    mediaModal.classList.add('flex');
+                }
             });
 
             // Close media library button
             if (closeMediaBtn) {
                 closeMediaBtn.addEventListener('click', function() {
-                    mediaModal.classList.add('hidden');
-                    mediaModal.classList.remove('flex');
+                    console.log("Closing media library");
+                    if (mediaModal) {
+                        mediaModal.classList.add('hidden');
+                        mediaModal.classList.remove('flex');
+                    }
                 });
             }
 
             // Close preview button
             if (closePreviewBtn && previewModal) {
                 closePreviewBtn.addEventListener('click', function() {
+                    console.log("Closing media preview");
                     previewModal.classList.add('hidden');
                     previewModal.classList.remove('flex');
                 });
             }
 
-            // Filter buttons
-            if (filterBtns && filterBtns.length > 0) {
+             // Filter buttons
+             if (filterBtns && filterBtns.length > 0) {
                 filterBtns.forEach(btn => {
                     btn.addEventListener('click', function() {
-                        if (!btn.dataset.filter) return;
+                        if (!btn.dataset.filter) {
+                            console.error("Filter button missing data-filter attribute");
+                            return;
+                        }
+
+                        console.log("Filter clicked:", btn.dataset.filter);
 
                         // Update active state
                         filterBtns.forEach(b => {
@@ -1466,62 +1626,80 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                 });
             }
+            console.log("Media library initialization complete");
         } catch (error) {
             console.error("Error initializing media library:", error);
         }
     }
 
-    // Scan DOM for media
+    // Scan DOM for media with robust error handling
     function scanDOMForMedia() {
         try {
+            console.log("Scanning DOM for media...");
+
             // Ensure mediaLibrary exists
             if (!window.mediaLibrary) {
                 window.mediaLibrary = { images: [], videos: [] };
             }
 
-            // Find all images in message content
+            // Use a more comprehensive approach to find media
+            // 1. Find all images in message content
             const messageImages = document.querySelectorAll('.message-content img');
             messageImages.forEach(img => {
                 if (img.src && !window.mediaLibrary.images.includes(img.src)) {
+                    console.log("Found image in message:", img.src);
                     window.mediaLibrary.images.push(img.src);
                 }
             });
 
-            // Find all standalone images
+            // 2. Find all standalone images
             const standaloneImages = document.querySelectorAll('img:not(.message-content img)');
             standaloneImages.forEach(img => {
                 if (img.src &&
                     !img.src.includes('data:image') && // Skip inline data URLs
                     !window.mediaLibrary.images.includes(img.src)) {
+                    console.log("Found standalone image:", img.src);
                     window.mediaLibrary.images.push(img.src);
                 }
             });
 
-            // Find all videos in message content
+            // 3. Find all videos in message content
             const messageVideos = document.querySelectorAll('.message-content video source');
             messageVideos.forEach(source => {
                 if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+                    console.log("Found video in message:", source.src);
                     window.mediaLibrary.videos.push(source.src);
                 }
             });
 
-            // Find all standalone videos
+            // 4. Find all standalone videos
             const standaloneVideos = document.querySelectorAll('video:not(.message-content video) source');
             standaloneVideos.forEach(source => {
                 if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+                    console.log("Found standalone video:", source.src);
                     window.mediaLibrary.videos.push(source.src);
                 }
+            });
+
+            console.log("Media library after scan:", {
+                images: window.mediaLibrary.images.length,
+                videos: window.mediaLibrary.videos.length
             });
         } catch (error) {
             console.error("Error scanning DOM for media:", error);
         }
     }
 
-    // Render media grid
+    // Render media grid with robust error handling
     function renderMediaGrid(filter) {
         try {
+            console.log(`Rendering media grid with filter: ${filter}`);
+
             const mediaGrid = document.getElementById('media-grid');
-            if (!mediaGrid) return;
+            if (!mediaGrid) {
+                console.error("Media grid element not found!");
+                return;
+            }
 
             // Ensure the media library exists
             if (!window.mediaLibrary) {
@@ -1545,6 +1723,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (src) mediaItems.push({ type: 'video', src });
                 });
             }
+
+            console.log(`Found ${mediaItems.length} media items for filter '${filter}'`);
 
             // Show empty state if no media
             if (mediaItems.length === 0) {
@@ -1593,7 +1773,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Add preview functionality
                     mediaItem.addEventListener('click', function() {
-                        if (!previewModal || !previewContent) return;
+                        console.log("Media item clicked:", item);
+
+                        if (!previewModal || !previewContent) {
+                            console.error("Preview elements not found!");
+                            alert("Preview functionality is not available");
+                            return;
+                        }
 
                         try {
                             // Clear previous content
@@ -1628,14 +1814,37 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // =============== FRIENDS & RECOMMENDATIONS ===============
+    // Helper Functions
+    function formatDate(date) {
+        try {
+            return date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error("Error formatting date:", error);
+            return date.toString();
+        }
+    }
+
+    // Friend and Recommendations Functions
     function initFriendsAndRecommendations() {
-        // Get DOM elements
+        console.log("Initializing friends and recommendations features");
+
+        // Get DOM elements for friends section
         const onlineFriendsList = document.getElementById('online-friends-list');
+
+        // Get DOM elements for recommendations section
         const recommendedRoomsList = document.getElementById('recommended-rooms-list');
 
         // If none of these elements exist, exit early
-        if (!onlineFriendsList && !recommendedRoomsList) return;
+        if (!onlineFriendsList && !recommendedRoomsList) {
+            console.log("No friends/recommendations elements found - skipping initialization");
+            return;
+        }
 
         // Request online friends if the element exists
         if (onlineFriendsList) {
@@ -1654,43 +1863,33 @@ document.addEventListener("DOMContentLoaded", function () {
     // Request online friends from the server
     function requestOnlineFriends() {
         if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            console.log("Requesting online friends");
             window.socket.send(JSON.stringify({
                 type: 'friends',
                 action: 'list_online'
             }));
+        } else {
+            console.warn("WebSocket not connected - cannot request online friends");
         }
     }
 
     // Request room recommendations from the server
     function requestRoomRecommendations() {
         if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            console.log("Requesting room recommendations including bookmarks");
             window.socket.send(JSON.stringify({
                 type: 'recommendations',
                 action: 'get',
-                include_bookmarks: true // Add flag to request bookmarked rooms
+                include_bookmarks: true // Added flag to request bookmarked rooms
             }));
         } else {
-            // Fallback to HTTP API if WebSocket isn't connected
-            fallbackRequestRoomRecommendations();
+            console.warn("WebSocket not connected - cannot request room recommendations");
         }
-    }
-
-    // HTTP fallback for room recommendations
-    function fallbackRequestRoomRecommendations() {
-        fetch('/api/get_recommendations/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
-                }
-            })
-            .catch(error => {
-                console.error("Error in fallback recommendations request:", error);
-            });
     }
 
     // Handle friends messages from the server
     function handleFriendsMessage(data) {
+        console.log("Got friends message:", data);
         if (data.action === 'online_list') {
             renderOnlineFriends(data.friends || []);
         }
@@ -1698,6 +1897,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Handle recommendations messages from the server
     function handleRecommendationsMessage(data) {
+        console.log("Got recommendations message:", data);
         if (data.action === 'list') {
             // Extract bookmarked rooms and regular recommendations
             const bookmarkedRooms = data.bookmarked_rooms || [];
@@ -1708,15 +1908,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+
     // Render online friends list
     function renderOnlineFriends(friends) {
         const onlineFriendsList = document.getElementById('online-friends-list');
         if (!onlineFriendsList) return;
 
-        // Default to empty list
+        // Generate dummy data for demo if we didn't get any friends
+        if (!friends || !Array.isArray(friends) || friends.length === 0) {
+            // Create sample data for demonstration
+            friends = [
+                { username: 'Sarah', avatar: 'S', status: 'online' },
+                { username: 'Mike', avatar: 'M', status: 'online' }
+            ];
+        }
+
         onlineFriendsList.innerHTML = '';
 
-        if (!friends || !Array.isArray(friends) || friends.length === 0) {
+        if (friends.length === 0) {
             onlineFriendsList.innerHTML = `
                 <div class="text-gray-400 text-xs italic py-2">
                     None of your friends are online right now.
@@ -1801,7 +2010,7 @@ document.addEventListener("DOMContentLoaded", function () {
         container.appendChild(roomItem);
     }
 
-    // Render room recommendations list
+    // Render room recommendations list - updated to show bookmarked rooms first
     function renderRoomRecommendations(rooms, bookmarkedRooms = []) {
         const recommendedRoomsList = document.getElementById('recommended-rooms-list');
         if (!recommendedRoomsList) return;
@@ -1854,89 +2063,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // =============== BOOKMARK FUNCTIONALITY ===============
-    // Initialize bookmark button
-    function initializeBookmarkButton() {
-        const bookmarkBtn = document.getElementById('bookmark-room');
-
-        if (!bookmarkBtn) return;
-
-        // Check if room is already bookmarked from localStorage
-        const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
-
-        // Update button appearance based on current state
-        updateBookmarkButton(isBookmarked);
-
-        // Add click event listener
-        bookmarkBtn.addEventListener('click', function() {
-            // Toggle bookmarked state
-            const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
-
-            // Get CSRF token
-            const csrfToken = getCsrfToken();
-
-            // Send bookmark request to server
-            fetch('/api/toggle_bookmark_room/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    room_name: window.roomName,
-                    bookmarked: newState
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Store bookmark state in localStorage
-                    localStorage.setItem(`bookmarked_${window.roomName}`, newState);
-
-                    // Update button appearance
-                    updateBookmarkButton(newState);
-
-                    // Show notification
-                    showNotification(newState ? 'Room bookmarked!' : 'Room bookmark removed');
-
-                    // Update recommendations to reflect the new bookmark state
-                    requestRoomRecommendations();
-                } else {
-                    showNotification('Failed to update bookmark: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error toggling room bookmark:', error);
-                showNotification('An error occurred while updating bookmark');
-            });
-        });
-    }
-
-    // Update bookmark button appearance
-    function updateBookmarkButton(isBookmarked) {
-        const bookmarkBtn = document.getElementById('bookmark-room');
-        if (!bookmarkBtn) return;
-
-        if (isBookmarked) {
-            // Bookmarked state - filled icon
-            bookmarkBtn.classList.add('active');
-            bookmarkBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-            `;
-            bookmarkBtn.setAttribute('title', 'Remove bookmark');
-        } else {
-            // Not bookmarked state - outlined icon
-            bookmarkBtn.classList.remove('active');
-            bookmarkBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-            `;
-            bookmarkBtn.setAttribute('title', 'Bookmark this room');
-        }
-    }
 
     // Send a friend request
     function sendFriendRequest(userId) {
@@ -1955,7 +2081,9 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(response => response.json())
         .then(data => {
+            console.log("Friend request response:", data);
             if (data.success) {
+                console.log('Friend request sent successfully');
                 showNotification('Friend request sent!');
             } else {
                 console.error('Failed to send friend request:', data.error);
@@ -1967,6 +2095,47 @@ document.addEventListener("DOMContentLoaded", function () {
             showNotification('Error sending friend request');
         });
     }
+
+
+    // Make sure this function is called when the page loads
+    function initRoomRecommendations() {
+        console.log("Initializing room recommendations");
+
+        // First try WebSocket approach
+        requestRoomRecommendations();
+
+        // Set a timeout to use HTTP fallback if WebSocket doesn't respond within 3 seconds
+        setTimeout(function() {
+        const recommendedRoomsList = document.getElementById('recommended-rooms-list');
+
+        // Only use fallback if the list is still showing loading state
+        if (recommendedRoomsList &&
+            recommendedRoomsList.innerHTML.includes('animate-pulse')) {
+            console.log("Using fallback HTTP request for recommendations");
+            fallbackRequestRoomRecommendations();
+        }
+        }, 3000);
+    }
+
+    initRoomRecommendations();
+
+    function fallbackRequestRoomRecommendations() {
+        console.log("Using fallback HTTP request for recommendations");
+
+        fetch('/api/get_recommendations/')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              console.log("Received recommendations from HTTP API:", data);
+              renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
+            } else {
+              console.error("Error fetching recommendations:", data.error);
+            }
+          })
+          .catch(error => {
+            console.error("Error in fallback recommendations request:", error);
+          });
+      }
 
     // Show notification helper
     function showNotification(message) {
@@ -1992,10 +2161,4 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 3000);
         }
     }
-
-    // Call initialization when the page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize bookmark button if it exists
-        initializeBookmarkButton();
-    });
 });

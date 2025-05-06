@@ -862,19 +862,42 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return []
 
     def _get_recommendation_rooms(self):
-        """Get a few random rooms as recommendations"""
+        """Get room recommendations for the current user"""
         try:
+            from django.db.models import Count
             from .models import Room
-            # Get 5 random rooms as recommendations
-            return Room.objects.order_by('?')[:5]
+
+            # If user is authenticated, get personalized recommendations
+            if self.is_authenticated:
+                # Get rooms the user has already participated in
+                user_rooms = Room.objects.filter(
+                    messages__user=self.user
+                ).distinct().values_list('id', flat=True)
+
+                # Get recommendations - exclude rooms the user is already in
+                recommendations = Room.objects.exclude(
+                    id__in=user_rooms
+                ).annotate(
+                    message_count=Count('messages')
+                ).order_by('-message_count')[:5]
+
+                return recommendations
+            else:
+                # For anonymous users, just return popular rooms
+                return Room.objects.annotate(
+                    message_count=Count('messages')
+                ).order_by('-message_count')[:5]
         except Exception as e:
             logger.error(f"Error getting recommendation rooms: {str(e)}")
             return []
 
     def _get_bookmarked_room_data(self):
-        """Get bookmarked rooms data directly"""
+        """Get bookmarked rooms data for the current user"""
         try:
-            from .models import RoomBookmark
+            from .models import RoomBookmark, Message
+
+            if not self.is_authenticated:
+                return []
 
             # Get bookmarked rooms
             bookmarks = RoomBookmark.objects.filter(
@@ -889,12 +912,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if not room:
                     continue
 
+                # Count messages for this room
+                message_count = Message.objects.filter(room=room).count()
+
                 result.append({
                     'name': room.name,
                     'display_name': room.display_name or room.name.title(),
                     'category': room.category.name if room.category else None,
-                    'message_count': room.messages.count(),
-                    'activity': 'medium',
+                    'message_count': message_count,
+                    'activity': 'high' if message_count > 50 else 'medium',
                     'is_protected': getattr(room, 'is_protected', False)
                 })
 
