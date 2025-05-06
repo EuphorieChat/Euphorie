@@ -2539,6 +2539,40 @@ document.addEventListener("DOMContentLoaded", function() {
       });
 
       // Function to populate recommended rooms
+      document.addEventListener('DOMContentLoaded', function() {
+        // Profile dropdown functionality
+        const profileToggle = document.getElementById('user-profile-toggle');
+        const profileMenu = document.getElementById('profile-menu');
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const profilePicModal = document.getElementById('profile-pic-modal');
+
+        if (profileToggle && profileMenu) {
+          profileToggle.addEventListener('click', function() {
+            profileMenu.classList.toggle('open');
+          });
+
+          // Close when clicking elsewhere
+          document.addEventListener('click', function(e) {
+            if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+              profileMenu.classList.remove('open');
+            }
+          });
+        }
+
+        // Open profile picture modal from dropdown
+        if (changeAvatarBtn && profilePicModal) {
+          changeAvatarBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            profileMenu.classList.remove('open');
+            profilePicModal.classList.add('open');
+          });
+        }
+
+        // Initialize Recommended Rooms
+        populateRecommendedRooms();
+      });
+
+      // Function to populate recommended rooms
       function populateRecommendedRooms() {
         const roomsList = document.getElementById('recommended-rooms-list');
         if (!roomsList) return;
@@ -2584,7 +2618,7 @@ document.addEventListener("DOMContentLoaded", function() {
           const colorClass = roomColors[index % roomColors.length];
 
           const roomElement = document.createElement('a');
-          roomElement.href = `/chat/${room.name}/`;
+          roomElement.href = '/signup'; // Redirect to signup page, matches {% url 'signup' %}
           roomElement.className = 'block';
           roomElement.innerHTML = `
             <div class="room-card">

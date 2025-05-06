@@ -25,15 +25,6 @@
     border-left: 3px solid #ec4899;
   }
 
-  /* Improved focus states for accessibility */
-  button:focus,
-  a:focus,
-  input:focus,
-  select:focus {
-    outline: 2px solid #ec4899;
-    outline-offset: 2px;
-  }
-
   /* Enhanced card design */
   .message-card {
     transition: transform 0.2s ease;
@@ -87,30 +78,6 @@
     }
   }
 
-  /* Enhanced component styling */
-  .form-card {
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition: box-shadow 0.3s ease;
-  }
-
-  .form-card:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  }
-
-  /* Enhanced animation effects */
-  .btn {
-    transition: all 0.2s ease;
-  }
-
-  .btn:hover {
-    transform: translateY(-1px);
-  }
-
-  .btn:active {
-    transform: translateY(1px);
-  }
-
   /* Custom scrollbar for tables */
   .table-container::-webkit-scrollbar {
     height: 6px;
@@ -126,20 +93,15 @@
     border-radius: 10px;
   }
 
-  /* Skeleton loader animation for async operations */
-  @keyframes shimmer {
-    0% {
-      background-position: -1000px 0;
-    }
-    100% {
-      background-position: 1000px 0;
-    }
-  }
-
-  .skeleton {
-    animation: shimmer 2s infinite linear;
-    background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
-    background-size: 1000px 100%;
+  /* Badge styling */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
 
   /* Toast notification styling */
@@ -161,17 +123,6 @@
   .toast.active {
     opacity: 1;
     transform: translateY(0);
-  }
-
-  /* Badge styling */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9999px;
-    padding: 0.125rem 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 500;
   }
 </style>
 {% endblock %}
@@ -200,7 +151,7 @@
     </header>
 
     <!-- Search and Filter -->
-    <div class="form-card bg-white rounded-xl shadow-sm p-5 border border-pink-100 mb-6">
+    <div class="surface-card p-5 mb-6">
         <form method="get" action="{% url 'admin_messages' %}" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -288,7 +239,7 @@
     </div>
 
     <!-- Message List -->
-    <div class="form-card bg-white rounded-xl shadow-sm overflow-hidden border border-pink-100 mb-6">
+    <div class="surface-card overflow-hidden mb-6">
         <div class="px-5 py-4 border-b border-pink-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h2 class="text-lg font-semibold text-gray-800 flex items-center">
                 {% if filter_active %}
@@ -592,6 +543,7 @@
 
 <!-- Toast notification container -->
 <div id="toast-container" class="hidden"></div>
+{% endblock %}
 
 {% block extra_js %}
 <script>
@@ -897,7 +849,7 @@
                         body: formData,
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': '{{ csrf_token }}'
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                         }
                     })
                     .then(function(response) {
@@ -945,7 +897,7 @@
             });
         }
 
-       // Enhanced individual delete buttons
+        // Enhanced individual delete buttons
         deleteMessageBtns.forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -1024,7 +976,7 @@
                         body: formData,
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': '{{ csrf_token }}'
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                         }
                     })
                     .then(function(response) {
@@ -1063,6 +1015,11 @@
                         } else {
                             // Show error message
                             showToast(data.message || 'An error occurred while deleting the message.', 'error');
+
+                            // Reset row style if deletion failed
+                            if (row) {
+                                row.style.backgroundColor = '';
+                            }
                         }
                     })
                     .catch(function(error) {
@@ -1078,206 +1035,128 @@
             });
         });
 
-// Add keyboard navigation support
-document.addEventListener('keydown', function(e) {
-    // Escape key closes any open modal
-    if (e.key === 'Escape') {
-        const openModal = document.querySelector('.fixed.inset-0.flex.items-center.justify-center');
-        if (openModal) {
-            document.body.removeChild(openModal);
-            document.body.style.overflow = '';
-        } else if (deselectAllBtn && !deselectAllBtn.classList.contains('hidden')) {
-            deselectAllBtn.click();
-        }
-    }
-
-    // Delete key triggers bulk delete when items are selected
-    if (e.key === 'Delete' && bulkDeleteBtn && !bulkDeleteBtn.classList.contains('hidden')) {
-        bulkDeleteBtn.click();
-    }
-
-    // Ctrl+A or Cmd+A to select all messages
-    if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        if (selectAllBtn && !selectAllBtn.classList.contains('hidden')) {
-            selectAllBtn.click();
-        }
-    }
-});
-
-// Show toast notification function
-function showToast(message, type = 'info') {
-    // Remove any existing toasts
-    toastContainer.innerHTML = '';
-
-    // Create toast element
-    const toast = document.createElement('div');
-
-    let bgColor, iconSvg;
-    if (type === 'success') {
-        bgColor = 'bg-green-500';
-        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
-    } else if (type === 'error') {
-        bgColor = 'bg-red-500';
-        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>';
-    } else if (type === 'warning') {
-        bgColor = 'bg-yellow-500';
-        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
-    } else {
-        bgColor = 'bg-pink-500';
-        iconSvg = '<svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-    }
-
-    toast.className = `toast ${bgColor} flex items-center justify-between`;
-    toast.innerHTML = `
-        <div class="flex items-center">
-            ${iconSvg}
-            <span>${message}</span>
-        </div>
-        <button type="button" class="ml-4 text-white" onclick="this.parentNode.remove()">
-            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-    `;
-
-    // Add to container and show
-    toastContainer.appendChild(toast);
-    toastContainer.classList.remove('hidden');
-
-    // Activate toast with slight delay for animation
-    setTimeout(() => {
-        toast.classList.add('active');
-    }, 10);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        toast.classList.remove('active');
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-
-            // Hide container if no more toasts
-            if (toastContainer.children.length === 0) {
-                toastContainer.classList.add('hidden');
-            }
-        }, 300);
-    }, 5000);
-}
-
-// Add message card tap functionality for mobile
-const messageCards = document.querySelectorAll('.message-card');
-messageCards.forEach(function(card) {
-    card.addEventListener('click', function(e) {
-        // Only trigger if not clicking on a button, link, or checkbox
-        if (!e.target.closest('button') &&
-            !e.target.closest('a') &&
-            !e.target.closest('input')) {
-            const checkbox = this.querySelector('.message-checkbox');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-
-                // Trigger the change event manually
-                const event = new Event('change', { bubbles: true });
-                checkbox.dispatchEvent(event);
-
-                // Add haptic feedback if available
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(10);
+        // Add keyboard navigation support
+        document.addEventListener('keydown', function(e) {
+            // Escape key closes any open modal
+            if (e.key === 'Escape') {
+                const openModal = document.querySelector('.fixed.inset-0.flex.items-center.justify-center');
+                if (openModal) {
+                    document.body.removeChild(openModal);
+                    document.body.style.overflow = '';
+                } else if (deselectAllBtn && !deselectAllBtn.classList.contains('hidden')) {
+                    deselectAllBtn.click();
                 }
             }
-        }
-    });
-});
 
-// Checkboxes styling enhancement
-const allCheckboxLabels = document.querySelectorAll('.message-checkbox');
-allCheckboxLabels.forEach(function(checkbox) {
-    checkbox.addEventListener('change', function() {
-        // Find closest parent container
-        const container = this.closest('tr') || this.closest('.message-card');
-        if (container) {
-            if (this.checked) {
-                container.classList.add('selected');
-            } else {
-                container.classList.remove('selected');
+            // Delete key triggers bulk delete when items are selected
+            if (e.key === 'Delete' && bulkDeleteBtn && !bulkDeleteBtn.classList.contains('hidden')) {
+                bulkDeleteBtn.click();
             }
-        }
-    });
-});
 
-// Handle empty state - show better messages
-if (document.querySelectorAll('.message-row, .message-card').length === 0) {
-    // Check if we have empty message placeholders and enhance them
-    const emptyStates = document.querySelectorAll('td[colspan="6"], .p-8.text-center');
-    emptyStates.forEach(function(emptyState) {
-        if (!emptyState.querySelector('svg')) {
-            return;
-        }
-
-        // Add animation to empty state icon
-        const svg = emptyState.querySelector('svg');
-        if (svg) {
-            svg.classList.add('animate-pulse');
-        }
-    });
-}
-
-// Initial UI update
-updateSelectionUI();
-
-// Handle user idle state - offer refresh after 5 minutes
-let idleTimer;
-const resetIdleTimer = function() {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(function() {
-        // Create refresh suggestion toast
-        const toast = document.createElement('div');
-        toast.className = 'toast bg-blue-500 flex items-center justify-between';
-        toast.innerHTML = `
-            <div class="flex items-center">
-                <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span>Would you like to refresh messages?</span>
-            </div>
-            <div class="flex items-center">
-                <button type="button" id="refresh-btn" class="bg-white bg-opacity-20 text-white px-2 py-1 rounded hover:bg-opacity-30 transition-all mr-2">
-                    Refresh
-                </button>
-                <button type="button" class="text-white ml-2" onclick="this.parentNode.parentNode.remove()">
-                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        `;
-
-        // Add to container and show
-        toastContainer.appendChild(toast);
-        toastContainer.classList.remove('hidden');
-
-        // Activate toast
-        setTimeout(() => {
-            toast.classList.add('active');
-        }, 10);
-
-        // Add refresh button functionality
-        document.getElementById('refresh-btn').addEventListener('click', function() {
-            window.location.reload();
+            // Ctrl+A or Cmd+A to select all messages
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                if (selectAllBtn && !selectAllBtn.classList.contains('hidden')) {
+                    selectAllBtn.click();
+                }
+            }
         });
-    }, 300000); // 5 minutes
-};
 
-// Reset timer on user interactions
-document.addEventListener('mousemove', resetIdleTimer);
-document.addEventListener('keypress', resetIdleTimer);
-document.addEventListener('click', resetIdleTimer);
+        // Message card tap functionality for mobile
+        const messageCards = document.querySelectorAll('.message-card');
+        messageCards.forEach(function(card) {
+            card.addEventListener('click', function(e) {
+                // Only trigger if not clicking on a button, link, or checkbox
+                if (!e.target.closest('button') &&
+                    !e.target.closest('a') &&
+                    !e.target.closest('input')) {
+                    const checkbox = this.querySelector('.message-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = !checkbox.checked;
 
-// Start the idle timer
-resetIdleTimer();
-});
+                        // Trigger the change event manually
+                        const event = new Event('change', { bubbles: true });
+                        checkbox.dispatchEvent(event);
+
+                        // Add haptic feedback if available
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate(10);
+                        }
+                    }
+                }
+            });
+        });
+
+        // Handle empty state - show better messages
+        if (document.querySelectorAll('.message-row, .message-card').length === 0) {
+            // Check if we have empty message placeholders and enhance them
+            const emptyStates = document.querySelectorAll('td[colspan="6"], .p-8.text-center');
+            emptyStates.forEach(function(emptyState) {
+                if (!emptyState.querySelector('svg')) {
+                    return;
+                }
+
+                // Add animation to empty state icon
+                const svg = emptyState.querySelector('svg');
+                if (svg) {
+                    svg.classList.add('animate-pulse');
+                }
+            });
+        }
+
+        // Initial UI update
+        updateSelectionUI();
+
+        // Handle user idle state - offer refresh after 5 minutes
+        let idleTimer;
+        const resetIdleTimer = function() {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(function() {
+                // Create refresh suggestion toast
+                const toast = document.createElement('div');
+                toast.className = 'toast bg-blue-500 flex items-center justify-between';
+                toast.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Would you like to refresh messages?</span>
+                    </div>
+                    <div class="flex items-center">
+                        <button type="button" id="refresh-btn" class="bg-white bg-opacity-20 text-white px-2 py-1 rounded hover:bg-opacity-30 transition-all mr-2">
+                            Refresh
+                        </button>
+                        <button type="button" class="text-white ml-2" onclick="this.parentNode.parentNode.remove()">
+                            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                // Add to container and show
+                toastContainer.appendChild(toast);
+                toastContainer.classList.remove('hidden');
+
+                // Activate toast
+                setTimeout(() => {
+                    toast.classList.add('active');
+                }, 10);
+
+                // Add refresh button functionality
+                document.getElementById('refresh-btn').addEventListener('click', function() {
+                    window.location.reload();
+                });
+            }, 300000); // 5 minutes
+        };
+
+        // Reset timer on user interactions
+        document.addEventListener('mousemove', resetIdleTimer);
+        document.addEventListener('keypress', resetIdleTimer);
+        document.addEventListener('click', resetIdleTimer);
+
+        // Start the idle timer
+        resetIdleTimer();
+    });
 </script>
-{% endblock %}
 {% endblock %}

@@ -14,13 +14,119 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #ec4899;
+      --primary-hover: #db2777;
+      --primary-light: #fce7f3;
+      --secondary: #9333ea;
+      --secondary-light: #f3e8ff;
+      --accent: #f97316;
+      --accent-light: #fff7ed;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --info: #3b82f6;
+      --warning: #f59e0b;
+      --surface: #ffffff;
+      --surface-hover: #f8fafc;
+      --surface-active: #f1f5f9;
+      --border: #e2e8f0;
+      --border-focus: #cbd5e1;
+      --text-primary: #334155;
+      --text-secondary: #64748b;
+      --text-tertiary: #94a3b8;
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      --radius-2xl: 1.5rem;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-fast: 0.15s;
+      --duration-normal: 0.25s;
+      --duration-slow: 0.35s;
+    }
+
     body {
       font-family: 'Inter', sans-serif;
-      background-image: radial-gradient(circle at 30% 10%, rgba(255, 182, 225, 0.1), transparent 30%),
-                        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.1), transparent 40%);
+      background-color: #f8fafc;
+      background-image:
+        radial-gradient(circle at 10% 10%, rgba(236, 72, 153, 0.03), transparent 25%),
+        radial-gradient(circle at 90% 90%, rgba(147, 51, 234, 0.03), transparent 25%);
       background-attachment: fixed;
+      color: var(--text-primary);
       overflow-x: hidden;
-      width: 100%;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background-color: var(--text-tertiary);
+      border-radius: 20px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: var(--text-secondary);
+    }
+
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Header & Navigation */
+    .app-header {
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .app-header.scrolled {
+      background-color: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Cards & Containers */
+    .surface-card {
+      background-color: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .surface-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-focus);
+    }
+
+    /* Gradient Text */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     /* Typing animation dots */
@@ -37,50 +143,79 @@
     .dot:nth-child(2) { animation-delay: 0.2s; }
     .dot:nth-child(3) { animation-delay: 0.4s; }
 
-    /* Hide scrollbar but keep functionality */
-    .hide-scrollbar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
-    }
-
-    .hide-scrollbar::-webkit-scrollbar {
-      display: none; /* Chrome, Safari, Opera */
-    }
-
-    /* Gradient text */
-    .gradient-text {
-      background: linear-gradient(135deg, #ec4899, #f97316);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
     /* Button styles */
     .btn {
-      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font-weight: 500;
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
+      padding: 0.5rem 1rem;
+      transition: all var(--duration-normal) var(--ease);
+      cursor: pointer;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10, 10);
+      opacity: 0;
+      transition: transform 0.5s, opacity 0.8s;
+    }
+
+    .btn:active::after {
+      transform: scale(0, 0);
+      opacity: 0.3;
+      transition: 0s;
     }
 
     .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
     .btn:active {
       transform: translateY(0);
     }
 
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-secondary {
+      background-color: white;
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-focus);
+      background-color: var(--surface-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
     /* Notification toast */
     .notification-toast {
       position: fixed;
-      bottom: 16px;
-      right: 16px;
-      padding: 12px 16px;
-      background: linear-gradient(135deg, #ec4899, #f97316);
+      bottom: 24px;
+      right: 24px;
+      padding: 1rem 1.25rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
       z-index: 1000;
       opacity: 0;
       transform: translateY(20px);
@@ -95,74 +230,15 @@
       to { opacity: 0; transform: translateY(20px); }
     }
 
-    /* Mobile top bar */
-    .mobile-top-bar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-    }
-
-    /* Joined room card */
-    .joined-room-card {
-      transition: all 0.25s ease;
-      position: relative;
-    }
-
-    .joined-room-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 16px -4px rgba(236, 72, 153, 0.1);
-    }
-
-    /* Unread badge for rooms */
-    .unread-badge {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      min-width: 20px;
-      height: 20px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #ec4899, #f97316);
-      color: white;
-      font-size: 0.65rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    }
-
-    /* Activity indicators */
-    .activity-indicator {
-      height: 8px;
-      width: 8px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-
-    .activity-high {
-      background-color: #10b981;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-    }
-
-    .activity-medium {
-      background-color: #f59e0b;
-      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
-    }
-
-    .activity-low {
-      background-color: #e5e7eb;
-    }
-
     /* Friend card animations */
     .friend-card {
-      transition: all 0.3s ease;
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .friend-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 16px -4px rgba(236, 72, 153, 0.1);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
     }
 
     /* Friend status dot pulse animation */
@@ -175,53 +251,149 @@
     .status-online {
       animation: status-pulse 2s infinite;
     }
+
+    /* Activity indicators */
+    .activity-indicator {
+      height: 8px;
+      width: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .activity-high {
+      background-color: var(--success);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .activity-medium {
+      background-color: var(--warning);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+
+    .activity-low {
+      background-color: #e5e7eb;
+    }
+
+    /* Joined room card */
+    .joined-room-card {
+      transition: all var(--duration-normal) var(--ease);
+      position: relative;
+    }
+
+    .joined-room-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px -4px rgba(236, 72, 153, 0.1);
+      border-color: var(--primary);
+    }
+
+    /* Unread badge for rooms */
+    .unread-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Animation Keyframes */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fadeInUp {
+      animation: fadeInUp 0.5s var(--ease) forwards;
+    }
+
+    .fadeInUp-1 {
+      opacity: 0;
+      animation: fadeInUp 0.5s var(--ease) forwards;
+      animation-delay: 0.1s;
+    }
+
+    .fadeInUp-2 {
+      opacity: 0;
+      animation: fadeInUp 0.5s var(--ease) forwards;
+      animation-delay: 0.2s;
+    }
+
+    .fadeInUp-3 {
+      opacity: 0;
+      animation: fadeInUp 0.5s var(--ease) forwards;
+      animation-delay: 0.3s;
+    }
   </style>
 </head>
-<body class="bg-white min-h-screen flex flex-col text-gray-800">
+<body>
+  <!-- Header with glass effect -->
+  <header class="app-header py-3" id="header">
+    <div class="container mx-auto px-4 flex items-center justify-between">
+      <a href="{% url 'index' %}" class="flex items-center">
+        <h1 class="text-xl font-bold gradient-text">Euphorie</h1>
+        <span class="ml-2 px-2 py-0.5 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">BETA</span>
+      </a>
 
-  <!-- Mobile Top Navigation with glass effect -->
-  <header class="sm:hidden mobile-top-bar p-4 border-b border-pink-100 flex items-center justify-between">
-    <a href="{% url 'index' %}" class="p-2 text-pink-500 rounded-full hover:bg-pink-50">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-      </svg>
-    </a>
-    <a href="{% url 'index' %}" class="text-xl font-bold gradient-text hover:opacity-80 transition-opacity">Euphorie</a>
-    <div class="p-2"></div>
-  </header>
-
-  <main class="flex-1 w-full max-w-6xl mx-auto p-4 sm:py-8">
-    <!-- Room Header - Visible on desktop -->
-    <div class="hidden sm:flex items-center justify-between mb-6">
-      <div class="flex items-center">
-        <a href="{% url 'index' %}" class="text-3xl font-extrabold gradient-text hover:opacity-80 transition-opacity">Euphorie</a>
-        <span class="ml-3 px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">Beta</span>
-      </div>
-
-      <div class="flex items-center gap-4">
-        {% if user.is_authenticated %}
-        <div class="flex items-center bg-pink-50 rounded-full px-3 py-1.5">
-          <div class="h-6 w-6 rounded-full bg-pink-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
+      {% if user.is_authenticated %}
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full transition-all">
+          <div class="h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center font-medium text-xs">
             {{ user.username|slice:":1"|upper }}
           </div>
-          <p class="text-sm text-gray-700">{{ user.username }}</p>
+          <p class="text-sm font-medium text-gray-700 hidden xs:block">{{ user.username }}</p>
         </div>
-        {% endif %}
-
-        <a href="{% url 'index' %}" class="btn bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 px-4 py-2 rounded-xl text-sm inline-flex items-center shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <a href="{% url 'friends_list' %}" class="relative p-2 text-pink-500 hover:bg-pink-50 rounded-full transition-all" aria-label="Friends">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
-          Lobby
+          {% if pending_friend_requests_count > 0 %}
+          <span class="absolute -top-1 -right-1 h-5 w-5 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+            {{ pending_friend_requests_count }}
+          </span>
+          {% endif %}
+        </a>
+        <form method="post" action="{% url 'logout' %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="p-2 text-gray-600 hover:text-pink-500 hover:bg-pink-50 rounded-full transition-all" aria-label="Logout">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </form>
+      </div>
+      {% else %}
+      <div class="flex items-center gap-2">
+        <a href="{% url 'login' %}" class="btn btn-secondary">
+          Login
+        </a>
+        <a href="{% url 'signup' %}" class="btn btn-primary">
+          Sign up
         </a>
       </div>
+      {% endif %}
     </div>
+  </header>
 
+  <main class="container mx-auto p-4 sm:py-8 max-w-6xl">
     <!-- Messages -->
     {% if messages %}
     <div class="mb-6">
       {% for message in messages %}
-      <div class="bg-gradient-to-r from-pink-100 to-yellow-100 p-4 rounded-xl shadow-md mb-2 border border-pink-200">
+      <div class="bg-gradient-to-r from-pink-100 to-purple-100 p-4 rounded-xl shadow-md mb-2 border border-pink-200 fadeInUp">
         <div class="flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -235,19 +407,19 @@
 
     <!-- Guest Mode Banner (only for non-authenticated users) -->
     {% if not user.is_authenticated %}
-    <div class="bg-gradient-to-r from-pink-100 to-yellow-100 p-4 rounded-xl shadow-md mb-6 guest-banner border border-pink-200">
-      <div class="flex items-center justify-between">
+    <div class="bg-gradient-to-r from-pink-100 to-purple-100 p-4 rounded-xl shadow-md mb-6 guest-banner border border-pink-200 fadeInUp">
+      <div class="flex items-center justify-between flex-wrap gap-3">
         <p class="text-pink-600 font-medium flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="hidden sm:inline">You're in guest mode.</span> You can view limited content but need to log in for full access!
+          <span class="hidden sm:inline">You're in guest mode.</span> You need to log in to view friends!
         </p>
         <div class="flex gap-2">
-          <a href="{% url 'login' %}?next={{ request.path }}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
+          <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary">
             Log in
           </a>
-          <a href="{% url 'signup' %}" class="btn bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">
+          <a href="{% url 'signup' %}" class="btn btn-secondary">
             Sign up
           </a>
         </div>
@@ -257,13 +429,13 @@
 
     <!-- Main Content -->
     <div class="container mx-auto px-0">
-      <!-- New Dashboard Layout (3 columns on large screens, 1 column on mobile) -->
+      <!-- Dashboard Layout (3 columns on large screens, 1 column on mobile) -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Left Column: Friend Requests & Suggestions - 3/12 width -->
-        <div class="lg:col-span-3">
+        <div class="lg:col-span-3 fadeInUp-1">
           <!-- Friend Requests Section -->
-          <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden mb-6">
-            <div class="px-4 md:px-6 py-4 flex justify-between items-center border-b border-pink-100">
+          <div class="surface-card overflow-hidden mb-6">
+            <div class="px-4 md:px-6 py-4 flex justify-between items-center border-b border-gray-100">
               <h2 class="text-lg font-semibold text-gray-800 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -287,8 +459,8 @@
                     </div>
                   </div>
                   <div class="flex space-x-2 mt-3">
-                    <button data-id="{{ request.id }}" data-action="accept" class="respond-btn w-1/2 bg-pink-500 hover:bg-pink-600 text-white py-1.5 rounded text-sm">Accept</button>
-                    <button data-id="{{ request.id }}" data-action="decline" class="respond-btn w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded text-sm">Decline</button>
+                    <button data-id="{{ request.id }}" data-action="accept" class="respond-btn w-1/2 bg-pink-500 hover:bg-pink-600 text-white py-1.5 rounded-lg text-sm transition-colors duration-200">Accept</button>
+                    <button data-id="{{ request.id }}" data-action="decline" class="respond-btn w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-sm transition-colors duration-200">Decline</button>
                   </div>
                 </div>
                 {% endfor %}
@@ -301,7 +473,7 @@
           </div>
 
           <!-- Friend Suggestions Section -->
-          <div class="bg-white rounded-xl p-4 shadow-sm border border-pink-100 mb-5">
+          <div class="surface-card p-4 mb-5">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-bold text-gray-800">People You Might Know</h3>
               <span class="text-xs text-gray-500">Suggestions for you</span>
@@ -324,10 +496,10 @@
           </div>
         </div>
 
-        <!-- Middle Column: Joined Rooms - 4/12 width (NEW!) -->
-        <div class="lg:col-span-4">
-          <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden mb-6">
-            <div class="px-4 md:px-6 py-4 flex justify-between items-center border-b border-pink-100">
+        <!-- Middle Column: Joined Rooms - 4/12 width -->
+        <div class="lg:col-span-4 fadeInUp-2">
+          <div class="surface-card overflow-hidden mb-6">
+            <div class="px-4 md:px-6 py-4 flex justify-between items-center border-b border-gray-100">
               <h2 class="text-lg font-semibold text-gray-800 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -344,7 +516,7 @@
                   {% for room in joined_rooms %}
                   <a href="{% url 'room' room.name %}" class="block p-3 joined-room-card bg-white hover:bg-gray-50 rounded-lg mb-2 border border-gray-100">
                     <div class="flex items-center">
-                      <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-pink-300 to-yellow-200 text-white flex items-center justify-center mr-3 font-semibold">
+                      <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-pink-300 to-purple-200 text-white flex items-center justify-center mr-3 font-semibold">
                         {{ room.display_name|slice:":1"|upper }}
                       </div>
                       <div class="flex-1">
@@ -414,9 +586,9 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
-                    <h3 class="text-lg font-medium mb-2">No rooms joined or bookmarked yet</h3>
-                    <p class="max-w-md mx-auto mb-4">Join or bookmark some chat rooms to start conversations!</p>
-                    <a href="{% url 'index' %}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+                    <h3 class="text-lg font-medium mb-2">No rooms joined yet</h3>
+                    <p class="max-w-md mx-auto mb-4">Join some chat rooms to start conversations!</p>
+                    <a href="{% url 'index' %}" class="btn btn-primary inline-block">
                       Explore Rooms
                     </a>
                   </div>
@@ -430,7 +602,7 @@
               <div class="space-y-2">
                 {% for room in popular_rooms|slice:":3" %}
                 <a href="{% url 'room' room.name %}" class="flex items-center p-2 hover:bg-white rounded-lg transition-colors">
-                  <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-pink-300 to-yellow-200 text-white flex items-center justify-center mr-2 text-xs font-semibold">
+                  <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-pink-300 to-purple-200 text-white flex items-center justify-center mr-2 text-xs font-semibold">
                     {{ room.display_name|slice:":1"|upper }}
                   </div>
                   <div class="flex-1">
@@ -446,9 +618,9 @@
         </div>
 
         <!-- Right Column: Friends List - 5/12 width -->
-        <div class="lg:col-span-5">
-          <div class="bg-white rounded-xl shadow-md border border-pink-100 overflow-hidden">
-            <div class="px-4 md:px-6 py-4 border-b border-pink-100">
+        <div class="lg:col-span-5 fadeInUp-3">
+          <div class="surface-card overflow-hidden">
+            <div class="px-4 md:px-6 py-4 border-b border-gray-100">
               <div class="flex justify-between items-center">
                 <h2 class="text-lg font-semibold text-gray-800 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -483,7 +655,7 @@
                 <div class="friend-card p-4 bg-white hover:bg-gray-50 transition-colors rounded-lg mb-2 border border-gray-100" data-online="{{ friend.status.is_online|yesno:'true,false' }}" data-username="{{ friend.username }}">
                   <div class="flex items-center">
                     <div class="relative">
-                      <div class="user-avatar h-12 w-12 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-3 font-medium">
+                      <div class="user-avatar h-12 w-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-300 text-white flex items-center justify-center mr-3 font-medium">
                         {{ friend.username|slice:":1"|upper }}
                       </div>
                       {% if friend.status.is_online %}
@@ -515,7 +687,7 @@
                           </button>
                         </div>
                       </div>
-                      <!-- NEW: Mutual rooms indicator -->
+                      <!-- Mutual rooms indicator -->
                       {% if friend.mutual_rooms %}
                       <div class="mt-2 flex flex-wrap gap-1">
                         <span class="text-xs text-gray-500">Mutual rooms:</span>
@@ -537,7 +709,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                   <h3 class="text-lg font-medium mb-2">No friends yet</h3>
-                  <p class="max-w-md mx-auto">Add friends to see who's online and chat with them directly.</p>
+                  <p class="max-w-md mx-auto mb-4">Add friends to see who's online and chat with them directly.</p>
                 </div>
               {% endif %}
             </div>
@@ -547,28 +719,22 @@
     </div>
   </main>
 
-  <!-- Footer with links to other platforms - Now more compact -->
-  <footer class="py-2 border-t border-pink-100 mt-8 bg-white compact-footer">
-    <div class="w-full max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
-      <div class="mb-3 sm:mb-0 text-center sm:text-left">
+  <!-- Footer -->
+  <footer class="py-6 border-t border-gray-200 mt-10 bg-white">
+    <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
+      <div class="mb-4 sm:mb-0 text-center sm:text-left">
         <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
-          <h2 class="text-base font-bold gradient-text">Euphorie</h2>
+          <h2 class="text-lg font-bold gradient-text">Euphorie</h2>
           <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
         </a>
         <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
       </div>
-      <div class="flex items-center gap-4 sm:gap-8 text-[13px] font-semibold tracking-wide text-gray-500">
-        <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-indigo-500 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span class="hover:underline underline-offset-2">Crene.com</span>
+      <div class="flex items-center gap-6 text-xs font-medium text-gray-500">
+        <a href="https://crene.com" target="_blank" rel="noopener" class="hover:text-indigo-500 transition-colors">
+          Crene.com
         </a>
-        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-green-500 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <span class="hover:underline underline-offset-2">DiaryVault.com</span>
+        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="hover:text-green-500 transition-colors">
+          DiaryVault.com
         </a>
       </div>
     </div>
@@ -582,6 +748,18 @@
   <!-- JavaScript -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Header scroll effect
+        const header = document.getElementById('header');
+        if (header) {
+          window.addEventListener('scroll', function() {
+            if (window.scrollY > 10) {
+              header.classList.add('scrolled');
+            } else {
+              header.classList.remove('scrolled');
+            }
+          });
+        }
+
         // Show notification toast
         function showNotification(message) {
             const notificationToast = document.getElementById('notification-toast');
@@ -835,7 +1013,7 @@
                             <h3 class="font-medium">${friend.username}</h3>
                             ${fullName ? `<p class="text-xs text-gray-500">${fullName}</p>` : ''}
                         </div>
-                        <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1.5 px-3 rounded transition-colors">
+                        <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1.5 px-3 rounded-lg transition-colors">
                             Add Friend
                         </button>
                     </div>
