@@ -1223,7 +1223,7 @@
               <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
 
               <!-- Send Button -->
-              <button type="submit" id="send-btn" class="btn-icon bg-gradient-to-r from-primary to-secondary text-white tooltip" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+              <button type="submit" id="send-btn" class="btn-icon bg-gradient-to-r from-pink-500 to-orange-400 text-white tooltip" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
@@ -1679,70 +1679,92 @@
     <!-- WebSocket Connection Script -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-        let chatSocket;
-        let reconnectAttempt = 0;
-        const maxReconnectAttempts = 5;
-        const reconnectDelay = 2000; // Start with 2 seconds
+            let chatSocket;
+            let reconnectAttempt = 0;
+            const maxReconnectAttempts = 5;
+            const reconnectDelay = 2000; // Start with 2 seconds
 
-        function connectWebSocket() {
-            const roomName = "{{ room_name|escapejs }}";
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            chatSocket = new WebSocket(
-            `${protocol}//${window.location.host}/ws/chat/${roomName}/`
-            );
+            function connectWebSocket() {
+              const roomName = "{{ room_name|escapejs }}";
+              const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+              chatSocket = new WebSocket(
+                `${protocol}//${window.location.host}/ws/chat/${roomName}/`
+              );
 
-            chatSocket.onopen = function(e) {
-            console.log("WebSocket connection established");
-            reconnectAttempt = 0; // Reset reconnect counter on successful connection
+              chatSocket.onopen = function(e) {
+                console.log("WebSocket connection established");
+                reconnectAttempt = 0; // Reset reconnect counter on successful connection
 
-            // Show a reconnection notification if this wasn't the first attempt
-            if (reconnectAttempt > 0) {
-                showNotification("Reconnected to chat");
+                // Show a reconnection notification if this wasn't the first attempt
+                if (reconnectAttempt > 0) {
+                  showNotification("Reconnected to chat");
+                }
+              };
+
+              chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+
+                // Handle different message types
+                if (data.type === 'chat_message') {
+                  addMessage(data.message, data.username, data.message_id);
+                } else if (data.type === 'user_list') {
+                  updateUserList(data.users);
+                } else if (data.type === 'typing') {
+                  showTypingIndicator(data.username);
+                } else if (data.type === 'reaction') {
+                  updateReactions(data.message_id, data.emoji, data.count, data.username);
+                }
+              };
+
+              chatSocket.onclose = function(e) {
+                console.warn("WebSocket connection closed unexpectedly");
+
+                // Only attempt to reconnect if we haven't exceeded the maximum attempts
+                if (reconnectAttempt < maxReconnectAttempts) {
+                  reconnectAttempt++;
+                  const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
+
+                  showNotification("Connection lost. Reconnecting...");
+
+                  console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
+                  setTimeout(connectWebSocket, timeout);
+                } else {
+                  showNotification("Could not reconnect. Please refresh the page.");
+                }
+              };
+
+              chatSocket.onerror = function(e) {
+                console.error("WebSocket error:", e);
+              };
+
+              // Store socket in global scope for other functions to use
+              window.chatSocket = chatSocket;
             }
-            };
 
-            chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
+            // Initial connection
+            connectWebSocket();
 
-            // Handle different message types
-            if (data.type === 'chat_message') {
-                addMessage(data.message, data.username, data.message_id);
-            } else if (data.type === 'user_list') {
-                updateUserList(data.users);
-            } else if (data.type === 'typing') {
-                showTypingIndicator(data.username);
-            } else if (data.type === 'reaction') {
-                updateReactions(data.message_id, data.emoji, data.count, data.username);
+            // Handle message sending
+            const messageForm = document.getElementById('message-form');
+            if (messageForm) {
+              messageForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const messageInput = document.getElementById('chat-message-input');
+                const message = messageInput.value.trim();
+
+                if (message) {
+                  if (chatSocket.readyState === WebSocket.OPEN) {
+                    chatSocket.send(JSON.stringify({
+                      'type': 'chat_message',
+                      'message': message
+                    }));
+                    messageInput.value = '';
+                  } else {
+                    showNotification("Not connected. Message couldn't be sent.");
+                  }
+                }
+              });
             }
-            };
-
-            chatSocket.onclose = function(e) {
-            console.warn("WebSocket connection closed unexpectedly");
-
-            // Only attempt to reconnect if we haven't exceeded the maximum attempts
-            if (reconnectAttempt < maxReconnectAttempts) {
-                reconnectAttempt++;
-                const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
-
-                showNotification("Connection lost. Reconnecting...");
-
-                console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
-                setTimeout(connectWebSocket, timeout);
-            } else {
-                showNotification("Could not reconnect. Please refresh the page.");
-            }
-            };
-
-            chatSocket.onerror = function(e) {
-            console.error("WebSocket error:", e);
-            };
-
-            // Store socket in global scope for other functions to use
-            window.chatSocket = chatSocket;
-        }
-
-        // Initial connection
-        connectWebSocket();
 
         // Handle message sending
         const messageForm = document.getElementById('message-form');
