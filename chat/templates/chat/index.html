@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+{% load static %}
+{% load chat_extras %}
 <head>
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
   <meta charset="UTF-8">
   <title>Euphorie - Chat Rooms 💬</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -8,10 +14,91 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #ec4899;
+      --primary-light: #fce7f3;
+      --primary-dark: #be185d;
+      --secondary: #f97316;
+      --secondary-light: #fff7ed;
+      --accent: #8b5cf6;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      --border-radius: 0.75rem;
+    }
+
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f9fafb;
-      padding-top: 60px;
+      background-color: var(--gray-50);
+      background-image:
+        radial-gradient(circle at 10% 10%, rgba(236, 72, 153, 0.03), transparent 25%),
+        radial-gradient(circle at 90% 90%, rgba(249, 115, 22, 0.03), transparent 25%);
+      background-attachment: fixed;
+      color: #334155;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gray-300) transparent;
+    }
+
+    body::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    body::-webkit-scrollbar-thumb {
+      background-color: var(--gray-300);
+      border-radius: 20px;
+    }
+
+    .btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      font-weight: 500;
+      border-radius: var(--border-radius);
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10, 10);
+      opacity: 0;
+      transition: transform 0.5s, opacity 0.8s;
+    }
+
+    .btn:active::after {
+      transform: scale(0, 0);
+      opacity: 0.3;
+      transition: 0s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .hide-scrollbar {
@@ -23,229 +110,466 @@
       display: none;
     }
 
-    .gradient-text {
-      background: linear-gradient(135deg, #ec4899, #f97316);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
     .room-card {
-      transition: all 0.3s ease;
-      border-radius: 12px;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: var(--border-radius);
       overflow: hidden;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.4s forwards;
+      animation-fill-mode: both;
+      height: 100%;
       display: flex;
       flex-direction: column;
-      height: 100%;
     }
 
-    .room-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-      border-color: #f9a8d4;
-    }
-
-    .compact-room-card {
-      border-radius: 8px;
-      transition: all 0.3s ease;
-    }
-
-    .compact-room-card:hover {
-      background-color: #fdf2f8;
-      transform: translateY(-1px);
-    }
-
-    .top-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background-color: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .category-btn {
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .category-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .category-btn.active {
-      background-color: #ec4899;
-      color: white;
-      box-shadow: 0 2px 5px rgba(236, 72, 153, 0.25);
-    }
-
-    .search-input {
-      transition: all 0.2s ease;
-    }
-
-    .search-input:focus {
-      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
-    }
-
-    .room-badge {
-      font-size: 0.65rem;
-      transition: all 0.2s ease;
-    }
-
-    .compact-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 0.75rem;
-    }
-
-    @media (min-width: 1024px) {
-      .compact-grid {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      }
-    }
-
-    @media (min-width: 1280px) {
-      .compact-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      }
+    .room-card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     .rooms-container {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.75rem;
     }
 
-    @media (min-width: 768px) {
-      .rooms-container {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    /* Add sequential delay to room cards */
+    .rooms-container > .room-card:nth-child(1) { animation-delay: 0.05s; }
+    .rooms-container > .room-card:nth-child(2) { animation-delay: 0.1s; }
+    .rooms-container > .room-card:nth-child(3) { animation-delay: 0.15s; }
+    .rooms-container > .room-card:nth-child(4) { animation-delay: 0.2s; }
+    .rooms-container > .room-card:nth-child(5) { animation-delay: 0.25s; }
+    .rooms-container > .room-card:nth-child(6) { animation-delay: 0.3s; }
+    .rooms-container > .room-card:nth-child(7) { animation-delay: 0.35s; }
+    .rooms-container > .room-card:nth-child(8) { animation-delay: 0.4s; }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
-    @media (min-width: 1024px) {
-      .rooms-container {
-        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-      }
+    .room-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: var(--shadow-lg);
+      z-index: 10;
     }
 
-    /* Pulse animation for active indicators */
-    @keyframes pulse {
-      0% { opacity: 0.6; }
-      50% { opacity: 1; }
-      100% { opacity: 0.6; }
-    }
-
-    .pulse-animation {
-      animation: pulse 2s infinite ease-in-out;
-    }
-
-    /* Add some subtle background patterns */
-    .subtle-pattern {
-      background-image:
-        radial-gradient(circle at 30% 20%, rgba(255, 182, 225, 0.1), transparent 20%),
-        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.1), transparent 20%);
-      background-attachment: fixed;
-    }
-
-    /* View toggle button styles */
-    .view-toggle-btn {
-      transition: all 0.2s ease;
-    }
-
-    .view-toggle-btn.active {
-      background-color: #f9a8d4;
-      color: #831843;
-    }
-
-    /* Enhanced friend indicators */
-    .friend-indicator {
-      position: relative;
-      transition: all 0.2s ease;
-    }
-
-    .friend-indicator:hover {
-      transform: scale(1.05);
-    }
-
-    .online-dot {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      height: 8px;
-      width: 8px;
-      background-color: #10b981;
-      border-radius: 50%;
-      border: 1.5px solid white;
-    }
-
-    /* Activity indicator */
-    .activity-indicator {
+    .room-badge {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
       font-size: 0.65rem;
-      padding: 2px 6px;
-      border-radius: 10px;
+      font-weight: 600;
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(249, 115, 22, 0.1));
+      color: var(--primary-dark);
+      transition: all 0.3s ease;
     }
 
-    .activity-high {
-      background-color: rgba(16, 185, 129, 0.1);
-      color: #065f46;
+    .room-card:hover .room-badge {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(249, 115, 22, 0.2));
     }
 
-    .activity-medium {
-      background-color: rgba(245, 158, 11, 0.1);
-      color: #92400e;
-    }
-
-    .activity-low {
-      background-color: rgba(239, 68, 68, 0.1);
-      color: #b91c1c;
-    }
-
-    /* Enhanced create room button */
-    .create-btn {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .join-btn {
       position: relative;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .room-card:hover .join-btn {
+      color: var(--primary-dark);
+    }
+
+    .trending-indicator {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      z-index: 10;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(236, 72, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+    }
+
+    .category-btn {
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      border-radius: 9999px;
+      padding: 0.375rem 0.875rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .category-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .category-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: var(--shadow);
+    }
+
+    .search-input {
+      transition: all 0.3s ease;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--gray-200);
+      padding: 0.625rem 1rem 0.625rem 2.5rem;
+      background-color: white;
+      width: 100%;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray-300);
+      pointer-events: none;
+    }
+
+    .create-room-container {
+      transition: all 0.3s ease;
+      border-radius: var(--border-radius);
+      background-color: white;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray-200);
       overflow: hidden;
     }
 
-    .create-btn:after {
+    .create-room-container:hover {
+      box-shadow: var(--shadow);
+      border-color: var(--gray-300);
+    }
+
+    .create-room-btn {
+      position: relative;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: var(--border-radius);
+      font-weight: 500;
+      padding: 0.625rem 1.25rem;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .create-room-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .create-room-btn:active {
+      transform: translateY(0);
+    }
+
+    .create-room-btn::after {
       content: '';
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 5px;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.4);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: translateX(-100%);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+
+    .avatar-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-radius: 9999px;
+      font-weight: 600;
+      overflow: hidden;
+    }
+
+    .top-header {
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background-color: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: all 0.3s ease;
+    }
+
+    .top-header.scrolled {
+      box-shadow: var(--shadow);
+    }
+
+    .online-indicator {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 10px;
+      height: 10px;
+      background-color: #10b981;
+      border: 2px solid white;
+      border-radius: 50%;
+    }
+
+    /* Friends Online section */
+    .friend-avatar {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .friend-avatar:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Compact Room Cards */
+    .compact-room-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .compact-room-card {
+      background-color: white;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--gray-200);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .compact-room-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+      border-color: rgba(236, 72, 153, 0.3);
+    }
+
+    .compact-room-card .room-name {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.25rem;
+      color: #4b5563;
+      transition: color 0.2s;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .compact-room-card:hover .room-name {
+      color: var(--primary);
+    }
+
+    .compact-room-card .room-creator {
+      font-size: 0.7rem;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .compact-room-card .room-footer {
+      margin-top: auto;
+      background: linear-gradient(to right, rgba(236, 72, 153, 0.05), rgba(249, 115, 22, 0.05));
+      padding: 0.5rem;
+      border-top: 1px solid rgba(236, 72, 153, 0.1);
+      font-size: 0.7rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .my-rooms-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .my-rooms-table th {
+      text-align: left;
+      font-weight: 500;
+      color: #6b7280;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .my-rooms-table td {
+      padding: 0.75rem;
+      vertical-align: middle;
+      border-top: 1px solid var(--gray-100);
+    }
+
+    .my-rooms-table tr {
+      transition: background-color 0.2s;
+    }
+
+    .my-rooms-table tr:hover {
+      background-color: rgba(236, 72, 153, 0.05);
+    }
+
+    .my-rooms-table .room-link {
+      font-weight: 500;
+      color: var(--primary);
+      position: relative;
+    }
+
+    .my-rooms-table .room-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background-color: var(--primary);
+      transition: width 0.3s ease;
+    }
+
+    .my-rooms-table .room-link:hover::after {
+      width: 100%;
+    }
+
+    /* Toggle switch for view mode */
+    .toggle-container {
+      display: inline-block;
+      position: relative;
+      width: 48px;
+      height: 24px;
+    }
+
+    .toggle-container input {
       opacity: 0;
-      border-radius: 100%;
-      transform: scale(1, 1) translate(-50%);
-      transform-origin: 50% 50%;
+      width: 0;
+      height: 0;
     }
 
-    .create-btn:hover:after {
-      animation: ripple 1s ease-out;
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--gray-200);
+      transition: .4s;
+      border-radius: 34px;
     }
 
-    @keyframes ripple {
-      0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-      }
-      100% {
-        transform: scale(30, 30);
-        opacity: 0;
-      }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: var(--primary);
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    .view-mode-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #6b7280;
+    }
+
+    /* Add animated pulsing effect to active badges */
+    .badge-animate {
+      animation: badgePulse 2s infinite;
+    }
+
+    @keyframes badgePulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
+    /* Recommendation cards */
+    .recommendation-card {
+      transition: all 0.3s ease;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      border: 1px solid var(--gray-200);
+      background-color: white;
+    }
+
+    .recommendation-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+      border-color: rgba(236, 72, 153, 0.3);
+    }
+
+    .recommendation-tag {
+      font-size: 0.65rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 9999px;
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+      font-weight: 500;
+    }
+
+    .recommendation-card:hover .recommendation-tag {
+      background-color: var(--primary);
+      color: white;
     }
   </style>
 </head>
-<body class="subtle-pattern">
-
+<body>
   <!-- Sticky Top Navigation with glass effect -->
-  <header class="top-header py-2 border-b border-pink-100">
-    <div class="w-full max-w-7xl mx-auto px-4 flex items-center justify-between">
+  <header class="top-header py-3 border-b border-gray-200" id="header">
+    <div class="container mx-auto px-4 flex items-center justify-between">
       <a href="{% url 'index' %}" class="flex items-center">
         <h1 class="text-xl font-bold gradient-text">Euphorie</h1>
         <span class="ml-2 px-2 py-0.5 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">BETA</span>
@@ -253,25 +577,25 @@
 
       {% if user.is_authenticated %}
       <div class="flex items-center gap-3">
-        <div class="flex items-center bg-pink-50 rounded-full px-2 py-1">
-          <div class="h-5 w-5 rounded-full bg-pink-300 text-white flex items-center justify-center mr-1.5 font-medium text-xs">
+        <div class="flex items-center bg-pink-50 rounded-full px-3 py-1.5 transition-all hover:bg-pink-100">
+          <div class="h-6 w-6 rounded-full bg-pink-300 text-white flex items-center justify-center mr-2 font-medium text-xs">
             {{ user.username|slice:":1"|upper }}
           </div>
           <p class="text-sm text-gray-700 hidden xs:block">{{ user.username }}</p>
         </div>
-        <a href="{% url 'friends_list' %}" class="p-1.5 text-pink-500 relative rounded-full hover:bg-pink-50">
+        <a href="{% url 'friends_list' %}" class="relative p-2 text-pink-500 rounded-full hover:bg-pink-50 transition-all">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           {% if pending_friend_requests_count > 0 %}
-          <span class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+          <span class="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center badge-animate">
             {{ pending_friend_requests_count }}
           </span>
           {% endif %}
         </a>
         <form method="post" action="{% url 'logout' %}" class="inline">
           {% csrf_token %}
-          <button type="submit" class="p-1.5 text-pink-500 rounded-full hover:bg-pink-50">
+          <button type="submit" class="p-2 text-pink-500 rounded-full hover:bg-pink-50 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
@@ -280,10 +604,10 @@
       </div>
       {% else %}
       <div class="flex items-center gap-2">
-        <a href="{% url 'login' %}" class="px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-sm font-medium shadow-sm">
+        <a href="{% url 'login' %}" class="btn px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-sm font-medium shadow-sm">
           Login
         </a>
-        <a href="{% url 'signup' %}" class="px-3 py-1.5 border border-pink-200 bg-white hover:bg-pink-50 text-pink-500 rounded-lg text-sm font-medium">
+        <a href="{% url 'signup' %}" class="btn px-4 py-2 border border-pink-200 bg-white hover:bg-pink-50 text-pink-500 rounded-lg text-sm font-medium">
           Sign up
         </a>
       </div>
@@ -291,357 +615,216 @@
     </div>
   </header>
 
-  <main class="w-full max-w-7xl mx-auto p-4 pt-2 sm:py-6">
-    <!-- Layout controls and search bar -->
-    <div class="flex flex-col sm:flex-row gap-3 mb-5 items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-pink-100">
-      <div class="w-full sm:w-auto flex items-center gap-3">
-        <div class="relative w-full sm:w-64">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-          </div>
-          <input
-            type="text"
-            id="room-search"
-            placeholder="Search rooms..."
-            class="search-input w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50"
-          />
-        </div>
-        <!-- View Toggle Buttons -->
-        <div class="hidden sm:flex bg-gray-100 p-1 rounded-lg">
-          <button id="grid-view" class="view-toggle-btn active p-1.5 rounded-md">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-          </button>
-          <button id="compact-view" class="view-toggle-btn p-1.5 rounded-md">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {% if user.is_authenticated %}
-      <button id="create-room-toggle" class="create-btn w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg text-sm font-medium shadow-sm flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-        Create New Room
-      </button>
-      {% endif %}
-    </div>
-
-    <!-- Create New Room Form (initially hidden) -->
+  <main class="container mx-auto p-4 sm:p-6 max-w-7xl">
+    <!-- User Welcome & Quick Stats (New) -->
     {% if user.is_authenticated %}
-    <div id="create-room-form-container" class="bg-white rounded-xl shadow-sm p-5 mb-5 border border-pink-100 hidden transform transition-all duration-300 scale-95 opacity-0">
-      <div class="mb-3 flex justify-between items-center">
+    <div class="mb-6 bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold text-gray-800">Create a New Room</h2>
-          <p class="text-sm text-gray-500">Start a conversation or discuss a topic of your choice</p>
+          <h2 class="text-lg font-bold text-gray-800">Welcome back, {{ user.username }}!</h2>
+          <p class="text-sm text-gray-500 mt-1">Your personal chat hub at Euphorie</p>
         </div>
-        <button id="close-create-form" class="text-gray-400 hover:text-gray-600 p-1">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <form method="post" action="{% url 'create_room' %}" class="space-y-3" id="create-room-form">
-        {% csrf_token %}
-        <div class="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            name="room_name"
-            placeholder="Enter a new room name..."
-            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50"
-            required
-          />
-          <select
-            name="room_category"
-            class="px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50 text-gray-700 appearance-none sm:w-1/3"
-            required
-          >
-            <option value="" disabled selected>Select a category</option>
-            {% for slug, display_name in category_choices %}
-            <option value="{{ slug }}">{{ display_name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="flex justify-end">
-          <button type="submit" class="btn bg-gradient-to-r from-pink-500 to-rose-500 text-white px-5 py-2 rounded-xl shadow-md font-semibold hover:shadow-lg transition-all">
-            Create Room
-          </button>
-        </div>
-      </form>
-    </div>
-    {% endif %}
-
-    <!-- Online Friends Bar -->
-    {% if user.is_authenticated %}
-    <div class="flex flex-col md:flex-row gap-4 mb-5">
-      <!-- Online Friends -->
-      <div class="bg-white rounded-xl p-3 shadow-sm border border-pink-100 flex-shrink-0 w-full md:w-64">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-semibold text-gray-700">Friends Online</h3>
-          <a href="{% url 'friends_list' %}" class="text-xs text-pink-500 hover:underline">View all</a>
-        </div>
-        <div id="online-friends-container" class="flex flex-wrap gap-2 pb-1">
-          <!-- Loading placeholder -->
-          <div class="animate-pulse flex gap-2 flex-wrap">
-            {% for i in "12345"|make_list %}
-            <div class="friend-indicator flex flex-col items-center w-12">
-              <div class="h-8 w-8 rounded-full bg-gray-200"></div>
-              <div class="h-2 w-10 bg-gray-200 rounded mt-1"></div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Room categories -->
-      <div class="bg-white rounded-xl p-3 shadow-sm border border-pink-100 flex-1">
-        <div class="flex items-center gap-2 mb-2">
-          <h3 class="text-sm font-semibold text-gray-700">Browse by category</h3>
-        </div>
-        <div class="relative">
-          <!-- Category slider -->
-          <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar" id="room-categories">
-            <button data-category="all" class="category-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-pink-500 text-white shadow-sm">
-              <span class="mr-1.5">🏠</span> All Rooms
-            </button>
-            <button data-category="trending" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">🔥</span> Trending
-            </button>
-            <button data-category="quick" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">⚡</span> Quick Chats
-            </button>
-            <button data-category="technology" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">💻</span> Technology
-            </button>
-            <button data-category="gaming" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">🎮</span> Gaming
-            </button>
-            <button data-category="art" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">🎨</span> Art & Creativity
-            </button>
-            <button data-category="music" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">🎵</span> Music
-            </button>
-            <button data-category="sports" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">⚽</span> Sports
-            </button>
-            <button data-category="movies" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">🎬</span> Movies & TV
-            </button>
-            <button data-category="food" class="category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100">
-              <span class="mr-1.5">🍔</span> Food & Cooking
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- My Rooms and Recommendations Section -->
-    {% if user.is_authenticated %}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-      <!-- My Rooms (compact list) -->
-      <div class="md:col-span-2 bg-white rounded-xl shadow-sm p-4 border border-pink-100 h-full overflow-hidden">
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="text-base font-bold text-gray-800">My Rooms</h3>
-          <a href="{% url 'explore_rooms' %}" class="text-xs text-pink-500 hover:underline">Explore more</a>
-        </div>
-
-        <div class="max-h-56 overflow-y-auto pr-2">
-          {% for room in active_rooms %}
-            {% if room.creator == user %}
-            <a href="{% url 'room' room.name %}" class="compact-room-card flex items-center justify-between p-2 border-b border-gray-100 hover:bg-pink-50">
-              <div class="flex items-center">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white font-bold mr-3">
-                  {{ room.display_name|slice:":1"|upper }}
-                </div>
-                <div>
-                  <p class="font-medium text-gray-800 text-sm">{{ room.display_name }}</p>
-                  <p class="text-xs text-gray-500">
-                    {% if room.category %}{{ room.category.name }}{% else %}General{% endif %}
-                    • {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center space-x-2">
-                <button class="text-gray-400 hover:text-blue-500" title="Enter Room">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                <a href="{% url 'delete_room' room.name %}" class="text-gray-400 hover:text-red-500" title="Delete Room" onclick="return confirm('Are you sure you want to delete this room?');">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </a>
-              </div>
-            </a>
-            {% endif %}
-          {% empty %}
-            <div class="text-center py-4 text-gray-500">
-              You haven't created any rooms yet.
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- Recommended Rooms -->
-      <div class="bg-white rounded-xl shadow-sm p-4 border border-pink-100 h-full">
-        <h3 class="text-base font-bold mb-3">Recommended for You</h3>
-        <!-- Loading placeholder -->
-        <div class="animate-pulse space-y-3 recommendations-placeholder">
-          <div class="flex items-center space-x-3">
-            <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
-            <div class="flex-1 space-y-1.5">
-              <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
-              <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          </div>
-          <div class="flex items-center space-x-3">
-            <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
-            <div class="flex-1 space-y-1.5">
-              <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
-              <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          </div>
-          <div class="flex items-center space-x-3">
-            <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
-            <div class="flex-1 space-y-1.5">
-              <div class="h-3.5 bg-gray-200 rounded w-3/4"></div>
-              <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          </div>
-        </div>
-        <div class="space-y-2 hidden recommendations-content max-h-56 overflow-y-auto">
-          <!-- Will be populated via JavaScript -->
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Rooms Section Title -->
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <h2 class="text-xl font-bold text-gray-800">Active Chat Rooms</h2>
-        <p class="text-sm text-gray-500">Join conversations that interest you</p>
-      </div>
-      <div class="hidden sm:block">
-        <span class="text-sm text-gray-500" id="rooms-count">Showing <span class="font-medium text-gray-700">{{ active_rooms|length }}</span> rooms</span>
-      </div>
-    </div>
-
-    <!-- Main Room Grid Container -->
-    <div id="main-view-container">
-      <!-- Regular grid view (default) -->
-      <div id="grid-view-container" class="rooms-container">
-        {% if active_rooms %}
-          {% for room in active_rooms %}
-          <a href="{% url 'room' room.name %}" class="room-card bg-white shadow-sm border border-gray-100 hover:border-pink-200 group" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
-            <div class="p-4 flex-1">
-              <div class="flex justify-between items-start mb-2">
-                <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">{{ room.display_name }}</h3>
-                {% if room.message_count > 50 %}
-                <span class="activity-indicator activity-high">
-                  <span class="pulse-animation mr-1">●</span>Active
-                </span>
-                {% elif room.message_count > 20 %}
-                <span class="activity-indicator activity-medium">
-                  <span class="mr-1">●</span>Active
-                </span>
-                {% else %}
-                <span class="activity-indicator activity-low">
-                  <span class="mr-1">●</span>Quiet
-                </span>
-                {% endif %}
-              </div>
-
-              {% if room.category %}
-              <span class="room-badge bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full inline-block mb-2">
-                {{ room.category.name }}
-              </span>
-              {% endif %}
-
-              <div class="flex justify-between items-center text-xs text-gray-500">
-                <span class="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  {{ room.creator.username }}
-                </span>
-                <span>
-                  {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
-                </span>
-              </div>
-            </div>
-            <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors mt-auto">
-              <div class="flex items-center justify-between text-sm text-pink-600 font-medium">
-                <span class="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  Join Chat
-                </span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </div>
-          </a>
-          {% endfor %}
-        {% else %}
-          <!-- Empty state -->
-          <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100">
-            <div class="mx-auto w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex gap-4 flex-wrap">
+          <div class="bg-pink-50 rounded-lg p-2 flex items-center gap-2">
+            <div class="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-800 mb-2">No active rooms yet</h3>
-            <p class="text-gray-500 mb-5 max-w-md mx-auto">{% if user.is_authenticated %}Create a new room to start chatting with others!{% else %}Sign in to create your first chat room and start connecting{% endif %}</p>
-
-            {% if user.is_authenticated %}
-            <button id="empty-create-room" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-              Create Your First Room
-            </button>
-            {% else %}
-            <a href="{% url 'login' %}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-              Login to Get Started
-            </a>
-            {% endif %}
+            <div>
+              <div class="text-xs text-gray-500">Your Rooms</div>
+              <div class="text-lg font-bold text-gray-700">{{ active_rooms|length }}</div>
+            </div>
           </div>
-        {% endif %}
+          <div class="bg-blue-50 rounded-lg p-2 flex items-center gap-2">
+            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500">Friends</div>
+              <div class="text-lg font-bold text-gray-700">0</div>
+            </div>
+          </div>
+          <div class="bg-green-50 rounded-lg p-2 flex items-center gap-2">
+            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500">Active Now</div>
+              <div class="text-lg font-bold text-gray-700">{{ active_rooms|length }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Combined Friends & Create Room Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <!-- Create Room Form with improved UI -->
+      <div class="lg:col-span-2">
+        {% if user.is_authenticated %}
+        <div class="create-room-container">
+          <div class="p-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-800">Create a New Room</h2>
+            <p class="text-xs text-gray-500">Start a conversation on any topic</p>
+          </div>
+          <form method="post" action="{% url 'create_room' %}" class="p-4" id="create-room-form">
+            {% csrf_token %}
+            <div class="flex flex-col sm:flex-row gap-3 mb-3">
+              <div class="relative flex-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <input
+                  type="text"
+                  name="room_name"
+                  placeholder="Enter a room name..."
+                  class="pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50 w-full"
+                  required
+                />
+              </div>
+              <select
+                name="room_category"
+                class="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-pink-300 focus:border-pink-300 focus:outline-none bg-gray-50 text-gray-700 appearance-none sm:w-1/3"
+                required
+              >
+                <option value="" disabled selected>Select category</option>
+                {% for slug, display_name in category_choices %}
+                <option value="{{ slug }}">{{ display_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="flex justify-end">
+              <button type="submit" class="create-room-btn">
+                <span class="relative z-10">Create Room</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
-      <!-- Compact list view (initially hidden) -->
-      <div id="compact-view-container" class="hidden">
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-          <table class="w-full text-sm table-fixed">
-            <thead class="bg-gray-50 text-gray-600">
+      <!-- Friends Online - Improved UI -->
+      {% if user.is_authenticated %}
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+          <div class="flex justify-between items-center">
+            <h3 class="text-base font-semibold text-gray-800 flex items-center">
+              <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
+              Friends Online
+            </h3>
+            <a href="{% url 'friends_list' %}" class="text-xs text-pink-500 hover:underline">View all</a>
+          </div>
+        </div>
+        <div id="online-friends-container" class="p-4 flex flex-wrap gap-3">
+          <!-- Loading placeholder -->
+          <div class="animate-pulse flex gap-3 flex-wrap">
+            {% for i in "12345"|make_list %}
+            <div class="friend-avatar">
+              <div class="h-12 w-12 rounded-full bg-gray-200"></div>
+              <div class="h-2 w-16 bg-gray-200 rounded mt-2 mx-auto"></div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- View Mode Toggle & Search (New) -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-5 gap-4">
+      <div class="relative w-full sm:w-auto sm:flex-1 max-w-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          id="room-search"
+          placeholder="Search rooms..."
+          class="search-input"
+        />
+      </div>
+
+      <div class="flex items-center gap-5">
+        <!-- View mode toggle -->
+        <div class="view-mode-indicator">
+          <div>Card View</div>
+          <label class="toggle-container">
+            <input type="checkbox" id="view-mode-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+          <div>Compact View</div>
+        </div>
+
+        <!-- Category dropdown for mobile -->
+        <div class="sm:hidden">
+          <select id="mobile-category-selector" class="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700">
+            <option value="all">All Rooms</option>
+            <option value="trending">Trending</option>
+            {% for category in categories %}
+            <option value="{{ category.slug|default:category.name|lower }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Room Categories (Desktop) -->
+    <div class="hidden sm:block mb-5">
+      <div class="flex overflow-x-auto hide-scrollbar pb-1 gap-2" id="room-categories">
+        <button data-category="all" class="category-btn active bg-pink-500 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span>All Rooms</span>
+        </button>
+        <button data-category="trending" class="category-btn bg-gray-50 text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          <span>Trending</span>
+        </button>
+        {% for category in categories %}
+        <button data-category="{{ category.slug|default:category.name|lower }}" class="category-btn bg-gray-50 text-gray-700">
+          <span>{{ category.icon|default:"🌟" }}</span>
+          <span>{{ category.name }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- My Rooms Table (Improved UI) -->
+    {% if user.is_authenticated %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+      <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-base font-semibold text-gray-800">My Rooms</h3>
+        <a href="{% url 'explore_rooms' %}" class="text-xs text-pink-500 hover:underline transition-colors">Explore more rooms</a>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="my-rooms-table">
+          <thead class="bg-gray-50">
+            <tr>
+              <th>Room Name</th>
+              <th class="text-center">Category</th>
+              <th class="text-right">Messages</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for room in active_rooms %}
+              {% if room.creator == user %}
               <tr>
-                <th class="px-4 py-3 text-left">Room Name</th>
-                <th class="px-3 py-3 text-center w-24 hidden sm:table-cell">Category</th>
-                <th class="px-3 py-3 text-center w-20 hidden sm:table-cell">Messages</th>
-                <th class="px-3 py-3 text-center w-20">Activity</th>
-                <th class="px-3 py-3 text-center w-24">Created By</th>
-                <th class="px-3 py-3 text-center w-20">Action</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              {% for room in active_rooms %}
-              <tr class="hover:bg-pink-50 transition-colors" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
-                <td class="px-4 py-3">
-                  <a href="{% url 'room' room.name %}" class="font-medium text-pink-600 hover:underline">
+                <td>
+                  <a href="{% url 'room' room.name %}" class="room-link">
                     {{ room.display_name }}
                   </a>
                 </td>
-                <td class="px-3 py-3 text-center hidden sm:table-cell">
+                <td class="text-center">
                   {% if room.category %}
                   <span class="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full text-xs font-medium">
                     {{ room.category.name }}
@@ -650,71 +833,283 @@
                   <span class="text-gray-400 text-xs">—</span>
                   {% endif %}
                 </td>
-                <td class="px-3 py-3 text-center font-medium hidden sm:table-cell">{{ room.message_count }}</td>
-                <td class="px-3 py-3 text-center">
-                  {% if room.message_count > 50 %}
-                  <span class="inline-flex items-center activity-indicator activity-high text-center">
-                    <span class="pulse-animation mr-1">●</span>High
-                  </span>
-                  {% elif room.message_count > 20 %}
-                  <span class="inline-flex items-center activity-indicator activity-medium text-center">
-                    <span class="mr-1">●</span>Med
-                  </span>
-                  {% else %}
-                  <span class="inline-flex items-center activity-indicator activity-low text-center">
-                    <span class="mr-1">●</span>Low
-                  </span>
-                  {% endif %}
-                </td>
-                <td class="px-3 py-3 text-center text-xs text-gray-500">{{ room.creator.username }}</td>
-                <td class="px-3 py-3 text-center">
-                  <a href="{% url 'room' room.name %}" class="inline-flex items-center justify-center bg-pink-100 hover:bg-pink-200 text-pink-600 p-1.5 rounded-lg transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </a>
+                <td class="text-right font-medium">{{ room.message_count }}</td>
+                <td>
+                  <div class="flex justify-center space-x-2">
+                    <a href="{% url 'room' room.name %}" class="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors" title="Enter Room">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </a>
+                    <a href="{% url 'delete_room' room.name %}" class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors" title="Delete Room" onclick="return confirm('Are you sure you want to delete this room?');">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </a>
+                  </div>
                 </td>
               </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+              {% endif %}
+            {% empty %}
+              <tr>
+                <td colspan="4" class="px-3 py-6 text-center text-gray-500">
+                  <div class="flex flex-col items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <p>You haven't created any rooms yet.</p>
+                    <button onclick="document.querySelector('input[name=room_name]').focus();" class="mt-2 text-pink-500 text-sm hover:underline">
+                      Create your first room
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if request.user.is_staff %}
+      <div class="p-3 border-t border-gray-100 flex justify-end">
+        <a href="{% url 'admin_dashboard' %}" class="btn px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium inline-flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Admin Dashboard
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Recommended Rooms -->
+    <h2 class="text-lg font-bold text-gray-800 mb-4">Recommended For You</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <!-- Recommendation cards -->
+      <div class="recommendation-card">
+        <div class="p-4">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
+              G
+            </div>
+            <div>
+              <div class="font-medium text-gray-800 flex items-center gap-2">
+                Gaming
+                <span class="recommendation-tag">Active</span>
+              </div>
+              <div class="text-xs text-gray-500">Based on your interests</div>
+            </div>
+          </div>
+          <div class="mt-3 text-sm text-gray-600">
+            Join discussions about latest video games and gaming news.
+          </div>
+        </div>
+        <div class="p-3 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+          <span class="text-xs text-gray-500">15 users active</span>
+          <a href="#" class="text-xs text-pink-500 font-medium hover:underline">Join Room →</a>
+        </div>
+      </div>
+
+      <div class="recommendation-card">
+        <div class="p-4">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white font-bold text-lg">
+              P
+            </div>
+            <div>
+              <div class="font-medium text-gray-800 flex items-center gap-2">
+                Photography
+                <span class="recommendation-tag">Popular</span>
+              </div>
+              <div class="text-xs text-gray-500">Trending this week</div>
+            </div>
+          </div>
+          <div class="mt-3 text-sm text-gray-600">
+            Share your photos and photography tips with others.
+          </div>
+        </div>
+        <div class="p-3 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+          <span class="text-xs text-gray-500">32 users active</span>
+          <a href="#" class="text-xs text-pink-500 font-medium hover:underline">Join Room →</a>
+        </div>
+      </div>
+
+      <div class="recommendation-card">
+        <div class="p-4">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white font-bold text-lg">
+              T
+            </div>
+            <div>
+              <div class="font-medium text-gray-800 flex items-center gap-2">
+                Tech News
+                <span class="recommendation-tag">New</span>
+              </div>
+              <div class="text-xs text-gray-500">Created 2 days ago</div>
+            </div>
+          </div>
+          <div class="mt-3 text-sm text-gray-600">
+            Discuss the latest tech news and product launches.
+          </div>
+        </div>
+        <div class="p-3 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+          <span class="text-xs text-gray-500">8 users active</span>
+          <a href="#" class="text-xs text-pink-500 font-medium hover:underline">Join Room →</a>
         </div>
       </div>
     </div>
 
+    <!-- Active Chat Rooms - Standard Card View -->
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold text-gray-800">Active Chat Rooms</h2>
+      <div class="text-sm text-gray-500">{{ active_rooms|length }} rooms available</div>
+    </div>
+
+    <!-- Card View of Rooms -->
+    <div class="rooms-container" id="card-view">
+      {% if active_rooms %}
+        {% for room in active_rooms %}
+        <a href="{% url 'room' room.name %}" class="room-card bg-white shadow-sm overflow-hidden border border-gray-200 hover:border-pink-300" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
+          <div class="room-card-content p-4">
+            <div class="flex justify-between items-start mb-3">
+              <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">{{ room.display_name }}</h3>
+              <span class="room-badge">
+                {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
+              </span>
+            </div>
+            <div class="flex-1">
+              <!-- Room description or snippet could go here -->
+              <p class="text-sm text-gray-500 mb-3">
+                {% if room.category %}
+                <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs mr-1">{{ room.category.name }}</span>
+                {% endif %}
+                Active discussion room for all topics related to {{ room.display_name }}.
+              </p>
+            </div>
+            <div class="flex justify-between items-center mt-2">
+              <span class="text-xs text-gray-500 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Created by {{ room.creator.username }}
+              </span>
+              <span class="inline-flex items-center">
+                <svg class="w-3 h-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 005 10a6 6 0 0010 0c0-.552-.448-1-1-1H8z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-xs text-gray-500">Active now</span>
+              </span>
+            </div>
+          </div>
+          <div class="bg-gradient-to-r from-pink-50 to-pink-100 px-4 py-2 border-t border-pink-100 transition-colors">
+            <div class="join-btn flex items-center justify-between text-sm">
+              <span class="text-pink-600 font-medium flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Join Conversation
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <!-- Empty state -->
+        <div class="col-span-full text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div class="mx-auto w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">No active rooms yet</h3>
+          <p class="text-gray-500 mb-5 max-w-md mx-auto">{% if user.is_authenticated %}Create a new room to start chatting with others!{% else %}Sign in to create your first chat room and start connecting{% endif %}</p>
+
+          {% if user.is_authenticated %}
+          <button onclick="document.querySelector('input[name=room_name]').focus();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl inline-block shadow-md font-medium">
+            Create Your First Room
+          </button>
+          {% else %}
+          <a href="{% url 'login' %}" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl inline-block shadow-md font-medium">
+            Login to Get Started
+          </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Compact View of Rooms (hidden by default) -->
+    <div class="compact-room-grid hidden" id="compact-view">
+      {% if active_rooms %}
+        {% for room in active_rooms %}
+        <a href="{% url 'room' room.name %}" class="compact-room-card" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
+          <div class="p-3">
+            <span class="room-name">{{ room.display_name }}</span>
+            <div class="flex justify-between items-center">
+              <span class="room-creator">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {{ room.creator.username }}
+              </span>
+              {% if room.category %}
+              <span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs">
+                {{ room.category.name }}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="room-footer">
+            <div class="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              {{ room.message_count }} messages
+            </div>
+            <div class="flex items-center text-pink-500">
+              <span class="text-xs font-medium">Join</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="col-span-full text-center py-6 bg-white rounded-xl shadow-sm border border-gray-200">
+          <p class="text-gray-500">No active rooms available</p>
+        </div>
+      {% endif %}
+    </div>
+
     <!-- Load More Button -->
     <div class="text-center mt-6 hidden" id="load-more-container">
-      <button id="load-more-button" class="bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-6 py-2 rounded-xl shadow-sm font-medium inline-flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+      <button id="load-more-button" class="btn bg-white border border-pink-200 text-pink-500 hover:bg-pink-50 px-6 py-2.5 rounded-xl shadow-sm font-medium">
         Load More Rooms
       </button>
     </div>
   </main>
 
   <!-- Footer -->
-  <footer class="py-4 border-t border-pink-100 mt-8 bg-white">
-    <div class="w-full max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
-      <div class="mb-3 sm:mb-0 text-center sm:text-left">
+  <footer class="py-6 border-t border-gray-200 mt-12 bg-white">
+    <div class="container mx-auto px-6 flex flex-col sm:flex-row justify-between items-center">
+      <div class="mb-4 sm:mb-0 text-center sm:text-left">
         <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
-          <h2 class="text-base font-bold gradient-text">Euphorie</h2>
+          <h2 class="text-lg font-bold gradient-text">Euphorie</h2>
           <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
         </a>
         <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
       </div>
-      <div class="flex items-center gap-4 sm:gap-8 text-[13px] font-semibold tracking-wide text-gray-500">
-        <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-indigo-500 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span class="hover:underline underline-offset-2">Crene.com</span>
+      <div class="flex items-center gap-6 text-xs font-medium text-gray-500">
+        <a href="https://crene.com" target="_blank" rel="noopener" class="hover:text-indigo-500 transition-colors">
+          Crene.com
         </a>
-        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-green-500 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <span class="hover:underline underline-offset-2">DiaryVault.com</span>
+        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="hover:text-green-500 transition-colors">
+          DiaryVault.com
         </a>
       </div>
     </div>
@@ -722,331 +1117,564 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Toggle between grid and list views
-      const gridViewBtn = document.getElementById('grid-view');
-      const compactViewBtn = document.getElementById('compact-view');
-      const gridViewContainer = document.getElementById('grid-view-container');
-      const compactViewContainer = document.getElementById('compact-view-container');
+        // Room search functionality
+        const roomSearch = document.getElementById('room-search');
+        const roomCards = document.querySelectorAll('[data-category]');
+        const cardView = document.getElementById('card-view');
+        const compactView = document.getElementById('compact-view');
+        const viewModeToggle = document.getElementById('view-mode-toggle');
 
-      if(gridViewBtn && compactViewBtn) {
-        gridViewBtn.addEventListener('click', function() {
-          // Switch to grid view
-          gridViewContainer.classList.remove('hidden');
-          compactViewContainer.classList.add('hidden');
-
-          // Update button styles
-          gridViewBtn.classList.add('active');
-          compactViewBtn.classList.remove('active');
-
-          // Save preference
-          localStorage.setItem('preferred_view', 'grid');
-        });
-
-        compactViewBtn.addEventListener('click', function() {
-          // Switch to compact view
-          gridViewContainer.classList.add('hidden');
-          compactViewContainer.classList.remove('hidden');
-
-          // Update button styles
-          gridViewBtn.classList.remove('active');
-          compactViewBtn.classList.add('active');
-
-          // Save preference
-          localStorage.setItem('preferred_view', 'compact');
-        });
-
-        // Check for saved preference
-        const savedView = localStorage.getItem('preferred_view');
-        if(savedView === 'compact') {
-          compactViewBtn.click();
-        }
-      }
-
-      // Create Room Form Toggle
-      const createRoomToggle = document.getElementById('create-room-toggle');
-      const createFormContainer = document.getElementById('create-room-form-container');
-      const closeCreateForm = document.getElementById('close-create-form');
-      const emptyCreateRoom = document.getElementById('empty-create-room');
-
-      function showCreateForm() {
-        createFormContainer.classList.remove('hidden', 'scale-95', 'opacity-0');
-        setTimeout(() => {
-          document.querySelector('input[name=room_name]').focus();
-        }, 300);
-      }
-
-      function hideCreateForm() {
-        createFormContainer.classList.add('scale-95', 'opacity-0');
-        setTimeout(() => {
-          createFormContainer.classList.add('hidden');
-        }, 300);
-      }
-
-      if(createRoomToggle && createFormContainer) {
-        createRoomToggle.addEventListener('click', showCreateForm);
-      }
-
-      if(closeCreateForm) {
-        closeCreateForm.addEventListener('click', hideCreateForm);
-      }
-
-      if(emptyCreateRoom) {
-        emptyCreateRoom.addEventListener('click', showCreateForm);
-      }
-
-      // Room search functionality
-      const roomSearch = document.getElementById('room-search');
-      const roomCards = document.querySelectorAll('.room-card');
-      const tableRows = document.querySelectorAll('#compact-view-container tbody tr');
-      const roomsCount = document.getElementById('rooms-count');
-
-      if (roomSearch) {
-        roomSearch.addEventListener('input', function() {
-          const searchValue = this.value.toLowerCase();
-          let visibleCount = 0;
-
-          // Filter grid view
-          roomCards.forEach(card => {
-            const roomName = card.querySelector('h3').textContent.toLowerCase();
-            if (roomName.includes(searchValue)) {
-              card.classList.remove('hidden');
-              visibleCount++;
-            } else {
-              card.classList.add('hidden');
-            }
-          });
-
-          // Filter table view
-          tableRows.forEach(row => {
-            const roomName = row.querySelector('a').textContent.toLowerCase();
-            if (roomName.includes(searchValue)) {
-              row.classList.remove('hidden');
-            } else {
-              row.classList.add('hidden');
-            }
-          });
-
-          // Update count
-          if(roomsCount) {
-            roomsCount.innerHTML = `Showing <span class="font-medium text-gray-700">${visibleCount}</span> rooms`;
-          }
-
-          // Show no results message if needed
-          updateNoResultsMessage(visibleCount, searchValue);
-        });
-      }
-
-      // Handle "no results" message
-      function updateNoResultsMessage(visibleCount, searchValue) {
-        const noResultsId = 'no-results-message';
-        let noResultsMessage = document.getElementById(noResultsId);
-
-        if (visibleCount === 0 && searchValue !== '') {
-          if (!noResultsMessage) {
-            // Create message if it doesn't exist
-            noResultsMessage = document.createElement('div');
-            noResultsMessage.id = noResultsId;
-            noResultsMessage.className = 'text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100 mt-4';
-            noResultsMessage.innerHTML = `
-              <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <h3 class="text-lg font-bold text-gray-800 mb-2">No rooms found</h3>
-              <p class="text-gray-500 mb-4">No rooms match "${searchValue}"</p>
-              <button onclick="document.getElementById('room-search').value = ''; document.getElementById('room-search').dispatchEvent(new Event('input'));" class="px-4 py-2 bg-pink-100 text-pink-600 rounded-lg font-medium">
-                Clear search
-              </button>
-            `;
-            document.getElementById('main-view-container').appendChild(noResultsMessage);
+        // Initialize view mode
+        function initViewMode() {
+          const savedViewMode = localStorage.getItem('euphorie_view_mode') || 'card';
+          if (savedViewMode === 'compact') {
+            viewModeToggle.checked = true;
+            cardView.classList.add('hidden');
+            compactView.classList.remove('hidden');
           } else {
-            // Update existing message
-            noResultsMessage.querySelector('p').textContent = `No rooms match "${searchValue}"`;
+            viewModeToggle.checked = false;
+            cardView.classList.remove('hidden');
+            compactView.classList.add('hidden');
           }
-        } else if (noResultsMessage) {
-          // Remove message if there are results
-          noResultsMessage.remove();
         }
-      }
 
-      // Category filtering
-      const categoryButtons = document.querySelectorAll('.category-btn');
+        // View mode toggle
+        if (viewModeToggle) {
+          viewModeToggle.addEventListener('change', function() {
+            if (this.checked) {
+              // Compact view
+              cardView.classList.add('hidden');
+              compactView.classList.remove('hidden');
+              localStorage.setItem('euphorie_view_mode', 'compact');
+            } else {
+              // Card view
+              cardView.classList.remove('hidden');
+              compactView.classList.add('hidden');
+              localStorage.setItem('euphorie_view_mode', 'card');
+            }
+          });
 
-      if(categoryButtons.length > 0) {
-        categoryButtons.forEach(button => {
-          button.addEventListener('click', function() {
-            // Update active button
-            categoryButtons.forEach(btn => {
-              btn.classList.remove('active', 'bg-pink-500', 'text-white', 'shadow-sm');
-              btn.classList.add('bg-gray-50', 'text-gray-600');
+          // Initialize view mode on page load
+          initViewMode();
+        }
+
+        // Room search functionality
+        if (roomSearch) {
+          roomSearch.addEventListener('input', function() {
+            const searchValue = this.value.toLowerCase();
+            let visibleCount = 0;
+
+            roomCards.forEach(card => {
+              const roomName = card.querySelector('h3, .room-name').textContent.toLowerCase();
+              const match = roomName.includes(searchValue);
+
+              // Different animation based on view mode
+              if (match) {
+                card.style.display = '';
+                visibleCount++;
+
+                // Add subtle highlight animation
+                if (searchValue !== '') {
+                  card.classList.add('search-match');
+                  setTimeout(() => {
+                    card.classList.remove('search-match');
+                  }, 1000);
+                }
+              } else {
+                // For a smoother transition
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                  card.style.display = 'none';
+                }, 300);
+              }
             });
 
-            this.classList.remove('bg-gray-50', 'text-gray-600');
-            this.classList.add('active', 'bg-pink-500', 'text-white', 'shadow-sm');
+            // Show no results message if needed
+            const noResultsMessage = document.getElementById('no-results-message');
 
-            const category = this.getAttribute('data-category');
-            filterRoomsByCategory(category);
+            if (visibleCount === 0 && searchValue !== '') {
+              if (!noResultsMessage) {
+                const message = document.createElement('div');
+                message.id = 'no-results-message';
+                message.className = 'col-span-full text-center py-6 bg-white rounded-xl shadow-sm border border-gray-200';
+                message.innerHTML = `
+                  <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <p class="text-gray-600 font-medium mb-1">No rooms found matching "${searchValue}"</p>
+                  <button class="text-pink-500 text-sm hover:underline" onclick="document.getElementById('room-search').value = ''; document.getElementById('room-search').dispatchEvent(new Event('input'));">
+                    Clear search
+                  </button>
+                `;
+
+                // Add to both views
+                cardView.appendChild(message.cloneNode(true));
+                compactView.appendChild(message);
+              }
+            } else if (noResultsMessage) {
+              // Remove no results message if results are found
+              noResultsMessage.remove();
+            }
           });
-        });
-      }
-
-      function filterRoomsByCategory(category) {
-        let visibleCount = 0;
-
-        // Filter grid cards
-        roomCards.forEach(card => {
-          const roomCategory = card.getAttribute('data-category');
-          if (category === 'all' || roomCategory === category) {
-            card.classList.remove('hidden');
-            visibleCount++;
-          } else {
-            card.classList.add('hidden');
-          }
-        });
-
-        // Filter table rows
-        tableRows.forEach(row => {
-          const rowCategory = row.getAttribute('data-category');
-          if (category === 'all' || rowCategory === category) {
-            row.classList.remove('hidden');
-          } else {
-            row.classList.add('hidden');
-          }
-        });
-
-        // Update count
-        if(roomsCount) {
-          roomsCount.innerHTML = `Showing <span class="font-medium text-gray-700">${visibleCount}</span> rooms`;
         }
 
-        // Update load more button
+        // Category filtering
+        const categoryButtons = document.querySelectorAll('.category-btn');
+        const mobileCategorySelector = document.getElementById('mobile-category-selector');
+
+        // Function to filter rooms by category
+        function filterRoomsByCategory(category) {
+          roomCards.forEach(card => {
+            const roomCategory = card.getAttribute('data-category');
+
+            if (category === 'all' || roomCategory === category) {
+              // Show this card with animation
+              card.style.display = '';
+              setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+              }, 10);
+            } else {
+              // Hide this card with animation
+              card.style.opacity = '0';
+              card.style.transform = 'translateY(10px)';
+              setTimeout(() => {
+                card.style.display = 'none';
+              }, 300);
+            }
+          });
+
+          // Update the category buttons
+          categoryButtons.forEach(btn => {
+            if (btn.getAttribute('data-category') === category) {
+              btn.classList.add('active', 'bg-pink-500', 'text-white');
+              btn.classList.remove('bg-gray-50', 'text-gray-700');
+            } else {
+              btn.classList.remove('active', 'bg-pink-500', 'text-white');
+              btn.classList.add('bg-gray-50', 'text-gray-700');
+            }
+          });
+
+          // Update mobile selector
+          if (mobileCategorySelector) {
+            mobileCategorySelector.value = category;
+          }
+
+          // Store selected category in localStorage
+          localStorage.setItem('euphorie_selected_category', category);
+        }
+
+        // Initialize category buttons
+        if (categoryButtons.length) {
+          categoryButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+              const category = this.getAttribute('data-category');
+              filterRoomsByCategory(category);
+
+              // If trending category, we could fetch trending rooms from the server
+              if (category === 'trending') {
+                // This would be a good place to add the fetch for trending rooms
+                fetchTrendingRooms();
+              }
+            });
+          });
+
+          // Set initial category from localStorage or default to 'all'
+          const savedCategory = localStorage.getItem('euphorie_selected_category') || 'all';
+          filterRoomsByCategory(savedCategory);
+        }
+
+        // Mobile category selector
+        if (mobileCategorySelector) {
+          mobileCategorySelector.addEventListener('change', function() {
+            filterRoomsByCategory(this.value);
+          });
+        }
+
+        // Load more functionality
+        const loadMoreBtn = document.getElementById('load-more-button');
         const loadMoreContainer = document.getElementById('load-more-container');
-        if(loadMoreContainer) {
-          if(visibleCount >= 20) {
-            loadMoreContainer.classList.remove('hidden');
-          } else {
-            loadMoreContainer.classList.add('hidden');
+
+        if (loadMoreBtn && roomCards.length > 20) {
+          loadMoreContainer.classList.remove('hidden');
+
+          loadMoreBtn.addEventListener('click', async function() {
+            this.innerHTML = `
+              <svg class="animate-spin h-5 w-5 text-pink-500 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading...
+            `;
+
+            try {
+              // Get the current category
+              const currentCategory = localStorage.getItem('euphorie_selected_category') || 'all';
+              const page = parseInt(this.getAttribute('data-page') || '2');
+
+              // Construct API URL
+              let url = `/api/load_more_rooms/?page=${page}`;
+              if (currentCategory !== 'all') {
+                url += `&category=${currentCategory}`;
+              }
+
+              const response = await fetch(url);
+              const data = await response.json();
+
+              if (data.rooms && data.rooms.length > 0) {
+                // Add new rooms to both view modes
+                addNewRoomsToCardView(data.rooms);
+                addNewRoomsToCompactView(data.rooms);
+
+                // Update button
+                this.innerHTML = 'Load More Rooms';
+                this.setAttribute('data-page', (page + 1).toString());
+
+                // Hide button if no more rooms
+                if (!data.has_next) {
+                  loadMoreContainer.classList.add('hidden');
+                }
+              } else {
+                // No more rooms
+                this.innerHTML = 'No More Rooms';
+                setTimeout(() => {
+                  loadMoreContainer.classList.add('hidden');
+                }, 2000);
+              }
+            } catch (error) {
+              console.error('Error loading more rooms:', error);
+              this.innerHTML = 'Error Loading Rooms';
+              setTimeout(() => {
+                this.innerHTML = 'Try Again';
+              }, 2000);
+            }
+          });
+        }
+
+        // Function to add new rooms to card view
+        function addNewRoomsToCardView(rooms) {
+          rooms.forEach((room, index) => {
+            const roomCard = document.createElement('a');
+            roomCard.href = `/chat/${room.name}/`;
+            roomCard.className = 'room-card bg-white shadow-sm overflow-hidden border border-gray-200 hover:border-pink-300';
+            roomCard.setAttribute('data-category', room.category || 'all');
+            roomCard.style.opacity = '0';
+            roomCard.style.transform = 'translateY(20px)';
+
+            roomCard.innerHTML = `
+              <div class="room-card-content p-4">
+                <div class="flex justify-between items-start mb-3">
+                  <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">${room.display_name}</h3>
+                  <span class="room-badge">
+                    ${room.message_count} ${room.message_count == 1 ? 'message' : 'messages'}
+                  </span>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm text-gray-500 mb-3">
+                    ${room.category ? `<span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs mr-1">${room.category}</span>` : ''}
+                    Active discussion room for all topics related to ${room.display_name}.
+                  </p>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                  <span class="text-xs text-gray-500 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Created by ${room.creator}
+                  </span>
+                  <span class="inline-flex items-center">
+                    <svg class="w-3 h-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 005 10a6 6 0 0010 0c0-.552-.448-1-1-1H8z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-xs text-gray-500">Active now</span>
+                  </span>
+                </div>
+              </div>
+              <div class="bg-gradient-to-r from-pink-50 to-pink-100 px-4 py-2 border-t border-pink-100 transition-colors">
+                <div class="join-btn flex items-center justify-between text-sm">
+                  <span class="text-pink-600 font-medium flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Join Conversation
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </div>
+              </div>
+            `;
+
+            cardView.appendChild(roomCard);
+
+            // Animate in
+            setTimeout(() => {
+              roomCard.style.opacity = '1';
+              roomCard.style.transform = 'translateY(0)';
+              roomCard.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+            }, 50 + index * 50);
+          });
+        }
+
+        // Function to add new rooms to compact view
+        function addNewRoomsToCompactView(rooms) {
+          rooms.forEach((room, index) => {
+            const roomCard = document.createElement('a');
+            roomCard.href = `/chat/${room.name}/`;
+            roomCard.className = 'compact-room-card';
+            roomCard.setAttribute('data-category', room.category || 'all');
+            roomCard.style.opacity = '0';
+            roomCard.style.transform = 'translateY(20px)';
+
+            roomCard.innerHTML = `
+              <div class="p-3">
+                <span class="room-name">${room.display_name}</span>
+                <div class="flex justify-between items-center">
+                  <span class="room-creator">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    ${room.creator}
+                  </span>
+                  ${room.category ? `<span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs">
+                    ${room.category}
+                  </span>` : ''}
+                </div>
+              </div>
+              <div class="room-footer">
+                <div class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  ${room.message_count} messages
+                </div>
+                <div class="flex items-center text-pink-500">
+                  <span class="text-xs font-medium">Join</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            `;
+
+            compactView.appendChild(roomCard);
+
+            // Animate in
+            setTimeout(() => {
+              roomCard.style.opacity = '1';
+              roomCard.style.transform = 'translateY(0)';
+              roomCard.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+            }, 50 + index * 50);
+          });
+        }
+
+        // Function to fetch trending rooms
+        function fetchTrendingRooms() {
+          // Clear both views
+          const loadingTemplate = `
+            <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-gray-200">
+              <div class="mx-auto w-16 h-16 flex items-center justify-center mb-3">
+                <svg class="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+              <p class="text-gray-600 font-medium">Loading trending rooms...</p>
+            </div>
+          `;
+
+          cardView.innerHTML = loadingTemplate;
+          compactView.innerHTML = loadingTemplate;
+
+          // Fetch trending rooms
+          fetch('/api/load_more_rooms/?category=trending')
+            .then(response => response.json())
+            .then(data => {
+              // Clear loading state
+              cardView.innerHTML = '';
+              compactView.innerHTML = '';
+
+              if (data.rooms && data.rooms.length > 0) {
+                // Add trending rooms
+                addNewRoomsToCardView(data.rooms);
+                addNewRoomsToCompactView(data.rooms);
+
+                // Show load more if there are more rooms
+                if (data.has_next) {
+                  loadMoreContainer.classList.remove('hidden');
+                  if (loadMoreBtn) {
+                    loadMoreBtn.setAttribute('data-page', '2');
+                  }
+                } else {
+                  loadMoreContainer.classList.add('hidden');
+                }
+              } else {
+                // No trending rooms found
+                const noRoomsTemplate = `
+                  <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="mx-auto w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">No trending rooms yet</h3>
+                    <p class="text-gray-500 mb-4">Be the first to create a popular room!</p>
+                    <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+                      View All Rooms
+                    </button>
+                  </div>
+                `;
+
+                cardView.innerHTML = noRoomsTemplate;
+                compactView.innerHTML = noRoomsTemplate;
+                loadMoreContainer.classList.add('hidden');
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching trending rooms:', error);
+
+              const errorTemplate = `
+                <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-gray-200">
+                  <div class="mx-auto w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-xl font-bold text-gray-800 mb-2">Error loading rooms</h3>
+                  <p class="text-gray-500 mb-4">Please try again later</p>
+                  <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+                    View All Rooms
+                  </button>
+                </div>
+              `;
+
+              cardView.innerHTML = errorTemplate;
+              compactView.innerHTML = errorTemplate;
+              loadMoreContainer.classList.add('hidden');
+            });
+        }
+
+        // Initialize online friends section
+        function initOnlineFriends() {
+          const container = document.getElementById('online-friends-container');
+          if (!container) return;
+
+          // Mock data for friends (replace with API call)
+          const friends = [
+            { username: 'Alex', avatar: null, status: 'active' },
+            { username: 'Taylor', avatar: null, status: 'active' },
+            { username: 'Jordan', avatar: null, status: 'idle' },
+            { username: 'Sam', avatar: null, status: 'active' },
+          ];
+
+          // Clear container
+          container.innerHTML = '';
+
+          if (friends.length === 0) {
+            container.innerHTML = `
+              <div class="w-full text-center py-2">
+                <p class="text-gray-500 text-sm">No friends online right now</p>
+                <a href="/friends/" class="text-pink-500 text-xs hover:underline mt-1 inline-block">Find friends</a>
+              </div>
+            `;
+            return;
+          }
+
+          // Add friends
+          friends.forEach((friend, index) => {
+            const friendEl = document.createElement('div');
+            friendEl.className = 'friend-avatar flex flex-col items-center';
+            friendEl.style.animation = `fadeInUp 0.3s forwards ${index * 0.05}s`;
+
+            const statusClass = friend.status === 'active' ? 'bg-green-400' : 'bg-yellow-400';
+
+            friendEl.innerHTML = `
+              <div class="relative">
+                <div class="h-12 w-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-medium">
+                  ${friend.username.charAt(0).toUpperCase()}
+                </div>
+                <span class="absolute bottom-0 right-0 h-3 w-3 ${statusClass} rounded-full border-2 border-white"></span>
+              </div>
+              <span class="text-xs mt-1 font-medium">${friend.username}</span>
+            `;
+
+            container.appendChild(friendEl);
+          });
+        }
+
+        // Call online friends initialization
+        initOnlineFriends();
+
+        // Header scroll effect
+        const header = document.getElementById('header');
+        if (header) {
+          window.addEventListener('scroll', function() {
+            if (window.scrollY > 10) {
+              header.classList.add('scrolled');
+            } else {
+              header.classList.remove('scrolled');
+            }
+          });
+        }
+
+        // Add animation when a new room is created
+        const createRoomForm = document.getElementById('create-room-form');
+        if (createRoomForm) {
+          createRoomForm.addEventListener('submit', function() {
+            // Store form data to use after redirection
+            const roomName = this.querySelector('input[name="room_name"]').value;
+            localStorage.setItem('new_room_created', roomName);
+
+            // Visual feedback while submitting
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+              submitBtn.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-white mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              `;
+              submitBtn.disabled = true;
+            }
+          });
+
+          // Check if we just created a room and highlight it
+          const newRoomName = localStorage.getItem('new_room_created');
+          if (newRoomName) {
+            // Find the room card and highlight it
+            setTimeout(() => {
+              const roomCards = document.querySelectorAll('.room-card h3, .compact-room-card .room-name');
+              roomCards.forEach(nameEl => {
+                if (nameEl.textContent.trim() === newRoomName) {
+                  const card = nameEl.closest('.room-card, .compact-room-card');
+
+                  // Add highlight animation
+                  card.style.boxShadow = '0 0 0 3px rgba(236, 72, 153, 0.5)';
+                  card.style.borderColor = 'rgba(236, 72, 153, 0.5)';
+                  card.style.transform = 'translateY(-4px)';
+
+                  // Scroll into view
+                  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                  // Remove highlight after 2 seconds
+                  setTimeout(() => {
+                    card.style.boxShadow = '';
+                    card.style.borderColor = '';
+                    card.style.transform = '';
+                  }, 2000);
+                }
+              });
+
+              // Clear storage
+              localStorage.removeItem('new_room_created');
+            }, 500);
           }
         }
-      }
-
-      // Mock functions for demonstrating online friends
-      function initFriendsAndRecommendations() {
-        // Simulate loading online friends
-        setTimeout(() => {
-          renderOnlineFriends([
-            { username: 'alex', status: 'online' },
-            { username: 'taylor', status: 'online' },
-            { username: 'sam', status: 'online' },
-            { username: 'jordan', status: 'online' }
-          ]);
-        }, 700);
-
-        // Simulate loading recommendations
-        setTimeout(() => {
-          renderRecommendations([
-            { name: 'Technology Chat', display_name: 'Technology Chat', activity: 'high', message_count: 124, reason: 'Based on your interests' },
-            { name: 'Gaming Lounge', display_name: 'Gaming Lounge', activity: 'high', message_count: 87, reason: 'Popular in your network' },
-            { name: 'UI Design Talk', display_name: 'UI Design Talk', activity: 'medium', message_count: 36, reason: 'Similar to rooms you\'ve joined' }
-          ]);
-        }, 900);
-      }
-
-      function renderOnlineFriends(friends) {
-        const container = document.getElementById('online-friends-container');
-        if (!container) return;
-
-        if (friends.length === 0) {
-          container.innerHTML = `
-            <div class="text-center w-full py-1">
-              <p class="text-sm text-gray-400">No friends online right now</p>
-              <a href="/friends/" class="text-xs text-pink-500 hover:underline">Find friends</a>
-            </div>
-          `;
-          return;
-        }
-
-        // Add friends with animation
-        container.innerHTML = '';
-        friends.forEach((friend, index) => {
-          const friendEl = document.createElement('div');
-          friendEl.className = 'friend-indicator flex flex-col items-center w-12';
-          friendEl.style.opacity = '0';
-          friendEl.style.transform = 'translateY(10px)';
-          friendEl.style.transition = 'all 0.3s ease';
-          friendEl.style.transitionDelay = `${index * 0.05}s`;
-
-          friendEl.innerHTML = `
-            <div class="relative">
-              <div class="h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white font-medium text-xs">
-                ${friend.username.charAt(0).toUpperCase()}
-              </div>
-              <span class="online-dot"></span>
-            </div>
-            <span class="text-xs mt-1 font-medium">${friend.username}</span>
-          `;
-
-          container.appendChild(friendEl);
-
-          // Trigger animation
-          setTimeout(() => {
-            friendEl.style.opacity = '1';
-            friendEl.style.transform = 'translateY(0)';
-          }, 10);
-        });
-      }
-
-      function renderRecommendations(rooms) {
-        const placeholder = document.querySelector('.recommendations-placeholder');
-        const content = document.querySelector('.recommendations-content');
-
-        if (!placeholder || !content) return;
-
-        // Hide placeholder, show content
-        placeholder.classList.add('hidden');
-        content.classList.remove('hidden');
-
-        // Add rooms with animation
-        content.innerHTML = '';
-        rooms.forEach((room, index) => {
-          const roomEl = document.createElement('a');
-          roomEl.href = `/chat/${room.name}/`;
-          roomEl.className = 'flex items-center p-2 rounded-lg hover:bg-pink-50 transition-all';
-          roomEl.style.opacity = '0';
-          roomEl.style.transform = 'translateY(8px)';
-          roomEl.style.transition = 'all 0.3s ease';
-          roomEl.style.transitionDelay = `${index * 0.075}s`;
-
-          roomEl.innerHTML = `
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white font-bold text-sm mr-3 flex-shrink-0">
-              ${room.display_name.charAt(0).toUpperCase()}
-            </div>
-            <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-gray-800 text-sm truncate">${room.display_name}</h4>
-              <div class="flex items-center text-xs">
-                <span class="text-gray-500 truncate">${room.reason}</span>
-                <span class="mx-1 text-gray-300">•</span>
-                <span class="activity-indicator ${room.activity === 'high' ? 'activity-high' : 'activity-medium'} py-0 px-1">
-                  ${room.message_count} msgs
-                </span>
-              </div>
-            </div>
-          `;
-
-          content.appendChild(roomEl);
-
-          // Trigger animation
-          setTimeout(() => {
-            roomEl.style.opacity = '1';
-            roomEl.style.transform = 'translateY(0)';
-          }, 10);
-        });
-      }
-
-      // Initialize components
-      initFriendsAndRecommendations();
-    });
-  </script>
+      });
+    </script>
 </body>
 </html>
