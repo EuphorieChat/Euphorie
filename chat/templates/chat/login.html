@@ -11,44 +11,325 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          }
-        }
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <style>
+    :root {
+      --primary: #ec4899;
+      --primary-hover: #db2777;
+      --primary-light: #fce7f3;
+      --secondary: #9333ea;
+      --secondary-light: #f3e8ff;
+      --accent: #f97316;
+      --accent-light: #fff7ed;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --info: #3b82f6;
+      --warning: #f59e0b;
+      --surface: #ffffff;
+      --surface-hover: #f8fafc;
+      --surface-active: #f1f5f9;
+      --border: #e2e8f0;
+      --border-focus: #cbd5e1;
+      --text-primary: #334155;
+      --text-secondary: #64748b;
+      --text-tertiary: #94a3b8;
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      --radius-2xl: 1.5rem;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-fast: 0.15s;
+      --duration-normal: 0.25s;
+      --duration-slow: 0.35s;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      background-image:
+        radial-gradient(circle at 10% 10%, rgba(236, 72, 153, 0.03), transparent 25%),
+        radial-gradient(circle at 90% 90%, rgba(147, 51, 234, 0.03), transparent 25%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background-color: var(--text-tertiary);
+      border-radius: 20px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: var(--text-secondary);
+    }
+
+    /* Header & Navigation */
+    .app-header {
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .app-header.scrolled {
+      background-color: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Cards & Containers */
+    .surface-card {
+      background-color: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .surface-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-focus);
+    }
+
+    /* Login Card */
+    .login-card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.4s var(--ease) forwards;
+    }
+
+    /* Gradient Text */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Social Login Buttons */
+    .social-btn {
+      transition: all var(--duration-normal) var(--ease);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .social-btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10, 10);
+      opacity: 0;
+      transition: transform 0.5s, opacity 0.8s;
+    }
+
+    .social-btn:active::after {
+      transform: scale(0, 0);
+      opacity: 0.3;
+      transition: 0s;
+    }
+
+    .social-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+      border-color: var(--border-focus);
+    }
+
+    /* Form Elements */
+    .input-wrapper {
+      position: relative;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background-color: var(--surface);
+      color: var(--text-primary);
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+    }
+
+    .input-icon {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+    }
+
+    .input-icon-left {
+      left: 1rem;
+    }
+
+    .input-with-icon-left {
+      padding-left: 2.5rem;
+    }
+
+    /* Login Button */
+    .login-btn {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: var(--radius-lg);
+      padding: 0.75rem 1.25rem;
+      font-weight: 500;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: translateX(-100%);
+      animation: shimmer 2s infinite;
+    }
+
+    /* Animation Keyframes */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
-  </script>
-</head>
-<body class="bg-white min-h-screen flex flex-col text-gray-800 font-sans">
-  <!-- Background gradient similar to index page -->
-  <div class="fixed inset-0 bg-[radial-gradient(circle_at_30%_10%,rgba(255,182,225,0.1),transparent_30%),radial-gradient(circle_at_80%_80%,rgba(255,228,155,0.1),transparent_40%)] bg-fixed -z-10"></div>
 
-  <!-- Header - matches the style from index -->
-  <header class="py-2 border-b border-pink-100 bg-white/95 backdrop-blur-sm">
-    <div class="w-full max-w-md mx-auto px-4 flex items-center justify-between">
+    @keyframes shimmer {
+      0% {
+        background-position: -1000px 0;
+      }
+      100% {
+        background-position: 1000px 0;
+      }
+    }
+
+    /* Checkbox */
+    .custom-checkbox {
+      display: flex;
+      align-items: center;
+    }
+
+    .custom-checkbox input[type="checkbox"] {
+      height: 1rem;
+      width: 1rem;
+      border-radius: 0.25rem;
+      border: 1px solid var(--border);
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: white;
+      margin-right: 0.5rem;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .custom-checkbox input[type="checkbox"]:checked {
+      background-color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .custom-checkbox input[type="checkbox"]:checked::after {
+      content: '✓';
+      font-size: 0.75rem;
+      color: white;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .custom-checkbox label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header with glass effect -->
+  <header class="app-header py-3" id="header">
+    <div class="container mx-auto px-4 flex items-center justify-between">
       <a href="{% url 'index' %}" class="flex items-center">
-        <h1 class="text-xl font-bold bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">Euphorie</h1>
+        <h1 class="text-xl font-bold gradient-text">Euphorie</h1>
         <span class="ml-2 px-2 py-0.5 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">BETA</span>
       </a>
+
+      <div class="flex items-center gap-2">
+        <a href="{% url 'login' %}" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+          Login
+        </a>
+        <a href="{% url 'signup' %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200">
+          Sign up
+        </a>
+      </div>
     </div>
   </header>
 
-  <main class="flex-1 flex items-center justify-center p-4">
+  <main class="container mx-auto p-4 sm:p-6 max-w-md">
     <!-- Login Card -->
-    <div class="w-full max-w-md bg-white rounded-xl shadow-md border border-pink-100 p-6">
-      <div class="text-center mb-5">
-        <h2 class="text-xl font-bold text-gray-800">Welcome Back</h2>
-        <p class="text-sm text-gray-500 mt-1">Log in to continue to your account</p>
+    <div class="surface-card login-card p-6 sm:p-8">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+        <p class="text-sm text-gray-500">Log in to continue to your Euphorie account</p>
       </div>
 
       <!-- Social login buttons -->
-      <div class="space-y-2 mb-4">
-        <button type="button" class="w-full py-2 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-2 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pink-100">
+      <div class="space-y-3 mb-6">
+        <button type="button" class="social-btn w-full py-3 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-3 text-gray-700 text-sm font-medium bg-white hover:bg-gray-50">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.0003 12.2224C22.0003 11.4002 21.9322 10.8002 21.7847 10.178H12.2031V13.8891H17.8247C17.7122 14.8113 17.1072 16.2002 15.8297 17.1335L15.8096 17.2578L19.0514 19.6335L19.2559 19.6545C21.1514 17.9224 22.0003 15.3113 22.0003 12.2224Z" fill="#4285F4"/>
             <path d="M12.2039 22.0001C15.1258 22.0001 17.5717 21.1112 19.2567 19.6546L15.8305 17.1335C14.9828 17.7224 13.8039 18.1335 12.2039 18.1335C9.40078 18.1335 7.02189 16.4001 6.12422 13.9779L5.99563 13.9879L2.63867 16.4446L2.59961 16.5557C4.2717 19.778 7.98078 22.0001 12.2039 22.0001Z" fill="#34A853"/>
@@ -58,7 +339,7 @@
           <span>Continue with Google</span>
         </button>
 
-        <button type="button" class="w-full py-2 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-2 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pink-100">
+        <button type="button" class="social-btn w-full py-3 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-3 text-gray-700 text-sm font-medium bg-white hover:bg-gray-50">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M11.9997 7.5C14.0624 7.5 15.8249 8.82 16.4977 10.6998H20.1552C19.3943 6.64009 16.0453 3.58005 11.9997 3.58005C7.16173 3.58005 3.25 7.48732 3.25 12.3253C3.25 17.1633 7.16173 21.0705 11.9997 21.0705C16.0453 21.0705 19.3943 18.0105 20.1552 13.9508H16.4977C15.8249 15.8305 14.0624 17.1505 11.9997 17.1505C9.3123 17.1505 7.17002 14.9929 7.17002 12.3253C7.17002 9.65768 9.3123 7.5 11.9997 7.5Z" fill="#2684FC"/>
             <path d="M11.9996 17.1506C14.0624 17.1506 15.8249 15.8306 16.4978 13.9509H20.1552C19.3944 18.0105 16.0453 21.0706 11.9996 21.0706V17.1506Z" fill="#00AC47"/>
@@ -68,7 +349,7 @@
           <span>Continue with Microsoft</span>
         </button>
 
-        <button type="button" class="w-full py-2 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-2 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pink-100">
+        <button type="button" class="social-btn w-full py-3 px-4 border border-gray-200 rounded-lg flex justify-center items-center gap-3 text-gray-700 text-sm font-medium bg-white hover:bg-gray-50">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.0999 12.92C17.0786 10.7017 18.9069 9.1443 18.9788 9.08929C17.8352 7.39009 16.0645 7.14243 15.4336 7.12818C13.9108 6.97047 12.4452 8.0188 11.6733 8.0188C10.8869 8.0188 9.69214 7.1427 8.41446 7.17829C6.75246 7.212 5.19993 8.17499 4.342 9.64881C2.58379 12.6461 3.84286 17.0761 5.52699 19.2653C6.37924 20.3361 7.38362 21.5414 8.66842 21.4868C9.91321 21.4283 10.3948 20.66 11.889 20.66C13.3667 20.66 13.8205 21.4868 15.1222 21.4497C16.4616 21.4283 17.323 20.3696 18.1442 19.286C19.1343 18.0463 19.5404 16.8391 19.5594 16.7747C19.5214 16.7628 17.1248 15.8868 17.0999 12.92Z" fill="black"/>
             <path d="M15.0096 5.41364C15.6882 4.57572 16.1419 3.43506 16.0182 2.28027C15.0619 2.32302 13.8601 2.95123 13.1434 3.76488C12.5106 4.47893 11.9588 5.66756 12.0968 6.77439C13.1814 6.8599 14.3072 6.2394 15.0096 5.41364Z" fill="black"/>
@@ -78,7 +359,7 @@
       </div>
 
       <!-- Divider -->
-      <div class="flex items-center mb-4">
+      <div class="flex items-center mb-6">
         <div class="flex-1 h-px bg-gray-200"></div>
         <span class="px-3 text-xs text-gray-500">or continue with email</span>
         <div class="flex-1 h-px bg-gray-200"></div>
@@ -87,72 +368,141 @@
       <!-- Login Form -->
       <form method="post" class="space-y-4">
         {% csrf_token %}
-        {% for field in form %}
-          <div>
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-              {{ field.label }}
-            </label>
-            {{ field|safe }}
-            <script>
-              document.addEventListener("DOMContentLoaded", function () {
-                const input = document.getElementById("{{ field.id_for_label }}");
-                if (input) {
-                  input.classList.add(
-                    "w-full", "px-4", "py-2", "bg-gray-50", "border", "border-gray-200",
-                    "rounded-lg", "focus:outline-none", "focus:ring-2", "focus:ring-pink-300", "focus:border-pink-300",
-                    "transition-all", "duration-200", "text-gray-800", "text-sm"
-                  );
 
-                  // Add placeholder text based on field name
-                  if (input.name === "username") {
-                    input.placeholder = "Enter your username";
-                  } else if (input.name === "password") {
-                    input.placeholder = "Enter your password";
-                  }
-                }
-              });
-            </script>
-            {% if field.errors %}
-              <p class="text-red-500 text-xs mt-1">{{ field.errors|striptags }}</p>
-            {% endif %}
+        <!-- Username field -->
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+            Username
+          </label>
+          <div class="input-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              class="input input-with-icon-left"
+              required
+            />
           </div>
-        {% endfor %}
+          {% if form.username.errors %}
+            <p class="text-red-500 text-xs mt-1">{{ form.username.errors|striptags }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Password field -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
+          <div class="input-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              class="input input-with-icon-left"
+              required
+            />
+          </div>
+          {% if form.password.errors %}
+            <p class="text-red-500 text-xs mt-1">{{ form.password.errors|striptags }}</p>
+          {% endif %}
+        </div>
 
         <!-- Remember me & Forgot password -->
         <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-pink-500 focus:ring-pink-300 border-gray-300 rounded">
-            <label for="remember-me" class="ml-2 block text-sm text-gray-700">Remember me</label>
+          <div class="custom-checkbox">
+            <input id="remember-me" name="remember-me" type="checkbox" />
+            <label for="remember-me">Remember me</label>
           </div>
           <a href="#" class="text-sm font-medium text-pink-500 hover:text-pink-600 transition-colors">Forgot password?</a>
         </div>
 
+        <!-- Error messages -->
+        {% if form.non_field_errors %}
+          <div class="p-3 bg-red-50 border border-red-100 rounded-lg">
+            <p class="text-red-500 text-sm">{{ form.non_field_errors|striptags }}</p>
+          </div>
+        {% endif %}
+
         <!-- Login Button -->
-        <button type="submit"
-                class="w-full py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white font-medium rounded-lg hover:shadow-md transition-all duration-200">
-          Log In
+        <button type="submit" id="login-button" class="login-btn w-full py-3 flex justify-center items-center">
+          <span class="relative z-10">Log In</span>
         </button>
       </form>
 
       <!-- Sign up link -->
-      <p class="mt-5 text-center text-sm text-gray-600">
+      <p class="mt-6 text-center text-sm text-gray-600">
         Don't have an account?
         <a href="{% url 'signup' %}" class="text-pink-500 hover:text-pink-600 font-medium transition-colors">Sign up</a>
       </p>
     </div>
   </main>
 
-  <!-- Footer to match index page -->
-  <footer class="py-3 border-t border-pink-100 mt-auto bg-white">
-    <div class="w-full max-w-md mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
-      <div class="mb-3 sm:mb-0 text-center sm:text-left">
+  <!-- Footer -->
+  <footer class="py-6 border-t border-gray-200 mt-10 bg-white">
+    <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
+      <div class="mb-4 sm:mb-0 text-center sm:text-left">
         <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
-          <h2 class="text-base font-bold bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">Euphorie</h2>
+          <h2 class="text-lg font-bold gradient-text">Euphorie</h2>
           <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
         </a>
         <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
       </div>
+      <div class="flex items-center gap-6 text-xs font-medium text-gray-500">
+        <a href="https://crene.com" target="_blank" rel="noopener" class="hover:text-indigo-500 transition-colors">
+          Crene.com
+        </a>
+        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="hover:text-green-500 transition-colors">
+          DiaryVault.com
+        </a>
+      </div>
     </div>
   </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Header scroll effect
+      const header = document.getElementById('header');
+      if (header) {
+        window.addEventListener('scroll', function() {
+          if (window.scrollY > 10) {
+            header.classList.add('scrolled');
+          } else {
+            header.classList.remove('scrolled');
+          }
+        });
+      }
+
+      // Login button animation
+      const loginForm = document.querySelector('form');
+      const loginButton = document.getElementById('login-button');
+
+      if (loginForm && loginButton) {
+        loginForm.addEventListener('submit', function() {
+          loginButton.innerHTML = `
+            <svg class="animate-spin h-5 w-5 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="relative z-10">Logging in...</span>
+          `;
+          loginButton.disabled = true;
+        });
+      }
+
+      // Focus username field on load
+      const usernameInput = document.getElementById('username');
+      if (usernameInput) {
+        usernameInput.focus();
+      }
+    });
+  </script>
 </body>
 </html>
