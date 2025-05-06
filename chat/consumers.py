@@ -388,36 +388,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'suggestions': suggestions
                     }))
 
-        # In your receive method, for recommendations:
-        elif message_type == 'recommendations':
-            action = text_data_json.get('action', '')
+            elif message_type == 'recommendations':
+                action = text_data_json.get('action', '')
+                include_bookmarks = text_data_json.get('include_bookmarks', False)
 
-            if action == 'get':
-                try:
-                    # Only get room recommendations using existing method
-                    recommendations = []
-                    if self.is_authenticated:
-                        recommendations_qs = await database_sync_to_async(self._get_recommendation_rooms)()
-                        recommendations = await database_sync_to_async(self._get_room_data_list)(recommendations_qs)
+                if action == 'get':
+                    # Get room recommendations - use your existing method
+                    recommendations_qs = await database_sync_to_async(get_room_recommendations)(self.user)
+                    recommendations = await self.get_room_data_list(recommendations_qs)
 
-                    # Get bookmarked rooms separately
+                    # Get bookmarked rooms if requested
                     bookmarked_rooms = []
-                    if self.is_authenticated:
-                        bookmarked_rooms = await database_sync_to_async(self._get_bookmarked_room_data)()
+                    if include_bookmarks and self.is_authenticated:
+                        # Get room bookmarks directly in this method
+                        bookmarked_rooms = await database_sync_to_async(self._get_bookmarked_rooms)()
 
-                    # Send response
+                    # Send response directly
                     await self.send(json.dumps({
                         'type': 'recommendations',
                         'action': 'list',
                         'rooms': recommendations,
                         'bookmarked_rooms': bookmarked_rooms
                     }))
-                except Exception as e:
-                    logger.error(f"Error in recommendations: {str(e)}")
-                    await self.send(json.dumps({
-                        'type': 'error',
-                        'message': 'Error processing recommendations'
-                    }))
+
+        except json.JSONDecodeError:
+            # Handle JSON decode error
+            logger.warning(f"Invalid JSON received: {text_data[:100]}")
+        except Exception as e:
+            logger.error(f"Error processing message: {str(e)}", exc_info=True)
 
     def _record_user_interest(self, room):
         """Synchronous function to record user interest"""
@@ -919,45 +917,3 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'type': 'error',
                 'message': f"Error processing recommendations: {str(e)}"
             }))
-
-    def _get_recommendation_rooms(self):
-        """Get a few random rooms as recommendations"""
-        try:
-            from .models import Room
-            # Get 5 random rooms as recommendations
-            return Room.objects.order_by('?')[:5]
-        except Exception as e:
-            logger.error(f"Error getting recommendation rooms: {str(e)}")
-            return []
-
-    def _get_bookmarked_room_data(self):
-        """Get bookmarked rooms data directly"""
-        try:
-            from .models import RoomBookmark
-
-            # Get bookmarked rooms
-            bookmarks = RoomBookmark.objects.filter(
-                user=self.user,
-                is_bookmarked=True
-            ).select_related('room', 'room__category')
-
-            # Format for frontend
-            result = []
-            for bookmark in bookmarks:
-                room = bookmark.room
-                if not room:
-                    continue
-
-                result.append({
-                    'name': room.name,
-                    'display_name': room.display_name or room.name.title(),
-                    'category': room.category.name if room.category else None,
-                    'message_count': room.messages.count(),
-                    'activity': 'medium',
-                    'is_protected': getattr(room, 'is_protected', False)
-                })
-
-            return result
-        except Exception as e:
-            logger.error(f"Error getting bookmarked rooms: {str(e)}")
-            return []
