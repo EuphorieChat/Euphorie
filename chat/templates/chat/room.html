@@ -1336,7 +1336,7 @@
 
     <!-- Modals -->
     <!-- Profile Menu -->
-    <div id="profile-menu" class="hidden absolute right-4 top-16 bg-white rounded-xl shadow-md border border-gray-100 w-64 p-3 z-50">
+    <div id="profile-menu" class="hidden fixed right-4 top-16 bg-white rounded-xl shadow-md border border-gray-100 w-64 p-3 z-50">
       <div class="flex items-center p-2 border-b border-gray-100 mb-2">
         <div class="avatar avatar-pink h-10 w-10 mr-3">
           {{ username|slice:":1"|upper }}
@@ -1353,13 +1353,16 @@
           </svg>
           <span class="text-sm">Change Avatar</span>
         </a>
-        <a href="{% url 'user_profile' username=user.username %}" class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+        <!-- Fix for user profile link error -->
+        {% if user.is_authenticated %}
+        <a href="{% url 'user_profile' username=username %}" class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <span class="text-sm">Profile Settings</span>
         </a>
+        {% endif %}
       </div>
     </div>
 
@@ -1533,10 +1536,307 @@
       window.username = "{{ username|escapejs }}";
     </script>
 
+    <!-- WebSocket Connection Script - Added to fix connection issue -->
+    <script>
+      // Create the WebSocket connection as soon as the page loads
+      document.addEventListener("DOMContentLoaded", function() {
+        // Establish WebSocket connection
+        const roomName = "{{ room_name|escapejs }}";
+        const chatSocket = new WebSocket(
+          'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+        );
+
+        chatSocket.onopen = function(e) {
+          console.log("WebSocket connection established");
+        };
+
+        chatSocket.onmessage = function(e) {
+          const data = JSON.parse(e.data);
+          console.log("Message received:", data);
+
+          // Handle different message types
+          if (data.type === 'chat_message') {
+            addMessage(data.message, data.username, data.message_id);
+          } else if (data.type === 'user_list') {
+            updateUserList(data.users);
+          } else if (data.type === 'typing') {
+            showTypingIndicator(data.username);
+          } else if (data.type === 'reaction') {
+            updateReactions(data.message_id, data.emoji, data.count, data.username);
+          }
+        };
+
+        chatSocket.onclose = function(e) {
+          console.error("WebSocket connection closed unexpectedly");
+          // Try to reconnect after a delay
+          setTimeout(function() {
+            console.log("Attempting to reconnect...");
+            // Store this in window to make it accessible by other functions
+            window.chatSocket = new WebSocket(
+              'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+            );
+          }, 3000);
+        };
+
+        chatSocket.onerror = function(e) {
+          console.error("WebSocket error:", e);
+        };
+
+        // Store socket in global scope for other functions to use
+        window.chatSocket = chatSocket;
+
+        // Handle message sending
+        const messageForm = document.getElementById('message-form');
+        if (messageForm) {
+          messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const messageInput = document.getElementById('chat-message-input');
+            const message = messageInput.value.trim();
+
+            if (message) {
+              chatSocket.send(JSON.stringify({
+                'type': 'chat_message',
+                'message': message
+              }));
+              messageInput.value = '';
+            }
+          });
+        }
+      });
+
+      // Simple function to add a message to the chat log
+      // This will be called when a message is received via WebSocket
+      window.addMessage = function(message, username, messageId) {
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
+
+        const isCurrentUser = username === window.username;
+
+        const messageElement = document.createElement('div');
+        messageElement.className = 'flex items-start gap-2 group';
+        messageElement.setAttribute('data-message-id', messageId);
+
+        // Create avatar
+        const avatarElement = document.createElement('div');
+        avatarElement.className = `avatar avatar-${isCurrentUser ? 'pink' : 'orange'} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
+        avatarElement.textContent = username.slice(0, 1).toUpperCase();
+
+        // Create message content container
+        const contentContainer = document.createElement('div');
+        contentContainer.className = 'flex-1';
+
+        // Create message bubble
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble ${isCurrentUser ? 'sent' : 'received'} new`;
+
+        // Create header with username
+        const header = document.createElement('div');
+        header.className = 'flex items-start justify-between';
+
+        const usernameLink = document.createElement('a');
+        usernameLink.href = `/dm/${username}/`;
+        usernameLink.className = `text-xs font-semibold mb-1 ${isCurrentUser ? 'text-pink-500' : 'text-yellow-600'} hover:underline username-link`;
+        usernameLink.textContent = username;
+
+        header.appendChild(usernameLink);
+
+        // Quick reactions (only visible on hover/desktop)
+        const reactionsContainer = document.createElement('div');
+        reactionsContainer.className = 'ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden';
+        reactionsContainer.innerHTML = `
+          <div class="flex space-x-1">
+            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
+            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
+            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+          </div>
+        `;
+
+        header.appendChild(reactionsContainer);
+        bubble.appendChild(header);
+
+        // Message content
+        const messageContent = document.createElement('div');
+        messageContent.className = 'text-sm text-gray-700 message-content';
+        messageContent.innerHTML = message;
+        bubble.appendChild(messageContent);
+
+        contentContainer.appendChild(bubble);
+
+        // Area for reaction emojis display
+        const reactionsDisplayArea = document.createElement('div');
+        reactionsDisplayArea.className = 'reactions-container';
+        contentContainer.appendChild(reactionsDisplayArea);
+
+        // Assemble the message
+        messageElement.appendChild(avatarElement);
+        messageElement.appendChild(contentContainer);
+
+        chatLog.appendChild(messageElement);
+
+        // Scroll to the bottom to show the new message
+        chatLog.scrollTop = chatLog.scrollHeight;
+
+        // Set up reaction emojis
+        const emojiButtons = messageElement.querySelectorAll('.emoji-reaction');
+        emojiButtons.forEach(btn => {
+          btn.addEventListener('click', function() {
+            const emoji = this.textContent;
+            if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+              window.chatSocket.send(JSON.stringify({
+                'type': 'reaction',
+                'message_id': messageId,
+                'emoji': emoji
+              }));
+            }
+          });
+        });
+      };
+
+      // Function to show typing indicator
+      window.showTypingIndicator = function(username) {
+        const typingIndicator = document.getElementById('typing-indicator');
+        const typingUsername = document.getElementById('typing-username');
+
+        if (typingIndicator && typingUsername) {
+          // Don't show if it's the current user typing
+          if (username === window.username) return;
+
+          typingUsername.textContent = `${username} is typing...`;
+          typingIndicator.classList.remove('hidden');
+
+          // Hide after 3 seconds if no new typing events
+          clearTimeout(window.typingTimeout);
+          window.typingTimeout = setTimeout(function() {
+            typingIndicator.classList.add('hidden');
+          }, 3000);
+        }
+      };
+
+      // Function to update the user list
+      window.updateUserList = function(users) {
+        const userList = document.getElementById('user-list');
+        const mobileUserList = document.getElementById('mobile-user-list-content');
+
+        if (!userList && !mobileUserList) return;
+
+        if (userList) {
+          userList.innerHTML = '';
+
+          users.forEach(user => {
+            const li = document.createElement('li');
+            li.className = 'user-item flex items-center justify-between';
+
+            const nameContainer = document.createElement('div');
+            nameContainer.className = 'flex items-center';
+
+            const avatar = document.createElement('div');
+            avatar.className = `h-6 w-6 rounded-full ${user.is_online ? 'bg-green-400' : 'bg-gray-300'} text-white flex items-center justify-center text-xs mr-2`;
+            avatar.textContent = user.username.slice(0, 1).toUpperCase();
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'text-sm';
+            nameSpan.textContent = user.username;
+
+            nameContainer.appendChild(avatar);
+            nameContainer.appendChild(nameSpan);
+            li.appendChild(nameContainer);
+
+            userList.appendChild(li);
+          });
+        }
+
+        if (mobileUserList) {
+          mobileUserList.innerHTML = '';
+
+          users.forEach(user => {
+            const span = document.createElement('span');
+            span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
+            span.textContent = user.username;
+            mobileUserList.appendChild(span);
+          });
+        }
+      };
+
+      // Function to update reactions on a message
+      window.updateReactions = function(messageId, emoji, count, username) {
+        const message = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!message) return;
+
+        const reactionsContainer = message.querySelector('.reactions-container');
+        if (!reactionsContainer) return;
+
+        // Check if the reaction already exists
+        let reactionElement = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
+
+        if (count <= 0) {
+          // Remove the reaction if count is 0
+          if (reactionElement) {
+            reactionElement.remove();
+          }
+          return;
+        }
+
+        if (!reactionElement) {
+          // Create new reaction element
+          reactionElement = document.createElement('div');
+          reactionElement.className = 'reaction';
+          reactionElement.setAttribute('data-emoji', emoji);
+          reactionElement.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
+
+          // Add click handler to show who reacted
+          reactionElement.addEventListener('click', function() {
+            // Implement showing reaction users here
+            showReactionUsers(messageId, emoji);
+          });
+
+          reactionsContainer.appendChild(reactionElement);
+        } else {
+          // Update existing reaction count
+          const countElement = reactionElement.querySelector('.reaction-count');
+          if (countElement) {
+            countElement.textContent = count;
+          }
+        }
+      };
+
+      // Function to show who reacted
+      function showReactionUsers(messageId, emoji) {
+        // This would typically fetch the users from the server
+        // For demo, we'll just show a placeholder
+        const reactionModal = document.getElementById('reaction-modal');
+        const reactionUserList = document.getElementById('reaction-user-list');
+
+        if (reactionModal && reactionUserList) {
+          reactionUserList.innerHTML = `<li>Loading users who reacted with ${emoji}...</li>`;
+          reactionModal.classList.add('open');
+
+          // In a real implementation, you would fetch the users who reacted
+          // from the server here and update the list
+        }
+      }
+    </script>
+
     <script src="{% static 'js/chatroom.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
 
     <script>
       document.addEventListener("DOMContentLoaded", function() {
+        // Make room name at the top direct to index.html
+        document.querySelectorAll('.gradient-text').forEach(element => {
+          if (element.textContent.includes("{{ room_name|title }}")) {
+            const parentElement = element.closest('a') || element.parentElement;
+            if (parentElement) {
+              parentElement.href = "{% url 'index' %}";
+            } else {
+              // Create a wrapper link if none exists
+              const wrapper = document.createElement('a');
+              wrapper.href = "{% url 'index' %}";
+              wrapper.style.cursor = 'pointer';
+              element.parentNode.insertBefore(wrapper, element);
+              wrapper.appendChild(element);
+            }
+          }
+        });
+
         // Initialize variables
         const chatLog = document.getElementById('chat-log');
         const messageForm = document.getElementById('message-form');
@@ -1568,10 +1868,17 @@
           });
         }
 
-        // Toggle profile menu
+        // Fix dropdown menu position - Toggle profile menu
         if (userProfileToggle && profileMenu) {
           userProfileToggle.addEventListener('click', function(e) {
             e.stopPropagation();
+
+            // Position the menu properly
+            const rect = userProfileToggle.getBoundingClientRect();
+            profileMenu.style.top = (rect.bottom + window.scrollY) + 'px';
+            profileMenu.style.right = (window.innerWidth - rect.right) + 'px';
+            profileMenu.style.left = 'auto'; // Clear any left positioning
+
             profileMenu.classList.toggle('hidden');
           });
 
@@ -1684,7 +1991,7 @@
             const gradient = this.getAttribute('data-gradient');
             const profilePreview = document.getElementById('profile-preview');
             if (profilePreview) {
-              profilePreview.className = 'avatar h-24 w-24 text-xl';
+              profilePreview.className = 'avatar h-24 w-24 text-xl profile-pic-container';
               profilePreview.classList.add('bg-gradient-to-br', ...gradient.split(' '));
             }
           });
@@ -1705,16 +2012,10 @@
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         if (mobileMenuToggle) {
           mobileMenuToggle.addEventListener('click', function() {
-            // Toggle mobile sidebar visibility
-            const sidebar = document.querySelector('.lg\\:col-span-1');
-            if (sidebar) {
-              sidebar.classList.toggle('hidden');
-              sidebar.classList.toggle('fixed');
-              sidebar.classList.toggle('inset-0');
-              sidebar.classList.toggle('z-50');
-              sidebar.classList.toggle('pt-16');
-              sidebar.classList.toggle('bg-white');
-              sidebar.classList.toggle('overflow-y-auto');
+            // Toggle mobile user list
+            const mobileUserList = document.getElementById('mobile-user-list');
+            if (mobileUserList) {
+              mobileUserList.classList.toggle('hidden');
             }
           });
         }
@@ -2095,35 +2396,6 @@
 
           return '';
         }
-
-        // Show notification function (if not already defined)
-        if (!window.showNotification) {
-          window.showNotification = function(message) {
-            let notificationToast = document.getElementById('notification-toast');
-            let notificationMessage = document.getElementById('notification-message');
-
-            // If the notification elements don't exist, create them
-            if (!notificationToast) {
-              notificationToast = document.createElement('div');
-              notificationToast.id = 'notification-toast';
-              notificationToast.className = 'notification-toast hidden';
-              document.body.appendChild(notificationToast);
-
-              notificationMessage = document.createElement('span');
-              notificationMessage.id = 'notification-message';
-              notificationToast.appendChild(notificationMessage);
-            }
-
-            // Display the notification
-            notificationMessage.textContent = message;
-            notificationToast.classList.remove('hidden');
-
-            // Hide it after a delay
-            setTimeout(function() {
-              notificationToast.classList.add('hidden');
-            }, 3000);
-          };
-        }
       });
     </script>
 
@@ -2161,4 +2433,3 @@
     </script>
   </body>
   </html>
-
