@@ -2678,42 +2678,30 @@
     <script>
     // Make the room name in the header redirect to the lobby
     document.addEventListener("DOMContentLoaded", function() {
-        // For desktop header
-        const desktopRoomTitle = document.querySelector('.hidden.sm\\:flex .gradient-text');
-        if (desktopRoomTitle) {
-        // Check if it's already wrapped in a link
-        if (!desktopRoomTitle.closest('a')) {
-            const wrapper = document.createElement('a');
-            wrapper.href = "/"; // This will redirect to index.html (lobby)
-            wrapper.className = "hover:opacity-80 transition-opacity";
-            wrapper.setAttribute('title', 'Back to Lobby');
+        // Find all elements with the gradient-text class that contain the room name
+        const roomNameElements = document.querySelectorAll('.gradient-text');
 
-            // Replace the element with our wrapped version
-            desktopRoomTitle.parentNode.insertBefore(wrapper, desktopRoomTitle);
-            wrapper.appendChild(desktopRoomTitle);
-        } else {
-            // If already in a link, make sure href is correct
-            desktopRoomTitle.closest('a').href = "/";
-        }
-        }
+        roomNameElements.forEach(element => {
+          // Check if this element contains the room name
+          if (element.textContent.includes("{{ room_name|title }}") ||
+              element.textContent.trim() === document.title.replace(" 💬", "").replace("Euphorie - ", "")) {
 
-        // For mobile header
-        const mobileRoomTitle = document.querySelector('.app-header .gradient-text');
-        if (mobileRoomTitle) {
-        // Mobile already has a link, just make sure it points to index
-        const parent = mobileRoomTitle.parentElement;
-        if (parent.tagName === 'A') {
-            parent.href = "/";
-        } else {
-            // If not already wrapped, create a wrapper
-            const wrapper = document.createElement('a');
-            wrapper.href = "/";
-            wrapper.setAttribute('title', 'Back to Lobby');
-            parent.insertBefore(wrapper, mobileRoomTitle);
-            wrapper.appendChild(mobileRoomTitle);
-        }
-        }
-    });
+            // Make the element clickable
+            element.style.cursor = 'pointer';
+
+            // Add click event to redirect to index page
+            element.addEventListener('click', function() {
+              window.location.href = '/';  // Redirect to index page
+            });
+
+            // Add hover effect
+            element.classList.add('hover:opacity-90');
+
+            // Add tooltip
+            element.setAttribute('title', 'Back to Lobby');
+          }
+        });
+      });
     <script>
 
 </body>
