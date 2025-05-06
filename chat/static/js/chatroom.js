@@ -2096,22 +2096,46 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+
+    // Make sure this function is called when the page loads
+    function initRoomRecommendations() {
+        console.log("Initializing room recommendations");
+
+        // First try WebSocket approach
+        requestRoomRecommendations();
+
+        // Set a timeout to use HTTP fallback if WebSocket doesn't respond within 3 seconds
+        setTimeout(function() {
+        const recommendedRoomsList = document.getElementById('recommended-rooms-list');
+
+        // Only use fallback if the list is still showing loading state
+        if (recommendedRoomsList &&
+            recommendedRoomsList.innerHTML.includes('animate-pulse')) {
+            console.log("Using fallback HTTP request for recommendations");
+            fallbackRequestRoomRecommendations();
+        }
+        }, 3000);
+    }
+
+    initRoomRecommendations();
+
     function fallbackRequestRoomRecommendations() {
         console.log("Using fallback HTTP request for recommendations");
 
         fetch('/api/get_recommendations/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
-                } else {
-                    console.error("Error fetching recommendations:", data.error);
-                }
-            })
-            .catch(error => {
-                console.error("Error in fallback recommendations request:", error);
-            });
-    }
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              console.log("Received recommendations from HTTP API:", data);
+              renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
+            } else {
+              console.error("Error fetching recommendations:", data.error);
+            }
+          })
+          .catch(error => {
+            console.error("Error in fallback recommendations request:", error);
+          });
+      }
 
     // Show notification helper
     function showNotification(message) {
