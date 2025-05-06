@@ -908,6 +908,37 @@
       cursor: default;
     }
 
+    /* Modal styling */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .modal.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      transform: scale(0.95);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+    }
+
+    .modal.open .modal-content {
+      transform: scale(1);
+      opacity: 1;
+    }
+
     /* Fixed mobile view */
     @media (max-width: 640px) {
       .chat-container {
@@ -1329,1812 +1360,1945 @@
           </button>
         </div>
 
-<!-- Room Controls Section -->
-<div class="flex flex-col gap-2 mt-3">
-    <a href="{% url 'index' %}" class="btn btn-secondary text-sm flex items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-      Back to Lobby
-    </a>
-
-    {% if user.is_authenticated %}
-    <form method="post" action="{% url 'logout' %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-secondary text-sm w-full flex items-center justify-center gap-2">
+    <!-- Room Controls Section -->
+    <div class="flex flex-col gap-2 mt-3">
+        <a href="{% url 'index' %}" class="btn btn-secondary text-sm flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
-        Logout
-      </button>
-    </form>
-    {% else %}
-    <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn btn-secondary text-sm flex items-center justify-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-      </svg>
-      Login
-    </a>
-    {% endif %}
-
-    {% if can_delete and user.is_authenticated %}
-    <form method="post" action="{% url 'delete_room' room_name %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-danger w-full text-sm flex items-center justify-center gap-2" onclick="return confirm('Are you sure you want to delete this room?');">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-        Delete Room
-      </button>
-    </form>
-    {% endif %}
-
-    {% if user.is_staff or user.username == room.creator.username %}
-    <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn btn-secondary bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm flex items-center justify-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-      Admin Panel
-    </a>
-    {% endif %}
-  </div>
-  </div>
-  </div>
-  </div>
-  </main>
-
-  <!-- Footer -->
-  <footer class="py-6 border-t border-gray-200 mt-10 bg-white">
-    <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
-      <div class="mb-4 sm:mb-0 text-center sm:text-left">
-        <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
-          <h2 class="text-lg font-bold gradient-text">Euphorie</h2>
-          <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
+        Back to Lobby
         </a>
-        <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
-      </div>
-      <div class="flex items-center gap-6 text-xs font-medium text-gray-500">
-        <a href="https://crene.com" target="_blank" rel="noopener" class="hover:text-indigo-500 transition-colors">
-          Crene.com
-        </a>
-        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="hover:text-green-500 transition-colors">
-          DiaryVault.com
-        </a>
-      </div>
-    </div>
-  </footer>
 
-  <!-- Modals -->
-  <!-- Profile Menu -->
-  <div id="profile-menu" class="profile-menu">
-    <div class="flex items-center p-3 border-b border-gray-100 mb-2">
-      <div class="avatar avatar-pink h-10 w-10 mr-3">
-        {{ username|slice:":1"|upper }}
-      </div>
-      <div>
-        <p class="font-medium text-gray-800">{{ username }}</p>
-        <p class="text-xs text-gray-500">{{ user.email }}</p>
-      </div>
-    </div>
-    <div class="space-y-1">
-      <a href="#" id="change-avatar-btn" class="profile-menu-item">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-        <span>Change Avatar</span>
-      </a>
-      <!-- Fix for user profile link error -->
-      {% if user.is_authenticated %}
-      <a href="{% url 'user_profile' username=username %}" class="profile-menu-item">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <span>Profile Settings</span>
-      </a>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Media Library Modal -->
-  <div id="media-library-modal" class="modal">
-    <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col surface-card">
-      <div class="flex justify-between items-center mb-4 p-2 border-b border-gray-100">
-        <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
-        <button id="close-media-library" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="flex space-x-2 mb-4 p-2">
-        <button class="media-filter-btn px-3 py-1 bg-gradient-to-r from-primary to-secondary text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
-        <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
-        <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
-      </div>
-      <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
-        <!-- Media items loaded by JS -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Whiteboard Modal -->
-  <div id="whiteboard-modal" class="modal">
-    <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col surface-card">
-      <div class="flex justify-between items-center mb-4 p-2 border-b border-gray-100">
-        <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
-        <button id="close-whiteboard" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="whiteboard-tools flex flex-wrap gap-2 mb-4">
-        <input type="color" id="brush-color" value="#000000" class="cursor-pointer rounded-md">
-        <select id="brush-size" class="btn-secondary text-sm py-1 px-2 rounded-md">
-          <option value="2">Thin</option>
-          <option value="5" selected>Medium</option>
-          <option value="10">Thick</option>
-        </select>
-        <button class="btn-secondary active py-1 px-3 rounded-md text-sm" data-tool="brush">Brush</button>
-        <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="eraser">Eraser</button>
-        <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="text">Text</button>
-        <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="shape">Shape</button>
-      </div>
-      <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-        <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
-      </div>
-      <div class="flex items-center justify-between mt-4">
-        <button id="save-whiteboard" class="btn btn-secondary text-sm">Save Image</button>
-        <button id="clear-whiteboard" class="btn btn-danger text-sm">Clear All</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Meetup Modal -->
-  <div id="meetup-modal" class="modal">
-    <div class="modal-content max-w-md p-6 surface-card">
-      <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-        <h2 class="text-lg font-bold gradient-text">Plan a Meetup</h2>
-        <button id="close-meetup" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <form id="meetup-form" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-title">Meetup Title</label>
-          <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-datetime">Date & Time</label>
-          <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-location">Location</label>
-          <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-description">Description</label>
-          <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
-        </div>
-        <div class="flex justify-end space-x-3 pt-2">
-          <button type="button" id="cancel-meetup" class="btn btn-secondary">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Meetup</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Profile Picture Modal -->
-  <div id="profile-pic-modal" class="modal">
-    <div class="modal-content max-w-md p-6 surface-card">
-      <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-        <h2 class="text-lg font-bold gradient-text">Change Profile Picture</h2>
-        <button id="close-profile-pic" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="flex items-center justify-center mb-6">
-        <div id="profile-preview" class="avatar avatar-pink h-24 w-24 text-xl profile-pic-container">
-          {{ username|slice:":1"|upper }}
-        </div>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="profile-pic-upload">Upload Image</label>
-          <input type="file" id="profile-pic-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
-          <p class="text-xs text-gray-500 mt-1">Recommended: Square image, 500x500 pixels</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Choose Avatar Style</label>
-          <div class="grid grid-cols-4 gap-2">
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-pink-400 to-purple-500">
-              {{ username|slice:":1"|upper }}
-            </div>
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-blue-400 to-indigo-400">
-              {{ username|slice:":1"|upper }}
-            </div>
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-green-400 to-teal-400">
-              {{ username|slice:":1"|upper }}
-            </div>
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-purple-400 to-pink-400">
-              {{ username|slice:":1"|upper }}
-            </div>
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-yellow-400 to-orange-400">
-              {{ username|slice:":1"|upper }}
-            </div>
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-red-400 to-pink-400">
-              {{ username|slice:":1"|upper }}
-            </div>
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-cyan-400 to-blue-400">
-              {{ username|slice:":1"|upper }}
-            </div>
-            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-emerald-400 to-green-500">
-              {{ username|slice:":1"|upper }}
-            </div>
-          </div>
-        </div>
-        <div class="flex justify-end space-x-3 pt-2">
-          <button type="button" id="cancel-profile-pic" class="btn btn-secondary">Cancel</button>
-          <button type="button" id="save-profile-pic" class="btn btn-primary">Save Changes</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- User Popover -->
-  <div id="user-options-popover" class="hidden absolute bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
-    <div class="space-y-1">
-      <a href="#" class="flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-        <span>Send Message</span>
-      </a>
-      <button class="w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-        </svg>
-        <span>Add Friend</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Reaction User Modal -->
-  <div id="reaction-modal" class="modal">
-    <div class="modal-content max-w-xs p-4 surface-card">
-      <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-        <h2 class="text-lg font-bold gradient-text">People who reacted</h2>
-        <button id="close-reaction-modal" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <ul id="reaction-user-list" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
-    </div>
-  </div>
-
-  <!-- Media Preview Modal -->
-  <div id="media-preview-modal" class="modal">
-    <div class="max-w-4xl max-h-screen p-4">
-      <button id="close-media-preview" class="absolute top-4 right-4 p-2 bg-black/30 hover:bg-black/50 rounded-full text-white" aria-label="Close">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-      <div id="media-preview-content" class="flex items-center justify-center"></div>
-    </div>
-  </div>
-
-  <!-- Toast Notification -->
-  <div id="notification-toast" class="notification-toast hidden">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    <span id="notification-message">Notification message</span>
-  </div>
-
-  <script>
-    window.roomName = "{{ room_name|escapejs }}";
-    window.username = "{{ username|escapejs }}";
-  </script>
-
-  <!-- WebSocket Connection Script -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      let chatSocket;
-      let reconnectAttempt = 0;
-      const maxReconnectAttempts = 5;
-      const reconnectDelay = 2000; // Start with 2 seconds
-
-      function connectWebSocket() {
-        const roomName = "{{ room_name|escapejs }}";
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        chatSocket = new WebSocket(
-          `${protocol}//${window.location.host}/ws/chat/${roomName}/`
-        );
-
-        chatSocket.onopen = function(e) {
-          console.log("WebSocket connection established");
-          reconnectAttempt = 0; // Reset reconnect counter on successful connection
-
-          // Show a reconnection notification if this wasn't the first attempt
-          if (reconnectAttempt > 0) {
-            showNotification("Reconnected to chat");
-          }
-        };
-
-        chatSocket.onmessage = function(e) {
-          const data = JSON.parse(e.data);
-
-          // Handle different message types
-          if (data.type === 'chat_message') {
-            addMessage(data.message, data.username, data.message_id);
-          } else if (data.type === 'user_list') {
-            updateUserList(data.users);
-          } else if (data.type === 'typing') {
-            showTypingIndicator(data.username);
-          } else if (data.type === 'reaction') {
-            updateReactions(data.message_id, data.emoji, data.count, data.username);
-          }
-        };
-
-        chatSocket.onclose = function(e) {
-          console.warn("WebSocket connection closed unexpectedly");
-
-          // Only attempt to reconnect if we haven't exceeded the maximum attempts
-          if (reconnectAttempt < maxReconnectAttempts) {
-            reconnectAttempt++;
-            const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
-
-            showNotification("Connection lost. Reconnecting...");
-
-            console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
-            setTimeout(connectWebSocket, timeout);
-          } else {
-            showNotification("Could not reconnect. Please refresh the page.");
-          }
-        };
-
-        chatSocket.onerror = function(e) {
-          console.error("WebSocket error:", e);
-        };
-
-        // Store socket in global scope for other functions to use
-        window.chatSocket = chatSocket;
-      }
-
-      // Initial connection
-      connectWebSocket();
-
-      // Handle message sending
-      const messageForm = document.getElementById('message-form');
-      if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
-          e.preventDefault();
-          const messageInput = document.getElementById('chat-message-input');
-          const message = messageInput.value.trim();
-
-          if (message) {
-            if (chatSocket.readyState === WebSocket.OPEN) {
-              chatSocket.send(JSON.stringify({
-                'type': 'chat_message',
-                'message': message
-              }));
-              messageInput.value = '';
-            } else {
-              showNotification("Not connected. Message couldn't be sent.");
-            }
-          }
-        });
-      }
-
-      // Handle typing notification
-      const messageInput = document.getElementById('chat-message-input');
-      if (messageInput) {
-        let typingTimeout;
-
-        messageInput.addEventListener('input', function() {
-          if (chatSocket.readyState === WebSocket.OPEN) {
-            // Only send typing event if we haven't sent one recently
-            clearTimeout(typingTimeout);
-
-            chatSocket.send(JSON.stringify({
-              'type': 'typing',
-              'username': window.username
-            }));
-
-            // Set a timeout to prevent sending too many typing events
-            typingTimeout = setTimeout(() => {}, 2000);
-          }
-        });
-      }
-    });
-
-    // Function to add a message to the chat log
-    window.addMessage = function(message, username, messageId) {
-      const chatLog = document.getElementById('chat-log');
-      if (!chatLog) return;
-
-      const isCurrentUser = username === window.username;
-
-      const messageElement = document.createElement('div');
-      messageElement.className = 'flex items-start gap-2 group';
-      messageElement.setAttribute('data-message-id', messageId);
-
-      // Create avatar with random color if not current user
-      const avatarClass = isCurrentUser ? 'avatar-pink' : getRandomAvatarClass(username);
-
-      // Create avatar
-      const avatarElement = document.createElement('div');
-      avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
-      avatarElement.textContent = username.slice(0, 1).toUpperCase();
-
-      // Create message content container
-      const contentContainer = document.createElement('div');
-      contentContainer.className = 'flex-1';
-
-      // Create message bubble
-      const bubble = document.createElement('div');
-      bubble.className = `message-bubble ${isCurrentUser ? 'sent' : 'received'} new`;
-
-      // Create header with username
-      const header = document.createElement('div');
-      header.className = 'flex items-start justify-between';
-
-      const usernameLink = document.createElement('a');
-      usernameLink.href = `/dm/${username}/`;
-      usernameLink.className = `text-xs font-semibold mb-1 ${isCurrentUser ? 'text-pink-500' : 'text-purple-600'} hover:underline username-link`;
-      usernameLink.textContent = username;
-
-      header.appendChild(usernameLink);
-
-      // Quick reactions (only visible on hover/desktop)
-      const reactionsContainer = document.createElement('div');
-      reactionsContainer.className = 'ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden';
-      reactionsContainer.innerHTML = `
-        <div class="flex space-x-1">
-          <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
-          <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
-          <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
-        </div>
-      `;
-
-      header.appendChild(reactionsContainer);
-      bubble.appendChild(header);
-
-      // Message content
-      const messageContent = document.createElement('div');
-      messageContent.className = 'text-sm text-gray-700 message-content';
-      messageContent.innerHTML = message;
-      bubble.appendChild(messageContent);
-
-      contentContainer.appendChild(bubble);
-
-      // Area for reaction emojis display
-      const reactionsDisplayArea = document.createElement('div');
-      reactionsDisplayArea.className = 'reactions-container';
-      contentContainer.appendChild(reactionsDisplayArea);
-
-      // Assemble the message
-      messageElement.appendChild(avatarElement);
-      messageElement.appendChild(contentContainer);
-
-      chatLog.appendChild(messageElement);
-
-      // Scroll to the bottom to show the new message
-      scrollToBottom();
-
-      // Set up reaction emojis
-      const emojiButtons = messageElement.querySelectorAll('.emoji-reaction');
-      emojiButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-          const emoji = this.textContent;
-          if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
-            window.chatSocket.send(JSON.stringify({
-              'type': 'reaction',
-              'message_id': messageId,
-              'emoji': emoji
-            }));
-          }
-        });
-      });
-    };
-
-    // Function to show typing indicator
-    window.showTypingIndicator = function(username) {
-      const typingIndicator = document.getElementById('typing-indicator');
-      const typingUsername = document.getElementById('typing-username');
-
-      if (typingIndicator && typingUsername) {
-        // Don't show if it's the current user typing
-        if (username === window.username) return;
-
-        typingUsername.textContent = `${username} is typing...`;
-        typingIndicator.classList.remove('hidden');
-
-        // Hide after 3 seconds if no new typing events
-        clearTimeout(window.typingTimeout);
-        window.typingTimeout = setTimeout(function() {
-          typingIndicator.classList.add('hidden');
-        }, 3000);
-      }
-    };
-
-    // Function to update the user list
-    window.updateUserList = function(users) {
-      const userList = document.getElementById('user-list');
-      const mobileUserList = document.getElementById('mobile-user-list-content');
-
-      if (!userList && !mobileUserList) return;
-
-      if (userList) {
-        userList.innerHTML = '';
-
-        users.forEach(user => {
-          const li = document.createElement('li');
-          li.className = 'user-item flex items-center justify-between';
-
-          const nameContainer = document.createElement('div');
-          nameContainer.className = 'flex items-center';
-
-          // Get a consistent avatar color based on username
-          const avatarClass = user.username === window.username ? 'bg-gradient-to-r from-primary to-secondary' : getAvatarColorClass(user.username);
-
-          const avatar = document.createElement('div');
-          avatar.className = `h-6 w-6 rounded-full ${user.is_online ? avatarClass : 'bg-gray-300'} text-white flex items-center justify-center text-xs mr-2`;
-          avatar.textContent = user.username.slice(0, 1).toUpperCase();
-
-          const nameSpan = document.createElement('span');
-          nameSpan.className = 'text-sm';
-          nameSpan.textContent = user.username;
-
-          nameContainer.appendChild(avatar);
-          nameContainer.appendChild(nameSpan);
-          li.appendChild(nameContainer);
-
-          userList.appendChild(li);
-        });
-      }
-
-      if (mobileUserList) {
-        mobileUserList.innerHTML = '';
-
-        users.forEach(user => {
-          const span = document.createElement('span');
-          span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
-          span.textContent = user.username;
-          mobileUserList.appendChild(span);
-        });
-      }
-    };
-
-    // Function to update reactions on a message
-    window.updateReactions = function(messageId, emoji, count, username) {
-      const message = document.querySelector(`[data-message-id="${messageId}"]`);
-      if (!message) return;
-
-      const reactionsContainer = message.querySelector('.reactions-container');
-      if (!reactionsContainer) return;
-
-      // Check if the reaction already exists
-      let reactionElement = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
-
-      if (count <= 0) {
-        // Remove the reaction if count is 0
-        if (reactionElement) {
-          reactionElement.remove();
-        }
-        return;
-      }
-
-      if (!reactionElement) {
-        // Create new reaction element
-        reactionElement = document.createElement('div');
-        reactionElement.className = 'reaction';
-        reactionElement.setAttribute('data-emoji', emoji);
-        reactionElement.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
-
-        // Add click handler to show who reacted
-        reactionElement.addEventListener('click', function() {
-          // Implement showing reaction users here
-          showReactionUsers(messageId, emoji);
-        });
-
-        reactionsContainer.appendChild(reactionElement);
-      } else {
-        // Update existing reaction count
-        const countElement = reactionElement.querySelector('.reaction-count');
-        if (countElement) {
-          countElement.textContent = count;
-        }
-      }
-    };
-
-    // Helper function to get consistent avatar color
-    function getAvatarColorClass(username) {
-      const gradients = [
-        'bg-gradient-to-r from-blue-400 to-indigo-500',
-        'bg-gradient-to-r from-green-400 to-teal-500',
-        'bg-gradient-to-r from-purple-400 to-indigo-500',
-        'bg-gradient-to-r from-yellow-400 to-orange-500',
-        'bg-gradient-to-r from-red-400 to-pink-500',
-        'bg-gradient-to-r from-indigo-400 to-purple-500'
-      ];
-
-      // Simple hash function for username
-      let hash = 0;
-      for (let i = 0; i < username.length; i++) {
-        hash = username.charCodeAt(i) + ((hash << 5) - hash);
-      }
-
-      return gradients[Math.abs(hash) % gradients.length];
-    }
-
-    // Function to get random avatar class for messages
-    function getRandomAvatarClass(username) {
-      const avatarClasses = [
-        'avatar-orange', 'avatar-blue', 'avatar-green',
-        'avatar-purple', 'avatar-yellow', 'avatar-red', 'avatar-teal'
-      ];
-
-      // Use a simple hash of the username to get a consistent color
-      let hash = 0;
-      for (let i = 0; i < username.length; i++) {
-        hash = username.charCodeAt(i) + ((hash << 5) - hash);
-      }
-
-      return avatarClasses[Math.abs(hash) % avatarClasses.length];
-    }
-
-    // Function to show who reacted
-    function showReactionUsers(messageId, emoji) {
-      // This would typically fetch the users from the server
-      // For demo, we'll just show a placeholder
-      const reactionModal = document.getElementById('reaction-modal');
-      const reactionUserList = document.getElementById('reaction-user-list');
-
-      if (reactionModal && reactionUserList) {
-        reactionUserList.innerHTML = `<li class="p-2 flex items-center">
-          <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-sm mr-2">
-            <span>${emoji}</span>
-          </div>
-          <span>Loading users who reacted...</span>
-        </li>`;
-
-        reactionModal.classList.add('open');
-
-        // In a real implementation, you would fetch the users who reacted
-        // from the server here and update the list
-      }
-    }
-
-    // Helper function to scroll to bottom of chat
-    function scrollToBottom() {
-      const chatLog = document.getElementById('chat-log');
-      if (!chatLog) return;
-
-      // Smooth scroll
-      chatLog.scrollTop = chatLog.scrollHeight;
-    }
-
-    // Show notification function
-    window.showNotification = function(message) {
-      const toast = document.getElementById('notification-toast');
-      const messageEl = document.getElementById('notification-message');
-
-      if (toast && messageEl) {
-        messageEl.textContent = message;
-
-        // Show the toast
-        toast.classList.remove('hidden');
-
-        // Remove any existing animations
-        toast.style.animation = 'none';
-
-        // Force reflow
-        void toast.offsetWidth;
-
-        // Add animations back
-        toast.style.animation = 'toastIn 0.3s forwards, toastOut 0.3s forwards 3s';
-
-        // Hide the toast after animation completes
-        setTimeout(() => {
-          toast.classList.add('hidden');
-        }, 3300);
-      }
-    };
-
-    document.addEventListener("DOMContentLoaded", function() {
-      // Header scroll effect
-      const header = document.getElementById('header');
-      if (header) {
-        window.addEventListener('scroll', function() {
-          if (window.scrollY > 10) {
-            header.classList.add('scrolled');
-          } else {
-            header.classList.remove('scrolled');
-          }
-        });
-      }
-
-      // Make room name at the top direct to index.html
-      document.querySelectorAll('.gradient-text').forEach(element => {
-        if (element.textContent.includes("{{ room_name|title }}")) {
-          const parentElement = element.closest('a') || element.parentElement;
-          if (parentElement && parentElement.tagName === 'A') {
-            parentElement.href = "{% url 'index' %}";
-          }
-        }
-      });
-
-      // Initialize variables
-      const chatLog = document.getElementById('chat-log');
-      const messageForm = document.getElementById('message-form');
-      const messageInput = document.getElementById('chat-message-input');
-      const jumpToBottomBtn = document.getElementById('jump-to-bottom');
-      const userProfileToggle = document.getElementById('user-profile-toggle');
-      const profileMenu = document.getElementById('profile-menu');
-      const modals = document.querySelectorAll('.modal');
-
-      // Show/hide jump to bottom button based on scroll position
-      if (chatLog) {
-        chatLog.addEventListener('scroll', function() {
-          const scrollBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
-          if (scrollBottom > 100) {
-            jumpToBottomBtn.classList.add('visible');
-          } else {
-            jumpToBottomBtn.classList.remove('visible');
-          }
-        });
-
-        // Initial scroll to bottom
-        chatLog.scrollTop = chatLog.scrollHeight;
-      }
-
-      // Jump to bottom button functionality
-      if (jumpToBottomBtn) {
-        jumpToBottomBtn.addEventListener('click', function() {
-          if (chatLog) {
-            chatLog.scrollTop = chatLog.scrollHeight;
-          }
-        });
-      }
-
-      // Toggle profile menu
-      if (userProfileToggle && profileMenu) {
-        userProfileToggle.addEventListener('click', function(e) {
-          e.stopPropagation();
-          profileMenu.classList.toggle('open');
-        });
-
-        // Close when clicking elsewhere
-        document.addEventListener('click', function(e) {
-          if (!userProfileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
-            profileMenu.classList.remove('open');
-          }
-        });
-      }
-
-      // Initialize emoji picker
-      const emojiButton = document.getElementById('emoji-button');
-      const emojiPanel = document.getElementById('emoji-panel');
-
-      if (emojiButton && emojiPanel) {
-        emojiButton.addEventListener('click', function(e) {
-          e.stopPropagation();
-          emojiPanel.classList.toggle('show');
-        });
-
-        // Close emoji panel when clicking outside
-        document.addEventListener('click', function(e) {
-          if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
-            emojiPanel.classList.remove('show');
-          }
-        });
-
-        // Add emoji to message input when clicked
-        const emojiButtons = document.querySelectorAll('.emoji-btn');
-        emojiButtons.forEach(btn => {
-          btn.addEventListener('click', function() {
-            if (messageInput) {
-              messageInput.value += this.textContent;
-              messageInput.focus();
-              emojiPanel.classList.remove('show');
-            }
-          });
-        });
-      }
-
-      // Modal handling - open/close functionality
-      function setupModalHandling() {
-        // Close buttons for all modals
-        document.querySelectorAll('[id^="close-"]').forEach(closeBtn => {
-          const modalId = closeBtn.id.replace('close-', '');
-          const modal = document.getElementById(`${modalId}-modal`);
-
-          if (closeBtn && modal) {
-            closeBtn.addEventListener('click', () => {
-              modal.classList.remove('open');
-            });
-          }
-        });
-
-        // Open buttons for all modals
-        const modalOpenButtons = {
-          'media-library': document.getElementById('open-media-library'),
-          'whiteboard': document.getElementById('open-whiteboard'),
-          'meetup': document.getElementById('create-meetup-btn'),
-          'profile-pic': document.getElementById('change-avatar-btn')
-        };
-
-        for (const [modalName, openBtn] of Object.entries(modalOpenButtons)) {
-          const modal = document.getElementById(`${modalName}-modal`);
-
-          if (openBtn && modal) {
-            openBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              // Close profile menu if it's open
-              if (profileMenu) {
-                profileMenu.classList.remove('open');
-              }
-              modal.classList.add('open');
-            });
-          }
-        }
-
-        // Close modals when clicking outside
-        document.querySelectorAll('.modal').forEach(modal => {
-          modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-              modal.classList.remove('open');
-            }
-          });
-        });
-
-        // Cancel buttons
-        document.querySelectorAll('[id^="cancel-"]').forEach(cancelBtn => {
-          const modalId = cancelBtn.id.replace('cancel-', '');
-          const modal = document.getElementById(`${modalId}-modal`);
-
-          if (cancelBtn && modal) {
-            cancelBtn.addEventListener('click', () => {
-              modal.classList.remove('open');
-            });
-          }
-        });
-      }
-
-      // Initialize mobile menu toggle
-      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-      if (mobileMenuToggle) {
-        mobileMenuToggle.addEventListener('click', function() {
-          // Toggle mobile user list
-          const mobileUserList = document.getElementById('mobile-user-list');
-          if (mobileUserList) {
-            mobileUserList.classList.toggle('hidden');
-          }
-        });
-      }
-
-      // Initialize components
-      setupModalHandling();
-      initializeBookmarkButton();
-      setupAvatarSelection();
-
-      // Initialize bookmark button
-      function initializeBookmarkButton() {
-        const bookmarkBtn = document.getElementById('bookmark-room');
-        if (!bookmarkBtn) return;
-
-        // Check if room is already bookmarked
-        const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
-        updateBookmarkButton(isBookmarked);
-
-        // Add click event
-        bookmarkBtn.addEventListener('click', function() {
-          const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
-
-          // Get CSRF token and send request to server
-          const csrfToken = getCsrfToken();
-          fetch('/api/toggle_bookmark_room/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({
-              room_name: window.roomName,
-              bookmarked: newState
-            })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              localStorage.setItem(`bookmarked_${window.roomName}`, newState);
-              updateBookmarkButton(newState);
-              showNotification(newState ? 'Room bookmarked!' : 'Bookmark removed');
-            } else {
-              showNotification('Failed to update bookmark');
-            }
-          })
-          .catch(error => {
-            console.error('Error toggling bookmark:', error);
-            showNotification('An error occurred');
-          });
-        });
-      }
-
-      // Helper function to update bookmark button appearance
-      function updateBookmarkButton(isBookmarked) {
-        const bookmarkBtn = document.getElementById('bookmark-room');
-        if (!bookmarkBtn) return;
-
-        if (isBookmarked) {
-          bookmarkBtn.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+        {% if user.is_authenticated %}
+        <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary text-sm w-full flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-          `;
-          bookmarkBtn.classList.add('text-pink-500');
-          bookmarkBtn.setAttribute('data-tooltip', 'Remove bookmark');
-        } else {
-          bookmarkBtn.innerHTML = `
+            Logout
+        </button>
+        </form>
+        {% else %}
+        <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn btn-secondary text-sm flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+        Login
+        </a>
+        {% endif %}
+
+        {% if can_delete and user.is_authenticated %}
+        <form method="post" action="{% url 'delete_room' room_name %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger w-full text-sm flex items-center justify-center gap-2" onclick="return confirm('Are you sure you want to delete this room?');">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete Room
+        </button>
+        </form>
+        {% endif %}
+
+        {% if user.is_staff or user.username == room.creator.username %}
+        <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn btn-secondary bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Admin Panel
+        </a>
+        {% endif %}
+    </div>
+    </div>
+    </div>
+    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-6 border-t border-gray-200 mt-10 bg-white">
+        <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
+        <div class="mb-4 sm:mb-0 text-center sm:text-left">
+            <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
+            <h2 class="text-lg font-bold gradient-text">Euphorie</h2>
+            <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
+            </a>
+            <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
+        </div>
+        <div class="flex items-center gap-6 text-xs font-medium text-gray-500">
+            <a href="https://crene.com" target="_blank" rel="noopener" class="hover:text-indigo-500 transition-colors">
+            Crene.com
+            </a>
+            <a href="https://diaryvault.com" target="_blank" rel="noopener" class="hover:text-green-500 transition-colors">
+            DiaryVault.com
+            </a>
+        </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Profile Menu -->
+    <div id="profile-menu" class="profile-menu">
+        <div class="flex items-center p-3 border-b border-gray-100 mb-2">
+        <div class="avatar avatar-pink h-10 w-10 mr-3">
+            {{ username|slice:":1"|upper }}
+        </div>
+        <div>
+            <p class="font-medium text-gray-800">{{ username }}</p>
+            <p class="text-xs text-gray-500">{{ user.email }}</p>
+        </div>
+        </div>
+        <div class="space-y-1">
+        <a href="#" id="change-avatar-btn" class="profile-menu-item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>Change Avatar</span>
+        </a>
+        <!-- Fix for user profile link error -->
+        {% if user.is_authenticated %}
+        <a href="{% url 'user_profile' username=username %}" class="profile-menu-item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Profile Settings</span>
+        </a>
+        {% endif %}
+        </div>
+    </div>
+
+    <!-- Media Library Modal -->
+    <div id="media-library-modal" class="modal">
+        <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col surface-card">
+        <div class="flex justify-between items-center mb-4 p-2 border-b border-gray-100">
+            <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
+            <button id="close-media-library" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          `;
-          bookmarkBtn.classList.remove('text-pink-500');
-          bookmarkBtn.setAttribute('data-tooltip', 'Bookmark room');
-        }
-      }
+            </button>
+        </div>
+        <div class="flex space-x-2 mb-4 p-2">
+            <button class="media-filter-btn px-3 py-1 bg-gradient-to-r from-primary to-secondary text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
+            <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
+            <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
+        </div>
+        <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
+            <!-- Media items loaded by JS -->
+        </div>
+        </div>
+    </div>
 
-      // Avatar selection functionality
-      function setupAvatarSelection() {
-        document.querySelectorAll('.avatar-option').forEach(option => {
-          option.addEventListener('click', function() {
-            document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('ring-2', 'ring-offset-2', 'ring-pink-500'));
-            this.classList.add('ring-2', 'ring-offset-2', 'ring-pink-500');
+    <!-- Whiteboard Modal -->
+    <div id="whiteboard-modal" class="modal">
+        <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col surface-card">
+        <div class="flex justify-between items-center mb-4 p-2 border-b border-gray-100">
+            <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
+            <button id="close-whiteboard" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            </button>
+        </div>
+        <div class="whiteboard-tools flex flex-wrap gap-2 mb-4">
+            <input type="color" id="brush-color" value="#000000" class="cursor-pointer rounded-md">
+            <select id="brush-size" class="btn-secondary text-sm py-1 px-2 rounded-md">
+            <option value="2">Thin</option>
+            <option value="5" selected>Medium</option>
+            <option value="10">Thick</option>
+            </select>
+            <button class="btn-secondary active py-1 px-3 rounded-md text-sm" data-tool="brush">Brush</button>
+            <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="eraser">Eraser</button>
+            <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="text">Text</button>
+            <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="shape">Shape</button>
+        </div>
+        <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+            <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
+        </div>
+        <div class="flex items-center justify-between mt-4">
+            <button id="save-whiteboard" class="btn btn-secondary text-sm">Save Image</button>
+            <button id="clear-whiteboard" class="btn btn-danger text-sm">Clear All</button>
+        </div>
+        </div>
+    </div>
 
-            // Update the preview
-            const gradient = this.getAttribute('data-gradient');
-            const profilePreview = document.getElementById('profile-preview');
-            if (profilePreview) {
-              profilePreview.className = 'avatar h-24 w-24 text-xl profile-pic-container bg-gradient-to-br';
-              const gradientClasses = gradient.split(' ');
-              gradientClasses.forEach(cls => profilePreview.classList.add(cls));
+    <!-- Meetup Modal -->
+    <div id="meetup-modal" class="modal">
+        <div class="modal-content max-w-md p-6 surface-card">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+            <h2 class="text-lg font-bold gradient-text">Plan a Meetup</h2>
+            <button id="close-meetup" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            </button>
+        </div>
+        <form id="meetup-form" class="space-y-4">
+            <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-title">Meetup Title</label>
+            <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+            </div>
+            <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-datetime">Date & Time</label>
+            <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+            </div>
+            <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-location">Location</label>
+            <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
+            </div>
+            <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-description">Description</label>
+            <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+            <button type="button" id="cancel-meetup" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Meetup</button>
+            </div>
+        </form>
+        </div>
+    </div>
+
+    <!-- Profile Picture Modal -->
+    <div id="profile-pic-modal" class="modal">
+        <div class="modal-content max-w-md p-6 surface-card">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+            <h2 class="text-lg font-bold gradient-text">Change Profile Picture</h2>
+            <button id="close-profile-pic" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            </button>
+        </div>
+        <div class="flex items-center justify-center mb-6">
+            <div id="profile-preview" class="avatar avatar-pink h-24 w-24 text-xl profile-pic-container">
+            {{ username|slice:":1"|upper }}
+            </div>
+        </div>
+        <div class="space-y-4">
+            <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="profile-pic-upload">Upload Image</label>
+            <input type="file" id="profile-pic-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
+            <p class="text-xs text-gray-500 mt-1">Recommended: Square image, 500x500 pixels</p>
+            </div>
+            <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Choose Avatar Style</label>
+            <div class="grid grid-cols-4 gap-2">
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-pink-400 to-purple-500">
+                {{ username|slice:":1"|upper }}
+                </div>
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-blue-400 to-indigo-400">
+                {{ username|slice:":1"|upper }}
+                </div>
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-green-400 to-teal-400">
+                {{ username|slice:":1"|upper }}
+                </div>
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-purple-400 to-pink-400">
+                {{ username|slice:":1"|upper }}
+                </div>
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-yellow-400 to-orange-400">
+                {{ username|slice:":1"|upper }}
+                </div>
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-red-400 to-pink-400">
+                {{ username|slice:":1"|upper }}
+                </div>
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-cyan-400 to-blue-400">
+                {{ username|slice:":1"|upper }}
+                </div>
+                <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-emerald-400 to-green-500">
+                {{ username|slice:":1"|upper }}
+                </div>
+            </div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+            <button type="button" id="cancel-profile-pic" class="btn btn-secondary">Cancel</button>
+            <button type="button" id="save-profile-pic" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- User Popover -->
+    <div id="user-options-popover" class="hidden absolute bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
+        <div class="space-y-1">
+        <a href="#" class="flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>Send Message</span>
+        </a>
+        <button class="w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            <span>Add Friend</span>
+        </button>
+        </div>
+    </div>
+
+    <!-- Reaction User Modal -->
+    <div id="reaction-modal" class="modal">
+        <div class="modal-content max-w-xs p-4 surface-card">
+        <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+            <h2 class="text-lg font-bold gradient-text">People who reacted</h2>
+            <button id="close-reaction-modal" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            </button>
+        </div>
+        <ul id="reaction-user-list" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
+        </div>
+    </div>
+
+    <!-- Media Preview Modal -->
+    <div id="media-preview-modal" class="modal">
+        <div class="max-w-4xl max-h-screen p-4">
+        <button id="close-media-preview" class="absolute top-4 right-4 p-2 bg-black/30 hover:bg-black/50 rounded-full text-white" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <div id="media-preview-content" class="flex items-center justify-center"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="notification-toast" class="notification-toast hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="notification-message">Notification message</span>
+    </div>
+
+    <script>
+        window.roomName = "{{ room_name|escapejs }}";
+        window.username = "{{ username|escapejs }}";
+    </script>
+
+    <!-- WebSocket Connection Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        let chatSocket;
+        let reconnectAttempt = 0;
+        const maxReconnectAttempts = 5;
+        const reconnectDelay = 2000; // Start with 2 seconds
+
+        function connectWebSocket() {
+            const roomName = "{{ room_name|escapejs }}";
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            chatSocket = new WebSocket(
+            `${protocol}//${window.location.host}/ws/chat/${roomName}/`
+            );
+
+            chatSocket.onopen = function(e) {
+            console.log("WebSocket connection established");
+            reconnectAttempt = 0; // Reset reconnect counter on successful connection
+
+            // Show a reconnection notification if this wasn't the first attempt
+            if (reconnectAttempt > 0) {
+                showNotification("Reconnected to chat");
             }
-          });
+            };
+
+            chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+
+            // Handle different message types
+            if (data.type === 'chat_message') {
+                addMessage(data.message, data.username, data.message_id);
+            } else if (data.type === 'user_list') {
+                updateUserList(data.users);
+            } else if (data.type === 'typing') {
+                showTypingIndicator(data.username);
+            } else if (data.type === 'reaction') {
+                updateReactions(data.message_id, data.emoji, data.count, data.username);
+            }
+            };
+
+            chatSocket.onclose = function(e) {
+            console.warn("WebSocket connection closed unexpectedly");
+
+            // Only attempt to reconnect if we haven't exceeded the maximum attempts
+            if (reconnectAttempt < maxReconnectAttempts) {
+                reconnectAttempt++;
+                const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
+
+                showNotification("Connection lost. Reconnecting...");
+
+                console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
+                setTimeout(connectWebSocket, timeout);
+            } else {
+                showNotification("Could not reconnect. Please refresh the page.");
+            }
+            };
+
+            chatSocket.onerror = function(e) {
+            console.error("WebSocket error:", e);
+            };
+
+            // Store socket in global scope for other functions to use
+            window.chatSocket = chatSocket;
+        }
+
+        // Initial connection
+        connectWebSocket();
+
+        // Handle message sending
+        const messageForm = document.getElementById('message-form');
+        if (messageForm) {
+            messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const messageInput = document.getElementById('chat-message-input');
+            const message = messageInput.value.trim();
+
+            if (message) {
+                if (chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'chat_message',
+                    'message': message
+                }));
+                messageInput.value = '';
+                } else {
+                showNotification("Not connected. Message couldn't be sent.");
+                }
+            }
+            });
+        }
+
+        // Handle typing notification
+        const messageInput = document.getElementById('chat-message-input');
+        if (messageInput) {
+            let typingTimeout;
+
+            messageInput.addEventListener('input', function() {
+            if (chatSocket.readyState === WebSocket.OPEN) {
+                // Only send typing event if we haven't sent one recently
+                clearTimeout(typingTimeout);
+
+                chatSocket.send(JSON.stringify({
+                'type': 'typing',
+                'username': window.username
+                }));
+
+                // Set a timeout to prevent sending too many typing events
+                typingTimeout = setTimeout(() => {}, 2000);
+            }
+            });
+        }
         });
 
-        // Save avatar changes
-        const saveProfilePicBtn = document.getElementById('save-profile-pic');
-        if (saveProfilePicBtn) {
-          saveProfilePicBtn.addEventListener('click', () => {
-            // Here you would handle the actual saving of the avatar to the server
-            const profilePicModal = document.getElementById('profile-pic-modal');
+        // Function to add a message to the chat log
+        window.addMessage = function(message, username, messageId) {
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
 
-            // For now, just show a notification and close the modal
-            showNotification('Profile picture updated successfully');
-            if (profilePicModal) {
-              profilePicModal.classList.remove('open');
+        const isCurrentUser = username === window.username;
+
+        const messageElement = document.createElement('div');
+        messageElement.className = 'flex items-start gap-2 group';
+        messageElement.setAttribute('data-message-id', messageId);
+
+        // Create avatar with random color if not current user
+        const avatarClass = isCurrentUser ? 'avatar-pink' : getRandomAvatarClass(username);
+
+        // Create avatar
+        const avatarElement = document.createElement('div');
+        avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
+        avatarElement.textContent = username.slice(0, 1).toUpperCase();
+
+        // Create message content container
+        const contentContainer = document.createElement('div');
+        contentContainer.className = 'flex-1';
+
+        // Create message bubble
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble ${isCurrentUser ? 'sent' : 'received'} new`;
+
+        // Create header with username
+        const header = document.createElement('div');
+        header.className = 'flex items-start justify-between';
+
+        const usernameLink = document.createElement('a');
+        usernameLink.href = `/dm/${username}/`;
+        usernameLink.className = `text-xs font-semibold mb-1 ${isCurrentUser ? 'text-pink-500' : 'text-purple-600'} hover:underline username-link`;
+        usernameLink.textContent = username;
+
+        header.appendChild(usernameLink);
+
+        // Quick reactions (only visible on hover/desktop)
+        const reactionsContainer = document.createElement('div');
+        reactionsContainer.className = 'ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden';
+        reactionsContainer.innerHTML = `
+            <div class="flex space-x-1">
+            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
+            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
+            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+            </div>
+        `;
+
+        header.appendChild(reactionsContainer);
+        bubble.appendChild(header);
+
+        // Message content
+        const messageContent = document.createElement('div');
+        messageContent.className = 'text-sm text-gray-700 message-content';
+        messageContent.innerHTML = message;
+        bubble.appendChild(messageContent);
+
+        contentContainer.appendChild(bubble);
+
+        // Area for reaction emojis display
+        const reactionsDisplayArea = document.createElement('div');
+        reactionsDisplayArea.className = 'reactions-container';
+        contentContainer.appendChild(reactionsDisplayArea);
+
+        // Assemble the message
+        messageElement.appendChild(avatarElement);
+        messageElement.appendChild(contentContainer);
+
+        chatLog.appendChild(messageElement);
+
+        // Scroll to the bottom to show the new message
+        scrollToBottom();
+
+        // Set up reaction emojis
+        const emojiButtons = messageElement.querySelectorAll('.emoji-reaction');
+        emojiButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+            const emoji = this.textContent;
+            if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+                window.chatSocket.send(JSON.stringify({
+                'type': 'reaction',
+                'message_id': messageId,
+                'emoji': emoji
+                }));
             }
-          });
+            });
+        });
+        };
+
+        // Function to show typing indicator
+        window.showTypingIndicator = function(username) {
+        const typingIndicator = document.getElementById('typing-indicator');
+        const typingUsername = document.getElementById('typing-username');
+
+        if (typingIndicator && typingUsername) {
+            // Don't show if it's the current user typing
+            if (username === window.username) return;
+
+            typingUsername.textContent = `${username} is typing...`;
+            typingIndicator.classList.remove('hidden');
+
+            // Hide after 3 seconds if no new typing events
+            clearTimeout(window.typingTimeout);
+            window.typingTimeout = setTimeout(function() {
+            typingIndicator.classList.add('hidden');
+            }, 3000);
         }
-      }
+        };
 
-      // Setup close announcement banners
-      document.querySelectorAll('.announcement button').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const announcement = this.closest('.announcement');
-          if (announcement) {
-            announcement.classList.add('hidden');
+        // Function to update the user list
+        window.updateUserList = function(users) {
+        const userList = document.getElementById('user-list');
+        const mobileUserList = document.getElementById('mobile-user-list-content');
 
-            // If you want to mark it as read on the server
-            const announcementId = announcement.getAttribute('data-announcement-id');
-            if (announcementId) {
-              const csrfToken = getCsrfToken();
-              fetch('/api/mark_announcement_read/', {
+        if (!userList && !mobileUserList) return;
+
+        if (userList) {
+            userList.innerHTML = '';
+
+            users.forEach(user => {
+            const li = document.createElement('li');
+            li.className = 'user-item flex items-center justify-between';
+
+            const nameContainer = document.createElement('div');
+            nameContainer.className = 'flex items-center';
+
+            // Get a consistent avatar color based on username
+            const avatarClass = user.username === window.username ? 'bg-gradient-to-r from-primary to-secondary' : getAvatarColorClass(user.username);
+
+            const avatar = document.createElement('div');
+            avatar.className = `h-6 w-6 rounded-full ${user.is_online ? avatarClass : 'bg-gray-300'} text-white flex items-center justify-center text-xs mr-2`;
+            avatar.textContent = user.username.slice(0, 1).toUpperCase();
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'text-sm';
+            nameSpan.textContent = user.username;
+
+            nameContainer.appendChild(avatar);
+            nameContainer.appendChild(nameSpan);
+            li.appendChild(nameContainer);
+
+            userList.appendChild(li);
+            });
+        }
+
+        if (mobileUserList) {
+            mobileUserList.innerHTML = '';
+
+            users.forEach(user => {
+            const span = document.createElement('span');
+            span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
+            span.textContent = user.username;
+            mobileUserList.appendChild(span);
+            });
+        }
+        };
+
+        // Function to update reactions on a message
+        window.updateReactions = function(messageId, emoji, count, username) {
+        const message = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!message) return;
+
+        const reactionsContainer = message.querySelector('.reactions-container');
+        if (!reactionsContainer) return;
+
+        // Check if the reaction already exists
+        let reactionElement = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
+
+        if (count <= 0) {
+            // Remove the reaction if count is 0
+            if (reactionElement) {
+            reactionElement.remove();
+            }
+            return;
+        }
+
+        if (!reactionElement) {
+            // Create new reaction element
+            reactionElement = document.createElement('div');
+            reactionElement.className = 'reaction';
+            reactionElement.setAttribute('data-emoji', emoji);
+            reactionElement.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
+
+            // Add click handler to show who reacted
+            reactionElement.addEventListener('click', function() {
+            // Implement showing reaction users here
+            showReactionUsers(messageId, emoji);
+            });
+
+            reactionsContainer.appendChild(reactionElement);
+        } else {
+            // Update existing reaction count
+            const countElement = reactionElement.querySelector('.reaction-count');
+            if (countElement) {
+            countElement.textContent = count;
+            }
+        }
+        };
+
+        // Helper function to get consistent avatar color
+        function getAvatarColorClass(username) {
+        const gradients = [
+            'bg-gradient-to-r from-blue-400 to-indigo-500',
+            'bg-gradient-to-r from-green-400 to-teal-500',
+            'bg-gradient-to-r from-purple-400 to-indigo-500',
+            'bg-gradient-to-r from-yellow-400 to-orange-500',
+            'bg-gradient-to-r from-red-400 to-pink-500',
+            'bg-gradient-to-r from-indigo-400 to-purple-500'
+        ];
+
+        // Simple hash function for username
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+            hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        return gradients[Math.abs(hash) % gradients.length];
+        }
+
+        // Function to get random avatar class for messages
+        function getRandomAvatarClass(username) {
+        const avatarClasses = [
+            'avatar-orange', 'avatar-blue', 'avatar-green',
+            'avatar-purple', 'avatar-yellow', 'avatar-red', 'avatar-teal'
+        ];
+
+        // Use a simple hash of the username to get a consistent color
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+            hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        return avatarClasses[Math.abs(hash) % avatarClasses.length];
+        }
+
+        // Function to show who reacted
+        function showReactionUsers(messageId, emoji) {
+        // This would typically fetch the users from the server
+        // For demo, we'll just show a placeholder
+        const reactionModal = document.getElementById('reaction-modal');
+        const reactionUserList = document.getElementById('reaction-user-list');
+
+        if (reactionModal && reactionUserList) {
+            reactionUserList.innerHTML = `<li class="p-2 flex items-center">
+            <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-sm mr-2">
+                <span>${emoji}</span>
+            </div>
+            <span>Loading users who reacted...</span>
+            </li>`;
+
+            reactionModal.classList.add('open');
+
+            // In a real implementation, you would fetch the users who reacted
+            // from the server here and update the list
+        }
+        }
+
+        // Helper function to scroll to bottom of chat
+        function scrollToBottom() {
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
+
+        // Smooth scroll
+        chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // Show notification function
+        window.showNotification = function(message) {
+        const toast = document.getElementById('notification-toast');
+        const messageEl = document.getElementById('notification-message');
+
+        if (toast && messageEl) {
+            messageEl.textContent = message;
+
+            // Show the toast
+            toast.classList.remove('hidden');
+
+            // Remove any existing animations
+            toast.style.animation = 'none';
+
+            // Force reflow
+            void toast.offsetWidth;
+
+            // Add animations back
+            toast.style.animation = 'toastIn 0.3s forwards, toastOut 0.3s forwards 3s';
+
+            // Hide the toast after animation completes
+            setTimeout(() => {
+            toast.classList.add('hidden');
+            }, 3300);
+        }
+        };
+
+        document.addEventListener("DOMContentLoaded", function() {
+        // Header scroll effect
+        const header = document.getElementById('header');
+        if (header) {
+            window.addEventListener('scroll', function() {
+            if (window.scrollY > 10) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+            });
+        }
+
+        // Make room name at the top direct to index.html
+        document.querySelectorAll('.gradient-text').forEach(element => {
+            if (element.textContent.includes("{{ room_name|title }}")) {
+            const parentElement = element.closest('a') || element.parentElement;
+            if (parentElement && parentElement.tagName === 'A') {
+                parentElement.href = "{% url 'index' %}";
+            }
+            }
+        });
+
+        // Initialize variables
+        const chatLog = document.getElementById('chat-log');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('chat-message-input');
+        const jumpToBottomBtn = document.getElementById('jump-to-bottom');
+        const userProfileToggle = document.getElementById('user-profile-toggle');
+        const profileMenu = document.getElementById('profile-menu');
+        const modals = document.querySelectorAll('.modal');
+
+        // Show/hide jump to bottom button based on scroll position
+        if (chatLog) {
+            chatLog.addEventListener('scroll', function() {
+            const scrollBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
+            if (scrollBottom > 100) {
+                jumpToBottomBtn.classList.add('visible');
+            } else {
+                jumpToBottomBtn.classList.remove('visible');
+            }
+            });
+
+            // Initial scroll to bottom
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // Jump to bottom button functionality
+        if (jumpToBottomBtn) {
+            jumpToBottomBtn.addEventListener('click', function() {
+            if (chatLog) {
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+            });
+        }
+
+        // Toggle profile menu
+        if (userProfileToggle && profileMenu) {
+            userProfileToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            profileMenu.classList.toggle('open');
+            });
+
+            // Close when clicking elsewhere
+            document.addEventListener('click', function(e) {
+            if (!userProfileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('open');
+            }
+            });
+        }
+
+        // Initialize emoji picker
+        const emojiButton = document.getElementById('emoji-button');
+        const emojiPanel = document.getElementById('emoji-panel');
+
+        if (emojiButton && emojiPanel) {
+            emojiButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            emojiPanel.classList.toggle('show');
+            });
+
+            // Close emoji panel when clicking outside
+            document.addEventListener('click', function(e) {
+            if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+                emojiPanel.classList.remove('show');
+            }
+            });
+
+            // Add emoji to message input when clicked
+            const emojiButtons = document.querySelectorAll('.emoji-btn');
+            emojiButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (messageInput) {
+                messageInput.value += this.textContent;
+                messageInput.focus();
+                emojiPanel.classList.remove('show');
+                }
+            });
+            });
+        }
+
+        // Modal handling - open/close functionality
+        function setupModalHandling() {
+            // Close buttons for all modals
+            document.querySelectorAll('[id^="close-"]').forEach(closeBtn => {
+            const modalId = closeBtn.id.replace('close-', '');
+            const modal = document.getElementById(`${modalId}-modal`);
+
+            if (closeBtn && modal) {
+                closeBtn.addEventListener('click', () => {
+                modal.classList.remove('open');
+                });
+            }
+            });
+
+            // Open buttons for all modals
+            const modalOpenButtons = {
+            'media-library': document.getElementById('open-media-library'),
+            'whiteboard': document.getElementById('open-whiteboard'),
+            'meetup': document.getElementById('create-meetup-btn'),
+            'profile-pic': document.getElementById('change-avatar-btn')
+            };
+
+            for (const [modalName, openBtn] of Object.entries(modalOpenButtons)) {
+            const modal = document.getElementById(`${modalName}-modal`);
+
+            if (openBtn && modal) {
+                openBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Close profile menu if it's open
+                if (profileMenu) {
+                    profileMenu.classList.remove('open');
+                }
+                modal.classList.add('open');
+                });
+            }
+            }
+
+            // Close modals when clicking outside
+            document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                modal.classList.remove('open');
+                }
+            });
+            });
+
+            // Cancel buttons
+            document.querySelectorAll('[id^="cancel-"]').forEach(cancelBtn => {
+            const modalId = cancelBtn.id.replace('cancel-', '');
+            const modal = document.getElementById(`${modalId}-modal`);
+
+            if (cancelBtn && modal) {
+                cancelBtn.addEventListener('click', () => {
+                modal.classList.remove('open');
+                });
+            }
+            });
+        }
+
+        // Initialize mobile menu toggle
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', function() {
+            // Toggle mobile user list
+            const mobileUserList = document.getElementById('mobile-user-list');
+            if (mobileUserList) {
+                mobileUserList.classList.toggle('hidden');
+            }
+            });
+        }
+
+        // Initialize components
+        setupModalHandling();
+        initializeBookmarkButton();
+        setupAvatarSelection();
+
+        // Initialize bookmark button
+        function initializeBookmarkButton() {
+            const bookmarkBtn = document.getElementById('bookmark-room');
+            if (!bookmarkBtn) return;
+
+            // Check if room is already bookmarked
+            const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
+            updateBookmarkButton(isBookmarked);
+
+            // Add click event
+            bookmarkBtn.addEventListener('click', function() {
+            const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
+
+            // Get CSRF token and send request to server
+            const csrfToken = getCsrfToken();
+            fetch('/api/toggle_bookmark_room/', {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRFToken': csrfToken
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify({
-                  announcement_id: announcementId
+                room_name: window.roomName,
+                bookmarked: newState
                 })
-              });
-            }
-          }
-        });
-      });
-
-      // Helper function to get CSRF token
-      function getCsrfToken() {
-        const name = 'csrftoken=';
-        const decodedCookie = decodeURIComponent(document.cookie);
-        const cookieArray = decodedCookie.split(';');
-
-        for (let i = 0; i < cookieArray.length; i++) {
-          let cookie = cookieArray[i].trim();
-          if (cookie.indexOf(name) === 0) {
-            return cookie.substring(name.length, cookie.length);
-          }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                localStorage.setItem(`bookmarked_${window.roomName}`, newState);
+                updateBookmarkButton(newState);
+                showNotification(newState ? 'Room bookmarked!' : 'Bookmark removed');
+                } else {
+                showNotification('Failed to update bookmark');
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling bookmark:', error);
+                showNotification('An error occurred');
+            });
+            });
         }
 
-        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-        return csrfInput ? csrfInput.value : '';
-      }
-    });
-  </script>
+        // Helper function to update bookmark button appearance
+        function updateBookmarkButton(isBookmarked) {
+            const bookmarkBtn = document.getElementById('bookmark-room');
+            if (!bookmarkBtn) return;
 
-  <!-- Additional JavaScript for Friend Requests and Enhanced User Interaction -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // Enhance username links throughout the chat
-      enhanceUsernameLinks();
+            if (isBookmarked) {
+            bookmarkBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+            `;
+            bookmarkBtn.classList.add('text-pink-500');
+            bookmarkBtn.setAttribute('data-tooltip', 'Remove bookmark');
+            } else {
+            bookmarkBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+            `;
+            bookmarkBtn.classList.remove('text-pink-500');
+            bookmarkBtn.setAttribute('data-tooltip', 'Bookmark room');
+            }
+        }
 
-      // Store reference to the original updateUserList function
-      const originalUpdateUserList = window.updateUserList || function() {};
+        // Avatar selection functionality
+        function setupAvatarSelection() {
+            document.querySelectorAll('.avatar-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('ring-2', 'ring-offset-2', 'ring-pink-500'));
+                this.classList.add('ring-2', 'ring-offset-2', 'ring-pink-500');
 
-      // Replace with enhanced version that adds friend request buttons
-      window.updateUserList = function(users) {
-        // First call the original function
-        originalUpdateUserList.call(this, users);
+                // Update the preview
+                const gradient = this.getAttribute('data-gradient');
+                const profilePreview = document.getElementById('profile-preview');
+                if (profilePreview) {
+                profilePreview.className = 'avatar h-24 w-24 text-xl profile-pic-container bg-gradient-to-br';
+                const gradientClasses = gradient.split(' ');
+                gradientClasses.forEach(cls => profilePreview.classList.add(cls));
+                }
+            });
+            });
 
-        // Then enhance the user list with friend buttons
-        const userList = document.getElementById("user-list");
-        if (!userList) return;
+            // Save avatar changes
+            const saveProfilePicBtn = document.getElementById('save-profile-pic');
+            if (saveProfilePicBtn) {
+            saveProfilePicBtn.addEventListener('click', () => {
+                // Here you would handle the actual saving of the avatar to the server
+                const profilePicModal = document.getElementById('profile-pic-modal');
 
-        // Get all user list items
-        const listItems = userList.querySelectorAll('li');
+                // For now, just show a notification and close the modal
+                showNotification('Profile picture updated successfully');
+                if (profilePicModal) {
+                profilePicModal.classList.remove('open');
+                }
+            });
+            }
+        }
 
-        // Process each list item
-        listItems.forEach(li => {
-          // Add user-item class for hover effects
-          li.classList.add('user-item');
+        // Setup close announcement banners
+        document.querySelectorAll('.announcement button').forEach(btn => {
+            btn.addEventListener('click', function() {
+            const announcement = this.closest('.announcement');
+            if (announcement) {
+                announcement.classList.add('hidden');
 
-          // Get the username
-          const nameSpan = li.querySelector('span');
-          if (!nameSpan) return;
-
-          const username = nameSpan.textContent;
-
-          // Skip if it's the current user
-          if (username === window.username) return;
-
-          // Skip if already has a friend button
-          if (li.querySelector('.friend-btn')) return;
-
-          // Get the actions container or create one if it doesn't exist
-          let actionsContainer = li.querySelector('div:last-child');
-          if (!actionsContainer) {
-            actionsContainer = document.createElement('div');
-            actionsContainer.className = 'flex items-center';
-            li.appendChild(actionsContainer);
-          }
-
-          // Create Add Friend button
-          const friendBtn = document.createElement('button');
-          friendBtn.className = 'friend-btn friend-btn-add';
-          friendBtn.textContent = 'Add Friend';
-          friendBtn.onclick = () => sendFriendRequest(username);
-
-          // Insert before any existing actions
-          actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
+                // If you want to mark it as read on the server
+                const announcementId = announcement.getAttribute('data-announcement-id');
+                if (announcementId) {
+                const csrfToken = getCsrfToken();
+                fetch('/api/mark_announcement_read/', {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                    announcement_id: announcementId
+                    })
+                });
+                }
+            }
+            });
         });
-      };
 
-      // Enhance all username links in the chat with popover menu
-      function enhanceUsernameLinks() {
-        // Find all username links and enhance them
-        document.addEventListener('click', function(e) {
-          // Check if clicked element is a username link
-          if (e.target.classList.contains('username-link') ||
-              e.target.parentElement.classList.contains('username-link')) {
-            e.preventDefault(); // Prevent default navigation
+        // Helper function to get CSRF token
+        function getCsrfToken() {
+            const name = 'csrftoken=';
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const cookieArray = decodedCookie.split(';');
+
+            for (let i = 0; i < cookieArray.length; i++) {
+            let cookie = cookieArray[i].trim();
+            if (cookie.indexOf(name) === 0) {
+                return cookie.substring(name.length, cookie.length);
+            }
+            }
+
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            return csrfInput ? csrfInput.value : '';
+        }
+        });
+    </script>
+
+    <!-- Additional JavaScript for Friend Requests and Enhanced User Interaction -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        // Enhance username links throughout the chat
+        enhanceUsernameLinks();
+
+        // Store reference to the original updateUserList function
+        const originalUpdateUserList = window.updateUserList || function() {};
+
+        // Replace with enhanced version that adds friend request buttons
+        window.updateUserList = function(users) {
+            // First call the original function
+            originalUpdateUserList.call(this, users);
+
+            // Then enhance the user list with friend buttons
+            const userList = document.getElementById("user-list");
+            if (!userList) return;
+
+            // Get all user list items
+            const listItems = userList.querySelectorAll('li');
+
+            // Process each list item
+            listItems.forEach(li => {
+            // Add user-item class for hover effects
+            li.classList.add('user-item');
 
             // Get the username
-            const link = e.target.classList.contains('username-link') ?
-                        e.target : e.target.parentElement;
-            const username = link.textContent.trim();
+            const nameSpan = li.querySelector('span');
+            if (!nameSpan) return;
+
+            const username = nameSpan.textContent;
 
             // Skip if it's the current user
             if (username === window.username) return;
 
-            // Create or show popover menu
-            showUserOptions(link, username);
-          }
-        });
-      }
+            // Skip if already has a friend button
+            if (li.querySelector('.friend-btn')) return;
 
-      // Show user interaction options popover
-      function showUserOptions(element, username) {
-        // Remove any existing popovers
-        const existingPopover = document.getElementById('user-options-popover');
-        if (existingPopover) {
-          existingPopover.remove();
+            // Get the actions container or create one if it doesn't exist
+            let actionsContainer = li.querySelector('div:last-child');
+            if (!actionsContainer) {
+                actionsContainer = document.createElement('div');
+                actionsContainer.className = 'flex items-center';
+                li.appendChild(actionsContainer);
+            }
+
+            // Create Add Friend button
+            const friendBtn = document.createElement('button');
+            friendBtn.className = 'friend-btn friend-btn-add';
+            friendBtn.textContent = 'Add Friend';
+            friendBtn.onclick = () => sendFriendRequest(username);
+
+            // Insert before any existing actions
+            actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
+            });
+        };
+
+        // Enhance all username links in the chat with popover menu
+        function enhanceUsernameLinks() {
+            // Find all username links and enhance them
+            document.addEventListener('click', function(e) {
+            // Check if clicked element is a username link
+            if (e.target.classList.contains('username-link') ||
+                e.target.parentElement.classList.contains('username-link')) {
+                e.preventDefault(); // Prevent default navigation
+
+                // Get the username
+                const link = e.target.classList.contains('username-link') ?
+                            e.target : e.target.parentElement;
+                const username = link.textContent.trim();
+
+                // Skip if it's the current user
+                if (username === window.username) return;
+
+                // Create or show popover menu
+                showUserOptions(link, username);
+            }
+            });
         }
 
-        // Create popover element
-        const popover = document.createElement('div');
-        popover.id = 'user-options-popover';
-        popover.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 p-2 z-50';
+        // Show user interaction options popover
+        function showUserOptions(element, username) {
+            // Remove any existing popovers
+            const existingPopover = document.getElementById('user-options-popover');
+            if (existingPopover) {
+            existingPopover.remove();
+            }
 
-        // Set position near the username
-        const rect = element.getBoundingClientRect();
-        popover.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-        popover.style.left = (rect.left + window.scrollX) + 'px';
+            // Create popover element
+            const popover = document.createElement('div');
+            popover.id = 'user-options-popover';
+            popover.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 p-2 z-50';
 
-        // Add options
-        const optionsList = document.createElement('div');
-        optionsList.className = 'space-y-1';
+            // Set position near the username
+            const rect = element.getBoundingClientRect();
+            popover.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            popover.style.left = (rect.left + window.scrollX) + 'px';
 
-        // DM option
-        const dmOption = document.createElement('a');
-        dmOption.href = `/dm/${username}/`;
-        dmOption.className = 'flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
-        dmOption.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span class="text-sm text-gray-700">Send Message</span>
-        `;
+            // Add options
+            const optionsList = document.createElement('div');
+            optionsList.className = 'space-y-1';
 
-// Add Friend option
-const friendOption = document.createElement('button');
-friendOption.className = 'w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
-friendOption.innerHTML = `
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-  </svg>
-  <span class="text-sm text-gray-700">Add Friend</span>
-`;
-friendOption.onclick = function() {
-  sendFriendRequest(username);
-  popover.remove();
-};
+            // DM option
+            const dmOption = document.createElement('a');
+            dmOption.href = `/dm/${username}/`;
+            dmOption.className = 'flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+            dmOption.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span class="text-sm text-gray-700">Send Message</span>
+            `;
 
-// Add options to list
-optionsList.appendChild(dmOption);
-optionsList.appendChild(friendOption);
-popover.appendChild(optionsList);
-
-// Add to page
-document.body.appendChild(popover);
-
-// Close when clicking outside
-document.addEventListener('click', function closePopover(e) {
-  if (!popover.contains(e.target) && e.target !== element) {
+    // Add Friend option
+    const friendOption = document.createElement('button');
+    friendOption.className = 'w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+    friendOption.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+    </svg>
+    <span class="text-sm text-gray-700">Add Friend</span>
+    `;
+    friendOption.onclick = function() {
+    sendFriendRequest(username);
     popover.remove();
-    document.removeEventListener('click', closePopover);
-  }
-});
-}
+    };
 
-// Function to send friend request
-window.sendFriendRequest = function(otherUser) {
-// Get CSRF token
-const csrfToken = getCsrfToken();
+    // Add options to list
+    optionsList.appendChild(dmOption);
+    optionsList.appendChild(friendOption);
+    popover.appendChild(optionsList);
 
-fetch('/api/friend_request/', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-CSRFToken': csrfToken
-  },
-  body: JSON.stringify({
-    receiver_id: otherUser  // This matches your API expectation
-  })
-})
-.then(response => response.json())
-.then(data => {
-  if (data.success) {
-    showNotification(`Friend request sent to ${otherUser}`);
+    // Add to page
+    document.body.appendChild(popover);
 
-    // Find and update any friend buttons for this user
-    document.querySelectorAll('.friend-btn').forEach(btn => {
-      if (btn.parentElement.previousElementSibling &&
-          btn.parentElement.previousElementSibling.querySelector('span') &&
-          btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
-        btn.className = 'friend-btn friend-btn-pending request-sent';
-        btn.textContent = 'Pending';
-        btn.onclick = null;
-      }
-    });
-  } else {
-    showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
-  }
-})
-.catch(error => {
-  console.error('Error sending friend request:', error);
-  showNotification('An error occurred while sending friend request');
-});
-};
-
-// Helper function for CSRF token
-function getCsrfToken() {
-const name = 'csrftoken=';
-const decodedCookie = decodeURIComponent(document.cookie);
-const cookieArray = decodedCookie.split(';');
-
-for (let i = 0; i < cookieArray.length; i++) {
-  let cookie = cookieArray[i].trim();
-  if (cookie.indexOf(name) === 0) {
-    return cookie.substring(name.length, cookie.length);
-  }
-}
-
-// If not found in cookies, try to find it in a meta tag
-const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-if (csrfMeta) {
-  return csrfMeta.getAttribute('content');
-}
-
-// Last resort - look for hidden input field
-const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-if (csrfInput) {
-  return csrfInput.value;
-}
-
-return '';
-}
-});
-</script>
-
-<!-- File Upload Handling Script -->
-<script>
-// File Upload improvements
-async function uploadFilesAndSend(files) {
-const formData = new FormData();
-
-// Add files to the form data
-for (let i = 0; i < files.length; i++) {
-formData.append('files', files[i]);
-}
-
-// Add room name to the form data
-formData.append('room_name', window.roomName);
-
-// Add CSRF token
-const csrfToken = getCsrfToken();
-formData.append('csrfmiddlewaretoken', csrfToken);
-
-try {
-// Show progress indicator
-const progressBar = document.getElementById('progress-bar');
-const progressContainer = document.getElementById('progress-container');
-progressContainer.classList.remove('hidden');
-
-// Use XMLHttpRequest for upload progress
-return new Promise((resolve, reject) => {
-  const xhr = new XMLHttpRequest();
-
-  xhr.upload.addEventListener('progress', (e) => {
-    if (e.lengthComputable) {
-      const percentComplete = (e.loaded / e.total) * 100;
-      progressBar.style.width = percentComplete + '%';
+    // Close when clicking outside
+    document.addEventListener('click', function closePopover(e) {
+    if (!popover.contains(e.target) && e.target !== element) {
+        popover.remove();
+        document.removeEventListener('click', closePopover);
     }
-  });
+    });
+    }
 
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4) {
-      progressContainer.classList.add('hidden');
+    // Function to send friend request
+    window.sendFriendRequest = function(otherUser) {
+    // Get CSRF token
+    const csrfToken = getCsrfToken();
 
-      if (xhr.status === 200) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (data.success) {
-            resolve(data.file_urls);
-          } else {
-            reject(new Error(data.error || 'Unknown error'));
-          }
-        } catch (e) {
-          reject(new Error('Invalid response from server'));
+    fetch('/api/friend_request/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify({
+        receiver_id: otherUser  // This matches your API expectation
+    })
+    })
+    .then(response => response.json())
+    .then(data => {
+    if (data.success) {
+        showNotification(`Friend request sent to ${otherUser}`);
+
+        // Find and update any friend buttons for this user
+        document.querySelectorAll('.friend-btn').forEach(btn => {
+        if (btn.parentElement.previousElementSibling &&
+            btn.parentElement.previousElementSibling.querySelector('span') &&
+            btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
+            btn.className = 'friend-btn friend-btn-pending request-sent';
+            btn.textContent = 'Pending';
+            btn.onclick = null;
         }
-      } else {
-        reject(new Error('Server responded with status: ' + xhr.status));
-      }
-    }
-  };
-
-  xhr.open('POST', '/api/upload_media/', true);
-  xhr.send(formData);
-});
-} catch (error) {
-console.error('Error uploading files:', error);
-showNotification('Failed to upload files: ' + error.message);
-throw error;
-}
-}
-
-// Handle file selection
-function handleFileSelect(event) {
-const files = event.target.files;
-if (!files || files.length === 0) return;
-
-// Show preview area
-const preview = document.getElementById('preview');
-const previewContent = document.getElementById('preview-content');
-preview.classList.remove('hidden');
-previewContent.innerHTML = '';
-
-// Create preview items
-Array.from(files).forEach(file => {
-const isImage = file.type.startsWith('image/');
-const isVideo = file.type.startsWith('video/');
-
-if (isImage || isVideo) {
-  const previewItem = document.createElement('div');
-  previewItem.className = 'preview-item';
-
-  if (isImage) {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
-    img.onload = () => URL.revokeObjectURL(img.src);
-    previewItem.appendChild(img);
-  } else if (isVideo) {
-    const video = document.createElement('video');
-    video.src = URL.createObjectURL(file);
-    video.muted = true;
-    video.loop = true;
-    video.autoplay = true;
-    video.onloadedmetadata = () => URL.revokeObjectURL(video.src);
-    previewItem.appendChild(video);
-  }
-
-  previewContent.appendChild(previewItem);
-}
-});
-
-// Set up cancel button
-const cancelButton = document.getElementById('cancel-preview');
-if (cancelButton) {
-cancelButton.onclick = function() {
-  preview.classList.add('hidden');
-  document.getElementById('file-input').value = '';
-};
-}
-}
-
-// Initialize file input
-document.addEventListener('DOMContentLoaded', function() {
-const fileInput = document.getElementById('file-input');
-if (fileInput) {
-fileInput.addEventListener('change', handleFileSelect);
-}
-
-// Send button handling when files are attached
-const sendBtn = document.getElementById('send-btn');
-const messageForm = document.getElementById('message-form');
-
-if (messageForm) {
-messageForm.addEventListener('submit', async function(e) {
-  e.preventDefault();
-
-  const messageInput = document.getElementById('chat-message-input');
-  const message = messageInput.value.trim();
-  const fileInput = document.getElementById('file-input');
-  const files = fileInput.files;
-
-  // If there are files attached, upload them
-  if (files && files.length > 0) {
-    try {
-      // Disable send button during upload
-      if (sendBtn) {
-        sendBtn.disabled = true;
-        sendBtn.classList.add('opacity-50');
-      }
-
-      const fileUrls = await uploadFilesAndSend(files);
-
-      // Send message with file URLs
-      if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
-        window.chatSocket.send(JSON.stringify({
-          'type': 'chat_message',
-          'message': message,
-          'file_urls': fileUrls
-        }));
-
-        // Clear input and preview
-        messageInput.value = '';
-        fileInput.value = '';
-        document.getElementById('preview').classList.add('hidden');
-      }
-    } catch (error) {
-      showNotification('Error uploading files: ' + error.message);
-    } finally {
-      // Re-enable send button
-      if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.classList.remove('opacity-50');
-      }
-    }
-  } else if (message) {
-    // Just send a regular text message
-    if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
-      window.chatSocket.send(JSON.stringify({
-        'type': 'chat_message',
-        'message': message
-      }));
-      messageInput.value = '';
+        });
     } else {
-      showNotification("Not connected. Message couldn't be sent.");
+        showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
     }
-  }
-});
-}
-});
-</script>
-
-<!-- Enhanced UI Components Script -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-// Initialize Recommended Rooms List
-populateRecommendedRooms();
-
-// Initialize Online Friends List
-initOnlineFriends();
-
-// Whiteboard functionality
-initializeWhiteboard();
-
-// Function to populate recommended rooms
-function populateRecommendedRooms() {
-// This could be fetched from the server in a real implementation
-// Using mock data for now
-const roomsList = document.getElementById('recommended-rooms-list');
-if (!roomsList) return;
-
-// Clear any existing content
-roomsList.innerHTML = '';
-
-// Add a few more room cards
-const addRoom = (name, displayName, category, usersOnline, bgColor) => {
-  const initials = displayName.split(' ')
-    .map(word => word[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-
-  const a = document.createElement('a');
-  a.href = `/chat/${name}/`;
-  a.className = 'block';
-  a.innerHTML = `
-    <div class="room-card">
-      <div class="room-card-content">
-        <div class="flex items-center gap-2.5">
-          <div class="room-icon ${bgColor} h-9 w-9 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-medium text-sm">
-            ${initials}
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="font-medium text-gray-700 truncate flex items-center gap-1">
-              ${displayName}
-              <span class="badge badge-sm badge-primary">${category}</span>
-            </div>
-            <div class="text-xs text-gray-500 truncate">${usersOnline} users online</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  roomsList.appendChild(a);
-};
-
-// Add a couple more recommended rooms
-addRoom('gaming', 'Gaming Chat', 'Entertainment', '12', 'bg-gradient-to-br from-indigo-400 to-purple-500');
-addRoom('tech-talk', 'Tech Talk', 'Technology', '8', 'bg-gradient-to-br from-cyan-400 to-blue-500');
-}
-
-// Initialize online friends section
-function initOnlineFriends() {
-const container = document.getElementById('online-friends-list');
-if (!container) return;
-
-// Clear container
-container.innerHTML = '';
-
-// Mock data for friends (replace with API call)
-const friends = [
-  { username: 'Alex', status: 'online' },
-  { username: 'Taylor', status: 'online' },
-  { username: 'Jordan', status: 'away' }
-];
-
-if (friends.length === 0) {
-  container.innerHTML = `
-    <div class="w-full text-center py-2">
-      <p class="text-gray-500 text-sm">No friends online right now</p>
-      <a href="/friends/" class="text-pink-500 text-xs hover:underline mt-1 inline-block">Find friends</a>
-    </div>
-  `;
-  return;
-}
-
-// Add friends
-friends.forEach(friend => {
-  const statusClass = friend.status === 'online' ? 'bg-green-400' : 'bg-yellow-400';
-  const statusText = friend.status === 'online' ? 'Online' : 'Away';
-
-  const friendEl = document.createElement('div');
-  friendEl.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg';
-
-  const avatarBg = getAvatarColorClass(friend.username);
-
-  friendEl.innerHTML = `
-    <div class="flex items-center gap-2">
-      <div class="relative">
-        <div class="w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center text-sm text-white font-medium">
-          ${friend.username.charAt(0).toUpperCase()}
-        </div>
-        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 ${statusClass} rounded-full border-2 border-white"></span>
-      </div>
-      <div>
-        <div class="text-sm font-medium">${friend.username}</div>
-        <div class="text-xs text-gray-500">${statusText}</div>
-      </div>
-    </div>
-    <a href="/dm/${friend.username}/" class="text-xs text-pink-500 hover:underline">Message</a>
-  `;
-
-  container.appendChild(friendEl);
-});
-}
-
-// Whiteboard functionality
-function initializeWhiteboard() {
-const canvas = document.getElementById('whiteboard-canvas');
-const whiteboardModal = document.getElementById('whiteboard-modal');
-
-if (!canvas || !whiteboardModal) return;
-
-// Initialize when modal is opened
-whiteboardModal.addEventListener('transitionend', function() {
-  if (whiteboardModal.classList.contains('open')) {
-    setupCanvas();
-  }
-});
-
-let ctx;
-let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
-
-function setupCanvas() {
-  // Set canvas dimensions
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-
-  ctx = canvas.getContext('2d');
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 5;
-
-  // Clear canvas
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Drawing events
-  canvas.addEventListener('mousedown', startDrawing);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', stopDrawing);
-  canvas.addEventListener('mouseout', stopDrawing);
-
-  // Touch events
-  canvas.addEventListener('touchstart', handleTouchStart);
-  canvas.addEventListener('touchmove', handleTouchMove);
-  canvas.addEventListener('touchend', stopDrawing);
-}
-
-// Drawing functions
-function startDrawing(e) {
-  isDrawing = true;
-  [lastX, lastY] = [e.offsetX, e.offsetY];
-}
-
-function draw(e) {
-  if (!isDrawing) return;
-
-  ctx.beginPath();
-  ctx.moveTo(lastX, lastY);
-  ctx.lineTo(e.offsetX, e.offsetY);
-  ctx.stroke();
-
-  [lastX, lastY] = [e.offsetX, e.offsetY];
-}
-
-function stopDrawing() {
-  isDrawing = false;
-}
-
-// Touch handlers
-function handleTouchStart(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
-
-  isDrawing = true;
-  [lastX, lastY] = [x, y];
-}
-
-function handleTouchMove(e) {
-  e.preventDefault();
-  if (!isDrawing) return;
-
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
-
-  ctx.beginPath();
-  ctx.moveTo(lastX, lastY);
-  ctx.lineTo(x, y);
-  ctx.stroke();
-
-  [lastX, lastY] = [x, y];
-}
-
-// Tool buttons
-const colorPicker = document.getElementById('brush-color');
-const sizeSelector = document.getElementById('brush-size');
-const toolButtons = document.querySelectorAll('[data-tool]');
-const clearButton = document.getElementById('clear-whiteboard');
-const saveButton = document.getElementById('save-whiteboard');
-
-if (colorPicker) {
-  colorPicker.addEventListener('change', function() {
-    ctx.strokeStyle = this.value;
-  });
-}
-
-if (sizeSelector) {
-  sizeSelector.addEventListener('change', function() {
-    ctx.lineWidth = this.value;
-  });
-}
-
-if (toolButtons) {
-  toolButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
-      // Remove active class from all tools
-      toolButtons.forEach(b => b.classList.remove('active', 'bg-primary-light', 'text-primary'));
-
-      // Add active class to clicked tool
-      this.classList.add('active', 'bg-primary-light', 'text-primary');
-
-      const tool = this.getAttribute('data-tool');
-
-      // Handle different tools
-      switch (tool) {
-        case 'brush':
-          ctx.globalCompositeOperation = 'source-over';
-          break;
-        case 'eraser':
-          ctx.globalCompositeOperation = 'destination-out';
-          break;
-        // Additional tools would be implemented here
-      }
+    })
+    .catch(error => {
+    console.error('Error sending friend request:', error);
+    showNotification('An error occurred while sending friend request');
     });
-  });
-}
+    };
 
-// Clear canvas button
-if (clearButton) {
-  clearButton.addEventListener('click', function() {
-    if (confirm('Are you sure you want to clear the whiteboard?')) {
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Helper function for CSRF token
+    function getCsrfToken() {
+    const name = 'csrftoken=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const cookieArray = decodedCookie.split(';');
+
+    for (let i = 0; i < cookieArray.length; i++) {
+    let cookie = cookieArray[i].trim();
+    if (cookie.indexOf(name) === 0) {
+        return cookie.substring(name.length, cookie.length);
     }
-  });
-}
-
-// Save image button
-if (saveButton) {
-  saveButton.addEventListener('click', function() {
-    const dataURL = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = 'whiteboard-' + new Date().toISOString().slice(0, 10) + '.png';
-    link.href = dataURL;
-    link.click();
-  });
-}
-}
-
-// Helper function for avatar colors
-function getAvatarColorClass(username) {
-const gradients = [
-  'bg-gradient-to-r from-pink-400 to-purple-500',
-  'bg-gradient-to-r from-blue-400 to-indigo-500',
-  'bg-gradient-to-r from-green-400 to-teal-500',
-  'bg-gradient-to-r from-purple-400 to-indigo-500',
-  'bg-gradient-to-r from-yellow-400 to-orange-500',
-  'bg-gradient-to-r from-red-400 to-pink-500'
-];
-
-// Simple hash function for username
-let hash = 0;
-for (let i = 0; i < username.length; i++) {
-  hash = username.charCodeAt(i) + ((hash << 5) - hash);
-}
-
-return gradients[Math.abs(hash) % gradients.length];
-}
-});
-
-// Modal animations
-document.addEventListener('DOMContentLoaded', function() {
-// Add CSS to style modal open/close animations
-const style = document.createElement('style');
-style.textContent = `
-.modal {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.modal.open {
-  opacity: 1;
-  visibility: visible;
-}
-
-.modal-content {
-  transform: scale(0.95);
-  opacity: 0;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
-}
-
-.modal.open .modal-content {
-  transform: scale(1);
-  opacity: 1;
-}
-`;
-document.head.appendChild(style);
-
-// Meetup creation form handling
-const meetupForm = document.getElementById('meetup-form');
-if (meetupForm) {
-meetupForm.addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  const title = document.getElementById('meetup-title').value;
-  const datetime = document.getElementById('meetup-datetime').value;
-  const location = document.getElementById('meetup-location').value;
-
-  if (title && datetime && location) {
-    // Here you would typically send to server
-    // For demo, just show notification
-    showNotification(`Meetup "${title}" created successfully!`);
-
-    // Close modal
-    const meetupModal = document.getElementById('meetup-modal');
-    if (meetupModal) {
-      meetupModal.classList.remove('open');
     }
 
-    // Reset form
-    this.reset();
-  }
-});
-}
-});
-</script>
+    // If not found in cookies, try to find it in a meta tag
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta) {
+    return csrfMeta.getAttribute('content');
+    }
+
+    // Last resort - look for hidden input field
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (csrfInput) {
+    return csrfInput.value;
+    }
+
+    return '';
+    }
+    });
+    </script>
+
+    <!-- File Upload Handling Script -->
+    <script>
+    // File Upload improvements
+    async function uploadFilesAndSend(files) {
+    const formData = new FormData();
+
+    // Add files to the form data
+    for (let i = 0; i < files.length; i++) {
+    formData.append('files', files[i]);
+    }
+
+    // Add room name to the form data
+    formData.append('room_name', window.roomName);
+
+    // Add CSRF token
+    const csrfToken = getCsrfToken();
+    formData.append('csrfmiddlewaretoken', csrfToken);
+
+    try {
+    // Show progress indicator
+    const progressBar = document.getElementById('progress-bar');
+    const progressContainer = document.getElementById('progress-container');
+    progressContainer.classList.remove('hidden');
+
+    // Use XMLHttpRequest for upload progress
+    return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+        const percentComplete = (e.loaded / e.total) * 100;
+        progressBar.style.width = percentComplete + '%';
+        }
+    });
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+        progressContainer.classList.add('hidden');
+
+        if (xhr.status === 200) {
+            try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.success) {
+                resolve(data.file_urls);
+            } else {
+                reject(new Error(data.error || 'Unknown error'));
+            }
+            } catch (e) {
+            reject(new Error('Invalid response from server'));
+            }
+        } else {
+            reject(new Error('Server responded with status: ' + xhr.status));
+        }
+        }
+    };
+
+    xhr.open('POST', '/api/upload_media/', true);
+    xhr.send(formData);
+    });
+    } catch (error) {
+    console.error('Error uploading files:', error);
+    showNotification('Failed to upload files: ' + error.message);
+    throw error;
+    }
+    }
+
+    // Handle file selection
+    function handleFileSelect(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Show preview area
+    const preview = document.getElementById('preview');
+    const previewContent = document.getElementById('preview-content');
+    preview.classList.remove('hidden');
+    previewContent.innerHTML = '';
+
+    // Create preview items
+    Array.from(files).forEach(file => {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (isImage || isVideo) {
+    const previewItem = document.createElement('div');
+    previewItem.className = 'preview-item';
+
+    if (isImage) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.onload = () => URL.revokeObjectURL(img.src);
+        previewItem.appendChild(img);
+    } else if (isVideo) {
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(file);
+        video.muted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.onloadedmetadata = () => URL.revokeObjectURL(video.src);
+        previewItem.appendChild(video);
+    }
+
+    previewContent.appendChild(previewItem);
+    }
+    });
+
+    // Set up cancel button
+    const cancelButton = document.getElementById('cancel-preview');
+    if (cancelButton) {
+    cancelButton.onclick = function() {
+    preview.classList.add('hidden');
+    document.getElementById('file-input').value = '';
+    };
+    }
+    }
+
+    // Initialize file input
+    document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+    fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    // Send button handling when files are attached
+    const sendBtn = document.getElementById('send-btn');
+    const messageForm = document.getElementById('message-form');
+
+    if (messageForm) {
+    messageForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const messageInput = document.getElementById('chat-message-input');
+    const message = messageInput.value.trim();
+    const fileInput = document.getElementById('file-input');
+    const files = fileInput.files;
+
+    // If there are files attached, upload them
+    if (files && files.length > 0) {
+        try {
+        // Disable send button during upload
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.classList.add('opacity-50');
+        }
+
+        const fileUrls = await uploadFilesAndSend(files);
+
+        // Send message with file URLs
+        if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+            window.chatSocket.send(JSON.stringify({
+            'type': 'chat_message',
+            'message': message,
+            'file_urls': fileUrls
+            }));
+
+            // Clear input and preview
+            messageInput.value = '';
+            fileInput.value = '';
+            document.getElementById('preview').classList.add('hidden');
+        }
+        } catch (error) {
+        showNotification('Error uploading files: ' + error.message);
+        } finally {
+        // Re-enable send button
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.classList.remove('opacity-50');
+        }
+        }
+    } else if (message) {
+        // Just send a regular text message
+        if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+        window.chatSocket.send(JSON.stringify({
+            'type': 'chat_message',
+            'message': message
+        }));
+        messageInput.value = '';
+        } else {
+        showNotification("Not connected. Message couldn't be sent.");
+        }
+    }
+    });
+    }
+    });
+    </script>
+
+    <!-- Enhanced UI Components Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Recommended Rooms List
+    populateRecommendedRooms();
+
+    // Initialize Online Friends List
+    initOnlineFriends();
+
+    // Whiteboard functionality
+    initializeWhiteboard();
+
+    // Function to populate recommended rooms
+    function populateRecommendedRooms() {
+    // This could be fetched from the server in a real implementation
+    // Using mock data for now
+    const roomsList = document.getElementById('recommended-rooms-list');
+    if (!roomsList) return;
+
+    // Clear any existing content
+    roomsList.innerHTML = '';
+
+    // Add a few more room cards
+    const addRoom = (name, displayName, category, usersOnline, bgColor) => {
+    const initials = displayName.split(' ')
+        .map(word => word[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+
+    const a = document.createElement('a');
+    a.href = `/chat/${name}/`;
+    a.className = 'block';
+    a.innerHTML = `
+        <div class="room-card">
+        <div class="room-card-content">
+            <div class="flex items-center gap-2.5">
+            <div class="room-icon ${bgColor} h-9 w-9 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-medium text-sm">
+                ${initials}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-700 truncate flex items-center gap-1">
+                ${displayName}
+                <span class="badge badge-sm badge-primary">${category}</span>
+                </div>
+                <div class="text-xs text-gray-500 truncate">${usersOnline} users online</div>
+            </div>
+            </div>
+        </div>
+        </div>
+    `;
+
+    roomsList.appendChild(a);
+    };
+
+    // Add a couple more recommended rooms
+    addRoom('gaming', 'Gaming Chat', 'Entertainment', '12', 'bg-gradient-to-br from-indigo-400 to-purple-500');
+    addRoom('tech-talk', 'Tech Talk', 'Technology', '8', 'bg-gradient-to-br from-cyan-400 to-blue-500');
+    }
+
+    // Initialize online friends section
+    function initOnlineFriends() {
+    const container = document.getElementById('online-friends-list');
+    if (!container) return;
+
+    // Clear container
+    container.innerHTML = '';
+
+    // Mock data for friends (replace with API call)
+    const friends = [
+    { username: 'Alex', status: 'online' },
+    { username: 'Taylor', status: 'online' },
+    { username: 'Jordan', status: 'away' }
+    ];
+
+    if (friends.length === 0) {
+    container.innerHTML = `
+        <div class="w-full text-center py-2">
+        <p class="text-gray-500 text-sm">No friends online right now</p>
+        <a href="/friends/" class="text-pink-500 text-xs hover:underline mt-1 inline-block">Find friends</a>
+        </div>
+    `;
+    return;
+    }
+
+    // Add friends
+    friends.forEach(friend => {
+    const statusClass = friend.status === 'online' ? 'bg-green-400' : 'bg-yellow-400';
+    const statusText = friend.status === 'online' ? 'Online' : 'Away';
+
+    const friendEl = document.createElement('div');
+    friendEl.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg';
+
+    const avatarBg = getAvatarColorClass(friend.username);
+
+    friendEl.innerHTML = `
+        <div class="flex items-center gap-2">
+        <div class="relative">
+            <div class="w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center text-sm text-white font-medium">
+            ${friend.username.charAt(0).toUpperCase()}
+            </div>
+            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 ${statusClass} rounded-full border-2 border-white"></span>
+        </div>
+        <div>
+            <div class="text-sm font-medium">${friend.username}</div>
+            <div class="text-xs text-gray-500">${statusText}</div>
+        </div>
+        </div>
+        <a href="/dm/${friend.username}/" class="text-xs text-pink-500 hover:underline">Message</a>
+    `;
+
+    container.appendChild(friendEl);
+    });
+    }
+
+    // Whiteboard functionality
+    function initializeWhiteboard() {
+    const canvas = document.getElementById('whiteboard-canvas');
+    const whiteboardModal = document.getElementById('whiteboard-modal');
+
+    if (!canvas || !whiteboardModal) return;
+
+    // Initialize when modal is opened
+    whiteboardModal.addEventListener('transitionend', function() {
+    if (whiteboardModal.classList.contains('open')) {
+        setupCanvas();
+    }
+    });
+
+    let ctx;
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function setupCanvas() {
+    // Set canvas dimensions
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    ctx = canvas.getContext('2d');
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 5;
+
+    // Clear canvas
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Drawing events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    // Touch events
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', stopDrawing);
+    }
+
+    // Drawing functions
+    function startDrawing(e) {
+    isDrawing = true;
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+
+    function draw(e) {
+    if (!isDrawing) return;
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+
+    function stopDrawing() {
+    isDrawing = false;
+    }
+
+    // Touch handlers
+    function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    isDrawing = true;
+    [lastX, lastY] = [x, y];
+    }
+
+    function handleTouchMove(e) {
+    e.preventDefault();
+    if (!isDrawing) return;
+
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    [lastX, lastY] = [x, y];
+    }
+
+    // Tool buttons
+    const colorPicker = document.getElementById('brush-color');
+    const sizeSelector = document.getElementById('brush-size');
+    const toolButtons = document.querySelectorAll('[data-tool]');
+    const clearButton = document.getElementById('clear-whiteboard');
+    const saveButton = document.getElementById('save-whiteboard');
+
+    if (colorPicker) {
+    colorPicker.addEventListener('change', function() {
+        ctx.strokeStyle = this.value;
+    });
+    }
+
+    if (sizeSelector) {
+    sizeSelector.addEventListener('change', function() {
+        ctx.lineWidth = this.value;
+    });
+    }
+
+    if (toolButtons) {
+    toolButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+        // Remove active class from all tools
+        toolButtons.forEach(b => b.classList.remove('active', 'bg-primary-light', 'text-primary'));
+
+        // Add active class to clicked tool
+        this.classList.add('active', 'bg-primary-light', 'text-primary');
+
+        const tool = this.getAttribute('data-tool');
+
+        // Handle different tools
+        switch (tool) {
+            case 'brush':
+            ctx.globalCompositeOperation = 'source-over';
+            break;
+            case 'eraser':
+            ctx.globalCompositeOperation = 'destination-out';
+            break;
+            // Additional tools would be implemented here
+        }
+        });
+    });
+    }
+
+    // Clear canvas button
+    if (clearButton) {
+    clearButton.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear the whiteboard?')) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    });
+    }
+
+    // Save image button
+    if (saveButton) {
+    saveButton.addEventListener('click', function() {
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'whiteboard-' + new Date().toISOString().slice(0, 10) + '.png';
+        link.href = dataURL;
+        link.click();
+    });
+    }
+    }
+
+    // Helper function for avatar colors
+    function getAvatarColorClass(username) {
+    const gradients = [
+    'bg-gradient-to-r from-pink-400 to-purple-500',
+    'bg-gradient-to-r from-blue-400 to-indigo-500',
+    'bg-gradient-to-r from-green-400 to-teal-500',
+    'bg-gradient-to-r from-purple-400 to-indigo-500',
+    'bg-gradient-to-r from-yellow-400 to-orange-500',
+    'bg-gradient-to-r from-red-400 to-pink-500'
+    ];
+
+    // Simple hash function for username
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    return gradients[Math.abs(hash) % gradients.length];
+    }
+    });
+
+    // Media library functionality
+    document.addEventListener('DOMContentLoaded', function() {
+    const mediaLibraryBtn = document.getElementById('open-media-library');
+    const mediaLibraryModal = document.getElementById('media-library-modal');
+    const mediaGrid = document.getElementById('media-grid');
+    const filterButtons = document.querySelectorAll('.media-filter-btn');
+
+    if (mediaLibraryBtn && mediaLibraryModal && mediaGrid) {
+        // Load media when modal opens
+        mediaLibraryBtn.addEventListener('click', function() {
+        fetchRoomMedia();
+        });
+
+        // Filter buttons
+        if (filterButtons) {
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+            // Remove active class from all buttons
+            filterButtons.forEach(b => {
+                b.classList.remove('bg-gradient-to-r', 'from-primary', 'to-secondary', 'text-white');
+                b.classList.add('bg-gray-200', 'text-gray-700');
+            });
+
+            // Add active class to clicked button
+            this.classList.remove('bg-gray-200', 'text-gray-700');
+            this.classList.add('bg-gradient-to-r', 'from-primary', 'to-secondary', 'text-white');
+
+            // Filter media
+            const filter = this.getAttribute('data-filter');
+            filterMedia(filter);
+            });
+        });
+        }
+
+        // Fetch room media function
+        function fetchRoomMedia() {
+        // Show loading state
+        mediaGrid.innerHTML = '<div class="col-span-full text-center py-8">Loading media...</div>';
+
+        // In a real implementation, you would fetch from the server
+        // For now, using mock data
+        setTimeout(() => {
+            const mockMedia = [
+            { type: 'image', url: 'https://picsum.photos/300/200?random=1', created: '2025-01-15', user: 'Alex' },
+            { type: 'image', url: 'https://picsum.photos/300/200?random=2', created: '2025-01-14', user: 'Taylor' },
+            { type: 'video', url: 'https://www.w3schools.com/html/mov_bbb.mp4', created: '2025-01-13', user: 'Jordan' },
+            { type: 'image', url: 'https://picsum.photos/300/200?random=3', created: '2025-01-12', user: window.username }
+            ];
+
+            renderMedia(mockMedia);
+        }, 500);
+        }
+
+        // Render media items
+        function renderMedia(mediaItems) {
+        mediaGrid.innerHTML = '';
+
+        if (mediaItems.length === 0) {
+            mediaGrid.innerHTML = '<div class="col-span-full text-center py-8">No media found</div>';
+            return;
+        }
+
+        mediaItems.forEach(item => {
+            const mediaCard = document.createElement('div');
+            mediaCard.className = 'media-item rounded-lg overflow-hidden border border-gray-200 hover:border-pink-300 transition-all hover:shadow-md';
+            mediaCard.setAttribute('data-type', item.type);
+
+            if (item.type === 'image') {
+            mediaCard.innerHTML = `
+                <div class="aspect-square bg-gray-100 relative overflow-hidden">
+                <img src="${item.url}" alt="Media" class="object-cover w-full h-full">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end p-2">
+                    <div class="text-white text-xs">
+                    <div class="font-medium">${item.user}</div>
+                    <div>${item.created}</div>
+                    </div>
+                </div>
+                </div>
+            `;
+            } else if (item.type === 'video') {
+            mediaCard.innerHTML = `
+                <div class="aspect-square bg-gray-100 relative overflow-hidden">
+                <video src="${item.url}" muted loop class="object-cover w-full h-full"></video>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    </div>
+                </div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end p-2">
+                    <div class="text-white text-xs">
+                    <div class="font-medium">${item.user}</div>
+                    <div>${item.created}</div>
+                    </div>
+                </div>
+                </div>
+            `;
+            }
+
+            // Add click event to preview media
+            mediaCard.addEventListener('click', function() {
+            previewMedia(item);
+            });
+
+            mediaGrid.appendChild(mediaCard);
+        });
+
+        // Start video playback on hover
+        const videoElements = mediaGrid.querySelectorAll('video');
+        videoElements.forEach(video => {
+            video.parentElement.addEventListener('mouseenter', () => {
+            video.play();
+            });
+            video.parentElement.addEventListener('mouseleave', () => {
+            video.pause();
+            });
+        });
+        }
+
+        // Filter media by type
+        function filterMedia(type) {
+        const mediaItems = document.querySelectorAll('.media-item');
+
+        mediaItems.forEach(item => {
+            if (type === 'all' || item.getAttribute('data-type') === type) {
+            item.style.display = 'block';
+            } else {
+            item.style.display = 'none';
+            }
+        });
+        }
+
+        // Preview media in modal
+        function previewMedia(item) {
+        const previewModal = document.getElementById('media-preview-modal');
+        const previewContent = document.getElementById('media-preview-content');
+
+        if (!previewModal || !previewContent) return;
+
+        // Clear previous content
+        previewContent.innerHTML = '';
+
+        // Create appropriate element based on media type
+        if (item.type === 'image') {
+            const img = document.createElement('img');
+            img.src = item.url;
+            img.className = 'max-w-full max-h-[80vh] rounded-lg';
+            previewContent.appendChild(img);
+        } else if (item.type === 'video') {
+            const video = document.createElement('video');
+            video.src = item.url;
+            video.controls = true;
+            video.autoplay = true;
+            video.className = 'max-w-full max-h-[80vh] rounded-lg';
+            previewContent.appendChild(video);
+        }
+
+        // Show modal
+        previewModal.classList.add('open');
+        }
+    }
+    });
+
+    // Meetup form handler
+    document.addEventListener('DOMContentLoaded', function() {
+    const meetupForm = document.getElementById('meetup-form');
+
+    if (meetupForm) {
+        meetupForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const title = document.getElementById('meetup-title').value;
+        const datetime = document.getElementById('meetup-datetime').value;
+        const location = document.getElementById('meetup-location').value;
+        const description = document.getElementById('meetup-description').value;
+
+        if (title && datetime && location) {
+            // In a real implementation, send data to server
+            const csrfToken = getCsrfToken();
+
+            // For now, just show success message
+            showNotification('Meetup created successfully!');
+
+            // Close modal
+            const meetupModal = document.getElementById('meetup-modal');
+            if (meetupModal) {
+            meetupModal.classList.remove('open');
+            }
+
+            // Reset form
+            meetupForm.reset();
+        }
+        });
+    }
+    });
+    </script>
 </body>
 </html>
