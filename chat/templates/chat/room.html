@@ -670,12 +670,10 @@
       margin-left: 4px;
     }
 
-    /* Show friend button on hover */
     .user-item:hover .friend-btn {
       opacity: 1;
     }
 
-    /* Friend button states */
     .friend-btn-add {
       background-color: #fce7f3;
       color: #be185d;
@@ -706,6 +704,24 @@
 
     .request-sent {
       animation: pulse-success 0.5s ease;
+    }
+
+    /* Username popover styling */
+    #user-options-popover {
+      min-width: 180px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      animation: popover-appear 0.2s ease;
+    }
+
+    @keyframes popover-appear {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 
@@ -1600,6 +1616,9 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
+      // Enhance username clicks throughout the chat
+      enhanceUsernameLinks();
+
       // Store reference to the original updateUserList function
       const originalUpdateUserList = window.updateUserList || function() {};
 
@@ -1651,6 +1670,93 @@
         });
       };
 
+      // Enhance all username links in the chat with popover menu
+      function enhanceUsernameLinks() {
+        // Find all username links and enhance them
+        document.addEventListener('click', function(e) {
+          // Check if clicked element is a username link
+          if (e.target.classList.contains('username-link') ||
+              e.target.parentElement.classList.contains('username-link')) {
+            e.preventDefault(); // Prevent default navigation
+
+            // Get the username
+            const link = e.target.classList.contains('username-link') ?
+                        e.target : e.target.parentElement;
+            const username = link.textContent.trim();
+
+            // Skip if it's the current user
+            if (username === window.username) return;
+
+            // Create or show popover menu
+            showUserOptions(link, username);
+          }
+        });
+      }
+
+      // Show user interaction options popover
+      function showUserOptions(element, username) {
+        // Remove any existing popovers
+        const existingPopover = document.getElementById('user-options-popover');
+        if (existingPopover) {
+          existingPopover.remove();
+        }
+
+        // Create popover element
+        const popover = document.createElement('div');
+        popover.id = 'user-options-popover';
+        popover.className = 'bg-white rounded-lg shadow-xl border border-gray-200 p-2 absolute z-50';
+
+        // Set position near the username
+        const rect = element.getBoundingClientRect();
+        popover.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+        popover.style.left = (rect.left + window.scrollX) + 'px';
+
+        // Add options
+        const optionsList = document.createElement('div');
+        optionsList.className = 'space-y-1';
+
+        // DM option
+        const dmOption = document.createElement('a');
+        dmOption.href = `/dm/${username}/`;
+        dmOption.className = 'flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+        dmOption.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span class="text-sm text-gray-700">Send Message</span>
+        `;
+
+        // Add Friend option
+        const friendOption = document.createElement('button');
+        friendOption.className = 'w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+        friendOption.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+          </svg>
+          <span class="text-sm text-gray-700">Add Friend</span>
+        `;
+        friendOption.onclick = function() {
+          sendFriendRequest(username);
+          popover.remove();
+        };
+
+        // Add options to list
+        optionsList.appendChild(dmOption);
+        optionsList.appendChild(friendOption);
+        popover.appendChild(optionsList);
+
+        // Add to page
+        document.body.appendChild(popover);
+
+        // Close when clicking outside
+        document.addEventListener('click', function closePopover(e) {
+          if (!popover.contains(e.target) && e.target !== element) {
+            popover.remove();
+            document.removeEventListener('click', closePopover);
+          }
+        });
+      }
+
       // Function to send friend request
       window.sendFriendRequest = function(otherUser) {
         // Get CSRF token
@@ -1671,9 +1777,11 @@
           if (data.success) {
             showNotification(`Friend request sent to ${otherUser}`);
 
-            // Find and update the button
+            // Find and update any friend buttons for this user
             document.querySelectorAll('.friend-btn').forEach(btn => {
-              if (btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
+              if (btn.parentElement.previousElementSibling &&
+                  btn.parentElement.previousElementSibling.querySelector('span') &&
+                  btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
                 btn.className = 'friend-btn friend-btn-pending request-sent';
                 btn.textContent = 'Pending';
                 btn.onclick = null;
@@ -1747,7 +1855,6 @@
       }
     });
   </script>
-
 
 </body>
 </html>
