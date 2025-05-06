@@ -14,6 +14,44 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* CSS Root Variables for consistent design system */
+    :root {
+      --primary: #ec4899;
+      --primary-hover: #db2777;
+      --primary-light: #fce7f3;
+      --secondary: #9333ea;
+      --secondary-light: #f3e8ff;
+      --accent: #f97316;
+      --accent-light: #fff7ed;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --info: #3b82f6;
+      --warning: #f59e0b;
+      --surface: #ffffff;
+      --surface-hover: #f8fafc;
+      --surface-active: #f1f5f9;
+      --border: #e2e8f0;
+      --border-focus: #cbd5e1;
+      --text-primary: #334155;
+      --text-secondary: #64748b;
+      --text-tertiary: #94a3b8;
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      --radius-2xl: 1.5rem;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-fast: 0.15s;
+      --duration-normal: 0.25s;
+      --duration-slow: 0.35s;
+    }
+
     /* WebSocket debug fix */
     #ws-debug-panel,
     [id^="ws-debug-"],
@@ -29,31 +67,47 @@
     /* Base styles */
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #fefefe;
+      background-color: #f8fafc;
       background-image:
-        radial-gradient(circle at 20% 10%, rgba(255, 182, 225, 0.08), transparent 25%),
-        radial-gradient(circle at 80% 80%, rgba(255, 228, 155, 0.08), transparent 30%);
+        radial-gradient(circle at 10% 10%, rgba(236, 72, 153, 0.03), transparent 25%),
+        radial-gradient(circle at 90% 90%, rgba(147, 51, 234, 0.03), transparent 25%);
       background-attachment: fixed;
+      color: var(--text-primary);
       overflow-x: hidden;
       width: 100%;
-      color: #334155;
-      --primary: #ec4899;
-      --primary-light: #fce7f3;
-      --primary-dark: #be185d;
-      --secondary: #f97316;
-      --secondary-light: #fff7ed;
-      --gray-light: #f8fafc;
-      --gray-100: #f1f5f9;
-      --gray-200: #e2e8f0;
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background-color: var(--text-tertiary);
+      border-radius: 20px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: var(--text-secondary);
+    }
+
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
     }
 
     /* Improved transitions */
     .transition-all {
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all var(--duration-normal) var(--ease);
     }
 
     /* Gradient text for branding */
@@ -66,18 +120,43 @@
 
     /* Button styles - consolidated and improved */
     .btn {
-      font-weight: 500;
-      padding: 0.5rem 1rem;
-      border-radius: 0.75rem;
-      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      padding: 0.5rem 1rem;
+      transition: all var(--duration-normal) var(--ease);
+      cursor: pointer;
       gap: 0.5rem;
     }
 
+    .btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10, 10);
+      opacity: 0;
+      transition: transform 0.5s, opacity 0.8s;
+    }
+
+    .btn:active::after {
+      transform: scale(0, 0);
+      opacity: 0.3;
+      transition: 0s;
+    }
+
     .btn:hover {
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
 
     .btn-icon {
@@ -85,8 +164,8 @@
       align-items: center;
       justify-content: center;
       padding: 0.5rem;
-      border-radius: 0.75rem;
-      transition: all 0.2s;
+      border-radius: var(--radius-lg);
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .btn-icon:hover {
@@ -100,20 +179,24 @@
     }
 
     .btn-primary:hover {
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-md);
       opacity: 0.95;
     }
 
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
     .btn-secondary {
-      background: white;
-      color: var(--primary);
-      border: 1px solid #f9d5e5;
-      box-shadow: var(--shadow-sm);
+      background-color: white;
+      border: 1px solid var(--border);
+      color: var(--text-primary);
     }
 
     .btn-secondary:hover {
-      background-color: var(--primary-light);
-      box-shadow: var(--shadow);
+      border-color: var(--border-focus);
+      background-color: var(--surface-hover);
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-tertiary {
@@ -144,37 +227,40 @@
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
+      position: relative;
+      background-color: var(--surface-hover);
     }
 
     /* Message bubbles with improved animation */
     .message-bubble {
       position: relative;
-      border-radius: 1rem;
+      border-radius: var(--radius-xl);
       padding: 0.75rem 1rem;
       max-width: 85%;
       width: fit-content;
       word-break: break-word;
       box-shadow: var(--shadow-sm);
       line-height: 1.5;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      animation: fadeIn 0.3s ease forwards;
+      transition: all var(--duration-normal) var(--ease);
+      border: 1px solid transparent;
     }
 
     .message-bubble.sent {
-      background-color: #fbdae8; /* Light pink for sent messages */
+      background: linear-gradient(to right, var(--primary-light), rgba(255, 255, 255, 0.85));
       margin-left: auto;
       border-bottom-right-radius: 0.25rem;
     }
 
     .message-bubble.received {
-      background-color: #fff7da; /* Light yellow for received messages */
+      background: linear-gradient(to right, var(--secondary-light), rgba(255, 255, 255, 0.85));
       margin-right: auto;
       border-bottom-left-radius: 0.25rem;
     }
 
     .message-bubble:hover {
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-md);
       transform: translateY(-1px);
+      border-color: var(--border-focus);
     }
 
     /* Enhanced avatar system */
@@ -188,7 +274,7 @@
       font-weight: 600;
       color: white;
       box-shadow: var(--shadow-sm);
-      transition: transform 0.2s;
+      transition: transform var(--duration-normal) var(--ease);
       background-size: cover;
       background-position: center;
     }
@@ -197,14 +283,37 @@
       transform: scale(1.05);
     }
 
-    .avatar-pink { background: linear-gradient(135deg, #ec4899, #f472b6); }
-    .avatar-orange { background: linear-gradient(135deg, #f97316, #fb923c); }
-    .avatar-blue { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
-    .avatar-green { background: linear-gradient(135deg, #10b981, #34d399); }
-    .avatar-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
-    .avatar-yellow { background: linear-gradient(135deg, #facc15, #fbbf24); }
-    .avatar-red { background: linear-gradient(135deg, #ef4444, #f87171); }
-    .avatar-teal { background: linear-gradient(135deg, #14b8a6, #2dd4bf); }
+    .avatar-pink {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+    }
+
+    .avatar-orange {
+      background: linear-gradient(135deg, var(--accent), #fb923c);
+    }
+
+    .avatar-blue {
+      background: linear-gradient(135deg, var(--info), #60a5fa);
+    }
+
+    .avatar-green {
+      background: linear-gradient(135deg, var(--success), #34d399);
+    }
+
+    .avatar-purple {
+      background: linear-gradient(135deg, var(--secondary), #a78bfa);
+    }
+
+    .avatar-yellow {
+      background: linear-gradient(135deg, var(--warning), #fbbf24);
+    }
+
+    .avatar-red {
+      background: linear-gradient(135deg, var(--danger), #f87171);
+    }
+
+    .avatar-teal {
+      background: linear-gradient(135deg, #14b8a6, #2dd4bf);
+    }
 
     /* Typing animation */
     .typing-indicator {
@@ -212,10 +321,11 @@
       align-items: center;
       padding: 0.5rem 0.75rem;
       background-color: rgba(255, 255, 255, 0.8);
-      border-radius: 1rem;
+      border-radius: var(--radius-xl);
       width: fit-content;
       box-shadow: var(--shadow-sm);
       animation: fadeIn 0.3s ease;
+      border: 1px solid var(--border);
     }
 
     .typing-dots {
@@ -229,7 +339,7 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background-color: #ec4899;
+      background-color: var(--primary);
       opacity: 0.6;
       animation: typingBounce 1.4s infinite ease-in-out;
     }
@@ -243,68 +353,60 @@
       40% { transform: translateY(-6px); }
     }
 
-    /* Modal system - improved transitions */
-    .modal {
-      position: fixed;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s, visibility 0.3s;
-    }
-
-    .modal.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .modal-content {
-      background-color: white;
-      border-radius: 1rem;
-      width: 90%;
-      max-width: 32rem;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: var(--shadow-lg);
-      animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    /* Redesigned App Header */
+    /* App Header - enhanced with glass morphism */
     .app-header {
-      padding: 1rem;
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 100;
+      transition: all var(--duration-normal) var(--ease);
+      padding: 1rem;
     }
 
-    /* Improved sidebar design */
+    .app-header.scrolled {
+      background-color: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Surface card - consistent with new design */
+    .surface-card {
+      background-color: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .surface-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-focus);
+    }
+
+    /* Sidebar section - enhanced from index.html */
     .sidebar-section {
-      background-color: white;
-      border-radius: 1rem;
+      background-color: var(--surface);
+      border-radius: var(--radius-xl);
       padding: 1.25rem;
       box-shadow: var(--shadow-sm);
-      border: 1px solid rgba(236, 72, 153, 0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--border);
+      transition: all var(--duration-normal) var(--ease);
+      margin-bottom: 1rem;
     }
 
     .sidebar-section:hover {
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-md);
       transform: translateY(-1px);
+      border-color: var(--border-focus);
     }
 
     .sidebar-section h3 {
       font-size: 1rem;
       font-weight: 600;
       margin-bottom: 0.75rem;
-      color: #374151;
+      color: var(--dark);
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -313,7 +415,7 @@
     /* Enhanced input area */
     .input-area {
       background-color: white;
-      border-top: 1px solid rgba(236, 72, 153, 0.1);
+      border-top: 1px solid var(--border);
       padding: 1rem;
       position: sticky;
       bottom: 0;
@@ -323,11 +425,11 @@
     .input-wrapper {
       display: flex;
       align-items: center;
-      background-color: var(--gray-light);
-      border-radius: 1.5rem;
-      border: 1px solid var(--gray-200);
+      background-color: var(--light);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
       padding: 0 0.75rem;
-      transition: all 0.2s;
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .input-wrapper:focus-within {
@@ -374,7 +476,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Better tooltips */
+    /* Enhanced tooltips */
     .tooltip {
       position: relative;
     }
@@ -386,14 +488,14 @@
       left: 50%;
       transform: translateX(-50%);
       padding: 0.25rem 0.5rem;
-      background-color: #334155;
+      background-color: var(--dark);
       color: white;
-      border-radius: 0.25rem;
+      border-radius: var(--radius-sm);
       font-size: 0.75rem;
       white-space: nowrap;
       opacity: 0;
       visibility: hidden;
-      transition: all 0.2s;
+      transition: all var(--duration-normal) var(--ease);
       pointer-events: none;
       margin-bottom: 0.25rem;
       z-index: 20;
@@ -410,20 +512,20 @@
       align-items: center;
       justify-content: space-between;
       padding: 0.5rem;
-      border-radius: 0.5rem;
-      transition: background-color 0.2s;
+      border-radius: var(--radius-md);
+      transition: background-color var(--duration-normal) var(--ease);
     }
 
     .user-item:hover {
       background-color: var(--primary-light);
     }
 
-    /* Recommended rooms - significantly improved */
+    /* Recommended rooms - significantly improved with design from index.html */
     #recommended-rooms-list a {
       display: block;
       text-decoration: none;
       margin-bottom: 0.75rem;
-      transition: all 0.3s;
+      transition: all var(--duration-slow) var(--ease);
     }
 
     #recommended-rooms-list a:hover {
@@ -431,28 +533,53 @@
     }
 
     .room-card {
-      border-radius: 0.75rem;
-      background-color: white;
-      border: 1px solid var(--gray-200);
-      padding: 0.75rem;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.3s;
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--radius-lg);
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      transition: transform var(--duration-normal) var(--ease),
+                  box-shadow var(--duration-normal) var(--ease),
+                  border-color var(--duration-normal) var(--ease);
     }
 
     .room-card:hover {
-      background-color: var(--primary-light);
-      border-color: var(--primary-light);
-      box-shadow: var(--shadow);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary);
+    }
+
+    .room-card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+    }
+
+    .room-card-footer {
+      padding: 0.75rem 1rem;
+      background: linear-gradient(to right, var(--primary-light), var(--secondary-light));
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .room-card:hover .join-btn {
+      color: var(--primary);
+      transform: translateX(4px);
     }
 
     .room-icon {
       width: 2.5rem;
       height: 2.5rem;
-      border-radius: 0.5rem;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.3s;
+      transition: transform var(--duration-normal) var(--ease);
       background-size: 150% 150%;
       animation: gradientShift 3s ease infinite;
     }
@@ -467,20 +594,9 @@
       transform: scale(1.1) rotate(-5deg);
     }
 
-    .room-category {
-      font-size: 0.6rem;
-      padding: 0.1rem 0.5rem;
-      border-radius: 1rem;
-      background-color: #f9d5e5;
-      color: #be185d;
-      margin-left: 0.5rem;
-      white-space: nowrap;
-      font-weight: 500;
-    }
-
     /* File upload interface improvements */
     #preview {
-      transition: all 0.3s;
+      transition: all var(--duration-normal) var(--ease);
     }
 
     #preview-content {
@@ -491,17 +607,17 @@
 
     .preview-item {
       position: relative;
-      border-radius: 0.5rem;
+      border-radius: var(--radius-md);
       overflow: hidden;
       width: 80px;
       height: 80px;
       box-shadow: var(--shadow-sm);
-      transition: all 0.2s;
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .preview-item:hover {
       transform: scale(1.05);
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-md);
     }
 
     .preview-item img, .preview-item video {
@@ -534,11 +650,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-md);
       cursor: pointer;
       opacity: 0;
       transform: scale(0.8);
-      transition: all 0.3s ease;
+      transition: all var(--duration-normal) var(--ease);
       z-index: 10;
     }
 
@@ -549,8 +665,8 @@
 
     .jump-to-bottom:hover {
       transform: scale(1.1);
-      box-shadow: var(--shadow-md);
-      background-color: var(--primary);
+      box-shadow: var(--shadow-lg);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
     }
 
@@ -559,28 +675,35 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 1.5rem;
-      height: 1.5rem;
-      border-radius: 0.75rem;
-      padding: 0 0.5rem;
       font-size: 0.75rem;
       font-weight: 500;
-      box-shadow: var(--shadow-sm);
+      border-radius: 9999px;
+      padding: 0.25rem 0.625rem;
     }
 
     .badge-primary {
-      background-color: var(--primary);
-      color: white;
+      background-color: var(--primary-light);
+      color: var(--primary);
     }
 
     .badge-secondary {
-      background-color: var(--primary-light);
-      color: var(--primary-dark);
+      background-color: var(--secondary-light);
+      color: var(--secondary);
     }
 
-    .badge-alert {
-      background-color: #ef4444;
-      color: white;
+    .badge-accent {
+      background-color: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .badge-success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .badge-sm {
+      font-size: 0.65rem;
+      padding: 0.125rem 0.375rem;
     }
 
     .unread-badge {
@@ -595,10 +718,10 @@
       bottom: 1rem;
       right: 1rem;
       padding: 0.75rem 1rem;
-      border-radius: 0.75rem;
-      background: linear-gradient(135deg, #ec4899, #f97316);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-lg);
       z-index: 1000;
       opacity: 0;
       transform: translateY(20px);
@@ -622,8 +745,8 @@
       bottom: 100%;
       left: 0;
       background: white;
-      border-radius: 1rem;
-      box-shadow: var(--shadow-md);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
       padding: 0.75rem;
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -632,7 +755,7 @@
       z-index: 100;
       animation: fadeIn 0.2s ease;
       display: none;
-      border: 1px solid var(--gray-200);
+      border: 1px solid var(--border);
     }
 
     .emoji-panel.show {
@@ -647,8 +770,8 @@
       justify-content: center;
       font-size: 1.25rem;
       cursor: pointer;
-      border-radius: 0.5rem;
-      transition: all 0.2s;
+      border-radius: var(--radius-md);
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .emoji-btn:hover {
@@ -666,24 +789,27 @@
 
     .reaction {
       background-color: white;
-      border-radius: 1rem;
+      border-radius: var(--radius-xl);
       padding: 0.25rem 0.5rem;
       font-size: 0.75rem;
       box-shadow: var(--shadow-sm);
       cursor: pointer;
-      transition: transform 0.2s, background-color 0.2s;
+      transition: transform var(--duration-normal) var(--ease),
+                  background-color var(--duration-normal) var(--ease);
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
+      border: 1px solid var(--border);
     }
 
     .reaction:hover {
       background-color: var(--primary-light);
       transform: scale(1.05);
+      border-color: var(--primary);
     }
 
     .emoji-reaction {
-      transition: all 0.2s ease;
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .emoji-reaction:hover {
@@ -698,15 +824,15 @@
       margin-top: 0.5rem;
       width: 240px;
       background: white;
-      border-radius: 0.75rem;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
       padding: 0.75rem;
       z-index: 100;
       opacity: 0;
       transform: translateY(10px);
       pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .profile-menu.open {
@@ -721,14 +847,65 @@
       gap: 0.5rem;
       padding: 0.75rem;
       font-size: 0.875rem;
-      color: #4b5563;
-      border-radius: 0.5rem;
-      transition: all 0.2s ease;
+      color: var(--text-secondary);
+      border-radius: var(--radius-md);
+      transition: all var(--duration-normal) var(--ease);
     }
 
     .profile-menu-item:hover {
       background-color: var(--primary-light);
-      color: var(--primary-dark);
+      color: var(--primary);
+    }
+
+    /* Guest banner improvements */
+    .guest-banner {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.05), rgba(147, 51, 234, 0.05));
+      border: 1px solid rgba(236, 72, 153, 0.2);
+      border-radius: var(--radius-lg);
+      padding: 0.75rem 1rem;
+      animation: softPulse 2s infinite;
+    }
+
+    @keyframes softPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+      50% { box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1); }
+    }
+
+    /* Friend request buttons */
+    .friend-btn {
+      opacity: 0;
+      transition: all var(--duration-normal) var(--ease);
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
+      margin-left: 4px;
+    }
+
+    .user-item:hover .friend-btn {
+      opacity: 1;
+    }
+
+    .friend-btn-add {
+      background-color: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .friend-btn-add:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .friend-btn-pending {
+      background-color: #e5e7eb;
+      color: #6b7280;
+      cursor: default;
+    }
+
+    .friend-btn-friends {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      cursor: default;
     }
 
     /* Fixed mobile view */
@@ -762,169 +939,19 @@
       outline: 2px solid var(--primary);
       outline-offset: 2px;
     }
-
-    /* Hide scrollbar but keep functionality */
-    .hide-scrollbar {
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-
-    .hide-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-
-    /* Guest banner improvements */
-    .guest-banner {
-      background: linear-gradient(135deg, rgba(255, 182, 225, 0.15), rgba(255, 228, 155, 0.15));
-      border: 1px solid rgba(236, 72, 153, 0.2);
-      border-radius: 0.75rem;
-      padding: 0.75rem 1rem;
-      animation: softPulse 2s infinite;
-    }
-
-    @keyframes softPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
-      50% { box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1); }
-    }
-
-    /* Announcement styles */
-    .announcement {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: 0.75rem;
-      margin-bottom: 0.75rem;
-      animation: slideIn 0.5s ease;
-      position: relative;
-    }
-
-    .announcement-content {
-      padding: 0.75rem 1rem;
-    }
-
-    /* Enhanced whiteboard modal */
-    .whiteboard-tools {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .tool-btn {
-      padding: 0.375rem 0.75rem;
-      border-radius: 0.5rem;
-      background-color: var(--gray-light);
-      font-size: 0.875rem;
-      transition: all 0.2s;
-    }
-
-    .tool-btn:hover, .tool-btn.active {
-      background-color: var(--primary-light);
-      color: var(--primary-dark);
-    }
-
-    input[type="color"] {
-      -webkit-appearance: none;
-      border: none;
-      padding: 0;
-      width: 2rem;
-      height: 2rem;
-      border-radius: 0.5rem;
-      cursor: pointer;
-    }
-
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
-      border-radius: 0.5rem;
-      overflow: hidden;
-    }
-
-    input[type="color"]::-webkit-color-swatch {
-      border: none;
-      border-radius: 0.5rem;
-    }
-
-    /* Enhanced friend request buttons */
-    .friend-btn {
-      opacity: 0;
-      transition: all 0.2s ease;
-      font-size: 0.7rem;
-      padding: 2px 6px;
-      border-radius: 6px;
-      white-space: nowrap;
-      margin-left: 4px;
-    }
-
-    .user-item:hover .friend-btn {
-      opacity: 1;
-    }
-
-    .friend-btn-add {
-      background-color: #fce7f3;
-      color: #be185d;
-    }
-
-    .friend-btn-add:hover {
-      background-color: #fbcfe8;
-    }
-
-    .friend-btn-pending {
-      background-color: #e5e7eb;
-      color: #6b7280;
-      cursor: default;
-    }
-
-    .friend-btn-friends {
-      background-color: #d1fae5;
-      color: #047857;
-      cursor: default;
-    }
-
-    /* User popover enhancements */
-    #user-options-popover {
-      min-width: 180px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-      animation: popover-appear 0.2s ease;
-      border: 1px solid var(--gray-200);
-      border-radius: 0.75rem;
-      z-index: 50;
-    }
-
-    @keyframes popover-appear {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
   </style>
 </head>
 <body>
-  <!-- Mobile Header -->
-  <header class="app-header sm:hidden flex items-center justify-between">
-    <a href="{% url 'index' %}" class="btn-icon text-pink-500" aria-label="Back to lobby">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-      </svg>
-    </a>
-    <a href="{% url 'index' %}" title="Back to Lobby">
-      <h1 class="text-lg font-bold gradient-text hover:opacity-90">{{ room_name|title }}</h1>
-    </a>
-    <button id="mobile-menu-toggle" class="btn-icon relative" aria-label="Toggle user menu">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-      </svg>
-      <span id="mobile-unread-badge" class="badge badge-alert unread-badge hidden">0</span>
-    </button>
-  </header>
-
-  <!-- Main Content -->
-  <main class="max-w-5xl mx-auto p-4 sm:p-6">
-    <!-- Desktop Header -->
-    <div class="hidden sm:flex items-center justify-between mb-6">
+  <!-- App Header with glass morphism effect -->
+  <header class="app-header" id="header">
+    <div class="container mx-auto flex items-center justify-between">
       <div class="flex items-center">
-        <a href="{% url 'index' %}" title="Back to Lobby">
-          <h1 class="text-2xl font-bold gradient-text mr-2 hover:opacity-90">{{ room_name|title }}</h1>
+        <a href="{% url 'index' %}" title="Back to Lobby" class="flex items-center">
+          <h1 class="text-xl font-bold gradient-text mr-2">{{ room_name|title }}</h1>
+          <span class="badge badge-secondary text-xs">CHAT</span>
         </a>
-        <span class="badge badge-secondary">CHAT</span>
         {% if room.is_protected %}
-        <span class="ml-2 badge badge-secondary flex items-center gap-1">
+        <span class="ml-2 badge badge-accent flex items-center gap-1">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
@@ -944,21 +971,30 @@
           <div class="avatar avatar-pink h-7 w-7 text-sm mr-2 user-avatar">
             {{ username|slice:":1"|upper }}
           </div>
-          <span class="text-sm font-medium">{{ username }}</span>
+          <span class="text-sm font-medium hidden sm:block">{{ username }}</span>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
         {% endif %}
-        <a href="{% url 'index' %}" class="btn btn-secondary">
+        <a href="{% url 'index' %}" class="btn btn-secondary sm:flex hidden items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          Lobby
+          <span class="ml-2">Lobby</span>
         </a>
+        <button id="mobile-menu-toggle" class="sm:hidden btn-icon relative" aria-label="Toggle user menu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+          </svg>
+          <span id="mobile-unread-badge" class="badge badge-primary unread-badge hidden">0</span>
+        </button>
       </div>
     </div>
+  </header>
 
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6">
     <!-- Guest banner -->
     {% if not user.is_authenticated %}
     <div class="guest-banner mb-6">
@@ -980,24 +1016,22 @@
     <!-- Announcements -->
     <div id="announcements-container" class="{% if active_announcements %}space-y-3 mb-6{% else %}hidden{% endif %}">
       {% for announcement in active_announcements %}
-      <div class="announcement {% if announcement.is_read %}hidden{% endif %}" data-announcement-id="{{ announcement.id }}">
+      <div class="announcement surface-card p-4 {% if announcement.is_read %}hidden{% endif %}" data-announcement-id="{{ announcement.id }}">
         <button class="absolute top-2 right-2 p-1 rounded-full hover:bg-white/50" aria-label="Dismiss announcement">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <div class="announcement-content">
-          <div class="flex items-start">
-            <div class="flex-shrink-0 bg-blue-500 rounded-full p-2 mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="font-semibold text-blue-800">Announcement from {{ announcement.creator }}</h3>
-              <div class="text-gray-700 text-sm mt-1">{{ announcement.content|linebreaksbr }}</div>
-              <div class="text-xs text-gray-500 mt-2">{{ announcement.created_at|date:"F j, Y, g:i a" }}</div>
-            </div>
+        <div class="flex items-start">
+          <div class="flex-shrink-0 bg-blue-500 rounded-full p-2 mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-blue-800">Announcement from {{ announcement.creator }}</h3>
+            <div class="text-gray-700 text-sm mt-1">{{ announcement.content|linebreaksbr }}</div>
+            <div class="text-xs text-gray-500 mt-2">{{ announcement.created_at|date:"F j, Y, g:i a" }}</div>
           </div>
         </div>
       </div>
@@ -1005,21 +1039,21 @@
     </div>
 
     <!-- User List Panel - Mobile only, hidden by default -->
-    <div id="mobile-user-list" class="sm:hidden bg-white p-4 rounded-xl shadow-md border border-pink-100 mb-4 hidden">
-      <h3 class="text-base font-semibold text-gray-700 mb-2 flex items-center">
-        <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
+    <div id="mobile-user-list" class="sm:hidden surface-card mb-4 hidden">
+      <h3 class="text-base font-semibold text-gray-700 mb-2 p-4 border-b border-gray-100 flex items-center">
+        <div class="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
         Users in this room
       </h3>
-      <div id="mobile-user-list-content" class="text-sm text-gray-600 flex flex-wrap gap-1"></div>
+      <div id="mobile-user-list-content" class="text-sm text-gray-600 flex flex-wrap gap-1 p-4"></div>
     </div>
 
     <!-- Chat Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <!-- Main Chat Area -->
       <div class="lg:col-span-3">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative h-full">
+        <div class="surface-card overflow-hidden flex flex-col relative h-full">
           <!-- Chat messages container -->
-          <div id="chat-log" class="chat-container hide-scrollbar bg-gray-50">
+          <div id="chat-log" class="chat-container hide-scrollbar">
             {% for message in messages %}
             <div class="flex items-start gap-2 group" data-message-id="{{ message.id }}">
               <!-- Avatar -->
@@ -1031,7 +1065,7 @@
               <div class="flex-1">
                 <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %}">
                   <div class="flex items-start justify-between">
-                    <a href="{% url 'direct_message' username=message.user.username %}" class="text-xs font-semibold mb-1 {% if message.user.username == username %}text-pink-500{% else %}text-yellow-600{% endif %} hover:underline username-link">
+                    <a href="{% url 'direct_message' username=message.user.username %}" class="text-xs font-semibold mb-1 {% if message.user.username == username %}text-pink-500{% else %}text-purple-600{% endif %} hover:underline username-link">
                       {{ message.user.username }}
                     </a>
 
@@ -1094,7 +1128,7 @@
           <!-- Upload Progress -->
           <div id="progress-container" class="hidden">
             <div class="w-full bg-gray-200 rounded-full h-2">
-              <div id="progress-bar" class="h-2 bg-gradient-to-r from-pink-500 to-orange-400 rounded-full w-0 transition-all"></div>
+              <div id="progress-bar" class="h-2 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full w-0 transition-all"></div>
             </div>
           </div>
 
@@ -1149,7 +1183,7 @@
               </div>
 
               <!-- File Upload -->
-              <label for="file-input" class="tooltip btn-icon bg-yellow-100 text-yellow-600 hover:bg-yellow-200" data-tooltip="Attach files" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+              <label for="file-input" class="tooltip btn-icon bg-secondary-light text-secondary hover:bg-secondary-light/80" data-tooltip="Attach files" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
@@ -1158,7 +1192,7 @@
               <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
 
               <!-- Send Button -->
-              <button type="submit" id="send-btn" class="btn-icon bg-gradient-to-r from-pink-500 to-orange-400 text-white tooltip" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+              <button type="submit" id="send-btn" class="btn-icon bg-gradient-to-r from-primary to-secondary text-white tooltip" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
@@ -1201,27 +1235,52 @@
           </ul>
         </div>
 
-        <!-- Recommended Rooms - Improved UI/UX -->
+        <!-- Recommended Rooms - UI improved with new design -->
         <div class="sidebar-section">
-          <h3 class="flex items-center mb-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <h3 class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             Recommended Rooms
           </h3>
-          <div id="recommended-rooms-list" class="space-y-2.5">
-            <!-- Room item skeleton (for loading state) -->
-            <div class="animate-pulse">
+          <div id="recommended-rooms-list" class="space-y-2.5 mt-3">
+            <!-- Room item with new design -->
+            <a href="/chat/music-lovers/" class="block">
               <div class="room-card">
-                <div class="flex items-center gap-2.5">
-                  <div class="h-9 w-9 rounded-lg bg-gray-200 flex-shrink-0"></div>
-                  <div class="flex-1 min-w-0">
-                    <div class="h-3.5 bg-gray-200 rounded w-3/4 mb-1.5"></div>
-                    <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+                <div class="room-card-content">
+                  <div class="flex items-center gap-2.5">
+                    <div class="room-icon bg-gradient-to-br from-primary to-secondary h-9 w-9 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-medium text-sm">
+                      ML
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-gray-700 truncate flex items-center gap-1">
+                        Music Lovers
+                        <span class="badge badge-sm badge-primary">Entertainment</span>
+                      </div>
+                      <div class="text-xs text-gray-500 truncate">8 users online • 42 messages today</div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </a>
+            <a href="/chat/photography/" class="block">
+              <div class="room-card">
+                <div class="room-card-content">
+                  <div class="flex items-center gap-2.5">
+                    <div class="room-icon bg-gradient-to-br from-blue-400 to-indigo-500 h-9 w-9 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-medium text-sm">
+                      PH
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-gray-700 truncate flex items-center gap-1">
+                        Photography
+                        <span class="badge badge-sm badge-secondary">Arts</span>
+                      </div>
+                      <div class="text-xs text-gray-500 truncate">5 users online • 17 messages today</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a>
           </div>
         </div>
 
@@ -1233,7 +1292,7 @@
             </svg>
             Friends Online
           </h3>
-          <div id="online-friends-list" class="space-y-2 text-sm">
+          <div id="online-friends-list" class="space-y-2 text-sm mt-3">
             <div class="animate-pulse space-y-2">
               <div class="flex items-center gap-2">
                 <div class="h-8 w-8 rounded-full bg-gray-200"></div>
@@ -1270,869 +1329,986 @@
           </button>
         </div>
 
-        <!-- Room Controls -->
-        <div class="sidebar-section">
-          <h3 class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Room Controls
-          </h3>
-          <div class="flex flex-col gap-2">
-            <a href="{% url 'index' %}" class="btn btn-secondary text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Back to Lobby
-              </a>
+<!-- Room Controls Section -->
+<div class="flex flex-col gap-2 mt-3">
+    <a href="{% url 'index' %}" class="btn btn-secondary text-sm flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+      Back to Lobby
+    </a>
 
-              {% if user.is_authenticated %}
-              <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-secondary text-sm w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Logout
-                </button>
-              </form>
-              {% else %}
-              <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn btn-secondary text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-                Login
-              </a>
-              {% endif %}
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary text-sm w-full flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        Logout
+      </button>
+    </form>
+    {% else %}
+    <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn btn-secondary text-sm flex items-center justify-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+      </svg>
+      Login
+    </a>
+    {% endif %}
 
-              {% if can_delete and user.is_authenticated %}
-              <form method="post" action="{% url 'delete_room' room_name %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger w-full text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Delete Room
-                </button>
-              </form>
-              {% endif %}
+    {% if can_delete and user.is_authenticated %}
+    <form method="post" action="{% url 'delete_room' room_name %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger w-full text-sm flex items-center justify-center gap-2" onclick="return confirm('Are you sure you want to delete this room?');">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        Delete Room
+      </button>
+    </form>
+    {% endif %}
 
-              {% if user.is_staff or user.username == room.creator.username %}
-              <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn btn-secondary bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Admin Panel
-              </a>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+    {% if user.is_staff or user.username == room.creator.username %}
+    <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn btn-secondary bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm flex items-center justify-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      Admin Panel
+    </a>
+    {% endif %}
+  </div>
+  </div>
+  </div>
+  </div>
+  </main>
 
-    <!-- Footer -->
-    <footer class="py-6 border-t border-gray-100 mt-8 text-sm text-gray-500">
-      <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
-        <div class="mb-4 sm:mb-0 text-center sm:text-left">
-          <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start">
-            <h2 class="text-base font-bold gradient-text">Euphorie</h2>
-            <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
-          </a>
-          <p class="text-xs mt-1">© 2025 Euphorie. All rights reserved.</p>
-        </div>
-        <div class="flex items-center gap-6 text-xs">
-          <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-indigo-500 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span class="hover:underline underline-offset-2">Crene.com</span>
-          </a>
-          <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-green-500 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            <span class="hover:underline underline-offset-2">DiaryVault.com</span>
-          </a>
-        </div>
-      </div>
-    </footer>
-
-    <!-- Modals -->
-    <!-- Profile Menu -->
-    <div id="profile-menu" class="profile-menu">
-      <div class="flex items-center p-3 border-b border-gray-100 mb-2">
-        <div class="avatar avatar-pink h-10 w-10 mr-3">
-          {{ username|slice:":1"|upper }}
-        </div>
-        <div>
-          <p class="font-medium text-gray-800">{{ username }}</p>
-          <p class="text-xs text-gray-500">{{ user.email }}</p>
-        </div>
-      </div>
-      <div class="space-y-1">
-        <a href="#" id="change-avatar-btn" class="profile-menu-item">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <span>Change Avatar</span>
+  <!-- Footer -->
+  <footer class="py-6 border-t border-gray-200 mt-10 bg-white">
+    <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
+      <div class="mb-4 sm:mb-0 text-center sm:text-left">
+        <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start mb-1">
+          <h2 class="text-lg font-bold gradient-text">Euphorie</h2>
+          <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
         </a>
-        <!-- Fix for user profile link error -->
-        {% if user.is_authenticated %}
-        <a href="{% url 'user_profile' username=username %}" class="profile-menu-item">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>Profile Settings</span>
+        <p class="text-xs text-gray-500">© 2025 Euphorie. All rights reserved.</p>
+      </div>
+      <div class="flex items-center gap-6 text-xs font-medium text-gray-500">
+        <a href="https://crene.com" target="_blank" rel="noopener" class="hover:text-indigo-500 transition-colors">
+          Crene.com
         </a>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Media Library Modal -->
-    <div id="media-library-modal" class="modal">
-      <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
-          <button id="close-media-library" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">×</button>
-        </div>
-        <div class="flex space-x-2 mb-4">
-          <button class="media-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
-          <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
-          <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
-        </div>
-        <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
-          <!-- Media items loaded by JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Whiteboard Modal -->
-    <div id="whiteboard-modal" class="modal">
-      <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
-          <button id="close-whiteboard" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">×</button>
-        </div>
-        <div class="whiteboard-tools">
-          <input type="color" id="brush-color" value="#000000" class="cursor-pointer">
-          <select id="brush-size" class="tool-btn">
-            <option value="2">Thin</option>
-            <option value="5" selected>Medium</option>
-            <option value="10">Thick</option>
-          </select>
-          <button class="tool-btn active" data-tool="brush">Brush</button>
-          <button class="tool-btn" data-tool="eraser">Eraser</button>
-          <button class="tool-btn" data-tool="text">Text</button>
-          <button class="tool-btn" data-tool="shape">Shape</button>
-        </div>
-        <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-          <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
-        </div>
-        <div class="flex items-center justify-between mt-4">
-          <button id="save-whiteboard" class="btn btn-secondary text-sm">Save Image</button>
-          <button id="clear-whiteboard" class="btn btn-danger text-sm">Clear All</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Meetup Modal -->
-    <div id="meetup-modal" class="modal">
-      <div class="modal-content max-w-md p-6">
-        <h2 class="text-lg font-bold gradient-text mb-4">Plan a Meetup</h2>
-        <form id="meetup-form" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-title">Meetup Title</label>
-            <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-datetime">Date & Time</label>
-            <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-location">Location</label>
-            <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-description">Description</label>
-            <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
-          </div>
-          <div class="flex justify-end space-x-3 pt-2">
-            <button type="button" id="cancel-meetup" class="btn btn-secondary">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create Meetup</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Profile Picture Modal -->
-    <div id="profile-pic-modal" class="modal">
-      <div class="modal-content max-w-md p-6">
-        <h2 class="text-lg font-bold gradient-text mb-4">Change Profile Picture</h2>
-        <div class="flex items-center justify-center mb-6">
-          <div id="profile-preview" class="avatar avatar-pink h-24 w-24 text-xl profile-pic-container">
-            {{ username|slice:":1"|upper }}
-          </div>
-        </div>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="profile-pic-upload">Upload Image</label>
-            <input type="file" id="profile-pic-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
-            <p class="text-xs text-gray-500 mt-1">Recommended: Square image, 500x500 pixels</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Choose Avatar Style</label>
-            <div class="grid grid-cols-4 gap-2">
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-pink-400 to-orange-300">
-                {{ username|slice:":1"|upper }}
-              </div>
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-blue-400 to-indigo-400">
-                {{ username|slice:":1"|upper }}
-              </div>
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-green-400 to-teal-400">
-                {{ username|slice:":1"|upper }}
-              </div>
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-purple-400 to-pink-400">
-                {{ username|slice:":1"|upper }}
-              </div>
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-yellow-400 to-orange-400">
-                {{ username|slice:":1"|upper }}
-              </div>
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-red-400 to-pink-400">
-                {{ username|slice:":1"|upper }}
-              </div>
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-cyan-400 to-blue-400">
-                {{ username|slice:":1"|upper }}
-              </div>
-              <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-emerald-400 to-green-500">
-                {{ username|slice:":1"|upper }}
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end space-x-3 pt-2">
-            <button type="button" id="cancel-profile-pic" class="btn btn-secondary">Cancel</button>
-            <button type="button" id="save-profile-pic" class="btn btn-primary">Save Changes</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- User Popover -->
-    <div id="user-options-popover" class="hidden absolute bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
-      <div class="space-y-1">
-        <a href="#" class="flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span>Send Message</span>
+        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="hover:text-green-500 transition-colors">
+          DiaryVault.com
         </a>
-        <button class="w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          <span>Add Friend</span>
-        </button>
       </div>
     </div>
+  </footer>
 
-    <!-- Reaction User Modal -->
-    <div id="reaction-modal" class="modal">
-      <div class="modal-content max-w-xs p-4">
-        <div class="flex justify-between items-center mb-3">
-          <h2 class="text-lg font-bold gradient-text">People who reacted</h2>
-          <button id="close-reaction-modal" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">×</button>
-        </div>
-        <ul id="reaction-user-list" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
+  <!-- Modals -->
+  <!-- Profile Menu -->
+  <div id="profile-menu" class="profile-menu">
+    <div class="flex items-center p-3 border-b border-gray-100 mb-2">
+      <div class="avatar avatar-pink h-10 w-10 mr-3">
+        {{ username|slice:":1"|upper }}
+      </div>
+      <div>
+        <p class="font-medium text-gray-800">{{ username }}</p>
+        <p class="text-xs text-gray-500">{{ user.email }}</p>
       </div>
     </div>
+    <div class="space-y-1">
+      <a href="#" id="change-avatar-btn" class="profile-menu-item">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <span>Change Avatar</span>
+      </a>
+      <!-- Fix for user profile link error -->
+      {% if user.is_authenticated %}
+      <a href="{% url 'user_profile' username=username %}" class="profile-menu-item">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>Profile Settings</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
 
-    <!-- Media Preview Modal -->
-    <div id="media-preview-modal" class="modal">
-      <div class="max-w-4xl max-h-screen p-4">
-        <button id="close-media-preview" class="absolute top-4 right-4 p-2 bg-black/30 hover:bg-black/50 rounded-full text-white" aria-label="Close">
+  <!-- Media Library Modal -->
+  <div id="media-library-modal" class="modal">
+    <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col surface-card">
+      <div class="flex justify-between items-center mb-4 p-2 border-b border-gray-100">
+        <h2 class="text-lg font-bold gradient-text">Room Media Library</h2>
+        <button id="close-media-library" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <div id="media-preview-content" class="flex items-center justify-center"></div>
+      </div>
+      <div class="flex space-x-2 mb-4 p-2">
+        <button class="media-filter-btn px-3 py-1 bg-gradient-to-r from-primary to-secondary text-white rounded-lg text-sm font-medium" data-filter="all">All</button>
+        <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="images">Images</button>
+        <button class="media-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="videos">Videos</button>
+      </div>
+      <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2" id="media-grid">
+        <!-- Media items loaded by JS -->
       </div>
     </div>
+  </div>
 
-    <script>
-      window.roomName = "{{ room_name|escapejs }}";
-      window.username = "{{ username|escapejs }}";
-    </script>
+  <!-- Whiteboard Modal -->
+  <div id="whiteboard-modal" class="modal">
+    <div class="modal-content w-full max-w-4xl p-4 max-h-[90vh] flex flex-col surface-card">
+      <div class="flex justify-between items-center mb-4 p-2 border-b border-gray-100">
+        <h2 class="text-lg font-bold gradient-text">Collaborative Whiteboard</h2>
+        <button id="close-whiteboard" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="whiteboard-tools flex flex-wrap gap-2 mb-4">
+        <input type="color" id="brush-color" value="#000000" class="cursor-pointer rounded-md">
+        <select id="brush-size" class="btn-secondary text-sm py-1 px-2 rounded-md">
+          <option value="2">Thin</option>
+          <option value="5" selected>Medium</option>
+          <option value="10">Thick</option>
+        </select>
+        <button class="btn-secondary active py-1 px-3 rounded-md text-sm" data-tool="brush">Brush</button>
+        <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="eraser">Eraser</button>
+        <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="text">Text</button>
+        <button class="btn-secondary py-1 px-3 rounded-md text-sm" data-tool="shape">Shape</button>
+      </div>
+      <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+        <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
+      </div>
+      <div class="flex items-center justify-between mt-4">
+        <button id="save-whiteboard" class="btn btn-secondary text-sm">Save Image</button>
+        <button id="clear-whiteboard" class="btn btn-danger text-sm">Clear All</button>
+      </div>
+    </div>
+  </div>
 
-    <!-- WebSocket Connection Script - Improved for reliability -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        let chatSocket;
-        let reconnectAttempt = 0;
-        const maxReconnectAttempts = 5;
-        const reconnectDelay = 2000; // Start with 2 seconds
+  <!-- Meetup Modal -->
+  <div id="meetup-modal" class="modal">
+    <div class="modal-content max-w-md p-6 surface-card">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+        <h2 class="text-lg font-bold gradient-text">Plan a Meetup</h2>
+        <button id="close-meetup" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <form id="meetup-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-title">Meetup Title</label>
+          <input type="text" id="meetup-title" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-datetime">Date & Time</label>
+          <input type="datetime-local" id="meetup-datetime" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-location">Location</label>
+          <input type="text" id="meetup-location" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300" required placeholder="Enter address or place name">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="meetup-description">Description</label>
+          <textarea id="meetup-description" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300 h-24" placeholder="What's this meetup about?"></textarea>
+        </div>
+        <div class="flex justify-end space-x-3 pt-2">
+          <button type="button" id="cancel-meetup" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Meetup</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        function connectWebSocket() {
-          const roomName = "{{ room_name|escapejs }}";
-          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          chatSocket = new WebSocket(
-            `${protocol}//${window.location.host}/ws/chat/${roomName}/`
-          );
+  <!-- Profile Picture Modal -->
+  <div id="profile-pic-modal" class="modal">
+    <div class="modal-content max-w-md p-6 surface-card">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+        <h2 class="text-lg font-bold gradient-text">Change Profile Picture</h2>
+        <button id="close-profile-pic" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="flex items-center justify-center mb-6">
+        <div id="profile-preview" class="avatar avatar-pink h-24 w-24 text-xl profile-pic-container">
+          {{ username|slice:":1"|upper }}
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="profile-pic-upload">Upload Image</label>
+          <input type="file" id="profile-pic-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-pink-300 focus:border-pink-300">
+          <p class="text-xs text-gray-500 mt-1">Recommended: Square image, 500x500 pixels</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Choose Avatar Style</label>
+          <div class="grid grid-cols-4 gap-2">
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-pink-400 to-purple-500">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-blue-400 to-indigo-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-green-400 to-teal-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-purple-400 to-pink-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-yellow-400 to-orange-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-red-400 to-pink-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-cyan-400 to-blue-400">
+              {{ username|slice:":1"|upper }}
+            </div>
+            <div class="avatar-option h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl cursor-pointer" data-gradient="from-emerald-400 to-green-500">
+              {{ username|slice:":1"|upper }}
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end space-x-3 pt-2">
+          <button type="button" id="cancel-profile-pic" class="btn btn-secondary">Cancel</button>
+          <button type="button" id="save-profile-pic" class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          chatSocket.onopen = function(e) {
-            console.log("WebSocket connection established");
-            reconnectAttempt = 0; // Reset reconnect counter on successful connection
+  <!-- User Popover -->
+  <div id="user-options-popover" class="hidden absolute bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
+    <div class="space-y-1">
+      <a href="#" class="flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        <span>Send Message</span>
+      </a>
+      <button class="w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors text-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        </svg>
+        <span>Add Friend</span>
+      </button>
+    </div>
+  </div>
 
-            // Show a reconnection notification if this wasn't the first attempt
-            if (reconnectAttempt > 0) {
-              showNotification("Reconnected to chat");
-            }
-          };
+  <!-- Reaction User Modal -->
+  <div id="reaction-modal" class="modal">
+    <div class="modal-content max-w-xs p-4 surface-card">
+      <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+        <h2 class="text-lg font-bold gradient-text">People who reacted</h2>
+        <button id="close-reaction-modal" class="btn-icon text-gray-400 hover:text-red-400" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <ul id="reaction-user-list" class="text-sm text-gray-700 space-y-1 max-h-48 overflow-y-auto hide-scrollbar"></ul>
+    </div>
+  </div>
 
-          chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
+  <!-- Media Preview Modal -->
+  <div id="media-preview-modal" class="modal">
+    <div class="max-w-4xl max-h-screen p-4">
+      <button id="close-media-preview" class="absolute top-4 right-4 p-2 bg-black/30 hover:bg-black/50 rounded-full text-white" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <div id="media-preview-content" class="flex items-center justify-center"></div>
+    </div>
+  </div>
 
-            // Handle different message types
-            if (data.type === 'chat_message') {
-              addMessage(data.message, data.username, data.message_id);
-            } else if (data.type === 'user_list') {
-              updateUserList(data.users);
-            } else if (data.type === 'typing') {
-              showTypingIndicator(data.username);
-            } else if (data.type === 'reaction') {
-              updateReactions(data.message_id, data.emoji, data.count, data.username);
-            }
-          };
+  <!-- Toast Notification -->
+  <div id="notification-toast" class="notification-toast hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span id="notification-message">Notification message</span>
+  </div>
 
-          chatSocket.onclose = function(e) {
-            console.warn("WebSocket connection closed unexpectedly");
+  <script>
+    window.roomName = "{{ room_name|escapejs }}";
+    window.username = "{{ username|escapejs }}";
+  </script>
 
-            // Only attempt to reconnect if we haven't exceeded the maximum attempts
-            if (reconnectAttempt < maxReconnectAttempts) {
-              reconnectAttempt++;
-              const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
+  <!-- WebSocket Connection Script -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      let chatSocket;
+      let reconnectAttempt = 0;
+      const maxReconnectAttempts = 5;
+      const reconnectDelay = 2000; // Start with 2 seconds
 
-              showNotification("Connection lost. Reconnecting...");
+      function connectWebSocket() {
+        const roomName = "{{ room_name|escapejs }}";
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        chatSocket = new WebSocket(
+          `${protocol}//${window.location.host}/ws/chat/${roomName}/`
+        );
 
-              console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
-              setTimeout(connectWebSocket, timeout);
-            } else {
-              showNotification("Could not reconnect. Please refresh the page.");
-            }
-          };
+        chatSocket.onopen = function(e) {
+          console.log("WebSocket connection established");
+          reconnectAttempt = 0; // Reset reconnect counter on successful connection
 
-          chatSocket.onerror = function(e) {
-            console.error("WebSocket error:", e);
-          };
+          // Show a reconnection notification if this wasn't the first attempt
+          if (reconnectAttempt > 0) {
+            showNotification("Reconnected to chat");
+          }
+        };
 
-          // Store socket in global scope for other functions to use
-          window.chatSocket = chatSocket;
-        }
+        chatSocket.onmessage = function(e) {
+          const data = JSON.parse(e.data);
 
-        // Initial connection
-        connectWebSocket();
+          // Handle different message types
+          if (data.type === 'chat_message') {
+            addMessage(data.message, data.username, data.message_id);
+          } else if (data.type === 'user_list') {
+            updateUserList(data.users);
+          } else if (data.type === 'typing') {
+            showTypingIndicator(data.username);
+          } else if (data.type === 'reaction') {
+            updateReactions(data.message_id, data.emoji, data.count, data.username);
+          }
+        };
 
-        // Handle message sending
-        const messageForm = document.getElementById('message-form');
-        if (messageForm) {
-          messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const messageInput = document.getElementById('chat-message-input');
-            const message = messageInput.value.trim();
+        chatSocket.onclose = function(e) {
+          console.warn("WebSocket connection closed unexpectedly");
 
-            if (message) {
-              if (chatSocket.readyState === WebSocket.OPEN) {
-                chatSocket.send(JSON.stringify({
-                  'type': 'chat_message',
-                  'message': message
-                }));
-                messageInput.value = '';
-              } else {
-                showNotification("Not connected. Message couldn't be sent.");
-              }
-            }
-          });
-        }
+          // Only attempt to reconnect if we haven't exceeded the maximum attempts
+          if (reconnectAttempt < maxReconnectAttempts) {
+            reconnectAttempt++;
+            const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
 
-        // Handle typing notification
-        const messageInput = document.getElementById('chat-message-input');
-        if (messageInput) {
-          let typingTimeout;
+            showNotification("Connection lost. Reconnecting...");
 
-          messageInput.addEventListener('input', function() {
+            console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
+            setTimeout(connectWebSocket, timeout);
+          } else {
+            showNotification("Could not reconnect. Please refresh the page.");
+          }
+        };
+
+        chatSocket.onerror = function(e) {
+          console.error("WebSocket error:", e);
+        };
+
+        // Store socket in global scope for other functions to use
+        window.chatSocket = chatSocket;
+      }
+
+      // Initial connection
+      connectWebSocket();
+
+      // Handle message sending
+      const messageForm = document.getElementById('message-form');
+      if (messageForm) {
+        messageForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const messageInput = document.getElementById('chat-message-input');
+          const message = messageInput.value.trim();
+
+          if (message) {
             if (chatSocket.readyState === WebSocket.OPEN) {
-              // Only send typing event if we haven't sent one recently
-              clearTimeout(typingTimeout);
-
               chatSocket.send(JSON.stringify({
-                'type': 'typing',
-                'username': window.username
+                'type': 'chat_message',
+                'message': message
               }));
-
-              // Set a timeout to prevent sending too many typing events
-              typingTimeout = setTimeout(() => {}, 2000);
+              messageInput.value = '';
+            } else {
+              showNotification("Not connected. Message couldn't be sent.");
             }
-          });
+          }
+        });
+      }
+
+      // Handle typing notification
+      const messageInput = document.getElementById('chat-message-input');
+      if (messageInput) {
+        let typingTimeout;
+
+        messageInput.addEventListener('input', function() {
+          if (chatSocket.readyState === WebSocket.OPEN) {
+            // Only send typing event if we haven't sent one recently
+            clearTimeout(typingTimeout);
+
+            chatSocket.send(JSON.stringify({
+              'type': 'typing',
+              'username': window.username
+            }));
+
+            // Set a timeout to prevent sending too many typing events
+            typingTimeout = setTimeout(() => {}, 2000);
+          }
+        });
+      }
+    });
+
+    // Function to add a message to the chat log
+    window.addMessage = function(message, username, messageId) {
+      const chatLog = document.getElementById('chat-log');
+      if (!chatLog) return;
+
+      const isCurrentUser = username === window.username;
+
+      const messageElement = document.createElement('div');
+      messageElement.className = 'flex items-start gap-2 group';
+      messageElement.setAttribute('data-message-id', messageId);
+
+      // Create avatar with random color if not current user
+      const avatarClass = isCurrentUser ? 'avatar-pink' : getRandomAvatarClass(username);
+
+      // Create avatar
+      const avatarElement = document.createElement('div');
+      avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
+      avatarElement.textContent = username.slice(0, 1).toUpperCase();
+
+      // Create message content container
+      const contentContainer = document.createElement('div');
+      contentContainer.className = 'flex-1';
+
+      // Create message bubble
+      const bubble = document.createElement('div');
+      bubble.className = `message-bubble ${isCurrentUser ? 'sent' : 'received'} new`;
+
+      // Create header with username
+      const header = document.createElement('div');
+      header.className = 'flex items-start justify-between';
+
+      const usernameLink = document.createElement('a');
+      usernameLink.href = `/dm/${username}/`;
+      usernameLink.className = `text-xs font-semibold mb-1 ${isCurrentUser ? 'text-pink-500' : 'text-purple-600'} hover:underline username-link`;
+      usernameLink.textContent = username;
+
+      header.appendChild(usernameLink);
+
+      // Quick reactions (only visible on hover/desktop)
+      const reactionsContainer = document.createElement('div');
+      reactionsContainer.className = 'ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden';
+      reactionsContainer.innerHTML = `
+        <div class="flex space-x-1">
+          <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
+          <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
+          <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+        </div>
+      `;
+
+      header.appendChild(reactionsContainer);
+      bubble.appendChild(header);
+
+      // Message content
+      const messageContent = document.createElement('div');
+      messageContent.className = 'text-sm text-gray-700 message-content';
+      messageContent.innerHTML = message;
+      bubble.appendChild(messageContent);
+
+      contentContainer.appendChild(bubble);
+
+      // Area for reaction emojis display
+      const reactionsDisplayArea = document.createElement('div');
+      reactionsDisplayArea.className = 'reactions-container';
+      contentContainer.appendChild(reactionsDisplayArea);
+
+      // Assemble the message
+      messageElement.appendChild(avatarElement);
+      messageElement.appendChild(contentContainer);
+
+      chatLog.appendChild(messageElement);
+
+      // Scroll to the bottom to show the new message
+      scrollToBottom();
+
+      // Set up reaction emojis
+      const emojiButtons = messageElement.querySelectorAll('.emoji-reaction');
+      emojiButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const emoji = this.textContent;
+          if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+            window.chatSocket.send(JSON.stringify({
+              'type': 'reaction',
+              'message_id': messageId,
+              'emoji': emoji
+            }));
+          }
+        });
+      });
+    };
+
+    // Function to show typing indicator
+    window.showTypingIndicator = function(username) {
+      const typingIndicator = document.getElementById('typing-indicator');
+      const typingUsername = document.getElementById('typing-username');
+
+      if (typingIndicator && typingUsername) {
+        // Don't show if it's the current user typing
+        if (username === window.username) return;
+
+        typingUsername.textContent = `${username} is typing...`;
+        typingIndicator.classList.remove('hidden');
+
+        // Hide after 3 seconds if no new typing events
+        clearTimeout(window.typingTimeout);
+        window.typingTimeout = setTimeout(function() {
+          typingIndicator.classList.add('hidden');
+        }, 3000);
+      }
+    };
+
+    // Function to update the user list
+    window.updateUserList = function(users) {
+      const userList = document.getElementById('user-list');
+      const mobileUserList = document.getElementById('mobile-user-list-content');
+
+      if (!userList && !mobileUserList) return;
+
+      if (userList) {
+        userList.innerHTML = '';
+
+        users.forEach(user => {
+          const li = document.createElement('li');
+          li.className = 'user-item flex items-center justify-between';
+
+          const nameContainer = document.createElement('div');
+          nameContainer.className = 'flex items-center';
+
+          // Get a consistent avatar color based on username
+          const avatarClass = user.username === window.username ? 'bg-gradient-to-r from-primary to-secondary' : getAvatarColorClass(user.username);
+
+          const avatar = document.createElement('div');
+          avatar.className = `h-6 w-6 rounded-full ${user.is_online ? avatarClass : 'bg-gray-300'} text-white flex items-center justify-center text-xs mr-2`;
+          avatar.textContent = user.username.slice(0, 1).toUpperCase();
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'text-sm';
+          nameSpan.textContent = user.username;
+
+          nameContainer.appendChild(avatar);
+          nameContainer.appendChild(nameSpan);
+          li.appendChild(nameContainer);
+
+          userList.appendChild(li);
+        });
+      }
+
+      if (mobileUserList) {
+        mobileUserList.innerHTML = '';
+
+        users.forEach(user => {
+          const span = document.createElement('span');
+          span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
+          span.textContent = user.username;
+          mobileUserList.appendChild(span);
+        });
+      }
+    };
+
+    // Function to update reactions on a message
+    window.updateReactions = function(messageId, emoji, count, username) {
+      const message = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (!message) return;
+
+      const reactionsContainer = message.querySelector('.reactions-container');
+      if (!reactionsContainer) return;
+
+      // Check if the reaction already exists
+      let reactionElement = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
+
+      if (count <= 0) {
+        // Remove the reaction if count is 0
+        if (reactionElement) {
+          reactionElement.remove();
+        }
+        return;
+      }
+
+      if (!reactionElement) {
+        // Create new reaction element
+        reactionElement = document.createElement('div');
+        reactionElement.className = 'reaction';
+        reactionElement.setAttribute('data-emoji', emoji);
+        reactionElement.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
+
+        // Add click handler to show who reacted
+        reactionElement.addEventListener('click', function() {
+          // Implement showing reaction users here
+          showReactionUsers(messageId, emoji);
+        });
+
+        reactionsContainer.appendChild(reactionElement);
+      } else {
+        // Update existing reaction count
+        const countElement = reactionElement.querySelector('.reaction-count');
+        if (countElement) {
+          countElement.textContent = count;
+        }
+      }
+    };
+
+    // Helper function to get consistent avatar color
+    function getAvatarColorClass(username) {
+      const gradients = [
+        'bg-gradient-to-r from-blue-400 to-indigo-500',
+        'bg-gradient-to-r from-green-400 to-teal-500',
+        'bg-gradient-to-r from-purple-400 to-indigo-500',
+        'bg-gradient-to-r from-yellow-400 to-orange-500',
+        'bg-gradient-to-r from-red-400 to-pink-500',
+        'bg-gradient-to-r from-indigo-400 to-purple-500'
+      ];
+
+      // Simple hash function for username
+      let hash = 0;
+      for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+      }
+
+      return gradients[Math.abs(hash) % gradients.length];
+    }
+
+    // Function to get random avatar class for messages
+    function getRandomAvatarClass(username) {
+      const avatarClasses = [
+        'avatar-orange', 'avatar-blue', 'avatar-green',
+        'avatar-purple', 'avatar-yellow', 'avatar-red', 'avatar-teal'
+      ];
+
+      // Use a simple hash of the username to get a consistent color
+      let hash = 0;
+      for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+      }
+
+      return avatarClasses[Math.abs(hash) % avatarClasses.length];
+    }
+
+    // Function to show who reacted
+    function showReactionUsers(messageId, emoji) {
+      // This would typically fetch the users from the server
+      // For demo, we'll just show a placeholder
+      const reactionModal = document.getElementById('reaction-modal');
+      const reactionUserList = document.getElementById('reaction-user-list');
+
+      if (reactionModal && reactionUserList) {
+        reactionUserList.innerHTML = `<li class="p-2 flex items-center">
+          <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-sm mr-2">
+            <span>${emoji}</span>
+          </div>
+          <span>Loading users who reacted...</span>
+        </li>`;
+
+        reactionModal.classList.add('open');
+
+        // In a real implementation, you would fetch the users who reacted
+        // from the server here and update the list
+      }
+    }
+
+    // Helper function to scroll to bottom of chat
+    function scrollToBottom() {
+      const chatLog = document.getElementById('chat-log');
+      if (!chatLog) return;
+
+      // Smooth scroll
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // Show notification function
+    window.showNotification = function(message) {
+      const toast = document.getElementById('notification-toast');
+      const messageEl = document.getElementById('notification-message');
+
+      if (toast && messageEl) {
+        messageEl.textContent = message;
+
+        // Show the toast
+        toast.classList.remove('hidden');
+
+        // Remove any existing animations
+        toast.style.animation = 'none';
+
+        // Force reflow
+        void toast.offsetWidth;
+
+        // Add animations back
+        toast.style.animation = 'toastIn 0.3s forwards, toastOut 0.3s forwards 3s';
+
+        // Hide the toast after animation completes
+        setTimeout(() => {
+          toast.classList.add('hidden');
+        }, 3300);
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // Header scroll effect
+      const header = document.getElementById('header');
+      if (header) {
+        window.addEventListener('scroll', function() {
+          if (window.scrollY > 10) {
+            header.classList.add('scrolled');
+          } else {
+            header.classList.remove('scrolled');
+          }
+        });
+      }
+
+      // Make room name at the top direct to index.html
+      document.querySelectorAll('.gradient-text').forEach(element => {
+        if (element.textContent.includes("{{ room_name|title }}")) {
+          const parentElement = element.closest('a') || element.parentElement;
+          if (parentElement && parentElement.tagName === 'A') {
+            parentElement.href = "{% url 'index' %}";
+          }
         }
       });
 
-      // Simple function to add a message to the chat log
-      window.addMessage = function(message, username, messageId) {
-        const chatLog = document.getElementById('chat-log');
-        if (!chatLog) return;
+      // Initialize variables
+      const chatLog = document.getElementById('chat-log');
+      const messageForm = document.getElementById('message-form');
+      const messageInput = document.getElementById('chat-message-input');
+      const jumpToBottomBtn = document.getElementById('jump-to-bottom');
+      const userProfileToggle = document.getElementById('user-profile-toggle');
+      const profileMenu = document.getElementById('profile-menu');
+      const modals = document.querySelectorAll('.modal');
 
-        const isCurrentUser = username === window.username;
-
-        const messageElement = document.createElement('div');
-        messageElement.className = 'flex items-start gap-2 group';
-        messageElement.setAttribute('data-message-id', messageId);
-
-        // Create avatar with random color if not current user
-        const avatarClass = isCurrentUser ? 'avatar-pink' : getRandomAvatarClass(username);
-
-        // Create avatar
-        const avatarElement = document.createElement('div');
-        avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
-        avatarElement.textContent = username.slice(0, 1).toUpperCase();
-
-        // Create message content container
-        const contentContainer = document.createElement('div');
-        contentContainer.className = 'flex-1';
-
-        // Create message bubble
-        const bubble = document.createElement('div');
-        bubble.className = `message-bubble ${isCurrentUser ? 'sent' : 'received'} new`;
-
-        // Create header with username
-        const header = document.createElement('div');
-        header.className = 'flex items-start justify-between';
-
-        const usernameLink = document.createElement('a');
-        usernameLink.href = `/dm/${username}/`;
-        usernameLink.className = `text-xs font-semibold mb-1 ${isCurrentUser ? 'text-pink-500' : 'text-yellow-600'} hover:underline username-link`;
-        usernameLink.textContent = username;
-
-        header.appendChild(usernameLink);
-
-        // Quick reactions (only visible on hover/desktop)
-        const reactionsContainer = document.createElement('div');
-        reactionsContainer.className = 'ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden';
-        reactionsContainer.innerHTML = `
-          <div class="flex space-x-1">
-            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
-            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
-            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
-          </div>
-        `;
-
-        header.appendChild(reactionsContainer);
-        bubble.appendChild(header);
-
-        // Message content
-        const messageContent = document.createElement('div');
-        messageContent.className = 'text-sm text-gray-700 message-content';
-        messageContent.innerHTML = message;
-        bubble.appendChild(messageContent);
-
-        contentContainer.appendChild(bubble);
-
-        // Area for reaction emojis display
-        const reactionsDisplayArea = document.createElement('div');
-        reactionsDisplayArea.className = 'reactions-container';
-        contentContainer.appendChild(reactionsDisplayArea);
-
-        // Assemble the message
-        messageElement.appendChild(avatarElement);
-        messageElement.appendChild(contentContainer);
-
-        chatLog.appendChild(messageElement);
-
-        // Scroll to the bottom to show the new message
-        scrollToBottom();
-
-        // Set up reaction emojis
-        const emojiButtons = messageElement.querySelectorAll('.emoji-reaction');
-        emojiButtons.forEach(btn => {
-          btn.addEventListener('click', function() {
-            const emoji = this.textContent;
-            if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
-              window.chatSocket.send(JSON.stringify({
-                'type': 'reaction',
-                'message_id': messageId,
-                'emoji': emoji
-              }));
-            }
-          });
+      // Show/hide jump to bottom button based on scroll position
+      if (chatLog) {
+        chatLog.addEventListener('scroll', function() {
+          const scrollBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
+          if (scrollBottom > 100) {
+            jumpToBottomBtn.classList.add('visible');
+          } else {
+            jumpToBottomBtn.classList.remove('visible');
+          }
         });
-      };
 
-      // Function to show typing indicator
-      window.showTypingIndicator = function(username) {
-        const typingIndicator = document.getElementById('typing-indicator');
-        const typingUsername = document.getElementById('typing-username');
-
-        if (typingIndicator && typingUsername) {
-          // Don't show if it's the current user typing
-          if (username === window.username) return;
-
-          typingUsername.textContent = `${username} is typing...`;
-          typingIndicator.classList.remove('hidden');
-
-          // Hide after 3 seconds if no new typing events
-          clearTimeout(window.typingTimeout);
-          window.typingTimeout = setTimeout(function() {
-            typingIndicator.classList.add('hidden');
-          }, 3000);
-        }
-      };
-
-      // Function to update the user list
-      window.updateUserList = function(users) {
-        const userList = document.getElementById('user-list');
-        const mobileUserList = document.getElementById('mobile-user-list-content');
-
-        if (!userList && !mobileUserList) return;
-
-        if (userList) {
-          userList.innerHTML = '';
-
-          users.forEach(user => {
-            const li = document.createElement('li');
-            li.className = 'user-item flex items-center justify-between';
-
-            const nameContainer = document.createElement('div');
-            nameContainer.className = 'flex items-center';
-
-            // Get a consistent avatar color based on username
-            const avatarClass = user.username === window.username ? 'bg-pink-500' : getAvatarColorClass(user.username);
-
-            const avatar = document.createElement('div');
-            avatar.className = `h-6 w-6 rounded-full ${user.is_online ? avatarClass : 'bg-gray-300'} text-white flex items-center justify-center text-xs mr-2`;
-            avatar.textContent = user.username.slice(0, 1).toUpperCase();
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'text-sm';
-            nameSpan.textContent = user.username;
-
-            nameContainer.appendChild(avatar);
-            nameContainer.appendChild(nameSpan);
-            li.appendChild(nameContainer);
-
-            userList.appendChild(li);
-          });
-        }
-
-        if (mobileUserList) {
-          mobileUserList.innerHTML = '';
-
-          users.forEach(user => {
-            const span = document.createElement('span');
-            span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
-            span.textContent = user.username;
-            mobileUserList.appendChild(span);
-          });
-        }
-      };
-
-      // Function to update reactions on a message
-      window.updateReactions = function(messageId, emoji, count, username) {
-        const message = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!message) return;
-
-        const reactionsContainer = message.querySelector('.reactions-container');
-        if (!reactionsContainer) return;
-
-        // Check if the reaction already exists
-        let reactionElement = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
-
-        if (count <= 0) {
-          // Remove the reaction if count is 0
-          if (reactionElement) {
-            reactionElement.remove();
-          }
-          return;
-        }
-
-        if (!reactionElement) {
-          // Create new reaction element
-          reactionElement = document.createElement('div');
-          reactionElement.className = 'reaction';
-          reactionElement.setAttribute('data-emoji', emoji);
-          reactionElement.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
-
-          // Add click handler to show who reacted
-          reactionElement.addEventListener('click', function() {
-            // Implement showing reaction users here
-            showReactionUsers(messageId, emoji);
-          });
-
-          reactionsContainer.appendChild(reactionElement);
-        } else {
-          // Update existing reaction count
-          const countElement = reactionElement.querySelector('.reaction-count');
-          if (countElement) {
-            countElement.textContent = count;
-          }
-        }
-      };
-
-      // Helper function to get consistent avatar color
-      function getAvatarColorClass(username) {
-        const colors = [
-          'bg-pink-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
-          'bg-purple-500', 'bg-red-500', 'bg-indigo-500', 'bg-teal-500'
-        ];
-
-        // Simple hash function for username
-        let hash = 0;
-        for (let i = 0; i < username.length; i++) {
-          hash = username.charCodeAt(i) + ((hash << 5) - hash);
-        }
-
-        return colors[Math.abs(hash) % colors.length];
-      }
-
-      // Function to get random avatar class for messages
-      function getRandomAvatarClass(username) {
-        const avatarClasses = [
-          'avatar-orange', 'avatar-blue', 'avatar-green',
-          'avatar-purple', 'avatar-yellow', 'avatar-red', 'avatar-teal'
-        ];
-
-        // Use a simple hash of the username to get a consistent color
-        let hash = 0;
-        for (let i = 0; i < username.length; i++) {
-          hash = username.charCodeAt(i) + ((hash << 5) - hash);
-        }
-
-        return avatarClasses[Math.abs(hash) % avatarClasses.length];
-      }
-
-      // Function to show who reacted
-      function showReactionUsers(messageId, emoji) {
-        // This would typically fetch the users from the server
-        // For demo, we'll just show a placeholder
-        const reactionModal = document.getElementById('reaction-modal');
-        const reactionUserList = document.getElementById('reaction-user-list');
-
-        if (reactionModal && reactionUserList) {
-          reactionUserList.innerHTML = `<li class="p-2 flex items-center">
-            <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-sm mr-2">
-              <span>${emoji}</span>
-            </div>
-            <span>Loading users who reacted...</span>
-          </li>`;
-
-          reactionModal.classList.add('open');
-
-          // In a real implementation, you would fetch the users who reacted
-          // from the server here and update the list
-        }
-      }
-
-      // Helper function to scroll to bottom of chat
-      function scrollToBottom() {
-        const chatLog = document.getElementById('chat-log');
-        if (!chatLog) return;
-
-        // Smooth scroll
+        // Initial scroll to bottom
         chatLog.scrollTop = chatLog.scrollHeight;
       }
 
-      // Show notification function
-      window.showNotification = function(message) {
-        const toast = document.getElementById('notification-toast');
-        const messageEl = document.getElementById('notification-message');
+      // Jump to bottom button functionality
+      if (jumpToBottomBtn) {
+        jumpToBottomBtn.addEventListener('click', function() {
+          if (chatLog) {
+            chatLog.scrollTop = chatLog.scrollHeight;
+          }
+        });
+      }
 
-        if (toast && messageEl) {
-          messageEl.textContent = message;
+      // Toggle profile menu
+      if (userProfileToggle && profileMenu) {
+        userProfileToggle.addEventListener('click', function(e) {
+          e.stopPropagation();
+          profileMenu.classList.toggle('open');
+        });
 
-          // Remove any existing animations
-          toast.style.animation = 'none';
+        // Close when clicking elsewhere
+        document.addEventListener('click', function(e) {
+          if (!userProfileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+            profileMenu.classList.remove('open');
+          }
+        });
+      }
 
-          // Force reflow
-          void toast.offsetWidth;
+      // Initialize emoji picker
+      const emojiButton = document.getElementById('emoji-button');
+      const emojiPanel = document.getElementById('emoji-panel');
 
-          // Add animations back
-          toast.style.animation = 'toastIn 0.3s forwards, toastOut 0.3s forwards 3s';
-        }
-      };
-    </script>
+      if (emojiButton && emojiPanel) {
+        emojiButton.addEventListener('click', function(e) {
+          e.stopPropagation();
+          emojiPanel.classList.toggle('show');
+        });
 
-    <script src="{% static 'js/chatroom.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        // Make room name at the top direct to index.html
-        document.querySelectorAll('.gradient-text').forEach(element => {
-          if (element.textContent.includes("{{ room_name|title }}")) {
-            const parentElement = element.closest('a') || element.parentElement;
-            if (parentElement) {
-              parentElement.href = "{% url 'index' %}";
-            } else {
-              // Create a wrapper link if none exists
-              const wrapper = document.createElement('a');
-              wrapper.href = "{% url 'index' %}";
-              wrapper.style.cursor = 'pointer';
-              element.parentNode.insertBefore(wrapper, element);
-              wrapper.appendChild(element);
-            }
+        // Close emoji panel when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+            emojiPanel.classList.remove('show');
           }
         });
 
-        // Initialize variables
-        const chatLog = document.getElementById('chat-log');
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('chat-message-input');
-        const jumpToBottomBtn = document.getElementById('jump-to-bottom');
-        const userProfileToggle = document.getElementById('user-profile-toggle');
-        const profileMenu = document.getElementById('profile-menu');
-        const modals = document.querySelectorAll('.modal');
-
-        // Show/hide jump to bottom button based on scroll position
-        if (chatLog) {
-          chatLog.addEventListener('scroll', function() {
-            const scrollBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
-            if (scrollBottom > 100) {
-              jumpToBottomBtn.classList.add('visible');
-            } else {
-              jumpToBottomBtn.classList.remove('visible');
-            }
-          });
-
-          // Initial scroll to bottom
-          chatLog.scrollTop = chatLog.scrollHeight;
-        }
-
-        // Jump to bottom button functionality
-        if (jumpToBottomBtn) {
-          jumpToBottomBtn.addEventListener('click', function() {
-            if (chatLog) {
-              chatLog.scrollTop = chatLog.scrollHeight;
-            }
-          });
-        }
-
-        // Fix dropdown menu position - Toggle profile menu
-        if (userProfileToggle && profileMenu) {
-          userProfileToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            profileMenu.classList.toggle('open');
-          });
-
-          // Close when clicking elsewhere
-          document.addEventListener('click', function(e) {
-            if (!userProfileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
-              profileMenu.classList.remove('open');
-            }
-          });
-        }
-
-        // Initialize emoji picker
-        const emojiButton = document.getElementById('emoji-button');
-        const emojiPanel = document.getElementById('emoji-panel');
-
-        if (emojiButton && emojiPanel) {
-          emojiButton.addEventListener('click', function(e) {
-            e.stopPropagation();
-            emojiPanel.classList.toggle('show');
-          });
-
-          // Close emoji panel when clicking outside
-          document.addEventListener('click', function(e) {
-            if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+        // Add emoji to message input when clicked
+        const emojiButtons = document.querySelectorAll('.emoji-btn');
+        emojiButtons.forEach(btn => {
+          btn.addEventListener('click', function() {
+            if (messageInput) {
+              messageInput.value += this.textContent;
+              messageInput.focus();
               emojiPanel.classList.remove('show');
             }
           });
+        });
+      }
 
-          // Add emoji to message input when clicked
-          const emojiButtons = document.querySelectorAll('.emoji-btn');
-          emojiButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-              if (messageInput) {
-                messageInput.value += this.textContent;
-                messageInput.focus();
-                emojiPanel.classList.remove('show');
-              }
-            });
-          });
-        }
+      // Modal handling - open/close functionality
+      function setupModalHandling() {
+        // Close buttons for all modals
+        document.querySelectorAll('[id^="close-"]').forEach(closeBtn => {
+          const modalId = closeBtn.id.replace('close-', '');
+          const modal = document.getElementById(`${modalId}-modal`);
 
-        // Modal handling
-        document.querySelectorAll('[id$="-modal"]').forEach(modal => {
-          const closeBtn = modal.querySelector('[id^="close-"]');
-          if (closeBtn) {
+          if (closeBtn && modal) {
             closeBtn.addEventListener('click', () => {
               modal.classList.remove('open');
             });
           }
         });
 
-        // Open modal functions
-        const mediaLibraryBtn = document.getElementById('open-media-library');
-        const mediaLibraryModal = document.getElementById('media-library-modal');
-        if (mediaLibraryBtn && mediaLibraryModal) {
-          mediaLibraryBtn.addEventListener('click', () => {
-            mediaLibraryModal.classList.add('open');
-          });
+        // Open buttons for all modals
+        const modalOpenButtons = {
+          'media-library': document.getElementById('open-media-library'),
+          'whiteboard': document.getElementById('open-whiteboard'),
+          'meetup': document.getElementById('create-meetup-btn'),
+          'profile-pic': document.getElementById('change-avatar-btn')
+        };
+
+        for (const [modalName, openBtn] of Object.entries(modalOpenButtons)) {
+          const modal = document.getElementById(`${modalName}-modal`);
+
+          if (openBtn && modal) {
+            openBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Close profile menu if it's open
+              if (profileMenu) {
+                profileMenu.classList.remove('open');
+              }
+              modal.classList.add('open');
+            });
+          }
         }
 
-        const whiteboardBtn = document.getElementById('open-whiteboard');
-        const whiteboardModal = document.getElementById('whiteboard-modal');
-        if (whiteboardBtn && whiteboardModal) {
-          whiteboardBtn.addEventListener('click', () => {
-            whiteboardModal.classList.add('open');
+        // Close modals when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+              modal.classList.remove('open');
+            }
           });
-        }
+        });
 
-        const meetupBtn = document.getElementById('create-meetup-btn');
-        const meetupModal = document.getElementById('meetup-modal');
-        if (meetupBtn && meetupModal) {
-          meetupBtn.addEventListener('click', () => {
-            meetupModal.classList.add('open');
+        // Cancel buttons
+        document.querySelectorAll('[id^="cancel-"]').forEach(cancelBtn => {
+          const modalId = cancelBtn.id.replace('cancel-', '');
+          const modal = document.getElementById(`${modalId}-modal`);
+
+          if (cancelBtn && modal) {
+            cancelBtn.addEventListener('click', () => {
+              modal.classList.remove('open');
+            });
+          }
+        });
+      }
+
+      // Initialize mobile menu toggle
+      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+      if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+          // Toggle mobile user list
+          const mobileUserList = document.getElementById('mobile-user-list');
+          if (mobileUserList) {
+            mobileUserList.classList.toggle('hidden');
+          }
+        });
+      }
+
+      // Initialize components
+      setupModalHandling();
+      initializeBookmarkButton();
+      setupAvatarSelection();
+
+      // Initialize bookmark button
+      function initializeBookmarkButton() {
+        const bookmarkBtn = document.getElementById('bookmark-room');
+        if (!bookmarkBtn) return;
+
+        // Check if room is already bookmarked
+        const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
+        updateBookmarkButton(isBookmarked);
+
+        // Add click event
+        bookmarkBtn.addEventListener('click', function() {
+          const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
+
+          // Get CSRF token and send request to server
+          const csrfToken = getCsrfToken();
+          fetch('/api/toggle_bookmark_room/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+              room_name: window.roomName,
+              bookmarked: newState
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              localStorage.setItem(`bookmarked_${window.roomName}`, newState);
+              updateBookmarkButton(newState);
+              showNotification(newState ? 'Room bookmarked!' : 'Bookmark removed');
+            } else {
+              showNotification('Failed to update bookmark');
+            }
+          })
+          .catch(error => {
+            console.error('Error toggling bookmark:', error);
+            showNotification('An error occurred');
           });
+        });
+      }
+
+      // Helper function to update bookmark button appearance
+      function updateBookmarkButton(isBookmarked) {
+        const bookmarkBtn = document.getElementById('bookmark-room');
+        if (!bookmarkBtn) return;
+
+        if (isBookmarked) {
+          bookmarkBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          `;
+          bookmarkBtn.classList.add('text-pink-500');
+          bookmarkBtn.setAttribute('data-tooltip', 'Remove bookmark');
+        } else {
+          bookmarkBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          `;
+          bookmarkBtn.classList.remove('text-pink-500');
+          bookmarkBtn.setAttribute('data-tooltip', 'Bookmark room');
         }
+      }
 
-        const cancelMeetupBtn = document.getElementById('cancel-meetup');
-        if (cancelMeetupBtn && meetupModal) {
-          cancelMeetupBtn.addEventListener('click', () => {
-            meetupModal.classList.remove('open');
-          });
-        }
-
-        // Avatar change modal
-        const changeAvatarBtn = document.getElementById('change-avatar-btn');
-        const profilePicModal = document.getElementById('profile-pic-modal');
-        const cancelProfilePicBtn = document.getElementById('cancel-profile-pic');
-
-        if (changeAvatarBtn && profilePicModal) {
-          changeAvatarBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (profileMenu) profileMenu.classList.remove('open');
-            profilePicModal.classList.add('open');
-          });
-        }
-
-        if (cancelProfilePicBtn && profilePicModal) {
-          cancelProfilePicBtn.addEventListener('click', () => {
-            profilePicModal.classList.remove('open');
-          });
-        }
-
-        // Avatar option selection
+      // Avatar selection functionality
+      function setupAvatarSelection() {
         document.querySelectorAll('.avatar-option').forEach(option => {
           option.addEventListener('click', function() {
-            document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
-            this.classList.add('selected');
+            document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('ring-2', 'ring-offset-2', 'ring-pink-500'));
+            this.classList.add('ring-2', 'ring-offset-2', 'ring-pink-500');
 
             // Update the preview
             const gradient = this.getAttribute('data-gradient');
             const profilePreview = document.getElementById('profile-preview');
             if (profilePreview) {
-              profilePreview.className = 'avatar h-24 w-24 text-xl profile-pic-container';
-              profilePreview.classList.add('bg-gradient-to-br', ...gradient.split(' '));
+              profilePreview.className = 'avatar h-24 w-24 text-xl profile-pic-container bg-gradient-to-br';
+              const gradientClasses = gradient.split(' ');
+              gradientClasses.forEach(cls => profilePreview.classList.add(cls));
             }
           });
         });
@@ -2141,636 +2317,824 @@
         const saveProfilePicBtn = document.getElementById('save-profile-pic');
         if (saveProfilePicBtn) {
           saveProfilePicBtn.addEventListener('click', () => {
-            // Here you would handle the actual saving of the avatar
-            // Then show a notification and close the modal
+            // Here you would handle the actual saving of the avatar to the server
+            const profilePicModal = document.getElementById('profile-pic-modal');
+
+            // For now, just show a notification and close the modal
             showNotification('Profile picture updated successfully');
-            profilePicModal.classList.remove('open');
-          });
-        }
-
-        // Initialize mobile menu toggle
-        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-        if (mobileMenuToggle) {
-          mobileMenuToggle.addEventListener('click', function() {
-            // Toggle mobile user list
-            const mobileUserList = document.getElementById('mobile-user-list');
-            if (mobileUserList) {
-              mobileUserList.classList.toggle('hidden');
+            if (profilePicModal) {
+              profilePicModal.classList.remove('open');
             }
           });
         }
+      }
 
-        // Initialize bookmark functionality
-        initializeBookmarkButton();
+      // Setup close announcement banners
+      document.querySelectorAll('.announcement button').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const announcement = this.closest('.announcement');
+          if (announcement) {
+            announcement.classList.add('hidden');
 
-        // Close announcement banners
-        document.querySelectorAll('.dismiss-btn').forEach(btn => {
-          btn.addEventListener('click', function() {
-            const announcement = this.closest('.announcement');
-            if (announcement) {
-              announcement.classList.add('hidden');
-
-              // If you want to mark it as read on the server
-              const announcementId = announcement.getAttribute('data-announcement-id');
-              if (announcementId) {
-                const csrfToken = getCsrfToken();
-                fetch('/api/mark_announcement_read/', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                  },
-                  body: JSON.stringify({
-                    announcement_id: announcementId
-                  })
-                });
-              }
+            // If you want to mark it as read on the server
+            const announcementId = announcement.getAttribute('data-announcement-id');
+            if (announcementId) {
+              const csrfToken = getCsrfToken();
+              fetch('/api/mark_announcement_read/', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                  announcement_id: announcementId
+                })
+              });
             }
-          });
+          }
         });
-
-        // Initialize whiteboard tools
-        const toolButtons = document.querySelectorAll('.tool-btn[data-tool]');
-        if (toolButtons.length) {
-          toolButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-              // Remove active class from all tools
-              toolButtons.forEach(b => b.classList.remove('active'));
-              // Add active class to clicked tool
-              this.classList.add('active');
-            });
-          });
-        }
-
-        // Initialize bookmark button
-        function initializeBookmarkButton() {
-          const bookmarkBtn = document.getElementById('bookmark-room');
-          if (!bookmarkBtn) return;
-
-          // Check if room is already bookmarked
-          const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
-          updateBookmarkButton(isBookmarked);
-
-          // Add click event
-          bookmarkBtn.addEventListener('click', function() {
-            const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
-
-            // Get CSRF token and send request to server
-            const csrfToken = getCsrfToken();
-            fetch('/api/toggle_bookmark_room/', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-              },
-              body: JSON.stringify({
-                room_name: window.roomName,
-                bookmarked: newState
-              })
-            })
-            .then(response => response.json())
-            .then(data => {
-              if (data.success) {
-                localStorage.setItem(`bookmarked_${window.roomName}`, newState);
-                updateBookmarkButton(newState);
-                showNotification(newState ? 'Room bookmarked!' : 'Bookmark removed');
-              } else {
-                showNotification('Failed to update bookmark');
-              }
-            })
-            .catch(error => {
-              console.error('Error toggling bookmark:', error);
-              showNotification('An error occurred');
-            });
-          });
-        }
-
-        // Helper function to update bookmark button appearance
-        function updateBookmarkButton(isBookmarked) {
-          const bookmarkBtn = document.getElementById('bookmark-room');
-          if (!bookmarkBtn) return;
-
-          if (isBookmarked) {
-            bookmarkBtn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-            `;
-            bookmarkBtn.classList.add('text-pink-500');
-            bookmarkBtn.setAttribute('data-tooltip', 'Remove bookmark');
-          } else {
-            bookmarkBtn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-            `;
-            bookmarkBtn.classList.remove('text-pink-500');
-            bookmarkBtn.setAttribute('data-tooltip', 'Bookmark room');
-          }
-        }
-
-        // Helper function to get CSRF token
-        function getCsrfToken() {
-          const name = 'csrftoken=';
-          const decodedCookie = decodeURIComponent(document.cookie);
-          const cookieArray = decodedCookie.split(';');
-
-          for (let i = 0; i < cookieArray.length; i++) {
-            let cookie = cookieArray[i].trim();
-            if (cookie.indexOf(name) === 0) {
-              return cookie.substring(name.length, cookie.length);
-            }
-          }
-
-          const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-          return csrfInput ? csrfInput.value : '';
-        }
       });
-    </script>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        // Enhance username links throughout the chat
-        enhanceUsernameLinks();
+      // Helper function to get CSRF token
+      function getCsrfToken() {
+        const name = 'csrftoken=';
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const cookieArray = decodedCookie.split(';');
 
-        // Store reference to the original updateUserList function
-        const originalUpdateUserList = window.updateUserList || function() {};
+        for (let i = 0; i < cookieArray.length; i++) {
+          let cookie = cookieArray[i].trim();
+          if (cookie.indexOf(name) === 0) {
+            return cookie.substring(name.length, cookie.length);
+          }
+        }
 
-        // Replace with enhanced version that adds friend request buttons
-        window.updateUserList = function(users) {
-          // First call the original function
-          originalUpdateUserList.call(this, users);
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        return csrfInput ? csrfInput.value : '';
+      }
+    });
+  </script>
 
-          // Then enhance the user list with friend buttons
-          const userList = document.getElementById("user-list");
-          if (!userList) return;
+  <!-- Additional JavaScript for Friend Requests and Enhanced User Interaction -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Enhance username links throughout the chat
+      enhanceUsernameLinks();
 
-          // Get all user list items
-          const listItems = userList.querySelectorAll('li');
+      // Store reference to the original updateUserList function
+      const originalUpdateUserList = window.updateUserList || function() {};
 
-          // Process each list item
-          listItems.forEach(li => {
-            // Add user-item class for hover effects
-            li.classList.add('user-item');
+      // Replace with enhanced version that adds friend request buttons
+      window.updateUserList = function(users) {
+        // First call the original function
+        originalUpdateUserList.call(this, users);
+
+        // Then enhance the user list with friend buttons
+        const userList = document.getElementById("user-list");
+        if (!userList) return;
+
+        // Get all user list items
+        const listItems = userList.querySelectorAll('li');
+
+        // Process each list item
+        listItems.forEach(li => {
+          // Add user-item class for hover effects
+          li.classList.add('user-item');
+
+          // Get the username
+          const nameSpan = li.querySelector('span');
+          if (!nameSpan) return;
+
+          const username = nameSpan.textContent;
+
+          // Skip if it's the current user
+          if (username === window.username) return;
+
+          // Skip if already has a friend button
+          if (li.querySelector('.friend-btn')) return;
+
+          // Get the actions container or create one if it doesn't exist
+          let actionsContainer = li.querySelector('div:last-child');
+          if (!actionsContainer) {
+            actionsContainer = document.createElement('div');
+            actionsContainer.className = 'flex items-center';
+            li.appendChild(actionsContainer);
+          }
+
+          // Create Add Friend button
+          const friendBtn = document.createElement('button');
+          friendBtn.className = 'friend-btn friend-btn-add';
+          friendBtn.textContent = 'Add Friend';
+          friendBtn.onclick = () => sendFriendRequest(username);
+
+          // Insert before any existing actions
+          actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
+        });
+      };
+
+      // Enhance all username links in the chat with popover menu
+      function enhanceUsernameLinks() {
+        // Find all username links and enhance them
+        document.addEventListener('click', function(e) {
+          // Check if clicked element is a username link
+          if (e.target.classList.contains('username-link') ||
+              e.target.parentElement.classList.contains('username-link')) {
+            e.preventDefault(); // Prevent default navigation
 
             // Get the username
-            const nameSpan = li.querySelector('span');
-            if (!nameSpan) return;
-
-            const username = nameSpan.textContent;
+            const link = e.target.classList.contains('username-link') ?
+                        e.target : e.target.parentElement;
+            const username = link.textContent.trim();
 
             // Skip if it's the current user
             if (username === window.username) return;
 
-            // Skip if already has a friend button
-            if (li.querySelector('.friend-btn')) return;
-
-            // Get the actions container or create one if it doesn't exist
-            let actionsContainer = li.querySelector('div:last-child');
-            if (!actionsContainer) {
-              actionsContainer = document.createElement('div');
-              actionsContainer.className = 'flex items-center';
-              li.appendChild(actionsContainer);
-            }
-
-            // Create Add Friend button
-            const friendBtn = document.createElement('button');
-            friendBtn.className = 'friend-btn friend-btn-add';
-            friendBtn.textContent = 'Add Friend';
-            friendBtn.onclick = () => sendFriendRequest(username);
-
-            // Insert before any existing actions
-            actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
-          });
-        };
-
-        // Enhance all username links in the chat with popover menu
-        function enhanceUsernameLinks() {
-          // Find all username links and enhance them
-          document.addEventListener('click', function(e) {
-            // Check if clicked element is a username link
-            if (e.target.classList.contains('username-link') ||
-                e.target.parentElement.classList.contains('username-link')) {
-              e.preventDefault(); // Prevent default navigation
-
-              // Get the username
-              const link = e.target.classList.contains('username-link') ?
-                          e.target : e.target.parentElement;
-              const username = link.textContent.trim();
-
-              // Skip if it's the current user
-              if (username === window.username) return;
-
-              // Create or show popover menu
-              showUserOptions(link, username);
-            }
-          });
-        }
-
-        // Show user interaction options popover
-        function showUserOptions(element, username) {
-          // Remove any existing popovers
-          const existingPopover = document.getElementById('user-options-popover');
-          if (existingPopover) {
-            existingPopover.remove();
-          }
-
-          // Create popover element
-          const popover = document.createElement('div');
-          popover.id = 'user-options-popover';
-          popover.className = 'bg-white rounded-lg shadow-xl border border-gray-200 p-2 absolute z-50';
-
-          // Set position near the username
-          const rect = element.getBoundingClientRect();
-          popover.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-          popover.style.left = (rect.left + window.scrollX) + 'px';
-
-          // Add options
-          const optionsList = document.createElement('div');
-          optionsList.className = 'space-y-1';
-
-          // DM option
-          const dmOption = document.createElement('a');
-          dmOption.href = `/dm/${username}/`;
-          dmOption.className = 'flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
-          dmOption.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span class="text-sm text-gray-700">Send Message</span>
-          `;
-
-          // Add Friend option
-          const friendOption = document.createElement('button');
-          friendOption.className = 'w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
-          friendOption.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-            <span class="text-sm text-gray-700">Add Friend</span>
-          `;
-          friendOption.onclick = function() {
-            sendFriendRequest(username);
-            popover.remove();
-          };
-
-          // Add options to list
-          optionsList.appendChild(dmOption);
-          optionsList.appendChild(friendOption);
-          popover.appendChild(optionsList);
-
-          // Add to page
-          document.body.appendChild(popover);
-
-          // Close when clicking outside
-          document.addEventListener('click', function closePopover(e) {
-            if (!popover.contains(e.target) && e.target !== element) {
-              popover.remove();
-              document.removeEventListener('click', closePopover);
-            }
-          });
-        }
-
-        // Function to send friend request
-window.sendFriendRequest = function(otherUser) {
-    // Get CSRF token
-    const csrfToken = getCsrfToken();
-
-    fetch('/api/friend_request/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
-      },
-      body: JSON.stringify({
-        receiver_id: otherUser  // This matches your API expectation
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        showNotification(`Friend request sent to ${otherUser}`);
-
-        // Find and update any friend buttons for this user
-        document.querySelectorAll('.friend-btn').forEach(btn => {
-          if (btn.parentElement.previousElementSibling &&
-              btn.parentElement.previousElementSibling.querySelector('span') &&
-              btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
-            btn.className = 'friend-btn friend-btn-pending request-sent';
-            btn.textContent = 'Pending';
-            btn.onclick = null;
+            // Create or show popover menu
+            showUserOptions(link, username);
           }
         });
-      } else {
-        showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
       }
-    })
-    .catch(error => {
-      console.error('Error sending friend request:', error);
-      showNotification('An error occurred while sending friend request');
-    });
-  };
 
-  // Helper function for CSRF token
-  function getCsrfToken() {
-    const name = 'csrftoken=';
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const cookieArray = decodedCookie.split(';');
-
-    for (let i = 0; i < cookieArray.length; i++) {
-      let cookie = cookieArray[i].trim();
-      if (cookie.indexOf(name) === 0) {
-        return cookie.substring(name.length, cookie.length);
-      }
-    }
-
-    // If not found in cookies, try to find it in a meta tag
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    if (csrfMeta) {
-      return csrfMeta.getAttribute('content');
-    }
-
-    // Last resort - look for hidden input field
-    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-    if (csrfInput) {
-      return csrfInput.value;
-    }
-
-    return '';
-  }
-  });
-  </script>
-
-  <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Profile dropdown functionality
-    const profileToggle = document.getElementById('user-profile-toggle');
-    const profileMenu = document.getElementById('profile-menu');
-    const changeAvatarBtn = document.getElementById('change-avatar-btn');
-    const profilePicModal = document.getElementById('profile-pic-modal');
-
-    if (profileToggle && profileMenu) {
-      profileToggle.addEventListener('click', function() {
-        profileMenu.classList.toggle('open');
-      });
-
-      // Close when clicking elsewhere
-      document.addEventListener('click', function(e) {
-        if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
-          profileMenu.classList.remove('open');
-        }
-      });
-    }
-
-    // Open profile picture modal from dropdown
-    if (changeAvatarBtn && profilePicModal) {
-      changeAvatarBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        profileMenu.classList.remove('open');
-        profilePicModal.classList.add('open');
-      });
-    }
-  });
-  </script>
-
-  <script>
-  // File Upload improvements
-  async function uploadFilesAndSend(files) {
-    const formData = new FormData();
-
-    // Add files to the form data
-    for (let i = 0; i < files.length; i++) {
-      formData.append('files', files[i]);
-    }
-
-    // Add room name to the form data
-    formData.append('room_name', window.roomName);
-
-    // Add CSRF token
-    const csrfToken = getCsrfToken();
-    formData.append('csrfmiddlewaretoken', csrfToken);
-
-    try {
-      // Show progress indicator
-      const progressBar = document.getElementById('progress-bar');
-      const progressContainer = document.getElementById('progress-container');
-      progressContainer.classList.remove('hidden');
-
-      // Use XMLHttpRequest for upload progress
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 100;
-            progressBar.style.width = percentComplete + '%';
-          }
-        });
-
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4) {
-            progressContainer.classList.add('hidden');
-
-            if (xhr.status === 200) {
-              try {
-                const data = JSON.parse(xhr.responseText);
-                if (data.success) {
-                  resolve(data.file_urls);
-                } else {
-                  reject(new Error(data.error || 'Unknown error'));
-                }
-              } catch (e) {
-                reject(new Error('Invalid response from server'));
-              }
-            } else {
-              reject(new Error('Server responded with status: ' + xhr.status));
-            }
-          }
-        };
-
-        xhr.open('POST', '/api/upload_media/', true);
-        xhr.send(formData);
-      });
-    } catch (error) {
-      console.error('Error uploading files:', error);
-      showNotification('Failed to upload files: ' + error.message);
-      throw error;
-    }
-  }
-
-  // Handle file selection
-  function handleFileSelect(event) {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    // Show preview area
-    const preview = document.getElementById('preview');
-    const previewContent = document.getElementById('preview-content');
-    preview.classList.remove('hidden');
-    previewContent.innerHTML = '';
-
-    // Create preview items
-    Array.from(files).forEach(file => {
-      const isImage = file.type.startsWith('image/');
-      const isVideo = file.type.startsWith('video/');
-
-      if (isImage || isVideo) {
-        const previewItem = document.createElement('div');
-        previewItem.className = 'preview-item';
-
-        if (isImage) {
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(file);
-          img.onload = () => URL.revokeObjectURL(img.src);
-          previewItem.appendChild(img);
-        } else if (isVideo) {
-          const video = document.createElement('video');
-          video.src = URL.createObjectURL(file);
-          video.muted = true;
-          video.loop = true;
-          video.autoplay = true;
-          video.onloadedmetadata = () => URL.revokeObjectURL(video.src);
-          previewItem.appendChild(video);
+      // Show user interaction options popover
+      function showUserOptions(element, username) {
+        // Remove any existing popovers
+        const existingPopover = document.getElementById('user-options-popover');
+        if (existingPopover) {
+          existingPopover.remove();
         }
 
-        previewContent.appendChild(previewItem);
-      }
-    });
+        // Create popover element
+        const popover = document.createElement('div');
+        popover.id = 'user-options-popover';
+        popover.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 p-2 z-50';
 
-    // Set up cancel button
-    const cancelButton = document.getElementById('cancel-preview');
-    if (cancelButton) {
-      cancelButton.onclick = function() {
-        preview.classList.add('hidden');
-        document.getElementById('file-input').value = '';
-      };
-    }
-  }
+        // Set position near the username
+        const rect = element.getBoundingClientRect();
+        popover.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+        popover.style.left = (rect.left + window.scrollX) + 'px';
 
-  // Initialize file input
-  document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('file-input');
-    if (fileInput) {
-      fileInput.addEventListener('change', handleFileSelect);
-    }
-  });
-  </script>
+        // Add options
+        const optionsList = document.createElement('div');
+        optionsList.className = 'space-y-1';
 
-  <script>
-  // Function to populate recommended rooms with improved UI
-  function populateRecommendedRooms() {
-    const roomsList = document.getElementById('recommended-rooms-list');
-
-    // Clear loading state
-    if (roomsList) {
-      roomsList.innerHTML = '';
-
-      // Example data - replace with your actual API call
-      const recommendedRooms = [
-        {
-          name: 'music-lovers',
-          displayName: 'Music Lovers',
-          category: 'Entertainment',
-          usersOnline: 8,
-          messagesCount: 42
-        },
-        {
-          name: 'photography',
-          displayName: 'Photography',
-          category: 'Arts',
-          usersOnline: 5,
-          messagesCount: 17
-        },
-        {
-          name: 'coding-help',
-          displayName: 'Coding Help',
-          category: 'Tech',
-          usersOnline: 12,
-          messagesCount: 73
-        }
-      ];
-
-      // Create room items
-      recommendedRooms.forEach(room => {
-        // Create room element
-        const roomElement = document.createElement('a');
-        roomElement.href = `/chat/${room.name}/`;
-        roomElement.className = 'block';
-
-        // Generate initials for room icon
-        const initials = room.displayName.split(' ')
-          .map(word => word[0])
-          .slice(0, 2)
-          .join('')
-          .toUpperCase();
-
-        // Get a color based on room name (for consistency)
-        const colorClasses = getColorClassForRoom(room.name);
-
-        roomElement.innerHTML = `
-          <div class="room-card">
-            <div class="flex items-center gap-2.5">
-              <div class="room-icon ${colorClasses} h-9 w-9 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-medium text-sm">
-                ${initials}
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="font-medium text-gray-700 truncate">
-                  ${room.displayName}
-                  <span class="room-category">${room.category}</span>
-                </div>
-                <div class="text-xs text-gray-500 truncate">${room.usersOnline} users online • ${room.messagesCount} messages today</div>
-              </div>
-            </div>
-          </div>
+        // DM option
+        const dmOption = document.createElement('a');
+        dmOption.href = `/dm/${username}/`;
+        dmOption.className = 'flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+        dmOption.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span class="text-sm text-gray-700">Send Message</span>
         `;
 
-        roomsList.appendChild(roomElement);
-      });
-    }
+// Add Friend option
+const friendOption = document.createElement('button');
+friendOption.className = 'w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+friendOption.innerHTML = `
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+  </svg>
+  <span class="text-sm text-gray-700">Add Friend</span>
+`;
+friendOption.onclick = function() {
+  sendFriendRequest(username);
+  popover.remove();
+};
+
+// Add options to list
+optionsList.appendChild(dmOption);
+optionsList.appendChild(friendOption);
+popover.appendChild(optionsList);
+
+// Add to page
+document.body.appendChild(popover);
+
+// Close when clicking outside
+document.addEventListener('click', function closePopover(e) {
+  if (!popover.contains(e.target) && e.target !== element) {
+    popover.remove();
+    document.removeEventListener('click', closePopover);
   }
+});
+}
 
-  // Helper function to get consistent colors for rooms
-  function getColorClassForRoom(roomName) {
-    // Simple hash function to get a number from a string
-    const hash = roomName.split('').reduce((acc, char) => {
-      return acc + char.charCodeAt(0);
-    }, 0);
+// Function to send friend request
+window.sendFriendRequest = function(otherUser) {
+// Get CSRF token
+const csrfToken = getCsrfToken();
 
-    // List of color gradient classes
-    const colorClasses = [
-      'bg-gradient-to-br from-pink-400 to-purple-500',
-      'bg-gradient-to-br from-blue-400 to-indigo-500',
-      'bg-gradient-to-br from-green-400 to-teal-500',
-      'bg-gradient-to-br from-orange-400 to-red-500',
-      'bg-gradient-to-br from-purple-400 to-indigo-500'
-    ];
+fetch('/api/friend_request/', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRFToken': csrfToken
+  },
+  body: JSON.stringify({
+    receiver_id: otherUser  // This matches your API expectation
+  })
+})
+.then(response => response.json())
+.then(data => {
+  if (data.success) {
+    showNotification(`Friend request sent to ${otherUser}`);
 
-    // Determine color based on hash
-    return colorClasses[hash % colorClasses.length];
+    // Find and update any friend buttons for this user
+    document.querySelectorAll('.friend-btn').forEach(btn => {
+      if (btn.parentElement.previousElementSibling &&
+          btn.parentElement.previousElementSibling.querySelector('span') &&
+          btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
+        btn.className = 'friend-btn friend-btn-pending request-sent';
+        btn.textContent = 'Pending';
+        btn.onclick = null;
+      }
+    });
+  } else {
+    showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
   }
+})
+.catch(error => {
+  console.error('Error sending friend request:', error);
+  showNotification('An error occurred while sending friend request');
+});
+};
 
-  // Call the function when document is ready
-  document.addEventListener('DOMContentLoaded', function() {
-    populateRecommendedRooms();
+// Helper function for CSRF token
+function getCsrfToken() {
+const name = 'csrftoken=';
+const decodedCookie = decodeURIComponent(document.cookie);
+const cookieArray = decodedCookie.split(';');
 
-    // Initialize reaction modal close button
-    const closeReactionModal = document.getElementById('close-reaction-modal');
-    const reactionModal = document.getElementById('reaction-modal');
-    if (closeReactionModal && reactionModal) {
-      closeReactionModal.addEventListener('click', () => {
-        reactionModal.classList.remove('open');
-      });
-    }
+for (let i = 0; i < cookieArray.length; i++) {
+  let cookie = cookieArray[i].trim();
+  if (cookie.indexOf(name) === 0) {
+    return cookie.substring(name.length, cookie.length);
+  }
+}
 
-    // Initialize media preview modal
-    const closeMediaPreview = document.getElementById('close-media-preview');
-    const mediaPreviewModal = document.getElementById('media-preview-modal');
-    if (closeMediaPreview && mediaPreviewModal) {
-      closeMediaPreview.addEventListener('click', () => {
-        mediaPreviewModal.classList.remove('open');
-      });
+// If not found in cookies, try to find it in a meta tag
+const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+if (csrfMeta) {
+  return csrfMeta.getAttribute('content');
+}
+
+// Last resort - look for hidden input field
+const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+if (csrfInput) {
+  return csrfInput.value;
+}
+
+return '';
+}
+});
+</script>
+
+<!-- File Upload Handling Script -->
+<script>
+// File Upload improvements
+async function uploadFilesAndSend(files) {
+const formData = new FormData();
+
+// Add files to the form data
+for (let i = 0; i < files.length; i++) {
+formData.append('files', files[i]);
+}
+
+// Add room name to the form data
+formData.append('room_name', window.roomName);
+
+// Add CSRF token
+const csrfToken = getCsrfToken();
+formData.append('csrfmiddlewaretoken', csrfToken);
+
+try {
+// Show progress indicator
+const progressBar = document.getElementById('progress-bar');
+const progressContainer = document.getElementById('progress-container');
+progressContainer.classList.remove('hidden');
+
+// Use XMLHttpRequest for upload progress
+return new Promise((resolve, reject) => {
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener('progress', (e) => {
+    if (e.lengthComputable) {
+      const percentComplete = (e.loaded / e.total) * 100;
+      progressBar.style.width = percentComplete + '%';
     }
   });
-  </script>
+
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      progressContainer.classList.add('hidden');
+
+      if (xhr.status === 200) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.success) {
+            resolve(data.file_urls);
+          } else {
+            reject(new Error(data.error || 'Unknown error'));
+          }
+        } catch (e) {
+          reject(new Error('Invalid response from server'));
+        }
+      } else {
+        reject(new Error('Server responded with status: ' + xhr.status));
+      }
+    }
+  };
+
+  xhr.open('POST', '/api/upload_media/', true);
+  xhr.send(formData);
+});
+} catch (error) {
+console.error('Error uploading files:', error);
+showNotification('Failed to upload files: ' + error.message);
+throw error;
+}
+}
+
+// Handle file selection
+function handleFileSelect(event) {
+const files = event.target.files;
+if (!files || files.length === 0) return;
+
+// Show preview area
+const preview = document.getElementById('preview');
+const previewContent = document.getElementById('preview-content');
+preview.classList.remove('hidden');
+previewContent.innerHTML = '';
+
+// Create preview items
+Array.from(files).forEach(file => {
+const isImage = file.type.startsWith('image/');
+const isVideo = file.type.startsWith('video/');
+
+if (isImage || isVideo) {
+  const previewItem = document.createElement('div');
+  previewItem.className = 'preview-item';
+
+  if (isImage) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    img.onload = () => URL.revokeObjectURL(img.src);
+    previewItem.appendChild(img);
+  } else if (isVideo) {
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    video.muted = true;
+    video.loop = true;
+    video.autoplay = true;
+    video.onloadedmetadata = () => URL.revokeObjectURL(video.src);
+    previewItem.appendChild(video);
+  }
+
+  previewContent.appendChild(previewItem);
+}
+});
+
+// Set up cancel button
+const cancelButton = document.getElementById('cancel-preview');
+if (cancelButton) {
+cancelButton.onclick = function() {
+  preview.classList.add('hidden');
+  document.getElementById('file-input').value = '';
+};
+}
+}
+
+// Initialize file input
+document.addEventListener('DOMContentLoaded', function() {
+const fileInput = document.getElementById('file-input');
+if (fileInput) {
+fileInput.addEventListener('change', handleFileSelect);
+}
+
+// Send button handling when files are attached
+const sendBtn = document.getElementById('send-btn');
+const messageForm = document.getElementById('message-form');
+
+if (messageForm) {
+messageForm.addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const messageInput = document.getElementById('chat-message-input');
+  const message = messageInput.value.trim();
+  const fileInput = document.getElementById('file-input');
+  const files = fileInput.files;
+
+  // If there are files attached, upload them
+  if (files && files.length > 0) {
+    try {
+      // Disable send button during upload
+      if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.classList.add('opacity-50');
+      }
+
+      const fileUrls = await uploadFilesAndSend(files);
+
+      // Send message with file URLs
+      if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+        window.chatSocket.send(JSON.stringify({
+          'type': 'chat_message',
+          'message': message,
+          'file_urls': fileUrls
+        }));
+
+        // Clear input and preview
+        messageInput.value = '';
+        fileInput.value = '';
+        document.getElementById('preview').classList.add('hidden');
+      }
+    } catch (error) {
+      showNotification('Error uploading files: ' + error.message);
+    } finally {
+      // Re-enable send button
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('opacity-50');
+      }
+    }
+  } else if (message) {
+    // Just send a regular text message
+    if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+      window.chatSocket.send(JSON.stringify({
+        'type': 'chat_message',
+        'message': message
+      }));
+      messageInput.value = '';
+    } else {
+      showNotification("Not connected. Message couldn't be sent.");
+    }
+  }
+});
+}
+});
+</script>
+
+<!-- Enhanced UI Components Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+// Initialize Recommended Rooms List
+populateRecommendedRooms();
+
+// Initialize Online Friends List
+initOnlineFriends();
+
+// Whiteboard functionality
+initializeWhiteboard();
+
+// Function to populate recommended rooms
+function populateRecommendedRooms() {
+// This could be fetched from the server in a real implementation
+// Using mock data for now
+const roomsList = document.getElementById('recommended-rooms-list');
+if (!roomsList) return;
+
+// Clear any existing content
+roomsList.innerHTML = '';
+
+// Add a few more room cards
+const addRoom = (name, displayName, category, usersOnline, bgColor) => {
+  const initials = displayName.split(' ')
+    .map(word => word[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const a = document.createElement('a');
+  a.href = `/chat/${name}/`;
+  a.className = 'block';
+  a.innerHTML = `
+    <div class="room-card">
+      <div class="room-card-content">
+        <div class="flex items-center gap-2.5">
+          <div class="room-icon ${bgColor} h-9 w-9 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-medium text-sm">
+            ${initials}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-gray-700 truncate flex items-center gap-1">
+              ${displayName}
+              <span class="badge badge-sm badge-primary">${category}</span>
+            </div>
+            <div class="text-xs text-gray-500 truncate">${usersOnline} users online</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  roomsList.appendChild(a);
+};
+
+// Add a couple more recommended rooms
+addRoom('gaming', 'Gaming Chat', 'Entertainment', '12', 'bg-gradient-to-br from-indigo-400 to-purple-500');
+addRoom('tech-talk', 'Tech Talk', 'Technology', '8', 'bg-gradient-to-br from-cyan-400 to-blue-500');
+}
+
+// Initialize online friends section
+function initOnlineFriends() {
+const container = document.getElementById('online-friends-list');
+if (!container) return;
+
+// Clear container
+container.innerHTML = '';
+
+// Mock data for friends (replace with API call)
+const friends = [
+  { username: 'Alex', status: 'online' },
+  { username: 'Taylor', status: 'online' },
+  { username: 'Jordan', status: 'away' }
+];
+
+if (friends.length === 0) {
+  container.innerHTML = `
+    <div class="w-full text-center py-2">
+      <p class="text-gray-500 text-sm">No friends online right now</p>
+      <a href="/friends/" class="text-pink-500 text-xs hover:underline mt-1 inline-block">Find friends</a>
+    </div>
+  `;
+  return;
+}
+
+// Add friends
+friends.forEach(friend => {
+  const statusClass = friend.status === 'online' ? 'bg-green-400' : 'bg-yellow-400';
+  const statusText = friend.status === 'online' ? 'Online' : 'Away';
+
+  const friendEl = document.createElement('div');
+  friendEl.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg';
+
+  const avatarBg = getAvatarColorClass(friend.username);
+
+  friendEl.innerHTML = `
+    <div class="flex items-center gap-2">
+      <div class="relative">
+        <div class="w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center text-sm text-white font-medium">
+          ${friend.username.charAt(0).toUpperCase()}
+        </div>
+        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 ${statusClass} rounded-full border-2 border-white"></span>
+      </div>
+      <div>
+        <div class="text-sm font-medium">${friend.username}</div>
+        <div class="text-xs text-gray-500">${statusText}</div>
+      </div>
+    </div>
+    <a href="/dm/${friend.username}/" class="text-xs text-pink-500 hover:underline">Message</a>
+  `;
+
+  container.appendChild(friendEl);
+});
+}
+
+// Whiteboard functionality
+function initializeWhiteboard() {
+const canvas = document.getElementById('whiteboard-canvas');
+const whiteboardModal = document.getElementById('whiteboard-modal');
+
+if (!canvas || !whiteboardModal) return;
+
+// Initialize when modal is opened
+whiteboardModal.addEventListener('transitionend', function() {
+  if (whiteboardModal.classList.contains('open')) {
+    setupCanvas();
+  }
+});
+
+let ctx;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+function setupCanvas() {
+  // Set canvas dimensions
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+
+  ctx = canvas.getContext('2d');
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 5;
+
+  // Clear canvas
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Drawing events
+  canvas.addEventListener('mousedown', startDrawing);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseout', stopDrawing);
+
+  // Touch events
+  canvas.addEventListener('touchstart', handleTouchStart);
+  canvas.addEventListener('touchmove', handleTouchMove);
+  canvas.addEventListener('touchend', stopDrawing);
+}
+
+// Drawing functions
+function startDrawing(e) {
+  isDrawing = true;
+  [lastX, lastY] = [e.offsetX, e.offsetY];
+}
+
+function draw(e) {
+  if (!isDrawing) return;
+
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(e.offsetX, e.offsetY);
+  ctx.stroke();
+
+  [lastX, lastY] = [e.offsetX, e.offsetY];
+}
+
+function stopDrawing() {
+  isDrawing = false;
+}
+
+// Touch handlers
+function handleTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+
+  isDrawing = true;
+  [lastX, lastY] = [x, y];
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  if (!isDrawing) return;
+
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+
+  [lastX, lastY] = [x, y];
+}
+
+// Tool buttons
+const colorPicker = document.getElementById('brush-color');
+const sizeSelector = document.getElementById('brush-size');
+const toolButtons = document.querySelectorAll('[data-tool]');
+const clearButton = document.getElementById('clear-whiteboard');
+const saveButton = document.getElementById('save-whiteboard');
+
+if (colorPicker) {
+  colorPicker.addEventListener('change', function() {
+    ctx.strokeStyle = this.value;
+  });
+}
+
+if (sizeSelector) {
+  sizeSelector.addEventListener('change', function() {
+    ctx.lineWidth = this.value;
+  });
+}
+
+if (toolButtons) {
+  toolButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Remove active class from all tools
+      toolButtons.forEach(b => b.classList.remove('active', 'bg-primary-light', 'text-primary'));
+
+      // Add active class to clicked tool
+      this.classList.add('active', 'bg-primary-light', 'text-primary');
+
+      const tool = this.getAttribute('data-tool');
+
+      // Handle different tools
+      switch (tool) {
+        case 'brush':
+          ctx.globalCompositeOperation = 'source-over';
+          break;
+        case 'eraser':
+          ctx.globalCompositeOperation = 'destination-out';
+          break;
+        // Additional tools would be implemented here
+      }
+    });
+  });
+}
+
+// Clear canvas button
+if (clearButton) {
+  clearButton.addEventListener('click', function() {
+    if (confirm('Are you sure you want to clear the whiteboard?')) {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  });
+}
+
+// Save image button
+if (saveButton) {
+  saveButton.addEventListener('click', function() {
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = 'whiteboard-' + new Date().toISOString().slice(0, 10) + '.png';
+    link.href = dataURL;
+    link.click();
+  });
+}
+}
+
+// Helper function for avatar colors
+function getAvatarColorClass(username) {
+const gradients = [
+  'bg-gradient-to-r from-pink-400 to-purple-500',
+  'bg-gradient-to-r from-blue-400 to-indigo-500',
+  'bg-gradient-to-r from-green-400 to-teal-500',
+  'bg-gradient-to-r from-purple-400 to-indigo-500',
+  'bg-gradient-to-r from-yellow-400 to-orange-500',
+  'bg-gradient-to-r from-red-400 to-pink-500'
+];
+
+// Simple hash function for username
+let hash = 0;
+for (let i = 0; i < username.length; i++) {
+  hash = username.charCodeAt(i) + ((hash << 5) - hash);
+}
+
+return gradients[Math.abs(hash) % gradients.length];
+}
+});
+
+// Modal animations
+document.addEventListener('DOMContentLoaded', function() {
+// Add CSS to style modal open/close animations
+const style = document.createElement('style');
+style.textContent = `
+.modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  transform: scale(0.95);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.modal.open .modal-content {
+  transform: scale(1);
+  opacity: 1;
+}
+`;
+document.head.appendChild(style);
+
+// Meetup creation form handling
+const meetupForm = document.getElementById('meetup-form');
+if (meetupForm) {
+meetupForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const title = document.getElementById('meetup-title').value;
+  const datetime = document.getElementById('meetup-datetime').value;
+  const location = document.getElementById('meetup-location').value;
+
+  if (title && datetime && location) {
+    // Here you would typically send to server
+    // For demo, just show notification
+    showNotification(`Meetup "${title}" created successfully!`);
+
+    // Close modal
+    const meetupModal = document.getElementById('meetup-modal');
+    if (meetupModal) {
+      meetupModal.classList.remove('open');
+    }
+
+    // Reset form
+    this.reset();
+  }
+});
+}
+});
+</script>
 </body>
 </html>
