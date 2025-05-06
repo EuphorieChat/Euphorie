@@ -3322,5 +3322,279 @@
     }
     });
     </script>
+
+
+<script>
+    // Fix for messaging
+    document.addEventListener("DOMContentLoaded", function() {
+        let chatSocket;
+        let reconnectAttempt = 0;
+        const maxReconnectAttempts = 5;
+        const reconnectDelay = 2000; // Start with 2 seconds
+
+        function connectWebSocket() {
+          const roomName = "{{ room_name|escapejs }}";
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          chatSocket = new WebSocket(
+            `${protocol}//${window.location.host}/ws/chat/${roomName}/`
+          );
+
+          chatSocket.onopen = function(e) {
+            console.log("WebSocket connection established");
+            reconnectAttempt = 0; // Reset reconnect counter on successful connection
+
+            // Show a reconnection notification if this wasn't the first attempt
+            if (reconnectAttempt > 0) {
+              showNotification("Reconnected to chat");
+            }
+          };
+
+          chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+
+            // Handle different message types
+            if (data.type === 'chat_message') {
+              addMessage(data.message, data.username, data.message_id);
+            } else if (data.type === 'user_list') {
+              updateUserList(data.users);
+            } else if (data.type === 'typing') {
+              showTypingIndicator(data.username);
+            } else if (data.type === 'reaction') {
+              updateReactions(data.message_id, data.emoji, data.count, data.username);
+            }
+          };
+
+          chatSocket.onclose = function(e) {
+            console.warn("WebSocket connection closed unexpectedly");
+
+            // Only attempt to reconnect if we haven't exceeded the maximum attempts
+            if (reconnectAttempt < maxReconnectAttempts) {
+              reconnectAttempt++;
+              const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
+
+              showNotification("Connection lost. Reconnecting...");
+
+              console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
+              setTimeout(connectWebSocket, timeout);
+            } else {
+              showNotification("Could not reconnect. Please refresh the page.");
+            }
+          };
+
+          chatSocket.onerror = function(e) {
+            console.error("WebSocket error:", e);
+          };
+
+          // Store socket in global scope for other functions to use
+          window.chatSocket = chatSocket;
+        }
+
+        // Initial connection
+        connectWebSocket();
+
+        // Handle message sending (text-only messages)
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('chat-message-input');
+        const fileInput = document.getElementById('file-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        if (messageForm) {
+          messageForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const message = messageInput.value.trim();
+            const files = fileInput.files;
+
+            // If there are files attached, upload them
+            if (files && files.length > 0) {
+              try {
+                // Disable send button during upload
+                if (sendBtn) {
+                  sendBtn.disabled = true;
+                  sendBtn.classList.add('opacity-50');
+                }
+
+                const fileUrls = await uploadFilesAndSend(files);
+
+                // Send message with file URLs
+                if (chatSocket.readyState === WebSocket.OPEN) {
+                  chatSocket.send(JSON.stringify({
+                    'type': 'chat_message',
+                    'message': message,
+                    'file_urls': fileUrls
+                  }));
+
+                  // Clear input and preview
+                  messageInput.value = '';
+                  fileInput.value = '';
+                  document.getElementById('preview').classList.add('hidden');
+                } else {
+                  showNotification("Not connected. Message couldn't be sent.");
+                }
+              } catch (error) {
+                showNotification('Error uploading files: ' + error.message);
+              } finally {
+                // Re-enable send button
+                if (sendBtn) {
+                  sendBtn.disabled = false;
+                  sendBtn.classList.remove('opacity-50');
+                }
+              }
+            } else if (message) {
+              // Just send a regular text message
+              if (chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({
+                  'type': 'chat_message',
+                  'message': message
+                }));
+                messageInput.value = '';
+              } else {
+                showNotification("Not connected. Message couldn't be sent.");
+              }
+            }
+          });
+        }
+
+        // Handle typing notification
+        if (messageInput) {
+          let typingTimeout;
+
+          messageInput.addEventListener('input', function() {
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+              // Only send typing event if we haven't sent one recently
+              clearTimeout(typingTimeout);
+
+              chatSocket.send(JSON.stringify({
+                'type': 'typing',
+                'username': window.username
+              }));
+
+              // Set a timeout to prevent sending too many typing events
+              typingTimeout = setTimeout(() => {}, 2000);
+            }
+          });
+        }
+      });
+
+      // Make sure this function exists
+      async function uploadFilesAndSend(files) {
+        const formData = new FormData();
+
+        // Add files to the form data
+        for (let i = 0; i < files.length; i++) {
+          formData.append('files', files[i]);
+        }
+
+        // Add room name to the form data
+        formData.append('room_name', window.roomName);
+
+        // Add CSRF token
+        const csrfToken = getCsrfToken();
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        try {
+          // Show progress indicator
+          const progressBar = document.getElementById('progress-bar');
+          const progressContainer = document.getElementById('progress-container');
+          progressContainer.classList.remove('hidden');
+
+          // Use XMLHttpRequest for upload progress
+          return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', (e) => {
+              if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressBar.style.width = percentComplete + '%';
+              }
+            });
+
+            xhr.onreadystatechange = function() {
+              if (xhr.readyState === 4) {
+                progressContainer.classList.add('hidden');
+
+                if (xhr.status === 200) {
+                  try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                      resolve(data.file_urls);
+                    } else {
+                      reject(new Error(data.error || 'Unknown error'));
+                    }
+                  } catch (e) {
+                    reject(new Error('Invalid response from server'));
+                  }
+                } else {
+                  reject(new Error('Server responded with status: ' + xhr.status));
+                }
+              }
+            };
+
+            xhr.open('POST', '/api/upload_media/', true);
+            xhr.send(formData);
+          });
+        } catch (error) {
+          console.error('Error uploading files:', error);
+          showNotification('Failed to upload files: ' + error.message);
+          throw error;
+        }
+      }
+
+      // Make sure these utility functions exist
+      function getCsrfToken() {
+        const name = 'csrftoken=';
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const cookieArray = decodedCookie.split(';');
+
+        for (let i = 0; i < cookieArray.length; i++) {
+          let cookie = cookieArray[i].trim();
+          if (cookie.indexOf(name) === 0) {
+            return cookie.substring(name.length, cookie.length);
+          }
+        }
+
+        // If not found in cookies, try to find it in a meta tag
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+          return csrfMeta.getAttribute('content');
+        }
+
+        // Last resort - look for hidden input field
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (csrfInput) {
+          return csrfInput.value;
+        }
+
+        return '';
+      }
+
+      function showNotification(message) {
+        const toast = document.getElementById('notification-toast');
+        const messageEl = document.getElementById('notification-message');
+
+        if (toast && messageEl) {
+          messageEl.textContent = message;
+
+          // Show the toast
+          toast.classList.remove('hidden');
+
+          // Remove any existing animations
+          toast.style.animation = 'none';
+
+          // Force reflow
+          void toast.offsetWidth;
+
+          // Add animations back
+          toast.style.animation = 'toastIn 0.3s forwards, toastOut 0.3s forwards 3s';
+
+          // Hide the toast after animation completes
+          setTimeout(() => {
+            toast.classList.add('hidden');
+          }, 3300);
+        }
+      }
+</script>
+
+
 </body>
 </html>
