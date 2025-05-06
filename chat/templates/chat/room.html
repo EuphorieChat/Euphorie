@@ -1599,102 +1599,6 @@
   </script>
 
   <script>
-    // Function to check if already friends with user
-    async function checkFriendStatus(otherUser) {
-      try {
-        const response = await fetch(`/api/check_friend_status/?other_user=${otherUser}`);
-        const data = await response.json();
-
-        if (data.success) {
-          return data.status; // 'friends', 'pending_sent', 'pending_received', or 'none'
-        } else {
-          console.error('Error checking friend status:', data.error);
-          return 'none';
-        }
-      } catch (error) {
-        console.error('Error checking friend status:', error);
-        return 'none';
-      }
-    }
-
-    // Function to send friend request
-    function sendFriendRequest(otherUser) {
-      // Get CSRF token
-      const csrfToken = getCsrfToken();
-
-      fetch('/api/friend_request/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-          receiver_username: otherUser
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showNotification(`Friend request sent to ${otherUser}`);
-
-          // Find and update the button
-          document.querySelectorAll('.friend-btn').forEach(btn => {
-            if (btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
-              btn.className = 'friend-btn friend-btn-pending request-sent';
-              btn.textContent = 'Pending';
-              btn.onclick = null;
-            }
-          });
-        } else {
-          showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
-        }
-      })
-      .catch(error => {
-        console.error('Error sending friend request:', error);
-        showNotification('An error occurred while sending friend request');
-      });
-    }
-
-    // Accept friend request function
-    function acceptFriendRequest(otherUser) {
-      // Get CSRF token
-      const csrfToken = getCsrfToken();
-
-      fetch('/api/accept_friend_request/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-          sender_username: otherUser
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showNotification(`You are now friends with ${otherUser}`);
-
-          // Find and update the button
-          document.querySelectorAll('.friend-btn').forEach(btn => {
-            if (btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
-              btn.className = 'friend-btn friend-btn-friends request-sent';
-              btn.textContent = 'Friends';
-              btn.onclick = null;
-            }
-          });
-        } else {
-          showNotification('Failed to accept friend request: ' + (data.error || 'Unknown error'));
-        }
-      })
-      .catch(error => {
-        console.error('Error accepting friend request:', error);
-        showNotification('An error occurred while accepting friend request');
-      });
-    }
-  </script>
-
-  <script>
     document.addEventListener("DOMContentLoaded", function() {
       // Store reference to the original updateUserList function
       const originalUpdateUserList = window.updateUserList || function() {};
@@ -1736,39 +1640,114 @@
             li.appendChild(actionsContainer);
           }
 
-          // Check friend status and add appropriate button
-          checkFriendStatus(username)
-            .then(status => {
-              // Create button based on status
-              const friendBtn = document.createElement('button');
+          // Create Add Friend button
+          const friendBtn = document.createElement('button');
+          friendBtn.className = 'friend-btn friend-btn-add';
+          friendBtn.textContent = 'Add Friend';
+          friendBtn.onclick = () => sendFriendRequest(username);
 
-              if (status === 'friends') {
-                friendBtn.className = 'friend-btn friend-btn-friends';
-                friendBtn.textContent = 'Friends';
-              } else if (status === 'pending_sent') {
-                friendBtn.className = 'friend-btn friend-btn-pending';
-                friendBtn.textContent = 'Pending';
-              } else if (status === 'pending_received') {
-                friendBtn.className = 'friend-btn friend-btn-add';
-                friendBtn.textContent = 'Accept';
-                friendBtn.onclick = () => acceptFriendRequest(username);
-              } else {
-                // Not friends yet, show add button
-                friendBtn.className = 'friend-btn friend-btn-add';
-                friendBtn.textContent = 'Add Friend';
-                friendBtn.onclick = () => sendFriendRequest(username);
-              }
-
-              // Insert before any existing actions
-              actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
-            })
-            .catch(err => {
-              console.error("Error checking friend status:", err);
-            });
+          // Insert before any existing actions
+          actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
         });
       };
+
+      // Function to send friend request
+      window.sendFriendRequest = function(otherUser) {
+        // Get CSRF token
+        const csrfToken = getCsrfToken();
+
+        fetch('/api/friend_request/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({
+            receiver_username: otherUser
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showNotification(`Friend request sent to ${otherUser}`);
+
+            // Find and update the button
+            document.querySelectorAll('.friend-btn').forEach(btn => {
+              if (btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
+                btn.className = 'friend-btn friend-btn-pending request-sent';
+                btn.textContent = 'Pending';
+                btn.onclick = null;
+              }
+            });
+          } else {
+            showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Error sending friend request:', error);
+          showNotification('An error occurred while sending friend request');
+        });
+      };
+
+      // Helper function for CSRF token
+      function getCsrfToken() {
+        const name = 'csrftoken=';
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const cookieArray = decodedCookie.split(';');
+
+        for (let i = 0; i < cookieArray.length; i++) {
+          let cookie = cookieArray[i].trim();
+          if (cookie.indexOf(name) === 0) {
+            return cookie.substring(name.length, cookie.length);
+          }
+        }
+
+        // If not found in cookies, try to find it in a meta tag
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+          return csrfMeta.getAttribute('content');
+        }
+
+        // Last resort - look for hidden input field
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (csrfInput) {
+          return csrfInput.value;
+        }
+
+        return '';
+      }
+
+      // Show notification function (if not already defined)
+      if (!window.showNotification) {
+        window.showNotification = function(message) {
+          let notificationToast = document.getElementById('notification-toast');
+          let notificationMessage = document.getElementById('notification-message');
+
+          // If the notification elements don't exist, create them
+          if (!notificationToast) {
+            notificationToast = document.createElement('div');
+            notificationToast.id = 'notification-toast';
+            notificationToast.className = 'notification-toast hidden';
+            document.body.appendChild(notificationToast);
+
+            notificationMessage = document.createElement('span');
+            notificationMessage.id = 'notification-message';
+            notificationToast.appendChild(notificationMessage);
+          }
+
+          // Display the notification
+          notificationMessage.textContent = message;
+          notificationToast.classList.remove('hidden');
+
+          // Hide it after a delay
+          setTimeout(function() {
+            notificationToast.classList.add('hidden');
+          }, 3000);
+        };
+      }
     });
   </script>
+
 
 </body>
 </html>
