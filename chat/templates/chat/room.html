@@ -2,7 +2,6 @@
 <html lang="en">
 {% load static %}
 {% load chat_extras %}
-{% load avatar_tags %}
 <head>
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
@@ -927,12 +926,9 @@
       <div class="flex items-center gap-3">
         {% if user.is_authenticated %}
         <div id="user-profile-toggle" class="flex items-center bg-gray-50 hover:bg-gray-100 rounded-full px-3 py-1.5 cursor-pointer transition-all">
-            {% with avatar_data=user.profile.profile_picture_data|parse_avatar_data %}
-            <div class="avatar {{ avatar_data|get_avatar_class }} h-7 w-7 text-sm mr-2 user-avatar"
-                 style="{{ avatar_data|get_avatar_style }}">
-                {{ avatar_data.initials|default:username|slice:":1"|upper }}
-            </div>
-            {% endwith %}
+          <div class="avatar avatar-pink h-7 w-7 text-sm mr-2 user-avatar">
+            {{ username|slice:":1"|upper }}
+          </div>
           <span class="text-sm font-medium">{{ username }}</span>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -1011,13 +1007,10 @@
           <div id="chat-log" class="chat-container hide-scrollbar bg-gray-50">
             {% for message in messages %}
             <div class="flex items-start gap-2 group" data-message-id="{{ message.id }}">
-                <!-- Avatar -->
-                {% with avatar_data=message.user.profile.profile_picture_data|parse_avatar_data %}
-                    <div class="avatar {{ avatar_data|get_avatar_class }} h-8 w-8 flex-shrink-0 text-sm user-avatar"
-                        style="{{ avatar_data|get_avatar_style }}">
-                        {{ avatar_data.initials|default:message.user.username|slice:":1"|upper }}
-                    </div>
-                {% endwith %}
+              <!-- Avatar -->
+              <div class="avatar avatar-{% if message.user.username == username %}pink{% else %}orange{% endif %} h-8 w-8 flex-shrink-0 text-sm user-avatar">
+                {{ message.user.username|slice:":1"|upper }}
+              </div>
 
               <!-- Message content -->
               <div class="flex-1">
@@ -1342,12 +1335,9 @@
 <!-- Profile Menu -->
 <div id="profile-menu" class="profile-menu">
 <div class="flex items-center p-3 border-b border-gray-100 mb-2">
-    {% with avatar_data=user.profile.profile_picture_data|parse_avatar_data %}
-    <div class="avatar {{ avatar_data|get_avatar_class }} h-10 w-10 mr-3"
-         style="{{ avatar_data|get_avatar_style }}">
-        {{ avatar_data.initials|default:username|slice:":1"|upper }}
-    </div>
-    {% endwith %}
+  <div class="avatar avatar-pink h-10 w-10 mr-3">
+    {{ username|slice:":1"|upper }}
+  </div>
   <div>
     <p class="font-medium text-gray-800">{{ username }}</p>
     <p class="text-xs text-gray-500">{{ user.email }}</p>
@@ -1690,100 +1680,13 @@ window.addMessage = function(message, username, messageId) {
   messageElement.className = 'flex items-start gap-2 group';
   messageElement.setAttribute('data-message-id', messageId);
 
-        // Create avatar based on user's profile data (for animated avatars)
-        const avatarElement = document.createElement('div');
+  // Create avatar with random color if not current user
+  const avatarClass = isCurrentUser ? 'avatar-pink' : getRandomAvatarClass(username);
 
-        // Default class and style if no profile data is available
-        let avatarClass = isCurrentUser ? 'avatar-pink' : getRandomAvatarClass(username);
-        let avatarStyle = '';
-
-        // Try to fetch user profile data
-        fetch(`/api/profile/${username}/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.profile_picture) {
-                    const avatarData = data.profile_picture;
-
-                    // Get the appropriate class based on avatar type
-                    if (avatarData.type === 'gradient') {
-                        avatarClass = `avatar-gradient avatar-gradient-${avatarData.animation_type || 'slide'}`;
-
-                        // Set styles for gradient
-                        if (avatarData.colors && avatarData.colors.length >= 2) {
-                            avatarStyle = `background: linear-gradient(135deg, var(--${avatarData.colors[0]}), var(--${avatarData.colors[1]})); `;
-                        }
-                        if (avatarData.animation_duration) {
-                            avatarStyle += `--animation-duration: ${avatarData.animation_duration};`;
-                        }
-                    } else if (avatarData.type === 'pulse') {
-                        avatarClass = 'avatar-pulse';
-
-                        if (avatarData.background) {
-                            avatarStyle = `background-color: var(--${avatarData.background}); `;
-                        }
-                        if (avatarData.animation_duration) {
-                            avatarStyle += `--animation-duration: ${avatarData.animation_duration};`;
-                        }
-                    } else if (avatarData.type === 'spinner') {
-                        avatarClass = 'avatar-spinner';
-
-                        if (avatarData.background) {
-                            avatarStyle = `background-color: var(--${avatarData.background}); `;
-                        }
-                        if (avatarData.spinner_color) {
-                            avatarStyle += `--spinner-color: var(--${avatarData.spinner_color}); `;
-                        }
-                        if (avatarData.animation_duration) {
-                            avatarStyle += `--animation-duration: ${avatarData.animation_duration};`;
-                        }
-                    } else if (avatarData.type === 'border') {
-                        avatarClass = 'avatar-border';
-
-                        if (avatarData.background) {
-                            avatarStyle = `background-color: var(--${avatarData.background}); `;
-                        }
-                        if (avatarData.border_color) {
-                            avatarStyle += `--border-color: var(--${avatarData.border_color}); `;
-                        }
-                        if (avatarData.border_width) {
-                            avatarStyle += `--border-width: ${avatarData.border_width}; `;
-                        }
-                        if (avatarData.animation_duration) {
-                            avatarStyle += `--animation-duration: ${avatarData.animation_duration};`;
-                        }
-                    } else if (avatarData.type === 'shine') {
-                        avatarClass = 'avatar-shine';
-
-                        if (avatarData.background) {
-                            avatarStyle = `background-color: var(--${avatarData.background}); `;
-                        }
-                        if (avatarData.animation_duration) {
-                            avatarStyle += `--animation-duration: ${avatarData.animation_duration};`;
-                        }
-                    }
-
-                    // Update the avatar with the correct classes and style
-                    avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
-                    avatarElement.style = avatarStyle;
-
-                    // Set the initials
-                    avatarElement.textContent = avatarData.initials || username.slice(0, 1).toUpperCase();
-                } else {
-                    // Fallback if avatar data couldn't be loaded
-                    avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
-                    avatarElement.textContent = username.slice(0, 1).toUpperCase();
-                }
-            })
-            .catch(error => {
-                // If fetch fails, use default avatar
-                console.error('Error fetching avatar data:', error);
-                avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
-                avatarElement.textContent = username.slice(0, 1).toUpperCase();
-            });
-
-        // Set initial avatar while waiting for fetch
-        avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
-        avatarElement.textContent = username.slice(0, 1).toUpperCase();
+  // Create avatar
+  const avatarElement = document.createElement('div');
+  avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
+  avatarElement.textContent = username.slice(0, 1).toUpperCase();
 
   // Create message content container
   const contentContainer = document.createElement('div');
