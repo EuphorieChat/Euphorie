@@ -390,25 +390,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             elif message_type == 'recommendations':
                 action = text_data_json.get('action', '')
-                include_bookmarks = text_data_json.get('include_bookmarks', False)
 
                 if action == 'get':
-                    # Get room recommendations - use your existing method
-                    recommendations_qs = await database_sync_to_async(get_room_recommendations)(self.user)
-                    recommendations = await self.get_room_data_list(recommendations_qs)
+                    # Get room recommendations
+                    recommendations = []
+                    if self.is_authenticated:
+                        recommendations_qs = await database_sync_to_async(get_room_recommendations)(self.user)
+                        recommendations = await self.get_room_data_list(recommendations_qs)
 
-                    # Get bookmarked rooms if requested
-                    bookmarked_rooms = []
-                    if include_bookmarks and self.is_authenticated:
-                        # Get room bookmarks directly in this method
-                        bookmarked_rooms = await database_sync_to_async(self._get_bookmarked_rooms)()
-
-                    # Send response directly
+                    # Send response
                     await self.send(json.dumps({
                         'type': 'recommendations',
                         'action': 'list',
-                        'rooms': recommendations,
-                        'bookmarked_rooms': bookmarked_rooms
+                        'rooms': recommendations
                     }))
 
         except json.JSONDecodeError:
@@ -853,3 +847,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             logger.error(f"Error creating room data list: {str(e)}")
             return []
+
