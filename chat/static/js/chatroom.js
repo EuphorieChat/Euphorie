@@ -184,6 +184,7 @@ document.addEventListener("DOMContentLoaded", function () {
     initMobileUserList();
     initAnnouncementHandlers();
     initMediaLibrary();
+    initializeBookmarkButton();
 
     // Initialize message reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
@@ -1993,9 +1994,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Call initialization when the page loads
-    document.addEventListener('DOMContentLoaded', function() {
         // Initialize bookmark button if it exists
         initializeBookmarkButton();
-    });
 });
