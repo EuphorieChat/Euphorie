@@ -927,45 +927,54 @@
       }
 
       // Room Categories functionality with improved trending support
-      const categoryButtons = document.querySelectorAll('.category-btn');
+      function initCategoryButtons() {
+        const categoryButtons = document.querySelectorAll('.category-btn');
 
-      if (categoryButtons.length > 0) {
-        categoryButtons.forEach(button => {
-          button.addEventListener('click', function() {
-            // Update active button styling
-            categoryButtons.forEach(btn => {
-              btn.classList.remove('active', 'bg-pink-500', 'text-white', 'shadow-md');
-              btn.classList.add('bg-gray-50', 'text-gray-600');
+        if (categoryButtons.length > 0) {
+          categoryButtons.forEach(button => {
+            // Remove any existing event listeners to prevent duplicates
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+
+            newButton.addEventListener('click', function() {
+              // Update active button styling
+              document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-pink-500', 'text-white', 'shadow-md');
+                btn.classList.add('bg-gray-50', 'text-gray-600');
+              });
+
+              this.classList.remove('bg-gray-50', 'text-gray-600');
+              this.classList.add('active', 'bg-pink-500', 'text-white', 'shadow-md');
+
+              const selectedCategory = this.getAttribute('data-category');
+              console.log('Selected category:', selectedCategory);
+
+              // Special handling for trending
+              if (selectedCategory === 'trending') {
+                // If trending is selected, we'll fetch trending rooms from the server
+                fetchTrendingRooms();
+              } else {
+                // For all other categories, use client-side filtering
+                filterRoomsByCategory(selectedCategory);
+              }
+
+              // Update current category for load more functionality
+              currentCategory = selectedCategory;
+
+              // Reset load more button if visible
+              if (loadMoreBtn) {
+                loadMoreBtn.setAttribute('data-page', '2');
+                loadMoreBtn.setAttribute('data-category', selectedCategory);
+                loadMoreBtn.innerHTML = 'Load More Rooms';
+                loadMoreBtn.disabled = false;
+              }
             });
-
-            this.classList.remove('bg-gray-50', 'text-gray-600');
-            this.classList.add('active', 'bg-pink-500', 'text-white', 'shadow-md');
-
-            const selectedCategory = this.getAttribute('data-category');
-            console.log('Selected category:', selectedCategory);
-
-            // Special handling for trending
-            if (selectedCategory === 'trending') {
-              // If trending is selected, we'll fetch trending rooms from the server
-              fetchTrendingRooms();
-            } else {
-              // For all other categories, use client-side filtering
-              filterRoomsByCategory(selectedCategory);
-            }
-
-            // Update current category for load more functionality
-            currentCategory = selectedCategory;
-
-            // Reset load more button if visible
-            if (loadMoreBtn) {
-              loadMoreBtn.setAttribute('data-page', '2');
-              loadMoreBtn.setAttribute('data-category', selectedCategory);
-              loadMoreBtn.innerHTML = 'Load More Rooms';
-              loadMoreBtn.disabled = false;
-            }
           });
-        });
+        }
       }
+
+      // Initialize category buttons
+      initCategoryButtons();
 
       // Filter rooms by category (client-side)
       function filterRoomsByCategory(category) {
@@ -1176,6 +1185,11 @@
                   loadMoreContainer.classList.add('hidden');
                 }
               }
+
+              // Reinitialize category buttons to fix the bug with trending
+              setTimeout(() => {
+                initCategoryButtons();
+              }, 200);
             } else {
               // No trending rooms found - animated empty state
               roomsContainer.innerHTML = `
@@ -1199,7 +1213,7 @@
               }
             }
           })
-          .catch(error => {
+                      .catch(error => {
             console.error('Error fetching trending rooms:', error);
             roomsContainer.innerHTML = `
               <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100 opacity-0 transform translate-y-4" style="animation: fadeInUp 0.5s forwards 0.2s;">
@@ -1215,6 +1229,11 @@
                 </button>
               </div>
             `;
+
+            // Reinitialize category buttons to fix the bug with trending
+            setTimeout(() => {
+              initCategoryButtons();
+            }, 200);
           });
       }
 
