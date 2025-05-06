@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 from django.db.models import Count
 import json
-from .models import Room, RoomBookmark
+from .models import Room, RoomBookmark, UserProfile
 
 from django.contrib.auth.models import User
 from .models import UserRelationship, Room, Message, Category
@@ -299,3 +299,36 @@ def get_recommendations(request):
             'error': str(e),
             'traceback': traceback.format_exc()
         }, status=500)
+
+@login_required
+@require_POST
+def update_profile_picture(request):
+    try:
+        if 'profile_picture' in request.FILES:
+            # Handle file upload
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.avatar = request.FILES['profile_picture']
+            profile.save()
+
+            return JsonResponse({
+                'success': True,
+                'image_url': profile.avatar.url
+            })
+        else:
+            # Handle JSON profile data
+            data = json.loads(request.body)
+            profile_picture = data.get('profile_picture', {})
+
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.profile_picture_data = json.dumps(profile_picture)
+            profile.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Profile updated successfully'
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)

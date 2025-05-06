@@ -941,6 +941,18 @@ def get_user_profile(request, username):
         user = User.objects.get(username=username)
         profile, created = UserProfile.objects.get_or_create(user=user)
 
+        # Check for uploaded avatar first
+        if profile.avatar and profile.avatar.url:
+            return JsonResponse({
+                'success': True,
+                'username': username,
+                'profile_picture': {
+                    'type': 'image',
+                    'url': profile.avatar.url
+                }
+            })
+
+        # Fall back to profile_picture_data for gradient/other types
         profile_data = {}
         if profile.profile_picture_data:
             try:
@@ -951,9 +963,27 @@ def get_user_profile(request, username):
                     'gradient': 'from-pink-400 to-orange-300'
                 }
         else:
+            # Default gradient based on username hash
+            colors = [
+                'from-pink-400 to-purple-500',
+                'from-blue-400 to-indigo-500',
+                'from-green-400 to-teal-500',
+                'from-orange-400 to-pink-400',
+                'from-yellow-400 to-orange-400',
+                'from-red-400 to-pink-400',
+                'from-cyan-400 to-blue-400',
+                'from-emerald-400 to-green-500'
+            ]
+
+            # Simple hash function for username
+            hash_value = 0
+            for char in username:
+                hash_value = ord(char) + ((hash_value << 5) - hash_value)
+
+            gradient = colors[abs(hash_value) % len(colors)]
             profile_data = {
                 'type': 'gradient',
-                'gradient': 'from-pink-400 to-orange-300'
+                'gradient': gradient
             }
 
         return JsonResponse({
@@ -971,3 +1001,39 @@ def get_user_profile(request, username):
             'success': False,
             'error': str(e)
         }, status=400)
+
+@login_required
+@require_POST
+def update_profile_picture(request):
+    try:
+        if 'profile_picture' in request.FILES:
+            # Handle file upload
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.avatar = request.FILES['profile_picture']
+            profile.save()
+
+            return JsonResponse({
+                'success': True,
+                'image_url': profile.avatar.url
+            })
+        else:
+            # Handle JSON profile data (for gradient profiles, etc.)
+            data = json.loads(request.body)
+            profile_picture = data.get('profile_picture', {})
+
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.profile_picture_data = json.dumps(profile_picture)
+            profile.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Profile updated successfully',
+                'profile_data': profile_picture
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+

@@ -967,3 +967,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             logger.error(f"Error getting bookmarked rooms: {str(e)}")
             return []
+
+    async def profile_picture_update(self, event):
+        """
+        Send profile picture update notification to clients
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'profile_picture_update',
+            'username': event['username']
+        }))
