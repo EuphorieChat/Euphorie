@@ -2,7 +2,6 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views, admin_views, api_views
 from .admin_views import admin_create_room, admin_user_settings
-from chat import api_views
 
 urlpatterns = [
     # Core views from first urls.py (priority)
@@ -79,5 +78,4 @@ urlpatterns = [
     path('api/get_bookmarked_rooms/', views.get_bookmarked_rooms, name='get_bookmarked_rooms'),
     path('api/toggle_bookmark_room/', views.toggle_bookmark_room, name='toggle_bookmark_room'),
     path('api/get_recommendations/', api_views.get_recommendations, name='get_recommendations'),
-
 ]
