@@ -203,8 +203,6 @@ document.addEventListener("DOMContentLoaded", function () {
         requestUserList();
     }, 1000);
 
-
-
     // Message form setup
     if (messageForm) {
         messageForm.addEventListener("submit", function (event) {
@@ -227,6 +225,15 @@ document.addEventListener("DOMContentLoaded", function () {
     initMobileUserList();
     initAnnouncementHandlers(); // Initialize announcement handlers
     initMediaLibrary(); // Initialize media library immediately
+
+
+    // To remove a stupid plug icon that is for websocket debugging
+    document.addEventListener("DOMContentLoaded", () => {
+        const panel = document.getElementById("ws-debug-panel");
+        if (panel) {
+            panel.remove();
+        }
+    });
 
     // Initialize all message bubbles with reaction listeners
     document.querySelectorAll(".message-bubble").forEach(addReactionListeners);
