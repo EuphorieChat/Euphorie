@@ -1484,13 +1484,12 @@
       }
     });
 
-    // Initialize the bookmark button
     function initializeBookmarkButton() {
       const bookmarkBtn = document.getElementById('bookmark-room');
 
       if (!bookmarkBtn) {
-        console.error("Bookmark button not found");
-        return;
+          console.error("Bookmark button not found");
+          return;
       }
 
       console.log("Initializing bookmark button");
@@ -1503,46 +1502,51 @@
 
       // Add click event listener
       bookmarkBtn.addEventListener('click', function() {
-        console.log("Bookmark button clicked");
-        // Toggle bookmarked state
-        const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
+          console.log("Bookmark button clicked");
+          // Toggle bookmarked state
+          const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
 
-        // Get CSRF token
-        const csrfToken = getCsrfToken();
+          // Get CSRF token
+          const csrfToken = getCsrfToken();
 
-        // Send bookmark request to server
-        fetch('/api/toggle_bookmark_room/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-          },
-          body: JSON.stringify({
-            room_name: window.roomName,
-            bookmarked: newState
+          // Send bookmark request to server
+          fetch('/api/toggle_bookmark_room/', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrfToken
+              },
+              body: JSON.stringify({
+                  room_name: window.roomName,
+                  bookmarked: newState
+              })
           })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // Store bookmark state in localStorage
-            localStorage.setItem(`bookmarked_${window.roomName}`, newState);
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  // Store bookmark state in localStorage
+                  localStorage.setItem(`bookmarked_${window.roomName}`, newState);
 
-            // Update button appearance
-            updateBookmarkButton(newState);
+                  // Update button appearance
+                  updateBookmarkButton(newState);
 
-            // Show notification
-            showNotification(newState ? 'Room bookmarked!' : 'Room bookmark removed');
-          } else {
-            showNotification('Failed to update bookmark: ' + (data.error || 'Unknown error'));
-          }
-        })
-        .catch(error => {
-          console.error('Error toggling room bookmark:', error);
-          showNotification('An error occurred while updating bookmark');
-        });
+                  // Show notification
+                  showNotification(newState ? 'Room bookmarked!' : 'Room bookmark removed');
+
+                  // Update recommendations to reflect the new bookmark state
+                  // This ensures the bookmarked rooms section updates immediately
+                  requestRoomRecommendations();
+              } else {
+                  showNotification('Failed to update bookmark: ' + (data.error || 'Unknown error'));
+              }
+          })
+          .catch(error => {
+              console.error('Error toggling room bookmark:', error);
+              showNotification('An error occurred while updating bookmark');
+          });
       });
     }
+
 
     // Function to update bookmark button appearance
     function updateBookmarkButton(isBookmarked) {
@@ -1550,21 +1554,23 @@
       if (!bookmarkBtn) return;
 
       if (isBookmarked) {
-        // Bookmarked state - filled icon
-        bookmarkBtn.classList.add('active');
-        bookmarkBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
-        `;
+          // Bookmarked state - filled icon
+          bookmarkBtn.classList.add('active');
+          bookmarkBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+          `;
+          bookmarkBtn.setAttribute('title', 'Remove bookmark');
       } else {
-        // Not bookmarked state - outlined icon
-        bookmarkBtn.classList.remove('active');
-        bookmarkBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
-        `;
+          // Not bookmarked state - outlined icon
+          bookmarkBtn.classList.remove('active');
+          bookmarkBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+          `;
+          bookmarkBtn.setAttribute('title', 'Bookmark this room');
       }
     }
 

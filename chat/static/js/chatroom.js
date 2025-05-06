@@ -1876,10 +1876,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // Request room recommendations from the server
     function requestRoomRecommendations() {
         if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-            console.log("Requesting room recommendations");
+            console.log("Requesting room recommendations including bookmarks");
             window.socket.send(JSON.stringify({
                 type: 'recommendations',
-                action: 'get'
+                action: 'get',
+                include_bookmarks: true // Added flag to request bookmarked rooms
             }));
         } else {
             console.warn("WebSocket not connected - cannot request room recommendations");
@@ -1898,9 +1899,15 @@ document.addEventListener("DOMContentLoaded", function () {
     function handleRecommendationsMessage(data) {
         console.log("Got recommendations message:", data);
         if (data.action === 'list') {
-            renderRoomRecommendations(data.rooms || []);
+            // Extract bookmarked rooms and regular recommendations
+            const bookmarkedRooms = data.bookmarked_rooms || [];
+            const recommendedRooms = data.rooms || [];
+
+            // Render with both sets of data
+            renderRoomRecommendations(recommendedRooms, bookmarkedRooms);
         }
     }
+
 
     // Render online friends list
     function renderOnlineFriends(friends) {
@@ -1956,80 +1963,106 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Render room recommendations list
-    function renderRoomRecommendations(rooms) {
+    // Helper function to render a single room item
+    function renderRoomItem(room, container, isBookmarked) {
+        const roomItem = document.createElement('div');
+        roomItem.className = 'p-2 hover:bg-gray-50 rounded-lg transition-colors room-card-interactive';
+
+        // Determine activity status
+        const activityClass = room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500';
+        const activityLabel = room.activity === 'high' ? 'Very active' : 'Active';
+
+        // Create bookmarked indicator if needed
+        const bookmarkIndicator = isBookmarked ? `
+            <span class="ml-1 text-pink-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+            </span>
+        ` : '';
+
+        roomItem.innerHTML = `
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
+                    ${room.display_name.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-1">
+                    <a href="/chat/${room.name}/" class="text-sm font-medium hover:text-pink-600 hover:underline">
+                        ${room.display_name}${bookmarkIndicator}
+                    </a>
+                    <div class="flex items-center text-xs text-gray-500">
+                        ${room.category ? `<span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
+                        <span>${room.message_count || 0} messages</span>
+                        <span class="ml-2 flex items-center">
+                            <span class="h-1.5 w-1.5 rounded-full mr-1 ${activityClass}"></span>
+                            ${activityLabel}
+                        </span>
+                    </div>
+                </div>
+                <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </a>
+            </div>
+        `;
+
+        container.appendChild(roomItem);
+    }
+
+    // Render room recommendations list - updated to show bookmarked rooms first
+    function renderRoomRecommendations(rooms, bookmarkedRooms = []) {
         const recommendedRoomsList = document.getElementById('recommended-rooms-list');
         if (!recommendedRoomsList) return;
 
-        // Generate dummy data for demo if we didn't get any recommendations
-        if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
-            // Create sample recommendations for demonstration
-            rooms = [
-                {
-                    name: 'tech-talk',
-                    display_name: 'Tech Talk',
-                    category: 'Technology',
-                    message_count: 128,
-                    activity: 'high',
-                    is_protected: false
-                },
-                {
-                    name: 'book-club',
-                    display_name: 'Book Club',
-                    category: 'Reading',
-                    message_count: 84,
-                    activity: 'medium',
-                    is_protected: false
-                }
-            ];
-        }
-
         recommendedRoomsList.innerHTML = '';
 
-        if (rooms.length === 0) {
-            recommendedRoomsList.innerHTML = `
-                <div class="text-gray-400 text-xs italic py-2">
-                    No recommendations available yet. Join more chat rooms!
-                </div>
-            `;
+        // First, render bookmarked rooms with a heading
+        if (bookmarkedRooms && bookmarkedRooms.length > 0) {
+            // Add a heading for bookmarked rooms
+            const bookmarksHeading = document.createElement('h4');
+            bookmarksHeading.className = 'text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 mb-2';
+            bookmarksHeading.textContent = 'Your Bookmarks';
+            recommendedRoomsList.appendChild(bookmarksHeading);
+
+            // Render each bookmarked room
+            bookmarkedRooms.forEach(room => {
+                renderRoomItem(room, recommendedRoomsList, true);
+            });
+
+            // Add a separator if we also have recommendations
+            if (rooms && rooms.length > 0) {
+                const separator = document.createElement('div');
+                separator.className = 'border-t border-gray-200 my-3';
+                recommendedRoomsList.appendChild(separator);
+
+                // Add a heading for recommended rooms
+                const recommendationsHeading = document.createElement('h4');
+                recommendationsHeading.className = 'text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 mb-2';
+                recommendationsHeading.textContent = 'Recommended For You';
+                recommendedRoomsList.appendChild(recommendationsHeading);
+            }
+        }
+
+        // Then render regular recommendations
+        if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
+            if (bookmarkedRooms.length === 0) {
+                // Only show this message if there are no bookmarks either
+                recommendedRoomsList.innerHTML = `
+                    <div class="text-gray-400 text-xs italic py-2">
+                        No recommendations available yet. Join more chat rooms or bookmark your favorites!
+                    </div>
+                `;
+            }
             return;
         }
 
+        // Render each recommended room
         rooms.forEach(room => {
-            const roomItem = document.createElement('div');
-            roomItem.className = 'p-2 hover:bg-gray-50 rounded-lg transition-colors';
-
-            // Determine activity status
-            const activityClass = room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500';
-            const activityLabel = room.activity === 'high' ? 'Very active' : 'Active';
-
-            roomItem.innerHTML = `
-                <div class="flex items-center">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-orange-300'} text-white flex items-center justify-center mr-2 font-medium text-xs">
-                        ${room.display_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="flex-1">
-                        <a href="/chat/${room.name}/" class="text-sm font-medium hover:text-pink-600 hover:underline">${room.display_name}</a>
-                        <div class="flex items-center text-xs text-gray-500">
-                            ${room.category ? `<span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
-                            <span>${room.message_count} messages</span>
-                            <span class="ml-2 flex items-center">
-                                <span class="h-1.5 w-1.5 rounded-full mr-1 ${activityClass}"></span>
-                                ${activityLabel}
-                            </span>
-                        </div>
-                    </div>
-                    <a href="/chat/${room.name}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-gray-100 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </a>
-                </div>
-            `;
-
-            recommendedRoomsList.appendChild(roomItem);
+            renderRoomItem(room, recommendedRoomsList, false);
         });
     }
+
 
     // Send a friend request
     function sendFriendRequest(userId) {
