@@ -770,8 +770,8 @@ def friends_list(request):
 
     # For bookmarked rooms, use your existing query
     bookmarked_rooms = Room.objects.filter(
-        roombookmark__user=request.user,
-        roombookmark__is_bookmarked=True
+        bookmarks__user=request.user,
+        bookmarks__is_bookmarked=True
     )
 
     # Since there's no 'members' field, you need to find another way to get "joined" rooms
