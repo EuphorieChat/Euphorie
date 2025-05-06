@@ -1709,8 +1709,12 @@ window.addMessage = function(message, username, messageId) {
                         avatarClass = `avatar-gradient avatar-gradient-${avatarData.animation_type || 'slide'}`;
 
                         // Set styles for gradient
-                        if (avatarData.colors && avatarData.colors.length >= 2) {
-                            avatarStyle = `background: linear-gradient(135deg, var(--${avatarData.colors[0]}), var(--${avatarData.colors[1]})); `;
+                        if (avatarData.gradient) {
+                            // Handle gradient format (e.g., "from-pink-400 to-orange-300")
+                            const gradientParts = avatarData.gradient.split(' ');
+                            const fromColor = gradientParts[0].replace('from-', '');
+                            const toColor = gradientParts[1].replace('to-', '');
+                            avatarStyle = `background: linear-gradient(135deg, var(--${fromColor}), var(--${toColor})); `;
                         }
                         if (avatarData.animation_duration) {
                             avatarStyle += `--animation-duration: ${avatarData.animation_duration};`;
