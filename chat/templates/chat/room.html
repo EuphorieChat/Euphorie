@@ -657,6 +657,58 @@
       }
     }
   </style>
+
+  <style>
+    /* Friend request button styling */
+    .friend-btn {
+      opacity: 0;
+      transition: all 0.2s ease;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
+      margin-left: 4px;
+    }
+
+    /* Show friend button on hover */
+    .user-item:hover .friend-btn {
+      opacity: 1;
+    }
+
+    /* Friend button states */
+    .friend-btn-add {
+      background-color: #fce7f3;
+      color: #be185d;
+    }
+
+    .friend-btn-add:hover {
+      background-color: #fbcfe8;
+    }
+
+    .friend-btn-pending {
+      background-color: #e5e7eb;
+      color: #6b7280;
+      cursor: default;
+    }
+
+    .friend-btn-friends {
+      background-color: #d1fae5;
+      color: #047857;
+      cursor: default;
+    }
+
+    /* Animation for request sent */
+    @keyframes pulse-success {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .request-sent {
+      animation: pulse-success 0.5s ease;
+    }
+  </style>
+
 </head>
 <body class="bg-white min-h-screen flex flex-col text-gray-800">
 
@@ -1545,5 +1597,178 @@
     }
 
   </script>
+
+  <script>
+    // Function to check if already friends with user
+    async function checkFriendStatus(otherUser) {
+      try {
+        const response = await fetch(`/api/check_friend_status/?other_user=${otherUser}`);
+        const data = await response.json();
+
+        if (data.success) {
+          return data.status; // 'friends', 'pending_sent', 'pending_received', or 'none'
+        } else {
+          console.error('Error checking friend status:', data.error);
+          return 'none';
+        }
+      } catch (error) {
+        console.error('Error checking friend status:', error);
+        return 'none';
+      }
+    }
+
+    // Function to send friend request
+    function sendFriendRequest(otherUser) {
+      // Get CSRF token
+      const csrfToken = getCsrfToken();
+
+      fetch('/api/friend_request/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+          receiver_username: otherUser
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification(`Friend request sent to ${otherUser}`);
+
+          // Find and update the button
+          document.querySelectorAll('.friend-btn').forEach(btn => {
+            if (btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
+              btn.className = 'friend-btn friend-btn-pending request-sent';
+              btn.textContent = 'Pending';
+              btn.onclick = null;
+            }
+          });
+        } else {
+          showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error sending friend request:', error);
+        showNotification('An error occurred while sending friend request');
+      });
+    }
+
+    // Accept friend request function
+    function acceptFriendRequest(otherUser) {
+      // Get CSRF token
+      const csrfToken = getCsrfToken();
+
+      fetch('/api/accept_friend_request/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+          sender_username: otherUser
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification(`You are now friends with ${otherUser}`);
+
+          // Find and update the button
+          document.querySelectorAll('.friend-btn').forEach(btn => {
+            if (btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
+              btn.className = 'friend-btn friend-btn-friends request-sent';
+              btn.textContent = 'Friends';
+              btn.onclick = null;
+            }
+          });
+        } else {
+          showNotification('Failed to accept friend request: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error accepting friend request:', error);
+        showNotification('An error occurred while accepting friend request');
+      });
+    }
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Store reference to the original updateUserList function
+      const originalUpdateUserList = window.updateUserList || function() {};
+
+      // Replace with enhanced version that adds friend request buttons
+      window.updateUserList = function(users) {
+        // First call the original function
+        originalUpdateUserList.call(this, users);
+
+        // Then enhance the user list with friend buttons
+        const userList = document.getElementById("user-list");
+        if (!userList) return;
+
+        // Get all user list items
+        const listItems = userList.querySelectorAll('li');
+
+        // Process each list item
+        listItems.forEach(li => {
+          // Add user-item class for hover effects
+          li.classList.add('user-item');
+
+          // Get the username
+          const nameSpan = li.querySelector('span');
+          if (!nameSpan) return;
+
+          const username = nameSpan.textContent;
+
+          // Skip if it's the current user
+          if (username === window.username) return;
+
+          // Skip if already has a friend button
+          if (li.querySelector('.friend-btn')) return;
+
+          // Get the actions container or create one if it doesn't exist
+          let actionsContainer = li.querySelector('div:last-child');
+          if (!actionsContainer) {
+            actionsContainer = document.createElement('div');
+            actionsContainer.className = 'flex items-center';
+            li.appendChild(actionsContainer);
+          }
+
+          // Check friend status and add appropriate button
+          checkFriendStatus(username)
+            .then(status => {
+              // Create button based on status
+              const friendBtn = document.createElement('button');
+
+              if (status === 'friends') {
+                friendBtn.className = 'friend-btn friend-btn-friends';
+                friendBtn.textContent = 'Friends';
+              } else if (status === 'pending_sent') {
+                friendBtn.className = 'friend-btn friend-btn-pending';
+                friendBtn.textContent = 'Pending';
+              } else if (status === 'pending_received') {
+                friendBtn.className = 'friend-btn friend-btn-add';
+                friendBtn.textContent = 'Accept';
+                friendBtn.onclick = () => acceptFriendRequest(username);
+              } else {
+                // Not friends yet, show add button
+                friendBtn.className = 'friend-btn friend-btn-add';
+                friendBtn.textContent = 'Add Friend';
+                friendBtn.onclick = () => sendFriendRequest(username);
+              }
+
+              // Insert before any existing actions
+              actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
+            })
+            .catch(err => {
+              console.error("Error checking friend status:", err);
+            });
+        });
+      };
+    });
+  </script>
+
 </body>
 </html>
