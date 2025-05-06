@@ -76,7 +76,7 @@ urlpatterns = [
 
     # Unique paths from second urls.py (non-conflicting)
     path('dm/<str:username>/', views.direct_message, name='direct_message'),
-    path('api/toggle_bookmark_room/', api_views.toggle_bookmark_room, name='toggle_bookmark_room'),
+    path('api/get_bookmarked_rooms/', views.get_bookmarked_rooms, name='get_bookmarked_rooms'),
     path('api/toggle_bookmark_room/', views.toggle_bookmark_room, name='toggle_bookmark_room'),
 
 ]

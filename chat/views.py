@@ -833,3 +833,114 @@ def direct_message(request, username):
     }
 
     return render(request, 'chat/room.html', context)
+
+# Add this to your views.py
+@login_required
+def get_bookmarked_rooms(request):
+    """Get the user's bookmarked rooms"""
+    try:
+        from chat.models import RoomBookmark, Room
+
+        # Get user's bookmarked rooms
+        bookmarked_rooms = []
+        if request.user.is_authenticated:
+            bookmarks = RoomBookmark.objects.filter(
+                user=request.user,
+                is_bookmarked=True
+            ).select_related('room')
+
+            for bookmark in bookmarks:
+                room = bookmark.room
+                if room:
+                    bookmarked_rooms.append({
+                        'name': room.name,
+                        'display_name': room.display_name or room.name.title(),
+                        'category': room.category.name if room.category else None,
+                        'message_count': 0,  # Simplified
+                        'activity': 'medium',
+                        'is_protected': False
+                    })
+
+        return JsonResponse({
+            'success': True,
+            'bookmarked_rooms': bookmarked_rooms
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+@login_required
+def toggle_bookmark_room(request):
+    """Toggle a room bookmark for the current user."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            room_name = data.get('room_name', '')
+            bookmarked = data.get('bookmarked', True)
+
+            if not room_name:
+                return JsonResponse({'success': False, 'error': 'Room name is required'}, status=400)
+
+            # Get the room
+            from chat.models import Room, RoomBookmark
+            try:
+                room = Room.objects.get(name=room_name)
+            except Room.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Room not found'}, status=404)
+
+            # Update or create the bookmark
+            bookmark, created = RoomBookmark.objects.update_or_create(
+                user=request.user,
+                room=room,
+                defaults={'is_bookmarked': bookmarked}
+            )
+
+            return JsonResponse({
+                'success': True,
+                'room_name': room_name,
+                'bookmarked': bookmark.is_bookmarked,
+                'created': created
+            })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+# Add this to your views.py
+@login_required
+def get_recommendations(request):
+    """Get room recommendations and bookmarked rooms"""
+    try:
+        # Get recommendations
+        recommended_rooms = []
+
+        # Get bookmarked rooms
+        bookmarked_rooms = []
+        if request.user.is_authenticated:
+            from .models import RoomBookmark, Room
+
+            # Get bookmarked rooms
+            bookmark_rooms = Room.objects.filter(
+                roombookmark__user=request.user,
+                roombookmark__is_bookmarked=True
+            )
+
+            for room in bookmark_rooms:
+                bookmarked_rooms.append({
+                    'name': room.name,
+                    'display_name': room.display_name or room.name.title(),
+                    'category': room.category.name if room.category else None,
+                    'message_count': 0,  # Simplified
+                    'activity': 'medium',
+                    'is_protected': getattr(room, 'is_protected', False)
+                })
+
+        return JsonResponse({
+            'success': True,
+            'rooms': recommended_rooms,
+            'bookmarked_rooms': bookmarked_rooms
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

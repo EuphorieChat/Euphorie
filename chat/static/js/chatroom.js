@@ -2096,6 +2096,23 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function fallbackRequestRoomRecommendations() {
+        console.log("Using fallback HTTP request for recommendations");
+
+        fetch('/api/get_recommendations/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
+                } else {
+                    console.error("Error fetching recommendations:", data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Error in fallback recommendations request:", error);
+            });
+    }
+
     // Show notification helper
     function showNotification(message) {
         const toast = document.getElementById('notification-toast');
