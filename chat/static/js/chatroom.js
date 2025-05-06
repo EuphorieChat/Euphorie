@@ -728,6 +728,314 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // =============== Profile Pictures ===============
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initialize profile picture system
+        initProfilePictureSync();
+
+        function initProfilePictureSync() {
+            // Listen for WebSocket profile update messages
+            if (window.socket) {
+                const originalHandleSocketMessage = window.handleSocketMessage || function() {};
+
+                window.handleSocketMessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+
+                        // Handle profile updates
+                        if (data.type === 'profile_update') {
+                            handleProfileUpdate(data.username, data.profile_data);
+                        }
+
+                        // Call the original handler
+                        originalHandleSocketMessage.call(this, event);
+                    } catch (e) {
+                        console.error("Error in enhanced message handler:", e);
+                        // Call original handler to ensure other functionality works
+                        originalHandleSocketMessage.call(this, event);
+                    }
+                };
+            }
+
+            // Load profiles for all users in the room
+            loadAllProfiles();
+
+            // Set up periodic refresh
+            setInterval(loadAllProfiles, 60000); // Refresh every minute
+        }
+
+        function handleProfileUpdate(username, profileData) {
+            if (!username || !profileData) return;
+
+            // Update localStorage cache
+            localStorage.setItem(`profilePic_${username}`, JSON.stringify(profileData));
+
+            // Update avatars in the UI
+            updateUserAvatars(username, profileData);
+        }
+
+        function updateUserAvatars(username, profileData) {
+            // Find all avatar elements for this user
+            const avatarSelector = `.user-avatar[data-username="${username}"]`;
+            const avatars = document.querySelectorAll(avatarSelector);
+
+            if (avatars.length === 0) {
+                // If no direct matches, look for containers with username spans
+                document.querySelectorAll('li, .user-list-item, .message-bubble').forEach(container => {
+                    const usernameEl = container.querySelector('span, p.text-xs');
+                    if (usernameEl && usernameEl.textContent.trim() === username) {
+                        const avatar = container.querySelector('.user-avatar, div.h-6.w-6.rounded-full');
+                        if (avatar) {
+                            updateAvatarElement(avatar, username, profileData);
+                        }
+                    }
+                });
+            } else {
+                // Update direct matches
+                avatars.forEach(avatar => {
+                    updateAvatarElement(avatar, username, profileData);
+                });
+            }
+        }
+
+        function updateAvatarElement(element, username, profileData) {
+            if (!element || !username) return;
+
+            try {
+                // Extract size classes
+                const sizeClasses = element.className.split(' ').filter(cls =>
+                    cls.includes('h-') || cls.includes('w-') ||
+                    cls.includes('rounded') || cls.includes('mr-')
+                ).join(' ');
+
+                // Handle image type
+                if (profileData.type === 'image' && profileData.data) {
+                    element.className = `${sizeClasses} user-avatar with-image`;
+                    element.style.backgroundImage = `url(${profileData.data})`;
+                    element.style.backgroundSize = 'cover';
+                    element.style.backgroundPosition = 'center';
+                    element.innerHTML = '';
+                    element.setAttribute('data-username', username);
+                }
+                // Handle gradient type
+                else if (profileData.type === 'gradient' && profileData.gradient) {
+                    element.className = `${sizeClasses} user-avatar bg-gradient-to-br ${profileData.gradient} text-white flex items-center justify-center font-medium text-xs`;
+                    element.style.backgroundImage = '';
+                    element.innerHTML = username.charAt(0).toUpperCase();
+                    element.setAttribute('data-username', username);
+                }
+            } catch (error) {
+                console.error("Error updating avatar element:", error);
+            }
+        }
+
+        // Load profiles for all users currently in the room
+        function loadAllProfiles() {
+            // Get all usernames from the user list
+            const usernames = [];
+
+            // From user list
+            document.querySelectorAll('#user-list li, #mobile-user-list-content .user-list-item').forEach(li => {
+                const usernameEl = li.querySelector('span');
+                if (usernameEl) {
+                    const username = usernameEl.textContent.trim();
+                    if (username && !usernames.includes(username)) {
+                        usernames.push(username);
+                    }
+                }
+            });
+
+            // From messages
+            document.querySelectorAll('.message-bubble').forEach(msg => {
+                const usernameEl = msg.querySelector('p:first-child');
+                if (usernameEl) {
+                    const username = usernameEl.textContent.trim();
+                    if (username && !usernames.includes(username)) {
+                        usernames.push(username);
+                    }
+                }
+            });
+
+            // Add current user
+            if (window.username && !usernames.includes(window.username)) {
+                usernames.push(window.username);
+            }
+
+            // Load profiles for all usernames
+            usernames.forEach(username => {
+                loadUserProfile(username);
+            });
+        }
+
+        // Load a single user's profile
+        function loadUserProfile(username) {
+            // Check if we already have cached data that's recent
+            const cachedData = localStorage.getItem(`profilePic_${username}`);
+            const cacheTimestamp = localStorage.getItem(`profilePic_${username}_timestamp`);
+
+            // If we have fresh cache (less than 5 minutes old), use it
+            if (cachedData && cacheTimestamp) {
+                const cacheDuration = Date.now() - parseInt(cacheTimestamp);
+                if (cacheDuration < 300000) { // 5 minutes
+                    try {
+                        const profileData = JSON.parse(cachedData);
+                        updateUserAvatars(username, profileData);
+                        return;
+                    } catch (e) {
+                        // Cache parsing failed, continue to load from server
+                    }
+                }
+            }
+
+            // Fetch from server
+            fetch(`/api/profile/${username}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.profile_picture) {
+                        // Cache the data
+                        localStorage.setItem(`profilePic_${username}`, JSON.stringify(data.profile_picture));
+                        localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
+
+                        // Update the UI
+                        updateUserAvatars(username, data.profile_picture);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error fetching profile for ${username}:`, error);
+                });
+        }
+
+        // Expose functions to global scope
+        window.userProfiles = {
+            updateUserAvatars,
+            loadUserProfile,
+            loadAllProfiles
+        };
+
+        // Initialize profile picture loading on new messages
+        if (window.addMessage) {
+            const originalAddMessage = window.addMessage;
+
+            window.addMessage = function(message, username, messageId) {
+                // Call original function
+                originalAddMessage.call(this, message, username, messageId);
+
+                // Load profile picture for the message sender
+                if (username) {
+                    setTimeout(() => {
+                        loadUserProfile(username);
+                    }, 100);
+                }
+            };
+        }
+
+        // Initialize enhancement for the updateUserList function
+        if (window.updateUserList) {
+            const originalUpdateUserList = window.updateUserList;
+
+            window.updateUserList = function(users) {
+                // Call original function
+                originalUpdateUserList.call(this, users);
+
+                // Update all avatars
+                setTimeout(() => {
+                    loadAllProfiles();
+                }, 200);
+            };
+        }
+    });
+
+    // Helper for WebSocket connection to handle profile updates
+    document.addEventListener("DOMContentLoaded", function() {
+        // Wait until socket is connected
+        const checkSocketAndEnhance = setInterval(() => {
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                clearInterval(checkSocketAndEnhance);
+
+                // Add this listener to handle profile_update messages
+                const originalOnMessage = window.socket.onmessage;
+
+                window.socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'profile_update') {
+                            // Store in localStorage cache
+                            if (data.username && data.profile_data) {
+                                localStorage.setItem(`profilePic_${data.username}`, JSON.stringify(data.profile_data));
+                                localStorage.setItem(`profilePic_${data.username}_timestamp`, Date.now().toString());
+
+                                // Update all instances of this user's avatar
+                                if (window.userProfiles && window.userProfiles.updateUserAvatars) {
+                                    window.userProfiles.updateUserAvatars(data.username, data.profile_data);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // Parsing error, ignore
+                    }
+
+                    // Call original handler
+                    if (originalOnMessage) {
+                        originalOnMessage.call(this, event);
+                    }
+                };
+            }
+        }, 200);
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            clearInterval(checkSocketAndEnhance);
+        }, 10000);
+    });
+
+    // Enhanced message reactions to include profile pictures
+    document.addEventListener("DOMContentLoaded", function() {
+        // Override the reaction modal display
+        const reactionModal = document.getElementById("reactionModal");
+        if (!reactionModal) return;
+
+        // Find all reaction emoji spans and enhance them
+        document.addEventListener("click", function(e) {
+            if (e.target.matches("[data-emoji]")) {
+                const users = e.target.title?.split(", ") || [];
+                const list = document.getElementById("reactionUserList");
+                if (!list) return;
+
+                list.innerHTML = "";
+
+                // Add entries for each user with their profile picture
+                users.forEach(name => {
+                    const li = document.createElement("li");
+                    li.className = "flex items-center py-1";
+
+                    // Create avatar with loading state
+                    li.innerHTML = `
+                        <div class="h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs user-avatar" data-username="${name}">
+                            ${name.charAt(0).toUpperCase()}
+                        </div>
+                        <span>${name}</span>
+                    `;
+
+                    list.appendChild(li);
+
+                    // Load their profile picture
+                    if (window.userProfiles && window.userProfiles.loadUserProfile) {
+                        window.userProfiles.loadUserProfile(name);
+                    }
+                });
+
+                reactionModal.classList.remove("hidden");
+                reactionModal.classList.add("flex");
+            }
+        });
+    });
+
+
     // =============== REACTIONS ===============
     function initReactionModal() {
         const reactionModal = document.getElementById("reactionModal");

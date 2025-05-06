@@ -392,3 +392,10 @@ class RoomBookmark(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s bookmark of {self.room.name}"
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    profile_picture_data = models.TextField(blank=True, null=True)  # Store base64 image or gradient info
+
+    def __str__(self):
+        return f"{self.user.username}'s profile"

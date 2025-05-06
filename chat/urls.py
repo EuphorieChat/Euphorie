@@ -78,4 +78,9 @@ urlpatterns = [
     path('api/get_bookmarked_rooms/', views.get_bookmarked_rooms, name='get_bookmarked_rooms'),
     path('api/toggle_bookmark_room/', views.toggle_bookmark_room, name='toggle_bookmark_room'),
     path('api/get_recommendations/', api_views.get_recommendations, name='get_recommendations'),
+
+    # Profile Pictures
+    path('api/update_profile/', views.update_profile, name='update_profile'),
+    path('api/profile/<str:username>/', views.get_user_profile, name='get_user_profile'),
+
 ]

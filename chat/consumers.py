@@ -5,6 +5,7 @@ from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+from .models import UserProfile
 
 from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus
 from .services import (
@@ -166,6 +167,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'message': 'Authentication required for this action'
                 }))
                 return
+
+            # profile updates
+            if message_type == 'profile_update':
+                profile_data = text_data_json.get('profile_data', {})
+
+                # Store in the database
+                if self.user.is_authenticated:
+                    await self.save_profile_data(profile_data)
+
+                # Broadcast to all connected clients
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'profile_update',
+                        'username': self.user.username,
+                        'profile_data': profile_data
+                    }
+                )
 
             if message_type == 'chat':
                 message = text_data_json.get('message', '')
@@ -423,6 +442,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.warning(f"Invalid JSON received: {text_data[:100]}")
         except Exception as e:
             logger.error(f"Error processing message: {str(e)}", exc_info=True)
+
+    async def profile_update(self, event):
+        username = event['username']
+        profile_data = event['profile_data']
+
+        # Send to WebSocket
+        await self.send(text_data=json.dumps({
+            'type': 'profile_update',
+            'username': username,
+            'profile_data': profile_data
+        }))
+
+    @database_sync_to_async
+    def save_profile_data(self, profile_data):
+        try:
+            profile, created = UserProfile.objects.get_or_create(user=self.user)
+            profile.profile_picture_data = json.dumps(profile_data)
+            profile.save()
+        except Exception as e:
+            print(f"Error saving profile data: {e}")
 
     def _record_user_interest(self, room):
         """Synchronous function to record user interest"""

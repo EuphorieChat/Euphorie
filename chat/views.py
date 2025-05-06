@@ -9,7 +9,9 @@ from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from .models import UserProfile
 from collections import defaultdict
+from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.contrib.auth.models import User
 from datetime import timedelta
@@ -906,3 +908,66 @@ def toggle_bookmark_room(request):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+
+# User's profile
+@login_required
+@require_POST
+def update_profile(request):
+    try:
+        data = json.loads(request.body)
+        profile_picture = data.get('profile_picture', {})
+
+        # Get or create user profile
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+        # Store profile picture data
+        profile.profile_picture_data = json.dumps(profile_picture)
+        profile.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Profile updated successfully'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+def get_user_profile(request, username):
+    try:
+        user = User.objects.get(username=username)
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        profile_data = {}
+        if profile.profile_picture_data:
+            try:
+                profile_data = json.loads(profile.profile_picture_data)
+            except:
+                profile_data = {
+                    'type': 'gradient',
+                    'gradient': 'from-pink-400 to-orange-300'
+                }
+        else:
+            profile_data = {
+                'type': 'gradient',
+                'gradient': 'from-pink-400 to-orange-300'
+            }
+
+        return JsonResponse({
+            'success': True,
+            'username': username,
+            'profile_picture': profile_data
+        })
+    except User.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'User not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
