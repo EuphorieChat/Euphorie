@@ -964,7 +964,9 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
       </svg>
     </a>
-    <h1 class="text-lg font-bold gradient-text">{{ room_name|title }}</h1>
+    <a href="{% url 'index' %}" title="Back to Lobby">
+        <h1 class="text-lg font-bold gradient-text hover:opacity-90" style="cursor: pointer;">{{ room_name|title }}</h1>
+      </a>
     <button id="mobile-menu-toggle" class="relative" aria-label="Toggle user menu">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
@@ -979,7 +981,9 @@
     <!-- Desktop Header -->
     <div class="hidden sm:flex items-center justify-between mb-6">
       <div class="flex items-center">
-        <h1 class="text-2xl font-bold gradient-text mr-2">{{ room_name|title }}</h1>
+        <a href="{% url 'index' %}" title="Back to Lobby">
+            <h1 class="text-2xl font-bold gradient-text mr-2 hover:opacity-90" style="cursor: pointer;">{{ room_name|title }}</h1>
+          </a>
         <span class="px-2 py-0.5 text-xs bg-pink-100 text-pink-600 rounded-full font-medium">CHAT</span>
         {% if room.is_protected %}
         <span class="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-600 rounded-full font-medium flex items-center">
@@ -2674,33 +2678,5 @@
         populateRecommendedRooms();
     });
     </script>
-
-    <script>
-    // Make the room name in the header clickable and redirect to lobby
-    document.addEventListener("DOMContentLoaded", function() {
-        // For desktop header - direct modification of the room title element
-        const desktopRoomTitle = document.querySelector('.hidden.sm\\:flex h1.gradient-text');
-        if (desktopRoomTitle) {
-        desktopRoomTitle.style.cursor = 'pointer';
-        desktopRoomTitle.classList.add('hover:opacity-90');
-        desktopRoomTitle.setAttribute('title', 'Back to Lobby');
-        desktopRoomTitle.addEventListener('click', function() {
-            window.location.href = '/';
-        });
-        }
-
-        // For mobile header - direct modification of the room title element
-        const mobileRoomTitle = document.querySelector('.app-header h1.gradient-text');
-        if (mobileRoomTitle) {
-        mobileRoomTitle.style.cursor = 'pointer';
-        mobileRoomTitle.classList.add('hover:opacity-90');
-        mobileRoomTitle.setAttribute('title', 'Back to Lobby');
-        mobileRoomTitle.addEventListener('click', function() {
-            window.location.href = '/';
-        });
-        }
-    });
-    <script>
-
 </body>
 </html>
