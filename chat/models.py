@@ -3,11 +3,6 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
-import json
-from django.dispatch import receiver
-from django.db.models.signals import post_save
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -401,90 +396,7 @@ class RoomBookmark(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
-    profile_picture_data = models.TextField(blank=True, null=True)  # For storing JSON data about profile image
     bio = models.TextField(max_length=500, blank=True)
 
     def __str__(self):
         return self.user.username
-
-    def get_avatar_url(self):
-        """Returns the URL for the user's avatar"""
-        if self.avatar and self.avatar.url:
-            return self.avatar.url
-        return None
-
-    def get_profile_picture_data(self):
-        """Returns parsed profile picture data from JSON string"""
-        if self.profile_picture_data:
-            try:
-                return json.loads(self.profile_picture_data)
-            except json.JSONDecodeError:
-                pass
-        return None
-
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    """Create a UserProfile for every new User instance"""
-    if created:
-        # Create default profile with a randomly assigned gradient
-        colors = [
-            'from-pink-400 to-purple-500',
-            'from-blue-400 to-indigo-500',
-            'from-green-400 to-teal-500',
-            'from-orange-400 to-pink-400',
-            'from-yellow-400 to-orange-400',
-            'from-red-400 to-pink-400',
-            'from-cyan-400 to-blue-400',
-            'from-emerald-400 to-green-500'
-        ]
-
-        # Simple hash function for username to get consistent color
-        hash_value = 0
-        for char in instance.username:
-            hash_value = ord(char) + ((hash_value << 5) - hash_value)
-
-        gradient = colors[abs(hash_value) % len(colors)]
-
-        # Create profile with default gradient avatar
-        profile_picture_data = json.dumps({
-            'type': 'gradient',
-            'gradient': gradient
-        })
-
-        UserProfile.objects.create(
-            user=instance,
-            profile_picture_data=profile_picture_data
-        )
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    """Save the user's profile whenever the user is saved"""
-    # Get or create profile if it doesn't exist
-    profile, created = UserProfile.objects.get_or_create(user=instance)
-    if not created:
-        profile.save()
-
-
-@receiver(post_save, sender=UserProfile)
-def notify_profile_update(sender, instance, **kwargs):
-    """Send a WebSocket notification when a user's profile is updated"""
-    try:
-        channel_layer = get_channel_layer()
-
-        # Get all rooms this user has participated in
-        rooms = set()
-        for message in instance.user.message_set.all():
-            rooms.add(message.room.name)
-
-        # Notify all rooms where this user has sent messages
-        for room_name in rooms:
-            async_to_sync(channel_layer.group_send)(
-                f"chat_{room_name}",
-                {
-                    'type': 'profile_picture_update',
-                    'username': instance.user.username,
-                }
-            )
-    except Exception as e:
-        # Log the error but don't break the save operation
-        print(f"Error sending profile update notification: {e}")

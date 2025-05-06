@@ -13,48 +13,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- CSS for avatar styling -->
-<style>
-    /* Add these styles to your existing CSS */
-    .user-avatar {
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .user-avatar.has-image {
-      color: transparent; /* Hide the text when image is present */
-    }
-
-    /* Make sure the avatar takes the correct rounded shape */
-    .user-avatar {
-      border-radius: 50%; /* Default to circle */
-    }
-
-    .user-avatar.rounded-lg {
-      border-radius: 0.5rem; /* Override for square avatars if needed */
-    }
-
-    /* Avatar hover effects */
-    .user-avatar:hover {
-      transform: scale(1.05);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    /* For avatar options in the profile modal */
-    .avatar-option {
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .avatar-option:hover {
-      transform: scale(1.05);
-    }
-
-    .avatar-option.selected {
-      box-shadow: 0 0 0 2px var(--primary), 0 0 0 4px rgba(236, 72, 153, 0.2);
-    }
-  </style>
   <style>
     :root {
       --primary: #ec4899;
@@ -1048,15 +1006,11 @@
           <!-- Chat messages container -->
           <div id="chat-log" class="chat-container hide-scrollbar bg-gray-50">
             {% for message in messages %}
-                <!-- Message avatar in chat -->
-                <div class="flex items-start gap-2 group" data-message-id="{{ message.id }}">
-                    <div class="user-avatar {% if message.user.profile.avatar %}has-image{% else %}bg-gradient-to-br {% if message.user.username == username %}from-pink-400 to-purple-400{% else %}from-blue-400 to-indigo-400{% endif %}{% endif %} h-8 w-8 flex-shrink-0 text-sm"
-                        data-username="{{ message.user.username }}"
-                        {% if message.user.profile.avatar %}style="background-image: url('{{ message.user.profile.avatar.url }}'); background-size: cover; background-position: center;"{% endif %}>
-                    {% if not message.user.profile.avatar %}
-                        {{ message.user.username|slice:":1"|upper }}
-                    {% endif %}
-                    </div>
+            <div class="flex items-start gap-2 group" data-message-id="{{ message.id }}">
+              <!-- Avatar -->
+              <div class="avatar avatar-{% if message.user.username == username %}pink{% else %}orange{% endif %} h-8 w-8 flex-shrink-0 text-sm user-avatar">
+                {{ message.user.username|slice:":1"|upper }}
+              </div>
 
               <!-- Message content -->
               <div class="flex-1">
@@ -1217,31 +1171,19 @@
           </h3>
           <ul id="user-list" class="space-y-1 max-h-48 overflow-y-auto hide-scrollbar">
             <!-- User list populated by JS -->
-                <li class="user-item flex items-center justify-between">
-                    <div class="flex items-center">
-                    <div class="user-avatar h-6 w-6 rounded-full {% if user.profile.avatar %}has-image{% else %}bg-gradient-to-br from-pink-400 to-purple-400{% endif %} flex items-center justify-center text-white text-xs mr-2"
-                        data-username="{{ user.username }}"
-                        {% if user.profile.avatar %}style="background-image: url('{{ user.profile.avatar.url }}'); background-size: cover; background-position: center;"{% endif %}>
-                        {% if not user.profile.avatar %}
-                        {{ user.username|slice:":1"|upper }}
-                        {% endif %}
-                    </div>
-                    <span class="text-sm">{{ user.username }}</span>
-                    </div>
-                </li>
-                <li class="user-item flex items-center justify-between">
-                    <div class="flex items-center">
-                      <div class="user-avatar h-6 w-6 rounded-full {% if user.profile.avatar %}has-image{% else %}bg-gradient-to-br from-pink-400 to-purple-400{% endif %} flex items-center justify-center text-white text-xs mr-2"
-                           data-username="{{ user.username }}"
-                           {% if user.profile.avatar %}style="background-image: url('{{ user.profile.avatar.url }}'); background-size: cover; background-position: center;"{% endif %}>
-                        {% if not user.profile.avatar %}
-                          {{ user.username|slice:":1"|upper }}
-                        {% endif %}
-                      </div>
-                      <span class="text-sm">{{ user.username }}</span>
-                    </div>
-                </li>
-            </ul>
+            <li class="user-item flex items-center justify-between animate-pulse">
+              <div class="flex items-center gap-2">
+                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
+                <div class="h-3 w-20 bg-gray-200 rounded"></div>
+              </div>
+            </li>
+            <li class="user-item flex items-center justify-between animate-pulse">
+              <div class="flex items-center gap-2">
+                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
+                <div class="h-3 w-24 bg-gray-200 rounded"></div>
+              </div>
+            </li>
+          </ul>
         </div>
 
         <!-- Recommended Rooms - Improved UI/UX -->
@@ -1614,33 +1556,6 @@
 window.roomName = "{{ room_name|escapejs }}";
 window.username = "{{ username|escapejs }}";
 </script>
-
-<!-- Initialize user avatars on page load -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Add data-username attribute to all user avatars
-      document.querySelectorAll('.user-avatar').forEach(avatar => {
-        // Try to find username from closest parent elements if not set
-        if (!avatar.hasAttribute('data-username')) {
-          const messageBubble = avatar.closest('.flex.items-start.gap-2.group');
-          if (messageBubble) {
-            const usernameElement = messageBubble.querySelector('.username-link');
-            if (usernameElement) {
-              avatar.setAttribute('data-username', usernameElement.textContent.trim());
-            }
-          } else if (avatar.textContent.trim()) {
-            // Use the initial as a fallback
-            const initial = avatar.textContent.trim().toUpperCase();
-            // Look for any nearby username element
-            const nearbyUsername = avatar.closest('.flex')?.querySelector('span')?.textContent.trim();
-            if (nearbyUsername) {
-              avatar.setAttribute('data-username', nearbyUsername);
-            }
-          }
-        }
-      });
-    });
-  </script>
 
 <!-- WebSocket Connection Script - Improved for reliability -->
 <script>
@@ -3002,339 +2917,5 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       });
     </script>
-
-        <script>
-        // profile picture uploads and displays
-        document.addEventListener('DOMContentLoaded', function() {
-            // Helper function to get CSRF token
-            function getCsrfToken() {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.startsWith('csrftoken=')) {
-                return cookie.substring('csrftoken='.length);
-                }
-            }
-            return null;
-            }
-
-            // Initialize user avatars throughout the app
-            function initializeUserAvatars() {
-            // Collect all user avatars that need to be initialized
-            const avatarElements = document.querySelectorAll('.user-avatar');
-            const seenUsernames = new Set();
-
-            avatarElements.forEach(avatar => {
-                const usernameDisplay = avatar.textContent.trim();
-                if (!usernameDisplay) return; // Skip if no username initial
-
-                // Try to find the username this avatar belongs to
-                let username = '';
-
-                // Check if the avatar is in a message bubble
-                const messageBubble = avatar.closest('.flex.items-start.gap-2.group');
-                if (messageBubble) {
-                const usernameElement = messageBubble.querySelector('.username-link');
-                if (usernameElement) {
-                    username = usernameElement.textContent.trim();
-                }
-                }
-
-                // If we couldn't find it from message bubble, try the attribute or closest element
-                if (!username) {
-                username = avatar.getAttribute('data-username') ||
-                            avatar.parentElement.querySelector('.text-sm')?.textContent.trim() ||
-                            usernameDisplay;
-                }
-
-                // Skip if we've already processed this username
-                if (seenUsernames.has(username)) return;
-                seenUsernames.add(username);
-
-                // Fetch the user's profile to get their avatar
-                fetchUserProfile(username).then(profileData => {
-                updateAvatarDisplay(username, profileData);
-                });
-            });
-            }
-
-            // Fetch user profile data
-            function fetchUserProfile(username) {
-            return fetch(`/api/get_user_profile/${username}/`)
-                .then(response => {
-                if (!response.ok) throw new Error('Failed to fetch profile');
-                return response.json();
-                })
-                .then(data => {
-                if (data.success) {
-                    return data.profile_picture;
-                }
-                throw new Error(data.error || 'Unknown error');
-                })
-                .catch(error => {
-                console.error(`Error fetching profile for ${username}:`, error);
-                // Return default gradient as fallback
-                return {
-                    type: 'gradient',
-                    gradient: 'from-pink-400 to-purple-500'
-                };
-                });
-            }
-
-            // Update all avatar elements for a specific username
-            function updateAvatarDisplay(username, profilePicture) {
-            // Get all avatar elements for this username
-            const avatarSelector = `.user-avatar[data-username="${username}"]`;
-            const avatarElements = document.querySelectorAll(avatarSelector);
-
-            // Also look for avatars within message bubbles
-            const messageBubbles = document.querySelectorAll('.flex.items-start.gap-2.group');
-            messageBubbles.forEach(bubble => {
-                const usernameElement = bubble.querySelector('.username-link');
-                if (usernameElement && usernameElement.textContent.trim() === username) {
-                const avatar = bubble.querySelector('.user-avatar');
-                if (avatar) {
-                    updateSingleAvatar(avatar, profilePicture, username);
-                }
-                }
-            });
-
-            // Update the direct avatars we found
-            avatarElements.forEach(avatar => {
-                updateSingleAvatar(avatar, profilePicture, username);
-            });
-
-            // Also update any avatar with matching initial in user list
-            const userListItems = document.querySelectorAll('.user-item');
-            userListItems.forEach(item => {
-                const nameElement = item.querySelector('span');
-                if (nameElement && nameElement.textContent.trim() === username) {
-                const avatar = item.querySelector('div[class*="rounded-full"]');
-                if (avatar) {
-                    updateSingleAvatar(avatar, profilePicture, username);
-                }
-                }
-            });
-            }
-
-            // Update a single avatar element based on profile picture data
-            function updateSingleAvatar(avatarElement, profilePicture, username) {
-            // Clear any existing content
-            avatarElement.textContent = '';
-
-            // Set data-username attribute for easier future updates
-            avatarElement.setAttribute('data-username', username);
-
-            if (profilePicture.type === 'image' && profilePicture.url) {
-                // Image-based avatar
-                avatarElement.style.backgroundImage = `url('${profilePicture.url}')`;
-                avatarElement.style.backgroundSize = 'cover';
-                avatarElement.style.backgroundPosition = 'center';
-                avatarElement.classList.add('has-image');
-            } else if (profilePicture.type === 'gradient' && profilePicture.gradient) {
-                // Gradient-based avatar
-                avatarElement.classList.add('bg-gradient-to-br');
-
-                // Remove any existing gradient classes
-                avatarElement.classList.forEach(className => {
-                if (className.startsWith('from-') || className.startsWith('to-')) {
-                    avatarElement.classList.remove(className);
-                }
-                });
-
-                // Add the new gradient classes
-                const gradientClasses = profilePicture.gradient.split(' ');
-                gradientClasses.forEach(className => {
-                avatarElement.classList.add(className);
-                });
-
-                // Add the initial
-                avatarElement.textContent = username.charAt(0).toUpperCase();
-            } else {
-                // Fallback to basic initial avatar
-                avatarElement.classList.add('bg-pink-500');
-                avatarElement.textContent = username.charAt(0).toUpperCase();
-            }
-            }
-
-            // Handle profile picture upload
-            const profilePicUpload = document.getElementById('profile-pic-upload');
-            const profilePreview = document.getElementById('profile-preview');
-            const saveProfilePicBtn = document.getElementById('save-profile-pic');
-
-            if (profilePicUpload) {
-            profilePicUpload.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-
-                reader.onload = function(e) {
-                    profilePreview.style.backgroundImage = `url('${e.target.result}')`;
-                    profilePreview.style.backgroundSize = 'cover';
-                    profilePreview.style.backgroundPosition = 'center';
-                    profilePreview.classList.add('has-image');
-                    profilePreview.textContent = ''; // Remove the letter
-                };
-
-                reader.readAsDataURL(file);
-                }
-            });
-            }
-
-            if (saveProfilePicBtn) {
-            saveProfilePicBtn.addEventListener('click', function() {
-                if (profilePicUpload && profilePicUpload.files.length > 0) {
-                // Create a FormData object for file upload
-                const formData = new FormData();
-                formData.append('profile_picture', profilePicUpload.files[0]);
-
-                // Get CSRF token
-                const csrfToken = getCsrfToken();
-
-                // Send the request
-                fetch('/api/update_profile_picture/', {
-                    method: 'POST',
-                    headers: {
-                    'X-CSRFToken': csrfToken
-                    },
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                    showNotification('Profile picture updated successfully');
-
-                    // Create profile picture data to update avatars
-                    const profilePicture = {
-                        type: 'image',
-                        url: data.image_url
-                    };
-
-                    // Update all instances of the user's avatar throughout the page
-                    updateAvatarDisplay(window.username, profilePicture);
-
-                    // Close the modal
-                    document.getElementById('profile-pic-modal').classList.remove('open');
-                    } else {
-                    showNotification('Failed to update profile picture');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating profile picture:', error);
-                    showNotification('An error occurred');
-                });
-                } else {
-                // Handle gradient avatar selection
-                const selectedGradient = document.querySelector('.avatar-option.selected');
-                if (selectedGradient) {
-                    const gradient = selectedGradient.getAttribute('data-gradient');
-
-                    // Get CSRF token
-                    const csrfToken = getCsrfToken();
-
-                    // Prepare the profile picture data
-                    const profileData = {
-                    profile_picture: {
-                        type: 'gradient',
-                        gradient: gradient
-                    }
-                    };
-
-                    // Send the request
-                    fetch('/api/update_profile_picture/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify(profileData)
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                    if (data.success) {
-                        showNotification('Profile picture updated successfully');
-
-                        // Update all instances of the user's avatar throughout the page
-                        updateAvatarDisplay(window.username, profileData.profile_picture);
-
-                        // Close the modal
-                        document.getElementById('profile-pic-modal').classList.remove('open');
-                    } else {
-                        showNotification('Failed to update profile picture');
-                    }
-                    })
-                    .catch(error => {
-                    console.error('Error updating profile picture:', error);
-                    showNotification('An error occurred');
-                    });
-                } else {
-                    showNotification('Please select a gradient or upload an image');
-                }
-                }
-            });
-            }
-
-            // Handle avatar style selection
-            document.querySelectorAll('.avatar-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('.avatar-option').forEach(o => {
-                o.classList.remove('selected', 'ring-2', 'ring-pink-500', 'ring-offset-2');
-                });
-
-                this.classList.add('selected', 'ring-2', 'ring-pink-500', 'ring-offset-2');
-
-                // Update the preview
-                const gradient = this.getAttribute('data-gradient');
-                if (profilePreview && gradient) {
-                // Remove existing gradient and image
-                profilePreview.style.backgroundImage = '';
-                profilePreview.style.backgroundSize = '';
-                profilePreview.style.backgroundPosition = '';
-                profilePreview.classList.remove('has-image');
-
-                // Remove existing gradient classes
-                profilePreview.classList.forEach(className => {
-                    if (className.startsWith('from-') || className.startsWith('to-')) {
-                    profilePreview.classList.remove(className);
-                    }
-                });
-
-                // Add the new gradient classes
-                const gradientClasses = gradient.split(' ');
-                profilePreview.classList.add('bg-gradient-to-br', ...gradientClasses);
-
-                // Add the initial back
-                profilePreview.textContent = window.username.charAt(0).toUpperCase();
-                }
-            });
-            });
-
-            // Initialize avatars when the page loads
-            initializeUserAvatars();
-
-            // Socket event handler for profile picture updates
-            if (window.chatSocket) {
-            const originalOnMessage = window.chatSocket.onmessage;
-
-            window.chatSocket.onmessage = function(e) {
-                // Call the original handler first
-                if (originalOnMessage) {
-                originalOnMessage.call(this, e);
-                }
-
-                // Handle our custom events
-                const data = JSON.parse(e.data);
-
-                // Handle profile picture updates
-                if (data.type === 'profile_picture_update') {
-                fetchUserProfile(data.username).then(profileData => {
-                    updateAvatarDisplay(data.username, profileData);
-                });
-                }
-            };
-            }
-        });
-        </script>
-
 </body>
 </html>
