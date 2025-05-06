@@ -2676,32 +2676,30 @@
     </script>
 
     <script>
-    // Make the room name in the header redirect to the lobby
+    // Make the room name in the header clickable and redirect to lobby
     document.addEventListener("DOMContentLoaded", function() {
-        // Find all elements with the gradient-text class that contain the room name
-        const roomNameElements = document.querySelectorAll('.gradient-text');
-
-        roomNameElements.forEach(element => {
-          // Check if this element contains the room name
-          if (element.textContent.includes("{{ room_name|title }}") ||
-              element.textContent.trim() === document.title.replace(" 💬", "").replace("Euphorie - ", "")) {
-
-            // Make the element clickable
-            element.style.cursor = 'pointer';
-
-            // Add click event to redirect to index page
-            element.addEventListener('click', function() {
-              window.location.href = '/';  // Redirect to index page
-            });
-
-            // Add hover effect
-            element.classList.add('hover:opacity-90');
-
-            // Add tooltip
-            element.setAttribute('title', 'Back to Lobby');
-          }
+        // For desktop header - direct modification of the room title element
+        const desktopRoomTitle = document.querySelector('.hidden.sm\\:flex h1.gradient-text');
+        if (desktopRoomTitle) {
+        desktopRoomTitle.style.cursor = 'pointer';
+        desktopRoomTitle.classList.add('hover:opacity-90');
+        desktopRoomTitle.setAttribute('title', 'Back to Lobby');
+        desktopRoomTitle.addEventListener('click', function() {
+            window.location.href = '/';
         });
-      });
+        }
+
+        // For mobile header - direct modification of the room title element
+        const mobileRoomTitle = document.querySelector('.app-header h1.gradient-text');
+        if (mobileRoomTitle) {
+        mobileRoomTitle.style.cursor = 'pointer';
+        mobileRoomTitle.classList.add('hover:opacity-90');
+        mobileRoomTitle.setAttribute('title', 'Back to Lobby');
+        mobileRoomTitle.addEventListener('click', function() {
+            window.location.href = '/';
+        });
+        }
+    });
     <script>
 
 </body>
