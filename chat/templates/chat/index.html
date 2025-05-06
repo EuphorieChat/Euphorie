@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 {% load static %}
@@ -54,15 +53,160 @@
       background-clip: text;
     }
 
+    /* Enhanced room card animations */
     .room-card {
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       border-radius: 16px;
       overflow: hidden;
+      opacity: 0; /* Start with opacity 0 */
+      transform: translateY(20px) scale(0.98); /* Start slightly smaller and lower */
+      box-shadow: 0 6px 16px -8px rgba(0,0,0,0.05);
+      animation: fadeInUp 0.5s forwards;
+      animation-fill-mode: both;
     }
 
+    /* Add sequential delay to room cards */
+    .rooms-container > .room-card:nth-child(1) { animation-delay: 0.05s; }
+    .rooms-container > .room-card:nth-child(2) { animation-delay: 0.1s; }
+    .rooms-container > .room-card:nth-child(3) { animation-delay: 0.15s; }
+    .rooms-container > .room-card:nth-child(4) { animation-delay: 0.2s; }
+    .rooms-container > .room-card:nth-child(5) { animation-delay: 0.25s; }
+    .rooms-container > .room-card:nth-child(6) { animation-delay: 0.3s; }
+    .rooms-container > .room-card:nth-child(7) { animation-delay: 0.35s; }
+    .rooms-container > .room-card:nth-child(8) { animation-delay: 0.4s; }
+    .rooms-container > .room-card:nth-child(9) { animation-delay: 0.45s; }
+
+    /* Fade in up animation */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Fade out down animation */
+    @keyframes fadeOutDown {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+      }
+    }
+
+    /* Hover effect with pop-up animation */
     .room-card:hover {
-      transform: translateY(-5px) scale(1.01);
-      box-shadow: 0 12px 28px -5px rgba(0,0,0,0.12);
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 16px 30px -12px rgba(0,0,0,0.15);
+      z-index: 10;
+    }
+
+    /* Add subtle rocking animation on hover */
+    .room-card:hover .room-card-content {
+      animation: subtleRock 2s ease infinite;
+    }
+
+    @keyframes subtleRock {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(0.5deg); }
+      75% { transform: rotate(-0.5deg); }
+    }
+
+    /* Pulse effect for badges */
+    .room-badge {
+      background: linear-gradient(135deg, rgba(249, 168, 212, 0.2), rgba(251, 191, 36, 0.2));
+      transition: all 0.3s ease;
+    }
+
+    .room-card:hover .room-badge {
+      animation: badgePulse 1.5s ease infinite;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% {
+        transform: scale(1);
+        background: linear-gradient(135deg, rgba(249, 168, 212, 0.2), rgba(251, 191, 36, 0.2));
+      }
+      50% {
+        transform: scale(1.05);
+        background: linear-gradient(135deg, rgba(249, 168, 212, 0.3), rgba(251, 191, 36, 0.3));
+      }
+    }
+
+    /* Add new animation for room card buttons */
+    .join-btn {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .join-btn:after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.4);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+
+    .room-card:hover .join-btn:after {
+      animation: ripple 1.2s ease-out;
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+
+    /* Animation for newly added rooms */
+    .new-room {
+      animation: highlightNew 1.5s ease;
+    }
+
+    @keyframes highlightNew {
+      0%, 100% { box-shadow: 0 6px 16px -8px rgba(0,0,0,0.05); }
+      50% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.5); }
+    }
+
+    /* For dynamically loaded rooms */
+    .room-enter {
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+    }
+
+    .room-enter-active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: opacity 0.5s, transform 0.5s;
+    }
+
+    /* For removing rooms */
+    .room-exit {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .room-exit-active {
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+      transition: opacity 0.5s, transform 0.5s;
     }
 
     @keyframes shimmer {
@@ -115,10 +259,6 @@
     .search-input:focus {
       background-color: rgba(255, 255, 255, 1);
       box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
-    }
-
-    .room-badge {
-      background: linear-gradient(135deg, rgba(249, 168, 212, 0.2), rgba(251, 191, 36, 0.2));
     }
 
     .footer-link {
@@ -265,7 +405,7 @@
         <h2 class="text-lg font-semibold text-gray-800">Create a New Room</h2>
         <p class="text-sm text-gray-500">Start a conversation or discuss a topic of your choice</p>
       </div>
-      <form method="post" action="{% url 'create_room' %}" class="space-y-3">
+      <form method="post" action="{% url 'create_room' %}" class="space-y-3" id="create-room-form">
         {% csrf_token %}
         <div class="flex flex-col sm:flex-row gap-3">
           <input
@@ -493,11 +633,11 @@
     {% endif %}
 
     <!-- Improved Rooms Grid with better card design -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="rooms-container">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 rooms-container" id="rooms-container">
       {% if active_rooms %}
         {% for room in active_rooms %}
         <a href="{% url 'room' room.name %}" class="room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
-          <div class="p-4">
+          <div class="room-card-content p-4">
               <div class="flex justify-between items-start mb-3">
                 <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">{{ room.display_name }}</h3>
                 <span class="room-badge text-pink-700 text-xs font-medium px-2 py-0.5 rounded-full">
@@ -520,7 +660,7 @@
               </div>
             </div>
             <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors">
-              <div class="flex items-center text-sm text-pink-600 font-medium">
+              <div class="join-btn flex items-center text-sm text-pink-600 font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
@@ -604,8 +744,22 @@
             const roomName = card.querySelector('h3').textContent.toLowerCase();
             if (roomName.includes(searchValue)) {
               card.classList.remove('hidden');
+              // Add subtle highlight animation for matching results
+              if (searchValue !== '') {
+                card.classList.add('search-match');
+                setTimeout(() => {
+                  card.classList.remove('search-match');
+                }, 1500);
+              }
             } else {
-              card.classList.add('hidden');
+              // Animate out before hiding
+              if (!card.classList.contains('hidden')) {
+                card.style.animation = 'fadeOutDown 0.3s forwards';
+                setTimeout(() => {
+                  card.classList.add('hidden');
+                  card.style.animation = '';
+                }, 300);
+              }
             }
           });
 
@@ -624,10 +778,25 @@
                   Clear search
                 </button>
               `;
+              // Animate in the no results message
+              message.style.opacity = '0';
+              message.style.transform = 'translateY(10px)';
               roomsContainer.appendChild(message);
+
+              setTimeout(() => {
+                message.style.transition = 'all 0.3s ease';
+                message.style.opacity = '1';
+                message.style.transform = 'translateY(0)';
+              }, 10);
             }
           } else if (noResultsMessage) {
-            noResultsMessage.remove();
+            // Animate out the no results message before removing
+            noResultsMessage.style.opacity = '0';
+            noResultsMessage.style.transform = 'translateY(10px)';
+
+            setTimeout(() => {
+              noResultsMessage.remove();
+            }, 300);
           }
         });
       }
@@ -669,11 +838,12 @@
 
             if (data.rooms && data.rooms.length > 0) {
               // Add new rooms to container
-              data.rooms.forEach(room => {
+              data.rooms.forEach((room, index) => {
                 const roomCard = document.createElement('a');
                 roomCard.href = `/chat/${room.name}/`;
-                roomCard.className = 'room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative';
+                roomCard.className = 'room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative room-enter';
                 roomCard.setAttribute('data-category', room.category || 'all');
+                roomCard.style.animationDelay = `${index * 0.075}s`;
 
                 // Add trending badge if this room came from trending category
                 if (category === 'trending') {
@@ -682,7 +852,7 @@
 
                 roomCard.innerHTML = `
                   ${category === 'trending' ? '<div class="trending-indicator trending-pulse">🔥 Trending <span class="ml-1 text-xs font-normal bg-white bg-opacity-30 px-1.5 py-0.5 rounded-full">' + room.message_count + ' msgs</span></div>' : ''}
-                  <div class="p-4">
+                  <div class="room-card-content p-4">
                     <div class="flex justify-between items-start mb-3">
                       <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">${room.display_name}</h3>
                       <span class="room-badge text-pink-700 text-xs font-medium px-2 py-0.5 rounded-full">
@@ -705,7 +875,7 @@
                     </div>
                   </div>
                   <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors">
-                    <div class="flex items-center text-sm text-pink-600 font-medium">
+                    <div class="join-btn flex items-center text-sm text-pink-600 font-medium">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
@@ -715,6 +885,12 @@
                 `;
 
                 roomsContainer.appendChild(roomCard);
+
+                // Trigger animation after element is added
+                setTimeout(() => {
+                  roomCard.classList.add('room-enter-active');
+                  roomCard.classList.remove('room-enter');
+                }, 50);
               });
 
               // Reset button text and update data attributes
@@ -795,38 +971,74 @@
       function filterRoomsByCategory(category) {
         const roomCards = document.querySelectorAll('.room-card');
         let visibleCount = 0;
+        let hiddenCount = 0;
+        let animationDelay = 0;
 
+        // First, fade out cards that don't match category
         roomCards.forEach(card => {
           const roomCategory = card.getAttribute('data-category');
-          if (category === 'all' || roomCategory === category) {
-            card.classList.remove('hidden');
-            visibleCount++;
-          } else {
-            card.classList.add('hidden');
+          if (category !== 'all' && roomCategory !== category) {
+            card.style.animation = `fadeOutDown 0.3s forwards`;
+            card.style.animationDelay = `${hiddenCount * 0.05}s`;
+            hiddenCount++;
+            setTimeout(() => {
+              card.classList.add('hidden');
+              card.style.animation = '';
+            }, 300 + (hiddenCount * 50));
           }
         });
+
+        // Then, fade in cards that match
+        setTimeout(() => {
+          roomCards.forEach(card => {
+            const roomCategory = card.getAttribute('data-category');
+            if (category === 'all' || roomCategory === category) {
+              card.classList.remove('hidden');
+              card.style.opacity = '0';
+              card.style.transform = 'translateY(20px) scale(0.98)';
+
+              setTimeout(() => {
+                card.style.animation = `fadeInUp 0.4s forwards`;
+                card.style.animationDelay = `${animationDelay * 0.075}s`;
+                visibleCount++;
+                animationDelay++;
+              }, 10);
+            }
+          });
+        }, hiddenCount > 0 ? 350 : 0);
 
         // Show a message if no rooms in this category
         const noCategoryMessage = document.getElementById('no-category-message');
 
         if (visibleCount === 0) {
           if (!noCategoryMessage) {
-            const message = document.createElement('div');
-            message.id = 'no-category-message';
-            message.className = 'col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100';
-            message.innerHTML = `
-              <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h3 class="text-lg font-bold text-gray-800 mb-2">No rooms in the "${category}" category</h3>
-              <p class="text-gray-500 mb-4 max-w-md mx-auto">Why not create the first room in this category?</p>
-              <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
-                View All Rooms
-              </button>
-            `;
-            roomsContainer.appendChild(message);
+            setTimeout(() => {
+              const message = document.createElement('div');
+              message.id = 'no-category-message';
+              message.className = 'col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100';
+              message.style.opacity = '0';
+              message.style.transform = 'translateY(20px)';
+              message.innerHTML = `
+                <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">No rooms in the "${category}" category</h3>
+                <p class="text-gray-500 mb-4 max-w-md mx-auto">Why not create the first room in this category?</p>
+                <button onclick="document.querySelector('[data-category=all]').click();" class="btn bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl inline-block shadow-md font-medium">
+                  View All Rooms
+                </button>
+              `;
+              roomsContainer.appendChild(message);
+
+              // Animate in the message
+              setTimeout(() => {
+                message.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+                message.style.opacity = '1';
+                message.style.transform = 'translateY(0)';
+              }, 100);
+            }, hiddenCount > 0 ? 400 : 50);
           }
 
           // Hide load more button
@@ -835,7 +1047,13 @@
           }
         } else {
           if (noCategoryMessage) {
-            noCategoryMessage.remove();
+            // Animate out the message
+            noCategoryMessage.style.opacity = '0';
+            noCategoryMessage.style.transform = 'translateY(20px)';
+
+            setTimeout(() => {
+              noCategoryMessage.remove();
+            }, 300);
           }
 
           // Show load more button if we have enough rooms
@@ -849,9 +1067,9 @@
       function fetchTrendingRooms() {
         const roomsContainer = document.getElementById('rooms-container');
 
-        // Show loading state
+        // Show loading state with animation
         roomsContainer.innerHTML = `
-          <div class="col-span-full text-center py-12">
+          <div class="col-span-full text-center py-12 animate-fadeIn">
             <div class="animate-spin h-12 w-12 border-4 border-pink-200 rounded-full border-t-pink-500 mx-auto mb-6"></div>
             <p class="text-gray-500 text-lg">Finding the top rooms with most messages...</p>
           </div>
@@ -888,13 +1106,15 @@
             roomsContainer.appendChild(trendingDescription);
 
             if (data.rooms && data.rooms.length > 0) {
-              // Add trending rooms to container
-              data.rooms.forEach(room => {
+              // Add trending rooms to container with staggered animations
+              data.rooms.forEach((room, index) => {
                 const roomCard = document.createElement('a');
                 roomCard.href = `/chat/${room.name}/`;
                 roomCard.className = 'room-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:border-pink-200 group relative';
                 roomCard.setAttribute('data-category', room.category || 'all');
                 roomCard.setAttribute('data-trending', 'true');
+                // Set animation delay based on index
+                roomCard.style.animationDelay = `${index * 0.075}s`;
 
                 roomCard.innerHTML = `
                   <div class="trending-indicator trending-pulse">
@@ -903,7 +1123,7 @@
                       ${room.message_count} msgs
                     </span>
                   </div>
-                  <div class="p-4">
+                  <div class="room-card-content p-4">
                     <div class="flex justify-between items-start mb-3">
                       <h3 class="text-base font-bold text-gray-800 group-hover:text-pink-600 transition-colors">${room.display_name}</h3>
                       <span class="room-badge text-pink-700 text-xs font-medium px-2 py-0.5 rounded-full">
@@ -926,7 +1146,7 @@
                     </div>
                   </div>
                   <div class="bg-gradient-to-r from-pink-50 to-pink-100 group-hover:from-pink-100 group-hover:to-pink-200 px-4 py-2 border-t border-pink-100 transition-colors">
-                    <div class="flex items-center text-sm text-pink-600 font-medium">
+                    <div class="join-btn flex items-center text-sm text-pink-600 font-medium">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
@@ -957,9 +1177,9 @@
                 }
               }
             } else {
-              // No trending rooms found
+              // No trending rooms found - animated empty state
               roomsContainer.innerHTML = `
-                <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100">
+                <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100 opacity-0 transform translate-y-4" style="animation: fadeInUp 0.5s forwards 0.2s;">
                   <div class="mx-auto w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -982,7 +1202,7 @@
           .catch(error => {
             console.error('Error fetching trending rooms:', error);
             roomsContainer.innerHTML = `
-              <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100">
+              <div class="col-span-full text-center py-8 bg-white rounded-xl shadow-sm border border-pink-100 opacity-0 transform translate-y-4" style="animation: fadeInUp 0.5s forwards 0.2s;">
                 <div class="mx-auto w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-3">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1040,9 +1260,10 @@
         // Clear container and add friends
         container.innerHTML = '';
 
-        friends.forEach(friend => {
+        friends.forEach((friend, index) => {
             const friendEl = document.createElement('div');
-            friendEl.className = 'flex flex-col items-center';
+            friendEl.className = 'flex flex-col items-center opacity-0';
+            friendEl.style.animation = `fadeInUp 0.3s forwards ${index * 0.05}s`;
             friendEl.innerHTML = `
                 <div class="relative">
                     <div class="h-8 w-8 rounded-full bg-gradient-to-br from-pink-300 to-orange-200 flex items-center justify-center text-white font-medium text-xs">
@@ -1056,7 +1277,7 @@
         });
       }
 
-      // Initialize recommended rooms section
+      // Initialize recommended rooms section with animations
       function initRoomRecommendations() {
         const container = document.getElementById('recommendations-container');
         if (!container) return;
@@ -1079,6 +1300,15 @@
                 if (placeholder && content) {
                     placeholder.classList.add('hidden');
                     content.classList.remove('hidden');
+
+                    // Add entrance animation to the content
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        content.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+                        content.style.opacity = '1';
+                        content.style.transform = 'translateY(0)';
+                    }, 50);
                 }
 
                 renderRecommendedRooms(data.rooms || [], content);
@@ -1096,13 +1326,13 @@
             });
       }
 
-      // Function to render recommended rooms
+      // Function to render recommended rooms with staggered animations
       function renderRecommendedRooms(rooms, container) {
         if (!container) return;
 
         if (rooms.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-2">
+                <div class="text-center py-2 opacity-0" style="animation: fadeInUp 0.5s forwards">
                     <p class="text-sm text-gray-400">No recommendations available yet</p>
                     <p class="text-xs text-gray-500">Join more rooms to get personalized suggestions</p>
                 </div>
@@ -1113,11 +1343,12 @@
         // Clear container
         container.innerHTML = '';
 
-        // Add each recommended room
-        rooms.forEach(room => {
+        // Add each recommended room with staggered animation
+        rooms.forEach((room, index) => {
             const roomEl = document.createElement('a');
             roomEl.href = `/chat/${room.name}/`;
-            roomEl.className = 'recommendation-card group flex items-center bg-gray-50 hover:bg-pink-50 p-2.5 rounded-lg transition-colors';
+            roomEl.className = 'recommendation-card group flex items-center bg-gray-50 hover:bg-pink-50 p-2.5 rounded-lg transition-colors opacity-0';
+            roomEl.style.animation = `fadeInUp 0.3s forwards ${index * 0.075}s`;
 
             roomEl.innerHTML = `
                 <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-pink-400 to-orange-300 rounded-lg flex items-center justify-center text-white font-bold text-lg">
@@ -1191,6 +1422,36 @@
 
         // Handle window resize
         window.addEventListener('resize', updateScrollButtons);
+      }
+
+      // Add animation when a new room is created
+      const createRoomForm = document.getElementById('create-room-form');
+      if (createRoomForm) {
+        createRoomForm.addEventListener('submit', function() {
+          // Store the form data to use after redirection
+          const roomName = this.querySelector('input[name="room_name"]').value;
+          localStorage.setItem('new_room_created', roomName);
+        });
+
+        // Check if we just created a room and need to highlight it
+        const newRoomName = localStorage.getItem('new_room_created');
+        if (newRoomName) {
+          // Find the room card and apply the highlight animation
+          const roomCards = document.querySelectorAll('.room-card');
+          roomCards.forEach(card => {
+            const cardName = card.querySelector('h3').textContent;
+            if (cardName === newRoomName) {
+              card.classList.add('new-room');
+              // Scroll the card into view
+              setTimeout(() => {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 500);
+            }
+          });
+
+          // Clear the storage
+          localStorage.removeItem('new_room_created');
+        }
       }
 
       // Call this function when the DOM is loaded
