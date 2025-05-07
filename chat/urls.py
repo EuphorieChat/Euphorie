@@ -43,6 +43,7 @@ urlpatterns = [
     path('manage/filter-messages/', admin_views.admin_filter_messages, name='admin_filter_messages'),
     path('manage/toggle-user-status-ajax/', admin_views.admin_toggle_user_status_ajax, name='admin_toggle_user_status_ajax'),
     path('manage/export-chat/<str:room_name>/', admin_views.admin_export_chat, name='admin_export_chat'),
+    path('explore/', views.explore_rooms, name='explore_rooms'),
 
     # API endpoints: Announcements from first urls.py
     path('api/announcement/<int:announcement_id>/mark_read/', admin_views.mark_announcement_read, name='mark_announcement_read'),
