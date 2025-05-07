@@ -9,7 +9,7 @@ urlpatterns = [
     path('chat/<str:room_name>/', views.room, name='room'),
     path('create_room/', views.create_room, name='create_room'),
     path('delete_room/<str:room_name>/', views.delete_room, name='delete_room'),
-    path('explore/', views.explore_rooms, name='explore_rooms'),
+    path('manage/explore/', views.explore_rooms, name='explore_rooms'),
     path('friends/', views.friends_list, name='friends_list'),
 
     # Authentication views from first urls.py
@@ -43,7 +43,6 @@ urlpatterns = [
     path('manage/filter-messages/', admin_views.admin_filter_messages, name='admin_filter_messages'),
     path('manage/toggle-user-status-ajax/', admin_views.admin_toggle_user_status_ajax, name='admin_toggle_user_status_ajax'),
     path('manage/export-chat/<str:room_name>/', admin_views.admin_export_chat, name='admin_export_chat'),
-    path('explore/', views.explore_rooms, name='explore_rooms'),
 
 
     # API endpoints: Announcements from first urls.py
