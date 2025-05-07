@@ -111,117 +111,141 @@ def index(request):
 
     return render(request, 'chat/index.html', context)
 
+
 def load_more_rooms(request):
+    """
+    API view to load more rooms with pagination and filtering
+    Modified to work with your specific models
+    """
     page = int(request.GET.get('page', 1))
-    page_size = 20
+    page_size = 9  # Changed from 20 to 9 for a 3x3 grid display
     offset = (page - 1) * page_size
 
-    # Get category filter if provided
+    # Get filters from query parameters
     category = request.GET.get('category', None)
+    sort_by = request.GET.get('sort', 'recent')  # Default to recent for backward compatibility
+    search_query = request.GET.get('search', '')
 
-    # MODIFIED: Improved trending category handling
+    # Handle the "trending" category - this uses your existing special logic
     if category == 'trending':
         # Get all rooms with their message counts
-        rooms_with_counts = [
-            (room, Message.objects.filter(room=room).count())
-            for room in Room.objects.all()
-            if Message.objects.filter(room=room).count() > 0
-        ]
+        rooms_with_counts = []
+        for room in Room.objects.all()[:100]:  # Limit to first 100 for efficiency
+            message_count = room.message_count  # Using your model property
+            if message_count > 0:
+                rooms_with_counts.append((room, message_count))
 
         # Sort by message count (most messages first)
         rooms_with_counts.sort(key=lambda x: x[1], reverse=True)
 
-        # Get the top rooms overall
-        top_rooms = rooms_with_counts[:100]  # Limit to top 100 for efficiency
-
         # Get the subset for this page
         page_start = offset
         page_end = offset + page_size
-        room_subset = top_rooms[page_start:page_end]
+        room_subset = rooms_with_counts[page_start:page_end]
 
         rooms = []
         for room, message_count in room_subset:
-            # Use display_name if available, otherwise format the name
-            if hasattr(room, 'display_name') and room.display_name:
-                display_name = room.display_name
-            else:
-                display_name = room.name.replace('-', ' ').title()
-
-            category_name = room.category.name.lower() if room.category else 'all'
-
             room_data = {
                 'name': room.name,
-                'display_name': display_name,
+                'display_name': room.display_name,
                 'message_count': message_count,  # Use the actual count we calculated
-                'category': category_name,
-                'creator': room.creator.username
+                'category': room.category.name if room.category else None,
+                'category_slug': room.category.slug if room.category else 'all',
+                'creator': room.creator.username,
+                'created_at': room.created_at.isoformat()  # Added for sorting
             }
             rooms.append(room_data)
 
-        has_next = len(top_rooms) > page_end
-    elif category and category != 'all':
-        # Normal category filter
-        room_objects = Room.objects.filter(
-            category__name__iexact=category
-        ).order_by('-created_at')[offset:offset+page_size]
+        has_next = len(rooms_with_counts) > page_end
 
-        total_count = Room.objects.filter(
-            category__name__iexact=category
-        ).count()
-
-        rooms = []
-        for room in room_objects:
-            message_count = Message.objects.filter(room=room).count()
-
-            # Use display_name if available, otherwise format the name
-            if hasattr(room, 'display_name') and room.display_name:
-                display_name = room.display_name
-            else:
-                display_name = room.name.replace('-', ' ').title()
-
-            category_name = room.category.name.lower() if room.category else 'all'
-
-            room_data = {
-                'name': room.name,
-                'display_name': display_name,
-                'message_count': message_count,
-                'category': category_name,
-                'creator': room.creator.username
-            }
-            rooms.append(room_data)
-
-        has_next = total_count > offset + page_size
     else:
-        # No category filter or "all" category
-        room_objects = Room.objects.all().order_by('-created_at')[offset:offset+page_size]
-        total_count = Room.objects.count()
+        # Build base queryset
+        room_queryset = Room.objects.all()
 
+        # Apply category filter if provided and not "all"
+        if category and category != 'all':
+            try:
+                # First try to filter by slug (more reliable)
+                room_queryset = room_queryset.filter(category__slug=category)
+            except:
+                # Fall back to case-insensitive name match
+                room_queryset = room_queryset.filter(category__name__iexact=category)
+
+        # Apply search filter if provided
+        if search_query:
+            room_queryset = room_queryset.filter(display_name__icontains=search_query)
+
+        # Apply sorting
+        if sort_by == 'alphabetical':
+            room_queryset = room_queryset.order_by('display_name')
+        else:  # Default to 'recent'
+            room_queryset = room_queryset.order_by('-created_at')
+
+        # Get total count before pagination
+        total_count = room_queryset.count()
+
+        # Apply pagination
+        room_objects = room_queryset[offset:offset + page_size]
+
+        # Format room data
         rooms = []
         for room in room_objects:
-            message_count = Message.objects.filter(room=room).count()
-
-            # Use display_name if available, otherwise format the name
-            if hasattr(room, 'display_name') and room.display_name:
-                display_name = room.display_name
-            else:
-                display_name = room.name.replace('-', ' ').title()
-
-            category_name = room.category.name.lower() if room.category else 'all'
+            message_count = room.message_count  # Using your model property
 
             room_data = {
                 'name': room.name,
-                'display_name': display_name,
+                'display_name': room.display_name,
                 'message_count': message_count,
-                'category': category_name,
-                'creator': room.creator.username
+                'category': room.category.name if room.category else None,
+                'category_slug': room.category.slug if room.category else 'all',
+                'creator': room.creator.username,
+                'created_at': room.created_at.isoformat()
             }
             rooms.append(room_data)
 
-        has_next = total_count > offset + page_size
+        # If sorting by "active", sort the rooms by message count
+        if sort_by == 'active':
+            # We need to fetch message count for each room
+            for room_data in rooms:
+                room_obj = next((r for r in room_objects if r.name == room_data['name']), None)
+                if room_obj:
+                    room_data['message_count'] = room_obj.message_count
 
+            # Sort by message count
+            rooms.sort(key=lambda x: x['message_count'], reverse=True)
+
+        has_next = total_count > (offset + page_size)
+
+    # Get trending rooms for the trending section (if not already fetched)
+    trending_rooms_data = []
+    if category != 'trending' and sort_by != 'trending':
+        # Logic for trending is similar to the category == 'trending' case
+        rooms_with_counts = []
+        for room in Room.objects.all()[:50]:  # Limit to first 50 for efficiency
+            message_count = room.message_count  # Using your model property
+            if message_count > 0:
+                rooms_with_counts.append((room, message_count))
+
+        rooms_with_counts.sort(key=lambda x: x[1], reverse=True)
+        top_trending = rooms_with_counts[:6]  # Just get top 6 for trending section
+
+        for room, message_count in top_trending:
+            trending_rooms_data.append({
+                'name': room.name,
+                'display_name': room.display_name,
+                'message_count': message_count,
+                'category': room.category.name if room.category else None,
+                'category_slug': room.category.slug if room.category else 'all',
+                'creator': room.creator.username,
+                'created_at': room.created_at.isoformat()
+            })
+
+    # Return JSON response with all data
     return JsonResponse({
+        'success': True,
         'rooms': rooms,
-        'has_next': has_next
+        'trending_rooms': trending_rooms_data,
+        'has_more': has_next
     })
 
 def room(request, room_name):
@@ -653,90 +677,56 @@ def whiteboard_update(request, room_name):
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-@login_required
-def friends_list(request):
-    """
-    View for the friends list page
-    """
-    # Get pending friend requests (received by the user)
-    pending_requests = UserRelationship.objects.filter(
-        receiver=request.user,
-        status='pending'
-    ).select_related('requester')
-
-    # Get the user's friends
-    friends = UserRelationship.get_friends(request.user).select_related('status')
-
-    context = {
-        'friends': friends,
-        'pending_requests': pending_requests,
-    }
-
-    return render(request, 'chat/friends_list.html', context)
-
-
 def explore_rooms(request):
     """
-    View for the explore rooms page
+    View for the explore rooms page - displays categorized rooms and allows filtering
     """
-    # Get search and filter parameters
-    search_query = request.GET.get('search', '')
-    category_id = request.GET.get('category', '')
-    sort_by = request.GET.get('sort', 'popular')
+    # Get all active rooms (limit to 15 for initial load)
+    all_rooms = Room.objects.all().order_by('-created_at')[:15]
 
-    # Base queryset
-    rooms = Room.objects.all().select_related('creator', 'category')
+    # Get trending rooms - rooms with most messages
+    # First get all rooms with their message counts
+    rooms_with_counts = []
+    for room in Room.objects.all()[:50]:  # Limit to first 50 for efficiency
+        message_count = room.message_count  # Using your model property
+        if message_count > 0:
+            rooms_with_counts.append((room, message_count))
 
-    # Apply search filter
-    if search_query:
-        rooms = rooms.filter(
-            Q(name__icontains=search_query) |
-            Q(display_name__icontains=search_query) |
-            Q(creator__username__icontains=search_query)
-        )
+    # Sort by message count (most messages first)
+    rooms_with_counts.sort(key=lambda x: x[1], reverse=True)
 
-    # Apply category filter
-    if category_id:
-        try:
-            category_id = int(category_id)
-            rooms = rooms.filter(category_id=category_id)
-        except (ValueError, TypeError):
-            pass
+    # Get top trending rooms
+    trending_rooms = [room for room, count in rooms_with_counts[:9]]
 
-    # Apply sorting
-    if sort_by == 'newest':
-        rooms = rooms.order_by('-created_at')
-    elif sort_by == 'oldest':
-        rooms = rooms.order_by('created_at')
-    elif sort_by == 'active':
-        # Sort by most recent message
-        rooms = rooms.annotate(
-            last_message_time=models.Max('messages__timestamp')
-        ).order_by('-last_message_time')
-    else:  # popular (default)
-        rooms = rooms.annotate(
-            message_count=Count('messages')
-        ).order_by('-message_count')
+    # For featured rooms, we'll use top trending since you don't have is_featured field
+    featured_rooms = [room for room, count in rooms_with_counts[:3]]
 
-    # Get all categories for the filter dropdown
+    # Get all categories with room count
     categories = Category.objects.all()
 
-    # Pagination
-    from django.core.paginator import Paginator
-    paginator = Paginator(rooms, 12)  # Show 12 rooms per page
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
+    # Add room count to categories
+    for category in categories:
+        category.room_count = Room.objects.filter(category=category).count()
+
+    # Sort categories by room count
+    categories = sorted(categories, key=lambda x: x.room_count, reverse=True)
+
+    # Get category choices for the dropdown
+    category_choices = [(category.slug, category.name) for category in Category.objects.all()]
+
+    # Check if there are more rooms to load
+    has_more = Room.objects.count() > 15
 
     context = {
-        'rooms': page_obj,
-        'search_query': search_query,
-        'selected_category': int(category_id) if category_id and category_id.isdigit() else '',
-        'sort_by': sort_by,
+        'all_rooms': all_rooms,
+        'trending_rooms': trending_rooms,
+        'featured_rooms': featured_rooms,
         'categories': categories,
+        'category_choices': category_choices,
+        'has_more': has_more,
     }
 
-    return render(request, 'chat/explore_rooms.html', context)
-
+    return render(request, 'chat/manage/explore_rooms.html', context)
 
 # Add this to your context processor to include the friends count in all templates
 def user_context(request):
@@ -971,3 +961,4 @@ def get_user_profile(request, username):
             'success': False,
             'error': str(e)
         }, status=400)
+
