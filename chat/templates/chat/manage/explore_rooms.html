@@ -1,0 +1,725 @@
+{% extends "base.html" %}
+{% load static %}
+{% load chat_extras %}
+
+{% block title %}Explore Rooms - Euphorie{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-7xl">
+  <!-- Page Header -->
+  <div class="mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+      <h1 class="text-2xl font-bold text-gray-800">Explore Rooms</h1>
+      {% if user.is_authenticated %}
+      <a href="#create-room-section" class="btn btn-primary text-sm sm:text-base">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Create New Room
+      </a>
+      {% else %}
+      <a href="{% url 'login' %}" class="btn btn-primary text-sm sm:text-base">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+        Login to Create Room
+      </a>
+      {% endif %}
+    </div>
+    <p class="text-gray-500">Discover conversations and communities that interest you.</p>
+  </div>
+
+  <!-- Search and Filter Controls -->
+  <div class="surface-card p-4 mb-6">
+    <div class="flex flex-col sm:flex-row gap-4">
+      <div class="relative flex-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          id="explore-search"
+          placeholder="Search for rooms..."
+          class="input input-with-icon-left"
+        />
+      </div>
+      <div class="flex gap-2">
+        <select id="explore-category-filter" class="input appearance-none pr-8">
+          <option value="all">All Categories</option>
+          {% for slug, display_name in category_choices %}
+          <option value="{{ slug }}">{{ display_name }}</option>
+          {% endfor %}
+        </select>
+        <select id="explore-sort-by" class="input appearance-none pr-8">
+          <option value="trending">Trending First</option>
+          <option value="recent">Newest First</option>
+          <option value="active">Most Active</option>
+          <option value="alphabetical">A-Z</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Featured Rooms Section -->
+  <div class="mb-8">
+    <h2 class="text-xl font-bold text-gray-800 mb-4">Featured Rooms</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for room in featured_rooms %}
+      <div class="surface-card overflow-hidden">
+        <div class="p-4">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center justify-center w-8 h-8 rounded-md bg-pink-100 text-pink-500 font-semibold text-sm">
+              {% if room.category %}
+                {{ room.category.name|slice:":1" }}
+              {% else %}
+                R
+              {% endif %}
+            </div>
+            <div>
+              <div class="font-medium text-gray-800">{{ room.display_name }}</div>
+              <div class="text-xs text-gray-500">
+                {% if room.category %}
+                  {{ room.category.name }}
+                {% else %}
+                  General Discussion
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="text-sm text-gray-600 mb-3">
+            Join this room to discuss all things related to {{ room.display_name }}.
+          </div>
+          <div class="flex flex-wrap gap-2 mb-3">
+            <span class="badge badge-sm badge-primary">{{ room.message_count }} messages</span>
+          </div>
+        </div>
+        <div class="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center">
+          <span class="text-xs text-gray-600 flex items-center">
+            <div class="user-avatar user-avatar-sm mr-1.5"
+                data-username="{{ room.creator.username }}">
+            {% if not room.creator.profile.avatar %}
+                {{ room.creator.username|slice:":1"|upper }}
+            {% endif %}
+            </div>
+            Created by {{ room.creator.username }}
+          </span>
+          <a href="{% url 'room' room.name %}" class="btn btn-primary text-xs py-1 px-3">
+            Join Room
+          </a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-span-full py-8 text-center">
+        <p class="text-gray-500">No featured rooms available at the moment.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Trending Categories Section -->
+  <div class="mb-8">
+    <h2 class="text-xl font-bold text-gray-800 mb-4">Browse by Category</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      {% for category in categories %}
+      <a href="?category={{ category.slug }}" class="bg-white border border-gray-200 rounded-lg p-4 text-center hover:border-pink-300 hover:shadow-md transition-all">
+        <div class="w-12 h-12 mx-auto mb-2 rounded-full flex items-center justify-center bg-pink-100 text-pink-500 text-lg font-semibold">
+          {% if category.icon %}
+            {{ category.icon }}
+          {% else %}
+            {{ category.name|slice:":1"|upper }}
+          {% endif %}
+        </div>
+        <h3 class="font-medium text-gray-800">{{ category.name }}</h3>
+        <p class="text-xs text-gray-500 mt-1">{{ category.room_count }} rooms</p>
+      </a>
+      {% empty %}
+      <div class="col-span-full py-8 text-center">
+        <p class="text-gray-500">No categories available at the moment.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Trending Rooms Section -->
+  <div class="mb-8">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Trending Now</h2>
+      <div class="flex items-center text-xs text-pink-500">
+        <span class="inline-flex h-2 w-2 rounded-full bg-pink-400 mr-2"></span>
+        <span>High activity in the last 24 hours</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="trending-rooms-container">
+      {% for room in trending_rooms %}
+      <a href="{% url 'room' room.name %}" class="room-card surface-card" data-category="{% if room.category %}{{ room.category.slug }}{% else %}all{% endif %}">
+        <div class="trending-indicator">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          Trending
+        </div>
+        <div class="room-card-content">
+          <h3 class="room-name">{{ room.display_name }}</h3>
+          <div class="text-sm text-gray-500 mb-3">
+            {% if room.category %}
+            <span class="badge badge-sm badge-primary">{{ room.category.name }}</span>
+            {% endif %}
+            <span class="ml-1">Active discussion</span>
+          </div>
+          <div class="flex justify-between items-center mt-auto">
+            <span class="text-xs text-gray-500 flex items-center">
+              <div class="user-avatar h-4 w-4 rounded-full flex items-center justify-center text-white text-xs mr-1.5"
+                  data-username="{{ room.creator.username }}">
+              {% if not room.creator.profile.avatar %}
+                  {{ room.creator.username|slice:":1"|upper }}
+              {% endif %}
+              </div>
+              {{ room.creator.username }}
+            </span>
+            <span class="inline-flex items-center">
+              <svg class="w-3 h-3 text-green-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+              </svg>
+              <span class="text-xs text-gray-500">Active now</span>
+            </span>
+          </div>
+        </div>
+        <div class="room-card-footer">
+          <div class="badge badge-sm badge-primary">
+            {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
+          </div>
+          <div class="join-btn flex items-center">
+            <span>Join Conversation</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="col-span-full py-8 surface-card flex flex-col items-center">
+        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800 mb-2">No trending rooms right now</h3>
+        <p class="text-gray-500 text-center max-w-md">
+          Be the first to start a conversation that gets trending!
+        </p>
+        {% if user.is_authenticated %}
+        <a href="#create-room-section" class="btn btn-primary mt-4">Create a Room</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- All Rooms Section -->
+  <div class="mb-8">
+    <h2 class="text-xl font-bold text-gray-800 mb-4">All Rooms</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="all-rooms-container">
+      {% for room in all_rooms %}
+      <a href="{% url 'room' room.name %}" class="room-card surface-card" data-category="{% if room.category %}{{ room.category.slug }}{% else %}all{% endif %}">
+        {% if room.message_count > 20 %}
+        <div class="trending-indicator">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          Trending
+        </div>
+        {% endif %}
+        <div class="room-card-content">
+          <h3 class="room-name">{{ room.display_name }}</h3>
+          <div class="text-sm text-gray-500 mb-3">
+            {% if room.category %}
+            <span class="badge badge-sm badge-primary">{{ room.category.name }}</span>
+            {% endif %}
+            <span class="ml-1">Active discussion</span>
+          </div>
+          <div class="flex justify-between items-center mt-auto">
+            <span class="text-xs text-gray-500 flex items-center">
+              <div class="user-avatar h-4 w-4 rounded-full flex items-center justify-center text-white text-xs mr-1.5"
+                  data-username="{{ room.creator.username }}">
+              {% if not room.creator.profile.avatar %}
+                  {{ room.creator.username|slice:":1"|upper }}
+              {% endif %}
+              </div>
+              {{ room.creator.username }}
+            </span>
+            <span class="inline-flex items-center">
+              <svg class="w-3 h-3 text-green-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+              </svg>
+              <span class="text-xs text-gray-500">Active now</span>
+            </span>
+          </div>
+        </div>
+        <div class="room-card-footer">
+          <div class="badge badge-sm badge-primary">
+            {{ room.message_count }} {% if room.message_count == 1 %}message{% else %}messages{% endif %}
+          </div>
+          <div class="join-btn flex items-center">
+            <span>Join Conversation</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="col-span-full py-8 surface-card flex flex-col items-center">
+        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800 mb-2">No rooms available yet</h3>
+        <p class="text-gray-500 text-center max-w-md">
+          Be the first to create a room and start the conversation!
+        </p>
+        {% if user.is_authenticated %}
+        <a href="#create-room-section" class="btn btn-primary mt-4">Create a Room</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Load More Button -->
+  <div class="text-center mb-10 {% if not has_more %}hidden{% endif %}" id="load-more-container">
+    <button id="load-more-button" class="btn btn-secondary flex items-center justify-center mx-auto gap-2" data-page="2">
+      <span>Load More Rooms</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Create Room Section -->
+  {% if user.is_authenticated %}
+  <div id="create-room-section" class="mb-10">
+    <div class="create-room-card">
+      <div class="p-4 border-b border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800">Create a New Chat Room</h2>
+        <p class="text-sm text-gray-500 mt-1">Start a conversation about any topic that interests you</p>
+      </div>
+      <form method="post" action="{% url 'create_room' %}" class="p-4" id="create-room-form">
+        {% csrf_token %}
+        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+          <div class="input-wrapper flex-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <input
+              type="text"
+              name="room_name"
+              placeholder="Enter a room name..."
+              class="input input-with-icon-left"
+              required
+            />
+          </div>
+          <select
+            name="room_category"
+            class="input appearance-none sm:w-1/3"
+            required
+          >
+            <option value="" disabled selected>Select category</option>
+            {% for slug, display_name in category_choices %}
+            <option value="{{ slug }}">{{ display_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex justify-end">
+          <button type="submit" class="create-room-btn">
+            <span class="relative z-10">Create Room</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Joining Euphorie CTA Section (for not logged in users) -->
+  {% if not user.is_authenticated %}
+  <div class="surface-card mb-10 overflow-hidden">
+    <div class="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div>
+        <h2 class="text-xl font-bold text-gray-800 mb-2">Join Euphorie Today</h2>
+        <p class="text-gray-600 mb-4">Create your own chat rooms, participate in conversations, and connect with like-minded people.</p>
+        <div class="flex flex-wrap gap-3">
+          <a href="{% url 'signup' %}" class="btn btn-primary">
+            Create an Account
+          </a>
+          <a href="{% url 'login' %}" class="btn btn-secondary">
+            Already have an account? Login
+          </a>
+        </div>
+      </div>
+      <div class="w-32 h-32 md:w-40 md:h-40 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100 rounded-full">
+        <div class="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 md:h-16 md:w-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Initialize user avatars
+    function initializeUserAvatars() {
+      const avatars = document.querySelectorAll('.user-avatar');
+
+      avatars.forEach(avatar => {
+        const username = avatar.getAttribute('data-username');
+        if (username && !avatar.classList.contains('has-image')) {
+          // Generate background color based on username
+          const colors = [
+            'from-pink-400 to-purple-400',
+            'from-purple-400 to-indigo-400',
+            'from-indigo-400 to-blue-400',
+            'from-blue-400 to-teal-400',
+            'from-teal-400 to-green-400',
+            'from-green-400 to-yellow-400',
+            'from-yellow-400 to-orange-400',
+            'from-orange-400 to-red-400'
+          ];
+
+          // Simple hash function to get consistent color for each username
+          const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const colorIndex = hash % colors.length;
+
+          // Apply background gradient
+          avatar.classList.add('bg-gradient-to-br');
+          avatar.classList.add(colors[colorIndex]);
+        }
+      });
+    }
+
+    // Initialize search functionality
+    const exploreSearch = document.getElementById('explore-search');
+    const roomCards = document.querySelectorAll('.room-card');
+
+    if (exploreSearch) {
+      exploreSearch.addEventListener('input', function() {
+        const searchValue = this.value.toLowerCase();
+        let visibleCount = 0;
+
+        roomCards.forEach(card => {
+          const roomName = card.querySelector('.room-name').textContent.toLowerCase();
+          const match = roomName.includes(searchValue);
+
+          if (match) {
+            card.style.display = '';
+            visibleCount++;
+          } else {
+            card.style.display = 'none';
+          }
+        });
+
+        // Show no results message if needed
+        const noResultsElements = document.querySelectorAll('.no-results-message');
+        if (visibleCount === 0 && searchValue !== '') {
+          noResultsElements.forEach(el => el.style.display = 'flex');
+        } else {
+          noResultsElements.forEach(el => el.style.display = 'none');
+        }
+      });
+    }
+
+    // Initialize category filter
+    const categoryFilter = document.getElementById('explore-category-filter');
+    if (categoryFilter) {
+      categoryFilter.addEventListener('change', function() {
+        const selectedCategory = this.value;
+
+        roomCards.forEach(card => {
+          const roomCategory = card.getAttribute('data-category');
+
+          if (selectedCategory === 'all' || roomCategory === selectedCategory) {
+            card.style.display = '';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+
+      // Set initial value from URL if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const categoryParam = urlParams.get('category');
+      if (categoryParam) {
+        categoryFilter.value = categoryParam;
+        categoryFilter.dispatchEvent(new Event('change'));
+      }
+    }
+
+    // Sort functionality
+    const sortSelect = document.getElementById('explore-sort-by');
+    if (sortSelect) {
+      sortSelect.addEventListener('change', function() {
+        const sortValue = this.value;
+        const allRoomsContainer = document.getElementById('all-rooms-container');
+        const trendingRoomsContainer = document.getElementById('trending-rooms-container');
+
+        if (!allRoomsContainer || !trendingRoomsContainer) return;
+
+        // Fetch sorted rooms
+        fetch(`/api/load_more_rooms/?sort=${sortValue}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Update trending rooms
+              if (data.trending_rooms && data.trending_rooms.length > 0) {
+                updateRoomsContainer(trendingRoomsContainer, data.trending_rooms);
+              }
+
+              // Update all rooms
+              if (data.rooms && data.rooms.length > 0) {
+                updateRoomsContainer(allRoomsContainer, data.rooms);
+              }
+
+              // Reinitialize avatars
+              initializeUserAvatars();
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching sorted rooms:', error);
+          });
+      });
+    }
+
+    // Function to update rooms container with new data
+    function updateRoomsContainer(container, rooms) {
+      container.innerHTML = '';
+
+      if (rooms.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-8 surface-card flex flex-col items-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">No rooms available</h3>
+            <p class="text-gray-500 text-center max-w-md">
+              Try changing your filters or search terms.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      rooms.forEach(room => {
+        const roomElement = document.createElement('a');
+        roomElement.href = `/chat/${room.name}/`;
+        roomElement.className = 'room-card surface-card';
+        roomElement.setAttribute('data-category', room.category_slug || 'all');
+
+        const trendingIndicator = room.message_count > 20 ? `
+          <div class="trending-indicator">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            Trending
+          </div>
+        ` : '';
+
+        const categoryBadge = room.category ? `
+          <span class="badge badge-sm badge-primary">${room.category}</span>
+        ` : '';
+
+        roomElement.innerHTML = `
+          ${trendingIndicator}
+          <div class="room-card-content">
+            <h3 class="room-name">${room.display_name}</h3>
+            <div class="text-sm text-gray-500 mb-3">
+              ${categoryBadge}
+              <span class="ml-1">Active discussion</span>
+            </div>
+            <div class="flex justify-between items-center mt-auto">
+              <span class="text-xs text-gray-500 flex items-center">
+                <div class="user-avatar h-4 w-4 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs mr-1.5" data-username="${room.creator}">
+                  ${room.creator.charAt(0).toUpperCase()}
+                </div>
+                ${room.creator}
+              </span>
+              <span class="inline-flex items-center">
+                <svg class="w-3 h-3 text-green-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                </svg>
+                <span class="text-xs text-gray-500">Active now</span>
+              </span>
+            </div>
+          </div>
+          <div class="room-card-footer">
+            <div class="badge badge-sm badge-primary">
+              ${room.message_count} ${room.message_count == 1 ? 'message' : 'messages'}
+            </div>
+            <div class="join-btn flex items-center">
+              <span>Join Conversation</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(roomElement);
+      });
+    }
+
+    // Load more functionality
+    const loadMoreBtn = document.getElementById('load-more-button');
+    const loadMoreContainer = document.getElementById('load-more-container');
+
+    if (loadMoreBtn && loadMoreContainer) {
+      loadMoreBtn.addEventListener('click', async function() {
+        this.innerHTML = `
+          <svg class="animate-spin h-5 w-5 text-gray-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Loading rooms...</span>
+        `;
+
+        try {
+          // Get current filters
+          const page = parseInt(this.getAttribute('data-page') || '2');
+          const category = document.getElementById('explore-category-filter')?.value || 'all';
+          const sort = document.getElementById('explore-sort-by')?.value || 'trending';
+          const search = document.getElementById('explore-search')?.value || '';
+
+          // Construct API URL
+          let url = `/api/load_more_rooms/?page=${page}&sort=${sort}`;
+          if (category !== 'all') {
+            url += `&category=${category}`;
+          }
+          if (search) {
+            url += `&search=${encodeURIComponent(search)}`;
+          }
+
+          const response = await fetch(url);
+          const data = await response.json();
+
+          if (data.success && data.rooms && data.rooms.length > 0) {
+            // Get the container and add new rooms
+            const allRoomsContainer = document.getElementById('all-rooms-container');
+            data.rooms.forEach(room => {
+              const roomElement = document.createElement('a');
+              roomElement.href = `/chat/${room.name}/`;
+              roomElement.className = 'room-card surface-card';
+              roomElement.setAttribute('data-category', room.category_slug || 'all');
+
+              const trendingIndicator = room.message_count > 20 ? `
+                <div class="trending-indicator">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  Trending
+                </div>
+              ` : '';
+
+              const categoryBadge = room.category ? `
+                <span class="badge badge-sm badge-primary">${room.category}</span>
+              ` : '';
+
+              roomElement.innerHTML = `
+                ${trendingIndicator}
+                <div class="room-card-content">
+                  <h3 class="room-name">${room.display_name}</h3>
+                  <div class="text-sm text-gray-500 mb-3">
+                    ${categoryBadge}
+                    <span class="ml-1">Active discussion</span>
+                  </div>
+                  <div class="flex justify-between items-center mt-auto">
+                    <span class="text-xs text-gray-500 flex items-center">
+                      <div class="user-avatar h-4 w-4 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs mr-1.5" data-username="${room.creator}">
+                        ${room.creator.charAt(0).toUpperCase()}
+                      </div>
+                      ${room.creator}
+                    </span>
+                    <span class="inline-flex items-center">
+                      <svg class="w-3 h-3 text-green-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                      </svg>
+                      <span class="text-xs text-gray-500">Active now</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="room-card-footer">
+                  <div class="badge badge-sm badge-primary">
+                    ${room.message_count} ${room.message_count == 1 ? 'message' : 'messages'}
+                  </div>
+                  <div class="join-btn flex items-center">
+                    <span>Join Conversation</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </div>
+                </div>
+              `;
+
+              allRoomsContainer.appendChild(roomElement);
+            });
+
+            // Initialize avatars for new cards
+            initializeUserAvatars();
+
+            // Update button
+            this.innerHTML = `
+              <span>Load More Rooms</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            `;
+            this.setAttribute('data-page', (page + 1).toString());
+
+            // Hide button if no more rooms
+            if (!data.has_more) {
+              loadMoreContainer.classList.add('hidden');
+            }
+          } else {
+            // No more rooms
+            this.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>No More Rooms</span>
+            `;
+
+            setTimeout(() => {
+              loadMoreContainer.classList.add('hidden');
+            }, 2000);
+          }
+        } catch (error) {
+          console.error('Error loading more rooms:', error);
+          this.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Error Loading Rooms</span>
+          `;
+
+          setTimeout(() => {
+            this.innerHTML = `
+              <span>Try Again</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            `;
+          }, 2000);
+        }
+      });
+    }
+
+    // Initialize on page load
+    initializeUserAvatars();
+  });
+</script>
+{% endblock %}
