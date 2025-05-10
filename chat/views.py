@@ -28,11 +28,11 @@ def index(request):
     # Get all categories
     categories = Category.objects.all().order_by('name')
 
-    # Get rooms with message counts using select_related and annotate to reduce queries
-    # This uses a single query rather than one query per room
+    # Get rooms with message counts using select_related but avoid conflicting with the property
+    # Use a different name for the annotation to avoid conflict with property
     all_rooms = Room.objects.all()\
         .select_related('creator', 'category')\
-        .annotate(message_count=models.Count('messages'))\
+        .annotate(msg_count=models.Count('messages'))\
         .order_by('-created_at')
 
     # Format room data for display
@@ -44,22 +44,25 @@ def index(request):
 
         display_name = room.display_name if hasattr(room, 'display_name') and room.display_name else room.name.replace('-', ' ').title()
 
+        # Use msg_count annotation or fall back to property if needed
+        message_count = getattr(room, 'msg_count', None) or room.message_count
+
         # Create a room object with all needed data - with safe defaults
         room_data = {
             'name': room.name,
             'display_name': display_name,
             'creator': room.creator,
-            'message_count': room.message_count,  # Using annotated field for better performance
+            'message_count': message_count,
             'category': room.category,  # This might be None, that's ok
             'category_slug': room.category.slug if room.category and hasattr(room.category, 'slug') else room.category.name.lower() if room.category else 'all',
         }
         rooms.append(room_data)
 
     # Get trending rooms - most messages first
-    # Using the already annotated message_count for better performance
+    # Use the annotation for sorting
     trending_rooms = sorted(
-        [room for room in all_rooms if room.message_count > 0],
-        key=lambda x: x.message_count,
+        [room for room in all_rooms if getattr(room, 'msg_count', 0) > 0],
+        key=lambda x: getattr(x, 'msg_count', 0),
         reverse=True
     )[:30]  # Increased to 30 for more options
 
@@ -67,17 +70,18 @@ def index(request):
     trending_room_data = []
     for room_obj in trending_rooms:
         display_name = room_obj.display_name if hasattr(room_obj, 'display_name') and room_obj.display_name else room_obj.name.replace('-', ' ').title()
+        message_count = getattr(room_obj, 'msg_count', None) or room_obj.message_count
 
         trending_room_data.append({
             'name': room_obj.name,
             'display_name': display_name,
             'creator': room_obj.creator,
-            'message_count': room_obj.message_count,
+            'message_count': message_count,
             'category': room_obj.category,
             'category_slug': room_obj.category.slug if room_obj.category and hasattr(room_obj.category, 'slug') else room_obj.category.name.lower() if room_obj.category else 'all',
         })
 
-    # Get rooms by category - using dictionary comprehension for more concise code
+    # Get rooms by category
     rooms_by_category = {}
     for category in categories:
         # Filter rooms for this category safely
