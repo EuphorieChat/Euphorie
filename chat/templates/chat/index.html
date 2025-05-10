@@ -530,7 +530,7 @@ main {
   display: none;
 }
 
-/* Mobile Categories Showcase */
+/* ===== IMPROVED MOBILE CATEGORIES ===== */
 .mobile-categories-showcase {
   overflow-x: auto;
   white-space: nowrap;
@@ -546,30 +546,37 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
+  width: 70px;
+  height: 70px;
   margin: 0 0.5rem;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+  background: white;
   border: 1px solid var(--border);
   transition: all var(--duration-normal) var(--ease-spring);
   scroll-snap-align: start;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .mobile-category-card:hover, .mobile-category-card.active {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
+}
+
+.mobile-category-card.active {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-color: transparent;
 }
 
 .mobile-category-card:hover .mobile-category-name,
 .mobile-category-card.active .mobile-category-name {
   color: white;
+  font-weight: 500;
 }
 
 .mobile-category-card:hover .mobile-category-icon,
 .mobile-category-card.active .mobile-category-icon {
   background-color: rgba(255, 255, 255, 0.2);
+  border: 2px solid white;
 }
 
 .mobile-category-icon {
@@ -590,6 +597,246 @@ main {
   font-weight: 500;
   color: var(--text-primary);
   transition: all var(--duration-normal) var(--ease);
+}
+
+#categories-expanded-panel {
+  animation: fadeIn 0.3s ease-out forwards;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+/* ===== IMPROVED SEARCH BAR & FILTERING ===== */
+.search-container {
+  position: sticky;
+  top: 16px;
+  z-index: 30;
+  margin-bottom: 1rem;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.filter-pill.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-filters {
+  display: flex;
+  overflow-x: auto;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-filters .filter-pill {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+.sort-option, .filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  transition: all 0.2s ease;
+}
+
+.sort-option.active, .filter-option.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+}
+
+#advanced-filters-panel {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== IMPROVED DROPDOWN MENU ===== */
+.room-selector-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.room-selector-btn:hover, .room-selector-btn:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+}
+
+.room-selector-btn[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  z-index: 50;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: none;
+}
+
+.dropdown-menu.active {
+  display: block;
+  animation: dropdownFade 0.2s ease-out forwards;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-search {
+  position: relative;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdown-search-input {
+  width: 100%;
+  padding: 0.5rem 0.5rem 0.5rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+.dropdown-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.1);
+}
+
+.dropdown-section {
+  padding: 0.75rem 0;
+}
+
+.dropdown-section-title {
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.dropdown-options {
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dropdown-option:hover {
+  background-color: var(--surface-hover);
+}
+
+.dropdown-option.active {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.dropdown-option > span {
+  margin-left: 0.75rem;
+  flex: 1;
+}
+
+.option-check {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--primary);
+  opacity: 0;
+}
+
+.dropdown-option.active .option-check {
+  opacity: 1;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 0;
+}
+
+.dropdown-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.create-room-dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.625rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.create-room-dropdown-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 /* Mobile Recommended Section */
@@ -1206,6 +1453,21 @@ main {
     padding: 0.125rem 0.375rem;
     font-size: 0.65rem;
   }
+
+  /* Enhanced search container for mobile */
+  .search-container {
+    padding: 0 0.75rem;
+  }
+
+  .filter-pill {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.7rem;
+  }
+
+  /* Improved dropdown on mobile */
+  .dropdown-menu {
+    max-height: 70vh;
+  }
 }
 
 /* Media queries */
@@ -1252,6 +1514,7 @@ select:focus-visible {
 }
 </style>
 </head>
+<body>
 <body>
   <!-- Sticky Top Navigation with glass effect -->
   <header class="app-header py-2 md:py-3" id="header">
@@ -1376,12 +1639,18 @@ select:focus-visible {
     </div>
     {% endif %}
 
-    <!-- Mobile Categories Showcase - Improved for better usability -->
+    <!-- Mobile Categories Showcase - Improved for better touch interaction -->
     <div class="mobile-categories-showcase mb-4">
-      <div class="pb-2 pl-1">
+      <div class="pb-2 pl-1 flex justify-between items-center">
         <h3 class="text-sm font-semibold text-gray-700">Browse Categories</h3>
+        <button id="expand-categories" class="text-xs text-pink-500 flex items-center mr-2">
+          See all
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       </div>
-      <div class="flex overflow-x-auto hide-scrollbar py-1">
+      <div class="flex overflow-x-auto hide-scrollbar py-2 gap-2">
         <!-- All Rooms Card -->
         <button data-category="all" class="mobile-category-card active">
           <div class="mobile-category-icon">
@@ -1411,6 +1680,11 @@ select:focus-visible {
           <span class="mobile-category-name">{{ category.name }}</span>
         </button>
         {% endfor %}
+      </div>
+
+      <!-- Category Expansion Panel (Hidden by default) -->
+      <div id="categories-expanded-panel" class="hidden bg-white rounded-lg p-3 shadow-md mt-2 mb-3 grid grid-cols-4 gap-2">
+        <!-- All available categories will be cloned and displayed here in a grid -->
       </div>
     </div>
 
@@ -1513,6 +1787,216 @@ select:focus-visible {
       {% endif %}
     </div>
 
+    <!-- Enhanced Search Bar with Quick Filters -->
+    <div class="search-container mb-5 sticky top-16 z-20 px-3">
+      <div class="bg-white rounded-lg shadow-sm p-3">
+        <!-- Search Input with Clear Button -->
+        <div class="relative w-full mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            id="room-search"
+            placeholder="Search rooms..."
+            class="search-input pl-12 pr-10 w-full py-3 border border-gray-200 rounded-lg focus:border-pink-400 focus:ring focus:ring-pink-200 focus:ring-opacity-50 transition-all"
+            aria-label="Search rooms"
+          />
+          <!-- Clear button (shows only when input has text) -->
+          <button id="clear-search" class="absolute right-3 top-1/2 transform -translate-y-1/2 hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 hover:text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Quick Filter Pills -->
+        <div class="quick-filters flex overflow-x-auto gap-2 hide-scrollbar py-1">
+          <button data-filter="all" class="filter-pill active">All Rooms</button>
+          <button data-filter="active" class="filter-pill">Most Active</button>
+          <button data-filter="new" class="filter-pill">Newest</button>
+          <button data-filter="yours" class="filter-pill">Your Rooms</button>
+          <button id="more-filters" class="filter-pill">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            More
+          </button>
+        </div>
+      </div>
+
+      <!-- Advanced Filter Panel (Hidden by default) -->
+      <div id="advanced-filters-panel" class="hidden bg-white mt-2 rounded-lg shadow-md p-4 animate-slideDown">
+        <div class="mb-3">
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Sort by</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-sort="newest" class="sort-option active">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Newest First
+            </button>
+            <button data-sort="active" class="sort-option">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+              </svg>
+              Most Active
+            </button>
+            <button data-sort="alpha" class="sort-option">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+              Alphabetical
+            </button>
+            <button data-sort="popular" class="sort-option">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Most Popular
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Show only</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-show="all" class="filter-option active">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              All Rooms
+            </button>
+            <button data-show="yours" class="filter-option">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Your Rooms
+            </button>
+            <button data-show="active" class="filter-option">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+              </svg>
+              Active Now
+            </button>
+            <button data-show="new" class="filter-option">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              New Today
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button id="apply-filters" class="btn btn-primary py-2 px-4 text-sm">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Room Selection Dropdown -->
+    <div class="relative inline-block w-full mb-5">
+      <!-- Custom dropdown trigger -->
+      <button id="room-selector-button" class="room-selector-btn" aria-haspopup="true" aria-expanded="false">
+        <span class="selected-room-text">All Rooms</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <!-- Custom dropdown menu -->
+      <div id="room-selector-dropdown" class="dropdown-menu" aria-labelledby="room-selector-button">
+        <!-- Search filter for long lists -->
+        <div class="dropdown-search">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" placeholder="Find room..." class="dropdown-search-input">
+        </div>
+
+        <!-- Room categories section -->
+        <div class="dropdown-section">
+          <h3 class="dropdown-section-title">Categories</h3>
+          <div class="dropdown-options">
+            <div class="dropdown-option active" data-value="all">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span>All Rooms</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="option-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <div class="dropdown-option" data-value="trending">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Trending</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="option-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <!-- Dynamic category options would be generated here -->
+            <div class="dropdown-option" data-value="gaming">
+              <span class="text-lg">🎮</span>
+              <span>Gaming</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="option-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <div class="dropdown-option" data-value="music">
+              <span class="text-lg">🎵</span>
+              <span>Music</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="option-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="dropdown-divider"></div>
+
+        <!-- Your rooms section -->
+        <div class="dropdown-section">
+          <h3 class="dropdown-section-title">Your Rooms</h3>
+          <div class="dropdown-options">
+            <!-- User's rooms would be populated here -->
+            <div class="dropdown-option" data-value="your-room-1">
+              <div class="w-5 h-5 rounded-full bg-gradient-to-r from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium">
+                Y
+              </div>
+              <span>Your Gaming Room</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="option-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <div class="dropdown-option" data-value="your-room-2">
+              <div class="w-5 h-5 rounded-full bg-gradient-to-r from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xs font-medium">
+                M
+              </div>
+              <span>Music Discussion</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="option-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create new room button -->
+        <div class="dropdown-footer">
+          <button id="create-room-dropdown" class="create-room-dropdown-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create New Room
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Mobile Recommended Section - Enhanced design -->
     <div class="mobile-recommended-section mb-6">
       <div class="flex justify-between items-center mb-3">
@@ -1586,48 +2070,6 @@ select:focus-visible {
           <div class="mobile-recommended-footer">
             <a href="{% url 'signup' %}" class="btn btn-primary py-1 px-3 text-xs w-full text-center">Join Room</a>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- View Controls & Search - Enhanced with larger search bar -->
-    <div class="flex flex-col sm:flex-row justify-between items-center mb-5 gap-3 sticky top-16 z-20 bg-white bg-opacity-95 backdrop-blur p-3 rounded-lg shadow-sm">
-      <div class="relative w-full">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          type="text"
-          id="room-search"
-          placeholder="Search rooms..."
-          class="search-input pl-12 w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:border-pink-400 focus:ring focus:ring-pink-200 focus:ring-opacity-50 transition-all"
-          aria-label="Search rooms"
-        />
-      </div>
-
-      <div class="flex items-center gap-4">
-        <!-- Sort button -->
-        <div class="hidden sm:block">
-          <button id="sort-button" class="btn btn-secondary py-1.5 px-3 text-sm flex items-center gap-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-            </svg>
-            Sort
-          </button>
-        </div>
-
-        <!-- Mobile category selector -->
-        <div class="relative sm:hidden">
-          <select id="mobile-category-selector" class="input appearance-none pr-8" aria-label="Select category">
-            <option value="all" selected>All Rooms</option>
-            <option value="trending">Trending</option>
-            {% for category in categories %}
-            <option value="{{ category.slug|default:category.name|lower }}">{{ category.name }}</option>
-            {% endfor %}
-          </select>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 input-icon input-icon-right pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
         </div>
       </div>
     </div>
@@ -1955,7 +2397,7 @@ select:focus-visible {
             </svg>
           </div>
           <h3 class="text-xl font-bold text-gray-800 mb-2">No active rooms yet</h3>
-            <p class="text-gray-500 mb-5 max-w-md mx-auto text-center">{% if user.is_authenticated %}Create a new room to start chatting with others!{% else %}Sign in to create your first chat room and start connecting{% endif %}</p>
+          <p class="text-gray-500 mb-5 max-w-md mx-auto text-center">{% if user.is_authenticated %}Create a new room to start chatting with others!{% else %}Sign in to create your first chat room and start connecting{% endif %}</p>
 
           {% if user.is_authenticated %}
           <button onclick="document.querySelector('input[name=room_name]').focus();" class="btn btn-primary">
@@ -2162,6 +2604,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Show no results message if needed
       displayNoResultsMessage(visibleCount, searchValue);
+
+      // Update clear button visibility in the enhanced search bar
+      const clearSearchBtn = document.getElementById('clear-search');
+      if (clearSearchBtn) {
+        if (searchValue) {
+          clearSearchBtn.classList.remove('hidden');
+        } else {
+          clearSearchBtn.classList.add('hidden');
+        }
+      }
+    });
+  }
+
+  // Clear search button functionality
+  const clearSearchBtn = document.getElementById('clear-search');
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function() {
+      const searchInput = document.getElementById('room-search');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+        this.classList.add('hidden');
+        // Trigger input event to update search results
+        searchInput.dispatchEvent(new Event('input'));
+      }
     });
   }
 
@@ -2250,6 +2717,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Store selected category in localStorage
     localStorage.setItem('euphorie_selected_category', category);
+
+    // Update custom room selector dropdown if it exists
+    const dropdownOptions = document.querySelectorAll('.dropdown-option');
+    if (dropdownOptions.length) {
+      dropdownOptions.forEach(option => {
+        if (option.getAttribute('data-value') === category) {
+          option.classList.add('active');
+          // Update button text
+          const selectedText = document.querySelector('.selected-room-text');
+          if (selectedText) {
+            selectedText.textContent = option.querySelector('span:not(.text-lg)').textContent;
+          }
+        } else {
+          option.classList.remove('active');
+        }
+      });
+    }
+
+    // Update quick filter pills if they exist
+    const filterPills = document.querySelectorAll('.filter-pill');
+    if (filterPills.length) {
+      filterPills.forEach(pill => {
+        if (pill.getAttribute('data-filter') === category) {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+    }
   }
 
   // Initialize category buttons
@@ -2300,6 +2796,195 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+  }
+
+  // Mobile category panel expansion
+  const expandCategoriesBtn = document.getElementById('expand-categories');
+  const expandedPanel = document.getElementById('categories-expanded-panel');
+
+  if (expandCategoriesBtn && expandedPanel) {
+    expandCategoriesBtn.addEventListener('click', function() {
+      expandedPanel.classList.toggle('hidden');
+      this.querySelector('svg').classList.toggle('transform');
+      this.querySelector('svg').classList.toggle('rotate-180');
+
+      // Update text based on state
+      const btnText = this.childNodes[0];
+      if (expandedPanel.classList.contains('hidden')) {
+        btnText.nodeValue = 'See all';
+      } else {
+        btnText.nodeValue = 'Collapse';
+      }
+    });
+  }
+
+  // Enhanced Quick Filters - new feature
+  const filterPills = document.querySelectorAll('.filter-pill');
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', function() {
+      // Skip if this is the "More" button
+      if (this.id === 'more-filters') return;
+
+      // Update active state
+      filterPills.forEach(p => p.classList.remove('active'));
+      this.classList.add('active');
+
+      // Apply the filter
+      const filter = this.getAttribute('data-filter');
+      applyQuickFilter(filter);
+    });
+  });
+
+  // More filters button - toggle advanced panel
+  const moreFiltersBtn = document.getElementById('more-filters');
+  const advancedFiltersPanel = document.getElementById('advanced-filters-panel');
+
+  if (moreFiltersBtn && advancedFiltersPanel) {
+    moreFiltersBtn.addEventListener('click', function() {
+      advancedFiltersPanel.classList.toggle('hidden');
+    });
+  }
+
+  // Sort options in advanced panel
+  const sortOptions = document.querySelectorAll('.sort-option');
+  sortOptions.forEach(option => {
+    option.addEventListener('click', function() {
+      sortOptions.forEach(o => o.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Filter options in advanced panel
+  const filterOptions = document.querySelectorAll('.filter-option');
+  filterOptions.forEach(option => {
+    option.addEventListener('click', function() {
+      filterOptions.forEach(o => o.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Apply button in advanced panel
+  const applyBtn = document.getElementById('apply-filters');
+  if (applyBtn) {
+    applyBtn.addEventListener('click', function() {
+      // Get active sort option
+      const activeSort = document.querySelector('.sort-option.active');
+      const sortType = activeSort ? activeSort.getAttribute('data-sort') : 'newest';
+
+      // Get active filter option
+      const activeFilter = document.querySelector('.filter-option.active');
+      const filterType = activeFilter ? activeFilter.getAttribute('data-show') : 'all';
+
+      // Apply sort and filter
+      applySort(sortType);
+      applyQuickFilter(filterType);
+
+      // Hide the panel
+      advancedFiltersPanel.classList.add('hidden');
+
+      // Update quick filter pills to match
+      filterPills.forEach(pill => {
+        if (pill.getAttribute('data-filter') === filterType) {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+    });
+  }
+
+  // Custom Room Selection Dropdown
+  const selectorBtn = document.getElementById('room-selector-button');
+  const dropdown = document.getElementById('room-selector-dropdown');
+
+  if (selectorBtn && dropdown) {
+    // Toggle dropdown
+    selectorBtn.addEventListener('click', function() {
+      const expanded = this.getAttribute('aria-expanded') === 'true';
+      this.setAttribute('aria-expanded', !expanded);
+
+      if (!expanded) {
+        dropdown.classList.add('active');
+        // Focus search input when opening
+        const searchInput = dropdown.querySelector('.dropdown-search-input');
+        if (searchInput) setTimeout(() => searchInput.focus(), 100);
+      } else {
+        dropdown.classList.remove('active');
+      }
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!selectorBtn.contains(event.target) && !dropdown.contains(event.target)) {
+        selectorBtn.setAttribute('aria-expanded', 'false');
+        dropdown.classList.remove('active');
+      }
+    });
+
+    // Option selection
+    const options = document.querySelectorAll('.dropdown-option');
+    options.forEach(option => {
+      option.addEventListener('click', function() {
+        // Update active state
+        options.forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+
+        // Update selected text
+        const value = this.getAttribute('data-value');
+        const text = this.querySelector('span:not(.text-lg)').textContent;
+        const selectedRoomText = document.querySelector('.selected-room-text');
+        if (selectedRoomText) {
+          selectedRoomText.textContent = text;
+        }
+
+        // Apply the filter
+        filterRoomsByCategory(value);
+
+        // Close dropdown
+        selectorBtn.setAttribute('aria-expanded', 'false');
+        dropdown.classList.remove('active');
+      });
+    });
+
+    // Search functionality in dropdown
+    const searchInput = dropdown.querySelector('.dropdown-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+
+        options.forEach(option => {
+          const text = option.querySelector('span:not(.text-lg)').textContent.toLowerCase();
+
+          if (text.includes(query)) {
+            option.style.display = '';
+          } else {
+            option.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    // Create Room button in dropdown
+    const createRoomBtn = document.getElementById('create-room-dropdown');
+    if (createRoomBtn) {
+      createRoomBtn.addEventListener('click', function() {
+        // Close dropdown
+        selectorBtn.setAttribute('aria-expanded', 'false');
+        dropdown.classList.remove('active');
+
+        // Scroll to create room form
+        const createRoomForm = document.querySelector('.create-room-card');
+        if (createRoomForm) {
+          createRoomForm.scrollIntoView({ behavior: 'smooth' });
+
+          // Focus on input after scrolling
+          setTimeout(() => {
+            const roomNameInput = createRoomForm.querySelector('input[name="room_name"]');
+            if (roomNameInput) roomNameInput.focus();
+          }, 800);
+        }
+      });
+    }
   }
 
   // Sort button functionality
@@ -2405,6 +3090,142 @@ document.addEventListener('DOMContentLoaded', () => {
         card.style.transform = 'translateY(0)';
       }, 50 + (index * 30));
     });
+  }
+
+  // Apply quick filter function (used by the filter pills)
+  function applyQuickFilter(filter) {
+    console.log(`Applying quick filter: ${filter}`);
+
+    // Different filter logic based on filter type
+    switch (filter) {
+      case 'all':
+        // Show all rooms
+        filterRoomsByCategory('all');
+        break;
+      case 'active':
+        // Filter for most active rooms (those with more messages)
+        filterByActivity();
+        break;
+      case 'new':
+        // Filter for newest rooms
+        filterByNewest();
+        break;
+      case 'yours':
+        // Filter for user's own rooms
+        filterByUserRooms();
+        break;
+      default:
+        // For categories, use the existing category filter
+        filterRoomsByCategory(filter);
+    }
+
+    // Helper function to filter by activity (message count)
+    function filterByActivity() {
+      const allRoomCards = document.querySelectorAll('.room-card');
+      let visibleCount = 0;
+
+      // First sort by message count
+      const sortedCards = Array.from(allRoomCards).sort((a, b) => {
+        const countAElem = a.querySelector('.badge-primary');
+        const countBElem = b.querySelector('.badge-primary');
+
+        const countA = countAElem ? parseInt(countAElem.textContent) || 0 : 0;
+        const countB = countBElem ? parseInt(countBElem.textContent) || 0 : 0;
+
+        return countB - countA; // Descending order
+      });
+
+      // Then show all, with most active first
+      sortedCards.forEach((card, index) => {
+        // Temporarily hide to reorder
+        card.style.display = 'none';
+
+        // Reappend in new order
+        card.parentNode.appendChild(card);
+
+        // Show with animation
+        setTimeout(() => {
+          card.style.display = '';
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 10);
+        }, 30 * index);
+
+        visibleCount++;
+      });
+    }
+
+    // Helper function to filter by newest rooms
+    function filterByNewest() {
+      // In a real implementation, this would sort by creation date
+      // For now, we'll just show all rooms in reverse order
+      const allRoomCards = document.querySelectorAll('.room-card');
+      let visibleCount = 0;
+
+      const reversedCards = Array.from(allRoomCards).reverse();
+
+      reversedCards.forEach((card, index) => {
+        // Temporarily hide to reorder
+        card.style.display = 'none';
+
+        // Reappend in new order
+        card.parentNode.appendChild(card);
+
+        // Show with animation
+        setTimeout(() => {
+          card.style.display = '';
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 10);
+        }, 30 * index);
+
+        visibleCount++;
+      });
+    }
+
+    // Helper function to filter for user's own rooms
+    function filterByUserRooms() {
+      // In a real implementation, this would filter rooms created by the current user
+      // For this example, we'll simulate by showing roughly half the rooms
+      const allRoomCards = document.querySelectorAll('.room-card');
+      let visibleCount = 0;
+
+      allRoomCards.forEach((card, index) => {
+        // Simulate user's rooms (even numbered rooms for this example)
+        const isUsersRoom = index % 2 === 0;
+
+        if (isUsersRoom) {
+          // Show this card with animation
+          card.style.display = '';
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 10 * index);
+          visibleCount++;
+        } else {
+          // Hide this card with animation
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(10px)';
+          setTimeout(() => {
+            card.style.display = 'none';
+          }, 300);
+        }
+      });
+    }
+  }
+
+  // Apply sort function (used by the advanced filters panel)
+  function applySort(sort) {
+    console.log(`Applying sort: ${sort}`);
+    sortRooms(sort);
   }
 
   // Load More functionality with improved mobile support
