@@ -1242,6 +1242,19 @@ select:focus-visible {
             My Profile
             </a>
 
+            <!-- Friends link -->
+            <a href="{% url 'friends_list' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 relative" role="menuitem">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Friends
+            {% if pending_friend_requests_count > 0 %}
+            <span class="ml-auto h-4 w-4 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {{ pending_friend_requests_count }}
+            </span>
+            {% endif %}
+            </a>
+
             <!-- Settings link - since there's no specific "settings" URL, point to index for now -->
             <a href="{% url 'index' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1264,16 +1277,6 @@ select:focus-visible {
         </div>
         </div>
 
-        <a href="{% url 'friends_list' %}" class="relative p-2 text-gray-600 hover:text-pink-500 hover:bg-pink-50 rounded-full transition-all" aria-label="Friends">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          {% if pending_friend_requests_count > 0 %}
-          <span class="absolute -top-1 -right-1 h-5 w-5 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-            {{ pending_friend_requests_count }}
-          </span>
-          {% endif %}
-        </a>
         {% else %}
         <div class="flex items-center gap-2">
           <a href="{% url 'login' %}" class="btn btn-secondary text-sm">
@@ -1727,16 +1730,21 @@ select:focus-visible {
         </div>
         <span class="nav-item-label">Friends</span>
         </a>
-    <button class="nav-item" id="profile-nav" aria-label="Open profile menu">
-      <div class="nav-item-icon">
-        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium">
-          {{ user.username|slice:":1"|upper }}
+            <button class="nav-item" id="profile-nav" aria-label="Open profile menu">
+            <div class="nav-item-icon">
+                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium">
+                {{ user.username|slice:":1"|upper }}
+                </div>
+                {% if pending_friend_requests_count > 0 %}
+                <span class="absolute -top-1 -right-1 h-4 w-4 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {{ pending_friend_requests_count }}
+                </span>
+                {% endif %}
+            </div>
+            <span class="nav-item-label">Profile</span>
+            </button>
         </div>
-      </div>
-      <span class="nav-item-label">Profile</span>
-    </button>
-  </div>
-</body>
+    </body>
 <script>
 // Fixed Euphorie functionality
 document.addEventListener('DOMContentLoaded', () => {
@@ -1780,63 +1788,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // User menu dropdown
-    document.addEventListener('DOMContentLoaded', () => {
-    // User menu dropdown functionality
-    const userMenuButton = document.getElementById('user-menu-button');
-    const userDropdown = document.getElementById('user-dropdown');
-    const profileNav = document.getElementById('profile-nav');
+  const userMenuButton = document.getElementById('user-menu-button');
+  const userDropdown = document.getElementById('user-dropdown');
 
-    function toggleUserDropdown(fromMobile = false) {
-        const expanded = userMenuButton.getAttribute('aria-expanded') === 'true';
-        userMenuButton.setAttribute('aria-expanded', !expanded);
-
-        if (expanded) {
-        // Hide dropdown
-        userDropdown.classList.add('hidden');
-        } else {
-        // Show dropdown and position it properly
-        userDropdown.classList.remove('hidden');
-
-        // Position the dropdown based on which button triggered it
-        if (fromMobile) {
-            // Position above the mobile nav
-            userDropdown.style.top = 'auto';
-            userDropdown.style.right = '1rem';
-            userDropdown.style.bottom = '5rem'; // Position above mobile nav
-            userDropdown.style.left = 'auto';
-        } else {
-            // Reset to default/header position
-            userDropdown.style.top = '3.5rem';
-            userDropdown.style.right = '1rem';
-            userDropdown.style.bottom = 'auto';
-            userDropdown.style.left = 'auto';
-        }
-        }
-    }
-
-    if (userMenuButton && userDropdown) {
-        userMenuButton.addEventListener('click', () => toggleUserDropdown(false));
-    }
-
-    // Mobile profile nav button
-    if (profileNav && userMenuButton) {
-        profileNav.addEventListener('click', function(e) {
-        e.preventDefault();
-        toggleUserDropdown(true);
-        });
-    }
+  if (userMenuButton && userDropdown) {
+    userMenuButton.addEventListener('click', () => {
+      const expanded = userMenuButton.getAttribute('aria-expanded') === 'true';
+      userMenuButton.setAttribute('aria-expanded', !expanded);
+      userDropdown.classList.toggle('hidden');
+    });
 
     // Close when clicking outside
     document.addEventListener('click', (event) => {
-        if (userDropdown && !userDropdown.classList.contains('hidden') &&
-            !userMenuButton.contains(event.target) &&
-            !userDropdown.contains(event.target) &&
-            (!profileNav || !profileNav.contains(event.target))) {
+      if (!userMenuButton.contains(event.target) && !userDropdown.contains(event.target)) {
         userMenuButton.setAttribute('aria-expanded', 'false');
         userDropdown.classList.add('hidden');
-        }
+      }
     });
-    });
+  }
 
   // Fix room display on mobile
   const isMobile = window.innerWidth <= 640;
