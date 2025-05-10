@@ -1608,41 +1608,39 @@ window.username = "{{ username|escapejs }}";
 
 <!-- Euphorie Chat Fix - All functionality in one script -->
 <script>
-<!-- Euphorie Chat Fix - Feature Handlers -->
-<script>
+// =============== WEBSOCKET CONNECTIVITY ===============
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Initializing Euphorie Chat Feature Handlers');
+  console.log('Initializing Euphorie Chat - Fixed Version');
 
-  // Initialize feature handlers
-  initializeFeatureHandlers();
+  // Initialize global variables
+  window.mediaLibrary = { images: [], videos: [] };
+  window.uploadedFiles = [];
 
-  // Initialize UI components
-  initializeUIComponents();
+  // Initialize the chat application
+  initEuphorieChat();
 });
 
-// Initialize handlers for various features
-function initializeFeatureHandlers() {
-  // Set up global WebSocket message handler
-  addWebSocketMessageHandler();
+function initEuphorieChat() {
+  // Initialize WebSocket
+  createWebSocket();
 
-  // Initialize profile picture system
+  // Initialize profile pictures
   initProfilePictureSystem();
 
   // Initialize file upload
   initFileUpload();
 
-  // Initialize media library
+  // Initialize FIXED media library
   initMediaLibrary();
+  // Add media sharing capabilities
+  setupMediaSharing();
 
-  // Initialize whiteboard
+  // Initialize FIXED whiteboard
   initWhiteboard();
 
-  // Initialize meetup planner
+  // Initialize FIXED meetup planner
   initMeetupPlanner();
-}
 
-// Initialize UI components
-function initializeUIComponents() {
   // Initialize emoji panel
   initEmojiPanel();
 
@@ -1655,78 +1653,221 @@ function initializeUIComponents() {
   // Initialize bookmark button
   initBookmarkButton();
 
+  // Fix modal display issues
+  fixModalDisplayIssues();
+
   // Set up global event delegation
   setupGlobalEventDelegation();
+
+  // Ensure the EuphorieChat namespace exists
+  ensureEuphorieChatNamespace();
 }
 
-// Add WebSocket message handler to existing socket
-function addWebSocketMessageHandler() {
-  // Check if socket exists
-  if (!window.socket) {
-    console.warn('WebSocket not found, waiting for it to be created...');
+// =============== WEBSOCKET CONNECTIVITY ===============
+function createWebSocket() {
+  // Get the WebSocket URL based on current protocol (ws:// or wss://) and room name
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const wsUrl = `${wsProtocol}://${window.location.host}/ws/chat/${window.roomName}/`;
 
-    // Try again in 1 second if socket not found
-    setTimeout(addWebSocketMessageHandler, 1000);
-    return;
+  try {
+    // Create new WebSocket connection
+    const socket = new WebSocket(wsUrl);
+
+    // Connection opened event
+    socket.addEventListener('open', function(event) {
+      console.log('WebSocket connection established');
+
+      // Request the initial user list
+      socket.send(JSON.stringify({
+        type: 'users',
+        action: 'list'
+      }));
+
+      // If user is authenticated, request other data
+      if (window.username && window.username !== 'Guest') {
+        // Request meetups
+        socket.send(JSON.stringify({
+          type: 'meetup',
+          action: 'list'
+        }));
+
+        // Request online friends
+        socket.send(JSON.stringify({
+          type: 'friends',
+          action: 'list_online'
+        }));
+
+        // Request room recommendations
+        socket.send(JSON.stringify({
+          type: 'recommendations',
+          action: 'get',
+          include_bookmarks: true
+        }));
+      }
+    });
+
+    // Message received event
+    socket.addEventListener('message', function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        handleWebSocketMessage(data);
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    });
+
+    // Connection error event
+    socket.addEventListener('error', function(event) {
+      console.error('WebSocket error:', event);
+    });
+
+    // Connection closed event
+    socket.addEventListener('close', function(event) {
+      console.warn(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
+
+      // Attempt to reconnect after delay
+      setTimeout(() => {
+        console.log('Attempting to reconnect WebSocket...');
+        createWebSocket();
+      }, 3000);
+    });
+
+    // Make socket available globally
+    window.socket = socket;
+    return socket;
+  } catch (error) {
+    console.error('Failed to create WebSocket connection:', error);
+    return null;
   }
-
-  // Don't override if already has a message handler
-  const existingOnMessage = window.socket.onmessage;
-
-  // Add our own message handler
-  window.socket.addEventListener('message', function(event) {
-    try {
-      const data = JSON.parse(event.data);
-      handleWebSocketMessage(data);
-    } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
-    }
-  });
-
-  console.log('WebSocket message handler added successfully');
 }
 
-// Handle WebSocket messages
+// Handle incoming WebSocket messages
 function handleWebSocketMessage(data) {
   const type = data.type || 'unknown';
 
-  console.log('Received message type:', type);
-
   switch (type) {
-    case 'profile_update':
-      handleProfileUpdate(data.username, data.profile_data);
+    case 'chat':
+    case 'chat_message':
+      // Handle chat message
+      if (window.EuphorieChat && window.EuphorieChat.renderMessage) {
+        window.EuphorieChat.renderMessage({
+          message: data.message,
+          username: data.username,
+          message_id: data.message_id
+        });
+      } else {
+        // Fallback to old function
+        if (window.addMessage) {
+          window.addMessage(data.message, data.username, data.message_id);
+        }
+      }
+      break;
+
+    case 'reaction':
+      // Handle reaction
+      if (window.EuphorieChat && window.EuphorieChat.updateReaction) {
+        window.EuphorieChat.updateReaction(data);
+      } else {
+        // Fallback to old function
+        if (window.updateReaction) {
+          window.updateReaction(data);
+        }
+      }
+      break;
+
+    case 'typing':
+      // Handle typing indicator
+      if (window.EuphorieChat && window.EuphorieChat.showTyping) {
+        window.EuphorieChat.showTyping(data.username);
+      } else {
+        // Fallback to old function
+        if (window.showTyping) {
+          window.showTyping(data.username);
+        }
+      }
+      break;
+
+    case 'users':
+    case 'user_list':
+      // Handle user list update
+      if (data.users && Array.isArray(data.users)) {
+        if (window.EuphorieChat && window.EuphorieChat.updateUserList) {
+          window.EuphorieChat.updateUserList(data.users);
+        } else {
+          // Fallback to old function
+          if (window.updateUserList) {
+            window.updateUserList(data.users);
+          }
+        }
+      }
       break;
 
     case 'whiteboard':
-      handleWhiteboardMessage(data);
+      // Handle whiteboard update
+      if (window.handleWhiteboardMessage) {
+        window.handleWhiteboardMessage(data);
+      }
       break;
 
     case 'meetup':
     case 'meetups':
-      if (data.meetups) {
-        renderMeetups(data.meetups);
+      // Handle meetups
+      if (window.renderMeetups) {
+        window.renderMeetups(data.meetups);
       }
       break;
 
     case 'announcement':
-      handleAnnouncementMessage(data);
+      // Handle announcement
+      if (window.EuphorieChat && window.EuphorieChat.handleAnnouncementMessage) {
+        window.EuphorieChat.handleAnnouncementMessage(data);
+      }
       break;
 
     case 'friends':
-      if (data.action === 'online_list') {
-        renderOnlineFriends(data.friends || []);
+      // Handle friends update
+      if (window.EuphorieChat && window.EuphorieChat.handleFriendsMessage) {
+        window.EuphorieChat.handleFriendsMessage(data);
+      } else {
+        if (data.action === 'online_list') {
+          renderOnlineFriends(data.friends || []);
+        }
       }
       break;
 
     case 'recommendations':
-      if (data.action === 'list') {
-        renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
+      // Handle recommendations
+      if (window.EuphorieChat && window.EuphorieChat.handleRecommendationsMessage) {
+        window.EuphorieChat.handleRecommendationsMessage(data);
+      } else {
+        if (data.action === 'list') {
+          renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
+        }
       }
       break;
+
+    case 'profile_update':
+      // Handle profile update
+      if (window.handleProfileUpdate) {
+        window.handleProfileUpdate(data.username, data.profile_data);
+      }
+      break;
+
+    case 'pong':
+      // Pong received - connection alive
+      break;
+
+    case 'error':
+      console.error('Error from server:', data.message);
+      showNotification('Error: ' + data.message);
+      break;
+
+    default:
+      console.warn('Unknown message type:', type, data);
   }
 }
 
-// =============== PROFILE PICTURES ===============
+// =============== PROFILE PICTURE SYSTEM ===============
 function initProfilePictureSystem() {
   // Cache DOM elements
   const profilePicModal = document.getElementById('profile-pic-modal');
@@ -1736,6 +1877,7 @@ function initProfilePictureSystem() {
   const profilePicUpload = document.getElementById('profile-pic-upload');
   const avatarOptions = document.querySelectorAll('.avatar-option');
   const changeAvatarBtn = document.getElementById('change-avatar-btn');
+  const profileMenu = document.getElementById('profile-menu');
 
   // Check if elements exist
   if (!profilePicModal || !profilePreview) {
@@ -1757,7 +1899,7 @@ function initProfilePictureSystem() {
   }
 
   // Handle avatar option selection
-  if (avatarOptions && avatarOptions.length) {
+  if (avatarOptions) {
     avatarOptions.forEach(option => {
       option.addEventListener('click', () => {
         // Remove selection from all options
@@ -1810,15 +1952,16 @@ function initProfilePictureSystem() {
     changeAvatarBtn.addEventListener('click', () => {
       profilePicModal.classList.remove('hidden');
       profilePicModal.classList.add('flex');
+
+      // Close profile menu
+      if (profileMenu) {
+        profileMenu.classList.remove('open');
+      }
     });
   }
 
   // Load profile pictures for all users
   loadAllProfiles();
-
-  // Make functions available globally
-  window.handleProfileUpdate = handleProfileUpdate;
-  window.loadUserProfile = loadUserProfile;
 }
 
 // Save profile picture
@@ -1986,54 +2129,94 @@ function loadAllProfiles() {
   });
 }
 
-// Load a single user's profile
 function loadUserProfile(username) {
-  // Check if we already have cached data that's recent
-  const cachedData = localStorage.getItem(`profilePic_${username}`);
-  const cacheTimestamp = localStorage.getItem(`profilePic_${username}_timestamp`);
+    console.log(`Loading profile for ${username}`);
 
-  // If we have fresh cache (less than 5 minutes old), use it
-  if (cachedData && cacheTimestamp) {
-    const cacheDuration = Date.now() - parseInt(cacheTimestamp);
-    if (cacheDuration < 300000) { // 5 minutes
-      try {
-        const profileData = JSON.parse(cachedData);
-        updateUserAvatars(username, profileData);
-        return;
-      } catch (e) {
-        // Cache parsing failed, continue to load from server
-      }
+    // Check for cache first
+    const cachedData = localStorage.getItem(`profilePic_${username}`);
+    const cacheTimestamp = localStorage.getItem(`profilePic_${username}_timestamp`);
+
+    // Use cache if it's recent enough
+    if (cachedData && cacheTimestamp) {
+        const cacheDuration = Date.now() - parseInt(cacheTimestamp);
+        if (cacheDuration < 300000) { // 5 minutes
+            try {
+                const profileData = JSON.parse(cachedData);
+                updateUserAvatars(username, profileData);
+                return;
+            } catch (e) {
+                console.warn(`Error parsing cached profile for ${username}:`, e);
+            }
+        }
     }
-  }
 
-  // Fetch from server
-  fetch(`/api/profile/${username}/`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (data.success && data.profile_picture) {
-        // Cache the data
-        localStorage.setItem(`profilePic_${username}`, JSON.stringify(data.profile_picture));
-        localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
+    // Generate a default profile based on username
+    const defaultProfile = {
+        type: 'gradient',
+        gradient: getConsistentGradientForUser(username)
+    };
 
-        // Update the UI
-        updateUserAvatars(username, data.profile_picture);
-      }
-    })
-    .catch(error => {
-      console.error(`Error fetching profile for ${username}:`, error);
-    });
+    // Use default profile immediately to ensure UI looks good
+    updateUserAvatars(username, defaultProfile);
+
+    // Then try to fetch from API
+    fetch(`/api/profile/${username}/`)
+        .then(response => {
+            // If server returns error, just use default
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.success && data.profile_picture) {
+                // Cache the API response
+                localStorage.setItem(`profilePic_${username}`, JSON.stringify(data.profile_picture));
+                localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
+
+                // Update UI with API data
+                updateUserAvatars(username, data.profile_picture);
+            } else {
+                // If API returns success: false or missing data, keep using default
+                localStorage.setItem(`profilePic_${username}`, JSON.stringify(defaultProfile));
+                localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
+            }
+        })
+        .catch(error => {
+            console.warn(`Error fetching profile for ${username}:`, error);
+
+            // On error, store default in cache and continue
+            localStorage.setItem(`profilePic_${username}`, JSON.stringify(defaultProfile));
+            localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
+        });
+}
+
+// Helper function to get a consistent gradient based on username
+function getConsistentGradientForUser(username) {
+    const gradients = [
+        'from-pink-400 to-purple-400',
+        'from-blue-400 to-indigo-400',
+        'from-green-400 to-teal-400',
+        'from-purple-400 to-pink-400',
+        'from-yellow-400 to-orange-400',
+        'from-red-400 to-pink-400',
+        'from-cyan-400 to-blue-400',
+        'from-emerald-400 to-green-500'
+    ];
+
+    // Simple hash function
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // Get a consistent index based on username
+    return gradients[Math.abs(hash) % gradients.length];
 }
 
 // Handle profile updates from WebSocket
 function handleProfileUpdate(username, profileData) {
   if (!username || !profileData) return;
-
-  console.log('Profile update received for:', username);
 
   // Update localStorage cache
   localStorage.setItem(`profilePic_${username}`, JSON.stringify(profileData));
@@ -2043,7 +2226,7 @@ function handleProfileUpdate(username, profileData) {
   updateUserAvatars(username, profileData);
 }
 
-// =============== FILE UPLOAD ===============
+// =============== MEDIA LIBRARY & FILE UPLOAD ===============
 function initFileUpload() {
   const fileInput = document.getElementById('file-input');
   const previewContainer = document.getElementById('preview');
@@ -2057,17 +2240,16 @@ function initFileUpload() {
     return;
   }
 
-  // Initialize media library data structure if not exists
-  window.mediaLibrary = window.mediaLibrary || { images: [], videos: [] };
-  window.uploadedFiles = window.uploadedFiles || [];
-
   // Handle file selection
   fileInput.addEventListener('change', (e) => {
-    window.uploadedFiles = [...e.target.files];
+    const uploadedFiles = [...e.target.files];
 
-    if (window.uploadedFiles.length === 0) {
+    if (uploadedFiles.length === 0) {
       return;
     }
+
+    // Store files
+    window.uploadedFiles = uploadedFiles;
 
     // Show preview container
     previewContainer.classList.remove('hidden');
@@ -2076,7 +2258,7 @@ function initFileUpload() {
     previewContent.innerHTML = '';
 
     // Create previews for each file
-    window.uploadedFiles.forEach(file => {
+    uploadedFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = () => {
         const preview = document.createElement('div');
@@ -2108,11 +2290,9 @@ function initFileUpload() {
     });
   }
 
-  // Override the submit handler if message form exists
+  // Handle form submission with files
   if (messageForm) {
-    const originalSubmitHandler = messageForm.onsubmit;
-
-    messageForm.addEventListener('submit', function(e) {
+    messageForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
       const messageInput = document.getElementById('chat-message-input');
@@ -2120,114 +2300,166 @@ function initFileUpload() {
 
       // Check if there are uploaded files
       if (window.uploadedFiles && window.uploadedFiles.length > 0) {
-        uploadFilesAndSend();
+        uploadFilesAndSend()
+          .then(() => {
+            // Reset file input and hide preview
+            fileInput.value = '';
+            previewContainer.classList.add('hidden');
+            window.uploadedFiles = [];
+          })
+          .catch(error => {
+            console.error('Error uploading files:', error);
+            showNotification('Error uploading files: ' + error.message);
+          });
       } else if (messageText) {
-        // Use original handler for text messages if it exists
-        if (typeof originalSubmitHandler === 'function') {
-          originalSubmitHandler(e);
+        // Send text message via WebSocket
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+          window.socket.send(JSON.stringify({
+            type: 'chat_message',
+            message: messageText
+          }));
+
+          // Clear input
+          messageInput.value = '';
         } else {
-          // Just send directly if no original handler
-          if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-            window.socket.send(JSON.stringify({
-              type: 'chat_message',
-              message: messageText
-            }));
-            messageInput.value = '';
-          }
+          showNotification('Connection issue. Please refresh the page.');
         }
       }
     });
   }
+}
 
-  // Make functions available globally
-  window.uploadFilesAndSend = uploadFilesAndSend;
+// Compress image before upload
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+
+        // Calculate new dimensions (maintaining aspect ratio)
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 900;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          resolve(new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          }));
+        }, 'image/jpeg', 0.5);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // Upload files and send in chat
-function uploadFilesAndSend() {
+async function uploadFilesAndSend() {
   const uploadedFiles = window.uploadedFiles || [];
   if (uploadedFiles.length === 0) return;
 
   const progressContainer = document.getElementById('progress-container');
   const progressBar = document.getElementById('progress-bar');
-  const fileInput = document.getElementById('file-input');
-  const previewContainer = document.getElementById('preview');
 
   const formData = new FormData();
   const csrfToken = getCsrfToken();
 
-  // Show progress container
-  if (progressContainer) {
-    progressContainer.classList.remove('hidden');
-  }
-
-  // Reset progress bar
-  if (progressBar) {
-    progressBar.style.width = '0%';
-  }
-
-  // Add files to form data
-  uploadedFiles.forEach(file => {
-    formData.append('media', file);
-  });
-
-  // Upload files
-  fetch('/api/upload_media/', {
-    method: 'POST',
-    body: formData,
-    headers: {
-      'X-CSRFToken': csrfToken
+  try {
+    // Compress images before uploading
+    for (const file of uploadedFiles) {
+      try {
+        if (file.type.startsWith('image/')) {
+          const compressedFile = await compressImage(file);
+          formData.append('media', compressedFile);
+        } else {
+          formData.append('media', file);
+        }
+      } catch (error) {
+        console.error(`Error processing file ${file.name}:`, error);
+      }
     }
-  })
-  .then(response => {
+
+    if (progressContainer) {
+      progressContainer.classList.remove('hidden');
+    }
+
+    if (progressBar) {
+      progressBar.style.width = '0%';
+    }
+
+    const uploadUrl = '/api/upload_media/';
+
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': csrfToken
+      }
+    });
+
     if (!response.ok) {
       throw new Error(`Server responded with status: ${response.status}`);
     }
 
-    // Set progress to 100%
+    const result = await response.json();
+
     if (progressBar) {
       progressBar.style.width = '100%';
     }
 
-    return response.json();
-  })
-  .then(data => {
-    if (data.success && data.urls && data.urls.length > 0) {
-      // Send each uploaded file as a message
-      data.urls.forEach(url => {
-        const isVideo = url.match(/\.(mp4|webm)$/i);
-        const html = isVideo
+    if (result.success && result.urls && result.urls.length > 0) {
+      result.urls.forEach(url => {
+        const html = url.match(/\.(mp4|webm)$/i)
           ? `<video controls class="max-w-xs rounded-lg"><source src="${url}"></video>`
           : `<img src="${url}" class="max-w-xs rounded-lg" />`;
 
-        // Send via WebSocket
         if (window.socket && window.socket.readyState === WebSocket.OPEN) {
           window.socket.send(JSON.stringify({
             type: 'chat_message',
-            message: html,
+            message: html
           }));
 
           // Add to media library
-          if (isVideo) {
-            window.mediaLibrary.videos.push(url);
+          if (url.match(/\.(mp4|webm)$/i)) {
+            addToMediaLibrary(url, 'video');
           } else {
-            window.mediaLibrary.images.push(url);
+            addToMediaLibrary(url, 'image');
           }
+        } else {
+          showNotification('Connection issue. Please refresh the page.');
         }
       });
-
-      // Show success notification
-      showNotification('Files uploaded successfully!');
     } else {
       throw new Error('No media URLs returned from server');
     }
-  })
-  .catch(error => {
+  } catch (error) {
     console.error('Error uploading files:', error);
-    showNotification('Upload failed: ' + (error.message || 'Please try again'));
-  })
-  .finally(() => {
+    showNotification('Upload failed: ' + (error.message || 'Please try again.'));
+    throw error;
+  } finally {
     // Reset UI
+    const fileInput = document.getElementById('file-input');
+    const previewContainer = document.getElementById('preview');
+
     if (fileInput) {
       fileInput.value = '';
     }
@@ -2244,10 +2476,10 @@ function uploadFilesAndSend() {
         progressContainer.classList.add('hidden');
       }
     }, 1000);
-  });
+  }
 }
 
-// =============== MEDIA LIBRARY ===============
+// Enhanced Media Library Functionality
 function initMediaLibrary() {
   // Get DOM elements
   const openMediaBtn = document.getElementById('open-media-library');
@@ -2255,35 +2487,37 @@ function initMediaLibrary() {
   const mediaModal = document.getElementById('media-library-modal');
   const mediaGrid = document.getElementById('media-grid');
   const filterBtns = document.querySelectorAll('.media-filter-btn');
+  const closePreviewBtn = document.getElementById('close-media-preview');
+  const previewModal = document.getElementById('media-preview-modal');
 
-  // Initialize media library data structure if not exists
-  window.mediaLibrary = window.mediaLibrary || { images: [], videos: [] };
-
-  // Exit if required elements not found
-  if (!openMediaBtn) {
-    console.warn('Media library button not found');
+  // Check for required elements
+  if (!openMediaBtn || !mediaModal || !mediaGrid) {
+    console.warn('Media library elements not found');
     return;
   }
+
+  // Initialize media library data structure if not exists
+  if (!window.mediaLibrary) {
+    window.mediaLibrary = { images: [], videos: [] };
+  }
+
+  console.log('Initializing media library...');
 
   // Initial scan for media in the DOM
   scanDOMForMedia();
 
-  if (!mediaModal || !mediaGrid) {
-    // We can still attach the event listener to the button, but we'll show an error when clicked
-    openMediaBtn.addEventListener('click', () => {
-      showNotification('Media library functionality is not available.');
-    });
-    return;
-  }
-
   // Open media library button
   openMediaBtn.addEventListener('click', () => {
+    console.log('Media library button clicked');
+
+    // Fetch latest media from the server
+    fetchRoomMedia();
+
     // Scan again to make sure we have the latest media
     scanDOMForMedia();
 
     // Apply the "all" filter by default
     if (filterBtns && filterBtns.length > 0) {
-      // First reset all filter buttons
       filterBtns.forEach(btn => {
         if (btn.dataset.filter === 'all') {
           btn.classList.remove('bg-gray-200', 'text-gray-700');
@@ -2295,12 +2529,21 @@ function initMediaLibrary() {
       });
     }
 
+    // Show loading state in the grid
+    mediaGrid.innerHTML = `
+      <div class="col-span-full flex flex-col items-center justify-center py-10">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mb-4"></div>
+        <p class="text-gray-500">Loading media...</p>
+      </div>
+    `;
+
     // Render the media grid with all media
     renderMediaGrid('all');
 
-    // Show the modal
+    // Show the modal with flex display
     mediaModal.classList.remove('hidden');
     mediaModal.classList.add('flex');
+    mediaModal.style.display = 'flex';
   });
 
   // Close media library button
@@ -2308,6 +2551,16 @@ function initMediaLibrary() {
     closeMediaBtn.addEventListener('click', () => {
       mediaModal.classList.add('hidden');
       mediaModal.classList.remove('flex');
+      mediaModal.style.display = 'none';
+    });
+  }
+
+  // Close preview button
+  if (closePreviewBtn && previewModal) {
+    closePreviewBtn.addEventListener('click', () => {
+      previewModal.classList.add('hidden');
+      previewModal.classList.remove('flex');
+      previewModal.style.display = 'none';
     });
   }
 
@@ -2331,13 +2584,320 @@ function initMediaLibrary() {
       });
     });
   }
+}
 
-  // Fetch media from server API
-  fetchRoomMedia();
+// Scan DOM for media
+function scanDOMForMedia() {
+  try {
+    // Make sure we have the media library structure
+    if (!window.mediaLibrary) {
+      window.mediaLibrary = { images: [], videos: [] };
+    }
 
-  // Make functions available globally
-  window.scanDOMForMedia = scanDOMForMedia;
-  window.renderMediaGrid = renderMediaGrid;
+    // Find all images in message content
+    const messageImages = document.querySelectorAll('.message-content img');
+    messageImages.forEach(img => {
+      if (img.src &&
+          !img.src.includes('data:image') && // Skip inline data URLs
+          !window.mediaLibrary.images.includes(img.src)) {
+        window.mediaLibrary.images.push(img.src);
+      }
+    });
+
+    // Find all videos in message content
+    const messageVideos = document.querySelectorAll('.message-content video source');
+    messageVideos.forEach(source => {
+      if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+        window.mediaLibrary.videos.push(source.src);
+      }
+    });
+  } catch (error) {
+    console.error('Error scanning DOM for media:', error);
+  }
+}
+
+// Fetch room media from server - Fixed to handle errors properly
+function fetchRoomMedia() {
+  console.log(`Fetching media for room: ${window.roomName}`);
+
+  fetch(`/api/room/${window.roomName}/media/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Media API response:', data);
+
+      if (data.success && data.media && Array.isArray(data.media)) {
+        // Clear existing arrays before adding new items
+        window.mediaLibrary.images = [];
+        window.mediaLibrary.videos = [];
+
+        data.media.forEach(mediaItem => {
+          if (mediaItem.type === 'image' && !window.mediaLibrary.images.includes(mediaItem.url)) {
+            window.mediaLibrary.images.push(mediaItem.url);
+          } else if (mediaItem.type === 'video' && !window.mediaLibrary.videos.includes(mediaItem.url)) {
+            window.mediaLibrary.videos.push(mediaItem.url);
+          }
+        });
+
+        // Update the media grid if it's open
+        const mediaModal = document.getElementById('media-library-modal');
+        if (mediaModal && (mediaModal.classList.contains('flex') || mediaModal.style.display === 'flex')) {
+          const activeFilter = document.querySelector('.media-filter-btn.bg-gradient-to-r');
+          renderMediaGrid(activeFilter ? activeFilter.dataset.filter : 'all');
+        }
+      } else {
+        console.warn('Invalid data format or empty media array from API');
+        // Continue with what we have locally
+        renderMediaGrid('all');
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching room media:', error);
+      // Continue with what we have locally
+      renderMediaGrid('all');
+    });
+}
+
+// Add media to the library
+function addToMediaLibrary(url, type) {
+  if (!window.mediaLibrary) {
+    window.mediaLibrary = { images: [], videos: [] };
+  }
+
+  if (type === 'image' && !window.mediaLibrary.images.includes(url)) {
+    window.mediaLibrary.images.push(url);
+  } else if (type === 'video' && !window.mediaLibrary.videos.includes(url)) {
+    window.mediaLibrary.videos.push(url);
+  }
+}
+
+// Render media grid - Fixed to handle errors and empty states
+function renderMediaGrid(filter) {
+  try {
+    const mediaGrid = document.getElementById('media-grid');
+    if (!mediaGrid) return;
+
+    // Clear the grid
+    mediaGrid.innerHTML = '';
+
+    // Collect media items based on filter
+    let mediaItems = [];
+
+    if (filter === 'all' || filter === 'images') {
+      (window.mediaLibrary.images || []).forEach(src => {
+        if (src) mediaItems.push({ type: 'image', src });
+      });
+    }
+
+    if (filter === 'all' || filter === 'videos') {
+      (window.mediaLibrary.videos || []).forEach(src => {
+        if (src) mediaItems.push({ type: 'video', src });
+      });
+    }
+
+    // Show empty state if no media
+    if (mediaItems.length === 0) {
+      mediaGrid.innerHTML = `
+        <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p class="text-center">No media found in this room yet.<br>Share images or videos in the chat to see them here.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Create media items
+    mediaItems.forEach((item, index) => {
+      if (!item.src) return; // Skip items with no source
+
+      const mediaItem = document.createElement('div');
+      mediaItem.className = 'media-item rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer bg-gray-100 aspect-square flex items-center justify-center';
+
+      try {
+        if (item.type === 'image') {
+          mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item ${index}" loading="lazy" />`;
+        } else {
+          mediaItem.innerHTML = `
+            <div class="relative w-full h-full">
+              <video class="object-cover w-full h-full" preload="metadata">
+                <source src="${item.src}">
+              </video>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div class="bg-black bg-opacity-50 rounded-full p-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Add media item to grid
+        mediaGrid.appendChild(mediaItem);
+
+        // Get references to modal elements
+        const previewModal = document.getElementById('media-preview-modal');
+        const previewContent = document.getElementById('media-preview-content');
+
+        // Add preview functionality
+        if (previewModal && previewContent) {
+          mediaItem.addEventListener('click', () => {
+            try {
+              // Clear previous content
+              previewContent.innerHTML = '';
+
+              // Add appropriate content based on type
+              if (item.type === 'image') {
+                previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" alt="Media preview" />`;
+              } else {
+                previewContent.innerHTML = `
+                  <video controls autoplay class="max-w-full max-h-[80vh] object-contain">
+                    <source src="${item.src}">
+                  </video>
+                `;
+              }
+
+              // Show the preview modal
+              previewModal.classList.remove('hidden');
+              previewModal.classList.add('flex');
+              previewModal.style.display = 'flex';
+            } catch (error) {
+              console.error('Error showing preview:', error);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error creating media item:', error);
+      }
+    });
+  } catch (error) {
+    console.error('Error rendering media grid:', error);
+  }
+}
+
+// Share Media from Library
+function setupMediaSharing() {
+  const mediaGrid = document.getElementById('media-grid');
+  const mediaModal = document.getElementById('media-library-modal');
+
+  if (!mediaGrid) return;
+
+  // Add context menu for sharing media
+  mediaGrid.addEventListener('contextmenu', (event) => {
+    const mediaItem = event.target.closest('.media-item');
+    if (!mediaItem) return;
+
+    event.preventDefault();
+
+    // Find the media URL
+    let mediaUrl;
+    const img = mediaItem.querySelector('img');
+    const video = mediaItem.querySelector('video source');
+
+    if (img) {
+      mediaUrl = img.src;
+    } else if (video) {
+      mediaUrl = video.src;
+    }
+
+    if (!mediaUrl) return;
+
+    // Create context menu
+    const menu = document.createElement('div');
+    menu.className = 'absolute bg-white shadow-lg rounded-lg p-2 z-50';
+    menu.style.left = `${event.pageX}px`;
+    menu.style.top = `${event.pageY}px`;
+
+    menu.innerHTML = `
+      <button class="share-media-btn w-full text-left px-3 py-2 hover:bg-pink-50 rounded-md">
+        Share in chat
+      </button>
+    `;
+
+    document.body.appendChild(menu);
+
+    // Handle share button click
+    menu.querySelector('.share-media-btn').addEventListener('click', () => {
+      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+        // Determine if it's an image or video
+        let messageContent;
+        if (img) {
+          messageContent = `<img src="${mediaUrl}" class="max-w-xs rounded-lg" />`;
+        } else if (video) {
+          messageContent = `<video controls class="max-w-xs rounded-lg"><source src="${mediaUrl}"></video>`;
+        }
+
+        // Send via WebSocket
+        window.socket.send(JSON.stringify({
+          type: 'chat_message',
+          message: messageContent
+        }));
+
+        // Close media library
+        if (mediaModal) {
+          mediaModal.classList.add('hidden');
+          mediaModal.classList.remove('flex');
+          mediaModal.style.display = 'none';
+        }
+
+        // Remove context menu
+        document.body.removeChild(menu);
+      }
+    });
+
+    // Remove context menu when clicking elsewhere
+    document.addEventListener('click', function removeMenu() {
+      if (document.body.contains(menu)) {
+        document.body.removeChild(menu);
+      }
+      document.removeEventListener('click', removeMenu);
+    });
+  });
+}
+
+// Enhanced version of fetchRoomMedia to handle errors gracefully
+function fetchRoomMedia() {
+    console.log(`Fetching media for room: ${window.roomName}`);
+
+    fetch(`/api/room/${window.roomName}/media/`)
+        .then(response => {
+            if (!response.ok) {
+                console.warn(`Media API responded with status: ${response.status}`);
+                return { success: false, media: [] };
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Media API response:', data);
+
+            if (data.success && data.media && Array.isArray(data.media)) {
+                data.media.forEach(mediaItem => {
+                    if (mediaItem.type === 'image' && !window.mediaLibrary.images.includes(mediaItem.url)) {
+                        window.mediaLibrary.images.push(mediaItem.url);
+                    } else if (mediaItem.type === 'video' && !window.mediaLibrary.videos.includes(mediaItem.url)) {
+                        window.mediaLibrary.videos.push(mediaItem.url);
+                    }
+                });
+
+                // Update the media grid if it's open
+                const mediaModal = document.getElementById('media-library-modal');
+                if (mediaModal && (mediaModal.classList.contains('flex') || mediaModal.style.display === 'flex')) {
+                    const activeFilter = document.querySelector('.media-filter-btn.bg-gradient-to-r');
+                    renderMediaGrid(activeFilter ? activeFilter.dataset.filter : 'all');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching room media:', error);
+        });
 }
 
 // Scan DOM for media
@@ -2400,6 +2960,19 @@ function fetchRoomMedia() {
     .catch(error => {
       console.error('Error fetching room media:', error);
     });
+}
+
+// Add media to the library
+function addToMediaLibrary(url, type) {
+  if (!window.mediaLibrary) {
+    window.mediaLibrary = { images: [], videos: [] };
+  }
+
+  if (type === 'image' && !window.mediaLibrary.images.includes(url)) {
+    window.mediaLibrary.images.push(url);
+  } else if (type === 'video' && !window.mediaLibrary.videos.includes(url)) {
+    window.mediaLibrary.videos.push(url);
+  }
 }
 
 // Render media grid
@@ -2509,7 +3082,8 @@ function renderMediaGrid(filter) {
   }
 }
 
-// =============== WHITEBOARD ===============
+// =============== COLLABORATIVE WHITEBOARD ===============
+// Enhanced Whiteboard Functionality
 function initWhiteboard() {
   // Get DOM elements
   const canvas = document.getElementById('whiteboard-canvas');
@@ -2519,6 +3093,8 @@ function initWhiteboard() {
   const clearWhiteboardBtn = document.getElementById('clear-whiteboard');
   const brushColor = document.getElementById('brush-color');
   const brushSize = document.getElementById('brush-size');
+  const saveWhiteboardBtn = document.getElementById('save-whiteboard');
+  const toolButtons = document.querySelectorAll('[data-tool]');
 
   // Exit if required elements not found
   if (!canvas || !openWhiteboardBtn || !whiteboardModal) {
@@ -2535,11 +3111,17 @@ function initWhiteboard() {
 
   // Set up drawing state
   let isDrawing = false;
+  let lastX = 0;
+  let lastY = 0;
+  let currentTool = 'brush';
 
   // Open whiteboard button
   openWhiteboardBtn.addEventListener('click', () => {
     whiteboardModal.classList.remove('hidden');
     whiteboardModal.classList.add('flex');
+    whiteboardModal.style.display = 'flex';
+
+    // Set a small timeout to ensure the modal is visible before resizing
     setTimeout(resizeCanvas, 100);
   });
 
@@ -2548,23 +3130,99 @@ function initWhiteboard() {
     closeWhiteboardBtn.addEventListener('click', () => {
       whiteboardModal.classList.add('hidden');
       whiteboardModal.classList.remove('flex');
+      whiteboardModal.style.display = 'none';
     });
   }
 
-  // Set canvas size
+  // Tool selection
+  if (toolButtons && toolButtons.length > 0) {
+    toolButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Get tool type
+        const toolType = btn.dataset.tool;
+        if (!toolType) return;
+
+        // Remove active class from all buttons
+        toolButtons.forEach(b => {
+          b.classList.remove('bg-pink-500', 'text-white');
+          b.classList.add('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50');
+        });
+
+        // Add active class to clicked button
+        btn.classList.remove('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50');
+        btn.classList.add('bg-pink-500', 'text-white');
+
+        // Set current tool
+        currentTool = toolType;
+      });
+    });
+  }
+
+  // Set canvas size on resize
   function resizeCanvas() {
     const container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+
+    // Store current drawing
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Set new canvas dimensions
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    // Restore drawing - will be empty on first resize
+    ctx.putImageData(imageData, 0, 0);
+
+    console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
   }
 
   // Window resize event
   window.addEventListener('resize', resizeCanvas);
 
-  // Drawing functions
+  // Drawing functions - improved with last position tracking
   const startDrawing = (e) => {
     isDrawing = true;
-    draw(e);
+
+    const rect = canvas.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+
+    // For single dot
+    drawDot(lastX, lastY);
+  };
+
+  const drawDot = (x, y) => {
+    if (currentTool === 'brush') {
+      ctx.lineWidth = brushSize ? parseInt(brushSize.value) : 5;
+      ctx.fillStyle = brushColor ? brushColor.value : '#000000';
+      ctx.beginPath();
+      ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (currentTool === 'eraser') {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, (brushSize ? parseInt(brushSize.value) * 2 : 10), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Broadcast dot
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      window.socket.send(JSON.stringify({
+        type: 'whiteboard',
+        action: 'dot',
+        x: x / canvas.width,
+        y: y / canvas.height,
+        color: currentTool === 'eraser' ? '#ffffff' : (brushColor ? brushColor.value : '#000000'),
+        size: currentTool === 'eraser' ? (brushSize ? parseInt(brushSize.value) * 2 : 10) : (brushSize ? parseInt(brushSize.value) : 5)
+      }));
+    }
+  };
+
+  const stopDrawing = () => {
+    isDrawing = false;
+    ctx.beginPath(); // Reset path
   };
 
   const draw = (e) => {
@@ -2574,42 +3232,126 @@ function initWhiteboard() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    ctx.lineWidth = brushSize ? brushSize.value : 5;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = brushColor ? brushColor.value : '#000000';
+    ctx.beginPath();
 
+    if (currentTool === 'brush') {
+      ctx.lineWidth = brushSize ? parseInt(brushSize.value) : 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = brushColor ? brushColor.value : '#000000';
+    } else if (currentTool === 'eraser') {
+      ctx.lineWidth = brushSize ? parseInt(brushSize.value) * 2 : 10;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#ffffff';
+    }
+
+    // Draw from last position to current position
+    ctx.moveTo(lastX, lastY);
     ctx.lineTo(x, y);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+
+    // Save current position
+    lastX = x;
+    lastY = y;
 
     // Broadcast drawing data
     if (window.socket && window.socket.readyState === WebSocket.OPEN) {
       window.socket.send(JSON.stringify({
         type: 'whiteboard',
         action: 'draw',
-        x: x / canvas.width,
-        y: y / canvas.height,
-        color: brushColor ? brushColor.value : '#000000',
-        size: brushSize ? brushSize.value : 5
+        fromX: lastX / canvas.width,
+        fromY: lastY / canvas.height,
+        toX: x / canvas.width,
+        toY: y / canvas.height,
+        color: currentTool === 'eraser' ? '#ffffff' : (brushColor ? brushColor.value : '#000000'),
+        size: currentTool === 'eraser' ? (brushSize ? parseInt(brushSize.value) * 2 : 10) : (brushSize ? parseInt(brushSize.value) : 5)
       }));
     }
   };
 
-  const stopDrawing = () => {
-    isDrawing = false;
-    ctx.beginPath();
+  // Touch drawing functions
+  const startDrawingTouch = (e) => {
+    e.preventDefault(); // Prevent scrolling
+
+    if (e.touches && e.touches[0]) {
+      isDrawing = true;
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      lastX = touch.clientX - rect.left;
+      lastY = touch.clientY - rect.top;
+
+      // For single dot
+      drawDot(lastX, lastY);
+    }
   };
 
-  // Canvas drawing events
+  const drawTouch = (e) => {
+    if (!isDrawing) return;
+    e.preventDefault(); // Prevent scrolling
+
+    if (e.touches && e.touches[0]) {
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      ctx.beginPath();
+
+      if (currentTool === 'brush') {
+        ctx.lineWidth = brushSize ? parseInt(brushSize.value) : 5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = brushColor ? brushColor.value : '#000000';
+      } else if (currentTool === 'eraser') {
+        ctx.lineWidth = brushSize ? parseInt(brushSize.value) * 2 : 10;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#ffffff';
+      }
+
+      // Draw from last position to current position
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      // Save current position
+      lastX = x;
+      lastY = y;
+
+      // Broadcast drawing data
+      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+        window.socket.send(JSON.stringify({
+          type: 'whiteboard',
+          action: 'draw',
+          fromX: lastX / canvas.width,
+          fromY: lastY / canvas.height,
+          toX: x / canvas.width,
+          toY: y / canvas.height,
+          color: currentTool === 'eraser' ? '#ffffff' : (brushColor ? brushColor.value : '#000000'),
+          size: currentTool === 'eraser' ? (brushSize ? parseInt(brushSize.value) * 2 : 10) : (brushSize ? parseInt(brushSize.value) : 5)
+        }));
+      }
+    }
+  };
+
+  // Add canvas drawing events
   canvas.addEventListener('mousedown', startDrawing);
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mouseup', stopDrawing);
   canvas.addEventListener('mouseout', stopDrawing);
 
+  // Add touch events
+  canvas.addEventListener('touchstart', startDrawingTouch);
+  canvas.addEventListener('touchmove', drawTouch);
+  canvas.addEventListener('touchend', stopDrawing);
+  canvas.addEventListener('touchcancel', stopDrawing);
+
   // Clear whiteboard
   if (clearWhiteboardBtn) {
     clearWhiteboardBtn.addEventListener('click', () => {
+      if (!ctx) return;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Broadcast clear event
@@ -2622,40 +3364,87 @@ function initWhiteboard() {
     });
   }
 
+  // Save whiteboard image
+  if (saveWhiteboardBtn) {
+    saveWhiteboardBtn.addEventListener('click', () => {
+      try {
+        // Create a temporary link
+        const link = document.createElement('a');
+        link.download = `whiteboard-${new Date().toISOString().slice(0, 10)}.png`;
+
+        // Use toDataURL with a white background
+        // First create a new canvas with white background
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.fillStyle = '#ffffff';
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+        // Then draw current canvas on top
+        tempCtx.drawImage(canvas, 0, 0);
+
+        // Use the temp canvas for the data URL
+        link.href = tempCanvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error('Error saving whiteboard:', error);
+        showNotification('Error saving whiteboard: ' + error.message);
+      }
+    });
+  }
+
   // Handle incoming whiteboard data
   window.handleWhiteboardMessage = function(data) {
     if (!canvas || !ctx) return;
 
-    console.log('Whiteboard message received:', data.action);
+    try {
+      if (data.action === 'draw') {
+        const fromX = data.fromX * canvas.width;
+        const fromY = data.fromY * canvas.height;
+        const toX = data.toX * canvas.width;
+        const toY = data.toY * canvas.height;
 
-    if (data.action === 'draw') {
-      const x = data.x * canvas.width;
-      const y = data.y * canvas.height;
+        ctx.beginPath();
+        ctx.lineWidth = data.size || 5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = data.color || '#000000';
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (data.action === 'dot') {
+        const x = data.x * canvas.width;
+        const y = data.y * canvas.height;
 
-      ctx.lineWidth = data.size;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = data.color;
-
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    } else if (data.action === 'clear') {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.fillStyle = data.color || '#000000';
+        ctx.arc(x, y, (data.size || 5) / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (data.action === 'clear') {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    } catch (error) {
+      console.error('Error handling whiteboard message:', error);
     }
   };
 
   // Initial canvas resize
-  resizeCanvas();
+  setTimeout(resizeCanvas, 200);
 }
 
 // =============== MEETUP PLANNER ===============
+// Enhanced Meetup Planner Functionality
 function initMeetupPlanner() {
   // Get DOM elements
   const createMeetupBtn = document.getElementById('create-meetup-btn');
   const meetupModal = document.getElementById('meetup-modal');
   const cancelMeetupBtn = document.getElementById('cancel-meetup');
   const meetupForm = document.getElementById('meetup-form');
+  const meetupTitleInput = document.getElementById('meetup-title');
+  const meetupDatetimeInput = document.getElementById('meetup-datetime');
+  const meetupLocationInput = document.getElementById('meetup-location');
+  const meetupDescriptionInput = document.getElementById('meetup-description');
 
   // Exit if required elements not found
   if (!createMeetupBtn || !meetupModal) {
@@ -2670,14 +3459,20 @@ function initMeetupPlanner() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(12, 0, 0, 0);
 
-    const datetimeInput = document.getElementById('meetup-datetime');
-    if (datetimeInput) {
-      datetimeInput.value = formatDateForInput(tomorrow);
+    // Format for datetime-local input
+    if (meetupDatetimeInput) {
+      meetupDatetimeInput.value = formatDateTimeForInput(tomorrow);
     }
 
     // Show modal
     meetupModal.classList.remove('hidden');
     meetupModal.classList.add('flex');
+    meetupModal.style.display = 'flex';
+
+    // Focus on title input
+    if (meetupTitleInput) {
+      setTimeout(() => meetupTitleInput.focus(), 100);
+    }
   });
 
   // Cancel button
@@ -2685,6 +3480,7 @@ function initMeetupPlanner() {
     cancelMeetupBtn.addEventListener('click', () => {
       meetupModal.classList.add('hidden');
       meetupModal.classList.remove('flex');
+      meetupModal.style.display = 'none';
     });
   }
 
@@ -2693,11 +3489,11 @@ function initMeetupPlanner() {
     meetupForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      // Get form data
-      const title = document.getElementById('meetup-title').value;
-      const datetime = document.getElementById('meetup-datetime').value;
-      const location = document.getElementById('meetup-location').value;
-      const description = document.getElementById('meetup-description').value;
+      // Get form data and validate
+      const title = meetupTitleInput?.value.trim();
+      const datetime = meetupDatetimeInput?.value;
+      const location = meetupLocationInput?.value.trim();
+      const description = meetupDescriptionInput?.value.trim();
 
       // Validate form
       if (!title || !datetime || !location) {
@@ -2705,16 +3501,43 @@ function initMeetupPlanner() {
         return;
       }
 
+      // Parse datetime
+      let parsedDatetime;
+      try {
+        parsedDatetime = new Date(datetime);
+        if (isNaN(parsedDatetime.getTime())) {
+          throw new Error('Invalid date');
+        }
+      } catch (error) {
+        showNotification('Please enter a valid date and time');
+        return;
+      }
+
+      // Check if date is in the future
+      if (parsedDatetime < new Date()) {
+        showNotification('Please select a future date and time');
+        return;
+      }
+
       // Create meetup object
       const meetup = {
-        id: Date.now().toString(),
         title,
-        datetime,
+        datetime: parsedDatetime.toISOString(),
         location,
-        description,
-        created_by: window.username,
-        attendees: [window.username]
+        description
       };
+
+      // First show a loading indicator
+      const submitBtn = meetupForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Creating...
+      `;
 
       // Send to WebSocket
       if (window.socket && window.socket.readyState === WebSocket.OPEN) {
@@ -2724,15 +3547,26 @@ function initMeetupPlanner() {
           meetup
         }));
 
-        // Close modal
-        meetupModal.classList.add('hidden');
-        meetupModal.classList.remove('flex');
+        // Set timeout to restore button and close modal
+        setTimeout(() => {
+          // Close modal
+          meetupModal.classList.add('hidden');
+          meetupModal.classList.remove('flex');
+          meetupModal.style.display = 'none';
 
-        // Reset form
-        meetupForm.reset();
+          // Reset form
+          meetupForm.reset();
 
-        showNotification('Meetup created successfully');
+          // Restore button
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+
+          showNotification('Meetup created successfully');
+        }, 1000);
       } else {
+        // Handle connection issue
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
         showNotification('Connection issue. Please refresh the page.');
       }
     });
@@ -2742,8 +3576,15 @@ function initMeetupPlanner() {
   window.renderMeetups = renderMeetups;
 }
 
-// Format date for input
-function formatDateForInput(date) {
+// Format date for datetime-local input
+function formatDateTimeForInput(date) {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    // Default to tomorrow if date is invalid
+    date = new Date();
+    date.setDate(date.getDate() + 1);
+    date.setHours(12, 0, 0, 0);
+  }
+
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
@@ -2753,10 +3594,51 @@ function formatDateForInput(date) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
+// Format date for display
+function formatDateForDisplay(dateString) {
+  const date = new Date(dateString);
+
+  if (isNaN(date.getTime())) {
+    return 'Invalid date';
+  }
+
+  // Check if today
+  const today = new Date();
+  const isToday = date.getDate() === today.getDate() &&
+                 date.getMonth() === today.getMonth() &&
+                 date.getFullYear() === today.getFullYear();
+
+  // Check if tomorrow
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const isTomorrow = date.getDate() === tomorrow.getDate() &&
+                    date.getMonth() === tomorrow.getMonth() &&
+                    date.getFullYear() === tomorrow.getFullYear();
+
+  let formattedDate;
+  if (isToday) {
+    formattedDate = 'Today';
+  } else if (isTomorrow) {
+    formattedDate = 'Tomorrow';
+  } else {
+    formattedDate = date.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  // Format time
+  const formattedTime = date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  return { date: formattedDate, time: formattedTime };
+}
+
 // Render meetups
 function renderMeetups(meetups) {
-  console.log('Rendering meetups:', meetups);
-
   // Find upcoming meetups section
   const upcomingMeetupsList = document.getElementById('upcoming-meetups');
   if (!upcomingMeetupsList) {
@@ -2787,15 +3669,16 @@ function renderMeetups(meetups) {
         if (meetupModal) {
           meetupModal.classList.remove('hidden');
           meetupModal.classList.add('flex');
+          meetupModal.style.display = 'flex';
 
           // Set default date to tomorrow at noon
           const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setDate(tomorrow.getDate() +.1);
           tomorrow.setHours(12, 0, 0, 0);
 
           const datetimeInput = document.getElementById('meetup-datetime');
           if (datetimeInput) {
-            datetimeInput.value = formatDateForInput(tomorrow);
+            datetimeInput.value = formatDateTimeForInput(tomorrow);
           }
         }
       });
@@ -2804,122 +3687,131 @@ function renderMeetups(meetups) {
     return;
   }
 
-  try {
-    // Sort meetups by date
-    const sortedMeetups = [...meetups].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+  // Sort meetups by date
+  const sortedMeetups = [...meetups].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
 
-    // Only show upcoming meetups
-    const upcomingMeetups = sortedMeetups.filter(m => new Date(m.datetime) > new Date());
+  // Only show upcoming meetups
+  const upcomingMeetups = sortedMeetups.filter(m => new Date(m.datetime) > new Date());
 
-    // Render each meetup
-    upcomingMeetups.forEach(meetup => {
-      const meetupDate = new Date(meetup.datetime);
+  // Render each meetup
+  upcomingMeetups.forEach(meetup => {
+    // Format date and time
+    const { date: formattedDate, time: formattedTime } = formatDateForDisplay(meetup.datetime);
 
-      // Format date
-      const formattedDate = meetupDate.toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
+    // Check if current user is attending
+    const isAttending = Array.isArray(meetup.attendees) && meetup.attendees.includes(window.username);
 
-      // Format time
-      const formattedTime = meetupDate.toLocaleTimeString(undefined, {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      // Check if current user is attending
-      const isAttending = meetup.attendees && meetup.attendees.includes(window.username);
-
-      // Create meetup element
-      const meetupEl = document.createElement('div');
-      meetupEl.className = 'p-3 rounded-lg bg-gradient-to-r from-pink-50 to-yellow-50 border border-pink-100 mb-3';
-      meetupEl.innerHTML = `
-        <div class="flex justify-between items-start">
-          <h4 class="font-medium text-gray-800">${meetup.title}</h4>
-          <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">${formattedDate}</span>
+    // Create meetup element
+    const meetupEl = document.createElement('div');
+    meetupEl.className = 'p-3 rounded-lg bg-gradient-to-r from-pink-50 to-yellow-50 border border-pink-100 mb-3';
+    meetupEl.innerHTML = `
+      <div class="flex justify-between items-start">
+        <h4 class="font-medium text-gray-800">${escapeHtml(meetup.title)}</h4>
+        <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">${formattedDate}</span>
+      </div>
+      <div class="mt-1 text-xs">
+        <div class="flex items-center text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          ${formattedTime}
         </div>
-        <div class="mt-1 text-xs">
-          <div class="flex items-center text-gray-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            ${formattedTime}
-          </div>
-          <div class="flex items-center text-gray-600 mt-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            ${meetup.location}
-          </div>
-          ${meetup.description ? `
-          <div class="mt-2 text-gray-600 rounded-md bg-white bg-opacity-50 p-2 text-xs">
-            ${meetup.description}
-          </div>
-          ` : ''}
+        <div class="flex items-center text-gray-600 mt-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          ${escapeHtml(meetup.location)}
         </div>
-        <div class="mt-2 flex justify-between items-center">
-          <span class="text-xs text-gray-500">${meetup.attendees ? meetup.attendees.length : 0} attending</span>
-          <button class="attend-btn text-xs px-2 py-1 rounded ${isAttending ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-700 hover:bg-pink-50'}" data-meetup-id="${meetup.id}">
-            ${isAttending ? 'Attending ✓' : 'Attend'}
-          </button>
+        ${meetup.description ? `
+        <div class="mt-2 text-gray-600 rounded-md bg-white bg-opacity-50 p-2 text-xs">
+          ${escapeHtml(meetup.description).replace(/\n/g, '<br>')}
         </div>
-      `;
-
-      upcomingMeetupsList.appendChild(meetupEl);
-
-      // Add event listener for attendance button
-      const attendBtn = meetupEl.querySelector('.attend-btn');
-      if (attendBtn) {
-        attendBtn.addEventListener('click', () => {
-          if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-            window.socket.send(JSON.stringify({
-              type: 'meetup',
-              action: isAttending ? 'leave' : 'join',
-              meetup_id: meetup.id
-            }));
-          } else {
-            showNotification('Connection issue. Please refresh the page.');
-          }
-        });
-      }
-    });
-
-    // Add the create button at the end
-    const createBtn = document.createElement('button');
-    createBtn.id = 'create-meetup-list-btn';
-    createBtn.className = 'btn btn-secondary w-full mt-3 text-sm';
-    createBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-      </svg>
-      Plan a Meetup
+        ` : ''}
+      </div>
+      <div class="mt-2 flex justify-between items-center">
+        <span class="text-xs text-gray-500">${Array.isArray(meetup.attendees) ? meetup.attendees.length : 0} attending</span>
+        <button class="attend-btn text-xs px-2 py-1 rounded ${isAttending ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-700 hover:bg-pink-50'}" data-meetup-id="${meetup.id}">
+          ${isAttending ? 'Attending ✓' : 'Attend'}
+        </button>
+      </div>
     `;
 
-    upcomingMeetupsList.appendChild(createBtn);
+    upcomingMeetupsList.appendChild(meetupEl);
 
-    // Re-attach the event listener
-    const meetupModal = document.getElementById('meetup-modal');
-    createBtn.addEventListener('click', () => {
-      if (meetupModal) {
-        meetupModal.classList.remove('hidden');
-        meetupModal.classList.add('flex');
+    // Add event listener for attendance button
+    const attendBtn = meetupEl.querySelector('.attend-btn');
+    if (attendBtn) {
+      attendBtn.addEventListener('click', () => {
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+          // Show loading state
+          const originalText = attendBtn.textContent;
+          attendBtn.disabled = true;
+          attendBtn.textContent = isAttending ? 'Leaving...' : 'Joining...';
 
-        // Set default date to tomorrow at noon
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(12, 0, 0, 0);
+          window.socket.send(JSON.stringify({
+            type: 'meetup',
+            action: isAttending ? 'leave' : 'join',
+            meetup_id: meetup.id
+          }));
 
-        const datetimeInput = document.getElementById('meetup-datetime');
-        if (datetimeInput) {
-          datetimeInput.value = formatDateForInput(tomorrow);
+          // Reset button after a delay if no response
+          setTimeout(() => {
+            if (attendBtn.disabled) {
+              attendBtn.disabled = false;
+              attendBtn.textContent = originalText;
+            }
+          }, 3000);
+        } else {
+          showNotification('Connection issue. Please refresh the page.');
         }
+      });
+    }
+  });
+
+  // Add the create button at the end
+  const createBtn = document.createElement('button');
+  createBtn.id = 'create-meetup-list-btn';
+  createBtn.className = 'btn btn-secondary w-full mt-3 text-sm';
+  createBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+    </svg>
+    Plan a Meetup
+  `;
+
+  upcomingMeetupsList.appendChild(createBtn);
+
+  // Re-attach the event listener
+  const meetupModal = document.getElementById('meetup-modal');
+  createBtn.addEventListener('click', () => {
+    if (meetupModal) {
+      meetupModal.classList.remove('hidden');
+      meetupModal.classList.add('flex');
+      meetupModal.style.display = 'flex';
+
+      // Set default date to tomorrow at noon
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(12, 0, 0, 0);
+
+      const datetimeInput = document.getElementById('meetup-datetime');
+      if (datetimeInput) {
+        datetimeInput.value = formatDateTimeForInput(tomorrow);
       }
-    });
-  } catch (error) {
-    console.error('Error rendering meetups:', error);
-  }
+    }
+  });
+}
+
+// Helper function to escape HTML
+function escapeHtml(unsafe) {
+  if (typeof unsafe !== 'string') return '';
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 // =============== EMOJI PANEL ===============
@@ -3116,7 +4008,7 @@ function updateBookmarkButton(isBookmarked) {
   }
 }
 
-// =============== GLOBAL UTILITIES ===============
+// =============== GLOBAL HELPERS ===============
 
 // Setup global event delegation
 function setupGlobalEventDelegation() {
@@ -3131,99 +4023,486 @@ function setupGlobalEventDelegation() {
     }
   });
 
-  // Add reaction listeners to all messages
-  document.querySelectorAll('.message-bubble').forEach(msg => {
-    const messageId = msg.closest('[data-message-id]')?.dataset.messageId;
-    if (!messageId) return;
-
-    msg.querySelectorAll('.emoji-reaction').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const emoji = btn.textContent.trim();
-        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-          window.socket.send(JSON.stringify({
-            type: 'reaction',
-            message_id: messageId,
-            reaction: emoji
-          }));
-        }
-      });
+  // Allow clicking inside modal content without closing
+  document.querySelectorAll('.modal-content').forEach(content => {
+    content.addEventListener('click', (e) => {
+      e.stopPropagation();
     });
   });
 
-  // Close media preview when clicking close button
-  const closeMediaPreviewBtn = document.getElementById('close-media-preview');
-  const mediaPreviewModal = document.getElementById('media-preview-modal');
+  // Add scroll effect to header
+  const header = document.querySelector('.app-header');
+  if (header) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 10) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+  }
 
-  if (closeMediaPreviewBtn && mediaPreviewModal) {
-    closeMediaPreviewBtn.addEventListener('click', () => {
-      mediaPreviewModal.classList.add('hidden');
-      mediaPreviewModal.classList.remove('flex');
+  // Jump to bottom button
+  const jumpToBottomBtn = document.getElementById('jump-to-bottom');
+  const chatLog = document.getElementById('chat-log');
+
+  if (jumpToBottomBtn && chatLog) {
+    // Show/hide based on scroll position
+    chatLog.addEventListener('scroll', () => {
+      const scrollBottom = chatLog.scrollHeight -
+                          chatLog.scrollTop -
+                          chatLog.clientHeight;
+
+      if (scrollBottom > 100) {
+        jumpToBottomBtn.classList.add('visible');
+      } else {
+        jumpToBottomBtn.classList.remove('visible');
+      }
+    });
+
+    // Jump to bottom on click
+    jumpToBottomBtn.addEventListener('click', () => {
+      chatLog.scrollTo({
+        top: chatLog.scrollHeight,
+        behavior: 'smooth'
+      });
+    });
+  }
+
+  // Profile menu toggle
+  const userProfileToggle = document.getElementById('user-profile-toggle');
+  const profileMenu = document.getElementById('profile-menu');
+
+  if (userProfileToggle && profileMenu) {
+    userProfileToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileMenu.classList.toggle('open');
+
+      // Position the menu properly
+      const rect = userProfileToggle.getBoundingClientRect();
+      const menuRect = profileMenu.getBoundingClientRect();
+
+      // Ensure it stays within viewport
+      if (rect.right - menuRect.width < 0) {
+        profileMenu.style.right = 'auto';
+        profileMenu.style.left = '0';
+      } else {
+        profileMenu.style.right = '0';
+        profileMenu.style.left = 'auto';
+      }
+    });
+
+    // Close menu when clicking elsewhere
+    document.addEventListener('click', (e) => {
+      if (!userProfileToggle.contains(e.target) &&
+          !profileMenu.contains(e.target)) {
+        profileMenu.classList.remove('open');
+      }
+    });
+  }
+
+  // Mobile user list toggle
+  const mobileUserListToggle = document.getElementById('mobile-menu-toggle');
+  const mobileUserListContainer = document.getElementById('mobile-user-list');
+
+  if (mobileUserListToggle && mobileUserListContainer) {
+    mobileUserListToggle.addEventListener('click', () => {
+      mobileUserListContainer.classList.toggle('hidden');
     });
   }
 }
 
-// Handle announcements
-function handleAnnouncementMessage(data) {
-  if (data.action === 'new') {
-    // Add new announcement to container
-    const container = document.getElementById('announcements-container');
-    if (!container) return;
+// Ensure EuphorieChat namespace exists
+function ensureEuphorieChatNamespace() {
+  if (!window.EuphorieChat) {
+    window.EuphorieChat = {
+      // Core methods
+      showTyping: function(username) {
+        const typingIndicator = document.getElementById('typing-indicator');
+        const typingUsername = document.getElementById('typing-username');
 
-    const announcementEl = document.createElement('div');
-    announcementEl.className = 'announcement';
-    announcementEl.dataset.announcementId = data.announcement_id;
+        if (!typingIndicator || !typingUsername) return;
 
-    announcementEl.innerHTML = `
-      <button class="absolute top-2 right-2 p-1 rounded-full hover:bg-white/50" aria-label="Dismiss announcement">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-      <div class="announcement-content">
-        <div class="flex items-start">
-          <div class="flex-shrink-0 bg-blue-500 rounded-full p-2 mr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-            </svg>
+        // Only show typing for other users
+        if (username === window.username) return;
+
+        typingUsername.textContent = `${username || 'Someone'} is typing...`;
+        typingIndicator.classList.remove('hidden');
+
+        clearTimeout(window.typingTimeout);
+        window.typingTimeout = setTimeout(() => {
+          typingIndicator.classList.add('hidden');
+        }, 3000);
+      },
+
+      updateUserList: function(users) {
+        const userList = document.getElementById('user-list');
+        const mobileList = document.getElementById('mobile-user-list-content');
+
+        if (!userList && !mobileList) return;
+
+        // Make sure users is an array
+        if (!Array.isArray(users)) {
+          users = users && typeof users === 'object' ? Object.values(users) : [];
+        }
+
+        // Filter out any null or undefined values
+        const validUsers = users.filter(user => user);
+
+        // Process desktop user list
+        if (userList) {
+          userList.innerHTML = '';
+
+          if (validUsers.length === 0) {
+            userList.innerHTML = `<li class="text-gray-400 text-xs italic py-2">No users currently in this room.</li>`;
+          } else {
+            validUsers.forEach(user => {
+              const isCurrentUser = user === window.username;
+              const avatarClass = isCurrentUser ? 'bg-pink-500' : getAvatarColorClass(user);
+
+              const li = document.createElement('li');
+              li.className = 'user-item flex items-center justify-between';
+
+              li.innerHTML = `
+                <div class="flex items-center">
+                  <div class="h-6 w-6 rounded-full ${avatarClass} text-white flex items-center justify-center text-xs mr-2 user-avatar" data-username="${user}">
+                  ${user.slice(0, 1).toUpperCase()}
+                  </div>
+                  <span class="text-sm">${user}</span>
+                </div>
+                ${!isCurrentUser ? `
+                  <button data-username="${user}" class="friend-btn text-xs py-1 px-2 rounded-md bg-pink-100 text-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  Add Friend
+                  </button>
+                ` : ''}
+              `;
+
+              userList.appendChild(li);
+            });
+          }
+        }
+
+        // Similar fix for mobile user list
+        if (mobileList) {
+          mobileList.innerHTML = '';
+
+          if (validUsers.length === 0) {
+            mobileList.innerHTML = `<span class="text-gray-400 text-xs italic">No users currently in this room.</span>`;
+          } else {
+            validUsers.forEach(user => {
+              const isCurrentUser = user === window.username;
+
+              const span = document.createElement('span');
+              span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
+              span.setAttribute('data-username', user);
+
+              if (isCurrentUser) {
+                span.classList.add('bg-pink-100', 'text-pink-600', 'font-medium');
+              }
+
+              span.innerHTML = `
+                <span class="inline-flex items-center">
+                  <span class="avatar-mini w-4 h-4 rounded-full ${isCurrentUser ? 'bg-pink-500' : getAvatarColorClass(user)} text-white inline-flex items-center justify-center text-[10px] mr-1 user-avatar" data-username="${user}">
+                  ${user.slice(0, 1).toUpperCase()}
+                  </span>
+                  ${user}
+                </span>
+              `;
+
+              mobileList.appendChild(span);
+            });
+          }
+
+          document.getElementById('mobile-user-list').classList.remove('hidden');
+        }
+
+        // Load profile pictures for all users
+        loadAllProfiles();
+      },
+
+      renderMessage: function(data) {
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
+
+        const sender = data.username;
+        const message = data.message;
+        const messageId = data.message_id || Date.now().toString();
+
+        const isSelf = sender === window.username;
+
+        // Create message wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex items-start gap-2 group`;
+        wrapper.setAttribute('data-message-id', messageId);
+
+        // Calculate avatar class
+        const avatarClass = isSelf ? 'avatar-pink' : getRandomAvatarClass(sender);
+
+        // Create message HTML content
+        wrapper.innerHTML = `
+          <div class="avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar" data-username="${sender}">
+            ${sender.slice(0, 1).toUpperCase()}
           </div>
-          <div>
-            <h3 class="font-semibold text-blue-800">Announcement from ${data.creator}</h3>
-            <div class="text-gray-700 text-sm mt-1">${data.content}</div>
-            <div class="text-xs text-gray-500 mt-2">${new Date(data.created_at).toLocaleString()}</div>
+          <div class="flex-1">
+            <div class="message-bubble ${isSelf ? 'sent' : 'received'}">
+              <div class="flex items-start justify-between">
+                <a href="/dm/${sender}/" class="text-xs font-semibold mb-1 ${isSelf ? 'text-pink-500' : 'text-purple-600'} hover:underline username-link">
+                  ${sender}
+                </a>
+                <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                  <div class="flex space-x-1">
+                    <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
+                    <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
+                    <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+                  </div>
+                </div>
+              </div>
+              <div class="text-sm text-gray-700 message-content">
+                ${message}
+              </div>
+            </div>
+            <div class="reactions-container"></div>
           </div>
-        </div>
-      </div>
-    `;
+        `;
 
-    // Add dismiss button handler
-    announcementEl.querySelector('button').addEventListener('click', () => {
-      // Mark as read in the server
+        chatLog.appendChild(wrapper);
+
+        // Scroll to the bottom to show the new message
+        scrollToBottom();
+
+        // Add reaction listeners
+        addReactionListeners(wrapper);
+
+        // Track media in this message
+        trackMediaInMessage(message);
+
+        // Load user profile picture
+        loadUserProfile(sender);
+      },
+
+      updateReaction: function(data) {
+        const messageId = data.message_id;
+        const reaction = data.reaction;
+        const count = data.count;
+        const users = data.users || [];
+
+        const message = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!message) return;
+
+        const container = message.querySelector('.reactions-container');
+        if (!container) return;
+
+        let reactionElement = container.querySelector(`[data-emoji="${reaction}"]`);
+
+        if (count <= 0) {
+          // Remove the reaction if count is 0
+          if (reactionElement) {
+            reactionElement.remove();
+          }
+          return;
+        }
+
+        if (!reactionElement) {
+          // Create new reaction element
+          reactionElement = document.createElement('div');
+          reactionElement.className = 'reaction';
+          reactionElement.setAttribute('data-emoji', reaction);
+          reactionElement.innerHTML = `${reaction} <span class="reaction-count">${count}</span>`;
+
+          // Add click handler to show who reacted
+          reactionElement.addEventListener('click', () => {
+            showReactionUsers(messageId, reaction, users);
+          });
+
+          container.appendChild(reactionElement);
+        } else {
+          // Update existing reaction count
+          const countElement = reactionElement.querySelector('.reaction-count');
+          if (countElement) {
+            countElement.textContent = count;
+          }
+
+          // Update users tooltip
+          if (users.length > 0) {
+            reactionElement.title = users.join(', ');
+          }
+        }
+      },
+
+      handleWhiteboardMessage: window.handleWhiteboardMessage,
+      renderMeetups: window.renderMeetups,
+
+      handleAnnouncementMessage: function(data) {
+        if (data.action === 'new') {
+          // Add new announcement to container
+          const container = document.getElementById('announcements-container');
+          if (!container) return;
+
+          const announcementEl = document.createElement('div');
+          announcementEl.className = 'announcement';
+          announcementEl.dataset.announcementId = data.announcement_id;
+
+          announcementEl.innerHTML = `
+            <button class="absolute top-2 right-2 p-1 rounded-full hover:bg-white/50" aria-label="Dismiss announcement">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div class="announcement-content">
+              <div class="flex items-start">
+                <div class="flex-shrink-0 bg-blue-500 rounded-full p-2 mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-blue-800">Announcement from ${data.creator}</h3>
+                  <div class="text-gray-700 text-sm mt-1">${data.content}</div>
+                  <div class="text-xs text-gray-500 mt-2">${new Date(data.created_at).toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Add dismiss button handler
+          announcementEl.querySelector('button').addEventListener('click', () => {
+            // Mark as read in the server
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+              window.socket.send(JSON.stringify({
+                type: 'announcement',
+                action: 'mark_read',
+                announcement_id: data.announcement_id
+              }));
+            }
+
+            // Hide the announcement
+            announcementEl.classList.add('hidden');
+          });
+
+          // Make container visible
+          container.classList.remove('hidden');
+
+          // Add announcement to container
+          container.appendChild(announcementEl);
+
+          // Show notification
+          showNotification('New announcement from ' + data.creator);
+        }
+      },
+
+      handleFriendsMessage: function(data) {
+        if (data.action === 'online_list') {
+          renderOnlineFriends(data.friends || []);
+        }
+      },
+
+      handleRecommendationsMessage: function(data) {
+        if (data.action === 'list') {
+          renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
+        }
+      },
+
+      handleProfileUpdate: handleProfileUpdate,
+
+      showNotification: showNotification,
+
+      scrollToBottom: scrollToBottom
+    };
+  }
+}
+
+// Add reaction listeners to a message
+function addReactionListeners(messageElement) {
+  const messageId = messageElement.dataset.messageId;
+  if (!messageId) return;
+
+  messageElement.querySelectorAll('.emoji-reaction').forEach(btn => {
+    const emoji = btn.textContent;
+    btn.addEventListener('click', () => {
       if (window.socket && window.socket.readyState === WebSocket.OPEN) {
         window.socket.send(JSON.stringify({
-          type: 'announcement',
-          action: 'mark_read',
-          announcement_id: data.announcement_id
+          type: 'reaction',
+          message_id: messageId,
+          reaction: emoji
         }));
+      } else {
+        console.error('Cannot send reaction: WebSocket not connected');
+        showNotification('Connection issue. Please refresh the page.');
       }
+    });
+  });
+}
 
-      // Hide the announcement
-      announcementEl.classList.add('hidden');
+// Show who reacted with a particular emoji
+function showReactionUsers(messageId, emoji, users = []) {
+  const reactionModal = document.getElementById('reaction-modal');
+  const userList = document.getElementById('reaction-user-list');
+
+  if (!reactionModal || !userList) return;
+
+  userList.innerHTML = '';
+
+  if (users.length === 0) {
+    userList.innerHTML = `
+      <li class="py-2 px-3">
+        Loading users who reacted...
+      </li>
+    `;
+  } else {
+    users.forEach(name => {
+      const li = document.createElement('li');
+      li.className = 'flex items-center py-1';
+
+      li.innerHTML = `
+        <div class="h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs user-avatar" data-username="${name}">
+          ${name.charAt(0).toUpperCase()}
+        </div>
+        <span>${name}</span>
+      `;
+
+      userList.appendChild(li);
+
+      // Load profile pictures
+      loadUserProfile(name);
+    });
+  }
+
+  // Show the modal
+  reactionModal.classList.add('open');
+}
+
+// Track media in messages for media library
+function trackMediaInMessage(message) {
+  try {
+    if (!message) return;
+
+    if (!window.mediaLibrary) {
+      window.mediaLibrary = { images: [], videos: [] };
+    }
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = message;
+
+    // Track images
+    tempDiv.querySelectorAll('img').forEach(img => {
+      if (img.src && !img.src.includes('data:image') && !window.mediaLibrary.images.includes(img.src)) {
+        window.mediaLibrary.images.push(img.src);
+      }
     });
 
-    // Make container visible
-    container.classList.remove('hidden');
-
-    // Add announcement to container
-    container.appendChild(announcementEl);
-
-    // Show notification
-    showNotification('New announcement from ' + data.creator);
+    // Track videos
+    tempDiv.querySelectorAll('video source').forEach(source => {
+      if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
+        window.mediaLibrary.videos.push(source.src);
+      }
+    });
+  } catch (error) {
+    console.error('Error tracking media in message:', error);
   }
 }
 
 // Render online friends list
 function renderOnlineFriends(friends) {
-  console.log('Rendering online friends:', friends);
   const onlineFriendsList = document.getElementById('online-friends-list');
   if (!onlineFriendsList) return;
 
@@ -3274,8 +4553,6 @@ function renderOnlineFriends(friends) {
 
 // Render room recommendations
 function renderRoomRecommendations(rooms, bookmarkedRooms = []) {
-  console.log('Rendering room recommendations:', rooms, 'bookmarked:', bookmarkedRooms);
-
   const recommendedRoomsList = document.getElementById('recommended-rooms-list');
   if (!recommendedRoomsList) return;
 
@@ -3402,6 +4679,46 @@ function sendFriendRequest(userId) {
   });
 }
 
+// Function to scroll to bottom of chat
+function scrollToBottom() {
+  const chatLog = document.getElementById('chat-log');
+  if (!chatLog) return;
+
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// Get random avatar class based on username
+function getRandomAvatarClass(username) {
+  const avatarClasses = [
+    'avatar-orange', 'avatar-blue', 'avatar-green',
+    'avatar-purple', 'avatar-yellow', 'avatar-red', 'avatar-teal'
+  ];
+
+  // Use a hash of the username to ensure consistent colors
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return avatarClasses[Math.abs(hash) % avatarClasses.length];
+}
+
+// Get consistent avatar color class based on username
+function getAvatarColorClass(username) {
+  const colors = [
+    'bg-pink-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
+    'bg-purple-500', 'bg-red-500', 'bg-indigo-500', 'bg-teal-500'
+  ];
+
+  // Simple hash function for username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return colors[Math.abs(hash) % colors.length];
+}
+
 // Show notification
 function showNotification(message) {
   const toast = document.getElementById('notification-toast');
@@ -3421,7 +4738,7 @@ function showNotification(message) {
   }
 }
 
-// Get CSRF token for API requests
+// Get CSRF token
 function getCsrfToken() {
   // Method 1: From cookies
   try {
@@ -3456,78 +4773,237 @@ function getCsrfToken() {
   return '';
 }
 
-// Explicitly request features to load initial data
-function requestInitialData() {
-  console.log('Requesting initial data from server...');
+// Add this function to your code
+function fixModalStyles() {
+    // Get all modals
+    const modals = document.querySelectorAll('.modal');
 
-  // Check if socket is available
-  if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
-    console.warn('WebSocket not ready, retrying in 1 second...');
-    setTimeout(requestInitialData, 1000);
-    return;
-  }
+    // Apply correct styles to each
+    modals.forEach(modal => {
+        // Override any conflicting styles
+        modal.style.position = 'fixed';
+        modal.style.inset = '0';
+        modal.style.zIndex = '50';
+        modal.style.display = 'none';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        modal.style.backdropFilter = 'blur(4px)';
 
-  // Request meetups
-  window.socket.send(JSON.stringify({
-    type: 'meetup',
-    action: 'list'
-  }));
+        // Add an override for open modals
+        const openClass = document.createElement('style');
+        openClass.textContent = `
+            .modal.flex {
+                display: flex !important;
+            }
+        `;
+        document.head.appendChild(openClass);
+    });
 
-  // Request online friends
-  window.socket.send(JSON.stringify({
-    type: 'friends',
-    action: 'list_online'
-  }));
+    // Fix button click handlers
+    document.querySelectorAll('[id$="-btn"]').forEach(btn => {
+        const originalClick = btn.onclick;
 
-  // Request room recommendations
-  window.socket.send(JSON.stringify({
-    type: 'recommendations',
-    action: 'get',
-    include_bookmarks: true
-  }));
+        if (originalClick) {
+            btn.onclick = function(e) {
+                console.log(`Button clicked: ${btn.id}`);
+                const result = originalClick.call(this, e);
 
-  console.log('Initial data requests sent');
+                // Force modal display after click
+                setTimeout(() => {
+                    document.querySelectorAll('.modal.flex').forEach(modal => {
+                        modal.style.display = 'flex';
+                    });
+                }, 50);
+
+                return result;
+            };
+        }
+    });
 }
 
-// Request initial data after a short delay to ensure socket is ready
-setTimeout(requestInitialData, 2000);
-</script>
+// Call this after DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(fixModalStyles, 500);
+});
 
-<!-- Add console debug button for testing -->
-<button id="debug-btn" style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; background: rgba(0,0,0,0.7); color: lime; border: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">Debug</button>
-<script>
-  // Add debug button for troubleshooting
-  document.getElementById('debug-btn').addEventListener('click', function() {
-    console.log('--- EUPHORIE CHAT DEBUG ---');
-    console.log('WebSocket:', window.socket ? 'Connected (ready: ' + window.socket.readyState + ')' : 'Not connected');
-    console.log('Username:', window.username);
-    console.log('Room:', window.roomName);
-    console.log('Media Library:', window.mediaLibrary);
 
-    // Request data again
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      // Request meetups
-      window.socket.send(JSON.stringify({
-        type: 'meetup',
-        action: 'list'
-      }));
+// Fix modal display issues
+function fixModalDisplayIssues() {
+  // Get all modals
+  const modals = document.querySelectorAll('.modal');
 
-      // Request online friends
-      window.socket.send(JSON.stringify({
-        type: 'friends',
-        action: 'list_online'
-      }));
-
-      // Request room recommendations
-      window.socket.send(JSON.stringify({
-        type: 'recommendations',
-        action: 'get',
-        include_bookmarks: true
-      }));
-
-      console.log('Feature data requests sent again');
+  // Apply the proper CSS for modals
+  modals.forEach(modal => {
+    // Ensure modals have the correct display style
+    if (modal.classList.contains('flex')) {
+      modal.style.display = 'flex';
+    } else {
+      modal.style.display = 'none';
     }
+
+    // Ensure modals have the correct z-index
+    modal.style.zIndex = '50';
+
+    // Override any conflicting styles
+    const modalStyle = document.createElement('style');
+    modalStyle.textContent = `
+      #${modal.id}.flex {
+        display: flex !important;
+      }
+      #${modal.id}.hidden {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(modalStyle);
   });
+
+  // Fix button handlers to properly show modals
+  const modalButtons = document.querySelectorAll('[id$="-btn"]:not([type="submit"])');
+  modalButtons.forEach(btn => {
+    // Find potential target modal based on button ID
+    let modalId = null;
+    if (btn.id.includes('whiteboard')) {
+      modalId = 'whiteboard-modal';
+    } else if (btn.id.includes('media')) {
+      modalId = 'media-library-modal';
+    } else if (btn.id.includes('meetup')) {
+      modalId = 'meetup-modal';
+    } else if (btn.id.includes('profile')) {
+      modalId = 'profile-pic-modal';
+    }
+
+    if (!modalId) return;
+
+    // Save original click handler
+    const originalOnClick = btn.onclick;
+
+    // Add new click handler
+    btn.onclick = function(e) {
+      // Call original handler if it exists
+      if (originalOnClick) {
+        originalOnClick.call(this, e);
+      }
+
+      // Force modal to display properly
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.style.display = 'flex';
+      }
+    };
+  });
+
+  // Also fix close buttons
+  const closeButtons = document.querySelectorAll('[id^="close-"]');
+  closeButtons.forEach(btn => {
+    // Find target modal based on button ID
+    const modalType = btn.id.replace('close-', '');
+    const modalId = `${modalType}-modal`;
+    const modal = document.getElementById(modalId);
+
+    if (!modal) return;
+
+    // Save original click handler
+    const originalOnClick = btn.onclick;
+
+    // Add new click handler
+    btn.onclick = function(e) {
+      // Call original handler if it exists
+      if (originalOnClick) {
+        originalOnClick.call(this, e);
+      }
+
+      // Force modal to hide properly
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      modal.style.display = 'none';
+    };
+  });
+}
+
+// Show notification
+function showNotification(message) {
+  const toast = document.getElementById('notification-toast');
+  const toastMessage = document.getElementById('notification-message');
+
+  if (toast && toastMessage) {
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
+    toast.style.display = 'flex';
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+
+      // Actually hide the element after animation
+      setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.style.display = 'none';
+      }, 300);
+    }, 3000);
+  } else {
+    // Fallback to alert
+    alert(message);
+  }
+}
+
+// Function to scroll to bottom of chat
+function scrollToBottom() {
+  const chatLog = document.getElementById('chat-log');
+  if (!chatLog) return;
+
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// Get CSRF token from cookies or meta tag
+function getCsrfToken() {
+  // Try to get from cookie
+  const name = 'csrftoken=';
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const cookies = decodedCookie.split(';');
+
+  for (let cookie of cookies) {
+    cookie = cookie.trim();
+    if (cookie.indexOf(name) === 0) {
+      return cookie.substring(name.length);
+    }
+  }
+
+  // Try to get from meta tag
+  const metaTag = document.querySelector('meta[name="csrf-token"]');
+  if (metaTag) {
+    return metaTag.getAttribute('content');
+  }
+
+  // Try to get from hidden input
+  const hiddenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+  if (hiddenInput) {
+    return hiddenInput.value;
+  }
+
+  console.warn('Could not find CSRF token');
+  return '';
+}
+
+// Set up heartbeat to keep WebSocket connection alive
+function setupHeartbeat() {
+  setInterval(() => {
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      window.socket.send(JSON.stringify({
+        type: 'ping',
+        timestamp: Date.now()
+      }));
+    }
+  }, 30000); // 30 seconds
+}
+
+// Initialize the heartbeat when the page loads
+setupHeartbeat();
 
 </script>
 </body>

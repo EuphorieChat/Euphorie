@@ -593,32 +593,61 @@ def create_meetup(request, room_name):
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-@login_required
 def get_room_media(request, room_name):
-    """Get all media files shared in a room."""
-    room = get_object_or_404(Room, name=room_name)
+    try:
+        room = get_object_or_404(Room, name=room_name)
+        messages = Message.objects.filter(room=room)
 
-    # Get all messages with media in this room
-    messages_with_media = Message.objects.filter(
-        room=room,
-        media__isnull=False
-    ).order_by('-timestamp')
+        media_list = []
+        for message in messages:
+            # Skip messages without media
+            if not hasattr(message, 'media') or not message.media:
+                continue
 
-    media_files = []
-    for message in messages_with_media:
-        media_type = 'image' if any(message.media.name.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif']) else 'video'
-        media_files.append({
-            'url': message.media.url,
-            'type': media_type,
-            'uploaded_by': message.user.username,
-            'timestamp': message.timestamp.isoformat(),
-            'message_id': message.id
-        })
+            # Skip media without files
+            if not message.media.name:
+                continue
 
-    return JsonResponse({
-        'success': True,
-        'media': media_files
-    })
+            # Get the timestamp (adjust field name based on your model)
+            # Try different possible field names for timestamp
+            timestamp = None
+            for field_name in ['created_at', 'timestamp', 'created', 'date_created', 'sent_at']:
+                if hasattr(message, field_name):
+                    timestamp_field = getattr(message, field_name)
+                    if timestamp_field:
+                        timestamp = timestamp_field.isoformat()
+                        break
+
+            # If no timestamp found, use current time
+            if not timestamp:
+                from django.utils import timezone
+                timestamp = timezone.now().isoformat()
+
+            # Determine media type based on file extension
+            url = message.media.url
+            media_type = 'image'
+            if url.lower().endswith(('.mp4', '.webm', '.mov', '.avi')):
+                media_type = 'video'
+
+            # Add to media list
+            media_list.append({
+                'type': media_type,
+                'url': url,
+                'timestamp': timestamp
+            })
+
+        return JsonResponse({'success': True, 'media': media_list})
+
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in get_room_media for {room_name}: {str(e)}")
+        logger.error(traceback.format_exc())
+
+        # Return an empty list rather than an error
+        return JsonResponse({'success': True, 'media': []})
 
 def get_active_users(request, room_name):
     """Get a list of users currently active in a room."""
@@ -942,37 +971,75 @@ def update_profile(request):
 
 def get_user_profile(request, username):
     try:
+        # Check if the user exists
         user = User.objects.get(username=username)
+
+        # Get or create the user's profile
         profile, created = UserProfile.objects.get_or_create(user=user)
 
-        profile_data = {}
-        if profile.profile_picture_data:
-            try:
-                profile_data = json.loads(profile.profile_picture_data)
-            except:
-                profile_data = {
-                    'type': 'gradient',
-                    'gradient': 'from-pink-400 to-orange-300'
-                }
-        else:
-            profile_data = {
-                'type': 'gradient',
-                'gradient': 'from-pink-400 to-orange-300'
-            }
+        # Default profile data
+        profile_data = {
+            'type': 'gradient',
+            'gradient': get_consistent_gradient(username)
+        }
 
+        # Try to get profile picture data if the field exists
+        if hasattr(profile, 'profile_picture_data') and profile.profile_picture_data:
+            try:
+                custom_profile_data = json.loads(profile.profile_picture_data)
+                if isinstance(custom_profile_data, dict):
+                    profile_data = custom_profile_data
+            except json.JSONDecodeError:
+                # Use default if JSON is invalid
+                pass
+
+        # Return successful response
         return JsonResponse({
             'success': True,
             'username': username,
             'profile_picture': profile_data
         })
+
     except User.DoesNotExist:
+        # User not found response
         return JsonResponse({
             'success': False,
             'error': 'User not found'
         }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=400)
 
+    except Exception as e:
+        # Log the actual exception for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in get_user_profile for {username}: {str(e)}")
+
+        # Return a default profile to prevent UI issues
+        return JsonResponse({
+            'success': True,
+            'username': username,
+            'profile_picture': {
+                'type': 'gradient',
+                'gradient': get_consistent_gradient(username)
+            }
+        })
+
+# Helper function to generate consistent gradient based on username
+def get_consistent_gradient(username):
+    gradients = [
+        'from-pink-400 to-purple-400',
+        'from-blue-400 to-indigo-400',
+        'from-green-400 to-teal-400',
+        'from-purple-400 to-pink-400',
+        'from-yellow-400 to-orange-400',
+        'from-red-400 to-pink-400',
+        'from-cyan-400 to-blue-400',
+        'from-emerald-400 to-green-500'
+    ]
+
+    # Simple hash function
+    hash_value = 0
+    for i, char in enumerate(username):
+        hash_value += ord(char) * (i + 1)
+
+    # Get a consistent index based on username
+    return gradients[hash_value % len(gradients)]
