@@ -1584,7 +1584,1398 @@ window.roomName = "{{ room_name|escapejs }}";
 window.username = "{{ username|escapejs }}";
 </script>
 
+<!-- WebSocket Connection Script - Improved for reliability -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  let chatSocket;
+  let reconnectAttempt = 0;
+  const maxReconnectAttempts = 5;
+  const reconnectDelay = 2000; // Start with 2 seconds
+
+  function connectWebSocket() {
+    const roomName = "{{ room_name|escapejs }}";
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    chatSocket = new WebSocket(
+      `${protocol}//${window.location.host}/ws/chat/${roomName}/`
+    );
+
+    chatSocket.onopen = function(e) {
+      console.log("WebSocket connection established");
+      reconnectAttempt = 0; // Reset reconnect counter on successful connection
+
+      // Show a reconnection notification if this wasn't the first attempt
+      if (reconnectAttempt > 0) {
+        showNotification("Reconnected to chat");
+      }
+    };
+
+    chatSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+
+      // Handle different message types
+      if (data.type === 'chat_message') {
+        addMessage(data.message, data.username, data.message_id);
+      } else if (data.type === 'user_list') {
+        updateUserList(data.users);
+      } else if (data.type === 'typing') {
+        showTypingIndicator(data.username);
+      } else if (data.type === 'reaction') {
+        updateReactions(data.message_id, data.emoji, data.count, data.username);
+      }
+    };
+
+    chatSocket.onclose = function(e) {
+      console.warn("WebSocket connection closed unexpectedly");
+
+      // Only attempt to reconnect if we haven't exceeded the maximum attempts
+      if (reconnectAttempt < maxReconnectAttempts) {
+        reconnectAttempt++;
+        const timeout = reconnectDelay * Math.pow(1.5, reconnectAttempt - 1); // Exponential backoff
+
+        showNotification("Connection lost. Reconnecting...");
+
+        console.log(`Attempting to reconnect (${reconnectAttempt}/${maxReconnectAttempts}) in ${timeout/1000}s...`);
+        setTimeout(connectWebSocket, timeout);
+      } else {
+        showNotification("Could not reconnect. Please refresh the page.");
+      }
+    };
+
+    chatSocket.onerror = function(e) {
+      console.error("WebSocket error:", e);
+    };
+
+    // Store socket in global scope for other functions to use
+    window.chatSocket = chatSocket;
+  }
+
+  // Initial connection
+  connectWebSocket();
+
+  // Handle message sending
+  const messageForm = document.getElementById('message-form');
+  if (messageForm) {
+    messageForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const messageInput = document.getElementById('chat-message-input');
+      const message = messageInput.value.trim();
+
+      if (message) {
+        if (chatSocket.readyState === WebSocket.OPEN) {
+          chatSocket.send(JSON.stringify({
+            'type': 'chat_message',
+            'message': message
+          }));
+          messageInput.value = '';
+        } else {
+          showNotification("Not connected. Message couldn't be sent.");
+        }
+      }
+    });
+  }
+
+  // Handle typing notification
+  const messageInput = document.getElementById('chat-message-input');
+  if (messageInput) {
+    let typingTimeout;
+
+    messageInput.addEventListener('input', function() {
+      if (chatSocket.readyState === WebSocket.OPEN) {
+        // Only send typing event if we haven't sent one recently
+        clearTimeout(typingTimeout);
+
+        chatSocket.send(JSON.stringify({
+          'type': 'typing',
+          'username': window.username
+        }));
+
+        // Set a timeout to prevent sending too many typing events
+        typingTimeout = setTimeout(() => {}, 2000);
+      }
+    });
+  }
+});
+
+// Simple function to add a message to the chat log
+window.addMessage = function(message, username, messageId) {
+  const chatLog = document.getElementById('chat-log');
+  if (!chatLog) return;
+
+  const isCurrentUser = username === window.username;
+
+  const messageElement = document.createElement('div');
+  messageElement.className = 'flex items-start gap-2 group';
+  messageElement.setAttribute('data-message-id', messageId);
+
+  // Create avatar with random color if not current user
+  const avatarClass = isCurrentUser ? 'avatar-pink' : getRandomAvatarClass(username);
+
+  // Create avatar
+  const avatarElement = document.createElement('div');
+  avatarElement.className = `avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar`;
+  avatarElement.textContent = username.slice(0, 1).toUpperCase();
+
+  // Create message content container
+  const contentContainer = document.createElement('div');
+  contentContainer.className = 'flex-1';
+
+  // Create message bubble
+  const bubble = document.createElement('div');
+  bubble.className = `message-bubble ${isCurrentUser ? 'sent' : 'received'} new`;
+
+  // Create header with username
+  const header = document.createElement('div');
+  header.className = 'flex items-start justify-between';
+
+  const usernameLink = document.createElement('a');
+  usernameLink.href = `/dm/${username}/`;
+  usernameLink.className = `text-xs font-semibold mb-1 ${isCurrentUser ? 'text-pink-500' : 'text-purple-600'} hover:underline username-link`;
+  usernameLink.textContent = username;
+
+  header.appendChild(usernameLink);
+
+  // Quick reactions (only visible on hover/desktop)
+  const reactionsContainer = document.createElement('div');
+  reactionsContainer.className = 'ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden';
+  reactionsContainer.innerHTML = `
+    <div class="flex space-x-1">
+      <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
+      <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
+      <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+    </div>
+  `;
+
+  header.appendChild(reactionsContainer);
+  bubble.appendChild(header);
+
+  // Message content
+  const messageContent = document.createElement('div');
+  messageContent.className = 'text-sm text-gray-700 message-content';
+  messageContent.innerHTML = message;
+  bubble.appendChild(messageContent);
+
+  contentContainer.appendChild(bubble);
+
+  // Area for reaction emojis display
+  const reactionsDisplayArea = document.createElement('div');
+  reactionsDisplayArea.className = 'reactions-container';
+  contentContainer.appendChild(reactionsDisplayArea);
+
+  // Assemble the message
+  messageElement.appendChild(avatarElement);
+  messageElement.appendChild(contentContainer);
+
+  chatLog.appendChild(messageElement);
+
+  // Scroll to the bottom to show the new message
+  scrollToBottom();
+
+  // Set up reaction emojis
+  const emojiButtons = messageElement.querySelectorAll('.emoji-reaction');
+  emojiButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const emoji = this.textContent;
+      if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+        window.chatSocket.send(JSON.stringify({
+          'type': 'reaction',
+          'message_id': messageId,
+          'emoji': emoji
+        }));
+      }
+    });
+  });
+};
+
+// Function to show typing indicator
+window.showTypingIndicator = function(username) {
+  const typingIndicator = document.getElementById('typing-indicator');
+  const typingUsername = document.getElementById('typing-username');
+
+  if (typingIndicator && typingUsername) {
+    // Don't show if it's the current user typing
+    if (username === window.username) return;
+
+    typingUsername.textContent = `${username} is typing...`;
+    typingIndicator.classList.remove('hidden');
+
+    // Hide after 3 seconds if no new typing events
+    clearTimeout(window.typingTimeout);
+    window.typingTimeout = setTimeout(function() {
+      typingIndicator.classList.add('hidden');
+    }, 3000);
+  }
+};
+
+// Function to update the user list
+window.updateUserList = function(users) {
+  const userList = document.getElementById('user-list');
+  const mobileUserList = document.getElementById('mobile-user-list-content');
+
+  if (!userList && !mobileUserList) return;
+
+  if (userList) {
+    userList.innerHTML = '';
+
+    users.forEach(user => {
+      const li = document.createElement('li');
+      li.className = 'user-item flex items-center justify-between';
+
+      const nameContainer = document.createElement('div');
+      nameContainer.className = 'flex items-center';
+
+      // Get a consistent avatar color based on username
+      const avatarClass = user.username === window.username ? 'bg-pink-500' : getAvatarColorClass(user.username);
+
+      const avatar = document.createElement('div');
+      avatar.className = `h-6 w-6 rounded-full ${user.is_online ? avatarClass : 'bg-gray-300'} text-white flex items-center justify-center text-xs mr-2`;
+      avatar.textContent = user.username.slice(0, 1).toUpperCase();
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'text-sm';
+      nameSpan.textContent = user.username;
+
+      nameContainer.appendChild(avatar);
+      nameContainer.appendChild(nameSpan);
+      li.appendChild(nameContainer);
+
+      userList.appendChild(li);
+    });
+  }
+
+  if (mobileUserList) {
+    mobileUserList.innerHTML = '';
+
+    users.forEach(user => {
+      const span = document.createElement('span');
+      span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
+      span.textContent = user.username;
+      mobileUserList.appendChild(span);
+    });
+  }
+};
+
+// Function to update reactions on a message
+window.updateReactions = function(messageId, emoji, count, username) {
+  const message = document.querySelector(`[data-message-id="${messageId}"]`);
+  if (!message) return;
+
+  const reactionsContainer = message.querySelector('.reactions-container');
+  if (!reactionsContainer) return;
+
+  // Check if the reaction already exists
+  let reactionElement = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
+
+  if (count <= 0) {
+    // Remove the reaction if count is 0
+    if (reactionElement) {
+      reactionElement.remove();
+    }
+    return;
+  }
+
+  if (!reactionElement) {
+    // Create new reaction element
+    reactionElement = document.createElement('div');
+    reactionElement.className = 'reaction';
+    reactionElement.setAttribute('data-emoji', emoji);
+    reactionElement.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
+
+    // Add click handler to show who reacted
+    reactionElement.addEventListener('click', function() {
+      // Implement showing reaction users here
+      showReactionUsers(messageId, emoji);
+    });
+
+    reactionsContainer.appendChild(reactionElement);
+  } else {
+    // Update existing reaction count
+    const countElement = reactionElement.querySelector('.reaction-count');
+    if (countElement) {
+      countElement.textContent = count;
+    }
+  }
+};
+
+// Helper function to get consistent avatar color
+function getAvatarColorClass(username) {
+  const colors = [
+    'bg-pink-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
+    'bg-purple-500', 'bg-red-500', 'bg-indigo-500', 'bg-teal-500'
+  ];
+
+  // Simple hash function for username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return colors[Math.abs(hash) % colors.length];
+}
+
+// Function to get random avatar class for messages
+function getRandomAvatarClass(username) {
+  const avatarClasses = [
+    'avatar-orange', 'avatar-blue', 'avatar-green',
+    'avatar-purple', 'avatar-yellow', 'avatar-red', 'avatar-teal'
+  ];
+
+  // Use a simple hash of the username to get a consistent color
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return avatarClasses[Math.abs(hash) % avatarClasses.length];
+}
+
+// Function to show who reacted
+function showReactionUsers(messageId, emoji) {
+  // This would typically fetch the users from the server
+  // For demo, we'll just show a placeholder
+  const reactionModal = document.getElementById('reaction-modal');
+  const reactionUserList = document.getElementById('reaction-user-list');
+
+  if (reactionModal && reactionUserList) {
+    reactionUserList.innerHTML = `<li class="py-2 px-3 rounded-md hover:bg-gray-50 transition-colors flex items-center">
+      <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-sm mr-2">
+        <span>${emoji}</span>
+      </div>
+      <span>Loading users who reacted...</span>
+    </li>`;
+
+    reactionModal.classList.add('open');
+
+    // In a real implementation, you would fetch the users who reacted
+    // from the server here and update the list
+  }
+}
+
+// Helper function to scroll to bottom of chat
+function scrollToBottom() {
+  const chatLog = document.getElementById('chat-log');
+  if (!chatLog) return;
+
+  // Smooth scroll
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// Show notification function
+window.showNotification = function(message) {
+  const toast = document.getElementById('notification-toast');
+  const messageEl = document.getElementById('notification-message');
+
+  if (toast && messageEl) {
+    messageEl.textContent = message;
+    toast.classList.remove('hidden');
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 3000);
+  }
+};
+</script>
+
 <script src="{% static 'js/chatroom.js' %}?t={{ timestamp|default:1683021549 }}" defer></script>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Make room name at the top direct to index.html
+  document.querySelectorAll('.gradient-text').forEach(element => {
+    if (element.textContent.includes("{{ room_name|title }}")) {
+      const parentElement = element.closest('a') || element.parentElement;
+      if (parentElement) {
+        parentElement.href = "{% url 'index' %}";
+      } else {
+        // Create a wrapper link if none exists
+        const wrapper = document.createElement('a');
+        wrapper.href = "{% url 'index' %}";
+        wrapper.style.cursor = 'pointer';
+        element.parentNode.insertBefore(wrapper, element);
+        wrapper.appendChild(element);
+      }
+    }
+  });
+
+  // Initialize variables
+  const chatLog = document.getElementById('chat-log');
+  const messageForm = document.getElementById('message-form');
+  const messageInput = document.getElementById('chat-message-input');
+  const jumpToBottomBtn = document.getElementById('jump-to-bottom');
+  const userProfileToggle = document.getElementById('user-profile-toggle');
+  const profileMenu = document.getElementById('profile-menu');
+  const modals = document.querySelectorAll('.modal');
+  const header = document.querySelector('.app-header');
+
+  // Add scroll effect to header
+  if (header) {
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 10) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+  }
+
+  // Show/hide jump to bottom button based on scroll position
+  if (chatLog) {
+    chatLog.addEventListener('scroll', function() {
+      const scrollBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
+      if (scrollBottom > 100) {
+        jumpToBottomBtn.classList.add('visible');
+      } else {
+        jumpToBottomBtn.classList.remove('visible');
+      }
+    });
+
+    // Initial scroll to bottom
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  // Jump to bottom button functionality
+  if (jumpToBottomBtn) {
+    jumpToBottomBtn.addEventListener('click', function() {
+      if (chatLog) {
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+    });
+  }
+
+  // Fix dropdown menu position - Toggle profile menu
+  if (userProfileToggle && profileMenu) {
+    userProfileToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      profileMenu.classList.toggle('open');
+    });
+
+    // Close when clicking elsewhere
+    document.addEventListener('click', function(e) {
+      if (!userProfileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+        profileMenu.classList.remove('open');
+      }
+    });
+  }
+
+  // Initialize emoji picker
+  const emojiButton = document.getElementById('emoji-button');
+  const emojiPanel = document.getElementById('emoji-panel');
+
+  if (emojiButton && emojiPanel) {
+    emojiButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      emojiPanel.classList.toggle('show');
+    });
+
+    // Close emoji panel when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+        emojiPanel.classList.remove('show');
+      }
+    });
+
+    // Add emoji to message input when clicked
+    const emojiButtons = document.querySelectorAll('.emoji-btn');
+    emojiButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (messageInput) {
+          messageInput.value += this.textContent;
+          messageInput.focus();
+          emojiPanel.classList.remove('show');
+        }
+      });
+    });
+  }
+
+  // Modal handling
+  document.querySelectorAll('[id$="-modal"]').forEach(modal => {
+    const closeBtn = modal.querySelector('[id^="close-"]');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        modal.classList.remove('open');
+      });
+    }
+  });
+
+  // Open modal functions
+  const mediaLibraryBtn = document.getElementById('open-media-library');
+  const mediaLibraryModal = document.getElementById('media-library-modal');
+  if (mediaLibraryBtn && mediaLibraryModal) {
+    mediaLibraryBtn.addEventListener('click', () => {
+      mediaLibraryModal.classList.add('open');
+    });
+  }
+
+  const whiteboardBtn = document.getElementById('open-whiteboard');
+  const whiteboardModal = document.getElementById('whiteboard-modal');
+  if (whiteboardBtn && whiteboardModal) {
+    whiteboardBtn.addEventListener('click', () => {
+      whiteboardModal.classList.add('open');
+    });
+  }
+
+  const meetupBtn = document.getElementById('create-meetup-btn');
+  const meetupModal = document.getElementById('meetup-modal');
+  if (meetupBtn && meetupModal) {
+    meetupBtn.addEventListener('click', () => {
+      meetupModal.classList.add('open');
+    });
+  }
+
+  const cancelMeetupBtn = document.getElementById('cancel-meetup');
+  if (cancelMeetupBtn && meetupModal) {
+    cancelMeetupBtn.addEventListener('click', () => {
+      meetupModal.classList.remove('open');
+    });
+  }
+
+  // Avatar change modal
+  const changeAvatarBtn = document.getElementById('change-avatar-btn');
+  const profilePicModal = document.getElementById('profile-pic-modal');
+  const cancelProfilePicBtn = document.getElementById('cancel-profile-pic');
+
+  if (changeAvatarBtn && profilePicModal) {
+    changeAvatarBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (profileMenu) profileMenu.classList.remove('open');
+      profilePicModal.classList.add('open');
+    });
+  }
+
+  if (cancelProfilePicBtn && profilePicModal) {
+    cancelProfilePicBtn.addEventListener('click', () => {
+      profilePicModal.classList.remove('open');
+    });
+  }
+
+  // Avatar option selection
+  document.querySelectorAll('.avatar-option').forEach(option => {
+    option.addEventListener('click', function() {
+      document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('ring-2', 'ring-pink-500', 'ring-offset-2'));
+      this.classList.add('ring-2', 'ring-pink-500', 'ring-offset-2');
+
+      // Update the preview
+      const gradient = this.getAttribute('data-gradient');
+      const profilePreview = document.getElementById('profile-preview');
+      if (profilePreview) {
+        profilePreview.className = 'avatar h-24 w-24 text-xl profile-pic-container';
+        profilePreview.classList.add('bg-gradient-to-br', ...gradient.split(' '));
+      }
+    });
+  });
+
+  // Save avatar changes
+  const saveProfilePicBtn = document.getElementById('save-profile-pic');
+  if (saveProfilePicBtn) {
+    saveProfilePicBtn.addEventListener('click', () => {
+      // Here you would handle the actual saving of the avatar
+      // Then show a notification and close the modal
+      showNotification('Profile picture updated successfully');
+      profilePicModal.classList.remove('open');
+    });
+  }
+
+  // Initialize mobile menu toggle
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', function() {
+      // Toggle mobile user list
+      const mobileUserList = document.getElementById('mobile-user-list');
+      if (mobileUserList) {
+        mobileUserList.classList.toggle('hidden');
+      }
+    });
+  }
+
+  // Initialize bookmark functionality
+  initializeBookmarkButton();
+
+  // Close announcement banners
+  document.querySelectorAll('.announcement button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const announcement = this.closest('.announcement');
+      if (announcement) {
+        announcement.classList.add('hidden');
+
+        // If you want to mark it as read on the server
+        const announcementId = announcement.getAttribute('data-announcement-id');
+        if (announcementId) {
+          const csrfToken = getCsrfToken();
+          fetch('/api/mark_announcement_read/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+              announcement_id: announcementId
+            })
+          });
+        }
+      }
+    });
+  });
+
+  // Initialize whiteboard tools
+  const toolButtons = document.querySelectorAll('.whiteboard-tools [data-tool]');
+  if (toolButtons.length) {
+    toolButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Remove active class from all tools
+        toolButtons.forEach(b => b.classList.remove('bg-pink-500', 'text-white'));
+        toolButtons.forEach(b => b.classList.add('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50'));
+
+        // Add active class to clicked tool
+        this.classList.remove('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50');
+        this.classList.add('bg-pink-500', 'text-white');
+      });
+    });
+  }
+
+  // Initialize bookmark button
+  function initializeBookmarkButton() {
+    const bookmarkBtn = document.getElementById('bookmark-room');
+    if (!bookmarkBtn) return;
+
+    // Check if room is already bookmarked
+    const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
+    updateBookmarkButton(isBookmarked);
+
+    // Add click event
+    bookmarkBtn.addEventListener('click', function() {
+      const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
+
+      // Get CSRF token and send request to server
+      const csrfToken = getCsrfToken();
+      fetch('/api/toggle_bookmark_room/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+          room_name: window.roomName,
+          bookmarked: newState
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          localStorage.setItem(`bookmarked_${window.roomName}`, newState);
+          updateBookmarkButton(newState);
+          showNotification(newState ? 'Room bookmarked!' : 'Bookmark removed');
+        } else {
+          showNotification('Failed to update bookmark');
+        }
+      })
+      .catch(error => {
+        console.error('Error toggling bookmark:', error);
+        showNotification('An error occurred');
+      });
+    });
+  }
+
+  // Helper function to update bookmark button appearance
+  function updateBookmarkButton(isBookmarked) {
+    const bookmarkBtn = document.getElementById('bookmark-room');
+    if (!bookmarkBtn) return;
+
+    if (isBookmarked) {
+      bookmarkBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+        </svg>
+      `;
+      bookmarkBtn.classList.add('text-pink-500');
+      bookmarkBtn.setAttribute('data-tooltip', 'Remove bookmark');
+    } else {
+      bookmarkBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+        </svg>
+      `;
+      bookmarkBtn.classList.remove('text-pink-500');
+      bookmarkBtn.setAttribute('data-tooltip', 'Bookmark room');
+    }
+  }
+
+  // Helper function to get CSRF token
+  function getCsrfToken() {
+    const name = 'csrftoken=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const cookieArray = decodedCookie.split(';');
+
+    for (let i = 0; i < cookieArray.length; i++) {
+      let cookie = cookieArray[i].trim();
+      if (cookie.indexOf(name) === 0) {
+        return cookie.substring(name.length, cookie.length);
+      }
+    }
+
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    return csrfInput ? csrfInput.value : '';
+  }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Enhance username links throughout the chat
+  enhanceUsernameLinks();
+
+  // Store reference to the original updateUserList function
+  const originalUpdateUserList = window.updateUserList || function() {};
+
+  // Replace with enhanced version that adds friend request buttons
+  window.updateUserList = function(users) {
+    // First call the original function
+    originalUpdateUserList.call(this, users);
+
+    // Then enhance the user list with friend buttons
+    const userList = document.getElementById("user-list");
+    if (!userList) return;
+
+    // Get all user list items
+    const listItems = userList.querySelectorAll('li');
+
+    // Process each list item
+    listItems.forEach(li => {
+      // Add user-item class for hover effects
+      li.classList.add('user-item');
+
+      // Get the username
+      const nameSpan = li.querySelector('span');
+      if (!nameSpan) return;
+
+      const username = nameSpan.textContent;
+
+      // Skip if it's the current user
+      if (username === window.username) return;
+
+      // Skip if already has a friend button
+      if (li.querySelector('.friend-btn')) return;
+
+      // Get the actions container or create one if it doesn't exist
+      let actionsContainer = li.querySelector('div:last-child');
+      if (!actionsContainer) {
+        actionsContainer = document.createElement('div');
+        actionsContainer.className = 'flex items-center';
+        li.appendChild(actionsContainer);
+      }
+
+      // Create Add Friend button
+      const friendBtn = document.createElement('button');
+      friendBtn.className = 'friend-btn friend-btn-add text-xs py-1 px-2 rounded-md bg-pink-100 text-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200';
+      friendBtn.textContent = 'Add Friend';
+      friendBtn.onclick = () => sendFriendRequest(username);
+
+      // Insert before any existing actions
+      actionsContainer.insertBefore(friendBtn, actionsContainer.firstChild);
+    });
+  };
+
+  // Enhance all username links in the chat with popover menu
+  function enhanceUsernameLinks() {
+    // Find all username links and enhance them
+    document.addEventListener('click', function(e) {
+      // Check if clicked element is a username link
+      if (e.target.classList.contains('username-link') ||
+          e.target.parentElement.classList.contains('username-link')) {
+        e.preventDefault(); // Prevent default navigation
+
+        // Get the username
+        const link = e.target.classList.contains('username-link') ?
+                    e.target : e.target.parentElement;
+        const username = link.textContent.trim();
+
+        // Skip if it's the current user
+        if (username === window.username) return;
+
+        // Create or show popover menu
+        showUserOptions(link, username);
+      }
+    });
+  }
+
+  // Show user interaction options popover
+  function showUserOptions(element, username) {
+    // Remove any existing popovers
+    const existingPopover = document.getElementById('user-options-popover');
+    if (existingPopover) {
+      existingPopover.remove();
+    }
+
+    // Create popover element
+    const popover = document.createElement('div');
+    popover.id = 'user-options-popover';
+    popover.className = 'bg-white rounded-lg shadow-xl border border-gray-200 p-2 absolute z-50';
+
+    // Set position near the username
+    const rect = element.getBoundingClientRect();
+    popover.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+    popover.style.left = (rect.left + window.scrollX) + 'px';
+
+    // Add options
+    const optionsList = document.createElement('div');
+    optionsList.className = 'space-y-1';
+
+    // DM option
+    const dmOption = document.createElement('a');
+    dmOption.href = `/dm/${username}/`;
+    dmOption.className = 'flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+    dmOption.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+      <span class="text-sm text-gray-700">Send Message</span>
+    `;
+
+    // Add Friend option
+    const friendOption = document.createElement('button');
+    friendOption.className = 'w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-md transition-colors';
+    friendOption.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+      </svg>
+      <span class="text-sm text-gray-700">Add Friend</span>
+    `;
+    friendOption.onclick = function() {
+      sendFriendRequest(username);
+      popover.remove();
+    };
+
+    // Add options to list
+    optionsList.appendChild(dmOption);
+    optionsList.appendChild(friendOption);
+    popover.appendChild(optionsList);
+
+    // Add to page
+    document.body.appendChild(popover);
+
+    // Close when clicking outside
+    document.addEventListener('click', function closePopover(e) {
+      if (!popover.contains(e.target) && e.target !== element) {
+        popover.remove();
+        document.removeEventListener('click', closePopover);
+      }
+    });
+  }
+
+        // Function to send friend request
+        window.sendFriendRequest = function(otherUser) {
+            // Get CSRF token
+            const csrfToken = getCsrfToken();
+
+            fetch('/api/friend_request/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+              },
+              body: JSON.stringify({
+                receiver_id: otherUser  // This matches your API expectation
+              })
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                showNotification(`Friend request sent to ${otherUser}`);
+
+                // Find and update any friend buttons for this user
+                document.querySelectorAll('.friend-btn').forEach(btn => {
+                  if (btn.parentElement.previousElementSibling &&
+                      btn.parentElement.previousElementSibling.querySelector('span') &&
+                      btn.parentElement.previousElementSibling.querySelector('span').textContent === otherUser) {
+                    btn.className = 'friend-btn friend-btn-pending text-xs py-1 px-2 rounded-md bg-gray-100 text-gray-500';
+                    btn.textContent = 'Pending';
+                    btn.disabled = true;
+                  }
+                });
+              } else {
+                showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
+              }
+            })
+            .catch(error => {
+              console.error('Error sending friend request:', error);
+              showNotification('An error occurred while sending friend request');
+            });
+        };
+
+        // Helper function for CSRF token
+        function getCsrfToken() {
+          const name = 'csrftoken=';
+          const decodedCookie = decodeURIComponent(document.cookie);
+          const cookieArray = decodedCookie.split(';');
+
+          for (let i = 0; i < cookieArray.length; i++) {
+            let cookie = cookieArray[i].trim();
+            if (cookie.indexOf(name) === 0) {
+              return cookie.substring(name.length, cookie.length);
+            }
+          }
+
+          // If not found in cookies, try to find it in a meta tag
+          const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+          if (csrfMeta) {
+            return csrfMeta.getAttribute('content');
+          }
+
+          // Last resort - look for hidden input field
+          const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+          if (csrfInput) {
+            return csrfInput.value;
+          }
+
+          return '';
+        }
+      });
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Profile dropdown functionality
+        const profileToggle = document.getElementById('user-profile-toggle');
+        const profileMenu = document.getElementById('profile-menu');
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const profilePicModal = document.getElementById('profile-pic-modal');
+
+        if (profileToggle && profileMenu) {
+          profileToggle.addEventListener('click', function() {
+            profileMenu.classList.toggle('open');
+          });
+
+          // Close when clicking elsewhere
+          document.addEventListener('click', function(e) {
+            if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+              profileMenu.classList.remove('open');
+            }
+          });
+        }
+
+        // Open profile picture modal from dropdown
+        if (changeAvatarBtn && profilePicModal) {
+          changeAvatarBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            profileMenu.classList.remove('open');
+            profilePicModal.classList.add('open');
+          });
+        }
+
+        // Initialize Recommended Rooms
+        populateRecommendedRooms();
+      });
+
+      // Function to populate recommended rooms
+      document.addEventListener('DOMContentLoaded', function() {
+        // Profile dropdown functionality
+        const profileToggle = document.getElementById('user-profile-toggle');
+        const profileMenu = document.getElementById('profile-menu');
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const profilePicModal = document.getElementById('profile-pic-modal');
+
+        if (profileToggle && profileMenu) {
+          profileToggle.addEventListener('click', function() {
+            profileMenu.classList.toggle('open');
+          });
+
+          // Close when clicking elsewhere
+          document.addEventListener('click', function(e) {
+            if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+              profileMenu.classList.remove('open');
+            }
+          });
+        }
+
+        // Open profile picture modal from dropdown
+        if (changeAvatarBtn && profilePicModal) {
+          changeAvatarBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            profileMenu.classList.remove('open');
+            profilePicModal.classList.add('open');
+          });
+        }
+
+        // Initialize Recommended Rooms
+        populateRecommendedRooms();
+      });
+
+      // Function to populate recommended rooms
+      function populateRecommendedRooms() {
+        const roomsList = document.getElementById('recommended-rooms-list');
+        if (!roomsList) return;
+
+        // Clear loading state
+        roomsList.innerHTML = '';
+
+        // Example data - replace with your actual API call
+        const recommendedRooms = [
+          {
+            name: 'tech-talk',
+            displayName: 'Tech Talk',
+            category: 'Technology',
+            usersOnline: 12,
+            icon: 'T'
+          },
+          {
+            name: 'photography',
+            displayName: 'Photography',
+            category: 'Arts',
+            usersOnline: 7,
+            icon: 'P'
+          },
+          {
+            name: 'fitness',
+            displayName: 'Fitness & Health',
+            category: 'Lifestyle',
+            usersOnline: 9,
+            icon: 'F'
+          }
+        ];
+
+        // Generate room colors
+        const roomColors = [
+          'from-pink-400 to-purple-500',
+          'from-blue-400 to-indigo-500',
+          'from-green-400 to-teal-500',
+          'from-orange-400 to-pink-400'
+        ];
+
+        // Create room items
+        recommendedRooms.forEach((room, index) => {
+          const colorClass = roomColors[index % roomColors.length];
+
+          const roomElement = document.createElement('a');
+          roomElement.href = '/signup'; // Redirect to signup page, matches {% url 'signup' %}
+          roomElement.className = 'block';
+          roomElement.innerHTML = `
+            <div class="room-card">
+              <div class="flex items-center gap-2.5">
+                <div class="room-icon bg-gradient-to-br ${colorClass} text-white font-semibold text-sm h-9 w-9 rounded-lg flex-shrink-0 flex items-center justify-center">
+                  ${room.icon}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-gray-700 truncate flex items-center">
+                    ${room.displayName}
+                    <span class="room-category">${room.category}</span>
+                  </div>
+                  <div class="text-xs text-gray-500 truncate flex items-center mt-0.5">
+                    <span class="w-2 h-2 bg-green-400 rounded-full mr-1.5"></span>
+                    ${room.usersOnline} users online
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          roomsList.appendChild(roomElement);
+        });
+      }
+    </script>
+
+    <script>
+      // File Upload improvements
+      document.addEventListener('DOMContentLoaded', function() {
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview');
+        const previewContent = document.getElementById('preview-content');
+        const cancelPreviewBtn = document.getElementById('cancel-preview');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+
+        if (fileInput) {
+          fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            // Show preview area
+            if (previewContainer) previewContainer.classList.remove('hidden');
+            if (previewContent) previewContent.innerHTML = '';
+
+            // Create preview items
+            Array.from(files).forEach(file => {
+              const isImage = file.type.startsWith('image/');
+              const isVideo = file.type.startsWith('video/');
+
+              if (isImage || isVideo) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+
+                if (isImage) {
+                  const img = document.createElement('img');
+                  img.src = URL.createObjectURL(file);
+                  img.onload = () => URL.revokeObjectURL(img.src);
+                  previewItem.appendChild(img);
+                } else if (isVideo) {
+                  const video = document.createElement('video');
+                  video.src = URL.createObjectURL(file);
+                  video.muted = true;
+                  video.loop = true;
+                  video.autoplay = true;
+                  video.onloadedmetadata = () => URL.revokeObjectURL(video.src);
+                  previewItem.appendChild(video);
+                }
+
+                if (previewContent) previewContent.appendChild(previewItem);
+              }
+            });
+          });
+        }
+
+        // Cancel preview button
+        if (cancelPreviewBtn) {
+          cancelPreviewBtn.addEventListener('click', function() {
+            if (previewContainer) previewContainer.classList.add('hidden');
+            if (fileInput) fileInput.value = '';
+          });
+        }
+
+        // Handle file upload on form submit
+        const messageForm = document.getElementById('message-form');
+        if (messageForm) {
+          messageForm.addEventListener('submit', function(e) {
+            if (fileInput && fileInput.files.length > 0) {
+              e.preventDefault(); // Prevent normal form submission
+
+              // Show progress
+              if (progressContainer) progressContainer.classList.remove('hidden');
+              if (progressBar) progressBar.style.width = '0%';
+
+              // Simulate upload progress
+              let progress = 0;
+              const interval = setInterval(() => {
+                progress += 5;
+                if (progressBar) progressBar.style.width = `${progress}%`;
+
+                if (progress >= 100) {
+                  clearInterval(interval);
+                  setTimeout(() => {
+                    // Hide progress
+                    if (progressContainer) progressContainer.classList.add('hidden');
+                    // Hide preview
+                    if (previewContainer) previewContainer.classList.add('hidden');
+                    // Clear file input
+                    if (fileInput) fileInput.value = '';
+
+                    // Add preview message to chat (in a real app, this would come from the server)
+                    const files = Array.from(fileInput.files);
+                    let messageContent = '';
+
+                    files.forEach(file => {
+                      if (file.type.startsWith('image/')) {
+                        const imgUrl = URL.createObjectURL(file);
+                        messageContent += `<img src="${imgUrl}" class="max-w-xs rounded-lg" alt="Uploaded image">`;
+                      } else if (file.type.startsWith('video/')) {
+                        const videoUrl = URL.createObjectURL(file);
+                        messageContent += `<video controls class="max-w-xs rounded-lg"><source src="${videoUrl}" type="${file.type}">Your browser does not support video.</video>`;
+                      }
+                    });
+
+                    if (messageContent) {
+                      // In a real app, this would be handled by the WebSocket
+                      addMessage(messageContent, window.username, Date.now());
+                    }
+                  }, 500);
+                }
+              }, 100);
+            }
+          });
+        }
+      });
+
+      // Initialize online friends
+      document.addEventListener('DOMContentLoaded', function() {
+        const onlineFriendsList = document.getElementById('online-friends-list');
+        if (!onlineFriendsList) return;
+
+        // Clear loading state
+        onlineFriendsList.innerHTML = '';
+
+        // Example data - replace with your actual API call
+        const onlineFriends = [
+          { username: 'alex_dev', status: 'online' },
+          { username: 'sophia', status: 'online' },
+          { username: 'markus42', status: 'idle' }
+        ];
+
+        if (onlineFriends.length === 0) {
+          onlineFriendsList.innerHTML = `
+            <div class="text-center py-3 text-gray-500 text-sm">
+              No friends online right now
+            </div>
+          `;
+          return;
+        }
+
+        // Add friends to the list
+        onlineFriends.forEach(friend => {
+          const friendElement = document.createElement('div');
+          friendElement.className = 'flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 transition-colors';
+
+          const statusClass = friend.status === 'online' ? 'bg-green-400' : 'bg-yellow-400';
+
+          friendElement.innerHTML = `
+            <div class="relative">
+              <div class="h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-medium text-sm">
+                ${friend.username.charAt(0).toUpperCase()}
+              </div>
+              <span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 ${statusClass} rounded-full border-2 border-white"></span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-gray-700 truncate">${friend.username}</div>
+              <div class="text-xs text-gray-500">${friend.status === 'online' ? 'Online' : 'Idle'}</div>
+            </div>
+            <a href="/dm/${friend.username}/" class="text-pink-500 p-1 rounded-full hover:bg-pink-50">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </a>
+          `;
+
+          onlineFriendsList.appendChild(friendElement);
+        });
+      });
+
+      // Initialize whiteboard functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const canvas = document.getElementById('whiteboard-canvas');
+        const context = canvas ? canvas.getContext('2d') : null;
+        const colorPicker = document.getElementById('brush-color');
+        const brushSize = document.getElementById('brush-size');
+        const saveBtn = document.getElementById('save-whiteboard');
+        const clearBtn = document.getElementById('clear-whiteboard');
+
+        if (canvas && context) {
+          // Resize canvas to fit container
+          function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+          }
+
+          // Initialize canvas
+          window.addEventListener('resize', resizeCanvas);
+          resizeCanvas();
+
+          // Default settings
+          let isDrawing = false;
+          let lastX = 0;
+          let lastY = 0;
+
+          // Drawing functions
+          function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getMousePos(canvas, e);
+          }
+
+          function draw(e) {
+            if (!isDrawing) return;
+
+            const [x, y] = getMousePos(canvas, e);
+
+            context.lineJoin = 'round';
+            context.lineCap = 'round';
+            context.strokeStyle = colorPicker ? colorPicker.value : '#000000';
+            context.lineWidth = brushSize ? parseInt(brushSize.value) : 5;
+
+            context.beginPath();
+            context.moveTo(lastX, lastY);
+            context.lineTo(x, y);
+            context.stroke();
+
+            [lastX, lastY] = [x, y];
+          }
+
+          function stopDrawing() {
+            isDrawing = false;
+          }
+
+          // Helper function to get mouse position
+          function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            return [
+              evt.clientX - rect.left,
+              evt.clientY - rect.top
+            ];
+          }
+
+          // Event listeners
+          canvas.addEventListener('mousedown', startDrawing);
+          canvas.addEventListener('mousemove', draw);
+          canvas.addEventListener('mouseup', stopDrawing);
+          canvas.addEventListener('mouseout', stopDrawing);
+
+          // Touch support
+          canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            startDrawing(e.touches[0]);
+          });
+
+          canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            draw(e.touches[0]);
+          });
+
+          canvas.addEventListener('touchend', stopDrawing);
+
+          // Clear canvas
+          if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+              context.clearRect(0, 0, canvas.width, canvas.height);
+            });
+          }
+
+          // Save canvas
+          if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+              try {
+                const dataUrl = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `whiteboard-${Date.now()}.png`;
+                a.click();
+
+                showNotification('Whiteboard saved as PNG');
+              } catch (err) {
+                console.error('Error saving whiteboard:', err);
+                showNotification('Failed to save whiteboard');
+              }
+            });
+          }
+        }
+      });
+    </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const profileToggle = document.getElementById('user-profile-toggle');
+  const profileMenu = document.getElementById('profile-menu');
+
+  if (profileToggle && profileMenu) {
+    profileToggle.addEventListener('click', function(e) {
+      e.stopPropagation(); // Prevent the click from bubbling
+      profileMenu.classList.toggle('open');
+
+      // Reposition the menu if needed to ensure it stays within viewport
+      const rect = profileToggle.getBoundingClientRect();
+      const menuRect = profileMenu.getBoundingClientRect();
+
+      // Check if menu would go off the right edge of the screen
+      if (rect.right - menuRect.width < 0) {
+        profileMenu.style.right = 'auto';
+        profileMenu.style.left = '0';
+      } else {
+        profileMenu.style.right = '0';
+        profileMenu.style.left = 'auto';
+      }
+    });
+
+    // Close when clicking elsewhere
+    document.addEventListener('click', function(e) {
+      if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+        profileMenu.classList.remove('open');
+      }
+    });
+  }
+});
+</script>
 </body>
 </html>
