@@ -1232,7 +1232,7 @@ select:focus-visible {
         </button>
 
         <!-- User dropdown menu -->
-        <div id="user-dropdown" class="hidden absolute right-4 mt-32 w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
+        <div id="user-dropdown" class="hidden absolute w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
         <div class="py-1" role="none">
             <!-- Point to your room URL since you want it to go to room.html when logged in -->
             <a href="{% url 'index' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
@@ -1780,24 +1780,54 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // User menu dropdown
-  const userMenuButton = document.getElementById('user-menu-button');
-  const userDropdown = document.getElementById('user-dropdown');
+    document.addEventListener('DOMContentLoaded', () => {
+    // Existing dropdown functionality
+    const userMenuButton = document.getElementById('user-menu-button');
+    const userDropdown = document.getElementById('user-dropdown');
+    const profileNav = document.getElementById('profile-nav');
 
-  if (userMenuButton && userDropdown) {
-    userMenuButton.addEventListener('click', () => {
-      const expanded = userMenuButton.getAttribute('aria-expanded') === 'true';
-      userMenuButton.setAttribute('aria-expanded', !expanded);
-      userDropdown.classList.toggle('hidden');
-    });
+    function toggleUserDropdown() {
+        const expanded = userMenuButton.getAttribute('aria-expanded') === 'true';
+        userMenuButton.setAttribute('aria-expanded', !expanded);
+        userDropdown.classList.toggle('hidden');
+
+        // Adjust dropdown position depending on which button triggered it
+        if (window.innerWidth < 640) {
+        // Mobile positioning (when triggered from bottom nav)
+        userDropdown.style.top = 'auto';
+        userDropdown.style.bottom = '70px';
+        userDropdown.style.right = '10px';
+        } else {
+        // Desktop positioning (when triggered from header)
+        userDropdown.style.top = '';
+        userDropdown.style.bottom = '';
+        userDropdown.style.right = '';
+        }
+    }
+
+    if (userMenuButton && userDropdown) {
+        userMenuButton.addEventListener('click', toggleUserDropdown);
+    }
+
+    // Add profile-nav button functionality
+    if (profileNav && userDropdown) {
+        profileNav.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleUserDropdown();
+        });
+    }
 
     // Close when clicking outside
     document.addEventListener('click', (event) => {
-      if (!userMenuButton.contains(event.target) && !userDropdown.contains(event.target)) {
+        if (userDropdown && !userDropdown.classList.contains('hidden') &&
+            !userMenuButton.contains(event.target) &&
+            !userDropdown.contains(event.target) &&
+            (!profileNav || !profileNav.contains(event.target))) {
         userMenuButton.setAttribute('aria-expanded', 'false');
         userDropdown.classList.add('hidden');
-      }
+        }
     });
-  }
+    });
 
   // Fix room display on mobile
   const isMobile = window.innerWidth <= 640;
