@@ -2412,49 +2412,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Category filtering - Both desktop and mobile categories
-  const categoryButtons = document.querySelectorAll('[data-category]');
-  const mobileCategorySelector = document.getElementById('mobile-category-selector');
+    // Category filtering - Both desktop and mobile categories
+    const categoryButtons = document.querySelectorAll('[data-category]');
+    const mobileCategorySelector = document.getElementById('mobile-category-selector');
 
-  // Function to filter rooms by category
-  function filterRoomsByCategory(category) {
+    // Function to filter rooms by category
+    function filterRoomsByCategory(category) {
     roomCards.forEach(card => {
-      const roomCategory = card.getAttribute('data-category');
+        const roomCategory = card.getAttribute('data-category');
 
-      if (category === 'all' || roomCategory === category) {
+        if (category === 'all' || roomCategory === category) {
         // Show this card with animation
         card.style.display = '';
         setTimeout(() => {
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
         }, 10);
-      } else {
+        } else {
         // Hide this card with animation
         card.style.opacity = '0';
         card.style.transform = 'translateY(10px)';
         setTimeout(() => {
-          card.style.display = 'none';
+            card.style.display = 'none';
         }, 300);
-      }
+        }
     });
 
     // Update the category buttons
     categoryButtons.forEach(btn => {
-      if (btn.getAttribute('data-category') === category) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+    btn.addEventListener('click', function() {
+        console.log('Category button clicked:', this.getAttribute('data-category'));
+        const category = this.getAttribute('data-category');
+        filterRoomsByCategory(category);
+
+        // If trending category, we could fetch trending rooms from the server
+        if (category === 'trending') {
+        fetchTrendingRooms();
+        }
+    });
     });
 
     // Update mobile selector
     if (mobileCategorySelector) {
-      mobileCategorySelector.value = category;
+        mobileCategorySelector.value = category;
     }
 
     // Store selected category in localStorage
     localStorage.setItem('euphorie_selected_category', category);
-  }
+    }
 
   // Initialize category buttons
   if (categoryButtons.length) {
