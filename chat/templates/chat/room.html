@@ -2395,12 +2395,21 @@ function saveProfilePicture() {
   }
 }
 
+function sanitizeUsername(username) {
+  if (typeof username !== 'string') return '';
+  // Remove newlines and other characters that break CSS selectors
+  return username.replace(/[\r\n\t]+/g, ' ').trim().replace(/['"\\]/g, '');
+}
+
 // Update user avatars in the UI
 function updateUserAvatars(username, profileData) {
   if (!username || !profileData) return;
 
+  // Sanitize username for CSS selector
+  const sanitizedUsername = sanitizeUsername(username);
+
   // Find all avatar elements for this user
-  const avatarSelector = `.user-avatar[data-username="${username}"]`;
+  const avatarSelector = `.user-avatar[data-username="${sanitizedUsername}"]`;
   const avatars = document.querySelectorAll(avatarSelector);
 
   if (avatars.length === 0) {
@@ -3337,24 +3346,40 @@ function initWhiteboard() {
   }
 
   // Set canvas size on resize
-  function resizeCanvas() {
-    const container = canvas.parentElement;
-    if (!container) return;
+ function resizeCanvas() {
+  const container = canvas.parentElement;
+  if (!container) return;
 
-    const rect = container.getBoundingClientRect();
+  const rect = container.getBoundingClientRect();
 
-    // Store current drawing
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-    // Set new canvas dimensions
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    // Restore drawing - will be empty on first resize
-    ctx.putImageData(imageData, 0, 0);
-
-    console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
+  // Check if the dimensions are valid before proceeding
+  if (rect.width <= 0 || rect.height <= 0) {
+    console.warn('Invalid canvas container dimensions, retrying in 100ms...');
+    setTimeout(resizeCanvas, 100);
+    return;
   }
+
+  // If the canvas already has dimensions, store current drawing
+  let imageData = null;
+  if (canvas.width > 0 && canvas.height > 0) {
+    try {
+      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    } catch (e) {
+      console.warn('Could not get image data:', e);
+    }
+  }
+
+  // Set new canvas dimensions
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+
+  // Restore drawing if we had valid image data
+  if (imageData) {
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
+}
 
   // Window resize event
   window.addEventListener('resize', resizeCanvas);

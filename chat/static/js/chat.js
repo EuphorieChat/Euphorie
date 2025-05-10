@@ -284,24 +284,40 @@ function fixWhiteboard() {
   }
 
   // Set canvas size on resize
-  function resizeCanvas() {
+    function resizeCanvas() {
     const container = canvas.parentElement;
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
 
-    // Store current drawing
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Check if the dimensions are valid before proceeding
+    if (rect.width <= 0 || rect.height <= 0) {
+        console.warn('Invalid canvas container dimensions, retrying in 100ms...');
+        setTimeout(resizeCanvas, 100);
+        return;
+    }
+
+    // If the canvas already has dimensions, store current drawing
+    let imageData = null;
+    if (canvas.width > 0 && canvas.height > 0) {
+        try {
+        imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        } catch (e) {
+        console.warn('Could not get image data:', e);
+        }
+    }
 
     // Set new canvas dimensions
     canvas.width = rect.width;
     canvas.height = rect.height;
 
-    // Restore drawing
-    ctx.putImageData(imageData, 0, 0);
+    // Restore drawing if we had valid image data
+    if (imageData) {
+        ctx.putImageData(imageData, 0, 0);
+    }
 
     console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
-  }
+    }
 
   // Drawing functions with WebSocket broadcasting
   const startDrawing = (e) => {
