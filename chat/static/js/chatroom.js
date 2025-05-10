@@ -542,145 +542,93 @@ document.addEventListener("DOMContentLoaded", function() {
       }, 3000);
     },
 
-    // Update the user list
     updateUserList: function(users) {
     const userList = this.elements.userList;
-    const mobileList = this.elements.mobileUserList;
-
-    // Debug line to check received users
-    console.log("Received users update:", users);
+    const mobileList = this.elements.mobileUserListContent;
 
     if (!userList && !mobileList) return;
 
+    // Make sure users is an array
+    if (!Array.isArray(users)) {
+        users = users && typeof users === 'object' ? Object.values(users) : [];
+    }
+
+    // Filter out any null or undefined values
+    const validUsers = users.filter(user => user);
+
     // Process desktop user list
     if (userList) {
-        // Clear existing content
         userList.innerHTML = "";
 
-        // Check if we have users to display
-        if (!users || users.length === 0) {
+        if (validUsers.length === 0) {
         userList.innerHTML = `<li class="text-gray-400 text-xs italic py-2">No users currently in this room.</li>`;
         } else {
-        // Ensure unique users
-        const uniqueUsers = Array.isArray(users) ? [...new Set(users)] : [];
-
-        // Create list items for each user
-        uniqueUsers.forEach(user => {
-            if (!user) return; // Skip empty usernames
-
+        validUsers.forEach(user => {
             const isCurrentUser = user === this.config.username;
+            const avatarClass = isCurrentUser ? 'bg-pink-500' : this.getAvatarColorClass(user);
 
-            // Get consistent avatar class
-            const avatarClass = isCurrentUser ?
-            'bg-pink-500' : this.getAvatarColorClass(user);
-
-            // Create list item
             const li = document.createElement("li");
             li.className = "user-item flex items-center justify-between";
 
-            if (isCurrentUser) {
             li.innerHTML = `
-                <div class="flex items-center">
-                <div class="h-6 w-6 rounded-full ${avatarClass} text-white flex items-center justify-center text-xs mr-2 user-avatar">
-                    ${user.slice(0, 1).toUpperCase()}
-                </div>
-                <span class="text-sm">${user}</span>
-                </div>
-            `;
-            } else {
-            li.innerHTML = `
-                <div class="flex items-center">
+            <div class="flex items-center">
                 <div class="h-6 w-6 rounded-full ${avatarClass} text-white flex items-center justify-center text-xs mr-2 user-avatar" data-username="${user}">
-                    ${user.slice(0, 1).toUpperCase()}
+                ${user.slice(0, 1).toUpperCase()}
                 </div>
                 <span class="text-sm">${user}</span>
-                </div>
+            </div>
+            ${!isCurrentUser ? `
                 <button data-username="${user}" class="friend-btn text-xs py-1 px-2 rounded-md bg-pink-100 text-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 Add Friend
                 </button>
+            ` : ''}
             `;
-            }
 
             userList.appendChild(li);
         });
-
-        // Add event listeners for add friend buttons
-        userList.querySelectorAll('.friend-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-            const username = btn.dataset.username;
-            this.sendFriendRequest(username);
-            btn.textContent = 'Sent';
-            btn.disabled = true;
-            btn.classList.remove('hover:bg-pink-200');
-            btn.classList.add('bg-gray-100', 'text-gray-500');
-            });
-        });
         }
     }
-    // Process mobile user list
+
+    // Similar fix for mobile user list
     if (mobileList) {
-    // Clear existing content
-    mobileList.innerHTML = "";
+        mobileList.innerHTML = "";
 
-    if (!users || !Array.isArray(users) || users.length === 0) {
+        if (validUsers.length === 0) {
         mobileList.innerHTML = `<span class="text-gray-400 text-xs italic">No users currently in this room.</span>`;
-    } else {
-        try {
-        // Ensure unique users and filter out any null/undefined values
-        const uniqueUsers = [...new Set(users)].filter(user => user);
-
-        // Create list items for mobile view
-        uniqueUsers.forEach(user => {
-            try {
+        } else {
+        validUsers.forEach(user => {
             const isCurrentUser = user === this.config.username;
 
             const span = document.createElement("span");
             span.className = "user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs";
-            span.setAttribute('data-username', user); // Add for potential profile picture updates
+            span.setAttribute('data-username', user);
 
             if (isCurrentUser) {
-                span.classList.add("bg-pink-100", "text-pink-600", "font-medium");
+            span.classList.add("bg-pink-100", "text-pink-600", "font-medium");
             }
 
-            // Create a flex container for avatar and username
             span.innerHTML = `
-                <span class="inline-flex items-center">
+            <span class="inline-flex items-center">
                 <span class="avatar-mini w-4 h-4 rounded-full ${isCurrentUser ? 'bg-pink-500' : this.getAvatarColorClass(user)} text-white inline-flex items-center justify-center text-[10px] mr-1 user-avatar" data-username="${user}">
-                    ${user.slice(0, 1).toUpperCase()}
+                ${user.slice(0, 1).toUpperCase()}
                 </span>
                 ${user}
-                </span>
+            </span>
             `;
 
             mobileList.appendChild(span);
-            } catch (err) {
-            console.error("Error creating user item for mobile:", err);
-            // Still try to add a simpler version as fallback
-            const fallbackSpan = document.createElement("span");
-            fallbackSpan.className = "user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs";
-            fallbackSpan.textContent = user;
-            mobileList.appendChild(fallbackSpan);
-            }
         });
-        } catch (error) {
-        console.error("Error processing user list for mobile:", error);
-        mobileList.innerHTML = `<span class="text-gray-400 text-xs italic">Error displaying users</span>`;
         }
+
+        document.getElementById("mobile-user-list").classList.remove("hidden");
     }
 
-    // Make sure mobile list container is visible
-    const mobileUserList = document.getElementById("mobile-user-list");
-    if (mobileUserList) {
-        mobileUserList.classList.remove("hidden");
-    }
-    }
-
-      // Load profile pictures
-      if (this.userProfiles && this.userProfiles.loadAllProfiles) {
+    // Load profile pictures
+    if (this.userProfiles && this.userProfiles.loadAllProfiles) {
         setTimeout(() => {
-          this.userProfiles.loadAllProfiles();
-        }, 200);
-      }
+            this.userProfiles.loadAllProfiles();
+            }, 200);
+        }
     },
 
     // Track media in messages for media library
@@ -1014,7 +962,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
     }
 
-    // Explicitly show/hide panel
+    // Explicitly toggle show/hide
     emojiButton.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
