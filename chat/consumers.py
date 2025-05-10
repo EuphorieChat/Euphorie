@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import UserProfile
 
-from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus
+from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus, RoomBookmark
 from .services import (
     get_online_friends,
     update_user_status,
@@ -70,6 +70,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
                 # Get active users list and broadcast to the new connection
                 active_users = await self.get_active_users()
+
+                # Debug log for active users
+                logger.info(f"Active users for {self.room_name}: {active_users}")
+
                 await self.send(json.dumps({
                     'type': 'users',
                     'users': active_users
@@ -168,12 +172,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }))
                 return
 
-            # profile updates
+            # Profile updates
             if message_type == 'profile_update':
                 profile_data = text_data_json.get('profile_data', {})
 
                 # Store in the database
-                if self.user.is_authenticated:
+                if self.is_authenticated:
                     await self.save_profile_data(profile_data)
 
                 # Broadcast to all connected clients
@@ -186,7 +190,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-            if message_type == 'chat':
+            elif message_type == 'chat':
                 message = text_data_json.get('message', '')
 
                 if not message:
@@ -251,6 +255,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     # Get active users and send to client
                     active_users = await self.get_active_users()
 
+                    # Debug log
+                    logger.info(f"Sending active users to client: {active_users}")
+
                     await self.send(json.dumps({
                         'type': 'users',
                         'users': active_users
@@ -262,12 +269,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if not action:
                     return
 
+                # Debug log
+                logger.info(f"Received whiteboard update: {action}")
+
                 # Simply forward whiteboard data to all clients
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
                         'type': 'whiteboard',
                         'action': action,
+                        'fromX': text_data_json.get('fromX'),
+                        'fromY': text_data_json.get('fromY'),
+                        'toX': text_data_json.get('toX'),
+                        'toY': text_data_json.get('toY'),
                         'x': text_data_json.get('x'),
                         'y': text_data_json.get('y'),
                         'color': text_data_json.get('color'),
@@ -277,6 +291,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             elif message_type == 'meetup':
                 action = text_data_json.get('action', '')
+
+                # Debug log
+                logger.info(f"Received meetup action: {action}")
 
                 if action == 'create':
                     meetup_data = text_data_json.get('meetup', {})
@@ -461,7 +478,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             profile.profile_picture_data = json.dumps(profile_data)
             profile.save()
         except Exception as e:
-            print(f"Error saving profile data: {e}")
+            logger.error(f"Error saving profile data: {e}")
 
     def _record_user_interest(self, room):
         """Synchronous function to record user interest"""
@@ -503,9 +520,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def whiteboard(self, event):
         # Send whiteboard update to WebSocket
         try:
+            # Debug log
+            logger.info(f"Sending whiteboard update: {event['action']}")
+
             await self.send(json.dumps({
                 'type': 'whiteboard',
                 'action': event['action'],
+                'fromX': event.get('fromX'),
+                'fromY': event.get('fromY'),
+                'toX': event.get('toX'),
+                'toY': event.get('toY'),
                 'x': event.get('x'),
                 'y': event.get('y'),
                 'color': event.get('color'),
@@ -641,21 +665,59 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             if not self.is_authenticated:
                 return
+
+            # Get Redis connection from channel layer
             redis = await self.channel_layer.redis()
-            key = f"presence:{self.room_name}:{self.user.username}"
-            await redis.set(key, "1", ex=65)  # 65s TTL
+            if redis:
+                key = f"presence:{self.room_name}:{self.user.username}"
+                await redis.set(key, "1", ex=65)  # 65s TTL
+                logger.debug(f"Set user presence for {self.user.username} in {self.room_name}")
+            else:
+                logger.warning("Redis connection not available")
         except Exception as e:
             logger.error(f"Error updating user presence (Redis): {str(e)}")
 
     async def get_active_users(self):
         try:
-            redis = await self.channel_layer.redis()
-            pattern = f"presence:{self.room_name}:*"
-            keys = await redis.keys(pattern)
-            users = [key.decode().split(":")[-1] for key in keys]
+            # Try Redis approach first
+            try:
+                redis = await self.channel_layer.redis()
+                if redis:
+                    pattern = f"presence:{self.room_name}:*"
+                    keys = await redis.keys(pattern)
+                    users = [key.decode().split(":")[-1] for key in keys]
+                    logger.debug(f"Found {len(users)} active users in Redis for {self.room_name}")
+                    return users
+            except Exception as e:
+                logger.error(f"Redis error getting active users: {str(e)}")
+
+            # Fallback to database approach if Redis fails
+            return await database_sync_to_async(self._get_active_users_db)()
+        except Exception as e:
+            logger.error(f"Error getting active users: {str(e)}")
+            return []
+
+    def _get_active_users_db(self):
+        """Get active users from the database as fallback"""
+        try:
+            # Get users who sent messages in the last hour
+            recent_time = timezone.now() - timedelta(hours=1)
+            room = Room.objects.get(name=self.room_name)
+
+            recent_users = Message.objects.filter(
+                room=room,
+                timestamp__gte=recent_time
+            ).values_list('user__username', flat=True).distinct()
+
+            # Add current user if authenticated
+            users = list(set(recent_users))
+            if self.is_authenticated and self.user.username not in users:
+                users.append(self.user.username)
+
+            logger.debug(f"Retrieved {len(users)} active users from DB for {self.room_name}")
             return users
         except Exception as e:
-            logger.error(f"Error getting active users from Redis: {str(e)}")
+            logger.error(f"Database error getting active users: {str(e)}")
             return []
 
     @database_sync_to_async
@@ -904,7 +966,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Get room recommendations for the current user"""
         try:
             from django.db.models import Count
-            from .models import Room
 
             # If user is authenticated, get personalized recommendations
             if self.is_authenticated:
@@ -933,7 +994,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _get_bookmarked_room_data(self):
         """Get bookmarked rooms data for the current user"""
         try:
-            from .models import RoomBookmark, Message
+            from django.db.models import Count
 
             if not self.is_authenticated:
                 return []
