@@ -28,16 +28,20 @@ def index(request):
     # Get all categories
     categories = Category.objects.all().order_by('name')
 
-    # Get rooms with message counts
-    rooms = []
-    all_rooms = Room.objects.all().order_by('-created_at')
+    # Get rooms with message counts using select_related and annotate to reduce queries
+    # This uses a single query rather than one query per room
+    all_rooms = Room.objects.all()\
+        .select_related('creator', 'category')\
+        .annotate(message_count=models.Count('messages'))\
+        .order_by('-created_at')
 
+    # Format room data for display
+    rooms = []
     for room in all_rooms:
         # Skip if room is None (shouldn't happen, but being safe)
         if room is None:
             continue
 
-        message_count = Message.objects.filter(room=room).count()
         display_name = room.display_name if hasattr(room, 'display_name') and room.display_name else room.name.replace('-', ' ').title()
 
         # Create a room object with all needed data - with safe defaults
@@ -45,42 +49,35 @@ def index(request):
             'name': room.name,
             'display_name': display_name,
             'creator': room.creator,
-            'message_count': message_count,
+            'message_count': room.message_count,  # Using annotated field for better performance
             'category': room.category,  # This might be None, that's ok
             'category_slug': room.category.slug if room.category and hasattr(room.category, 'slug') else room.category.name.lower() if room.category else 'all',
         }
         rooms.append(room_data)
 
-    # MODIFIED: Simplified trending logic
-    # Get all rooms with at least one message and sort by message count
-    rooms_with_counts = [
-        (room, Message.objects.filter(room=room).count())
-        for room in all_rooms
-        if Message.objects.filter(room=room).count() > 0
-    ]
-
-    # Sort by message count (most messages first)
-    sorted_rooms = sorted(
-        rooms_with_counts,
-        key=lambda x: x[1],
+    # Get trending rooms - most messages first
+    # Using the already annotated message_count for better performance
+    trending_rooms = sorted(
+        [room for room in all_rooms if room.message_count > 0],
+        key=lambda x: x.message_count,
         reverse=True
-    )[:20]  # Get top 20 rooms for initial display
+    )[:30]  # Increased to 30 for more options
 
     # Create trending room data in the correct format
     trending_room_data = []
-    for room_obj, message_count in sorted_rooms:
+    for room_obj in trending_rooms:
         display_name = room_obj.display_name if hasattr(room_obj, 'display_name') and room_obj.display_name else room_obj.name.replace('-', ' ').title()
 
         trending_room_data.append({
             'name': room_obj.name,
             'display_name': display_name,
             'creator': room_obj.creator,
-            'message_count': message_count,
+            'message_count': room_obj.message_count,
             'category': room_obj.category,
             'category_slug': room_obj.category.slug if room_obj.category and hasattr(room_obj.category, 'slug') else room_obj.category.name.lower() if room_obj.category else 'all',
         })
 
-    # Get rooms by category
+    # Get rooms by category - using dictionary comprehension for more concise code
     rooms_by_category = {}
     for category in categories:
         # Filter rooms for this category safely
@@ -100,13 +97,26 @@ def index(request):
 
     # For the room creation form's category dropdown
     # Include the icon directly in the choices to avoid needing get_item filter
-    category_choices = [(c.name.lower(), f"{c.icon if c.icon else '🌟'} {c.name}") for c in categories]
+    category_choices = [(c.slug, f"{c.icon if c.icon else '🌟'} {c.name}") for c in categories]
+
+    # Include flag for determining if there are more rooms available
+    has_more_rooms = all_rooms.count() > len(rooms)
+
+    # Add pending friend requests to context if user is authenticated
+    pending_friend_requests_count = 0
+    if request.user.is_authenticated:
+        pending_friend_requests_count = UserRelationship.objects.filter(
+            receiver=request.user,
+            status='pending'
+        ).count()
 
     context = {
         'categories': categories,
         'active_rooms': rooms,  # For backwards compatibility
         'rooms_by_category': rooms_by_category,
         'category_choices': category_choices,
+        'has_more_rooms': has_more_rooms,
+        'pending_friend_requests_count': pending_friend_requests_count,
     }
 
     return render(request, 'chat/index.html', context)
