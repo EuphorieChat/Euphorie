@@ -963,7 +963,6 @@ select:focus-visible {
 }
 </style>
 </head>
-
 <body>
   <!-- Sticky Top Navigation with glass effect -->
   <header class="app-header py-2 md:py-3" id="header">
@@ -1222,22 +1221,17 @@ select:focus-visible {
       {% endif %}
     </div>
 
-    <!-- Browse Categories Section - Unified for both mobile and desktop -->
+    <!-- Browse Categories and Active Chat Rooms Header - NO EMPTY SPACE -->
     <div class="mb-4">
       <!-- Mobile view header and categories -->
       <div class="sm:hidden">
         <div class="flex justify-between items-center mb-2">
           <h3 class="text-sm font-semibold text-gray-700">Browse Categories</h3>
-          <button id="expand-categories" class="text-xs text-pink-500 flex items-center">
-            See all
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+          <!-- Removed "See All" button since it creates empty space -->
         </div>
 
         <!-- Improved mobile category buttons -->
-        <div class="flex overflow-x-auto hide-scrollbar py-2 gap-2">
+        <div class="flex overflow-x-auto hide-scrollbar py-2 gap-2 mb-4">
           <!-- All rooms card for mobile -->
           <button data-category="all" class="mobile-category-card active bg-gradient-to-br from-pink-50 to-purple-50 border-pink-200">
             <div class="mobile-category-icon bg-white">
@@ -1268,15 +1262,10 @@ select:focus-visible {
           </button>
           {% endfor %}
         </div>
-
-        <!-- Category Expansion Panel (Hidden by default) -->
-        <div id="categories-expanded-panel" class="hidden bg-white rounded-lg p-3 shadow-md mt-2 mb-3 grid grid-cols-4 gap-2">
-          <!-- All available categories will be cloned and displayed here in a grid -->
-        </div>
       </div>
 
       <!-- Desktop categories -->
-      <div class="hidden sm:block">
+      <div class="hidden sm:block mb-4">
         <div class="categories-container">
           <button data-category="all" class="category-pill active">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1298,21 +1287,21 @@ select:focus-visible {
           {% endfor %}
         </div>
       </div>
-    </div>
 
-    <!-- Active Chat Rooms Header -->
-    <div class="flex justify-between items-center mb-4">
-      <div class="flex items-center">
-        <div class="bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg p-2 text-white mr-3 hidden sm:flex">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-          </svg>
+      <!-- Active Chat Rooms Header -->
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center">
+          <div class="bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg p-2 text-white mr-3 hidden sm:flex">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+            </svg>
+          </div>
+          <h2 class="text-lg font-bold text-gray-800">Active Chat Rooms</h2>
         </div>
-        <h2 class="text-lg font-bold text-gray-800">Active Chat Rooms</h2>
-      </div>
-      <div class="text-sm text-gray-500 flex items-center">
-        <span class="online-indicator mr-1"></span>
-        <span>{{ active_rooms|length }} rooms available</span>
+        <div class="text-sm text-gray-500 flex items-center">
+          <span class="online-indicator mr-1"></span>
+          <span>{{ active_rooms|length }} rooms available</span>
+        </div>
       </div>
     </div>
 
