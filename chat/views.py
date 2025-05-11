@@ -1043,3 +1043,24 @@ def get_consistent_gradient(username):
 
     # Get a consistent index based on username
     return gradients[hash_value % len(gradients)]
+
+def user_context(request):
+    """
+    Context processor to add user-related context variables to all templates
+    """
+    context = {}
+
+    if request.user.is_authenticated:
+        # Get pending friend requests count
+        pending_requests_count = UserRelationship.objects.filter(
+            receiver=request.user,
+            status='pending'
+        ).count()
+
+        # Check if user has created any rooms
+        user_created_rooms = Room.objects.filter(creator=request.user).exists()
+
+        context['pending_friend_requests_count'] = pending_requests_count
+        context['user_created_rooms'] = user_created_rooms
+
+    return context

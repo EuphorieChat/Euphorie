@@ -17,11 +17,19 @@ from .models import Room, RoomBookmark, UserProfile
 from .models import Room, Message, Category, Reaction, Announcement, AnnouncementReadStatus, UserSettings
 
 # Helper function to check if user is an admin
-def is_admin(user):
+# For general admin access (staff only)
+def is_staff_admin(user):
     return user.is_authenticated and user.is_staff
 
+# For room creators access (staff OR creator of any room)
+def is_room_creator_or_staff(user):
+    if user.is_authenticated and user.is_staff:
+        return True
+    # Check if user has created at least one room
+    return user.is_authenticated and Room.objects.filter(creator=user).exists()
+
 # Admin dashboard
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_dashboard(request):
     # Get basic stats
     total_rooms = Room.objects.count()
@@ -69,7 +77,7 @@ def admin_dashboard(request):
 
     return render(request, 'chat/manage/dashboard.html', context)
 
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_rooms(request):
     # Get all rooms first for statistics
     all_rooms = Room.objects.all()
@@ -124,9 +132,17 @@ def admin_rooms(request):
     return render(request, 'chat/manage/rooms.html', context)
 
 # Room detail view with messages - now includes password and announcement management
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_room_detail(request, room_name):
+    """
+    Room detail view with messages management - accessible by staff or the room's creator
+    """
     room = get_object_or_404(Room, name=room_name)
+
+    # Check if user has permission (staff or room creator)
+    if not (request.user.is_staff or request.user == room.creator):
+        messages.error(request, "You don't have permission to access the admin panel for this room")
+        return redirect('room', room_name=room_name)
 
     # Handle password form submission
     if request.method == 'POST' and 'password_action' in request.POST:
@@ -244,12 +260,14 @@ def admin_room_detail(request, room_name):
         'active_announcements': active_announcements,
         'active_announcements_count': active_announcements.count(),
         'total_announcements_count': announcements.count(),
+        'is_creator': request.user == room.creator,
+        'is_staff': request.user.is_staff,
     }
 
     return render(request, 'chat/manage/room_detail.html', context)
 
 # Delete message
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_delete_message(request, message_id):
     message = get_object_or_404(Message, id=message_id)
     room_name = message.room.name
@@ -270,7 +288,7 @@ def admin_delete_message(request, message_id):
     return render(request, 'chat/manage/confirm_delete_message.html', {'message': message})
 
 # Delete multiple messages
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_delete_selected_messages(request):
     if request.method == 'POST':
         message_ids = request.POST.getlist('message_ids')
@@ -292,9 +310,17 @@ def admin_delete_selected_messages(request):
     return redirect('admin_rooms')
 
 # Delete all messages in a room
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_clear_room(request, room_name):
+    """
+    Delete all messages in a room - accessible by staff or the room's creator
+    """
     room = get_object_or_404(Room, name=room_name)
+
+    # Check if user has permission (staff or room creator)
+    if not (request.user.is_staff or request.user == room.creator):
+        messages.error(request, "You don't have permission to clear this room")
+        return redirect('room', room_name=room_name)
 
     if request.method == 'POST':
         # Delete all reactions in this room first
@@ -304,7 +330,7 @@ def admin_clear_room(request, room_name):
         message_count = Message.objects.filter(room=room).count()
         Message.objects.filter(room=room).delete()
 
-        messages.success(request, f"All {message_count} messages in room '{room.display_name}' have been deleted.")
+        messages.success(request, f"All {message_count} messages in room '{room.display_name or room.name}' have been deleted.")
 
         # Redirect back to room detail
         return redirect('admin_room_detail', room_name=room_name)
@@ -313,12 +339,20 @@ def admin_clear_room(request, room_name):
     return render(request, 'chat/manage/confirm_clear_room.html', {'room': room})
 
 # Delete a room completely
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_delete_room(request, room_name):
+    """
+    Delete a room completely - accessible by staff or the room's creator
+    """
     room = get_object_or_404(Room, name=room_name)
 
+    # Check if user has permission (staff or room creator)
+    if not (request.user.is_staff or request.user == room.creator):
+        messages.error(request, "You don't have permission to delete this room")
+        return redirect('index')
+
     if request.method == 'POST':
-        room_display_name = room.display_name
+        room_display_name = room.display_name or room.name
 
         # Room deletion will cascade to delete messages and reactions
         room.delete()
@@ -332,7 +366,7 @@ def admin_delete_room(request, room_name):
     return render(request, 'chat/manage/confirm_delete_room.html', {'room': room})
 
 # Message management across all rooms
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_messages(request):
     messages_list = Message.objects.select_related(
         'user', 'room'
@@ -377,7 +411,7 @@ def admin_messages(request):
     return render(request, 'chat/manage/messages.html', context)
 
 # AJAX endpoint to handle mass message deletion
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_delete_messages_ajax(request):
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         message_ids = request.POST.getlist('message_ids')
@@ -406,7 +440,7 @@ def admin_delete_messages_ajax(request):
     }, status=400)
 
 # Filter messages by keywords
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_filter_messages(request):
     keywords = request.GET.get('keywords', '').strip()
 
@@ -432,7 +466,7 @@ def admin_filter_messages(request):
     return render(request, 'chat/manage/messages.html', context)
 
 # Admin user activity monitoring
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_user_activity(request):
     # Get users with message counts - using messages_count to avoid conflicts
     active_users = Message.objects.values(
@@ -466,7 +500,7 @@ def admin_user_activity(request):
     return render(request, 'chat/manage/user_activity.html', context)
 
 # View all messages by a specific user
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_user_messages(request, user_id):
     from django.contrib.auth.models import User
 
@@ -499,7 +533,7 @@ def admin_user_messages(request, user_id):
     return render(request, 'chat/manage/user_messages.html', context)
 
 # Export chat history to CSV
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_export_chat(request, room_name):
     import csv
     from django.http import HttpResponse
@@ -528,7 +562,7 @@ def admin_export_chat(request, room_name):
     return response
 
 # NEW FEATURE: Room Password Management
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_manage_room_password(request, room_name):
     """Admin view to set or change room password"""
     room = get_object_or_404(Room, name=room_name)
@@ -556,7 +590,7 @@ def admin_manage_room_password(request, room_name):
     return render(request, 'chat/manage/room_password.html', {'room': room})
 
 # NEW FEATURE: Announcements Management
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_manage_announcements(request, room_name):
     """Admin view to manage room announcements"""
     room = get_object_or_404(Room, name=room_name)
@@ -635,7 +669,7 @@ def admin_manage_announcements(request, room_name):
 
 # Client-side API for announcements
 @csrf_exempt
-@user_passes_test(is_admin, login_url='/login/')
+@user_passes_test(is_room_creator_or_staff, login_url='/login/')
 def create_announcement(request, room_name):
     """API endpoint to create a new announcement"""
     if request.method == 'POST':
@@ -784,7 +818,7 @@ def admin_create_room(request):
     return render(request, 'chat/manage/create_room.html')
 
 
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_export_users(request):
     """
     Export all users data as a CSV file.
@@ -839,7 +873,7 @@ def admin_export_users(request):
 
     return response
 
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_user_settings(request):
     """
     View for managing user settings and configurations.
@@ -873,7 +907,7 @@ def admin_user_settings(request):
     return render(request, 'chat/manage/user_settings.html', context)
 
 
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_export_user_data(request):
     """
     Export data for a specific user in CSV or JSON format.
@@ -965,7 +999,7 @@ def admin_export_user_data(request):
 
         return response
 
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_delete_message_ajax(request):
     """
     AJAX endpoint to delete a single message.
@@ -999,7 +1033,7 @@ def admin_delete_message_ajax(request):
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 
 
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_toggle_user_status_ajax(request):
     """
     AJAX endpoint to activate or deactivate a user.
@@ -1036,7 +1070,7 @@ def admin_toggle_user_status_ajax(request):
 
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 
-@user_passes_test(is_admin)
+@user_passes_test(is_room_creator_or_staff)
 def admin_user_settings(request):
     """
     View for managing global user settings and preferences
