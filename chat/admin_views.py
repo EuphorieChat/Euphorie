@@ -1187,7 +1187,6 @@ class UserSettingsAdmin(admin.ModelAdmin):
         # Prevent deleting the settings instance
         return False
 
-
 @login_required
 def admin_user_profile(request, username):
     """
@@ -1215,12 +1214,19 @@ def admin_user_profile(request, username):
         except json.JSONDecodeError:
             pass  # Use the default if JSON is invalid
 
-    # Get user's rooms (make sure the field exists)
-    if hasattr(Room, 'members'):
-        rooms = Room.objects.filter(members=profile_user).order_by('-created_at')
-    else:
-        # Fallback to rooms created by user
-        rooms = Room.objects.filter(creator=profile_user).order_by('-created_at')
+    # Get rooms that the user has participated in or created
+    # Method 1: Rooms created by the user
+    created_rooms = Room.objects.filter(creator=profile_user).order_by('-created_at')
+
+    # Method 2: Rooms where the user has sent messages
+    participated_rooms = Room.objects.filter(
+        messages__user=profile_user
+    ).distinct().exclude(
+        id__in=created_rooms.values('id')
+    ).order_by('-created_at')
+
+    # Combine the lists
+    rooms = list(created_rooms) + list(participated_rooms)
 
     # Count messages sent
     message_count = Message.objects.filter(user=profile_user).count()
