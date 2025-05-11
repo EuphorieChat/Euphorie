@@ -1193,36 +1193,38 @@ def admin_user_profile(request, username):
     """
     Display and handle updates to a user's profile page.
     """
-    # Get the profile user (could be current user or someone else)
+    # Get the profile user
     profile_user = get_object_or_404(User, username=username)
 
-    # Check if the current user is viewing their own profile or someone else's
+    # Check if the current user is viewing their own profile
     is_own_profile = request.user == profile_user
 
     # Get or create the UserProfile
     profile, created = UserProfile.objects.get_or_create(user=profile_user)
 
     # Initialize profile data
-    profile_picture_data = {}
-    if profile.profile_picture_data:
+    profile_picture_data = {
+        'type': 'gradient',
+        'gradient': 'from-pink-400 to-orange-300'  # Default fallback
+    }
+
+    # Check if the attribute exists before trying to access it
+    if hasattr(profile, 'profile_picture_data') and profile.profile_picture_data:
         try:
             profile_picture_data = json.loads(profile.profile_picture_data)
-        except:
-            # Default fallback if JSON is invalid
-            profile_picture_data = {
-                'type': 'gradient',
-                'gradient': 'from-pink-400 to-orange-300'
-            }
+        except json.JSONDecodeError:
+            pass  # Use the default if JSON is invalid
 
-    # Get user's joined rooms
-    rooms = Room.objects.filter(members=profile_user).order_by('-created_at')
+    # Get user's rooms (make sure the field exists)
+    if hasattr(Room, 'members'):
+        rooms = Room.objects.filter(members=profile_user).order_by('-created_at')
+    else:
+        # Fallback to rooms created by user
+        rooms = Room.objects.filter(creator=profile_user).order_by('-created_at')
 
     # Count messages sent
-    # If you have a Message model with a user field:
-    # message_count = Message.objects.filter(user=profile_user).count()
-    message_count = 0  # Placeholder - replace with actual query if you have a Message model
+    message_count = Message.objects.filter(user=profile_user).count()
 
-    # Get basic stats for this user
     context = {
         'profile_user': profile_user,
         'is_own_profile': is_own_profile,
@@ -1233,5 +1235,4 @@ def admin_user_profile(request, username):
         'profile': profile
     }
 
-    # Render the template
     return render(request, 'chat/manage/user_profile.html', context)
