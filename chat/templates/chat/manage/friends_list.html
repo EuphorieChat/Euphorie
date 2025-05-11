@@ -1,0 +1,748 @@
+{% extends "chat/manage/base.html" %}
+{% load static %}
+{% load chat_extras %}
+
+{% block title %}Friends Management | Euphorie Admin{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'admin_dashboard' %}" class="text-gray-500 hover:text-gray-700 inline-flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span class="text-sm">Back to Dashboard</span>
+            </a>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'index' %}" class="btn btn-secondary px-4 py-2 rounded-lg flex items-center text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Return to Home
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Column: Friend Requests & Suggestions - 3/12 width -->
+        <div class="lg:col-span-3">
+            <!-- Friend Requests Section -->
+            <div class="dashboard-card mb-6 animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="p-5 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Friend Requests
+                        <span id="request-count" class="ml-2 bg-pink-100 text-pink-600 text-xs px-2 py-1 rounded-full">{{ pending_requests|length }}</span>
+                    </h2>
+                </div>
+
+                <div id="friend-requests-list" class="divide-y divide-gray-100">
+                    {% if pending_requests %}
+                        {% for request in pending_requests %}
+                        <div class="p-4 transition-colors hover:bg-gray-50">
+                            <div class="flex items-center">
+                                <div class="user-avatar h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-3 font-medium text-sm">
+                                    {{ request.requester.username|slice:":1"|upper }}
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-medium">{{ request.requester.username }}</h3>
+                                    <p class="text-xs text-gray-500">Sent {{ request.created_at|timesince }} ago</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2 mt-3">
+                                <button data-id="{{ request.id }}" data-action="accept" class="respond-btn w-1/2 bg-pink-500 hover:bg-pink-600 text-white py-1.5 rounded-lg text-sm transition-colors duration-200">Accept</button>
+                                <button data-id="{{ request.id }}" data-action="decline" class="respond-btn w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-sm transition-colors duration-200">Decline</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-6 text-center text-gray-500">
+                            <p class="text-sm">No pending friend requests</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Friend Suggestions Section -->
+            <div class="dashboard-card p-5 mb-6 animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-base font-semibold text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        People You Might Know
+                    </h3>
+                    <span class="text-xs text-gray-500">Suggestions for you</span>
+                </div>
+                <div id="friend-suggestions-list" class="space-y-2">
+                    <!-- Loading placeholders -->
+                    <div class="animate-pulse space-y-3">
+                        {% for i in "123"|make_list %}
+                        <div class="flex items-center p-2">
+                            <div class="h-8 w-8 rounded-full bg-gray-200 mr-2"></div>
+                            <div class="flex-1 space-y-1">
+                                <div class="h-3 bg-gray-200 rounded w-1/3"></div>
+                                <div class="h-2 bg-gray-200 rounded w-1/4"></div>
+                            </div>
+                            <div class="h-6 w-12 bg-gray-200 rounded"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Column: Joined Rooms - 4/12 width -->
+        <div class="lg:col-span-4">
+            <div class="dashboard-card mb-6 animate-fade-in" style="animation-delay: 0.3s;">
+                <div class="p-5 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Joined Rooms
+                        <a href="{% url 'index' %}" class="ml-auto text-xs text-pink-500 hover:underline">Find more</a>
+                    </h2>
+                </div>
+
+                <div id="joined-rooms-list" class="p-4 space-y-3">
+                    <!-- Display both joined and bookmarked rooms -->
+                    {% if joined_rooms or bookmarked_rooms %}
+                        <!-- First show joined rooms -->
+                        {% for room in joined_rooms %}
+                        <a href="{% url 'room' room.name %}" class="surface-card p-3 block hover:border-pink-200 transition-all duration-300">
+                            <div class="flex items-center">
+                                <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-pink-300 to-purple-200 text-white flex items-center justify-center mr-3 font-semibold">
+                                    {{ room.display_name|slice:":1"|upper }}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="font-medium">{{ room.display_name }}</h3>
+                                        {% if room.unread_count > 0 %}
+                                            <span class="unread-badge">{{ room.unread_count }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex items-center justify-between mt-1">
+                                        <p class="text-xs text-gray-500">
+                                            {{ room.message_count }} messages
+                                            {% if room.category %}
+                                            • <span class="badge badge-sm badge-primary">{{ room.category }}</span>
+                                            {% endif %}
+                                        </p>
+                                        <div class="flex items-center">
+                                            <span class="activity-indicator {% if room.activity_level == 'high' %}activity-high status-online{% elif room.activity_level == 'medium' %}activity-medium{% else %}activity-low{% endif %} mr-1.5"></span>
+                                            <span class="text-xs text-gray-500">{{ room.last_active|default_if_none:"Just now"|timesince }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+
+                        <!-- Then show bookmarked rooms -->
+                        {% for room in bookmarked_rooms %}
+                        <a href="{% url 'room' room.name %}" class="surface-card p-3 block hover:border-blue-200 transition-all duration-300">
+                            <div class="flex items-center">
+                                <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-indigo-300 to-blue-200 text-white flex items-center justify-center mr-3 font-semibold">
+                                    {{ room.display_name|slice:":1"|upper }}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <h3 class="font-medium">{{ room.display_name }}</h3>
+                                            <!-- Bookmark indicator -->
+                                            <span class="ml-2 text-pink-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        {% if room.unread_count > 0 %}
+                                            <span class="unread-badge">{{ room.unread_count }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex items-center justify-between mt-1">
+                                        <p class="text-xs text-gray-500">
+                                            {{ room.message_count }} messages
+                                            {% if room.category %}
+                                            • <span class="badge badge-sm badge-primary">{{ room.category }}</span>
+                                            {% endif %}
+                                        </p>
+                                        <div class="flex items-center">
+                                            <span class="activity-indicator {% if room.activity_level == 'high' %}activity-high status-online{% elif room.activity_level == 'medium' %}activity-medium{% else %}activity-low{% endif %} mr-1.5"></span>
+                                            <span class="text-xs text-gray-500">{{ room.last_active|default_if_none:"Just now"|timesince }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state p-8 text-center text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <h3 class="text-lg font-medium mb-2">No rooms joined yet</h3>
+                            <p class="max-w-md mx-auto mb-4">Join some chat rooms to start conversations!</p>
+                            <a href="{% url 'index' %}" class="btn btn-primary inline-block">
+                                Explore Rooms
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Friends List - 5/12 width -->
+        <div class="lg:col-span-5">
+            <div class="dashboard-card animate-fade-in" style="animation-delay: 0.4s;">
+                <div class="p-5 border-b border-gray-100">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            Your Friends
+                        </h2>
+
+                        <div class="relative">
+                            <input type="text" id="friend-search" placeholder="Search friends..." class="pl-8 pr-4 py-2 border border-gray-200 rounded-full text-sm focus:ring-pink-300 focus:border-pink-300 focus:outline-none">
+                            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter tabs -->
+                <div class="px-5 py-2 border-b border-gray-100 bg-gray-50">
+                    <div class="flex space-x-2">
+                        <button class="friend-filter-btn px-3 py-1 bg-pink-500 text-white rounded-lg text-sm font-medium" data-filter="all">All Friends</button>
+                        <button class="friend-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="online">Online</button>
+                        <button class="friend-filter-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium" data-filter="recent">Recent</button>
+                    </div>
+                </div>
+
+                <div id="friends-list" class="p-4 space-y-3">
+                    {% if friends %}
+                        {% for friend in friends %}
+                        <div class="friend-card surface-card p-4 hover:border-pink-200 transition-all duration-300" data-online="{{ friend.status.is_online|yesno:'true,false' }}" data-username="{{ friend.username }}">
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <div class="user-avatar h-12 w-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-300 text-white flex items-center justify-center mr-3 font-medium">
+                                        {{ friend.username|slice:":1"|upper }}
+                                    </div>
+                                    {% if friend.status.is_online %}
+                                    <span class="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white status-online"></span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="font-medium">{{ friend.username }}</h3>
+                                            <p class="text-xs text-gray-500">
+                                                {% if friend.status.is_online %}
+                                                    Active now
+                                                {% else %}
+                                                    Last active: {{ friend.status.last_activity|date:"M d, h:i a" }}
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                        <div class="flex space-x-1">
+                                            <a href="/chat/dm/{{ friend.username }}/" class="text-gray-400 hover:text-pink-500 p-2 rounded-full hover:bg-pink-100 transition-colors" title="Send Message">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                </svg>
+                                            </a>
+                                            <button class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors remove-friend-btn" data-username="{{ friend.username }}" title="Remove Friend">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Mutual rooms indicator -->
+                                    {% if friend.mutual_rooms %}
+                                    <div class="mt-2 flex flex-wrap gap-1">
+                                        <span class="text-xs text-gray-500">Mutual rooms:</span>
+                                        {% for room in friend.mutual_rooms|slice:":3" %}
+                                        <a href="{% url 'room' room.name %}" class="badge badge-sm badge-primary hover:bg-pink-100 transition-colors">{{ room.display_name }}</a>
+                                        {% endfor %}
+                                        {% if friend.mutual_rooms|length > 3 %}
+                                        <span class="text-xs text-gray-500">+{{ friend.mutual_rooms|length|add:"-3" }} more</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state p-8 text-center text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <h3 class="text-lg font-medium mb-2">No friends yet</h3>
+                            <p class="max-w-md mx-auto mb-4">Add friends to see who's online and chat with them directly.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Toast -->
+<div id="notification-toast" class="notification-toast hidden">
+    <span id="notification-message"></span>
+</div>
+
+<!-- Include JavaScript from base template -->
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show notification toast
+        function showNotification(message) {
+            const notificationToast = document.getElementById('notification-toast');
+            const notificationMessage = document.getElementById('notification-message');
+
+            if (notificationToast && notificationMessage) {
+                notificationMessage.textContent = message;
+                notificationToast.classList.remove('hidden');
+
+                setTimeout(function() {
+                    notificationToast.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        // Make function globally available
+        window.showNotification = showNotification;
+
+        // Helper function to get CSRF token
+        function getCsrfToken() {
+            // From cookies
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+
+            if (cookieValue) return cookieValue;
+
+            // From meta tag
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) return metaTag.getAttribute('content');
+
+            // From form input
+            const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (tokenInput) return tokenInput.value;
+
+            return '';
+        }
+
+        // Make function globally available
+        window.getCsrfToken = getCsrfToken;
+
+        // Initialize filter buttons
+        const filterButtons = document.querySelectorAll('.friend-filter-btn');
+        const friendItems = document.querySelectorAll('.friend-card');
+        const friendSearch = document.getElementById('friend-search');
+
+        // Friend filter function
+        function filterFriends() {
+            const searchText = friendSearch.value.toLowerCase();
+            const activeFilter = document.querySelector('.friend-filter-btn.bg-pink-500').dataset.filter;
+
+            friendItems.forEach(item => {
+                const username = item.dataset.username.toLowerCase();
+                const isOnline = item.dataset.online === 'true';
+
+                let visible = username.includes(searchText);
+
+                if (activeFilter === 'online') {
+                    visible = visible && isOnline;
+                } else if (activeFilter === 'recent') {
+                    // Implement recent filter logic if needed
+                }
+
+                item.style.display = visible ? 'block' : 'none';
+            });
+        }
+
+        // Set up filter button click handlers
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterButtons.forEach(b => {
+                    b.classList.remove('bg-pink-500', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+
+                btn.classList.remove('bg-gray-200', 'text-gray-700');
+                btn.classList.add('bg-pink-500', 'text-white');
+
+                filterFriends();
+            });
+        });
+
+        // Set up search functionality
+        if (friendSearch) {
+            friendSearch.addEventListener('input', filterFriends);
+        }
+
+        // Set up friend request response buttons
+        const respondBtns = document.querySelectorAll('.respond-btn');
+        respondBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const requestId = this.dataset.id;
+                const action = this.dataset.action;
+
+                // Get CSRF token
+                const csrfToken = getCsrfToken();
+
+                // Send the response
+                fetch('/api/friend_response/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        relationship_id: requestId,
+                        action: action
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the request from the list
+                        const requestElement = this.closest('.p-4');
+                        requestElement.style.transition = 'all 0.3s ease';
+                        requestElement.style.opacity = '0';
+                        requestElement.style.height = '0';
+                        requestElement.style.overflow = 'hidden';
+
+                        setTimeout(() => {
+                            requestElement.remove();
+
+                            // Update count
+                            const countElement = document.getElementById('request-count');
+                            if (countElement) {
+                                const currentCount = parseInt(countElement.textContent);
+                                countElement.textContent = Math.max(0, currentCount - 1);
+                            }
+
+                            // Notification
+                            showNotification(action === 'accept' ?
+                                'Friend request accepted! 🎉' :
+                                'Friend request declined');
+
+                            // If accepted, refresh the page to show the new friend
+                            if (action === 'accept') {
+                                window.location.reload();
+                            }
+                        }, 300);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error responding to friend request:', error);
+                    showNotification('Error processing request. Please try again.');
+                });
+            });
+        });
+
+        // Set up remove friend buttons
+        const removeBtns = document.querySelectorAll('.remove-friend-btn');
+        removeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!confirm('Are you sure you want to remove this friend?')) {
+                    return;
+                }
+
+                const username = this.dataset.username;
+
+                // Get CSRF token
+                const csrfToken = getCsrfToken();
+
+                // Send the request
+                fetch('/api/remove_friend/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        username: username
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the friend from the list
+                        const friendElement = this.closest('.friend-card');
+                        friendElement.style.transition = 'all 0.3s ease';
+                        friendElement.style.opacity = '0';
+                        friendElement.style.height = '0';
+                        friendElement.style.overflow = 'hidden';
+
+                        setTimeout(() => {
+                            friendElement.remove();
+                            showNotification('Friend removed successfully');
+                        }, 300);
+                    } else {
+                        // Show error message
+                        showNotification(data.error || 'Failed to remove friend');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error removing friend:', error);
+                    showNotification('An error occurred while removing friend');
+                });
+            });
+        });
+
+        // Request friend suggestions for the full list
+        function loadFriendSuggestions() {
+            const suggestionsList = document.getElementById('friend-suggestions-list');
+            if (!suggestionsList) return;
+
+            fetch('/api/friend_suggestions/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderFriendSuggestions(data.suggestions);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching friend suggestions:', error);
+                    suggestionsList.innerHTML = `
+                        <div class="text-gray-400 text-xs italic py-2 px-4">
+                            Unable to load suggestions. Please try again later.
+                        </div>
+                    `;
+                });
+        }
+
+        // Function to render friend suggestions in the specified container
+        function renderFriendSuggestions(suggestions) {
+            const container = document.getElementById('friend-suggestions-list');
+            if (!container) return;
+
+            if (suggestions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-gray-400 text-xs italic py-2 px-4">
+                        No suggestions available. Try joining more chat rooms!
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            suggestions.forEach(friend => {
+                const friendItem = document.createElement('div');
+                friendItem.className = 'p-4 transition-colors hover:bg-gray-50 border-b border-gray-100 last:border-b-0';
+
+                const fullName = friend.first_name || friend.last_name ?
+                    `${friend.first_name || ''} ${friend.last_name || ''}`.trim() : '';
+
+                friendItem.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="user-avatar h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-300 text-white flex items-center justify-center mr-3 font-medium text-sm">
+                            ${friend.avatar}
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium">${friend.username}</h3>
+                            ${fullName ? `<p class="text-xs text-gray-500">${fullName}</p>` : ''}
+                        </div>
+                        <button data-user-id="${friend.id}" class="add-friend-btn text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 py-1.5 px-3 rounded-lg transition-colors">
+                            Add Friend
+                        </button>
+                    </div>
+                `;
+
+                // Add event listener for the add friend button
+                const addBtn = friendItem.querySelector('.add-friend-btn');
+                addBtn.addEventListener('click', function() {
+                    sendFriendRequest(friend.id);
+                    this.textContent = 'Request Sent';
+                    this.disabled = true;
+                    this.classList.remove('hover:bg-pink-200');
+                    this.classList.add('bg-gray-100', 'text-gray-500');
+                    showNotification('Friend request sent to ' + friend.username);
+                });
+
+                container.appendChild(friendItem);
+            });
+        }
+
+        // Function to send friend request
+        function sendFriendRequest(userId) {
+            // Get CSRF token
+            const csrfToken = getCsrfToken();
+
+            // Send the request
+            fetch('/api/friend_request/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    receiver_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Friend request response:", data);
+            })
+            .catch(error => {
+                console.error('Error sending friend request:', error);
+                showNotification('An error occurred while sending friend request');
+            });
+        }
+
+        // Load friend suggestions on page load
+        loadFriendSuggestions();
+    });
+</script>
+
+<style>
+    /* Activity indicators */
+    .activity-indicator {
+        height: 8px;
+        width: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .activity-high {
+        background-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .activity-medium {
+        background-color: #f59e0b;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+
+    .activity-low {
+        background-color: #e5e7eb;
+    }
+
+    /* Friend status dot pulse animation */
+    @keyframes status-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+        70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .status-online {
+        animation: status-pulse 2s infinite;
+    }
+
+    /* Animation for cards */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+
+    /* Small badge */
+    .badge-sm {
+        font-size: 0.65rem;
+        padding: 0.125rem 0.375rem;
+    }
+
+    /* Badge styling */
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-primary {
+        background-color: #fce7f3;
+        color: #ec4899;
+    }
+
+    .badge-success {
+        background-color: #d1fae5;
+        color: #10b981;
+    }
+
+    .badge-danger {
+        background-color: #fee2e2;
+        color: #ef4444;
+    }
+
+    .badge-info {
+        background-color: #dbeafe;
+        color: #3b82f6;
+    }
+
+    /* Empty state styling */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+    }
+
+    .empty-state__icon {
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state__title {
+        font-size: 1.25rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state__text {
+        text-align: center;
+        max-width: 24rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Dashboard card styling */
+    .dashboard-card {
+        background-color: white;
+        border-radius: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f0f0f0;
+        overflow: hidden;
+    }
+
+    /* Surface card styling */
+    .surface-card {
+        background-color: white;
+        border-radius: 0.75rem;
+        border: 1px solid #f0f0f0;
+        overflow: hidden;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .surface-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+</style>
+{% endblock %}

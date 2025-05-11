@@ -10,7 +10,7 @@ urlpatterns = [
     path('create_room/', views.create_room, name='create_room'),
     path('delete_room/<str:room_name>/', views.delete_room, name='delete_room'),
     path('manage/explore/', views.explore_rooms, name='explore_rooms'),
-    path('friends/', views.friends_list, name='friends_list'),
+    path('manage/friends/', views.friends_list, name='friends_list'),
 
     # Authentication views from first urls.py
     path('signup/', views.signup, name='signup'),

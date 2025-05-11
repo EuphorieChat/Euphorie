@@ -824,7 +824,8 @@ def friends_list(request):
         'bookmarked_rooms': bookmarked_rooms,
     }
 
-    return render(request, 'chat/friends_list.html', context)
+    # Update this line to point to the new location:
+    return render(request, 'chat/manage/friends_list.html', context)
 
 @login_required
 def direct_message(request, username):
