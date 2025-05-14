@@ -1316,3 +1316,4 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func.apply(context, args), wait);
   };
 }
+}); 
