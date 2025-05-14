@@ -1,3 +1,5 @@
+console.log('Chat.js START');
+
 // ====================== DEBUG WEBSOCKET CONNECTION ======================
 // Add this immediately after your existing WebSocket setup to debug issues
 function fixWebSocketConnection() {
@@ -1316,4 +1318,5 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func.apply(context, args), wait);
   };
 }
-}); 
+
+console.log('Chat.js END');
