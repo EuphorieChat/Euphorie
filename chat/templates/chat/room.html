@@ -916,14 +916,32 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   padding: 0.5rem;
   z-index: 50;
   width: 180px;
-}/* Fixed Footer Styles */
+}
+
+/* Fixed footer positioning */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 footer {
+  margin-top: auto;
+  position: relative;
+  width: 100%;
   min-height: 60px;
   max-height: 100px;
   height: auto;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 footer .max-w-6xl {
@@ -933,6 +951,8 @@ footer .max-w-6xl {
   display: flex;
   align-items: center;
   height: 100%;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
 /* Ensure footer content doesn't overflow */
@@ -940,6 +960,23 @@ footer a {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Fix chat container height to prevent footer overlap */
+.chat-container {
+  height: calc(100vh - 260px); /* Adjusted for header and footer */
+  min-height: 400px;
+  scroll-behavior: smooth;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Fix for logged-in state where additional UI elements appear */
+body.logged-in .chat-container {
+  height: calc(100vh - 280px); /* Slightly more space for logged-in UI */
 }
 
 /* Mobile adjustments */
@@ -951,11 +988,32 @@ footer a {
 
   footer .max-w-6xl {
     padding: 1rem 0.5rem;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   footer .flex-col {
     gap: 0.5rem;
   }
+
+  .chat-container {
+    height: calc(100vh - 200px);
+  }
+
+  body.logged-in .chat-container {
+    height: calc(100vh - 220px);
+  }
+}
+
+/* Ensure main content area takes up available space */
+.grid.grid-cols-1.lg\\:grid-cols-4 {
+  height: 100%;
+}
+
+/* Fix sidebar height */
+.lg\\:col-span-1 {
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
 }
 </style>
 </head>
@@ -1642,6 +1700,11 @@ let isTyping = false;
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Add logged-in class to body for CSS styling
+    if (window.username !== 'Guest') {
+        document.body.classList.add('logged-in');
+    }
+
     initializeWebSocket();
     initializeUIElements();
     initializeEventListeners();
@@ -2094,13 +2157,14 @@ function handleUsersUpdate(data) {
     });
 }
 
-// File upload handling
+// File upload handling - FIXED
 function handleFileSelect(e) {
     const files = e.target.files;
     if (files.length === 0) return;
 
     const preview = document.getElementById('preview');
     const previewContent = document.getElementById('preview-content');
+    const cancelBtn = document.getElementById('cancel-preview');
 
     preview.classList.remove('hidden');
     previewContent.innerHTML = '';
@@ -2109,6 +2173,15 @@ function handleFileSelect(e) {
         const previewItem = createPreviewItem(file);
         previewContent.appendChild(previewItem);
     });
+
+    // Add cancel button listener
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            preview.classList.add('hidden');
+            document.getElementById('file-input').value = '';
+            previewContent.innerHTML = '';
+        });
+    }
 
     // Upload files
     uploadFiles(files);
@@ -2121,12 +2194,23 @@ function createPreviewItem(file) {
     if (file.type.startsWith('image/')) {
         const img = document.createElement('img');
         img.src = URL.createObjectURL(file);
+        img.onload = () => URL.revokeObjectURL(img.src); // Clean up memory
         item.appendChild(img);
     } else if (file.type.startsWith('video/')) {
         const video = document.createElement('video');
         video.src = URL.createObjectURL(file);
         video.muted = true;
+        video.onloadeddata = () => URL.revokeObjectURL(video.src); // Clean up memory
         item.appendChild(video);
+    } else {
+        // For other file types, show a placeholder
+        item.innerHTML = `
+            <div class="flex items-center justify-center h-full bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+        `;
     }
 
     return item;
@@ -2143,37 +2227,88 @@ function uploadFiles(files) {
     const progressBar = document.getElementById('progress-bar');
     progressContainer.classList.remove('hidden');
 
-    fetch('/api/upload_media/', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+    // Reset progress bar
+    progressBar.style.width = '0%';
+
+    // Create XMLHttpRequest for progress tracking
+    const xhr = new XMLHttpRequest();
+
+    // Track upload progress
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progressBar.style.width = percentComplete + '%';
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.urls) {
-            // Send message with media
-            data.urls.forEach(url => {
-                if (websocket && websocket.readyState === WebSocket.OPEN) {
-                    websocket.send(JSON.stringify({
-                        'type': 'chat',
-                        'message': '',
-                        'media_url': url
-                    }));
+    });
+
+    // Handle completion
+    xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.success && data.urls) {
+                    // Send message with media for each URL
+                    data.urls.forEach(url => {
+                        if (websocket && websocket.readyState === WebSocket.OPEN) {
+                            const messageContent = {
+                                'type': 'chat',
+                                'message': '', // Empty message for media-only posts
+                                'media_url': url,
+                                'media_type': guessMediaType(url)
+                            };
+
+                            // If the URL is relative, make it absolute
+                            if (url.startsWith('/')) {
+                                messageContent.media_url = window.location.origin + url;
+                            }
+
+                            websocket.send(JSON.stringify(messageContent));
+                        }
+                    });
+
+                    showNotification('File(s) uploaded successfully');
+                } else {
+                    showNotification('Upload failed: ' + (data.error || 'Unknown error'), 'error');
                 }
-            });
+            } catch (e) {
+                console.error('Error parsing upload response:', e);
+                showNotification('Upload failed: Invalid response', 'error');
+            }
+        } else {
+            showNotification('Upload failed: Server error', 'error');
         }
 
-        // Clear preview
-        document.getElementById('preview').classList.add('hidden');
-        document.getElementById('file-input').value = '';
-        progressContainer.classList.add('hidden');
-    })
-    .catch(error => {
-        console.error('Upload error:', error);
-        showNotification('Failed to upload files', 'error');
+        // Clear preview and reset
+        setTimeout(() => {
+            document.getElementById('preview').classList.add('hidden');
+            document.getElementById('file-input').value = '';
+            progressContainer.classList.add('hidden');
+            progressBar.style.width = '0%';
+        }, 1000);
     });
+
+    // Handle errors
+    xhr.addEventListener('error', () => {
+        console.error('Upload error');
+        showNotification('Upload failed: Network error', 'error');
+        progressContainer.classList.add('hidden');
+    });
+
+    // Send request
+    xhr.open('POST', '/api/upload_media/');
+    xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+    xhr.send(formData);
+}
+
+// Helper function to guess media type from URL
+function guessMediaType(url) {
+    const extension = url.split('.').pop().toLowerCase();
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
+
+    if (imageExtensions.includes(extension)) return 'image';
+    if (videoExtensions.includes(extension)) return 'video';
+    return 'file';
 }
 
 // User profiles
@@ -2671,24 +2806,80 @@ function handleWhiteboardUpdate(data) {
     }
 }
 
-// Media library
+// Media library - FIXED
 function openMediaLibrary() {
     const modal = document.getElementById('media-library-modal');
     if (modal) {
         modal.classList.add('open');
         loadRoomMedia();
+
+        // Add close button listener
+        const closeBtn = document.getElementById('close-media-library');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('open');
+            });
+        }
+
+        // Add filter button listeners
+        document.querySelectorAll('.media-filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active state
+                document.querySelectorAll('.media-filter-btn').forEach(b => {
+                    b.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+                this.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
+
+                // Filter media
+                const filter = this.dataset.filter;
+                filterMedia(filter);
+            });
+        });
     }
 }
 
 function loadRoomMedia() {
+    const mediaGrid = document.getElementById('media-grid');
+    if (!mediaGrid) return;
+
+    // Show loading state
+    mediaGrid.innerHTML = `
+        <div class="col-span-full flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+        </div>
+    `;
+
     fetch(`/api/room/${window.roomName}/media/`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.success) {
+            if (data.success && data.media && data.media.length > 0) {
                 displayMediaGrid(data.media);
+            } else {
+                mediaGrid.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p>No media files in this room yet</p>
+                    </div>
+                `;
             }
         })
-        .catch(error => console.error('Error loading media:', error));
+        .catch(error => {
+            console.error('Error loading media:', error);
+            mediaGrid.innerHTML = `
+                <div class="col-span-full text-center py-8 text-red-500">
+                    <p>Error loading media files</p>
+                </div>
+            `;
+        });
 }
 
 function displayMediaGrid(media) {
@@ -2698,12 +2889,30 @@ function displayMediaGrid(media) {
     mediaGrid.innerHTML = '';
     media.forEach(item => {
         const mediaItem = document.createElement('div');
-        mediaItem.className = 'media-item cursor-pointer hover:opacity-75 transition-opacity';
+        mediaItem.className = 'media-item relative group cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow';
+        mediaItem.dataset.mediaType = item.type;
 
         if (item.type === 'image') {
-            mediaItem.innerHTML = `<img src="${item.url}" class="w-full h-full object-cover rounded-lg">`;
+            mediaItem.innerHTML = `
+                <img src="${item.url}" class="w-full h-full object-cover" loading="lazy">
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                </div>
+            `;
         } else if (item.type === 'video') {
-            mediaItem.innerHTML = `<video src="${item.url}" class="w-full h-full object-cover rounded-lg"></video>`;
+            mediaItem.innerHTML = `
+                <video src="${item.url}" class="w-full h-full object-cover" muted>
+                    <source src="${item.url}" type="video/mp4">
+                </video>
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            `;
         }
 
         mediaItem.addEventListener('click', () => {
@@ -2711,6 +2920,22 @@ function displayMediaGrid(media) {
         });
 
         mediaGrid.appendChild(mediaItem);
+    });
+}
+
+function filterMedia(filter) {
+    const mediaItems = document.querySelectorAll('.media-item');
+
+    mediaItems.forEach(item => {
+        if (filter === 'all') {
+            item.style.display = 'block';
+        } else if (filter === 'images' && item.dataset.mediaType === 'image') {
+            item.style.display = 'block';
+        } else if (filter === 'videos' && item.dataset.mediaType === 'video') {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
     });
 }
 
@@ -2723,12 +2948,32 @@ function openMediaPreview(item) {
     content.innerHTML = '';
 
     if (item.type === 'image') {
-        content.innerHTML = `<img src="${item.url}" class="max-w-full max-h-full">`;
+        content.innerHTML = `
+            <img src="${item.url}" class="max-w-full max-h-full object-contain">
+        `;
     } else if (item.type === 'video') {
-        content.innerHTML = `<video src="${item.url}" controls class="max-w-full max-h-full"></video>`;
+        content.innerHTML = `
+            <video src="${item.url}" controls autoplay class="max-w-full max-h-full">
+                <source src="${item.url}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        `;
     }
 
     modal.classList.add('open');
+
+    // Add close button listener
+    const closeBtn = document.getElementById('close-media-preview');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('open');
+            // Stop video playback if exists
+            const video = content.querySelector('video');
+            if (video) {
+                video.pause();
+            }
+        });
+    }
 }
 
 // User popover
