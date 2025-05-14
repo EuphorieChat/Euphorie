@@ -1599,4453 +1599,1299 @@ window.roomName = "{{ room_name|escapejs }}";
 window.username = "{{ username|escapejs }}";
 </script>
 
-
-
-<!-- Euphorie Chat Fix - All functionality in one script -->
 <script>
-// =============== MAIN INITIALIZATION ===============
+
+// Global variables
+let websocket = null;
+let typingTimeout = null;
+let reconnectAttempts = 0;
+let maxReconnectAttempts = 5;
+let reconnectInterval = 1000;
+let messageHistory = new Map();
+let userProfiles = new Map();
+let activeUsers = new Set();
+let currentMeetups = [];
+let isTyping = false;
+
+// Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Initializing Euphorie Chat - Complete Version');
-
-  // Initialize global variables
-  window.mediaLibrary = { images: [], videos: [] };
-  window.uploadedFiles = [];
-
-  // Define global namespace for shared functionality
-  window.EuphorieChat = {
-    // Core methods that can be called from anywhere
-    showTyping: showTyping,
-    renderMessage: renderMessage,
-    updateReaction: updateReaction,
-    updateUserList: updateUserList,
-    handleAnnouncementMessage: handleAnnouncementMessage,
-    handleProfileUpdate: handleProfileUpdate,
-    scrollToBottom: scrollToBottom,
-    showNotification: showNotification
-  };
-
-  // Initialize the chat application
-  initEuphorieChat();
+    initializeWebSocket();
+    initializeUIElements();
+    initializeEventListeners();
+    loadUserProfiles();
+    loadRecommendations();
+    loadActiveUsers();
+    loadBookmarkedRooms();
+    scrollToBottom();
 });
 
-function initEuphorieChat() {
-  // Initialize WebSocket connection
-  createWebSocket();
+// WebSocket initialization
+function initializeWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${protocol}://${window.location.host}/ws/chat/${window.roomName}/`;
 
-  // Initialize UI components
-  initializeChatUI();
+    websocket = new WebSocket(wsUrl);
 
-  // Initialize profile pictures
-  initProfilePictureSystem();
+    websocket.onopen = function(e) {
+        console.log('WebSocket connected');
+        reconnectAttempts = 0;
 
-  // Initialize file upload
-  initFileUpload();
-
-  // Initialize FIXED media library
-  initMediaLibrary();
-
-  // Add media sharing capabilities
-  setupMediaSharing();
-
-  // Initialize FIXED whiteboard
-  initWhiteboard();
-
-  // Initialize FIXED meetup planner
-  initMeetupPlanner();
-
-  // Initialize emoji panel
-  initEmojiPanel();
-
-  // Initialize reaction modal
-  initReactionModal();
-
-  // Initialize user popover
-  initUserPopover();
-
-  // Initialize bookmark button
-  initBookmarkButton();
-
-  // Fix modal display issues
-  fixModalDisplayIssues();
-
-  // Set up global event delegation
-  setupGlobalEventDelegation();
-
-  // Setup heartbeat to keep WebSocket connection alive
-  setupHeartbeat();
-}
-
-// Initialize Chat UI components
-function initializeChatUI() {
-  // Set up message input events
-  const messageInput = document.getElementById('chat-message-input');
-  const messageForm = document.getElementById('message-form');
-  const chatLog = document.getElementById('chat-log');
-
-  if (messageInput) {
-    // When the user is typing, send a typing notification
-    messageInput.addEventListener('input', debounce(function() {
-      if (window.socket && window.socket.readyState === WebSocket.OPEN && messageInput.value.trim()) {
-        window.socket.send(JSON.stringify({
-          type: 'typing'
+        // Request initial data
+        websocket.send(JSON.stringify({
+            'type': 'users',
+            'action': 'list'
         }));
-      }
-    }, 500));
 
-    // Set focus to the input field
-    setTimeout(() => messageInput.focus(), 500);
-  }
-
-  if (messageForm) {
-    messageForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      sendMessage();
-    });
-  }
-
-  // Add event listener to scroll to bottom
-  if (chatLog) {
-    chatLog.addEventListener('scroll', function() {
-      const scrollBottom = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
-      const jumpToBottomBtn = document.getElementById('jump-to-bottom');
-
-      if (jumpToBottomBtn) {
-        if (scrollBottom > 100) {
-          jumpToBottomBtn.classList.add('visible');
-        } else {
-          jumpToBottomBtn.classList.remove('visible');
-        }
-      }
-    });
-
-    // Initial scroll to bottom
-    scrollToBottom();
-  }
-
-  // Set up jump to bottom button
-  const jumpToBottomBtn = document.getElementById('jump-to-bottom');
-  if (jumpToBottomBtn) {
-    jumpToBottomBtn.addEventListener('click', scrollToBottom);
-  }
-
-  // Initialize message listeners for existing messages
-  addMessageReactionListeners();
-
-  // Track all existing media for media library
-  scanDOMForMedia();
-}
-
-// =============== WEBSOCKET CONNECTIVITY ===============
-function createWebSocket() {
-  // Get the WebSocket URL based on current protocol (ws:// or wss://)
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const wsUrl = `${wsProtocol}://${window.location.host}/ws/chat/${window.roomName}/`;
-
-  try {
-    // Create new WebSocket connection
-    const socket = new WebSocket(wsUrl);
-
-    // Connection opened event
-    socket.addEventListener('open', function(event) {
-      console.log('WebSocket connection established');
-      showNotification('Connected to chat room');
-
-      // Request the initial user list
-      socket.send(JSON.stringify({
-        type: 'users',
-        action: 'list'
-      }));
-
-      // If user is authenticated, request other data
-      if (window.username && window.username !== 'Guest') {
         // Request meetups
-        socket.send(JSON.stringify({
-          type: 'meetup',
-          action: 'list'
+        websocket.send(JSON.stringify({
+            'type': 'meetup',
+            'action': 'list'
         }));
 
-        // Request online friends
-        socket.send(JSON.stringify({
-          type: 'friends',
-          action: 'list_online'
+        // Request friends list
+        websocket.send(JSON.stringify({
+            'type': 'friends',
+            'action': 'list_online'
         }));
 
-        // Request room recommendations
-        socket.send(JSON.stringify({
-          type: 'recommendations',
-          action: 'get',
-          include_bookmarks: true
+        // Request recommendations
+        websocket.send(JSON.stringify({
+            'type': 'recommendations',
+            'action': 'get'
         }));
-      }
-    });
+    };
 
-    // Message received event
-    socket.addEventListener('message', function(event) {
-      try {
-        const data = JSON.parse(event.data);
+    websocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
         handleWebSocketMessage(data);
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    });
+    };
 
-    // Connection error event
-    socket.addEventListener('error', function(event) {
-      console.error('WebSocket error:', event);
-      showNotification('Connection error. Please refresh the page.');
-    });
+    websocket.onclose = function(e) {
+        console.log('WebSocket closed');
+        attemptReconnect();
+    };
 
-    // Connection closed event
-    socket.addEventListener('close', function(event) {
-      console.warn(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
-      showNotification('Connection to chat room lost. Attempting to reconnect...');
-
-      // Attempt to reconnect after delay
-      setTimeout(() => {
-        console.log('Attempting to reconnect WebSocket...');
-        createWebSocket();
-      }, 3000);
-    });
-
-    // Make socket available globally
-    window.socket = socket;
-    return socket;
-  } catch (error) {
-    console.error('Failed to create WebSocket connection:', error);
-    showNotification('Failed to connect to chat room. Please refresh the page.');
-    return null;
-  }
+    websocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
+    };
 }
 
 // Handle incoming WebSocket messages
 function handleWebSocketMessage(data) {
-  const type = data.type || 'unknown';
-
-  switch (type) {
-    case 'chat':
-    case 'chat_message':
-      renderMessage(data);
-      break;
-
-    case 'reaction':
-      updateReaction(data);
-      break;
-
-    case 'typing':
-      showTyping(data.username);
-      break;
-
-    case 'users':
-    case 'user_list':
-      if (data.users && Array.isArray(data.users)) {
-        updateUserList(data.users);
-      }
-      break;
-
-    case 'whiteboard':
-      if (window.handleWhiteboardMessage) {
-        window.handleWhiteboardMessage(data);
-      }
-      break;
-
-    case 'meetup':
-    case 'meetups':
-      if (window.renderMeetups) {
-        window.renderMeetups(data.meetups);
-      }
-      break;
-
-    case 'announcement':
-      handleAnnouncementMessage(data);
-      break;
-
-    case 'friends':
-      if (data.action === 'online_list') {
-        renderOnlineFriends(data.friends || []);
-      }
-      break;
-
-    case 'recommendations':
-      if (data.action === 'list') {
-        renderRoomRecommendations(data.rooms || [], data.bookmarked_rooms || []);
-      }
-      break;
-
-    case 'profile_update':
-      handleProfileUpdate(data.username, data.profile_data);
-      break;
-
-    case 'pong':
-      // Pong received - connection alive
-      console.debug('Received pong from server');
-      break;
-
-    case 'error':
-      console.error('Error from server:', data.message);
-      showNotification('Error: ' + data.message);
-      break;
-
-    default:
-      console.warn('Unknown message type:', type, data);
-  }
-}
-
-// Send a message
-function sendMessage() {
-  const messageInput = document.getElementById('chat-message-input');
-  const fileInput = document.getElementById('file-input');
-  const previewContainer = document.getElementById('preview');
-
-  if (!messageInput) return;
-
-  const messageText = messageInput.value.trim();
-
-  // Check if there are uploaded files
-  if (window.uploadedFiles && window.uploadedFiles.length > 0) {
-    uploadFilesAndSend()
-      .then(() => {
-        // Reset file input and hide preview
-        if (fileInput) fileInput.value = '';
-        if (previewContainer) previewContainer.classList.add('hidden');
-        previewContainer.style.display = 'none';
-        window.uploadedFiles = [];
-      })
-      .catch(error => {
-        console.error('Error uploading files:', error);
-        showNotification('Error uploading files: ' + error.message);
-      });
-  } else if (messageText) {
-    // Send text message via WebSocket
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      window.socket.send(JSON.stringify({
-        type: 'chat_message',
-        message: messageText
-      }));
-
-      // Clear input
-      messageInput.value = '';
-    } else {
-      showNotification('Connection issue. Please refresh the page.');
+    switch(data.type) {
+        case 'chat':
+            handleChatMessage(data);
+            break;
+        case 'typing':
+            handleTypingIndicator(data);
+            break;
+        case 'users':
+            handleUsersUpdate(data);
+            break;
+        case 'reaction':
+            handleReactionUpdate(data);
+            break;
+        case 'meetups':
+            handleMeetupsUpdate(data);
+            break;
+        case 'announcement':
+            handleAnnouncement(data);
+            break;
+        case 'whiteboard':
+            handleWhiteboardUpdate(data);
+            break;
+        case 'friends':
+            handleFriendsUpdate(data);
+            break;
+        case 'recommendations':
+            handleRecommendationsUpdate(data);
+            break;
+        case 'profile_update':
+            handleProfileUpdate(data);
+            break;
+        case 'error':
+            showNotification(data.message, 'error');
+            break;
     }
-  }
-
-  // Focus back on input
-  messageInput.focus();
 }
 
-// Render a message in the chat
-function renderMessage(data) {
-  const chatLog = document.getElementById('chat-log');
-  if (!chatLog) return;
+// Initialize UI elements
+function initializeUIElements() {
+    // Show/hide elements based on authentication
+    const isAuthenticated = window.username !== 'Guest';
 
-  const sender = data.username;
-  const message = data.message;
-  const messageId = data.message_id || Date.now().toString();
-
-  const isSelf = sender === window.username;
-
-  // Create message wrapper
-  const wrapper = document.createElement('div');
-  wrapper.className = `flex items-start gap-2 group`;
-  wrapper.setAttribute('data-message-id', messageId);
-
-  // Calculate avatar class
-  const avatarClass = isSelf ? 'avatar-pink' : getRandomAvatarClass(sender);
-
-  // Create message HTML content
-  wrapper.innerHTML = `
-    <div class="avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar" data-username="${sender}">
-      ${sender.slice(0, 1).toUpperCase()}
-    </div>
-    <div class="flex-1">
-      <div class="message-bubble ${isSelf ? 'sent' : 'received'}">
-        <div class="flex items-start justify-between">
-          <a href="/dm/${sender}/" class="text-xs font-semibold mb-1 ${isSelf ? 'text-pink-500' : 'text-purple-600'} hover:underline username-link">
-            ${sender}
-          </a>
-          <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
-            <div class="flex space-x-1">
-              <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
-              <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
-              <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
-            </div>
-          </div>
-        </div>
-        <div class="text-sm text-gray-700 message-content">
-          ${message}
-        </div>
-      </div>
-      <div class="reactions-container"></div>
-    </div>
-  `;
-
-  chatLog.appendChild(wrapper);
-
-  // Scroll to the bottom to show the new message
-  scrollToBottom();
-
-  // Add reaction listeners
-  addReactionListeners(wrapper);
-
-  // Track media in this message
-  trackMediaInMessage(message);
-
-  // Load user profile picture
-  loadUserProfile(sender);
-}
-
-// Show typing indicator
-function showTyping(username) {
-  const typingIndicator = document.getElementById('typing-indicator');
-  const typingUsername = document.getElementById('typing-username');
-
-  if (!typingIndicator || !typingUsername) return;
-
-  // Only show typing for other users
-  if (username === window.username) return;
-
-  typingUsername.textContent = `${username || 'Someone'} is typing...`;
-  typingIndicator.classList.remove('hidden');
-  typingIndicator.style.display = 'flex';
-
-  // Hide typing indicator after a delay
-  clearTimeout(window.typingTimeout);
-  window.typingTimeout = setTimeout(() => {
-    typingIndicator.classList.add('hidden');
-    typingIndicator.style.display = 'none';
-  }, 3000);
-}
-
-// Update reaction count and users
-function updateReaction(data) {
-  const messageId = data.message_id;
-  const reaction = data.reaction;
-  const count = data.count;
-  const users = data.users || [];
-
-  const message = document.querySelector(`[data-message-id="${messageId}"]`);
-  if (!message) return;
-
-  const container = message.querySelector('.reactions-container');
-  if (!container) return;
-
-  let reactionElement = container.querySelector(`[data-emoji="${reaction}"]`);
-
-  if (count <= 0) {
-    // Remove the reaction if count is 0
-    if (reactionElement) {
-      reactionElement.remove();
+    if (!isAuthenticated) {
+        document.querySelectorAll('[data-auth-required]').forEach(el => {
+            el.style.display = 'none';
+        });
     }
-    return;
-  }
 
-  if (!reactionElement) {
-    // Create new reaction element
-    reactionElement = document.createElement('div');
-    reactionElement.className = 'reaction';
-    reactionElement.setAttribute('data-emoji', reaction);
-    reactionElement.innerHTML = `${reaction} <span class="reaction-count">${count}</span>`;
-
-    // Add click handler to show who reacted
-    reactionElement.addEventListener('click', () => {
-      showReactionUsers(messageId, reaction, users);
+    // Initialize tooltips
+    document.querySelectorAll('.tooltip').forEach(el => {
+        el.setAttribute('title', el.getAttribute('data-tooltip'));
     });
 
-    container.appendChild(reactionElement);
-  } else {
-    // Update existing reaction count
-    const countElement = reactionElement.querySelector('.reaction-count');
-    if (countElement) {
-      countElement.textContent = count;
+    // Initialize scroll behavior
+    const chatLog = document.getElementById('chat-log');
+    if (chatLog) {
+        chatLog.addEventListener('scroll', function() {
+            const jumpToBottomBtn = document.getElementById('jump-to-bottom');
+            if (this.scrollHeight - this.scrollTop - this.clientHeight > 100) {
+                jumpToBottomBtn.classList.add('visible');
+            } else {
+                jumpToBottomBtn.classList.remove('visible');
+            }
+        });
     }
-
-    // Update users tooltip
-    if (users.length > 0) {
-      reactionElement.title = users.join(', ');
-    }
-  }
 }
 
-// Update the user list in the sidebar
-function updateUserList(users) {
-  const userList = document.getElementById('user-list');
-  const mobileList = document.getElementById('mobile-user-list-content');
+// Initialize event listeners
+function initializeEventListeners() {
+    // Message form
+    const messageForm = document.getElementById('message-form');
+    if (messageForm) {
+        messageForm.addEventListener('submit', handleMessageSubmit);
+    }
 
-  if (!userList && !mobileList) return;
+    // Chat input
+    const chatInput = document.getElementById('chat-message-input');
+    if (chatInput) {
+        chatInput.addEventListener('keydown', handleTyping);
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                messageForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    }
 
-  // Make sure users is an array
-  if (!Array.isArray(users)) {
-    users = users && typeof users === 'object' ? Object.values(users) : [];
-  }
+    // File upload
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelect);
+    }
 
-  // Filter out any null or undefined values
-  const validUsers = users.filter(user => user);
+    // Emoji panel
+    const emojiButton = document.getElementById('emoji-button');
+    const emojiPanel = document.getElementById('emoji-panel');
+    if (emojiButton && emojiPanel) {
+        emojiButton.addEventListener('click', function() {
+            emojiPanel.classList.toggle('show');
+        });
 
-  // Process desktop user list
-  if (userList) {
-    userList.innerHTML = '';
+        document.querySelectorAll('.emoji-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                insertEmoji(this.textContent);
+                emojiPanel.classList.remove('show');
+            });
+        });
+    }
 
-    if (validUsers.length === 0) {
-      userList.innerHTML = `<li class="text-gray-400 text-xs italic py-2">No users currently in this room.</li>`;
-    } else {
-      validUsers.forEach(user => {
-        const isCurrentUser = user === window.username;
-        const avatarClass = isCurrentUser ? 'bg-pink-500' : getAvatarColorClass(user);
+    // User profile toggle
+    const userProfileToggle = document.getElementById('user-profile-toggle');
+    const profileMenu = document.getElementById('profile-menu');
+    if (userProfileToggle && profileMenu) {
+        userProfileToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            profileMenu.classList.toggle('open');
+        });
 
-        const li = document.createElement('li');
-        li.className = 'user-item flex items-center justify-between';
+        document.addEventListener('click', function() {
+            profileMenu.classList.remove('open');
+        });
+    }
 
-        li.innerHTML = `
-          <div class="flex items-center">
-            <div class="h-6 w-6 rounded-full ${avatarClass} text-white flex items-center justify-center text-xs mr-2 user-avatar" data-username="${user}">
-            ${user.slice(0, 1).toUpperCase()}
+    // Modal close listeners
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('open');
+            }
+        });
+    });
+
+    // Bookmark room
+    const bookmarkBtn = document.getElementById('bookmark-room');
+    if (bookmarkBtn) {
+        bookmarkBtn.addEventListener('click', toggleBookmark);
+    }
+
+    // Jump to bottom
+    const jumpToBottomBtn = document.getElementById('jump-to-bottom');
+    if (jumpToBottomBtn) {
+        jumpToBottomBtn.addEventListener('click', scrollToBottom);
+    }
+
+    // Media library
+    const openMediaLibraryBtn = document.getElementById('open-media-library');
+    if (openMediaLibraryBtn) {
+        openMediaLibraryBtn.addEventListener('click', openMediaLibrary);
+    }
+
+    // Whiteboard
+    const openWhiteboardBtn = document.getElementById('open-whiteboard');
+    if (openWhiteboardBtn) {
+        openWhiteboardBtn.addEventListener('click', openWhiteboard);
+    }
+
+    // Create meetup
+    const createMeetupBtn = document.getElementById('create-meetup-btn');
+    if (createMeetupBtn) {
+        createMeetupBtn.addEventListener('click', openMeetupModal);
+    }
+
+    // Profile picture change
+    const changeAvatarBtn = document.getElementById('change-avatar-btn');
+    if (changeAvatarBtn) {
+        changeAvatarBtn.addEventListener('click', openProfilePicModal);
+    }
+
+    // Close buttons for modals
+    document.querySelectorAll('[id$="-modal"] button[id^="close-"], [id$="-modal"] button[id^="cancel-"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                modal.classList.remove('open');
+            }
+        });
+    });
+
+    // Mobile menu toggle (if exists)
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+            // Handle mobile menu toggle
+        });
+    }
+}
+
+// Chat message handling
+function handleMessageSubmit(e) {
+    e.preventDefault();
+
+    const messageInput = document.getElementById('chat-message-input');
+    const message = messageInput.value.trim();
+
+    if (!message) return;
+
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+            'type': 'chat',
+            'message': message
+        }));
+
+        messageInput.value = '';
+    }
+}
+
+function handleChatMessage(data) {
+    const chatLog = document.getElementById('chat-log');
+    const messageContainer = document.createElement('div');
+    messageContainer.className = 'flex items-start gap-2 group message-bubble new';
+    messageContainer.setAttribute('data-message-id', data.message_id);
+
+    const avatarClass = data.username === window.username ? 'avatar-pink' : 'avatar-orange';
+    const bubbleClass = data.username === window.username ? 'sent' : 'received';
+
+    const userProfile = userProfiles.get(data.username) || { type: 'gradient', gradient: 'from-pink-400 to-purple-400' };
+
+    messageContainer.innerHTML = `
+        <div class="avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar" data-username="${data.username}">
+            ${data.username.charAt(0).toUpperCase()}
+        </div>
+        <div class="flex-1">
+            <div class="message-bubble ${bubbleClass}">
+                <div class="flex items-start justify-between">
+                    <a href="/dm/${data.username}/" class="text-xs font-semibold mb-1 ${bubbleClass === 'sent' ? 'text-pink-500' : 'text-purple-600'} hover:underline username-link">
+                        ${data.username}
+                    </a>
+                    <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                        <div class="flex space-x-1">
+                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
+                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
+                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-700 message-content">
+                    ${escapeHtml(data.message)}
+                </div>
             </div>
-            <span class="text-sm">${user}</span>
-          </div>
-          ${!isCurrentUser ? `
-            <button data-username="${user}" class="friend-btn text-xs py-1 px-2 rounded-md bg-pink-100 text-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            Add Friend
-            </button>
-          ` : ''}
+            <div class="reactions-container"></div>
+        </div>
+    `;
+
+    chatLog.appendChild(messageContainer);
+
+    // Update user avatar if we have profile data
+    updateMessageAvatar(messageContainer, data.username);
+
+    // Add reaction listeners
+    messageContainer.querySelectorAll('.emoji-reaction').forEach(btn => {
+        btn.addEventListener('click', function() {
+            sendReaction(data.message_id, this.textContent);
+        });
+    });
+
+    // Add username click listener for popover
+    const usernameLink = messageContainer.querySelector('.username-link');
+    if (usernameLink) {
+        usernameLink.addEventListener('click', function(e) {
+            if (e.ctrlKey || e.metaKey) return; // Allow normal link behavior with ctrl/cmd
+            e.preventDefault();
+            showUserPopover(this, data.username);
+        });
+    }
+
+    scrollToBottom();
+
+    // Remove typing indicator for this user
+    removeTypingIndicator(data.username);
+}
+
+// Typing indicator
+function handleTyping() {
+    if (!isTyping) {
+        isTyping = true;
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({
+                'type': 'typing',
+                'username': window.username
+            }));
+        }
+    }
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        isTyping = false;
+    }, 1000);
+}
+
+function handleTypingIndicator(data) {
+    if (data.username === window.username) return;
+
+    showTypingIndicator(data.username);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        removeTypingIndicator(data.username);
+    }, 3000);
+}
+
+function showTypingIndicator(username) {
+    const existingIndicator = document.querySelector(`[data-typing-user="${username}"]`);
+    if (existingIndicator) return;
+
+    const typingIndicator = document.getElementById('typing-indicator');
+    const typingUsername = document.getElementById('typing-username');
+
+    typingIndicator.classList.remove('hidden');
+    typingUsername.textContent = `${username} is typing...`;
+    typingIndicator.setAttribute('data-typing-user', username);
+}
+
+function removeTypingIndicator(username) {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator.getAttribute('data-typing-user') === username) {
+        typingIndicator.classList.add('hidden');
+    }
+}
+
+// Reactions
+function sendReaction(messageId, emoji) {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+            'type': 'reaction',
+            'message_id': messageId,
+            'reaction': emoji
+        }));
+    }
+}
+
+function handleReactionUpdate(data) {
+    const messageEl = document.querySelector(`[data-message-id="${data.message_id}"]`);
+    if (!messageEl) return;
+
+    const reactionsContainer = messageEl.querySelector('.reactions-container');
+    if (!reactionsContainer) return;
+
+    // Clear existing reactions
+    reactionsContainer.innerHTML = '';
+
+    // Add reaction if count > 0
+    if (data.count > 0) {
+        const reactionEl = document.createElement('div');
+        reactionEl.className = 'reaction';
+        reactionEl.setAttribute('data-emoji', data.reaction);
+        reactionEl.innerHTML = `${data.reaction} <span class="reaction-count">${data.count}</span>`;
+
+        reactionEl.addEventListener('click', function() {
+            sendReaction(data.message_id, data.reaction);
+        });
+
+        reactionsContainer.appendChild(reactionEl);
+    }
+}
+
+// User management
+function handleUsersUpdate(data) {
+    const userList = document.getElementById('user-list');
+    if (!userList) return;
+
+    userList.innerHTML = '';
+    activeUsers.clear();
+
+    data.users.forEach(username => {
+        activeUsers.add(username);
+        const userItem = document.createElement('li');
+        userItem.className = 'user-item flex items-center justify-between';
+
+        const userProfile = userProfiles.get(username) || { type: 'gradient', gradient: 'from-pink-400 to-purple-400' };
+
+        userItem.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="avatar avatar-green h-6 w-6 text-xs user-avatar" data-username="${username}">
+                    ${username.charAt(0).toUpperCase()}
+                </div>
+                <span class="text-sm font-medium text-gray-700">${username}</span>
+            </div>
+            ${username !== window.username ? `
+                <button class="text-pink-500 hover:text-pink-600 text-xs" onclick="showUserPopover(this, '${username}')">
+                    •••
+                </button>
+            ` : ''}
         `;
 
-        userList.appendChild(li);
-      });
+        userList.appendChild(userItem);
+        updateUserAvatar(userItem, username);
+    });
+}
+
+// File upload handling
+function handleFileSelect(e) {
+    const files = e.target.files;
+    if (files.length === 0) return;
+
+    const preview = document.getElementById('preview');
+    const previewContent = document.getElementById('preview-content');
+
+    preview.classList.remove('hidden');
+    previewContent.innerHTML = '';
+
+    Array.from(files).forEach(file => {
+        const previewItem = createPreviewItem(file);
+        previewContent.appendChild(previewItem);
+    });
+
+    // Upload files
+    uploadFiles(files);
+}
+
+function createPreviewItem(file) {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+
+    if (file.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        item.appendChild(img);
+    } else if (file.type.startsWith('video/')) {
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(file);
+        video.muted = true;
+        item.appendChild(video);
     }
-  }
 
-  // Process mobile user list
-  if (mobileList) {
-    mobileList.innerHTML = '';
+    return item;
+}
 
-    if (validUsers.length === 0) {
-      mobileList.innerHTML = `<span class="text-gray-400 text-xs italic">No users currently in this room.</span>`;
-    } else {
-      validUsers.forEach(user => {
-        const isCurrentUser = user === window.username;
+function uploadFiles(files) {
+    const formData = new FormData();
+    Array.from(files).forEach(file => {
+        formData.append('media', file);
+    });
 
-        const span = document.createElement('span');
-        span.className = 'user-list-item px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1 text-xs';
-        span.setAttribute('data-username', user);
+    // Show progress
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    progressContainer.classList.remove('hidden');
 
-        if (isCurrentUser) {
-          span.classList.add('bg-pink-100', 'text-pink-600', 'font-medium');
+    fetch('/api/upload_media/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.urls) {
+            // Send message with media
+            data.urls.forEach(url => {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({
+                        'type': 'chat',
+                        'message': '',
+                        'media_url': url
+                    }));
+                }
+            });
         }
 
-        span.innerHTML = `
-          <span class="inline-flex items-center">
-            <span class="avatar-mini w-4 h-4 rounded-full ${isCurrentUser ? 'bg-pink-500' : getAvatarColorClass(user)} text-white inline-flex items-center justify-center text-[10px] mr-1 user-avatar" data-username="${user}">
-            ${user.slice(0, 1).toUpperCase()}
-            </span>
-            ${user}
-          </span>
-        `;
-
-        mobileList.appendChild(span);
-      });
-    }
-
-    // Make sure mobile list is visible
-    const mobileUserList = document.getElementById('mobile-user-list');
-    if (mobileUserList) {
-      mobileUserList.classList.remove('hidden');
-      mobileUserList.style.display = 'block';
-    }
-  }
-
-  // Load profile pictures for all users
-  loadAllProfiles();
+        // Clear preview
+        document.getElementById('preview').classList.add('hidden');
+        document.getElementById('file-input').value = '';
+        progressContainer.classList.add('hidden');
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        showNotification('Failed to upload files', 'error');
+    });
 }
 
-// Handle announcement messages
-function handleAnnouncementMessage(data) {
-  if (data.action === 'new') {
-    // Add new announcement to container
+// User profiles
+function loadUserProfiles() {
+    // Load profile for current user
+    if (window.username !== 'Guest') {
+        fetchUserProfile(window.username);
+    }
+
+    // Load profiles for users in messages
+    document.querySelectorAll('.user-avatar').forEach(avatar => {
+        const username = avatar.getAttribute('data-username');
+        if (username) {
+            fetchUserProfile(username);
+        }
+    });
+}
+
+function fetchUserProfile(username) {
+    fetch(`/api/profile/${username}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                userProfiles.set(username, data.profile_picture);
+                updateAllUserAvatars(username);
+            }
+        })
+        .catch(error => console.error('Error fetching profile:', error));
+}
+
+function updateAllUserAvatars(username) {
+    document.querySelectorAll(`.user-avatar[data-username="${username}"]`).forEach(avatar => {
+        updateAvatarElement(avatar, username);
+    });
+}
+
+function updateAvatarElement(avatar, username) {
+    const profile = userProfiles.get(username);
+    if (!profile) return;
+
+    if (profile.type === 'image' && profile.url) {
+        avatar.style.backgroundImage = `url(${profile.url})`;
+        avatar.classList.add('with-image');
+        avatar.textContent = '';
+    } else if (profile.type === 'gradient' && profile.gradient) {
+        avatar.className = avatar.className.replace(/from-\S+ to-\S+/, '');
+        avatar.className += ` bg-gradient-to-br ${profile.gradient}`;
+    }
+}
+
+function updateMessageAvatar(messageEl, username) {
+    const avatar = messageEl.querySelector(`.user-avatar[data-username="${username}"]`);
+    if (avatar) {
+        updateAvatarElement(avatar, username);
+    }
+}
+
+function updateUserAvatar(userItem, username) {
+    const avatar = userItem.querySelector(`.user-avatar[data-username="${username}"]`);
+    if (avatar) {
+        updateAvatarElement(avatar, username);
+    }
+}
+
+// Profile update handling
+function handleProfileUpdate(data) {
+    userProfiles.set(data.username, data.profile_data);
+    updateAllUserAvatars(data.username);
+}
+
+// Room recommendations
+function loadRecommendations() {
+    fetch('/api/get_recommendations/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateRecommendedRooms(data.rooms);
+            }
+        })
+        .catch(error => console.error('Error loading recommendations:', error));
+}
+
+function updateRecommendedRooms(rooms) {
+    const recommendedList = document.getElementById('recommended-rooms-list');
+    if (!recommendedList) return;
+
+    recommendedList.innerHTML = '';
+    rooms.forEach(room => {
+        const roomLink = document.createElement('a');
+        roomLink.href = `/chat/${room.name}/`;
+        roomLink.innerHTML = `
+            <div class="room-card">
+                <div class="flex items-center gap-2.5">
+                    <div class="room-icon bg-gradient-to-br from-pink-400 to-purple-400 text-white">
+                        ${room.category ? getCategoryIcon(room.category) : '💬'}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-sm text-gray-800 truncate">${room.display_name}</div>
+                        <div class="text-xs text-gray-500">${room.message_count} messages</div>
+                    </div>
+                    ${room.category ? `<span class="room-category">${room.category}</span>` : ''}
+                </div>
+            </div>
+        `;
+        recommendedList.appendChild(roomLink);
+    });
+}
+
+// Bookmarks
+function toggleBookmark() {
+    const bookmarkBtn = document.getElementById('bookmark-room');
+    const isBookmarked = bookmarkBtn.classList.contains('bookmarked');
+
+    fetch('/api/toggle_bookmark_room/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            room_name: window.roomName,
+            bookmarked: !isBookmarked
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bookmarkBtn.classList.toggle('bookmarked');
+            bookmarkBtn.classList.toggle('text-pink-500');
+            showNotification(isBookmarked ? 'Bookmark removed' : 'Room bookmarked');
+        }
+    })
+    .catch(error => console.error('Error toggling bookmark:', error));
+}
+
+function loadBookmarkedRooms() {
+    fetch('/api/get_bookmarked_rooms/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI to show bookmarked status
+                const bookmarkBtn = document.getElementById('bookmark-room');
+                if (bookmarkBtn && data.bookmarked_rooms.some(room => room.name === window.roomName)) {
+                    bookmarkBtn.classList.add('bookmarked');
+                    bookmarkBtn.classList.add('text-pink-500');
+                }
+            }
+        })
+        .catch(error => console.error('Error loading bookmarks:', error));
+}
+
+// Friend functionality
+function handleFriendsUpdate(data) {
+    if (data.action === 'online_list') {
+        updateOnlineFriends(data.friends);
+    } else if (data.action === 'suggestions') {
+        updateFriendSuggestions(data.suggestions);
+    }
+}
+
+function updateOnlineFriends(friends) {
+    const onlineFriendsList = document.getElementById('online-friends-list');
+    if (!onlineFriendsList) return;
+
+    onlineFriendsList.innerHTML = '';
+    friends.forEach(friend => {
+        const friendItem = document.createElement('div');
+        friendItem.className = 'flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer';
+        friendItem.innerHTML = `
+            <div class="avatar avatar-green h-8 w-8 text-sm user-avatar" data-username="${friend.username}">
+                ${friend.username.charAt(0).toUpperCase()}
+            </div>
+            <div class="flex-1">
+                <div class="font-medium text-sm">${friend.username}</div>
+                <div class="text-xs text-gray-500">Online</div>
+            </div>
+        `;
+        friendItem.addEventListener('click', () => {
+            window.location.href = `/dm/${friend.username}/`;
+        });
+        onlineFriendsList.appendChild(friendItem);
+        updateUserAvatar(friendItem, friend.username);
+    });
+}
+
+// Meetups
+function handleMeetupsUpdate(data) {
+    currentMeetups = data.meetups;
+    updateMeetupsDisplay();
+}
+
+function updateMeetupsDisplay() {
+    // Update meetups in the UI if there's a meetups section
+    const meetupsContainer = document.getElementById('meetups-container');
+    if (!meetupsContainer) return;
+
+    meetupsContainer.innerHTML = '';
+    currentMeetups.forEach(meetup => {
+        const meetupItem = document.createElement('div');
+        meetupItem.className = 'meetup-item';
+        meetupItem.innerHTML = `
+            <h4>${meetup.title}</h4>
+            <p>${new Date(meetup.datetime).toLocaleDateString()}</p>
+            <p>${meetup.location}</p>
+            <p>${meetup.attendees.length} attending</p>
+        `;
+        meetupsContainer.appendChild(meetupItem);
+    });
+}
+
+function openMeetupModal() {
+    const modal = document.getElementById('meetup-modal');
+    if (modal) {
+        modal.classList.add('open');
+    }
+}
+
+// Announcements
+function handleAnnouncement(data) {
+    if (data.action === 'new') {
+        showAnnouncement(data);
+    }
+}
+
+function showAnnouncement(announcement) {
     const container = document.getElementById('announcements-container');
     if (!container) return;
 
+    container.classList.remove('hidden');
+
     const announcementEl = document.createElement('div');
     announcementEl.className = 'announcement';
-    announcementEl.dataset.announcementId = data.announcement_id;
-
+    announcementEl.setAttribute('data-announcement-id', announcement.announcement_id);
     announcementEl.innerHTML = `
-      <button class="absolute top-2 right-2 p-1 rounded-full hover:bg-white/50" aria-label="Dismiss announcement">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-      <div class="announcement-content">
-        <div class="flex items-start">
-          <div class="flex-shrink-0 bg-blue-500 rounded-full p-2 mr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+        <button class="absolute top-2 right-2 p-1 rounded-full hover:bg-white/50" aria-label="Dismiss announcement">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </div>
-          <div>
-            <h3 class="font-semibold text-blue-800">Announcement from ${data.creator}</h3>
-            <div class="text-gray-700 text-sm mt-1">${data.content}</div>
-            <div class="text-xs text-gray-500 mt-2">${new Date(data.created_at).toLocaleString()}</div>
-          </div>
+        </button>
+        <div class="announcement-content">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 bg-blue-500 rounded-full p-2 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-blue-800">Announcement from ${announcement.creator}</h3>
+                    <div class="text-gray-700 text-sm mt-1">${announcement.content}</div>
+                    <div class="text-xs text-gray-500 mt-2">${new Date(announcement.created_at).toLocaleString()}</div>
+                </div>
+            </div>
         </div>
-      </div>
     `;
 
-    // Add dismiss button handler
-    announcementEl.querySelector('button').addEventListener('click', () => {
-      // Mark as read in the server
-      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        window.socket.send(JSON.stringify({
-          type: 'announcement',
-          action: 'mark_read',
-          announcement_id: data.announcement_id
-        }));
-      }
-
-      // Hide the announcement
-      announcementEl.classList.add('hidden');
-      announcementEl.style.display = 'none';
-    });
-
-    // Make container visible
-    container.classList.remove('hidden');
-    container.style.display = 'block';
-
-    // Add announcement to container
     container.appendChild(announcementEl);
 
-    // Show notification
-    showNotification('New announcement from ' + data.creator);
-  }
+    // Add dismiss listener
+    announcementEl.querySelector('button').addEventListener('click', () => {
+        dismissAnnouncement(announcement.announcement_id);
+    });
 }
 
-// =============== PROFILE PICTURE SYSTEM ===============
-function initProfilePictureSystem() {
-  // Cache DOM elements
-  const profilePicModal = document.getElementById('profile-pic-modal');
-  const profilePreview = document.getElementById('profile-preview');
-  const saveProfilePicBtn = document.getElementById('save-profile-pic');
-  const cancelProfilePicBtn = document.getElementById('cancel-profile-pic');
-  const profilePicUpload = document.getElementById('profile-pic-upload');
-  const avatarOptions = document.querySelectorAll('.avatar-option');
-  const changeAvatarBtn = document.getElementById('change-avatar-btn');
-  const profileMenu = document.getElementById('profile-menu');
+function dismissAnnouncement(announcementId) {
+    const announcementEl = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+    if (announcementEl) {
+        announcementEl.style.display = 'none';
+    }
 
-  // Check if elements exist
-  if (!profilePicModal || !profilePreview) {
-    console.warn('Profile picture modal elements not found');
-    return;
-  }
+    // Mark as read
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+            'type': 'announcement',
+            'action': 'mark_read',
+            'announcement_id': announcementId
+        }));
+    }
+}
 
-  // Handle save button
-  if (saveProfilePicBtn) {
-    saveProfilePicBtn.addEventListener('click', saveProfilePicture);
-  }
+// Whiteboard functionality
+function openWhiteboard() {
+    const modal = document.getElementById('whiteboard-modal');
+    if (modal) {
+        modal.classList.add('open');
+        initializeWhiteboard();
+    }
+}
 
-  // Handle cancel button
-  if (cancelProfilePicBtn) {
-    cancelProfilePicBtn.addEventListener('click', () => {
-      profilePicModal.classList.remove('flex');
-      profilePicModal.classList.add('hidden');
-      profilePicModal.style.display = 'none';
-    });
-  }
+function initializeWhiteboard() {
+    const canvas = document.getElementById('whiteboard-canvas');
+    if (!canvas) return;
 
-  // Handle avatar option selection
-  if (avatarOptions) {
-    avatarOptions.forEach(option => {
-      option.addEventListener('click', () => {
-        // Remove selection from all options
-        avatarOptions.forEach(opt => {
-          opt.classList.remove('ring-2', 'ring-pink-500', 'ring-offset-2');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let currentTool = 'brush';
+    let currentColor = '#000000';
+    let currentSize = 5;
+
+    // Set canvas size
+    function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Tool selection
+    document.querySelectorAll('[data-tool]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentTool = this.dataset.tool;
+            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
         });
-
-        // Add selection to clicked option
-        option.classList.add('ring-2', 'ring-pink-500', 'ring-offset-2');
-
-        // Update preview
-        const gradient = option.dataset.gradient;
-        if (profilePreview && gradient) {
-          // Remove any existing gradient classes
-          profilePreview.className = 'avatar h-24 w-24 text-xl profile-pic-container';
-          // Add new gradient classes
-          profilePreview.classList.add('bg-gradient-to-br', ...gradient.split(' '));
-          // Add the user's initial
-          profilePreview.innerHTML = window.username.charAt(0).toUpperCase();
-          // Remove background image if it exists
-          profilePreview.style.backgroundImage = '';
-          profilePreview.classList.remove('with-image');
-        }
-      });
-    });
-  }
-
-  // Handle profile picture upload
-  if (profilePicUpload) {
-    profilePicUpload.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (profilePreview) {
-            profilePreview.style.backgroundImage = `url(${e.target.result})`;
-            profilePreview.classList.add('with-image');
-            profilePreview.innerHTML = '';
-
-            // Store the image data for later use
-            window.profileImageData = e.target.result;
-          }
-        };
-        reader.readAsDataURL(e.target.files[0]);
-      }
-    });
-  }
-
-  // Set up change avatar button
-  if (changeAvatarBtn && profilePicModal) {
-    changeAvatarBtn.addEventListener('click', () => {
-      profilePicModal.classList.remove('hidden');
-      profilePicModal.classList.add('flex');
-      profilePicModal.style.display = 'flex';
-
-      // Close profile menu
-      if (profileMenu) {
-        profileMenu.classList.remove('open');
-      }
-    });
-  }
-
-  // Load profile pictures for all users
-  loadAllProfiles();
-}
-
-// Save profile picture
-function saveProfilePicture() {
-  const profilePicModal = document.getElementById('profile-pic-modal');
-  let profileData = {};
-
-  // Check if we have uploaded image data
-  if (window.profileImageData) {
-    profileData = {
-      type: 'image',
-      data: window.profileImageData
-    };
-  } else {
-    // Get selected gradient option
-    const selectedOption = document.querySelector('.avatar-option.ring-2');
-    if (selectedOption && selectedOption.dataset.gradient) {
-      profileData = {
-        type: 'gradient',
-        gradient: selectedOption.dataset.gradient
-      };
-    }
-  }
-
-  // Save to local storage
-  localStorage.setItem(`profilePic_${window.username}`, JSON.stringify(profileData));
-  localStorage.setItem(`profilePic_${window.username}_timestamp`, Date.now().toString());
-
-  // Update all avatars for current user
-  updateUserAvatars(window.username, profileData);
-
-  // Send update via WebSocket
-  if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-    window.socket.send(JSON.stringify({
-      type: "profile_update",
-      profile_data: profileData
-    }));
-  }
-
-  // Send to server via API
-  fetch('/api/update_profile/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken()
-    },
-    body: JSON.stringify({
-      profile_picture: profileData
-    })
-  }).then(response => {
-    if (!response.ok) {
-      throw new Error('Failed to update profile');
-    }
-    return response.json();
-  }).then(data => {
-    if (data.success) {
-      showNotification('Profile updated successfully!');
-    } else {
-      throw new Error(data.error || 'Unknown error');
-    }
-  }).catch(error => {
-    console.error('Error updating profile:', error);
-    showNotification('Error updating profile');
-  });
-
-  // Hide modal
-  if (profilePicModal) {
-    profilePicModal.classList.add('hidden');
-    profilePicModal.classList.remove('flex');
-    profilePicModal.style.display = 'none';
-  }
-}
-
-function sanitizeUsername(username) {
-  if (typeof username !== 'string') return '';
-  // Remove newlines and other characters that break CSS selectors
-  return username.replace(/[\r\n\t]+/g, ' ').trim().replace(/['"\\]/g, '');
-}
-
-// Update user avatars in the UI
-function updateUserAvatars(username, profileData) {
-  if (!username || !profileData) return;
-
-  // Sanitize username for CSS selector
-  const sanitizedUsername = sanitizeUsername(username);
-
-  // Find all avatar elements for this user
-  const avatarSelector = `.user-avatar[data-username="${sanitizedUsername}"]`;
-  const avatars = document.querySelectorAll(avatarSelector);
-
-  if (avatars.length === 0) {
-    // If no direct matches, look for containers with username spans
-    document.querySelectorAll('li, .user-list-item, .message-bubble').forEach(container => {
-      const usernameEl = container.querySelector('span, p.text-xs, a.username-link');
-      if (usernameEl && usernameEl.textContent.trim() === username) {
-        const avatar = container.querySelector('.user-avatar, div.h-6.w-6.rounded-full');
-        if (avatar) {
-          updateAvatarElement(avatar, username, profileData);
-        }
-      }
-    });
-  } else {
-    // Update direct matches
-    avatars.forEach(avatar => {
-      updateAvatarElement(avatar, username, profileData);
-    });
-  }
-}
-
-// Update an individual avatar element
-function updateAvatarElement(element, username, profileData) {
-  if (!element || !username) return;
-
-  try {
-    // Extract size classes
-    const sizeClasses = element.className.split(' ').filter(cls =>
-      cls.includes('h-') || cls.includes('w-') ||
-      cls.includes('rounded') || cls.includes('mr-')
-    ).join(' ');
-
-    // Handle image type
-    if (profileData.type === 'image' && profileData.data) {
-      element.className = `${sizeClasses} user-avatar with-image`;
-      element.style.backgroundImage = `url(${profileData.data})`;
-      element.style.backgroundSize = 'cover';
-      element.style.backgroundPosition = 'center';
-      element.innerHTML = '';
-      element.setAttribute('data-username', username);
-    }
-    // Handle gradient type
-    else if (profileData.type === 'gradient' && profileData.gradient) {
-      element.className = `${sizeClasses} user-avatar bg-gradient-to-br ${profileData.gradient} text-white flex items-center justify-center font-medium text-xs`;
-      element.style.backgroundImage = '';
-      element.innerHTML = username.charAt(0).toUpperCase();
-      element.setAttribute('data-username', username);
-    }
-  } catch (error) {
-    console.error("Error updating avatar element:", error);
-  }
-}
-
-// Load profiles for all users in the room
-function loadAllProfiles() {
-  // Get all usernames from the user list
-  const usernames = new Set();
-
-  // From user list
-  document.querySelectorAll('#user-list li, #mobile-user-list-content .user-list-item').forEach(li => {
-    const usernameEl = li.querySelector('span');
-    if (usernameEl) {
-      const username = usernameEl.textContent.trim();
-      if (username) {
-        usernames.add(username);
-      }
-    }
-  });
-
-  // From messages
-  document.querySelectorAll('.message-bubble').forEach(msg => {
-    const usernameEl = msg.querySelector('a.username-link, p:first-child');
-    if (usernameEl) {
-      const username = usernameEl.textContent.trim();
-      if (username) {
-        usernames.add(username);
-      }
-    }
-  });
-
-  // Add current user
-  if (window.username) {
-    usernames.add(window.username);
-  }
-
-  // Load profiles for all usernames
-  usernames.forEach(username => {
-    loadUserProfile(username);
-  });
-}
-
-// Load user profile for a specific username
-function loadUserProfile(username) {
-  console.log(`Loading profile for ${username}`);
-
-  // Check for cache first
-  const cachedData = localStorage.getItem(`profilePic_${username}`);
-  const cacheTimestamp = localStorage.getItem(`profilePic_${username}_timestamp`);
-
-  // Use cache if it's recent enough
-  if (cachedData && cacheTimestamp) {
-    const cacheDuration = Date.now() - parseInt(cacheTimestamp);
-    if (cacheDuration < 300000) { // 5 minutes
-      try {
-        const profileData = JSON.parse(cachedData);
-        updateUserAvatars(username, profileData);
-        return;
-      } catch (e) {
-        console.warn(`Error parsing cached profile for ${username}:`, e);
-      }
-    }
-  }
-
-  // Generate a default profile based on username
-  const defaultProfile = {
-    type: 'gradient',
-    gradient: getConsistentGradientForUser(username)
-  };
-
-  // Use default profile immediately to ensure UI looks good
-  updateUserAvatars(username, defaultProfile);
-
-  // Then try to fetch from API
-  fetch(`/api/profile/${username}/`)
-    .then(response => {
-      // If server returns error, just use default
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (data && data.success && data.profile_picture) {
-        // Cache the API response
-        localStorage.setItem(`profilePic_${username}`, JSON.stringify(data.profile_picture));
-        localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
-
-        // Update UI with API data
-        updateUserAvatars(username, data.profile_picture);
-      } else {
-        // If API returns success: false or missing data, keep using default
-        localStorage.setItem(`profilePic_${username}`, JSON.stringify(defaultProfile));
-        localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
-      }
-    })
-    .catch(error => {
-      console.warn(`Error fetching profile for ${username}:`, error);
-
-      // On error, store default in cache and continue
-      localStorage.setItem(`profilePic_${username}`, JSON.stringify(defaultProfile));
-      localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
-    });
-}
-
-// Handle profile updates from WebSocket
-function handleProfileUpdate(username, profileData) {
-  if (!username || !profileData) return;
-
-  // Update localStorage cache
-  localStorage.setItem(`profilePic_${username}`, JSON.stringify(profileData));
-  localStorage.setItem(`profilePic_${username}_timestamp`, Date.now().toString());
-
-  // Update avatars in the UI
-  updateUserAvatars(username, profileData);
-}
-
-// Helper function to get a consistent gradient based on username
-function getConsistentGradientForUser(username) {
-  const gradients = [
-    'from-pink-400 to-purple-400',
-    'from-blue-400 to-indigo-400',
-    'from-green-400 to-teal-400',
-    'from-purple-400 to-pink-400',
-    'from-yellow-400 to-orange-400',
-    'from-red-400 to-pink-400',
-    'from-cyan-400 to-blue-400',
-    'from-emerald-400 to-green-500'
-  ];
-
-  // Simple hash function
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  // Get a consistent index based on username
-  return gradients[Math.abs(hash) % gradients.length];
-}
-
-// =============== EMOJI PANEL ===============
-function initEmojiPanel() {
-  const emojiButton = document.getElementById('emoji-button');
-  const emojiPanel = document.getElementById('emoji-panel');
-  const messageInput = document.getElementById('chat-message-input');
-
-  if (!emojiButton || !emojiPanel || !messageInput) {
-    console.warn('Missing elements for emoji panel initialization');
-    return;
-  }
-
-  // Make sure the emoji panel is properly hidden initially
-  emojiPanel.classList.remove('show');
-  emojiPanel.style.display = 'none';
-
-  // Explicitly toggle show/hide with forced display style
-  emojiButton.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const isVisible = emojiPanel.classList.contains('show');
-
-    if (isVisible) {
-      emojiPanel.classList.remove('show');
-      emojiPanel.style.display = 'none';
-    } else {
-      emojiPanel.classList.add('show');
-      emojiPanel.style.display = 'grid';
-    }
-  });
-
-  // Close panel when clicking outside
-  document.addEventListener('click', e => {
-    if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
-      emojiPanel.classList.remove('show');
-      emojiPanel.style.display = 'none';
-    }
-  });
-
-  // Set up emoji click handlers
-  document.querySelectorAll('.emoji-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      // Get emoji from button
-      const emoji = btn.textContent.trim();
-
-      // Insert emoji at cursor position
-      const startPos = messageInput.selectionStart;
-      const endPos = messageInput.selectionEnd;
-      const before = messageInput.value.substring(0, startPos);
-      const after = messageInput.value.substring(endPos);
-
-      messageInput.value = before + emoji + after;
-
-      // Place cursor after inserted emoji
-      messageInput.selectionStart = messageInput.selectionEnd = startPos + emoji.length;
-      messageInput.focus();
-
-      // Hide panel
-      emojiPanel.classList.remove('show');
-      emojiPanel.style.display = 'none';
-    });
-  });
-}
-
-// =============== MEDIA LIBRARY & FILE UPLOAD ===============
-function initFileUpload() {
-  const fileInput = document.getElementById('file-input');
-  const previewContainer = document.getElementById('preview');
-  const previewContent = document.getElementById('preview-content');
-  const cancelPreviewBtn = document.getElementById('cancel-preview');
-  const messageForm = document.getElementById('message-form');
-
-  // Exit if required elements not found
-  if (!fileInput || !previewContainer || !previewContent) {
-    console.warn('File upload elements not found');
-    return;
-  }
-
-  // Handle file selection
-  fileInput.addEventListener('change', (e) => {
-    const uploadedFiles = [...e.target.files];
-
-    if (uploadedFiles.length === 0) {
-      return;
-    }
-
-    // Store files
-    window.uploadedFiles = uploadedFiles;
-
-    // Show preview container
-    previewContainer.classList.remove('hidden');
-    previewContainer.style.display = 'block';
-
-    // Clear previous previews
-    previewContent.innerHTML = '';
-
-    // Create previews for each file
-    uploadedFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const preview = document.createElement('div');
-        preview.className = 'preview-item';
-
-        if (file.type.startsWith('image')) {
-          preview.innerHTML = `<img src="${reader.result}" alt="Image preview" />`;
-        } else if (file.type.startsWith('video')) {
-          preview.innerHTML = `<video muted loop><source src="${reader.result}" type="${file.type}"></video>`;
-        }
-
-        previewContent.appendChild(preview);
-      };
-      reader.readAsDataURL(file);
-    });
-  });
-
-  // Handle cancel button
-  if (cancelPreviewBtn) {
-    cancelPreviewBtn.addEventListener('click', () => {
-      // Clear uploaded files
-      window.uploadedFiles = [];
-
-      // Reset file input
-      fileInput.value = '';
-
-      // Hide preview container
-      previewContainer.classList.add('hidden');
-      previewContainer.style.display = 'none';
-    });
-  }
-}
-
-// Compress image before upload
-async function compressImage(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-
-        // Calculate new dimensions (maintaining aspect ratio)
-        let width = img.width;
-        let height = img.height;
-        const maxDimension = 900;
-
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob((blob) => {
-          resolve(new File([blob], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now()
-          }));
-        }, 'image/jpeg', 0.5);
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-// Upload files and send in chat
-async function uploadFilesAndSend() {
-  const uploadedFiles = window.uploadedFiles || [];
-  if (uploadedFiles.length === 0) return;
-
-  const progressContainer = document.getElementById('progress-container');
-  const progressBar = document.getElementById('progress-bar');
-
-  const formData = new FormData();
-  const csrfToken = getCsrfToken();
-
-  try {
-    // Compress images before uploading
-    for (const file of uploadedFiles) {
-      try {
-        if (file.type.startsWith('image/')) {
-          const compressedFile = await compressImage(file);
-          formData.append('media', compressedFile);
-        } else {
-          formData.append('media', file);
-        }
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-      }
-    }
-
-    if (progressContainer) {
-      progressContainer.classList.remove('hidden');
-      progressContainer.style.display = 'block';
-    }
-
-    if (progressBar) {
-      progressBar.style.width = '0%';
-    }
-
-    const uploadUrl = '/api/upload_media/';
-
-    const response = await fetch(uploadUrl, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'X-CSRFToken': csrfToken
-      }
     });
 
-    if (!response.ok) {
-      throw new Error(`Server responded with status: ${response.status}`);
-    }
+    // Color and size selection
+    const colorPicker = document.getElementById('brush-color');
+    const sizePicker = document.getElementById('brush-size');
 
-    const result = await response.json();
-
-    if (progressBar) {
-      progressBar.style.width = '100%';
-    }
-
-    if (result.success && result.urls && result.urls.length > 0) {
-      result.urls.forEach(url => {
-        const html = url.match(/\.(mp4|webm)$/i)
-          ? `<video controls class="max-w-xs rounded-lg"><source src="${url}"></video>`
-          : `<img src="${url}" class="max-w-xs rounded-lg" />`;
-
-        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-          window.socket.send(JSON.stringify({
-            type: 'chat_message',
-            message: html
-          }));
-
-          // Add to media library
-          if (url.match(/\.(mp4|webm)$/i)) {
-            addToMediaLibrary(url, 'video');
-          } else {
-            addToMediaLibrary(url, 'image');
-          }
-        } else {
-          showNotification('Connection issue. Please refresh the page.');
-        }
-      });
-    } else {
-      throw new Error('No media URLs returned from server');
-    }
-  } catch (error) {
-    console.error('Error uploading files:', error);
-    showNotification('Upload failed: ' + (error.message || 'Please try again.'));
-    throw error;
-  } finally {
-    // Reset UI
-    const fileInput = document.getElementById('file-input');
-    const previewContainer = document.getElementById('preview');
-
-    if (fileInput) {
-      fileInput.value = '';
-    }
-
-    window.uploadedFiles = [];
-
-    if (previewContainer) {
-      previewContainer.classList.add('hidden');
-      previewContainer.style.display = 'none';
-    }
-
-    // Delay hiding progress
-    setTimeout(() => {
-      if (progressContainer) {
-        progressContainer.classList.add('hidden');
-        progressContainer.style.display = 'none';
-      }
-    }, 1000);
-  }
-}
-
-// Enhanced Media Library Functionality
-function initMediaLibrary() {
-  // Get DOM elements
-  const openMediaBtn = document.getElementById('open-media-library');
-  const closeMediaBtn = document.getElementById('close-media-library');
-  const mediaModal = document.getElementById('media-library-modal');
-  const mediaGrid = document.getElementById('media-grid');
-  const filterBtns = document.querySelectorAll('.media-filter-btn');
-  const closePreviewBtn = document.getElementById('close-media-preview');
-  const previewModal = document.getElementById('media-preview-modal');
-
-  // Check for required elements
-  if (!openMediaBtn || !mediaModal || !mediaGrid) {
-    console.warn('Media library elements not found');
-    return;
-  }
-
-  // Initialize media library data structure if not exists
-  if (!window.mediaLibrary) {
-    window.mediaLibrary = { images: [], videos: [] };
-  }
-
-  console.log('Initializing media library...');
-
-  // Initial scan for media in the DOM
-  scanDOMForMedia();
-
-  // Open media library button
-  openMediaBtn.addEventListener('click', () => {
-    console.log('Media library button clicked');
-
-    // Fetch latest media from the server
-    fetchRoomMedia();
-
-    // Scan again to make sure we have the latest media
-    scanDOMForMedia();
-
-    // Apply the "all" filter by default
-    if (filterBtns && filterBtns.length > 0) {
-      filterBtns.forEach(btn => {
-        if (btn.dataset.filter === 'all') {
-          btn.classList.remove('bg-gray-200', 'text-gray-700');
-          btn.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-        } else {
-          btn.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-          btn.classList.add('bg-gray-200', 'text-gray-700');
-        }
-      });
-    }
-
-    // Show loading state in the grid
-    mediaGrid.innerHTML = `
-      <div class="col-span-full flex flex-col items-center justify-center py-10">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mb-4"></div>
-        <p class="text-gray-500">Loading media...</p>
-      </div>
-    `;
-
-    // Render the media grid with all media
-    renderMediaGrid('all');
-
-    // Show the modal with flex display
-    mediaModal.classList.remove('hidden');
-    mediaModal.classList.add('flex');
-    mediaModal.style.display = 'flex';
-  });
-
-  // Close media library button
-  if (closeMediaBtn) {
-    closeMediaBtn.addEventListener('click', () => {
-      mediaModal.classList.add('hidden');
-      mediaModal.classList.remove('flex');
-      mediaModal.style.display = 'none';
-    });
-  }
-
-  // Close preview button
-  if (closePreviewBtn && previewModal) {
-    closePreviewBtn.addEventListener('click', () => {
-      previewModal.classList.add('hidden');
-      previewModal.classList.remove('flex');
-      previewModal.style.display = 'none';
-    });
-  }
-
-  // Filter buttons
-  if (filterBtns && filterBtns.length > 0) {
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!btn.dataset.filter) return;
-
-        // Update active state
-        filterBtns.forEach(b => {
-          b.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-          b.classList.add('bg-gray-200', 'text-gray-700');
+    if (colorPicker) {
+        colorPicker.addEventListener('change', (e) => {
+            currentColor = e.target.value;
         });
-
-        btn.classList.remove('bg-gray-200', 'text-gray-700');
-        btn.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-
-        // Apply filter
-        renderMediaGrid(btn.dataset.filter);
-      });
-    });
-  }
-}
-
-// Scan DOM for media
-function scanDOMForMedia() {
-  try {
-    // Make sure we have the media library structure
-    if (!window.mediaLibrary) {
-      window.mediaLibrary = { images: [], videos: [] };
     }
 
-    // Find all images in message content
-    const messageImages = document.querySelectorAll('.message-content img');
-    messageImages.forEach(img => {
-      if (img.src &&
-          !img.src.includes('data:image') && // Skip inline data URLs
-          !window.mediaLibrary.images.includes(img.src)) {
-        window.mediaLibrary.images.push(img.src);
-      }
-    });
-
-    // Find all videos in message content
-    const messageVideos = document.querySelectorAll('.message-content video source');
-    messageVideos.forEach(source => {
-      if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
-        window.mediaLibrary.videos.push(source.src);
-      }
-    });
-  } catch (error) {
-    console.error('Error scanning DOM for media:', error);
-  }
-}
-
-// Fetch room media from server
-function fetchRoomMedia() {
-  console.log(`Fetching media for room: ${window.roomName}`);
-
-  fetch(`/api/room/${window.roomName}/media/`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Media API response:', data);
-
-      if (data.success && data.media && Array.isArray(data.media)) {
-        // Clear existing arrays before adding new items
-        window.mediaLibrary.images = [];
-        window.mediaLibrary.videos = [];
-
-        data.media.forEach(mediaItem => {
-          if (mediaItem.type === 'image' && !window.mediaLibrary.images.includes(mediaItem.url)) {
-            window.mediaLibrary.images.push(mediaItem.url);
-          } else if (mediaItem.type === 'video' && !window.mediaLibrary.videos.includes(mediaItem.url)) {
-            window.mediaLibrary.videos.push(mediaItem.url);
-          }
+    if (sizePicker) {
+        sizePicker.addEventListener('change', (e) => {
+            currentSize = parseInt(e.target.value);
         });
+    }
 
-        // Update the media grid if it's open
-        const mediaModal = document.getElementById('media-library-modal');
-        if (mediaModal && (mediaModal.classList.contains('flex') || mediaModal.style.display === 'flex')) {
-          const activeFilter = document.querySelector('.media-filter-btn.bg-gradient-to-r');
-          renderMediaGrid(activeFilter ? activeFilter.dataset.filter : 'all');
+    // Drawing events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    function startDrawing(e) {
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        ctx.lineWidth = currentSize;
+        ctx.strokeStyle = currentColor;
+        ctx.lineCap = 'round';
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        // Send update via WebSocket
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({
+                'type': 'whiteboard',
+                'action': 'draw',
+                'fromX': ctx.lastX,
+                'fromY': ctx.lastY,
+                'toX': x,
+                'toY': y,
+                'color': currentColor,
+                'size': currentSize
+            }));
         }
-      } else {
-        console.warn('Invalid data format or empty media array from API');
-        // Continue with what we have locally
-        renderMediaGrid('all');
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching room media:', error);
-      // Continue with what we have locally
-      renderMediaGrid('all');
-    });
+
+        ctx.lastX = x;
+        ctx.lastY = y;
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+    }
+
+    // Clear button
+    const clearBtn = document.getElementById('clear-whiteboard');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    'type': 'whiteboard',
+                    'action': 'clear'
+                }));
+            }
+        });
+    }
+
+    // Save button
+    const saveBtn = document.getElementById('save-whiteboard');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'whiteboard.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
 }
 
-// Add media to the library
-function addToMediaLibrary(url, type) {
-  if (!window.mediaLibrary) {
-    window.mediaLibrary = { images: [], videos: [] };
-  }
+function handleWhiteboardUpdate(data) {
+    const canvas = document.getElementById('whiteboard-canvas');
+    if (!canvas) return;
 
-  if (type === 'image' && !window.mediaLibrary.images.includes(url)) {
-    window.mediaLibrary.images.push(url);
-  } else if (type === 'video' && !window.mediaLibrary.videos.includes(url)) {
-    window.mediaLibrary.videos.push(url);
-  }
+    const ctx = canvas.getContext('2d');
+
+    if (data.action === 'draw') {
+        ctx.beginPath();
+        ctx.moveTo(data.fromX, data.fromY);
+        ctx.lineTo(data.toX, data.toY);
+        ctx.strokeStyle = data.color;
+        ctx.lineWidth = data.size;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    } else if (data.action === 'clear') {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
 }
 
-// Render media grid
-function renderMediaGrid(filter) {
-  try {
+// Media library
+function openMediaLibrary() {
+    const modal = document.getElementById('media-library-modal');
+    if (modal) {
+        modal.classList.add('open');
+        loadRoomMedia();
+    }
+}
+
+function loadRoomMedia() {
+    fetch(`/api/room/${window.roomName}/media/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayMediaGrid(data.media);
+            }
+        })
+        .catch(error => console.error('Error loading media:', error));
+}
+
+function displayMediaGrid(media) {
     const mediaGrid = document.getElementById('media-grid');
     if (!mediaGrid) return;
 
-    // Clear the grid
     mediaGrid.innerHTML = '';
+    media.forEach(item => {
+        const mediaItem = document.createElement('div');
+        mediaItem.className = 'media-item cursor-pointer hover:opacity-75 transition-opacity';
 
-    // Collect media items based on filter
-    let mediaItems = [];
-
-    if (filter === 'all' || filter === 'images') {
-      (window.mediaLibrary.images || []).forEach(src => {
-        if (src) mediaItems.push({ type: 'image', src });
-      });
-    }
-
-    if (filter === 'all' || filter === 'videos') {
-      (window.mediaLibrary.videos || []).forEach(src => {
-        if (src) mediaItems.push({ type: 'video', src });
-      });
-    }
-
-    // Show empty state if no media
-    if (mediaItems.length === 0) {
-      mediaGrid.innerHTML = `
-        <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p class="text-center">No media found in this room yet.<br>Share images or videos in the chat to see them here.</p>
-        </div>
-      `;
-      return;
-    }
-
-    // Create media items
-    mediaItems.forEach((item, index) => {
-      if (!item.src) return; // Skip items with no source
-
-      const mediaItem = document.createElement('div');
-      mediaItem.className = 'media-item rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer bg-gray-100 aspect-square flex items-center justify-center';
-
-      try {
         if (item.type === 'image') {
-          mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item ${index}" loading="lazy" />`;
-        } else {
-          mediaItem.innerHTML = `
-            <div class="relative w-full h-full">
-              <video class="object-cover w-full h-full" preload="metadata">
-                <source src="${item.src}">
-              </video>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <div class="bg-black bg-opacity-50 rounded-full p-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          `;
+            mediaItem.innerHTML = `<img src="${item.url}" class="w-full h-full object-cover rounded-lg">`;
+        } else if (item.type === 'video') {
+            mediaItem.innerHTML = `<video src="${item.url}" class="w-full h-full object-cover rounded-lg"></video>`;
         }
 
-        // Add media item to grid
-        mediaGrid.appendChild(mediaItem);
-
-        // Get references to modal elements
-        const previewModal = document.getElementById('media-preview-modal');
-        const previewContent = document.getElementById('media-preview-content');
-
-        // Add preview functionality
-        if (previewModal && previewContent) {
-          mediaItem.addEventListener('click', () => {
-            try {
-              // Clear previous content
-              previewContent.innerHTML = '';
-
-              // Add appropriate content based on type
-              if (item.type === 'image') {
-                previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" alt="Media preview" />`;
-              } else {
-                previewContent.innerHTML = `
-                  <video controls autoplay class="max-w-full max-h-[80vh] object-contain">
-                    <source src="${item.src}">
-                  </video>
-                `;
-              }
-
-              // Show the preview modal
-              previewModal.classList.remove('hidden');
-              previewModal.classList.add('flex');
-              previewModal.style.display = 'flex';
-            } catch (error) {
-              console.error('Error showing preview:', error);
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error creating media item:', error);
-      }
-    });
-  } catch (error) {
-    console.error('Error rendering media grid:', error);
-  }
-}
-
-// Share Media from Library
-function setupMediaSharing() {
-  const mediaGrid = document.getElementById('media-grid');
-  const mediaModal = document.getElementById('media-library-modal');
-
-  if (!mediaGrid) return;
-
-  // Add context menu for sharing media
-  mediaGrid.addEventListener('contextmenu', (event) => {
-    const mediaItem = event.target.closest('.media-item');
-    if (!mediaItem) return;
-
-    event.preventDefault();
-
-    // Find the media URL
-    let mediaUrl;
-    const img = mediaItem.querySelector('img');
-    const video = mediaItem.querySelector('video source');
-
-    if (img) {
-      mediaUrl = img.src;
-    } else if (video) {
-      mediaUrl = video.src;
-    }
-
-    if (!mediaUrl) return;
-
-    // Create context menu
-    const menu = document.createElement('div');
-    menu.className = 'absolute bg-white shadow-lg rounded-lg p-2 z-50';
-    menu.style.left = `${event.pageX}px`;
-    menu.style.top = `${event.pageY}px`;
-
-    menu.innerHTML = `
-      <button class="share-media-btn w-full text-left px-3 py-2 hover:bg-pink-50 rounded-md">
-        Share in chat
-      </button>
-    `;
-
-    document.body.appendChild(menu);
-
-    // Handle share button click
-    menu.querySelector('.share-media-btn').addEventListener('click', () => {
-      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        // Determine if it's an image or video
-        let messageContent;
-        if (img) {
-          messageContent = `<img src="${mediaUrl}" class="max-w-xs rounded-lg" />`;
-        } else if (video) {
-          messageContent = `<video controls class="max-w-xs rounded-lg"><source src="${mediaUrl}"></video>`;
-        }
-
-        // Send via WebSocket
-        window.socket.send(JSON.stringify({
-          type: 'chat_message',
-          message: messageContent
-        }));
-
-        // Close media library
-        if (mediaModal) {
-          mediaModal.classList.add('hidden');
-          mediaModal.classList.remove('flex');
-          mediaModal.style.display = 'none';
-        }
-
-        // Remove context menu
-        document.body.removeChild(menu);
-      }
-    });
-
-    // Remove context menu when clicking elsewhere
-    document.addEventListener('click', function removeMenu() {
-      if (document.body.contains(menu)) {
-        document.body.removeChild(menu);
-      }
-      document.removeEventListener('click', removeMenu);
-    });
-  });
-}
-
-// =============== COLLABORATIVE WHITEBOARD ===============
-// Enhanced Whiteboard Functionality
-function initWhiteboard() {
-  // Get DOM elements
-  const canvas = document.getElementById('whiteboard-canvas');
-  const openWhiteboardBtn = document.getElementById('open-whiteboard');
-  const closeWhiteboardBtn = document.getElementById('close-whiteboard');
-  const whiteboardModal = document.getElementById('whiteboard-modal');
-  const clearWhiteboardBtn = document.getElementById('clear-whiteboard');
-  const brushColor = document.getElementById('brush-color');
-  const brushSize = document.getElementById('brush-size');
-  const saveWhiteboardBtn = document.getElementById('save-whiteboard');
-  const toolButtons = document.querySelectorAll('[data-tool]');
-
-  // Exit if required elements not found
-  if (!canvas || !openWhiteboardBtn || !whiteboardModal) {
-    console.warn('Whiteboard elements not found');
-    return;
-  }
-
-  // Get canvas context
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    console.error('Could not get canvas context');
-    return;
-  }
-
-  // Set up drawing state
-  let isDrawing = false;
-  let lastX = 0;
-  let lastY = 0;
-  let currentTool = 'brush';
-
-  // Open whiteboard button
-  openWhiteboardBtn.addEventListener('click', () => {
-    whiteboardModal.classList.remove('hidden');
-    whiteboardModal.classList.add('flex');
-    whiteboardModal.style.display = 'flex';
-
-    // Set a small timeout to ensure the modal is visible before resizing
-    setTimeout(resizeCanvas, 100);
-  });
-
-  // Close whiteboard button
-  if (closeWhiteboardBtn) {
-    closeWhiteboardBtn.addEventListener('click', () => {
-      whiteboardModal.classList.add('hidden');
-      whiteboardModal.classList.remove('flex');
-      whiteboardModal.style.display = 'none';
-    });
-  }
-
-  // Tool selection
-  if (toolButtons && toolButtons.length > 0) {
-    toolButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Get tool type
-        const toolType = btn.dataset.tool;
-        if (!toolType) return;
-
-        // Remove active class from all buttons
-        toolButtons.forEach(b => {
-          b.classList.remove('bg-pink-500', 'text-white');
-          b.classList.add('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50');
+        mediaItem.addEventListener('click', () => {
+            openMediaPreview(item);
         });
 
-        // Add active class to clicked button
-        btn.classList.remove('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50');
-        btn.classList.add('bg-pink-500', 'text-white');
-
-        // Set current tool
-        currentTool = toolType;
-      });
+        mediaGrid.appendChild(mediaItem);
     });
-  }
-
-  // Set canvas size on resize
- function resizeCanvas() {
-  const container = canvas.parentElement;
-  if (!container) return;
-
-  const rect = container.getBoundingClientRect();
-
-  // Check if the dimensions are valid before proceeding
-  if (rect.width <= 0 || rect.height <= 0) {
-    console.warn('Invalid canvas container dimensions, retrying in 100ms...');
-    setTimeout(resizeCanvas, 100);
-    return;
-  }
-
-  // If the canvas already has dimensions, store current drawing
-  let imageData = null;
-  if (canvas.width > 0 && canvas.height > 0) {
-    try {
-      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    } catch (e) {
-      console.warn('Could not get image data:', e);
-    }
-  }
-
-  // Set new canvas dimensions
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-
-  // Restore drawing if we had valid image data
-  if (imageData) {
-    ctx.putImageData(imageData, 0, 0);
-  }
-
-  console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
 }
 
-  // Window resize event
-  window.addEventListener('resize', resizeCanvas);
+function openMediaPreview(item) {
+    const modal = document.getElementById('media-preview-modal');
+    const content = document.getElementById('media-preview-content');
 
-  // Drawing functions - improved with last position tracking
-  const startDrawing = (e) => {
-    isDrawing = true;
+    if (!modal || !content) return;
 
-    const rect = canvas.getBoundingClientRect();
-    lastX = e.clientX - rect.left;
-    lastY = e.clientY - rect.top;
+    content.innerHTML = '';
 
-    // For single dot
-    drawDot(lastX, lastY);
-  };
-
-  const drawDot = (x, y) => {
-    if (currentTool === 'brush') {
-      ctx.lineWidth = brushSize ? parseInt(brushSize.value) : 5;
-      ctx.fillStyle = brushColor ? brushColor.value : '#000000';
-      ctx.beginPath();
-      ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (currentTool === 'eraser') {
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(x, y, (brushSize ? parseInt(brushSize.value) * 2 : 10), 0, Math.PI * 2);
-      ctx.fill();
+    if (item.type === 'image') {
+        content.innerHTML = `<img src="${item.url}" class="max-w-full max-h-full">`;
+    } else if (item.type === 'video') {
+        content.innerHTML = `<video src="${item.url}" controls class="max-w-full max-h-full"></video>`;
     }
 
-    // Broadcast dot
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      window.socket.send(JSON.stringify({
-        type: 'whiteboard',
-        action: 'dot',
-        x: x / canvas.width,
-        y: y / canvas.height,
-        color: currentTool === 'eraser' ? '#ffffff' : (brushColor ? brushColor.value : '#000000'),
-        size: currentTool === 'eraser' ? (brushSize ? parseInt(brushSize.value) * 2 : 10) : (brushSize ? parseInt(brushSize.value) : 5)
-      }));
-    }
-  };
-
-  const stopDrawing = () => {
-    isDrawing = false;
-    ctx.beginPath(); // Reset path
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.beginPath();
-
-    if (currentTool === 'brush') {
-      ctx.lineWidth = brushSize ? parseInt(brushSize.value) : 5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = brushColor ? brushColor.value : '#000000';
-    } else if (currentTool === 'eraser') {
-      ctx.lineWidth = brushSize ? parseInt(brushSize.value) * 2 : 10;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#ffffff';
-    }
-
-    // Draw from last position to current position
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-
-    // Save current position
-    lastX = x;
-    lastY = y;
-
-    // Broadcast drawing data
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      window.socket.send(JSON.stringify({
-        type: 'whiteboard',
-        action: 'draw',
-        fromX: lastX / canvas.width,
-        fromY: lastY / canvas.height,
-        toX: x / canvas.width,
-        toY: y / canvas.height,
-        color: currentTool === 'eraser' ? '#ffffff' : (brushColor ? brushColor.value : '#000000'),
-        size: currentTool === 'eraser' ? (brushSize ? parseInt(brushSize.value) * 2 : 10) : (brushSize ? parseInt(brushSize.value) : 5)
-      }));
-    }
-  };
-
-  // Touch drawing functions
-  const startDrawingTouch = (e) => {
-    e.preventDefault(); // Prevent scrolling
-
-    if (e.touches && e.touches[0]) {
-      isDrawing = true;
-      const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      lastX = touch.clientX - rect.left;
-      lastY = touch.clientY - rect.top;
-
-      // For single dot
-      drawDot(lastX, lastY);
-    }
-  };
-
-  const drawTouch = (e) => {
-    if (!isDrawing) return;
-    e.preventDefault(); // Prevent scrolling
-
-    if (e.touches && e.touches[0]) {
-      const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
-
-      ctx.beginPath();
-
-      if (currentTool === 'brush') {
-        ctx.lineWidth = brushSize ? parseInt(brushSize.value) : 5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = brushColor ? brushColor.value : '#000000';
-      } else if (currentTool === 'eraser') {
-        ctx.lineWidth = brushSize ? parseInt(brushSize.value) * 2 : 10;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#ffffff';
-      }
-
-      // Draw from last position to current position
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-
-      // Save current position
-      lastX = x;
-      lastY = y;
-
-      // Broadcast drawing data
-      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        window.socket.send(JSON.stringify({
-          type: 'whiteboard',
-          action: 'draw',
-          fromX: lastX / canvas.width,
-          fromY: lastY / canvas.height,
-          toX: x / canvas.width,
-          toY: y / canvas.height,
-          color: currentTool === 'eraser' ? '#ffffff' : (brushColor ? brushColor.value : '#000000'),
-          size: currentTool === 'eraser' ? (brushSize ? parseInt(brushSize.value) * 2 : 10) : (brushSize ? parseInt(brushSize.value) : 5)
-        }));
-      }
-    }
-  };
-
-  // Add canvas drawing events
-  canvas.addEventListener('mousedown', startDrawing);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', stopDrawing);
-  canvas.addEventListener('mouseout', stopDrawing);
-
-  // Add touch events
-  canvas.addEventListener('touchstart', startDrawingTouch);
-  canvas.addEventListener('touchmove', drawTouch);
-  canvas.addEventListener('touchend', stopDrawing);
-  canvas.addEventListener('touchcancel', stopDrawing);
-
-  // Clear whiteboard
-  if (clearWhiteboardBtn) {
-    clearWhiteboardBtn.addEventListener('click', () => {
-      if (!ctx) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Broadcast clear event
-      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        window.socket.send(JSON.stringify({
-          type: 'whiteboard',
-          action: 'clear'
-        }));
-      }
-    });
-  }
-
-  // Save whiteboard image
-  if (saveWhiteboardBtn) {
-    saveWhiteboardBtn.addEventListener('click', () => {
-      try {
-        // Create a temporary link
-        const link = document.createElement('a');
-        link.download = `whiteboard-${new Date().toISOString().slice(0, 10)}.png`;
-
-        // Use toDataURL with a white background
-        // First create a new canvas with white background
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.fillStyle = '#ffffff';
-        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-        // Then draw current canvas on top
-        tempCtx.drawImage(canvas, 0, 0);
-
-        // Use the temp canvas for the data URL
-        link.href = tempCanvas.toDataURL('image/png');
-        link.click();
-      } catch (error) {
-        console.error('Error saving whiteboard:', error);
-        showNotification('Error saving whiteboard: ' + error.message);
-      }
-    });
-  }
-
-  // Handle incoming whiteboard data
-  window.handleWhiteboardMessage = function(data) {
-    if (!canvas || !ctx) return;
-
-    try {
-      if (data.action === 'draw') {
-        const fromX = data.fromX * canvas.width;
-        const fromY = data.fromY * canvas.height;
-        const toX = data.toX * canvas.width;
-        const toY = data.toY * canvas.height;
-
-        ctx.beginPath();
-        ctx.lineWidth = data.size || 5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = data.color || '#000000';
-        ctx.moveTo(fromX, fromY);
-        ctx.lineTo(toX, toY);
-        ctx.stroke();
-      } else if (data.action === 'dot') {
-        const x = data.x * canvas.width;
-        const y = data.y * canvas.height;
-
-        ctx.beginPath();
-        ctx.fillStyle = data.color || '#000000';
-        ctx.arc(x, y, (data.size || 5) / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (data.action === 'clear') {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    } catch (error) {
-      console.error('Error handling whiteboard message:', error);
-    }
-  };
-
-  // Initial canvas resize
-  setTimeout(resizeCanvas, 200);
+    modal.classList.add('open');
 }
 
-// =============== MEETUP PLANNER ===============
-// Enhanced Meetup Planner Functionality
-function initMeetupPlanner() {
-  // Get DOM elements
-  const createMeetupBtn = document.getElementById('create-meetup-btn');
-  const meetupModal = document.getElementById('meetup-modal');
-  const cancelMeetupBtn = document.getElementById('cancel-meetup');
-  const meetupForm = document.getElementById('meetup-form');
-  const meetupTitleInput = document.getElementById('meetup-title');
-  const meetupDatetimeInput = document.getElementById('meetup-datetime');
-  const meetupLocationInput = document.getElementById('meetup-location');
-  const meetupDescriptionInput = document.getElementById('meetup-description');
+// User popover
+function showUserPopover(element, username) {
+    const popover = document.getElementById('user-options-popover');
+    if (!popover) return;
 
-  // Exit if required elements not found
-  if (!createMeetupBtn || !meetupModal) {
-    console.warn('Meetup planner elements not found');
-    return;
-  }
+    const rect = element.getBoundingClientRect();
+    popover.style.top = `${rect.bottom + 5}px`;
+    popover.style.left = `${rect.left}px`;
 
-  // Open meetup modal
-  createMeetupBtn.addEventListener('click', () => {
-    // Set default date to tomorrow at noon
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(12, 0, 0, 0);
+    popover.classList.remove('hidden');
 
-    // Format for datetime-local input
-    if (meetupDatetimeInput) {
-      meetupDatetimeInput.value = formatDateTimeForInput(tomorrow);
+    // Update popover content
+    const dmLink = popover.querySelector('.dm-user-link');
+    const addFriendBtn = popover.querySelector('.add-friend-btn');
+
+    if (dmLink) {
+        dmLink.href = `/dm/${username}/`;
     }
 
-    // Show modal
-    meetupModal.classList.remove('hidden');
-    meetupModal.classList.add('flex');
-    meetupModal.style.display = 'flex';
-
-    // Focus on title input
-    if (meetupTitleInput) {
-      setTimeout(() => meetupTitleInput.focus(), 100);
+    if (addFriendBtn) {
+        addFriendBtn.setAttribute('data-username', username);
+        addFriendBtn.addEventListener('click', () => {
+            addFriend(username);
+        });
     }
-  });
 
-  // Cancel button
-  if (cancelMeetupBtn) {
-    cancelMeetupBtn.addEventListener('click', () => {
-      meetupModal.classList.add('hidden');
-      meetupModal.classList.remove('flex');
-      meetupModal.style.display = 'none';
-    });
-  }
-
-  // Form submission
-  if (meetupForm) {
-    meetupForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      // Get form data and validate
-      const title = meetupTitleInput?.value.trim();
-      const datetime = meetupDatetimeInput?.value;
-      const location = meetupLocationInput?.value.trim();
-      const description = meetupDescriptionInput?.value.trim();
-
-      // Validate form
-      if (!title || !datetime || !location) {
-        showNotification('Please fill in all required fields');
-        return;
-      }
-
-      // Parse datetime
-      let parsedDatetime;
-      try {
-        parsedDatetime = new Date(datetime);
-        if (isNaN(parsedDatetime.getTime())) {
-          throw new Error('Invalid date');
+    // Hide on click outside
+    document.addEventListener('click', function hidePopover(e) {
+        if (!popover.contains(e.target) && e.target !== element) {
+            popover.classList.add('hidden');
+            document.removeEventListener('click', hidePopover);
         }
-      } catch (error) {
-        showNotification('Please enter a valid date and time');
-        return;
-      }
-
-      // Check if date is in the future
-      if (parsedDatetime < new Date()) {
-        showNotification('Please select a future date and time');
-        return;
-      }
-
-      // Create meetup object
-      const meetup = {
-        title,
-        datetime: parsedDatetime.toISOString(),
-        location,
-        description
-      };
-
-      // First show a loading indicator
-      const submitBtn = meetupForm.querySelector('button[type="submit"]');
-      const originalBtnText = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `
-        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        Creating...
-      `;
-
-      // Send to WebSocket
-      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        window.socket.send(JSON.stringify({
-          type: 'meetup',
-          action: 'create',
-          meetup
-        }));
-
-        // Set timeout to restore button and close modal
-        setTimeout(() => {
-          // Close modal
-          meetupModal.classList.add('hidden');
-          meetupModal.classList.remove('flex');
-          meetupModal.style.display = 'none';
-
-          // Reset form
-          meetupForm.reset();
-
-          // Restore button
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalBtnText;
-
-          showNotification('Meetup created successfully');
-        }, 1000);
-      } else {
-        // Handle connection issue
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
-        showNotification('Connection issue. Please refresh the page.');
-      }
     });
-  }
-
-  // Make meetups rendering available globally
-  window.renderMeetups = renderMeetups;
 }
 
-// Format date for datetime-local input
-function formatDateTimeForInput(date) {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    // Default to tomorrow if date is invalid
-    date = new Date();
-    date.setDate(date.getDate() + 1);
-    date.setHours(12, 0, 0, 0);
-  }
-
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-// Format date for display
-function formatDateForDisplay(dateString) {
-  const date = new Date(dateString);
-
-  if (isNaN(date.getTime())) {
-    return 'Invalid date';
-  }
-
-  // Check if today
-  const today = new Date();
-  const isToday = date.getDate() === today.getDate() &&
-                 date.getMonth() === today.getMonth() &&
-                 date.getFullYear() === today.getFullYear();
-
-  // Check if tomorrow
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const isTomorrow = date.getDate() === tomorrow.getDate() &&
-                    date.getMonth() === tomorrow.getMonth() &&
-                    date.getFullYear() === tomorrow.getFullYear();
-
-  let formattedDate;
-  if (isToday) {
-    formattedDate = 'Today';
-  } else if (isTomorrow) {
-    formattedDate = 'Tomorrow';
-  } else {
-    formattedDate = date.toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
-  }
-
-  // Format time
-  const formattedTime = date.toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  return { date: formattedDate, time: formattedTime };
-}
-
-// Render meetups
-function renderMeetups(meetups) {
-  // Find upcoming meetups section
-  const upcomingMeetupsList = document.getElementById('upcoming-meetups');
-  if (!upcomingMeetupsList) {
-    console.warn('Upcoming meetups section not found');
-    return;
-  }
-
-  // Clear existing content
-  upcomingMeetupsList.innerHTML = '';
-
-  // If no meetups, show empty state
-  if (!meetups || meetups.length === 0) {
-    upcomingMeetupsList.innerHTML = `
-      <p class="text-gray-400 text-xs italic">No upcoming meetups planned yet.</p>
-      <button id="create-meetup-empty-btn" class="btn btn-secondary w-full mt-3 text-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-        Plan a Meetup
-      </button>
-    `;
-
-    // Attach event listener to the empty state button
-    const emptyStateBtn = document.getElementById('create-meetup-empty-btn');
-    if (emptyStateBtn) {
-      emptyStateBtn.addEventListener('click', () => {
-        const meetupModal = document.getElementById('meetup-modal');
-        if (meetupModal) {
-          meetupModal.classList.remove('hidden');
-          meetupModal.classList.add('flex');
-          meetupModal.style.display = 'flex';
-
-          // Set default date to tomorrow at noon
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          tomorrow.setHours(12, 0, 0, 0);
-
-          const datetimeInput = document.getElementById('meetup-datetime');
-          if (datetimeInput) {
-            datetimeInput.value = formatDateTimeForInput(tomorrow);
-          }
-        }
-      });
+// Profile picture modal
+function openProfilePicModal() {
+    const modal = document.getElementById('profile-pic-modal');
+    if (modal) {
+        modal.classList.add('open');
+        initializeProfilePicModal();
     }
+}
 
-    return;
-  }
+function initializeProfilePicModal() {
+    const preview = document.getElementById('profile-preview');
+    const uploadInput = document.getElementById('profile-pic-upload');
+    const saveBtn = document.getElementById('save-profile-pic');
 
-  // Sort meetups by date
-  const sortedMeetups = [...meetups].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    let selectedProfile = null;
 
-  // Only show upcoming meetups
-  const upcomingMeetups = sortedMeetups.filter(m => new Date(m.datetime) > new Date());
+    // Avatar options
+    document.querySelectorAll('.avatar-option').forEach(option => {
+        option.addEventListener('click', function() {
+            selectedProfile = {
+                type: 'gradient',
+                gradient: this.dataset.gradient
+            };
 
-  // Render each meetup
-  upcomingMeetups.forEach(meetup => {
-    // Format date and time
-    const { date: formattedDate, time: formattedTime } = formatDateForDisplay(meetup.datetime);
+            // Update preview
+            preview.className = `avatar avatar-pink h-24 w-24 text-xl bg-gradient-to-br ${this.dataset.gradient}`;
 
-    // Check if current user is attending
-    const isAttending = Array.isArray(meetup.attendees) && meetup.attendees.includes(window.username);
+            // Mark as selected
+            document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('ring-2'));
+            this.classList.add('ring-2', 'ring-pink-500');
+        });
+    });
 
-    // Create meetup element
-    const meetupEl = document.createElement('div');
-    meetupEl.className = 'p-3 rounded-lg bg-gradient-to-r from-pink-50 to-yellow-50 border border-pink-100 mb-3';
-    meetupEl.innerHTML = `
-      <div class="flex justify-between items-start">
-        <h4 class="font-medium text-gray-800">${escapeHtml(meetup.title)}</h4>
-        <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">${formattedDate}</span>
-      </div>
-      <div class="mt-1 text-xs">
-        <div class="flex items-center text-gray-600">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          ${formattedTime}
-        </div>
-        <div class="flex items-center text-gray-600 mt-1">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          ${escapeHtml(meetup.location)}
-        </div>
-        ${meetup.description ? `
-        <div class="mt-2 text-gray-600 rounded-md bg-white bg-opacity-50 p-2 text-xs">
-          ${escapeHtml(meetup.description).replace(/\n/g, '<br>')}
-        </div>
-        ` : ''}
-      </div>
-      <div class="mt-2 flex justify-between items-center">
-        <span class="text-xs text-gray-500">${Array.isArray(meetup.attendees) ? meetup.attendees.length : 0} attending</span>
-        <button class="attend-btn text-xs px-2 py-1 rounded ${isAttending ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-700 hover:bg-pink-50'}" data-meetup-id="${meetup.id}">
-          ${isAttending ? 'Attending ✓' : 'Attend'}
-        </button>
-      </div>
-    `;
+    // File upload
+    if (uploadInput) {
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedProfile = {
+                        type: 'image',
+                        url: e.target.result
+                    };
 
-    upcomingMeetupsList.appendChild(meetupEl);
-
-    // Add event listener for attendance button
-    const attendBtn = meetupEl.querySelector('.attend-btn');
-    if (attendBtn) {
-      attendBtn.addEventListener('click', () => {
-        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-          // Show loading state
-          const originalText = attendBtn.textContent;
-          attendBtn.disabled = true;
-          attendBtn.textContent = isAttending ? 'Leaving...' : 'Joining...';
-
-          window.socket.send(JSON.stringify({
-            type: 'meetup',
-            action: isAttending ? 'leave' : 'join',
-            meetup_id: meetup.id
-          }));
-
-          // Reset button after a delay if no response
-          setTimeout(() => {
-            if (attendBtn.disabled) {
-              attendBtn.disabled = false;
-              attendBtn.textContent = originalText;
+                    preview.style.backgroundImage = `url(${e.target.result})`;
+                    preview.classList.add('with-image');
+                };
+                reader.readAsDataURL(file);
             }
-          }, 3000);
-        } else {
-          showNotification('Connection issue. Please refresh the page.');
-        }
-      });
-    }
-  });
-
-  // Add the create button at the end
-  const createBtn = document.createElement('button');
-  createBtn.id = 'create-meetup-list-btn';
-  createBtn.className = 'btn btn-secondary w-full mt-3 text-sm';
-  createBtn.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-    </svg>
-    Plan a Meetup
-  `;
-
-  upcomingMeetupsList.appendChild(createBtn);
-
-  // Re-attach the event listener
-  const meetupModal = document.getElementById('meetup-modal');
-  createBtn.addEventListener('click', () => {
-    if (meetupModal) {
-      meetupModal.classList.remove('hidden');
-      meetupModal.classList.add('flex');
-      meetupModal.style.display = 'flex';
-
-      // Set default date to tomorrow at noon
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(12, 0, 0, 0);
-
-      const datetimeInput = document.getElementById('meetup-datetime');
-      if (datetimeInput) {
-        datetimeInput.value = formatDateTimeForInput(tomorrow);
-      }
-    }
-  });
-}
-
-// =============== REACTION MODAL ===============
-function initReactionModal() {
-  const reactionModal = document.getElementById('reaction-modal');
-  const closeModalBtn = document.getElementById('close-reaction-modal');
-
-  if (closeModalBtn && reactionModal) {
-    closeModalBtn.addEventListener('click', () => {
-      reactionModal.classList.remove('open');
-      reactionModal.classList.add('hidden');
-      reactionModal.style.display = 'none';
-    });
-  }
-}
-
-// Show who reacted with a particular emoji
-function showReactionUsers(messageId, emoji, users = []) {
-  const reactionModal = document.getElementById('reaction-modal');
-  const userList = document.getElementById('reaction-user-list');
-
-  if (!reactionModal || !userList) return;
-
-  userList.innerHTML = '';
-
-  if (users.length === 0) {
-    userList.innerHTML = `
-      <li class="py-2 px-3">
-        Loading users who reacted...
-      </li>
-    `;
-  } else {
-    users.forEach(name => {
-      const li = document.createElement('li');
-      li.className = 'flex items-center py-1';
-
-      li.innerHTML = `
-        <div class="h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs user-avatar" data-username="${name}">
-          ${name.charAt(0).toUpperCase()}
-        </div>
-        <span>${name}</span>
-      `;
-
-      userList.appendChild(li);
-
-      // Load profile pictures
-      loadUserProfile(name);
-    });
-  }
-
-  // Show the modal
-  reactionModal.classList.add('open');
-  reactionModal.classList.remove('hidden');
-  reactionModal.style.display = 'flex';
-}
-
-// Helper function to escape HTML
-function escapeHtml(unsafe) {
-  if (typeof unsafe !== 'string') return '';
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-// Add reaction listeners to messages
-function addMessageReactionListeners() {
-  // Get all reaction buttons
-  const reactionButtons = document.querySelectorAll('.emoji-reaction');
-
-  reactionButtons.forEach(btn => {
-    const messageElement = btn.closest('[data-message-id]');
-    if (!messageElement) return;
-
-    const messageId = messageElement.dataset.messageId;
-    const emoji = btn.textContent.trim();
-
-    // Remove existing listener if any (to prevent duplicates)
-    btn.removeEventListener('click', handleReactionClick);
-
-    // Add new listener
-    btn.addEventListener('click', handleReactionClick);
-
-    // Store message ID and emoji in the button data attributes
-    btn.dataset.messageId = messageId;
-    btn.dataset.emoji = emoji;
-  });
-}
-
-// Handle reaction button click
-function handleReactionClick(event) {
-  const btn = event.currentTarget;
-  const messageId = btn.dataset.messageId;
-  const emoji = btn.dataset.emoji;
-
-  if (!messageId || !emoji) return;
-
-  if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-    window.socket.send(JSON.stringify({
-      type: 'reaction',
-      message_id: messageId,
-      reaction: emoji
-    }));
-  } else {
-    console.error('Cannot send reaction: WebSocket not connected');
-    showNotification('Connection issue. Please refresh the page.');
-  }
-}
-
-// Track media in messages for media library
-function trackMediaInMessage(message) {
-  try {
-    if (!message) return;
-
-    if (!window.mediaLibrary) {
-      window.mediaLibrary = { images: [], videos: [] };
+        });
     }
 
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = message;
-
-    // Track images
-    tempDiv.querySelectorAll('img').forEach(img => {
-      if (img.src && !img.src.includes('data:image') && !window.mediaLibrary.images.includes(img.src)) {
-        window.mediaLibrary.images.push(img.src);
-      }
-    });
-
-    // Track videos
-    tempDiv.querySelectorAll('video source').forEach(source => {
-      if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
-        window.mediaLibrary.videos.push(source.src);
-      }
-    });
-  } catch (error) {
-    console.error('Error tracking media in message:', error);
-  }
-}
-
-// =============== USER POPOVER ===============
-function initUserPopover() {
-  // User option popover
-  const userPopover = document.getElementById('user-options-popover');
-  if (!userPopover) return;
-
-  // Make sure initially hidden with display style
-  userPopover.classList.add('hidden');
-  userPopover.style.display = 'none';
-
-  // Add event listeners to user list items
-  document.addEventListener('click', event => {
-    const username = event.target.dataset.username ||
-                    event.target.closest('[data-username]')?.dataset.username;
-
-    if (username && event.target.closest('.user-item, .user-avatar')) {
-      // Don't show popover for current user
-      if (username === window.username) return;
-
-      // Position and show popover
-      const rect = event.target.closest('.user-item, .user-avatar').getBoundingClientRect();
-      userPopover.style.top = `${rect.bottom + 5}px`;
-      userPopover.style.left = `${rect.left}px`;
-      userPopover.classList.remove('hidden');
-      userPopover.style.display = 'block';
-
-      // Update popover content
-      const dmLink = userPopover.querySelector('.dm-user-link');
-      const addFriendBtn = userPopover.querySelector('.add-friend-btn');
-
-      if (dmLink) dmLink.href = `/dm/${username}/`;
-      if (addFriendBtn) {
-        addFriendBtn.dataset.username = username;
-        addFriendBtn.onclick = () => sendFriendRequest(username);
-      }
-
-      // Store current user
-      userPopover.dataset.username = username;
-
-      // Prevent event from bubbling
-      event.stopPropagation();
-    } else if (!event.target.closest('#user-options-popover')) {
-      // Hide popover when clicking elsewhere
-      userPopover.classList.add('hidden');
-      userPopover.style.display = 'none';
+    // Save button
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            if (selectedProfile) {
+                saveProfilePicture(selectedProfile);
+            }
+        });
     }
-  });
 }
 
-// =============== BOOKMARK FUNCTIONALITY ===============
-function initBookmarkButton() {
-  const bookmarkBtn = document.getElementById('bookmark-room');
-  if (!bookmarkBtn) return;
-
-  // Check if room is already bookmarked from localStorage
-  const isBookmarked = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true';
-
-  // Update button appearance based on current state
-  updateBookmarkButton(isBookmarked);
-
-  // Add click event listener
-  bookmarkBtn.addEventListener('click', () => {
-    // Toggle bookmarked state
-    const newState = localStorage.getItem(`bookmarked_${window.roomName}`) === 'true' ? false : true;
-
-    // Get CSRF token
-    const csrfToken = getCsrfToken();
-
-    // Send bookmark request to server
-    fetch('/api/toggle_bookmark_room/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
-      },
-      body: JSON.stringify({
-        room_name: window.roomName,
-        bookmarked: newState
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Store bookmark state in localStorage
-        localStorage.setItem(`bookmarked_${window.roomName}`, newState);
-
-        // Update button appearance
-        updateBookmarkButton(newState);
-
-        // Show notification
-        showNotification(newState ? 'Room bookmarked!' : 'Room bookmark removed');
-
-        // Request updated recommendations
-        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-          window.socket.send(JSON.stringify({
-            type: 'recommendations',
-            action: 'get',
-            include_bookmarks: true
-          }));
-        }
-      } else {
-        showNotification('Failed to update bookmark: ' + (data.error || 'Unknown error'));
-      }
-    })
-    .catch(error => {
-      console.error('Error toggling room bookmark:', error);
-      showNotification('An error occurred while updating bookmark');
-    });
-  });
-}
-
-// Update bookmark button appearance
-function updateBookmarkButton(isBookmarked) {
-  const bookmarkBtn = document.getElementById('bookmark-room');
-  if (!bookmarkBtn) return;
-
-  if (isBookmarked) {
-    // Bookmarked state - filled icon
-    bookmarkBtn.classList.add('text-pink-500');
-    bookmarkBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-      </svg>
-    `;
-    bookmarkBtn.setAttribute('data-tooltip', 'Remove bookmark');
-  } else {
-    // Not bookmarked state - outlined icon
-    bookmarkBtn.classList.remove('text-pink-500');
-    bookmarkBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-      </svg>
-    `;
-    bookmarkBtn.setAttribute('data-tooltip', 'Bookmark room');
-  }
-}
-
-// Send a friend request
-function sendFriendRequest(username) {
-  // Close user popover
-  const userPopover = document.getElementById('user-options-popover');
-  if (userPopover) {
-    userPopover.classList.add('hidden');
-    userPopover.style.display = 'none';
-  }
-
-  // Get CSRF token
-  const csrfToken = getCsrfToken();
-
-  // Fetch user ID (this is just a placeholder - you'd need the actual user ID)
-  fetch(`/api/profile/${username}/`)
-    .then(response => response.json())
-    .then(data => {
-      if (!data.success) {
-        throw new Error('Could not get user information');
-      }
-
-      // Send friend request with user ID
-      return fetch('/api/friend_request/', {
+function saveProfilePicture(profileData) {
+    // Send to server
+    fetch('/api/update_profile/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({
-          receiver_id: data.id || username // Fallback to username if no ID
+            profile_picture: profileData
         })
-      });
     })
     .then(response => response.json())
     .then(data => {
-      if (data.success) {
-        showNotification('Friend request sent!');
-      } else {
-        console.error('Failed to send friend request:', data.error);
-        showNotification('Failed to send friend request: ' + (data.error || 'Unknown error'));
-      }
-    })
-    .catch(error => {
-      console.error('Error sending friend request:', error);
-      showNotification('Error sending friend request');
-    });
-}
-
-// =============== GLOBAL HELPERS & UTILITY FUNCTIONS ===============
-
-// Setup global event delegation
-function setupGlobalEventDelegation() {
-  // Close modals when clicking outside
-  document.addEventListener('click', (e) => {
-    // Only close modals if clicking outside the modal content
-    if (!e.target.closest('.modal-content') && !e.target.closest('[id$="-btn"]')) {
-      document.querySelectorAll('.modal.flex').forEach(modal => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        modal.style.display = 'none';
-      });
-    }
-  });
-
-  // Allow clicking inside modal content without closing
-  document.querySelectorAll('.modal-content').forEach(content => {
-    content.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-  });
-
-  // Add scroll effect to header
-  const header = document.querySelector('.app-header');
-  if (header) {
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 10) {
-        header.classList.add('scrolled');
-      } else {
-        header.classList.remove('scrolled');
-      }
-    });
-  }
-}
-
-// Fix modal display issues
-function fixModalDisplayIssues() {
-  // Get all modals
-  const modals = document.querySelectorAll('.modal');
-
-  // Apply the proper CSS for modals
-  modals.forEach(modal => {
-    // Ensure modals have the correct display style
-    if (modal.classList.contains('flex')) {
-      modal.style.display = 'flex';
-    } else {
-      modal.style.display = 'none';
-    }
-
-    // Ensure modals have the correct z-index
-    modal.style.zIndex = '50';
-
-    // Override any conflicting styles
-    const modalStyle = document.createElement('style');
-    modalStyle.textContent = `
-      #${modal.id}.flex {
-        display: flex !important;
-      }
-      #${modal.id}.hidden {
-        display: none !important;
-      }
-    `;
-    document.head.appendChild(modalStyle);
-  });
-
-  // Fix button handlers to properly show modals
-  const modalButtons = document.querySelectorAll('[id$="-btn"]:not([type="submit"])');
-  modalButtons.forEach(btn => {
-    // Find potential target modal based on button ID
-    let modalId = null;
-    if (btn.id.includes('whiteboard')) {
-      modalId = 'whiteboard-modal';
-    } else if (btn.id.includes('media')) {
-      modalId = 'media-library-modal';
-    } else if (btn.id.includes('meetup')) {
-      modalId = 'meetup-modal';
-    } else if (btn.id.includes('profile')) {
-      modalId = 'profile-pic-modal';
-    }
-
-    if (!modalId) return;
-
-    // Save original click handler
-    const originalOnClick = btn.onclick;
-
-    // Add new click handler
-    btn.onclick = function(e) {
-      // Call original handler if it exists
-      if (originalOnClick) {
-        originalOnClick.call(this, e);
-      }
-
-      // Force modal to display properly
-      const modal = document.getElementById(modalId);
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        modal.style.display = 'flex';
-      }
-    };
-  });
-
-  // Also fix close buttons
-  const closeButtons = document.querySelectorAll('[id^="close-"]');
-  closeButtons.forEach(btn => {
-    // Find target modal based on button ID
-    const modalType = btn.id.replace('close-', '');
-    const modalId = `${modalType}-modal`;
-    const modal = document.getElementById(modalId);
-
-    if (!modal) return;
-
-    // Save original click handler
-    const originalOnClick = btn.onclick;
-
-    // Add new click handler
-    btn.onclick = function(e) {
-      // Call original handler if it exists
-      if (originalOnClick) {
-        originalOnClick.call(this, e);
-      }
-
-      // Force modal to hide properly
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      modal.style.display = 'none';
-    };
-  });
-}
-
-// Show notification
-function showNotification(message) {
-  const toast = document.getElementById('notification-toast');
-  const toastMessage = document.getElementById('notification-message');
-
-  if (toast && toastMessage) {
-    toastMessage.textContent = message;
-    toast.classList.remove('hidden');
-    toast.style.display = 'flex';
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
-
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(20px)';
-
-      // Actually hide the element after animation
-      setTimeout(() => {
-        toast.classList.add('hidden');
-        toast.style.display = 'none';
-      }, 300);
-    }, 3000);
-  } else {
-    // Fallback to alert
-    alert(message);
-  }
-}
-
-// Set up heartbeat to keep WebSocket connection alive
-function setupHeartbeat() {
-  setInterval(() => {
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      window.socket.send(JSON.stringify({
-        type: 'ping',
-        timestamp: Date.now()
-      }));
-    }
-  }, 30000); // 30 seconds
-}
-
-// Debounce function for limiting function call frequency
-function debounce(func, wait) {
-  let timeout;
-  return function(...args) {
-    const context = this;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(context, args), wait);
-  };
-}
-
-// Get random avatar class based on username
-function getRandomAvatarClass(username) {
-  const avatarClasses = [
-    'avatar-orange', 'avatar-blue', 'avatar-green',
-    'avatar-purple', 'avatar-yellow', 'avatar-red', 'avatar-teal'
-  ];
-
-  // Use a hash of the username to ensure consistent colors
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return avatarClasses[Math.abs(hash) % avatarClasses.length];
-}
-
-// Get consistent avatar color class based on username
-function getAvatarColorClass(username) {
-  const colors = [
-    'bg-pink-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
-    'bg-purple-500', 'bg-red-500', 'bg-indigo-500', 'bg-teal-500'
-  ];
-
-  // Simple hash function for username
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return colors[Math.abs(hash) % colors.length];
-}
-
-// Function to scroll to bottom of chat
-function scrollToBottom() {
-  const chatLog = document.getElementById('chat-log');
-  if (!chatLog) return;
-
-  chatLog.scrollTop = chatLog.scrollHeight;
-}
-
-// Get CSRF token from cookies or meta tag
-function getCsrfToken() {
-  // Try to get from cookie
-  const name = 'csrftoken=';
-  const decodedCookie = decodeURIComponent(document.cookie);
-  const cookies = decodedCookie.split(';');
-
-  for (let cookie of cookies) {
-    cookie = cookie.trim();
-    if (cookie.indexOf(name) === 0) {
-      return cookie.substring(name.length);
-    }
-  }
-
-  // Try to get from meta tag
-  const metaTag = document.querySelector('meta[name="csrf-token"]');
-  if (metaTag) {
-    return metaTag.getAttribute('content');
-  }
-
-  // Try to get from hidden input
-  const hiddenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-  if (hiddenInput) {
-    return hiddenInput.value;
-  }
-
-  console.warn('Could not find CSRF token');
-  return '';
-}
-
-// Render online friends list
-function renderOnlineFriends(friends) {
-  const onlineFriendsList = document.getElementById('online-friends-list');
-  if (!onlineFriendsList) return;
-
-  // Default to empty list
-  onlineFriendsList.innerHTML = '';
-
-  if (!friends || !Array.isArray(friends) || friends.length === 0) {
-    onlineFriendsList.innerHTML = `
-      <div class="text-gray-400 text-xs italic py-2">
-        None of your friends are online right now.
-      </div>
-    `;
-    return;
-  }
-
-  // Render each friend
-  friends.forEach(friend => {
-    const friendItem = document.createElement('div');
-    friendItem.className = 'flex items-center p-2 hover:bg-gray-50 rounded-lg transition-colors';
-
-    // If the friend object doesn't have an avatar, use the first letter of the username
-    const avatar = friend.avatar || friend.username.charAt(0).toUpperCase();
-
-    friendItem.innerHTML = `
-      <div class="user-avatar h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-orange-300 text-white flex items-center justify-center mr-2 font-medium text-xs" data-username="${friend.username}">
-        ${avatar}
-      </div>
-      <div class="flex-1">
-        <p class="text-sm font-medium">${friend.username}</p>
-        <span class="flex items-center text-xs text-green-500">
-          <span class="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></span>
-          Online now
-        </span>
-      </div>
-      <a href="/dm/${friend.username}/" class="text-gray-400 hover:text-pink-500 p-1.5 rounded-full hover:bg-pink-100 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-      </a>
-    `;
-
-    onlineFriendsList.appendChild(friendItem);
-
-    // Load profile picture
-    loadUserProfile(friend.username);
-  });
-}
-
-// Render room recommendations
-function renderRoomRecommendations(rooms, bookmarkedRooms = []) {
-  const recommendedRoomsList = document.getElementById('recommended-rooms-list');
-  if (!recommendedRoomsList) return;
-
-  // Clear existing content
-  recommendedRoomsList.innerHTML = '';
-
-  // First, render bookmarked rooms with a heading if there are any
-  if (bookmarkedRooms && bookmarkedRooms.length > 0) {
-    // Add a heading for bookmarked rooms
-    const bookmarksHeading = document.createElement('h4');
-    bookmarksHeading.className = 'text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 mb-2';
-    bookmarksHeading.textContent = 'Your Bookmarks';
-    recommendedRoomsList.appendChild(bookmarksHeading);
-
-    // Render each bookmarked room
-    bookmarkedRooms.forEach(room => {
-      renderRoomItem(room, recommendedRoomsList, true);
-    });
-
-    // Add a separator if we also have recommendations
-    if (rooms && rooms.length > 0) {
-      const separator = document.createElement('div');
-      separator.className = 'border-t border-gray-200 my-3';
-      recommendedRoomsList.appendChild(separator);
-
-      // Add a heading for recommended rooms
-      const recommendationsHeading = document.createElement('h4');
-      recommendationsHeading.className = 'text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 mb-2';
-      recommendationsHeading.textContent = 'Recommended For You';
-      recommendedRoomsList.appendChild(recommendationsHeading);
-    }
-  }
-
-  // Then render regular recommendations
-  if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
-    if (bookmarkedRooms.length === 0) {
-      // Only show this message if there are no bookmarks either
-      recommendedRoomsList.innerHTML = `
-        <div class="text-gray-400 text-xs italic py-2">
-          No recommendations available yet. Join more chat rooms or bookmark your favorites!
-        </div>
-      `;
-    }
-    return;
-  }
-
-  // Render each recommended room
-  rooms.forEach(room => {
-    renderRoomItem(room, recommendedRoomsList, false);
-  });
-}
-
-// Helper function to render a single room item
-function renderRoomItem(room, container, isBookmarked) {
-  const roomItem = document.createElement('a');
-  roomItem.href = `/chat/${room.name}/`;
-  roomItem.className = 'block';
-
-  // Determine activity status
-  const activityClass = room.activity === 'high' ? 'bg-green-500' : 'bg-yellow-500';
-  const activityLabel = room.activity === 'high' ? 'Very active' : 'Active';
-
-  // Create bookmarked indicator if needed
-  const bookmarkIndicator = isBookmarked ? `
-    <span class="ml-1 text-pink-500">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-      </svg>
-    </span>
-  ` : '';
-
-  roomItem.innerHTML = `
-    <div class="room-card">
-      <div class="flex items-center gap-2.5">
-        <div class="room-icon bg-gradient-to-br ${room.is_protected ? 'from-yellow-400 to-orange-300' : 'from-pink-400 to-purple-400'} text-white font-semibold text-sm flex items-center justify-center flex-shrink-0">
-          ${room.display_name ? room.display_name.charAt(0).toUpperCase() : room.name.charAt(0).toUpperCase()}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="font-medium text-gray-700 truncate flex items-center">
-            ${room.display_name || room.name}${bookmarkIndicator}
-          </div>
-          <div class="text-xs text-gray-500 truncate flex items-center mt-0.5">
-            ${room.category ? `<span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs mr-2">${room.category}</span>` : ''}
-            <span class="flex items-center">
-              <span class="h-1.5 w-1.5 rounded-full mr-1 ${activityClass}"></span>
-              ${activityLabel}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  container.appendChild(roomItem);
-}
-
-console.log('Chat.js START');
-
-// ====================== DEBUG WEBSOCKET CONNECTION ======================
-// Add this immediately after your existing WebSocket setup to debug issues
-function fixWebSocketConnection() {
-  console.log("Fixing WebSocket connection issues...");
-
-  // If socket already exists, close it to make a clean connection
-  if (window.socket) {
-    console.log("Closing existing socket connection");
-    window.socket.close();
-  }
-
-  // Get the WebSocket URL based on current protocol (ws:// or wss://)
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const wsUrl = `${wsProtocol}://${window.location.host}/ws/chat/${window.roomName}/`;
-
-  console.log(`Connecting to WebSocket at: ${wsUrl}`);
-
-  try {
-    // Create new WebSocket connection with enhanced debug
-    const socket = new WebSocket(wsUrl);
-
-    // Enhanced connection opened event with detailed logging
-    socket.addEventListener('open', function(event) {
-      console.log('WebSocket connection established', event);
-      showNotification('Connected to chat room');
-
-      // Signal connection state to UI
-      document.querySelectorAll('.btn-icon, .btn').forEach(btn => {
-        btn.style.opacity = '1';
-        btn.style.pointerEvents = 'auto';
-      });
-
-      // Request the initial user list
-      socket.send(JSON.stringify({
-        type: 'users',
-        action: 'list'
-      }));
-
-      // If user is authenticated, request other data
-      if (window.username && window.username !== 'Guest') {
-        // Request meetups
-        socket.send(JSON.stringify({
-          type: 'meetup',
-          action: 'list'
-        }));
-
-        // Request room recommendations
-        socket.send(JSON.stringify({
-          type: 'recommendations',
-          action: 'get',
-          include_bookmarks: true
-        }));
-      }
-    });
-
-    // Enhanced message received event with detailed logging
-    socket.addEventListener('message', function(event) {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message received:', data);
-        handleWebSocketMessage(data);
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    });
-
-    // Enhanced error handling
-    socket.addEventListener('error', function(event) {
-      console.error('WebSocket error:', event);
-      showNotification('Connection error. Please refresh the page.');
-
-      // Signal connection state to UI
-      document.querySelectorAll('.btn-icon, .btn').forEach(btn => {
-        btn.style.opacity = '0.5';
-        btn.style.pointerEvents = 'none';
-      });
-    });
-
-    // Enhanced connection closed event
-    socket.addEventListener('close', function(event) {
-      console.warn(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
-      showNotification('Connection to chat room lost. Attempting to reconnect...');
-
-      // Signal connection state to UI
-      document.querySelectorAll('.btn-icon, .btn').forEach(btn => {
-        btn.style.opacity = '0.5';
-        btn.style.pointerEvents = 'none';
-      });
-
-      // Attempt to reconnect after delay
-      setTimeout(fixWebSocketConnection, 3000);
-    });
-
-    // Make socket available globally
-    window.socket = socket;
-    return socket;
-  } catch (error) {
-    console.error('Failed to create WebSocket connection:', error);
-    showNotification('Failed to connect to chat room. Please refresh the page.');
-    return null;
-  }
-}
-
-// ====================== FIX CHAT INPUT ======================
-function fixChatInput() {
-  console.log("Fixing chat input...");
-
-  const messageForm = document.getElementById('message-form');
-  const messageInput = document.getElementById('chat-message-input');
-  const sendBtn = document.getElementById('send-btn');
-
-  if (!messageForm || !messageInput) {
-    console.error("Critical chat elements not found!");
-    return;
-  }
-
-  // Remove existing event listeners by cloning and replacing
-  const newMessageForm = messageForm.cloneNode(true);
-  messageForm.parentNode.replaceChild(newMessageForm, messageForm);
-
-  // Get new references
-  const newMessageInput = document.getElementById('chat-message-input');
-  const newSendBtn = document.getElementById('send-btn');
-
-  // Add event listener to form
-  newMessageForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    console.log("Form submitted, sending message...");
-    sendMessageFixed();
-  });
-
-  // Add click handler to send button for redundancy
-  if (newSendBtn) {
-    newSendBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      console.log("Send button clicked, sending message...");
-      sendMessageFixed();
-    });
-  }
-
-  // Add keyboard event for Enter key
-  if (newMessageInput) {
-    newMessageInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        console.log("Enter key pressed, sending message...");
-        sendMessageFixed();
-      }
-    });
-
-    // Also add the typing notification
-    newMessageInput.addEventListener('input', debounce(function() {
-      if (window.socket && window.socket.readyState === WebSocket.OPEN && newMessageInput.value.trim()) {
-        console.log("Sending typing notification...");
-        window.socket.send(JSON.stringify({
-          type: 'typing'
-        }));
-      }
-    }, 500));
-  }
-
-  console.log("Chat input fixed and event listeners attached");
-}
-
-// Enhanced sendMessage function with better error handling
-function sendMessageFixed() {
-  const messageInput = document.getElementById('chat-message-input');
-  const fileInput = document.getElementById('file-input');
-  const previewContainer = document.getElementById('preview');
-
-  if (!messageInput) {
-    console.error("Message input not found!");
-    return;
-  }
-
-  const messageText = messageInput.value.trim();
-  console.log(`Preparing to send message: "${messageText.substring(0, 30)}${messageText.length > 30 ? '...' : ''}"`);
-
-  // Check if there are uploaded files
-  if (window.uploadedFiles && window.uploadedFiles.length > 0) {
-    console.log(`Uploading ${window.uploadedFiles.length} files...`);
-    uploadFilesAndSend()
-      .then(() => {
-        console.log("Files uploaded successfully");
-        // Reset file input and hide preview
-        if (fileInput) fileInput.value = '';
-        if (previewContainer) {
-          previewContainer.classList.add('hidden');
-          previewContainer.style.display = 'none';
-        }
-        window.uploadedFiles = [];
-      })
-      .catch(error => {
-        console.error('Error uploading files:', error);
-        showNotification('Error uploading files: ' + error.message);
-      });
-  } else if (messageText) {
-    // Send text message via WebSocket
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      try {
-        console.log("Sending message via WebSocket...");
-        window.socket.send(JSON.stringify({
-          type: 'chat_message',
-          message: messageText
-        }));
-
-        // Clear input
-        messageInput.value = '';
-        console.log("Message sent successfully!");
-      } catch (error) {
-        console.error("Error sending message:", error);
-        showNotification('Error sending message. Please try again.');
-      }
-    } else {
-      console.error("WebSocket not open:", window.socket ? window.socket.readyState : 'No socket');
-      showNotification('Connection issue. Please refresh the page.');
-    }
-  } else {
-    console.log("No message to send");
-  }
-
-  // Focus back on input
-  messageInput.focus();
-}
-
-// ====================== FIX WHITEBOARD ======================
-function fixWhiteboard() {
-  console.log("Fixing whiteboard functionality...");
-
-  const canvas = document.getElementById('whiteboard-canvas');
-  const openWhiteboardBtn = document.getElementById('open-whiteboard');
-  const closeWhiteboardBtn = document.getElementById('close-whiteboard');
-  const whiteboardModal = document.getElementById('whiteboard-modal');
-
-  if (!canvas || !openWhiteboardBtn || !whiteboardModal) {
-    console.warn('Whiteboard elements not found. Cannot fix whiteboard.');
-    return;
-  }
-
-  // Get canvas context
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    console.error('Could not get canvas context');
-    return;
-  }
-
-  console.log("Whiteboard elements found, setting up event handlers...");
-
-  // Fix whiteboard modal display
-  whiteboardModal.classList.add('hidden');
-  whiteboardModal.style.display = 'none';
-
-  // Remove existing handlers by cloning and replacing
-  const newOpenBtn = openWhiteboardBtn.cloneNode(true);
-  openWhiteboardBtn.parentNode.replaceChild(newOpenBtn, openWhiteboardBtn);
-
-  // Set up drawing state
-  let isDrawing = false;
-  let lastX = 0;
-  let lastY = 0;
-  let currentTool = 'brush';
-
-  // Add open whiteboard button handler
-  newOpenBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log("Opening whiteboard");
-
-    // Show the modal
-    whiteboardModal.classList.remove('hidden');
-    whiteboardModal.classList.add('flex');
-    whiteboardModal.style.display = 'flex';
-
-    // Set a small timeout to ensure the modal is visible before resizing
-    setTimeout(resizeCanvas, 100);
-  });
-
-  // Close whiteboard button
-  if (closeWhiteboardBtn) {
-    closeWhiteboardBtn.addEventListener('click', () => {
-      whiteboardModal.classList.add('hidden');
-      whiteboardModal.classList.remove('flex');
-      whiteboardModal.style.display = 'none';
-    });
-  }
-
-  // Set canvas size on resize
-    function resizeCanvas() {
-    const container = canvas.parentElement;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-
-    // Check if the dimensions are valid before proceeding
-    if (rect.width <= 0 || rect.height <= 0) {
-        console.warn('Invalid canvas container dimensions, retrying in 100ms...');
-        setTimeout(resizeCanvas, 100);
-        return;
-    }
-
-    // If the canvas already has dimensions, store current drawing
-    let imageData = null;
-    if (canvas.width > 0 && canvas.height > 0) {
-        try {
-        imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        } catch (e) {
-        console.warn('Could not get image data:', e);
-        }
-    }
-
-    // Set new canvas dimensions
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    // Restore drawing if we had valid image data
-    if (imageData) {
-        ctx.putImageData(imageData, 0, 0);
-    }
-
-    console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
-    }
-
-  // Drawing functions with WebSocket broadcasting
-  const startDrawing = (e) => {
-    isDrawing = true;
-
-    const rect = canvas.getBoundingClientRect();
-    lastX = e.clientX - rect.left;
-    lastY = e.clientY - rect.top;
-
-    // For single dot
-    drawDot(lastX, lastY);
-  };
-
-  const drawDot = (x, y) => {
-    const brushColor = document.getElementById('brush-color')?.value || '#000000';
-    const brushSize = parseInt(document.getElementById('brush-size')?.value || '5');
-
-    if (currentTool === 'brush') {
-      ctx.fillStyle = brushColor;
-      ctx.beginPath();
-      ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (currentTool === 'eraser') {
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(x, y, brushSize * 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Broadcast dot
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      console.log("Broadcasting dot drawing...");
-      window.socket.send(JSON.stringify({
-        type: 'whiteboard',
-        action: 'dot',
-        x: x / canvas.width,
-        y: y / canvas.height,
-        color: currentTool === 'eraser' ? '#ffffff' : brushColor,
-        size: currentTool === 'eraser' ? brushSize * 2 : brushSize
-      }));
-    }
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const brushColor = document.getElementById('brush-color')?.value || '#000000';
-    const brushSize = parseInt(document.getElementById('brush-size')?.value || '5');
-
-    ctx.beginPath();
-
-    if (currentTool === 'brush') {
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = brushColor;
-    } else if (currentTool === 'eraser') {
-      ctx.lineWidth = brushSize * 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#ffffff';
-    }
-
-    // Draw from last position to current position
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-
-    // Save current position
-    const fromX = lastX;
-    const fromY = lastY;
-    lastX = x;
-    lastY = y;
-
-    // Broadcast drawing data
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-      window.socket.send(JSON.stringify({
-        type: 'whiteboard',
-        action: 'draw',
-        fromX: fromX / canvas.width,
-        fromY: fromY / canvas.height,
-        toX: x / canvas.width,
-        toY: y / canvas.height,
-        color: currentTool === 'eraser' ? '#ffffff' : brushColor,
-        size: currentTool === 'eraser' ? brushSize * 2 : brushSize
-      }));
-    }
-  };
-
-  const stopDrawing = () => {
-    isDrawing = false;
-    ctx.beginPath(); // Reset path
-  };
-
-  // Add canvas drawing events
-  canvas.addEventListener('mousedown', startDrawing);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', stopDrawing);
-  canvas.addEventListener('mouseout', stopDrawing);
-
-  // Tool buttons
-  document.querySelectorAll('[data-tool]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      // Get tool type
-      const toolType = btn.dataset.tool;
-      if (!toolType) return;
-
-      // Remove active class from all buttons
-      document.querySelectorAll('[data-tool]').forEach(b => {
-        b.classList.remove('bg-pink-500', 'text-white');
-        b.classList.add('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50');
-      });
-
-      // Add active class to clicked button
-      btn.classList.remove('bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50');
-      btn.classList.add('bg-pink-500', 'text-white');
-
-      // Set current tool
-      currentTool = toolType;
-      console.log(`Whiteboard tool changed to ${toolType}`);
-    });
-  });
-
-  // Clear whiteboard
-  const clearWhiteboardBtn = document.getElementById('clear-whiteboard');
-  if (clearWhiteboardBtn) {
-    clearWhiteboardBtn.addEventListener('click', () => {
-      if (!ctx) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Broadcast clear event
-      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        window.socket.send(JSON.stringify({
-          type: 'whiteboard',
-          action: 'clear'
-        }));
-      }
-    });
-  }
-
-  // Window resize event
-  window.addEventListener('resize', resizeCanvas);
-
-  // Fix whiteboard message handler
-  window.handleWhiteboardMessage = function(data) {
-    if (!canvas || !ctx) return;
-
-    try {
-      console.log(`Handling whiteboard message: ${data.action}`);
-
-      if (data.action === 'draw' && data.fromX !== undefined) {
-        const fromX = data.fromX * canvas.width;
-        const fromY = data.fromY * canvas.height;
-        const toX = data.toX * canvas.width;
-        const toY = data.toY * canvas.height;
-
-        ctx.beginPath();
-        ctx.lineWidth = data.size || 5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = data.color || '#000000';
-        ctx.moveTo(fromX, fromY);
-        ctx.lineTo(toX, toY);
-        ctx.stroke();
-      } else if (data.action === 'dot' && data.x !== undefined) {
-        const x = data.x * canvas.width;
-        const y = data.y * canvas.height;
-
-        ctx.beginPath();
-        ctx.fillStyle = data.color || '#000000';
-        ctx.arc(x, y, (data.size || 5) / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (data.action === 'clear') {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    } catch (error) {
-      console.error('Error handling whiteboard message:', error);
-    }
-  };
-
-  console.log("Whiteboard functionality fixed!");
-}
-
-// ====================== FIX MEDIA LIBRARY ======================
-function fixMediaLibrary() {
-  console.log("Fixing Media Library...");
-
-  // Get DOM elements
-  const openMediaBtn = document.getElementById('open-media-library');
-  const closeMediaBtn = document.getElementById('close-media-library');
-  const mediaModal = document.getElementById('media-library-modal');
-  const mediaGrid = document.getElementById('media-grid');
-
-  if (!openMediaBtn || !mediaModal || !mediaGrid) {
-    console.warn('Media library elements not found. Cannot fix media library.');
-    return;
-  }
-
-  console.log("Media Library elements found, setting up event handlers...");
-
-  // Initialize media library data structure if not exists
-  if (!window.mediaLibrary) {
-    window.mediaLibrary = { images: [], videos: [] };
-  }
-
-  // Fix media modal display
-  mediaModal.classList.add('hidden');
-  mediaModal.style.display = 'none';
-
-  // Scan for media in the DOM
-  scanDOMForMedia();
-
-  // Remove existing handlers by cloning and replacing
-  const newOpenBtn = openMediaBtn.cloneNode(true);
-  openMediaBtn.parentNode.replaceChild(newOpenBtn, openMediaBtn);
-
-  // Open media library button with fixed handling
-  newOpenBtn.addEventListener('click', () => {
-    console.log("Opening media library...");
-
-    // Scan again to make sure we have the latest media
-    scanDOMForMedia();
-
-    // Apply the "all" filter by default
-    document.querySelectorAll('.media-filter-btn').forEach(btn => {
-      if (btn.dataset.filter === 'all') {
-        btn.classList.remove('bg-gray-200', 'text-gray-700');
-        btn.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-      } else {
-        btn.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-        btn.classList.add('bg-gray-200', 'text-gray-700');
-      }
-    });
-
-    // Show loading state in the grid
-    mediaGrid.innerHTML = `
-      <div class="col-span-full flex flex-col items-center justify-center py-10">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mb-4"></div>
-        <p class="text-gray-500">Loading media...</p>
-      </div>
-    `;
-
-    // Fetch latest media from the server
-    fetchRoomMedia();
-
-    // Show modal
-    mediaModal.classList.remove('hidden');
-    mediaModal.classList.add('flex');
-    mediaModal.style.display = 'flex';
-  });
-
-  // Close media library button
-  if (closeMediaBtn) {
-    closeMediaBtn.addEventListener('click', () => {
-      mediaModal.classList.add('hidden');
-      mediaModal.classList.remove('flex');
-      mediaModal.style.display = 'none';
-    });
-  }
-
-  // Filter buttons
-  document.querySelectorAll('.media-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (!btn.dataset.filter) return;
-
-      // Update active state
-      document.querySelectorAll('.media-filter-btn').forEach(b => {
-        b.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-        b.classList.add('bg-gray-200', 'text-gray-700');
-      });
-
-      btn.classList.remove('bg-gray-200', 'text-gray-700');
-      btn.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-purple-500', 'text-white');
-
-      // Apply filter
-      renderMediaGrid(btn.dataset.filter);
-    });
-  });
-
-  // Enhanced fetchRoomMedia function
-  window.fetchRoomMedia = function() {
-    console.log(`Fetching media for room: ${window.roomName}`);
-
-    fetch(`/api/room/${window.roomName}/media/`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Server responded with status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('Media API response:', data);
-
-        if (data.success && data.media && Array.isArray(data.media)) {
-          // Clear existing arrays before adding new items
-          window.mediaLibrary.images = [];
-          window.mediaLibrary.videos = [];
-
-          data.media.forEach(mediaItem => {
-            if (mediaItem.type === 'image' && !window.mediaLibrary.images.includes(mediaItem.url)) {
-              window.mediaLibrary.images.push(mediaItem.url);
-            } else if (mediaItem.type === 'video' && !window.mediaLibrary.videos.includes(mediaItem.url)) {
-              window.mediaLibrary.videos.push(mediaItem.url);
-            }
-          });
-        } else {
-          console.warn('Invalid data format or empty media array from API, using DOM scan fallback');
-        }
-
-        // Always render after fetch completes
-        const activeFilter = document.querySelector('.media-filter-btn.bg-gradient-to-r');
-        renderMediaGrid(activeFilter ? activeFilter.dataset.filter : 'all');
-      })
-      .catch(error => {
-        console.error('Error fetching room media:', error);
-        // Continue with what we have locally
-        renderMediaGrid('all');
-      });
-  };
-
-  // Enhanced renderMediaGrid function
-  window.renderMediaGrid = function(filter) {
-    try {
-      if (!mediaGrid) return;
-
-      // Clear the grid
-      mediaGrid.innerHTML = '';
-
-      // Collect media items based on filter
-      let mediaItems = [];
-
-      if (filter === 'all' || filter === 'images') {
-        (window.mediaLibrary.images || []).forEach(src => {
-          if (src) mediaItems.push({ type: 'image', src });
-        });
-      }
-
-      if (filter === 'all' || filter === 'videos') {
-        (window.mediaLibrary.videos || []).forEach(src => {
-          if (src) mediaItems.push({ type: 'video', src });
-        });
-      }
-
-      // Show empty state if no media
-      if (mediaItems.length === 0) {
-        mediaGrid.innerHTML = `
-          <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p class="text-center">No media found in this room yet.<br>Share images or videos in the chat to see them here.</p>
-          </div>
-        `;
-        return;
-      }
-
-      console.log(`Rendering ${mediaItems.length} media items for filter: ${filter}`);
-
-      // Create media items
-      mediaItems.forEach((item, index) => {
-        if (!item.src) return; // Skip items with no source
-
-        const mediaItem = document.createElement('div');
-        mediaItem.className = 'media-item rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer bg-gray-100 aspect-square flex items-center justify-center';
-
-        try {
-          if (item.type === 'image') {
-            mediaItem.innerHTML = `<img src="${item.src}" class="object-cover w-full h-full" alt="Media item ${index}" loading="lazy" />`;
-          } else {
-            mediaItem.innerHTML = `
-              <div class="relative w-full h-full">
-                <video class="object-cover w-full h-full" preload="metadata">
-                  <source src="${item.src}">
-                </video>
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <div class="bg-black bg-opacity-50 rounded-full p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            `;
-          }
-
-          // Add media item to grid
-          mediaGrid.appendChild(mediaItem);
-
-          // Get references to modal elements
-          const previewModal = document.getElementById('media-preview-modal');
-          const previewContent = document.getElementById('media-preview-content');
-          const closePreviewBtn = document.getElementById('close-media-preview');
-
-          // Add preview functionality
-          if (previewModal && previewContent) {
-            mediaItem.addEventListener('click', () => {
-              // Clear previous content
-              previewContent.innerHTML = '';
-
-              // Add appropriate content based on type
-              if (item.type === 'image') {
-                previewContent.innerHTML = `<img src="${item.src}" class="max-w-full max-h-[80vh] object-contain" alt="Media preview" />`;
-              } else {
-                previewContent.innerHTML = `
-                  <video controls autoplay class="max-w-full max-h-[80vh] object-contain">
-                    <source src="${item.src}">
-                  </video>
-                `;
-              }
-
-              // Show the preview modal
-              previewModal.classList.remove('hidden');
-              previewModal.classList.add('flex');
-              previewModal.style.display = 'flex';
-            });
-
-            // Close preview button
-            if (closePreviewBtn) {
-              closePreviewBtn.addEventListener('click', () => {
-                previewModal.classList.add('hidden');
-                previewModal.classList.remove('flex');
-                previewModal.style.display = 'none';
-              });
-            }
-          }
-
-          // Add context menu for sharing
-          mediaItem.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-
-            // Find the media URL
-            let mediaUrl;
-            const img = mediaItem.querySelector('img');
-            const video = mediaItem.querySelector('video source');
-
-            if (img) {
-              mediaUrl = img.src;
-            } else if (video) {
-              mediaUrl = video.src;
-            }
-
-            if (!mediaUrl) return;
-
-            // Create context menu
-            const menu = document.createElement('div');
-            menu.className = 'absolute bg-white shadow-lg rounded-lg p-2 z-50';
-            menu.style.left = `${e.pageX}px`;
-            menu.style.top = `${e.pageY}px`;
-
-            menu.innerHTML = `
-              <button class="share-media-btn w-full text-left px-3 py-2 hover:bg-pink-50 rounded-md">
-                Share in chat
-              </button>
-            `;
-
-            document.body.appendChild(menu);
-
-            // Handle share button click
-            menu.querySelector('.share-media-btn').addEventListener('click', () => {
-              if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-                // Determine if it's an image or video
-                let messageContent;
-                if (img) {
-                  messageContent = `<img src="${mediaUrl}" class="max-w-xs rounded-lg" />`;
-                } else if (video) {
-                  messageContent = `<video controls class="max-w-xs rounded-lg"><source src="${mediaUrl}"></video>`;
-                }
-
-                // Send via WebSocket
-                window.socket.send(JSON.stringify({
-                  type: 'chat_message',
-                  message: messageContent
+        if (data.success) {
+            // Update local profile
+            userProfiles.set(window.username, profileData);
+            updateAllUserAvatars(window.username);
+
+            // Broadcast update via WebSocket
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    'type': 'profile_update',
+                    'profile_data': profileData
                 }));
+            }
 
-                // Close media library
-                if (mediaModal) {
-                  mediaModal.classList.add('hidden');
-                  mediaModal.classList.remove('flex');
-                  mediaModal.style.display = 'none';
-                }
+            // Close modal
+            const modal = document.getElementById('profile-pic-modal');
+            if (modal) {
+                modal.classList.remove('open');
+            }
 
-                // Remove context menu
-                document.body.removeChild(menu);
-              }
-            });
-
-            // Remove context menu when clicking elsewhere
-            document.addEventListener('click', function removeMenu() {
-              if (document.body.contains(menu)) {
-                document.body.removeChild(menu);
-              }
-              document.removeEventListener('click', removeMenu);
-            });
-          });
-
-        } catch (error) {
-          console.error('Error creating media item:', error);
+            showNotification('Profile picture updated');
         }
-      });
-    } catch (error) {
-      console.error('Error rendering media grid:', error);
-    }
-  };
-
-  console.log("Media Library functionality fixed!");
+    })
+    .catch(error => console.error('Error updating profile:', error));
 }
 
-// ====================== FIX MEETUP PLANNER ======================
-function fixMeetupPlanner() {
-  console.log("Fixing Meetup Planner...");
+// Utility functions
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-  // Get DOM elements
-  const createMeetupBtn = document.getElementById('create-meetup-btn');
-  const meetupModal = document.getElementById('meetup-modal');
-  const cancelMeetupBtn = document.getElementById('cancel-meetup');
-  const meetupForm = document.getElementById('meetup-form');
-
-  if (!createMeetupBtn || !meetupModal) {
-    console.warn('Meetup planner elements not found. Cannot fix meetup planner.');
-    return;
-  }
-
-  console.log("Meetup Planner elements found, setting up event handlers...");
-
-  // Fix meetup modal display
-  meetupModal.classList.add('hidden');
-  meetupModal.style.display = 'none';
-
-  // Remove existing handlers by cloning and replacing
-  const newCreateBtn = createMeetupBtn.cloneNode(true);
-  createMeetupBtn.parentNode.replaceChild(newCreateBtn, createMeetupBtn);
-
-  // Open meetup modal with fixed handling
-  newCreateBtn.addEventListener('click', () => {
-    console.log("Opening meetup modal...");
-
-    // Set default date to tomorrow at noon
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(12, 0, 0, 0);
-
-    // Format for datetime-local input
-    const meetupDatetimeInput = document.getElementById('meetup-datetime');
-    if (meetupDatetimeInput) {
-      meetupDatetimeInput.value = formatDateTimeForInput(tomorrow);
-    }
-
-    // Show modal
-    meetupModal.classList.remove('hidden');
-    meetupModal.classList.add('flex');
-    meetupModal.style.display = 'flex';
-
-    // Focus on title input
-    const meetupTitleInput = document.getElementById('meetup-title');
-    if (meetupTitleInput) {
-      setTimeout(() => meetupTitleInput.focus(), 100);
-    }
-  });
-
-  // Cancel button
-  if (cancelMeetupBtn) {
-    cancelMeetupBtn.addEventListener('click', () => {
-      meetupModal.classList.add('hidden');
-      meetupModal.classList.remove('flex');
-      meetupModal.style.display = 'none';
-    });
-  }
-
-  // Form submission
-  if (meetupForm) {
-    // Remove existing event listeners
-    const newMeetupForm = meetupForm.cloneNode(true);
-    meetupForm.parentNode.replaceChild(newMeetupForm, meetupForm);
-
-    // Add new event listener
-    newMeetupForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      console.log("Meetup form submitted");
-
-      // Get form data and validate
-      const meetupTitleInput = document.getElementById('meetup-title');
-      const meetupDatetimeInput = document.getElementById('meetup-datetime');
-      const meetupLocationInput = document.getElementById('meetup-location');
-      const meetupDescriptionInput = document.getElementById('meetup-description');
-
-      const title = meetupTitleInput?.value.trim();
-      const datetime = meetupDatetimeInput?.value;
-      const location = meetupLocationInput?.value.trim();
-      const description = meetupDescriptionInput?.value.trim();
-
-      // Validate form
-      if (!title || !datetime || !location) {
-        showNotification('Please fill in all required fields');
-        return;
-      }
-
-      // Parse datetime
-      let parsedDatetime;
-      try {
-        parsedDatetime = new Date(datetime);
-        if (isNaN(parsedDatetime.getTime())) {
-          throw new Error('Invalid date');
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
         }
-      } catch (error) {
-        showNotification('Please enter a valid date and time');
-        return;
-      }
+    }
+    return cookieValue;
+}
 
-      // Check if date is in the future
-      if (parsedDatetime < new Date()) {
-        showNotification('Please select a future date and time');
-        return;
-      }
+function scrollToBottom() {
+    const chatLog = document.getElementById('chat-log');
+    if (chatLog) {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+}
 
-      // Create meetup object
-      const meetup = {
-        title,
-        datetime: parsedDatetime.toISOString(),
-        location,
-        description
-      };
+function showNotification(message, type = 'info') {
+    const toast = document.getElementById('notification-toast');
+    const messageEl = document.getElementById('notification-message');
 
-      console.log("Sending meetup data:", meetup);
+    if (toast && messageEl) {
+        messageEl.textContent = message;
+        toast.classList.remove('hidden');
 
-      // First show a loading indicator
-      const submitBtn = newMeetupForm.querySelector('button[type="submit"]');
-      const originalBtnText = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `
-        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        Creating...
-      `;
-
-      // Send to WebSocket
-      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        window.socket.send(JSON.stringify({
-          type: 'meetup',
-          action: 'create',
-          meetup: meetup
-        }));
-
-        // Set timeout to restore button and close modal
         setTimeout(() => {
-          // Close modal
-          meetupModal.classList.add('hidden');
-          meetupModal.classList.remove('flex');
-          meetupModal.style.display = 'none';
-
-          // Reset form
-          newMeetupForm.reset();
-
-          // Restore button
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalBtnText;
-
-          showNotification('Meetup created successfully');
-        }, 1000);
-      } else {
-        // Handle connection issue
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
-        showNotification('Connection issue. Please refresh the page.');
-      }
-    });
-  }
-
-  // Helper function to format date for datetime-local input
-  function formatDateTimeForInput(date) {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-      // Default to tomorrow if date is invalid
-      date = new Date();
-      date.setDate(date.getDate() + 1);
-      date.setHours(12, 0, 0, 0);
+            toast.classList.add('hidden');
+        }, 3000);
     }
+}
 
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+function getCategoryIcon(category) {
+    const icons = {
+        'technology': '💻',
+        'social': '👋',
+        'creative': '🎨',
+        'gaming': '🎮',
+        'education': '📚',
+        'health': '🧘',
+        'music': '🎵',
+        'food': '🍕',
+        'travel': '✈️',
+        'finance': '💰',
+        'sports': '⚽',
+        'media': '🎬',
+        'books': '📖',
+        'science': '🔬'
+    };
 
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  }
+    return icons[category.toLowerCase()] || '🌟';
+}
 
-  // Fixed renderMeetups function
-  window.renderMeetups = function(meetups) {
-    console.log(`Rendering ${meetups?.length || 0} meetups`);
-
-    // Find upcoming meetups section
-    const upcomingMeetupsList = document.getElementById('upcoming-meetups');
-    if (!upcomingMeetupsList) {
-      console.warn('Upcoming meetups section not found');
-      return;
-    }
-
-    // Clear existing content
-    upcomingMeetupsList.innerHTML = '';
-
-    // If no meetups, show empty state
-    if (!meetups || meetups.length === 0) {
-      upcomingMeetupsList.innerHTML = `
-        <p class="text-gray-400 text-xs italic">No upcoming meetups planned yet.</p>
-        <button id="create-meetup-empty-btn" class="btn btn-secondary w-full mt-3 text-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          Plan a Meetup
-        </button>
-      `;
-
-      // Attach event listener to the empty state button
-      const emptyStateBtn = document.getElementById('create-meetup-empty-btn');
-      if (emptyStateBtn) {
-        emptyStateBtn.addEventListener('click', () => {
-          const meetupModal = document.getElementById('meetup-modal');
-          if (meetupModal) {
-            meetupModal.classList.remove('hidden');
-            meetupModal.classList.add('flex');
-            meetupModal.style.display = 'flex';
-
-            // Set default date to tomorrow at noon
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(12, 0, 0, 0);
-
-            const datetimeInput = document.getElementById('meetup-datetime');
-            if (datetimeInput) {
-              datetimeInput.value = formatDateTimeForInput(tomorrow);
-            }
-          }
-        });
-      }
-
-      return;
-    }
-
-    // Render each meetup
-    meetups.forEach(meetup => {
-      try {
-        // Format date and time
-        const { date: formattedDate, time: formattedTime } = formatDateForDisplay(meetup.datetime);
-
-        // Check if current user is attending
-        const isAttending = Array.isArray(meetup.attendees) && meetup.attendees.includes(window.username);
-
-        // Create meetup element
-        const meetupEl = document.createElement('div');
-        meetupEl.className = 'p-3 rounded-lg bg-gradient-to-r from-pink-50 to-yellow-50 border border-pink-100 mb-3';
-        meetupEl.innerHTML = `
-          <div class="flex justify-between items-start">
-            <h4 class="font-medium text-gray-800">${escapeHtml(meetup.title)}</h4>
-            <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">${formattedDate}</span>
-          </div>
-          <div class="mt-1 text-xs">
-            <div class="flex items-center text-gray-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              ${formattedTime}
-            </div>
-            <div class="flex items-center text-gray-600 mt-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              ${escapeHtml(meetup.location)}
-            </div>
-            ${meetup.description ? `
-            <div class="mt-2 text-gray-600 rounded-md bg-white bg-opacity-50 p-2 text-xs">
-              ${escapeHtml(meetup.description).replace(/\n/g, '<br>')}
-            </div>
-            ` : ''}
-          </div>
-          <div class="mt-2 flex justify-between items-center">
-            <span class="text-xs text-gray-500">${Array.isArray(meetup.attendees) ? meetup.attendees.length : 0} attending</span>
-            <button class="attend-btn text-xs px-2 py-1 rounded ${isAttending ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-700 hover:bg-pink-50'}" data-meetup-id="${meetup.id}">
-              ${isAttending ? 'Attending ✓' : 'Attend'}
-            </button>
-          </div>
-        `;
-
-        upcomingMeetupsList.appendChild(meetupEl);
-
-        // Add event listener for attendance button
-        const attendBtn = meetupEl.querySelector('.attend-btn');
-        if (attendBtn) {
-          attendBtn.addEventListener('click', () => {
-            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-              // Show loading state
-              const originalText = attendBtn.textContent;
-              attendBtn.disabled = true;
-              attendBtn.textContent = isAttending ? 'Leaving...' : 'Joining...';
-
-              console.log(`Sending meetup ${isAttending ? 'leave' : 'join'} request for meetup ${meetup.id}`);
-
-              window.socket.send(JSON.stringify({
-                type: 'meetup',
-                action: isAttending ? 'leave' : 'join',
-                meetup_id: meetup.id
-              }));
-
-              // Reset button after a delay if no response
-              setTimeout(() => {
-                if (attendBtn.disabled) {
-                  attendBtn.disabled = false;
-                  attendBtn.textContent = originalText;
-                }
-              }, 3000);
-            } else {
-              showNotification('Connection issue. Please refresh the page.');
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error rendering meetup:', error);
-      }
-    });
-
-    // Add the create button at the end
-    const createBtn = document.createElement('button');
-    createBtn.id = 'create-meetup-list-btn';
-    createBtn.className = 'btn btn-secondary w-full mt-3 text-sm';
-    createBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-      </svg>
-      Plan a Meetup
-    `;
-
-    upcomingMeetupsList.appendChild(createBtn);
-
-    // Re-attach the event listener
-    createBtn.addEventListener('click', () => {
-      const meetupModal = document.getElementById('meetup-modal');
-      if (meetupModal) {
-        meetupModal.classList.remove('hidden');
-        meetupModal.classList.add('flex');
-        meetupModal.style.display = 'flex';
-
-        // Set default date to tomorrow at noon
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(12, 0, 0, 0);
-
-        const datetimeInput = document.getElementById('meetup-datetime');
-        if (datetimeInput) {
-          datetimeInput.value = formatDateTimeForInput(tomorrow);
-        }
-      }
-    });
-  };
-
-  // Format date for display
-  function formatDateForDisplay(dateString) {
-    const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-      return { date: 'Invalid date', time: '' };
-    }
-
-    // Check if today
-    const today = new Date();
-    const isToday = date.getDate() === today.getDate() &&
-                   date.getMonth() === today.getMonth() &&
-                   date.getFullYear() === today.getFullYear();
-
-    // Check if tomorrow
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const isTomorrow = date.getDate() === tomorrow.getDate() &&
-                      date.getMonth() === tomorrow.getMonth() &&
-                      date.getFullYear() === tomorrow.getFullYear();
-
-    let formattedDate;
-    if (isToday) {
-      formattedDate = 'Today';
-    } else if (isTomorrow) {
-      formattedDate = 'Tomorrow';
+// WebSocket reconnection
+function attemptReconnect() {
+    if (reconnectAttempts < maxReconnectAttempts) {
+        reconnectAttempts++;
+        setTimeout(() => {
+            console.log(`Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
+            initializeWebSocket();
+        }, reconnectInterval * reconnectAttempts);
     } else {
-      formattedDate = date.toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
+        showNotification('Connection lost. Please refresh the page.', 'error');
     }
-
-    // Format time
-    const formattedTime = date.toLocaleTimeString(undefined, {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    return { date: formattedDate, time: formattedTime };
-  }
-
-  // Helper function to escape HTML
-  function escapeHtml(unsafe) {
-    if (typeof unsafe !== 'string') return '';
-    return unsafe
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  console.log("Meetup Planner functionality fixed!");
 }
 
-// ====================== UTILITY FUNCTIONS ======================
-// Helper function to scan DOM for media
-function scanDOMForMedia() {
-  try {
-    // Make sure we have the media library structure
-    if (!window.mediaLibrary) {
-      window.mediaLibrary = { images: [], videos: [] };
+// Additional helpers
+function insertEmoji(emoji) {
+    const input = document.getElementById('chat-message-input');
+    if (input) {
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        input.value = text.substring(0, start) + emoji + text.substring(end);
+        input.focus();
+        input.setSelectionRange(start + emoji.length, start + emoji.length);
     }
-
-    console.log("Scanning DOM for media...");
-
-    // Find all images in message content
-    const messageImages = document.querySelectorAll('.message-content img');
-    let imageCount = 0;
-    messageImages.forEach(img => {
-      if (img.src &&
-          !img.src.includes('data:image') && // Skip inline data URLs
-          !window.mediaLibrary.images.includes(img.src)) {
-        window.mediaLibrary.images.push(img.src);
-        imageCount++;
-      }
-    });
-
-    // Find all videos in message content
-    const messageVideos = document.querySelectorAll('.message-content video source');
-    let videoCount = 0;
-    messageVideos.forEach(source => {
-      if (source.src && !window.mediaLibrary.videos.includes(source.src)) {
-        window.mediaLibrary.videos.push(source.src);
-        videoCount++;
-      }
-    });
-
-    console.log(`Found ${imageCount} images and ${videoCount} videos in DOM`);
-  } catch (error) {
-    console.error('Error scanning DOM for media:', error);
-  }
 }
 
-// ====================== INITIALIZE FIX FUNCTIONS ======================
-// Execute all fixes
-function initEuphorieFixedFeatures() {
-  console.log("Initializing Euphorie fixed features...");
-
-  // Make sure required global variables are set
-  if (!window.roomName) {
-    const roomNameMatch = window.location.pathname.match(/\/chat\/([^\/]+)/);
-    if (roomNameMatch) {
-      window.roomName = roomNameMatch[1];
-      console.log(`Set window.roomName to ${window.roomName}`);
+function loadActiveUsers() {
+    // This is called on page load to get initial users
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+            'type': 'users',
+            'action': 'list'
+        }));
     }
-  }
-
-  // Fix WebSocket first
-  fixWebSocketConnection();
-
-  // Then fix features one by one
-  fixChatInput();
-  fixWhiteboard();
-  fixMediaLibrary();
-  fixMeetupPlanner();
-
-  console.log("All Euphorie features fixed!");
 }
 
-// Initialize all fixes when document is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-  // Delay initialization to ensure everything is loaded
-  setTimeout(initEuphorieFixedFeatures, 1000);
+// Initialize everything on page load
+window.addEventListener('load', function() {
+    // Any additional initialization that needs to happen after full page load
+    console.log('Euphorie chat room loaded successfully');
 });
 
-// =============== HELPER FUNCTIONS (MOVED FROM ORIGINAL CODE) ===============
-// Original debounce function from your code
-function debounce(func, wait) {
-  let timeout;
-  return function(...args) {
-    const context = this;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(context, args), wait);
-  };
-}
-
-console.log('Chat.js END');
-
-
+// Handle page visibility changes for better WebSocket management
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        // Page is hidden, could pause certain activities
+    } else {
+        // Page is visible again, ensure WebSocket is connected
+        if (websocket && websocket.readyState !== WebSocket.OPEN) {
+            attemptReconnect();
+        }
+    }
+});
 </script>
 </body>
 </html>
