@@ -65,13 +65,7 @@
   opacity: 0 !important;
 }
 
-/* Fixed layout structure to prevent jumping */
-html, body {
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-}
-
+/* Base styles */
 body {
   font-family: 'Inter', sans-serif;
   background-color: #f8fafc;
@@ -79,16 +73,9 @@ body {
     radial-gradient(circle at 10% 10%, rgba(236, 72, 153, 0.03), transparent 20%),
     radial-gradient(circle at 90% 90%, rgba(147, 51, 234, 0.03), transparent 20%);
   background-attachment: fixed;
-  display: flex;
-  flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
   color: var(--text-primary);
-}
-
-main {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Custom scrollbar */
@@ -229,69 +216,30 @@ main {
   background-color: #fecaca;
 }
 
-/* Fixed chat container layout */
+/* Chat container with improved scrolling */
 .chat-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
+  height: calc(100vh - 220px);
+  min-height: 400px;
   scroll-behavior: smooth;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.bg-white.rounded-xl.shadow-sm {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.input-area {
-  background-color: white;
-  border-top: 1px solid rgba(236, 72, 153, 0.1);
   padding: 1rem;
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  flex-shrink: 0;
-}
-
-.grid.grid-cols-1.lg\\:grid-cols-4 {
-  height: calc(100vh - 120px);
-  overflow: hidden;
-}
-
-.lg\\:col-span-3 {
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
-.lg\\:col-span-1 {
-  overflow-y: auto;
-  max-height: 100%;
-}
-
-/* Fixed message bubble and message layout */
-.flex.items-start.gap-2.group {
-  margin-bottom: 1rem;
-  position: relative;
-}
-
+/* Message bubbles with improved animation */
 .message-bubble {
   position: relative;
   border-radius: var(--radius-xl);
   padding: 0.75rem 1rem;
-  max-width: 100%;
+  max-width: 85%;
   width: fit-content;
   word-break: break-word;
   box-shadow: var(--shadow-sm);
   line-height: 1.5;
   transition: all var(--duration-normal) var(--ease);
   animation: fadeIn 0.3s ease forwards;
-  margin-bottom: 0.25rem;
 }
 
 .message-bubble.sent {
@@ -312,102 +260,16 @@ main {
   transform: translateY(-1px);
 }
 
-/* Fixed message content styling */
-.message-content {
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
-}
-
-.message-media {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-.message-media img {
-  max-width: 300px;
-  max-height: 300px;
-  width: auto;
-  height: auto;
-  display: block;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  object-fit: cover;
-}
-
-.message-media img:hover {
-  opacity: 0.9;
-}
-
-.message-media video {
-  max-width: 300px;
-  max-height: 300px;
-  width: auto;
-  height: auto;
-  display: block;
-  border-radius: 0.5rem;
-}
-
-.message-media a {
-  text-decoration: none;
-  transition: background-color 0.2s;
-}
-
-/* Fixed reactions container styling */
-.reactions-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
-  padding-left: 0.5rem;
-}
-
-.reaction {
-  background-color: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 1rem;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  line-height: 1.2;
-}
-
-.reaction:hover {
-  background-color: rgba(236, 72, 153, 0.1);
-  transform: scale(1.05);
-  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
-}
-
-.reaction-count {
-  font-size: 0.7rem;
-  color: #4B5563;
-  font-weight: 500;
-}
-
-/* Fixed avatar system */
+/* Enhanced avatar system */
 .avatar {
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
-  min-height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   color: white;
-  font-size: 0.875rem;
-  flex-shrink: 0;
-  margin-top: 0.25rem;
   box-shadow: var(--shadow-sm);
   transition: transform var(--duration-normal) var(--ease);
   background-size: cover;
@@ -431,34 +293,6 @@ main {
   background-size: cover;
   background-position: center;
   text-indent: -9999px;
-}
-
-/* Fixed quick reaction buttons */
-.emoji-reaction {
-  opacity: 0;
-  transition: opacity 0.2s ease, transform 0.1s ease;
-  background-color: white;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 0.25rem;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 0.875rem;
-  line-height: 1;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.group:hover .emoji-reaction {
-  opacity: 1;
-}
-
-.emoji-reaction:hover {
-  background-color: rgba(252, 231, 243, 1);
-  transform: scale(1.1);
 }
 
 /* Typing animation */
@@ -489,7 +323,7 @@ main {
   animation: typingBounce 1.4s infinite ease-in-out;
 }
 
-.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(1) { animation-delay: a0s; }
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
@@ -573,6 +407,15 @@ main {
 }
 
 /* Enhanced input area */
+.input-area {
+  background-color: white;
+  border-top: 1px solid rgba(236, 72, 153, 0.1);
+  padding: 1rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
 .input-wrapper {
   display: flex;
   align-items: center;
@@ -903,6 +746,41 @@ main {
   transform: scale(1.1);
 }
 
+/* Enhanced reaction system */
+.reactions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.reaction {
+  background-color: white;
+  border-radius: var(--radius-xl);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--duration-normal) var(--ease),
+              background-color var(--duration-normal) var(--ease);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.reaction:hover {
+  background-color: var(--primary-light);
+  transform: scale(1.05);
+}
+
+.emoji-reaction {
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.emoji-reaction:hover {
+  transform: scale(1.2);
+}
+
 /* Updated profile menu styles for proper positioning */
 #user-profile-toggle {
   position: relative;
@@ -989,32 +867,10 @@ main {
   padding: 0.75rem 1rem;
 }
 
-/* User Popover */
-#user-options-popover {
-  position: absolute;
-  background-color: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
-  border: 1px solid var(--border);
-  padding: 0.5rem;
-  z-index: 50;
-  width: 180px;
-}
-
 /* Fixed mobile view */
 @media (max-width: 640px) {
-  .app-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  main {
-    height: calc(100vh - 60px);
-  }
-
   .chat-container {
-    height: calc(100% - 65px);
+    height: calc(100vh - 180px);
   }
 
   .emoji-panel {
@@ -1027,20 +883,11 @@ main {
     max-width: 90%;
   }
 
+  /* Ensure profile menu stays within screen on mobile */
   .profile-menu {
     right: 0;
     left: auto;
     max-width: 90vw;
-  }
-
-  .emoji-reaction {
-    display: none !important;
-  }
-
-  .message-media img,
-  .message-media video {
-    max-width: 200px;
-    max-height: 200px;
   }
 }
 
@@ -1057,6 +904,33 @@ main {
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* User Popover */
+#user-options-popover {
+  position: absolute;
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  z-index: 50;
+  width: 180px;
+}
+/* Reset body and main layout */
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+/* Main content should grow to fill space */
+main {
+  flex: 1 0 auto;
 }
 </style>
 </head>
