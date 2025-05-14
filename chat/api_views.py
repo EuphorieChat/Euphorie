@@ -1,250 +1,30 @@
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_protect
-from django.db.models import Count
-import json
-from .models import Room, RoomBookmark
-
+from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import UserRelationship, Room, Message, Category
-from .services import get_room_recommendations, get_friend_suggestions, get_online_friends
+from django.db.models import Count, Q, F
+from datetime import timedelta
+import json
+import logging
 
-@login_required
-@csrf_protect
-@require_POST
-def send_friend_request(request):
-    """
-    API view to send a friend request to another user
-    """
-    try:
-        data = json.loads(request.body)
-        receiver_id = data.get('receiver_id')
+from .models import (
+    Room, Message, Category, UserRelationship,
+    UserStatus, UserInterest, RoomBookmark
+)
+from .services import (
+    get_online_friends, get_room_recommendations,
+    record_user_interest, get_friend_suggestions
+)
 
-        if not receiver_id:
-            return JsonResponse({'success': False, 'error': 'Receiver ID is required'})
+logger = logging.getLogger(__name__)
 
-        # Get receiver user
-        try:
-            receiver = User.objects.get(id=receiver_id)
-        except User.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'User not found'})
-
-        # Don't allow sending request to yourself
-        if receiver.id == request.user.id:
-            return JsonResponse({'success': False, 'error': 'Cannot send friend request to yourself'})
-
-        # Check if relationship already exists
-        existing = UserRelationship.get_friendship(request.user, receiver)
-        if existing:
-            return JsonResponse({'success': False, 'error': f'A relationship already exists with status: {existing.status}'})
-
-        # Create the relationship
-        relationship = UserRelationship.objects.create(
-            requester=request.user,
-            receiver=receiver,
-            status='pending'
-        )
-
-        # TODO: Send notification to receiver
-
-        return JsonResponse({'success': True})
-
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required
-@csrf_protect
-@require_POST
-def respond_to_friend_request(request):
-    """
-    API view to accept or decline a friend request
-    """
-    try:
-        data = json.loads(request.body)
-        relationship_id = data.get('relationship_id')
-        action = data.get('action')  # 'accept' or 'decline'
-
-        if not relationship_id or not action:
-            return JsonResponse({'success': False, 'error': 'Relationship ID and action are required'})
-
-        if action not in ['accept', 'decline']:
-            return JsonResponse({'success': False, 'error': 'Invalid action. Must be "accept" or "decline"'})
-
-        # Get relationship
-        try:
-            relationship = UserRelationship.objects.get(id=relationship_id, receiver=request.user, status='pending')
-        except UserRelationship.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Friend request not found'})
-
-        # Update status
-        relationship.status = 'accepted' if action == 'accept' else 'declined'
-        relationship.save()
-
-        # TODO: Send notification to requester
-
-        return JsonResponse({'success': True})
-
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required
-@csrf_protect
-@require_POST
-def remove_friend(request):
-    """
-    API view to remove a friend relationship
-    """
-    try:
-        data = json.loads(request.body)
-        username = data.get('username')
-
-        if not username:
-            return JsonResponse({'success': False, 'error': 'Username is required'})
-
-        # Get the friend user
-        try:
-            friend = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'User not found'})
-
-        # Remove relationship
-        result = UserRelationship.remove_friendship(request.user, friend)
-
-        if not result:
-            return JsonResponse({'success': False, 'error': 'Friendship not found'})
-
-        return JsonResponse({'success': True})
-
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required
-def get_friend_suggestions_ajax(request):
-    """
-    API view to get friend suggestions for the current user
-    """
-    try:
-        suggestions = get_friend_suggestions(request.user)
-
-        # Format the suggestions for the response
-        formatted_suggestions = [
-            {
-                'id': user.id,
-                'username': user.username,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'avatar': user.username[:1].upper()
-            }
-            for user in suggestions
-        ]
-
-        return JsonResponse({
-            'success': True,
-            'suggestions': formatted_suggestions
-        })
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-def get_recommended_rooms(request):
-    """
-    API view to get room recommendations
-    """
-    try:
-        rooms = get_room_recommendations(request.user)
-
-        # Format the rooms for the response
-        formatted_rooms = [
-            {
-                'id': room.id,
-                'name': room.name,
-                'display_name': room.display_name or room.name,
-                'category': room.category.name if room.category else None,
-                'message_count': room.messages.count(),
-                'is_protected': room.is_protected,
-                'creator': room.creator.username
-            }
-            for room in rooms
-        ]
-
-        return JsonResponse({
-            'success': True,
-            'rooms': formatted_rooms
-        })
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required
-def get_online_friends_api(request):
-    """
-    API view to get online friends for the current user
-    """
-    try:
-        online_friends = get_online_friends(request.user)
-
-        # Format the online friends for the response
-        formatted_friends = [
-            {
-                'id': user.id,
-                'username': user.username,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'avatar': user.username[:1].upper()
-            }
-            for user in online_friends
-        ]
-
-        return JsonResponse({
-            'success': True,
-            'friends': formatted_friends
-        })
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required
-@require_POST
-def toggle_bookmark_room(request):
-    data = json.loads(request.body)
-    room_name = data.get('room_name')
-    bookmarked = data.get('bookmarked', False)
-
-    try:
-        room = Room.objects.get(name=room_name)
-
-        # Update or create bookmark
-        bookmark, created = RoomBookmark.objects.get_or_create(
-            user=request.user,
-            room=room,
-            defaults={'is_bookmarked': bookmarked}
-        )
-
-        if not created:
-            # Update existing bookmark
-            bookmark.is_bookmarked = bookmarked
-            bookmark.save()
-
-        return JsonResponse({'success': True})
-
-    except Room.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Room not found'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
 
 def get_recommendations(request):
-    """Get room recommendations - works for both authenticated and guest users"""
+    """
+    Get room recommendations - works for both authenticated and guest users
+    """
     try:
-        from django.db.models import Count
-        from chat.models import Room, RoomBookmark
-
         recommendations = []
         bookmarked_rooms = []
 
@@ -259,8 +39,8 @@ def get_recommendations(request):
             recommendations = Room.objects.exclude(
                 id__in=user_rooms
             ).annotate(
-                message_count=Count('messages')
-            ).order_by('-message_count')[:5]
+                msg_count=Count('messages')
+            ).order_by('-msg_count')[:5]
 
             # Get bookmarked rooms
             bookmarks = RoomBookmark.objects.filter(
@@ -271,29 +51,31 @@ def get_recommendations(request):
             for bookmark in bookmarks:
                 room = bookmark.room
                 if room:
+                    msg_count = room.messages.count()
                     bookmarked_rooms.append({
                         'name': room.name,
                         'display_name': room.display_name or room.name.title(),
                         'category': room.category.name if room.category else None,
-                        'message_count': room.messages.count(),
-                        'activity': 'high' if room.messages.count() > 50 else 'medium',
+                        'message_count': msg_count,
+                        'activity': 'high' if msg_count > 50 else 'medium',
                         'is_protected': getattr(room, 'is_protected', False)
                     })
         else:
             # For anonymous users, just return popular rooms
             recommendations = Room.objects.annotate(
-                message_count=Count('messages')
-            ).order_by('-message_count')[:5]
+                msg_count=Count('messages')
+            ).order_by('-msg_count')[:5]
 
         # Format recommendations for frontend
         rooms_data = []
         for room in recommendations:
+            msg_count = getattr(room, 'msg_count', 0)
             rooms_data.append({
                 'name': room.name,
                 'display_name': room.display_name or room.name.title(),
                 'category': room.category.name if room.category else None,
-                'message_count': room.messages.count(),
-                'activity': 'high' if room.messages.count() > 50 else 'medium',
+                'message_count': msg_count,
+                'activity': 'high' if msg_count > 50 else 'medium',
                 'is_protected': getattr(room, 'is_protected', False)
             })
 
@@ -303,11 +85,258 @@ def get_recommendations(request):
             'bookmarked_rooms': bookmarked_rooms
         })
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error in get_recommendations: {str(e)}")
+        logger.error(f"Error in get_recommendations: {str(e)}", exc_info=True)
 
         return JsonResponse({
+            'success': True,  # Return success but with empty data
+            'rooms': [],
+            'bookmarked_rooms': []
+        })
+
+
+@login_required
+def send_friend_request(request):
+    """Send a friend request to another user"""
+    try:
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            receiver_username = data.get('receiver')
+
+            if not receiver_username:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Receiver username is required'
+                }, status=400)
+
+            receiver = get_object_or_404(User, username=receiver_username)
+
+            if receiver == request.user:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Cannot send friend request to yourself'
+                }, status=400)
+
+            # Check if relationship already exists
+            existing = UserRelationship.objects.filter(
+                Q(requester=request.user, receiver=receiver) |
+                Q(requester=receiver, receiver=request.user)
+            ).first()
+
+            if existing:
+                if existing.status == 'accepted':
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'You are already friends'
+                    }, status=400)
+                elif existing.status == 'pending':
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Friend request already pending'
+                    }, status=400)
+
+            # Create new friend request
+            relationship = UserRelationship.objects.create(
+                requester=request.user,
+                receiver=receiver,
+                status='pending'
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Friend request sent successfully'
+            })
+
+    except Exception as e:
+        logger.error(f"Error in send_friend_request: {str(e)}", exc_info=True)
+        return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'An error occurred while sending friend request'
         }, status=500)
+
+
+@login_required
+def respond_to_friend_request(request):
+    """Accept or decline a friend request"""
+    try:
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            requester_username = data.get('requester')
+            action = data.get('action')  # 'accept' or 'decline'
+
+            if not requester_username or action not in ['accept', 'decline']:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid parameters'
+                }, status=400)
+
+            requester = get_object_or_404(User, username=requester_username)
+
+            # Find the pending request
+            relationship = get_object_or_404(
+                UserRelationship,
+                requester=requester,
+                receiver=request.user,
+                status='pending'
+            )
+
+            if action == 'accept':
+                relationship.status = 'accepted'
+                message = 'Friend request accepted'
+            else:
+                relationship.status = 'declined'
+                message = 'Friend request declined'
+
+            relationship.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': message
+            })
+
+    except Exception as e:
+        logger.error(f"Error in respond_to_friend_request: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while responding to friend request'
+        }, status=500)
+
+
+@login_required
+def remove_friend(request):
+    """Remove a friend relationship"""
+    try:
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            friend_username = data.get('friend')
+
+            if not friend_username:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Friend username is required'
+                }, status=400)
+
+            friend = get_object_or_404(User, username=friend_username)
+
+            # Remove friendship
+            success = UserRelationship.remove_friendship(request.user, friend)
+
+            if success:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Friend removed successfully'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Could not remove friend'
+                }, status=400)
+
+    except Exception as e:
+        logger.error(f"Error in remove_friend: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while removing friend'
+        }, status=500)
+
+
+def get_friend_suggestions_ajax(request):
+    """Get friend suggestions for the current user"""
+    try:
+        suggestions = []
+
+        if request.user.is_authenticated:
+            suggestions_list = get_friend_suggestions(request.user, limit=10)
+
+            for user in suggestions_list:
+                suggestions.append({
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'id': user.id
+                })
+
+        return JsonResponse({
+            'success': True,
+            'suggestions': suggestions
+        })
+
+    except Exception as e:
+        logger.error(f"Error in get_friend_suggestions_ajax: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': True,
+            'suggestions': []
+        })
+
+
+def get_online_friends_api(request):
+    """Get list of online friends for the current user"""
+    try:
+        online_friends = []
+
+        if request.user.is_authenticated:
+            friends_list = get_online_friends(request.user)
+
+            for friend in friends_list:
+                online_friends.append({
+                    'username': friend.username,
+                    'first_name': friend.first_name,
+                    'last_name': friend.last_name,
+                    'id': friend.id,
+                    'is_online': True
+                })
+
+        return JsonResponse({
+            'success': True,
+            'friends': online_friends
+        })
+
+    except Exception as e:
+        logger.error(f"Error in get_online_friends_api: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': True,
+            'friends': []
+        })
+
+
+def get_recommended_rooms(request):
+    """Get recommended rooms for the current user"""
+    try:
+        rooms = []
+
+        if request.user.is_authenticated:
+            recommended_rooms = get_room_recommendations(request.user, limit=5)
+
+            for room in recommended_rooms:
+                rooms.append({
+                    'name': room.name,
+                    'display_name': room.display_name or room.name.title(),
+                    'category': room.category.name if room.category else None,
+                    'message_count': room.messages.count(),
+                    'is_protected': getattr(room, 'is_protected', False)
+                })
+        else:
+            # For anonymous users, get popular rooms
+            popular_rooms = Room.objects.annotate(
+                msg_count=Count('messages')
+            ).order_by('-msg_count')[:5]
+
+            for room in popular_rooms:
+                rooms.append({
+                    'name': room.name,
+                    'display_name': room.display_name or room.name.title(),
+                    'category': room.category.name if room.category else None,
+                    'message_count': getattr(room, 'msg_count', 0),
+                    'is_protected': getattr(room, 'is_protected', False)
+                })
+
+        return JsonResponse({
+            'success': True,
+            'rooms': rooms
+        })
+
+    except Exception as e:
+        logger.error(f"Error in get_recommended_rooms: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': True,
+            'rooms': []
+        })

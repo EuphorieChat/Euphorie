@@ -2244,41 +2244,36 @@ function handleProfileUpdate(data) {
     updateAllUserAvatars(data.username);
 }
 
-// Room recommendations - Updated with better error handling
+// Room recommendations
 function loadRecommendations() {
     fetch('/api/get_recommendations/')
         .then(response => {
+            // Check if response is OK and is JSON
             if (!response.ok) {
-                console.error(`HTTP error! status: ${response.status}`);
-                // Return empty but valid response for errors
-                return { success: true, rooms: [], bookmarked_rooms: [] };
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             // Check content type
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                console.error("Response wasn't JSON");
-                return { success: true, rooms: [], bookmarked_rooms: [] };
+                throw new TypeError("Response wasn't JSON - likely an HTML error page");
             }
 
             return response.json();
         })
         .then(data => {
             if (data.success) {
-                if (data.rooms && data.rooms.length > 0) {
-                    updateRecommendedRooms(data.rooms);
-                } else {
-                    updateRecommendedRooms([]);
-                }
-
-                if (data.bookmarked_rooms && data.bookmarked_rooms.length > 0) {
+                updateRecommendedRooms(data.rooms);
+                if (data.bookmarked_rooms) {
                     updateBookmarkedRoomsDisplay(data.bookmarked_rooms);
                 }
+            } else {
+                console.error('API returned error:', data.error);
             }
         })
         .catch(error => {
             console.error('Error loading recommendations:', error);
-            // Don't crash - just show empty recommendations
+            // Show empty recommendations for error cases
             updateRecommendedRooms([]);
         });
 }
@@ -2296,6 +2291,7 @@ function handleRecommendationsUpdate(data) {
 
 function updateBookmarkedRoomsDisplay(bookmarkedRooms) {
     // Update bookmarked rooms in the UI if you have a display for them
+    // This depends on your specific UI implementation
     console.log('Bookmarked rooms:', bookmarkedRooms);
 }
 
@@ -2304,12 +2300,6 @@ function updateRecommendedRooms(rooms) {
     if (!recommendedList) return;
 
     recommendedList.innerHTML = '';
-
-    if (rooms.length === 0) {
-        recommendedList.innerHTML = '<div class="text-sm text-gray-500 text-center py-4">No recommendations available</div>';
-        return;
-    }
-
     rooms.forEach(room => {
         const roomLink = document.createElement('a');
         roomLink.href = `/chat/${room.name}/`;
@@ -2331,7 +2321,7 @@ function updateRecommendedRooms(rooms) {
     });
 }
 
-// Bookmarks - Updated with better error handling
+// Bookmarks
 function toggleBookmark() {
     const bookmarkBtn = document.getElementById('bookmark-room');
     const isBookmarked = bookmarkBtn.classList.contains('bookmarked');
@@ -2361,16 +2351,15 @@ function toggleBookmark() {
 function loadBookmarkedRooms() {
     fetch('/api/get_bookmarked_rooms/')
         .then(response => {
+            // Check if response is OK and is JSON
             if (!response.ok) {
-                console.error(`HTTP error! status: ${response.status}`);
-                return { success: true, bookmarked_rooms: [] };
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             // Check content type
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                console.error("Response wasn't JSON");
-                return { success: true, bookmarked_rooms: [] };
+                throw new TypeError("Response wasn't JSON - likely an HTML error page");
             }
 
             return response.json();
@@ -2383,11 +2372,13 @@ function loadBookmarkedRooms() {
                     bookmarkBtn.classList.add('bookmarked');
                     bookmarkBtn.classList.add('text-pink-500');
                 }
+            } else {
+                console.error('API returned error:', data.error);
             }
         })
         .catch(error => {
             console.error('Error loading bookmarks:', error);
-            // Don't crash on error
+            // For error cases, assume no bookmarks
         });
 }
 
@@ -2985,6 +2976,6 @@ document.addEventListener('visibilitychange', function() {
         }
     }
 });
-</script>>
+</script>
 </body>
 </html>
