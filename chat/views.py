@@ -870,8 +870,6 @@ def direct_message(request, username):
 
     return render(request, 'chat/room.html', context)
 
-# Add this to your views.py
-@login_required
 def get_bookmarked_rooms(request):
     """Get the user's bookmarked rooms"""
     try:
@@ -879,6 +877,8 @@ def get_bookmarked_rooms(request):
 
         # Get user's bookmarked rooms
         bookmarked_rooms = []
+
+        # Check if user is authenticated before accessing bookmarks
         if request.user.is_authenticated:
             bookmarks = RoomBookmark.objects.filter(
                 user=request.user,
@@ -897,6 +897,7 @@ def get_bookmarked_rooms(request):
                         'is_protected': False
                     })
 
+        # Always return JSON, even for unauthenticated users
         return JsonResponse({
             'success': True,
             'bookmarked_rooms': bookmarked_rooms

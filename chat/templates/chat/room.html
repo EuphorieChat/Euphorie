@@ -2247,17 +2247,35 @@ function handleProfileUpdate(data) {
 // Room recommendations
 function loadRecommendations() {
     fetch('/api/get_recommendations/')
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is OK and is JSON
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Check content type
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new TypeError("Response wasn't JSON - likely an HTML error page");
+            }
+
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 updateRecommendedRooms(data.rooms);
                 if (data.bookmarked_rooms) {
-                    // Handle bookmarked rooms if needed
                     updateBookmarkedRoomsDisplay(data.bookmarked_rooms);
                 }
+            } else {
+                console.error('API returned error:', data.error);
             }
         })
-        .catch(error => console.error('Error loading recommendations:', error));
+        .catch(error => {
+            console.error('Error loading recommendations:', error);
+            // Show empty recommendations for error cases
+            updateRecommendedRooms([]);
+        });
 }
 
 function handleRecommendationsUpdate(data) {
@@ -2332,7 +2350,20 @@ function toggleBookmark() {
 
 function loadBookmarkedRooms() {
     fetch('/api/get_bookmarked_rooms/')
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is OK and is JSON
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Check content type
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new TypeError("Response wasn't JSON - likely an HTML error page");
+            }
+
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // Update UI to show bookmarked status
@@ -2341,9 +2372,14 @@ function loadBookmarkedRooms() {
                     bookmarkBtn.classList.add('bookmarked');
                     bookmarkBtn.classList.add('text-pink-500');
                 }
+            } else {
+                console.error('API returned error:', data.error);
             }
         })
-        .catch(error => console.error('Error loading bookmarks:', error));
+        .catch(error => {
+            console.error('Error loading bookmarks:', error);
+            // For error cases, assume no bookmarks
+        });
 }
 
 // Friend functionality

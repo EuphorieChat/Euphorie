@@ -239,85 +239,75 @@ def toggle_bookmark_room(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
-@login_required
 def get_recommendations(request):
-    """API endpoint to get room recommendations and bookmarked rooms"""
+    """Get room recommendations - works for both authenticated and guest users"""
     try:
-        # Get popular rooms as recommendations
-        recommended_rooms = []
+        from django.db.models import Count
+        from chat.models import Room, RoomBookmark
 
-        # Get rooms with message counts
-        active_rooms = Room.objects.annotate(
-            message_count=Count('messages')
-        ).order_by('-message_count')
-
-        # Start with fewer rooms to ensure we have enough non-bookmarked ones
-        limit = 10
-        checked_rooms = 0
-
-        for room in active_rooms:
-            checked_rooms += 1
-            # Skip rooms the user has already bookmarked (to avoid duplication)
-            if RoomBookmark.objects.filter(user=request.user, room=room, is_bookmarked=True).exists():
-                continue
-
-            recommended_rooms.append({
-                'name': room.name,
-                'display_name': room.display_name or room.name.replace('-', ' ').title(),
-                'category': room.category.name if room.category else None,
-                'message_count': room.message_count,
-                'activity': 'high' if room.message_count > 50 else 'medium',
-                'is_protected': getattr(room, 'is_protected', False)
-            })
-
-            # Stop when we have enough recommendations
-            if len(recommended_rooms) >= 5:
-                break
-
-            # Prevent infinite loop by limiting how many rooms we check
-            if checked_rooms >= limit:
-                break
-
-        # Get bookmarked rooms
+        recommendations = []
         bookmarked_rooms = []
-        bookmarks = RoomBookmark.objects.filter(
-            user=request.user,
-            is_bookmarked=True
-        ).select_related('room', 'room__category')
 
-        for bookmark in bookmarks:
-            room = bookmark.room
-            if not room:
-                continue
+        if request.user.is_authenticated:
+            # Get personalized recommendations for authenticated users
+            # Get rooms the user has already participated in
+            user_rooms = Room.objects.filter(
+                messages__user=request.user
+            ).distinct().values_list('id', flat=True)
 
-            # Count messages for this room
-            message_count = Message.objects.filter(room=room).count()
+            # Get recommendations - exclude rooms the user is already in
+            recommendations = Room.objects.exclude(
+                id__in=user_rooms
+            ).annotate(
+                message_count=Count('messages')
+            ).order_by('-message_count')[:5]
 
-            bookmarked_rooms.append({
+            # Get bookmarked rooms
+            bookmarks = RoomBookmark.objects.filter(
+                user=request.user,
+                is_bookmarked=True
+            ).select_related('room', 'room__category')
+
+            for bookmark in bookmarks:
+                room = bookmark.room
+                if room:
+                    bookmarked_rooms.append({
+                        'name': room.name,
+                        'display_name': room.display_name or room.name.title(),
+                        'category': room.category.name if room.category else None,
+                        'message_count': room.messages.count(),
+                        'activity': 'high' if room.messages.count() > 50 else 'medium',
+                        'is_protected': getattr(room, 'is_protected', False)
+                    })
+        else:
+            # For anonymous users, just return popular rooms
+            recommendations = Room.objects.annotate(
+                message_count=Count('messages')
+            ).order_by('-message_count')[:5]
+
+        # Format recommendations for frontend
+        rooms_data = []
+        for room in recommendations:
+            rooms_data.append({
                 'name': room.name,
-                'display_name': room.display_name or room.name.replace('-', ' ').title(),
+                'display_name': room.display_name or room.name.title(),
                 'category': room.category.name if room.category else None,
-                'message_count': message_count,
-                'activity': 'high' if message_count > 50 else 'medium',
+                'message_count': room.messages.count(),
+                'activity': 'high' if room.messages.count() > 50 else 'medium',
                 'is_protected': getattr(room, 'is_protected', False)
             })
 
         return JsonResponse({
             'success': True,
-            'rooms': recommended_rooms,
+            'rooms': rooms_data,
             'bookmarked_rooms': bookmarked_rooms
         })
-
     except Exception as e:
-        import traceback
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Error in get_recommendations: {str(e)}")
-        logger.error(traceback.format_exc())
 
         return JsonResponse({
             'success': False,
-            'error': str(e),
-            'rooms': [],
-            'bookmarked_rooms': []
-        }, status=200)  # Return 200 instead of 500 to prevent console errors
+            'error': str(e)
+        }, status=500)
