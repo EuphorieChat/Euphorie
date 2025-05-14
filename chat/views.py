@@ -18,7 +18,11 @@ from datetime import timedelta
 from django.db import models
 import json
 import os
-from .models import Room, Message, Reaction, Category, Meetup, UserRelationship
+import re
+from .models import (
+    Room, Message, Reaction, Category, Meetup, UserRelationship,
+    Announcement, AnnouncementReadStatus
+)
 import time
 
 def index(request):
