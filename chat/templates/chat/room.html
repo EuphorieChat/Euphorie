@@ -917,7 +917,76 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   z-index: 50;
   width: 180px;
 }
+/* Reset body and main layout */
+html, body {
+  height: 100%;
+}
 
+body {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+/* Main content should grow to fill space */
+main {
+  flex: 1 0 auto;
+}
+
+/* Footer should stick to bottom */
+footer {
+  flex-shrink: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Fix the chat container height */
+.chat-container {
+  height: calc(100vh - 300px);
+  min-height: 300px;
+  overflow-y: auto;
+}
+
+/* When logged in, adjust for additional UI elements */
+body.logged-in .chat-container {
+  height: calc(100vh - 320px);
+}
+
+/* Grid layout fix */
+.grid.grid-cols-1.lg\\:grid-cols-4 {
+  height: auto;
+  min-height: calc(100vh - 240px);
+}
+
+/* Mobile footer fixes */
+@media (max-width: 640px) {
+  .chat-container {
+    height: calc(100vh - 250px);
+  }
+
+  body.logged-in .chat-container {
+    height: calc(100vh - 270px);
+  }
+
+  footer {
+    padding: 0.75rem;
+  }
+
+  footer .flex {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+}
+
+/* Ensure footer content is properly aligned */
+footer .max-w-6xl {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
 </style>
 </head>
 <body>
@@ -1588,7 +1657,7 @@ window.roomName = "{{ room_name|escapejs }}";
 window.username = "{{ username|escapejs }}";
 </script>
 
-<script>
+<scrip>
 // Global variables
 let websocket = null;
 let typingTimeout = null;
@@ -1600,6 +1669,37 @@ let userProfiles = new Map();
 let activeUsers = new Set();
 let currentMeetups = [];
 let isTyping = false;
+
+// Add CSS styles for media in messages
+const mediaStyles = `
+<style>
+.message-media {
+    margin-top: 0.5rem;
+}
+
+.message-media img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.message-media video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+.message-media a {
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+</style>
+`;
+
+// Add the styles to the document
+document.head.insertAdjacentHTML('beforeend', mediaStyles);
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -1877,6 +1977,7 @@ function handleMessageSubmit(e) {
     }
 }
 
+// Fixed handleChatMessage to support media files
 function handleChatMessage(data) {
     const chatLog = document.getElementById('chat-log');
     const messageContainer = document.createElement('div');
@@ -1887,6 +1988,47 @@ function handleChatMessage(data) {
     const bubbleClass = data.username === window.username ? 'sent' : 'received';
 
     const userProfile = userProfiles.get(data.username) || { type: 'gradient', gradient: 'from-pink-400 to-purple-400' };
+
+    // Create message content with optional media
+    let messageContent = '';
+
+    // Add media if present
+    if (data.media_url) {
+        const mediaType = data.media_type || guessMediaType(data.media_url);
+
+        if (mediaType === 'image') {
+            messageContent = `
+                <div class="message-media mb-2">
+                    <img src="${data.media_url}" alt="Uploaded image" class="rounded-lg max-w-sm cursor-pointer hover:opacity-90" onclick="openMediaPreview({type: 'image', url: '${data.media_url}'})">
+                </div>
+            `;
+        } else if (mediaType === 'video') {
+            messageContent = `
+                <div class="message-media mb-2">
+                    <video src="${data.media_url}" controls class="rounded-lg max-w-sm">
+                        <source src="${data.media_url}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            `;
+        } else {
+            messageContent = `
+                <div class="message-media mb-2">
+                    <a href="${data.media_url}" target="_blank" class="flex items-center gap-2 p-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="text-sm text-gray-700">Download File</span>
+                    </a>
+                </div>
+            `;
+        }
+    }
+
+    // Add text message if present
+    if (data.message) {
+        messageContent += `<div class="text-sm text-gray-700 message-content">${escapeHtml(data.message)}</div>`;
+    }
 
     messageContainer.innerHTML = `
         <div class="avatar ${avatarClass} h-8 w-8 flex-shrink-0 text-sm user-avatar" data-username="${data.username}">
@@ -1906,9 +2048,7 @@ function handleChatMessage(data) {
                         </div>
                     </div>
                 </div>
-                <div class="text-sm text-gray-700 message-content">
-                    ${escapeHtml(data.message)}
-                </div>
+                ${messageContent}
             </div>
             <div class="reactions-container"></div>
         </div>
@@ -2119,6 +2259,7 @@ function createPreviewItem(file) {
     return item;
 }
 
+// Updated uploadFiles function to send WebSocket message after upload
 function uploadFiles(files) {
     const formData = new FormData();
     Array.from(files).forEach(file => {
@@ -2150,44 +2291,45 @@ function uploadFiles(files) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.urls) {
-                    // Send message with media for each URL
+                    // Send message with media for each URL via WebSocket
                     data.urls.forEach(url => {
                         if (websocket && websocket.readyState === WebSocket.OPEN) {
-                            const messageContent = {
+                            // Make sure URL is absolute
+                            const fullUrl = url.startsWith('/') ? window.location.origin + url : url;
+
+                            websocket.send(JSON.stringify({
                                 'type': 'chat',
-                                'message': '', // Empty message for media-only posts
-                                'media_url': url,
-                                'media_type': guessMediaType(url)
-                            };
-
-                            // If the URL is relative, make it absolute
-                            if (url.startsWith('/')) {
-                                messageContent.media_url = window.location.origin + url;
-                            }
-
-                            websocket.send(JSON.stringify(messageContent));
+                                'message': '',
+                                'media_url': fullUrl,
+                                'media_type': guessMediaType(fullUrl)
+                            }));
                         }
                     });
 
+                    // Clear preview
+                    document.getElementById('preview').classList.add('hidden');
+                    document.getElementById('file-input').value = '';
+
                     showNotification('File(s) uploaded successfully');
+
+                    // Hide progress after a short delay
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                        progressBar.style.width = '0%';
+                    }, 500);
                 } else {
                     showNotification('Upload failed: ' + (data.error || 'Unknown error'), 'error');
+                    progressContainer.classList.add('hidden');
                 }
             } catch (e) {
                 console.error('Error parsing upload response:', e);
                 showNotification('Upload failed: Invalid response', 'error');
+                progressContainer.classList.add('hidden');
             }
         } else {
             showNotification('Upload failed: Server error', 'error');
-        }
-
-        // Clear preview and reset
-        setTimeout(() => {
-            document.getElementById('preview').classList.add('hidden');
-            document.getElementById('file-input').value = '';
             progressContainer.classList.add('hidden');
-            progressBar.style.width = '0%';
-        }, 1000);
+        }
     });
 
     // Handle errors
