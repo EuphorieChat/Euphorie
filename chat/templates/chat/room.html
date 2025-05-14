@@ -932,61 +932,6 @@ body {
 main {
   flex: 1 0 auto;
 }
-
-/* Footer should stick to bottom */
-footer {
-  flex-shrink: 0;
-  width: 100%;
-  background-color: #ffffff;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* Fix the chat container height */
-.chat-container {
-  height: calc(100vh - 300px);
-  min-height: 300px;
-  overflow-y: auto;
-}
-
-/* When logged in, adjust for additional UI elements */
-body.logged-in .chat-container {
-  height: calc(100vh - 320px);
-}
-
-/* Grid layout fix */
-.grid.grid-cols-1.lg\\:grid-cols-4 {
-  height: auto;
-  min-height: calc(100vh - 240px);
-}
-
-/* Mobile footer fixes */
-@media (max-width: 640px) {
-  .chat-container {
-    height: calc(100vh - 250px);
-  }
-
-  body.logged-in .chat-container {
-    height: calc(100vh - 270px);
-  }
-
-  footer {
-    padding: 0.75rem;
-  }
-
-  footer .flex {
-    flex-direction: column;
-    gap: 0.5rem;
-    text-align: center;
-  }
-}
-
-/* Ensure footer content is properly aligned */
-footer .max-w-6xl {
-  width: 100%;
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-}
 </style>
 </head>
 <body>
@@ -1403,33 +1348,6 @@ footer .max-w-6xl {
   </div>
 </div>
 </main>
-
-<!-- Footer -->
-<footer class="py-6 border-t border-gray-100 mt-8 text-sm text-gray-500">
-<div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
-  <div class="mb-4 sm:mb-0 text-center sm:text-left">
-    <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start">
-      <h2 class="text-base font-bold gradient-text">Euphorie</h2>
-      <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
-    </a>
-    <p class="text-xs mt-1">© 2025 Euphorie. All rights reserved.</p>
-  </div>
-  <div class="flex items-center gap-6 text-xs">
-    <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-indigo-500 transition-colors">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-      <span class="hover:underline underline-offset-2">Crene.com</span>
-    </a>
-    <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-green-500 transition-colors">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-      <span class="hover:underline underline-offset-2">DiaryVault.com</span>
-    </a>
-  </div>
-</div>
-</footer>
 
 <!-- Modals -->
 <!-- Profile Menu -->
@@ -1977,7 +1895,7 @@ function handleMessageSubmit(e) {
     }
 }
 
-// Fixed handleChatMessage to support media files
+// Fixed handleChatMessage to properly handle media
 function handleChatMessage(data) {
     const chatLog = document.getElementById('chat-log');
     const messageContainer = document.createElement('div');
@@ -1992,33 +1910,37 @@ function handleChatMessage(data) {
     // Create message content with optional media
     let messageContent = '';
 
-    // Add media if present
-    if (data.media_url) {
-        const mediaType = data.media_type || guessMediaType(data.media_url);
+    // Check for media_url in the data
+    const mediaUrl = data.media_url || data.media;
+
+    if (mediaUrl) {
+        const mediaType = data.media_type || guessMediaType(mediaUrl);
 
         if (mediaType === 'image') {
             messageContent = `
                 <div class="message-media mb-2">
-                    <img src="${data.media_url}" alt="Uploaded image" class="rounded-lg max-w-sm cursor-pointer hover:opacity-90" onclick="openMediaPreview({type: 'image', url: '${data.media_url}'})">
+                    <img src="${mediaUrl}" alt="Uploaded image" class="rounded-lg max-w-sm cursor-pointer hover:opacity-90"
+                         onclick="window.openMediaPreview({type: 'image', url: '${mediaUrl}'})">
                 </div>
             `;
         } else if (mediaType === 'video') {
             messageContent = `
                 <div class="message-media mb-2">
-                    <video src="${data.media_url}" controls class="rounded-lg max-w-sm">
-                        <source src="${data.media_url}" type="video/mp4">
+                    <video src="${mediaUrl}" controls class="rounded-lg max-w-sm">
+                        <source src="${mediaUrl}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                 </div>
             `;
         } else {
+            const fileName = mediaUrl.split('/').pop();
             messageContent = `
                 <div class="message-media mb-2">
-                    <a href="${data.media_url}" target="_blank" class="flex items-center gap-2 p-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+                    <a href="${mediaUrl}" target="_blank" class="inline-flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <span class="text-sm text-gray-700">Download File</span>
+                        <span class="text-sm text-gray-700">${fileName}</span>
                     </a>
                 </div>
             `;
@@ -2026,8 +1948,16 @@ function handleChatMessage(data) {
     }
 
     // Add text message if present
-    if (data.message) {
-        messageContent += `<div class="text-sm text-gray-700 message-content">${escapeHtml(data.message)}</div>`;
+    if (data.message || data.content) {
+        const textContent = data.message || data.content || '';
+        if (textContent.trim()) {
+            messageContent += `<div class="text-sm text-gray-700 message-content">${escapeHtml(textContent)}</div>`;
+        }
+    }
+
+    // Only create message if there's content
+    if (!messageContent && !data.message && !data.content && !mediaUrl) {
+        return; // Don't create empty messages
     }
 
     messageContainer.innerHTML = `
@@ -2042,9 +1972,12 @@ function handleChatMessage(data) {
                     </a>
                     <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
                         <div class="flex space-x-1">
-                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
-                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
-                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
+                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50"
+                                    onclick="sendReaction(${data.message_id}, '❤️')" aria-label="React with heart">❤️</button>
+                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50"
+                                    onclick="sendReaction(${data.message_id}, '👍')" aria-label="React with thumbs up">👍</button>
+                            <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50"
+                                    onclick="sendReaction(${data.message_id}, '😂')" aria-label="React with laugh">😂</button>
                         </div>
                     </div>
                 </div>
@@ -2058,23 +1991,6 @@ function handleChatMessage(data) {
 
     // Update user avatar if we have profile data
     updateMessageAvatar(messageContainer, data.username);
-
-    // Add reaction listeners
-    messageContainer.querySelectorAll('.emoji-reaction').forEach(btn => {
-        btn.addEventListener('click', function() {
-            sendReaction(data.message_id, this.textContent);
-        });
-    });
-
-    // Add username click listener for popover
-    const usernameLink = messageContainer.querySelector('.username-link');
-    if (usernameLink) {
-        usernameLink.addEventListener('click', function(e) {
-            if (e.ctrlKey || e.metaKey) return; // Allow normal link behavior with ctrl/cmd
-            e.preventDefault();
-            showUserPopover(this, data.username);
-        });
-    }
 
     scrollToBottom();
 
@@ -2130,16 +2046,32 @@ function removeTypingIndicator(username) {
     }
 }
 
-// Reactions
+// Fixed sendReaction function to use API endpoint
 function sendReaction(messageId, emoji) {
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-        websocket.send(JSON.stringify({
-            'type': 'reaction',
-            'message_id': messageId,
-            'reaction': emoji
-        }));
-    }
+    // Send through the API endpoint
+    fetch(`/api/message/${messageId}/add_reaction/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            reaction: emoji
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to add reaction:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error adding reaction:', error);
+    });
 }
+
+// Make sendReaction global
+window.sendReaction = sendReaction;
 
 function handleReactionUpdate(data) {
     const messageEl = document.querySelector(`[data-message-id="${data.message_id}"]`);
@@ -2259,7 +2191,7 @@ function createPreviewItem(file) {
     return item;
 }
 
-// Updated uploadFiles function to send WebSocket message after upload
+// Fixed file upload function
 function uploadFiles(files) {
     const formData = new FormData();
     Array.from(files).forEach(file => {
@@ -2270,8 +2202,6 @@ function uploadFiles(files) {
     const progressContainer = document.getElementById('progress-container');
     const progressBar = document.getElementById('progress-bar');
     progressContainer.classList.remove('hidden');
-
-    // Reset progress bar
     progressBar.style.width = '0%';
 
     // Create XMLHttpRequest for progress tracking
@@ -2291,19 +2221,32 @@ function uploadFiles(files) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.urls) {
-                    // Send message with media for each URL via WebSocket
+                    // Create a message through the normal send_message API
                     data.urls.forEach(url => {
-                        if (websocket && websocket.readyState === WebSocket.OPEN) {
-                            // Make sure URL is absolute
-                            const fullUrl = url.startsWith('/') ? window.location.origin + url : url;
+                        // Make URL absolute if it's relative
+                        const fullUrl = url.startsWith('/') ? window.location.origin + url : url;
 
-                            websocket.send(JSON.stringify({
-                                'type': 'chat',
-                                'message': '',
-                                'media_url': fullUrl,
-                                'media_type': guessMediaType(fullUrl)
-                            }));
-                        }
+                        // Send through the API endpoint instead of WebSocket
+                        fetch(`/api/room/${window.roomName}/send_message/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({
+                                message: '',
+                                media_url: fullUrl
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (!result.success) {
+                                console.error('Failed to send media message:', result.error);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error sending media message:', error);
+                        });
                     });
 
                     // Clear preview
@@ -2984,7 +2927,8 @@ function filterMedia(filter) {
     });
 }
 
-function openMediaPreview(item) {
+// Make openMediaPreview global
+window.openMediaPreview = function(item) {
     const modal = document.getElementById('media-preview-modal');
     const content = document.getElementById('media-preview-content');
 
@@ -3010,7 +2954,10 @@ function openMediaPreview(item) {
     // Add close button listener
     const closeBtn = document.getElementById('close-media-preview');
     if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+        newCloseBtn.addEventListener('click', () => {
             modal.classList.remove('open');
             // Stop video playback if exists
             const video = content.querySelector('video');
@@ -3019,7 +2966,7 @@ function openMediaPreview(item) {
             }
         });
     }
-}
+};
 
 // User popover
 function showUserPopover(element, username) {
@@ -3055,6 +3002,9 @@ function showUserPopover(element, username) {
         }
     });
 }
+
+// Make showUserPopover global
+window.showUserPopover = showUserPopover;
 
 // Profile picture modal
 function openProfilePicModal() {

@@ -411,6 +411,7 @@ def send_message(request, room_name):
             content = data.get('message', '').strip()
             media_url = data.get('media_url', None)
 
+            # Allow empty content if there's media
             if not content and not media_url:
                 return JsonResponse({'error': 'Message cannot be empty'}, status=400)
 
@@ -420,38 +421,48 @@ def send_message(request, room_name):
             message = Message.objects.create(
                 user=request.user,
                 room=room,
-                content=content
+                content=content or ''  # Allow empty content for media-only messages
             )
 
-            # If there's media attached
+            # If there's media attached, handle it differently based on your model
             if media_url:
-                message.media = media_url
-                message.save()
+                # If your Message model has a media field as FileField
+                if hasattr(message, 'media'):
+                    # For URL-based media, you might need to download and save the file
+                    # Or if it's already a path in your media folder, save it directly
+                    message.media.name = media_url.replace('/media/', '')
+                    message.save()
 
-            # Instead of returning JSON, we'll let the WebSocket handle the UI update
-            # This is to match the existing chat.js behavior
-
-            # Import the channel layer to send WebSocket message
+            # Send via WebSocket
             from channels.layers import get_channel_layer
             from asgiref.sync import async_to_sync
 
             channel_layer = get_channel_layer()
+
+            # Send the complete message data including media
+            message_data = {
+                'type': 'chat_message',
+                'message': content,
+                'username': request.user.username,
+                'message_id': message.id,
+                'timestamp': message.timestamp.isoformat()
+            }
+
+            # Add media_url to the WebSocket message if present
+            if media_url:
+                message_data['media_url'] = media_url
+
             async_to_sync(channel_layer.group_send)(
                 f"chat_{room_name}",
-                {
-                    'type': 'chat_message',
-                    'message': content,
-                    'username': request.user.username,
-                    'message_id': message.id,
-                    'timestamp': message.timestamp.isoformat()
-                }
+                message_data
             )
 
             return JsonResponse({
                 'success': True,
                 'message_id': message.id,
                 'timestamp': message.timestamp.isoformat(),
-                'username': request.user.username
+                'username': request.user.username,
+                'media_url': media_url
             })
 
         except Exception as e:

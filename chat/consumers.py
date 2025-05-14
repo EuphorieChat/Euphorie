@@ -492,12 +492,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # Message handlers
     async def chat_message(self, event):
-        # Send message to WebSocket
+        # Send message to WebSocket with all data including media_url
         await self.send(json.dumps({
             'type': 'chat',
-            'message': event['message'],
-            'username': event['username'],
-            'message_id': event['message_id']
+            'message': event.get('message', ''),
+            'username': event.get('username'),
+            'message_id': event.get('message_id'),
+            'timestamp': event.get('timestamp'),
+            'media_url': event.get('media_url'),  # Include media_url if present
         }))
 
     async def typing(self, event):
