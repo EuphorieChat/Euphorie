@@ -972,6 +972,18 @@ def update_profile(request):
 
 def get_user_profile(request, username):
     try:
+        # Handle Guest users specially
+        if username == 'Guest' or not username:
+            # Return a default profile for Guest users
+            return JsonResponse({
+                'success': True,
+                'username': 'Guest',
+                'profile_picture': {
+                    'type': 'gradient',
+                    'gradient': 'from-gray-400 to-gray-500'
+                }
+            })
+
         # Check if the user exists
         user = User.objects.get(username=username)
 
@@ -1002,11 +1014,15 @@ def get_user_profile(request, username):
         })
 
     except User.DoesNotExist:
-        # User not found response
+        # User not found response - return default for consistency
         return JsonResponse({
-            'success': False,
-            'error': 'User not found'
-        }, status=404)
+            'success': True,
+            'username': username,
+            'profile_picture': {
+                'type': 'gradient',
+                'gradient': get_consistent_gradient(username)
+            }
+        })
 
     except Exception as e:
         # Log the actual exception for debugging
