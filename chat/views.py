@@ -263,35 +263,49 @@ def load_more_rooms(request):
     })
 
 def room(request, room_name):
-    # Add this line at the beginning
     request.timestamp = int(time.time())
-
-    # Get the room or return 404
     room = get_object_or_404(Room, name=room_name)
 
-    # Get messages for the room
-    messages = Message.objects.filter(room=room).order_by('timestamp')
+    # Get messages and parse media URLs
+    messages_qs = Message.objects.filter(room=room).order_by('timestamp')
+    messages = []
+    reactions_map = {}
 
-    # Prepare reaction data
-    reactions = defaultdict(dict)
-
-    # Get all reactions for these messages
-    message_reactions = Reaction.objects.filter(
-        message__in=messages
+    # First, get all reactions for all messages in this room
+    all_reactions = Reaction.objects.filter(
+        message__room=room
     ).values('message_id', 'emoji').annotate(count=Count('id'))
 
-    # Organize reactions by message_id and emoji
-    for reaction in message_reactions:
-        message_id = reaction['message_id']
-        emoji = reaction['emoji']
-        count = reaction['count']
+    # Build the reactions map
+    for reaction in all_reactions:
+        msg_id = str(reaction['message_id'])
+        if msg_id not in reactions_map:
+            reactions_map[msg_id] = {}
+        reactions_map[msg_id][reaction['emoji']] = reaction['count']
 
-        if str(message_id) not in reactions:
-            reactions[str(message_id)] = {}
+    # Process messages
+    for msg in messages_qs:
+        msg_data = {
+            'id': msg.id,
+            'user': msg.user,
+            'content': msg.content,
+            'timestamp': msg.timestamp,
+            'media_url': None,
+            'reactions': reactions_map.get(str(msg.id), {})
+        }
 
-        reactions[str(message_id)][emoji] = count
+        # Check if content contains media in [MEDIA:] format
+        if '[MEDIA:' in msg.content:
+            import re
+            media_match = re.search(r'\[MEDIA:(.*?)\]', msg.content)
+            if media_match:
+                msg_data['media_url'] = media_match.group(1)
+                # Remove media tag from content for display
+                msg_data['content'] = re.sub(r'\[MEDIA:.*?\]', '', msg.content).strip()
 
-    # Get username (handle both authenticated and non-authenticated users)
+        messages.append(msg_data)
+
+    # Get username
     username = request.user.username if request.user.is_authenticated else "Guest"
 
     # Get upcoming meetups for this room
@@ -300,15 +314,33 @@ def room(request, room_name):
         datetime__gt=timezone.now()
     ).order_by('datetime')
 
-    # Pass data to template
+    # Get active announcements
+    active_announcements = []
+    if request.user.is_authenticated:
+        announcements = Announcement.objects.filter(
+            room=room,
+            is_active=True
+        )
+
+        for announcement in announcements:
+            # Check if user has read this announcement
+            is_read = AnnouncementReadStatus.objects.filter(
+                announcement=announcement,
+                user=request.user
+            ).exists()
+
+            if not is_read:
+                active_announcements.append(announcement)
+
     context = {
         'room_name': room_name,
         'room': room,
         'messages': messages,
         'username': username,
-        'reactions': reactions,
+        'reactions': reactions_map,  # Pass the reactions map
         'can_delete': request.user.is_authenticated and room.creator == request.user,
         'upcoming_meetups': upcoming_meetups,
+        'active_announcements': active_announcements,
     }
 
     return render(request, 'chat/room.html', context)

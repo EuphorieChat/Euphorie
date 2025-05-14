@@ -1050,51 +1050,76 @@ main {
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative h-full">
           <!-- Chat messages container -->
           <div id="chat-log" class="chat-container hide-scrollbar bg-gray-50">
-            {% for message in messages %}
-            <div class="flex items-start gap-2 group" data-message-id="{{ message.id }}">
-              <!-- Avatar -->
-              <div class="avatar avatar-{% if message.user.username == username %}pink{% else %}orange{% endif %} h-8 w-8 flex-shrink-0 text-sm user-avatar" data-username="{{ message.user.username }}">
-                {{ message.user.username|slice:":1"|upper }}
-              </div>
-
-              <!-- Message content -->
-              <div class="flex-1">
-                <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %}">
-                  <div class="flex items-start justify-between">
-                    <a href="{% url 'direct_message' username=message.user.username %}" class="text-xs font-semibold mb-1 {% if message.user.username == username %}text-pink-500{% else %}text-purple-600{% endif %} hover:underline username-link">
-                      {{ message.user.username }}
-                    </a>
-
-                    <!-- Quick reaction buttons (desktop only) -->
-                    <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
-                      <div class="flex space-x-1">
-                        <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with heart">❤️</button>
-                        <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with thumbs up">👍</button>
-                        <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" aria-label="React with laugh">😂</button>
-                      </div>
-                    </div>
+              {% for message in messages %}
+              <div class="flex items-start gap-2 group" data-message-id="{{ message.id }}">
+                  <!-- Avatar -->
+                  <div class="avatar avatar-{% if message.user.username == username %}pink{% else %}orange{% endif %} h-8 w-8 flex-shrink-0 text-sm user-avatar" data-username="{{ message.user.username }}">
+                      {{ message.user.username|slice:":1"|upper }}
                   </div>
 
-                  <div class="text-sm text-gray-700 message-content">
-                    {{ message.content|safe }}
-                  </div>
-                </div>
+                  <!-- Message content -->
+                  <div class="flex-1">
+                      <div class="message-bubble {% if message.user.username == username %}sent{% else %}received{% endif %}">
+                          <div class="flex items-start justify-between">
+                              <a href="{% url 'direct_message' username=message.user.username %}" class="text-xs font-semibold mb-1 {% if message.user.username == username %}text-pink-500{% else %}text-purple-600{% endif %} hover:underline username-link">
+                                  {{ message.user.username }}
+                              </a>
 
-                <!-- Reactions -->
-                <div class="reactions-container">
-                  {% with reactions|default:"{}" as reaction_map %}
-                    {% with reaction_map|dict_key:message.id as emoji_counts %}
-                      {% for emoji, count in emoji_counts.items %}
-                      <div class="reaction" data-emoji="{{ emoji }}">
-                        {{ emoji }} <span class="reaction-count">{{ count }}</span>
+                              <!-- Quick reaction buttons (desktop only) -->
+                              <div class="ml-2 opacity-0 group-hover:opacity-100 sm:flex hidden">
+                                  <div class="flex space-x-1">
+                                      <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" onclick="sendReaction({{ message.id }}, '❤️')" aria-label="React with heart">❤️</button>
+                                      <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" onclick="sendReaction({{ message.id }}, '👍')" aria-label="React with thumbs up">👍</button>
+                                      <button class="emoji-reaction p-1 text-xs bg-white rounded-full shadow-sm hover:bg-pink-50" onclick="sendReaction({{ message.id }}, '😂')" aria-label="React with laugh">😂</button>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <!-- Media content if present -->
+                          {% if message.media_url %}
+                          <div class="message-media mb-2">
+                              {% if message.media_url|slice:"-4:"|lower in ".jpg.png.gif.jpeg.webp" %}
+                              <img src="{{ message.media_url }}" alt="Uploaded image" class="rounded-lg max-w-sm cursor-pointer hover:opacity-90"
+                                  onclick="window.openMediaPreview({type: 'image', url: '{{ message.media_url }}'})">
+                              {% elif message.media_url|slice:"-4:"|lower in ".mp4.webm.mov.avi" %}
+                              <video src="{{ message.media_url }}" controls class="rounded-lg max-w-sm">
+                                  <source src="{{ message.media_url }}" type="video/mp4">
+                                  Your browser does not support the video tag.
+                              </video>
+                              {% else %}
+                              <a href="{{ message.media_url }}" target="_blank" class="inline-flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  <span class="text-sm text-gray-700">{{ message.media_url|split:'/'|last }}</span>
+                              </a>
+                              {% endif %}
+                          </div>
+                          {% endif %}
+
+                          <!-- Text content -->
+                          {% if message.content %}
+                          <div class="text-sm text-gray-700 message-content">
+                              {{ message.content|safe }}
+                          </div>
+                          {% endif %}
                       </div>
-                      {% endfor %}
-                    {% endwith %}
-                  {% endwith %}
-                </div>
+
+                      <!-- Reactions -->
+                      <div class="reactions-container">
+                          {% if message.reactions %}
+                              {% for emoji, count in message.reactions.items %}
+                                  {% if count > 0 %}
+                                  <div class="reaction" data-emoji="{{ emoji }}" onclick="sendReaction({{ message.id }}, '{{ emoji }}')">
+                                      {{ emoji }} <span class="reaction-count">{{ count }}</span>
+                                  </div>
+                                  {% endif %}
+                              {% endfor %}
+                          {% endif %}
+                      </div>
+                  </div>
               </div>
-            </div>
-            {% endfor %}
+              {% endfor %}
 
             <!-- Typing indicator -->
             <div id="typing-indicator" class="hidden">
@@ -1972,11 +1997,11 @@ function handleMessageSubmit(e) {
     }
 }
 
-// Fixed handleChatMessage to properly handle media
+// Fixed handleChatMessage to properly parse media from message content
 function handleChatMessage(data) {
     const chatLog = document.getElementById('chat-log');
     const messageContainer = document.createElement('div');
-    messageContainer.className = 'flex items-start gap-2 group message-bubble new';
+    messageContainer.className = 'flex items-start gap-2 group';
     messageContainer.setAttribute('data-message-id', data.message_id);
 
     const avatarClass = data.username === window.username ? 'avatar-pink' : 'avatar-orange';
@@ -1984,26 +2009,39 @@ function handleChatMessage(data) {
 
     const userProfile = userProfiles.get(data.username) || { type: 'gradient', gradient: 'from-pink-400 to-purple-400' };
 
-    // Create message content with optional media
+    // Parse message content for media
     let messageContent = '';
+    let textContent = data.message || data.content || '';
+    let mediaUrl = null;
 
-    // Check for media_url in the data
-    const mediaUrl = data.media_url || data.media;
+    // Check if message contains [MEDIA:] format
+    const mediaMatch = textContent.match(/\[MEDIA:(.*?)\]/);
+    if (mediaMatch) {
+        mediaUrl = mediaMatch[1];
+        // Remove the [MEDIA:] part from the text content
+        textContent = textContent.replace(/\[MEDIA:.*?\]/, '').trim();
+    }
 
+    // If no media was found in message, check data.media_url
+    if (!mediaUrl && data.media_url) {
+        mediaUrl = data.media_url;
+    }
+
+    // Create media content if we have a media URL
     if (mediaUrl) {
-        const mediaType = data.media_type || guessMediaType(mediaUrl);
+        const mediaType = guessMediaType(mediaUrl);
 
         if (mediaType === 'image') {
             messageContent = `
                 <div class="message-media mb-2">
-                    <img src="${mediaUrl}" alt="Uploaded image" class="rounded-lg cursor-pointer hover:opacity-90"
+                    <img src="${mediaUrl}" alt="Uploaded image" class="rounded-lg max-w-sm cursor-pointer hover:opacity-90"
                          onclick="window.openMediaPreview({type: 'image', url: '${mediaUrl}'})">
                 </div>
             `;
         } else if (mediaType === 'video') {
             messageContent = `
                 <div class="message-media mb-2">
-                    <video src="${mediaUrl}" controls class="rounded-lg">
+                    <video src="${mediaUrl}" controls class="rounded-lg max-w-sm">
                         <source src="${mediaUrl}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
@@ -2025,15 +2063,12 @@ function handleChatMessage(data) {
     }
 
     // Add text message if present
-    if (data.message || data.content) {
-        const textContent = data.message || data.content || '';
-        if (textContent.trim()) {
-            messageContent += `<div class="text-sm text-gray-700 message-content">${escapeHtml(textContent)}</div>`;
-        }
+    if (textContent) {
+        messageContent += `<div class="text-sm text-gray-700 message-content">${escapeHtml(textContent)}</div>`;
     }
 
     // Only create message if there's content
-    if (!messageContent && !data.message && !data.content && !mediaUrl) {
+    if (!messageContent && !textContent && !mediaUrl) {
         return; // Don't create empty messages
     }
 
@@ -2060,11 +2095,21 @@ function handleChatMessage(data) {
                 </div>
                 ${messageContent}
             </div>
-            <div class="reactions-container"></div>
+            <div class="reactions-container">
+                ${data.reactions ? Object.entries(data.reactions).map(([emoji, count]) =>
+                    count > 0 ? `<div class="reaction" data-emoji="${emoji}" onclick="sendReaction(${data.message_id}, '${emoji}')">
+                        ${emoji} <span class="reaction-count">${count}</span>
+                    </div>` : ''
+                ).join('') : ''}
+            </div>
         </div>
     `;
 
+    // Add animation class after appending
     chatLog.appendChild(messageContainer);
+    setTimeout(() => {
+        messageContainer.classList.add('message-bubble', 'new');
+    }, 10);
 
     // Update user avatar if we have profile data
     updateMessageAvatar(messageContainer, data.username);
@@ -2138,7 +2183,7 @@ function sendReaction(messageId, emoji) {
 // Make sendReaction global
 window.sendReaction = sendReaction;
 
-// Fixed handleReactionUpdate to properly display reactions
+// Fixed handleReactionUpdate to properly update reactions
 function handleReactionUpdate(data) {
     const messageEl = document.querySelector(`[data-message-id="${data.message_id}"]`);
     if (!messageEl) return;
@@ -2162,7 +2207,7 @@ function handleReactionUpdate(data) {
             // Update reaction
             reactionEl.innerHTML = `${data.reaction} <span class="reaction-count">${data.count}</span>`;
 
-            // Add click listener
+            // Add click handler
             reactionEl.onclick = function() {
                 sendReaction(data.message_id, data.reaction);
             };
@@ -2266,7 +2311,7 @@ function createPreviewItem(file) {
     return item;
 }
 
-// Fixed file upload function
+// Fixed file upload function to use [MEDIA:] format properly
 function uploadFiles(files) {
     const formData = new FormData();
     Array.from(files).forEach(file => {
@@ -2296,21 +2341,13 @@ function uploadFiles(files) {
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (data.success && data.urls) {
-                    // Send the media message through WebSocket
+                    // Send each uploaded file URL as a message via WebSocket
                     data.urls.forEach(url => {
-                        // Send via WebSocket with media_url
                         if (websocket && websocket.readyState === WebSocket.OPEN) {
-                            const messageData = {
+                            websocket.send(JSON.stringify({
                                 'type': 'chat',
-                                'message': '',
-                            };
-
-                            // Add media URL using the special format
-                            if (url) {
-                                messageData.message = `[MEDIA:${url}]`;
-                            }
-
-                            websocket.send(JSON.stringify(messageData));
+                                'message': `[MEDIA:${url}]`
+                            }));
                         }
                     });
 
