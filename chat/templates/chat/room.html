@@ -2157,13 +2157,19 @@ function removeTypingIndicator(username) {
 
 // Fixed sendReaction function to use WebSocket
 function sendReaction(messageId, emoji) {
-    // Send reaction via WebSocket
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
+    if (!messageId || !emoji) {
+        console.warn('sendReaction: Missing messageId or emoji.');
+        return;
+    }
+
+    if (websocket?.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify({
-            'type': 'reaction',
-            'message_id': messageId,
-            'reaction': emoji
+            type: 'reaction',
+            message_id: messageId,
+            reaction: emoji
         }));
+    } else {
+        console.error('WebSocket is not open. Reaction not sent:', { messageId, emoji });
     }
 }
 
