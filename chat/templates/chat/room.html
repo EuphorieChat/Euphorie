@@ -1999,258 +1999,113 @@ function handleMessageSubmit(e) {
 }
 
 // Fixed handleChatMessage to properly parse media from message content
-class ChatMessageHandler {
-    constructor(config = {}) {
-        this.chatLogId = config.chatLogId || 'chat-log';
-        this.currentUsername = window.username;
-    }
-
-    // Main handler - orchestrates the message processing
-    handleMessage(data) {
-        if (!this.validateMessage(data)) return;
-
-        const messageElement = this.createMessageElement(data);
-        this.appendToChatLog(messageElement);
-        this.postProcessMessage(data);
-    }
-
-    // Validation
-    validateMessage(data) {
-        return data && (data.message || data.content || data.media_url);
-    }
-
-    // Create the complete message element
-    createMessageElement(data) {
-        const { textContent, mediaUrl } = this.parseMessageContent(data);
-        const isOwnMessage = data.username === this.currentUsername;
-
-        const container = this.createElement('div', {
-            className: 'flex items-start gap-2 group mb-4',
-            'data-message-id': data.message_id
-        });
-
-        container.innerHTML = this.buildMessageHTML({
-            username: data.username,
-            textContent,
-            mediaUrl,
-            isOwnMessage,
-            messageId: data.message_id
-        });
-
-        // Add reactions if present
-        if (data.reactions) {
-            this.addReactions(container, data.reactions, data.message_id);
-        }
-
-        return container;
-    }
-
-    // Parse message content for text and media
-    parseMessageContent(data) {
-        let textContent = data.message || data.content || '';
-        let mediaUrl = data.media_url;
-
-        // Extract media from [MEDIA:] format
-        const mediaMatch = textContent.match(/\[MEDIA:(.*?)\]/);
-        if (mediaMatch) {
-            mediaUrl = mediaMatch[1];
-            textContent = textContent.replace(/\[MEDIA:.*?\]/, '').trim();
-        }
-
-        return { textContent, mediaUrl };
-    }
-
-    // Build the message HTML structure
-    buildMessageHTML({ username, textContent, mediaUrl, isOwnMessage, messageId }) {
-        const avatarClass = isOwnMessage ? 'avatar-pink' : 'avatar-orange';
-        const bubbleClass = isOwnMessage ? 'sent' : 'received';
-        const usernameColor = isOwnMessage ? 'text-pink-500' : 'text-purple-600';
-
-        const messageContent = this.buildMessageContent(textContent, mediaUrl);
-
-        return `
-            ${this.buildAvatar(username, avatarClass)}
-            <div class="flex-1 max-w-[85%]">
-                ${this.buildMessageBubble(username, messageContent, bubbleClass, usernameColor)}
-                <div class="reactions-container"></div>
-            </div>
-            ${this.buildQuickReactions(messageId)}
-        `;
-    }
-
-    // Build avatar HTML
-    buildAvatar(username, avatarClass) {
-        return `
-            <div class="avatar ${avatarClass} user-avatar" data-username="${username}">
-                ${username.charAt(0).toUpperCase()}
-            </div>
-        `;
-    }
-
-    // Build message bubble HTML
-    buildMessageBubble(username, content, bubbleClass, usernameColor) {
-        return `
-            <div class="message-bubble ${bubbleClass}">
-                <div class="text-xs font-semibold mb-1 ${usernameColor}">
-                    <a href="/dm/${username}/" class="hover:underline">
-                        ${username}
-                    </a>
-                </div>
-                ${content}
-            </div>
-        `;
-    }
-
-    // Build message content (text + media)
-    buildMessageContent(textContent, mediaUrl) {
-        let content = '';
-
-        if (mediaUrl) {
-            content += this.buildMediaContent(mediaUrl);
-        }
-
-        if (textContent) {
-            content += `<div class="message-content text-sm text-gray-700">${this.escapeHtml(textContent)}</div>`;
-        }
-
-        return content;
-    }
-
-    // Build media content based on type
-    buildMediaContent(mediaUrl) {
-        const mediaType = this.guessMediaType(mediaUrl);
-        const builders = {
-            image: () => this.buildImageContent(mediaUrl),
-            video: () => this.buildVideoContent(mediaUrl),
-            default: () => this.buildFileContent(mediaUrl)
-        };
-
-        return builders[mediaType] ? builders[mediaType]() : builders.default();
-    }
-
-    // Build image content
-    buildImageContent(url) {
-        return `
-            <div class="message-media">
-                <img src="${url}" alt="Uploaded image"
-                     onclick="window.openMediaPreview({type: 'image', url: '${url}'})"
-                     loading="lazy">
-            </div>
-        `;
-    }
-
-    // Build video content
-    buildVideoContent(url) {
-        return `
-            <div class="message-media">
-                <video src="${url}" controls>
-                    <source src="${url}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-        `;
-    }
-
-    // Build file content
-    buildFileContent(url) {
-        const fileName = url.split('/').pop();
-        return `
-            <div class="message-media">
-                <a href="${url}" target="_blank" class="inline-flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span class="text-sm text-gray-700">${fileName}</span>
-                </a>
-            </div>
-        `;
-    }
-
-    // Build quick reaction buttons
-    buildQuickReactions(messageId) {
-        const reactions = ['❤️', '👍', '😂'];
-        const buttons = reactions.map(emoji =>
-            `<button class="emoji-reaction" onclick="sendReaction(${messageId}, '${emoji}')" aria-label="React with ${emoji}">${emoji}</button>`
-        ).join('');
-
-        return `
-            <div class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex space-x-1">
-                ${buttons}
-            </div>
-        `;
-    }
-
-    // Add reactions to message
-    addReactions(container, reactions, messageId) {
-        Object.entries(reactions).forEach(([emoji, count]) => {
-            if (count > 0) {
-                handleReactionUpdate({
-                    message_id: messageId,
-                    reaction: emoji,
-                    count: count
-                });
-            }
-        });
-    }
-
-    // Post-process message after adding to DOM
-    postProcessMessage(data) {
-        const container = document.querySelector(`[data-message-id="${data.message_id}"]`);
-        if (container) {
-            updateMessageAvatar(container, data.username);
-        }
-        scrollToBottom();
-        removeTypingIndicator(data.username);
-    }
-
-    // Utility functions
-    appendToChatLog(element) {
-        const chatLog = document.getElementById(this.chatLogId);
-        if (chatLog) {
-            chatLog.appendChild(element);
-        }
-    }
-
-    createElement(tag, attributes = {}) {
-        const element = document.createElement(tag);
-        Object.entries(attributes).forEach(([key, value]) => {
-            if (key === 'className') {
-                element.className = value;
-            } else {
-                element.setAttribute(key, value);
-            }
-        });
-        return element;
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    guessMediaType(url) {
-        const extension = url.split('.').pop().toLowerCase();
-        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-        const videoExtensions = ['mp4', 'webm', 'ogg', 'mov'];
-
-        if (imageExtensions.includes(extension)) return 'image';
-        if (videoExtensions.includes(extension)) return 'video';
-        return 'file';
-    }
-}
-
-// Create instance and backward-compatible function
-const chatMessageHandler = new ChatMessageHandler();
-
 function handleChatMessage(data) {
-    chatMessageHandler.handleMessage(data);
+    const chatLog = document.getElementById('chat-log');
+    const messageContainer = document.createElement('div');
+    messageContainer.className = 'flex items-start gap-2 group mb-4';
+    messageContainer.setAttribute('data-message-id', data.message_id);
+
+    const isSender = data.username === window.username;
+    const avatarClass = isSender ? 'avatar-pink' : 'avatar-orange';
+    const bubbleClass = isSender ? 'sent' : 'received';
+
+    let textContent = data.message || data.content || '';
+    let mediaUrl = extractMediaUrl(textContent) || data.media_url || null;
+    if (mediaUrl) textContent = textContent.replace(/\[MEDIA:.*?\]/, '').trim();
+
+    const mediaContent = mediaUrl ? renderMediaContent(mediaUrl) : '';
+    const textHtml = textContent ? `<div class="message-content text-sm text-gray-700">${escapeHtml(textContent)}</div>` : '';
+
+    if (!mediaContent && !textHtml) return; // Don't render empty messages
+
+    messageContainer.innerHTML = `
+        <div class="avatar ${avatarClass} user-avatar" data-username="${data.username}">
+            ${escapeHtml(data.username.charAt(0).toUpperCase())}
+        </div>
+
+        <div class="flex-1 max-w-[85%]">
+            <div class="message-bubble ${bubbleClass}">
+                <div class="text-xs font-semibold mb-1 ${bubbleClass === 'sent' ? 'text-pink-500' : 'text-purple-600'}">
+                    <a href="/dm/${escapeHtml(data.username)}/" class="hover:underline">${escapeHtml(data.username)}</a>
+                </div>
+                ${mediaContent + textHtml}
+            </div>
+            <div class="reactions-container"></div>
+        </div>
+
+        <div class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex space-x-1">
+            <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '❤️')" aria-label="React with heart">❤️</button>
+            <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👍')" aria-label="React with thumbs up">👍</button>
+            <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😂')" aria-label="React with laugh">😂</button>
+        </div>
+    `;
+
+    chatLog.appendChild(messageContainer);
+    updateMessageAvatar(messageContainer, data.username);
+
+    if (data.reactions) {
+        for (const [emoji, count] of Object.entries(data.reactions)) {
+            if (count > 0) {
+                handleReactionUpdate({ message_id: data.message_id, reaction: emoji, count });
+            }
+        }
+    }
+
+    scrollToBottom();
+    removeTypingIndicator(data.username);
 }
 
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { ChatMessageHandler, handleChatMessage };
+function extractMediaUrl(text) {
+    const match = text.match(/\[MEDIA:(.*?)\]/);
+    return match ? match[1] : null;
 }
+
+function renderMediaContent(url) {
+    const safeUrl = escapeHtml(url);
+    const type = guessMediaType(safeUrl);
+
+    switch (type) {
+        case 'image':
+            return `
+                <div class="message-media">
+                    <img src="${safeUrl}" alt="Uploaded image"
+                        onclick="window.openMediaPreview({type: 'image', url: '${safeUrl}'})"
+                        loading="lazy">
+                </div>`;
+        case 'video':
+            return `
+                <div class="message-media">
+                    <video src="${safeUrl}" controls>
+                        <source src="${safeUrl}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>`;
+        default:
+            const fileName = safeUrl.split('/').pop();
+            return `
+                <div class="message-media">
+                    <a href="${safeUrl}" target="_blank" class="inline-flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="text-sm text-gray-700">${escapeHtml(fileName)}</span>
+                    </a>
+                </div>`;
+    }
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (m) {
+        return ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[m];
+    });
+}
+
 
 // Typing indicator
 function handleTyping() {
