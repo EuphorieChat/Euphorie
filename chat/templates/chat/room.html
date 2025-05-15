@@ -2184,22 +2184,21 @@ function handleReactionUpdate(data) {
     const reactionsContainer = messageEl.querySelector('.reactions-container');
     if (!reactionsContainer) return;
 
-    // Find or create reaction element
     let reactionEl = reactionsContainer.querySelector(`[data-emoji="${data.reaction}"]`);
 
+    // If the reaction doesn't exist and count > 0, create it
     if (!reactionEl && data.count > 0) {
         reactionEl = document.createElement('div');
-        reactionEl.className = 'reaction';
-        reactionEl.setAttribute('data-emoji', data.reaction);
+        reactionEl.className = 'reaction cursor-pointer hover:opacity-80';
+        reactionEl.dataset.emoji = data.reaction;
         reactionsContainer.appendChild(reactionEl);
     }
 
+    // Update or remove the reaction element
     if (reactionEl) {
         if (data.count > 0) {
             reactionEl.innerHTML = `${data.reaction} <span class="reaction-count">${data.count}</span>`;
-            reactionEl.onclick = function() {
-                sendReaction(data.message_id, data.reaction);
-            };
+            reactionEl.onclick = () => sendReaction(data.message_id, data.reaction);
         } else {
             reactionEl.remove();
         }
