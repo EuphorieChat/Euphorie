@@ -1999,129 +1999,257 @@ function handleMessageSubmit(e) {
 }
 
 // Fixed handleChatMessage to properly parse media from message content
-function handleChatMessage(data) {
-    const chatLog = document.getElementById('chat-log');
-    const messageContainer = document.createElement('div');
-    messageContainer.className = 'flex items-start gap-2 group mb-4';
-    messageContainer.setAttribute('data-message-id', data.message_id);
-
-    const avatarClass = data.username === window.username ? 'avatar-pink' : 'avatar-orange';
-    const bubbleClass = data.username === window.username ? 'sent' : 'received';
-
-    // Parse message content for media
-    let messageContent = '';
-    let textContent = data.message || data.content || '';
-    let mediaUrl = null;
-
-    // Check if message contains [MEDIA:] format
-    const mediaMatch = textContent.match(/\[MEDIA:(.*?)\]/);
-    if (mediaMatch) {
-        mediaUrl = mediaMatch[1];
-        textContent = textContent.replace(/\[MEDIA:.*?\]/, '').trim();
+class ChatMessageHandler {
+    constructor(config = {}) {
+        this.chatLogId = config.chatLogId || 'chat-log';
+        this.currentUsername = window.username;
     }
 
-    if (!mediaUrl && data.media_url) {
-        mediaUrl = data.media_url;
+    // Main handler - orchestrates the message processing
+    handleMessage(data) {
+        if (!this.validateMessage(data)) return;
+
+        const messageElement = this.createMessageElement(data);
+        this.appendToChatLog(messageElement);
+        this.postProcessMessage(data);
     }
 
-    // Create media content if we have a media URL
-    if (mediaUrl) {
-        const mediaType = guessMediaType(mediaUrl);
+    // Validation
+    validateMessage(data) {
+        return data && (data.message || data.content || data.media_url);
+    }
 
-        if (mediaType === 'image') {
-            messageContent = `
-                <div class="message-media">
-                    <img src="${mediaUrl}" alt="Uploaded image"
-                         onclick="window.openMediaPreview({type: 'image', url: '${mediaUrl}'})"
-                         loading="lazy">
-                </div>
-            `;
-        } else if (mediaType === 'video') {
-            messageContent = `
-                <div class="message-media">
-                    <video src="${mediaUrl}" controls>
-                        <source src="${mediaUrl}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
-            `;
-        } else {
-            const fileName = mediaUrl.split('/').pop();
-            messageContent = `
-                <div class="message-media">
-                    <a href="${mediaUrl}" target="_blank" class="inline-flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span class="text-sm text-gray-700">${fileName}</span>
-                    </a>
-                </div>
-            `;
+    // Create the complete message element
+    createMessageElement(data) {
+        const { textContent, mediaUrl } = this.parseMessageContent(data);
+        const isOwnMessage = data.username === this.currentUsername;
+
+        const container = this.createElement('div', {
+            className: 'flex items-start gap-2 group mb-4',
+            'data-message-id': data.message_id
+        });
+
+        container.innerHTML = this.buildMessageHTML({
+            username: data.username,
+            textContent,
+            mediaUrl,
+            isOwnMessage,
+            messageId: data.message_id
+        });
+
+        // Add reactions if present
+        if (data.reactions) {
+            this.addReactions(container, data.reactions, data.message_id);
         }
+
+        return container;
     }
 
-    // Add text message if present
-    if (textContent) {
-        messageContent += `<div class="message-content text-sm text-gray-700">${escapeHtml(textContent)}</div>`;
+    // Parse message content for text and media
+    parseMessageContent(data) {
+        let textContent = data.message || data.content || '';
+        let mediaUrl = data.media_url;
+
+        // Extract media from [MEDIA:] format
+        const mediaMatch = textContent.match(/\[MEDIA:(.*?)\]/);
+        if (mediaMatch) {
+            mediaUrl = mediaMatch[1];
+            textContent = textContent.replace(/\[MEDIA:.*?\]/, '').trim();
+        }
+
+        return { textContent, mediaUrl };
     }
 
-    // Only create message if there's content
-    if (!messageContent && !textContent && !mediaUrl) {
-        return;
+    // Build the message HTML structure
+    buildMessageHTML({ username, textContent, mediaUrl, isOwnMessage, messageId }) {
+        const avatarClass = isOwnMessage ? 'avatar-pink' : 'avatar-orange';
+        const bubbleClass = isOwnMessage ? 'sent' : 'received';
+        const usernameColor = isOwnMessage ? 'text-pink-500' : 'text-purple-600';
+
+        const messageContent = this.buildMessageContent(textContent, mediaUrl);
+
+        return `
+            ${this.buildAvatar(username, avatarClass)}
+            <div class="flex-1 max-w-[85%]">
+                ${this.buildMessageBubble(username, messageContent, bubbleClass, usernameColor)}
+                <div class="reactions-container"></div>
+            </div>
+            ${this.buildQuickReactions(messageId)}
+        `;
     }
 
-    messageContainer.innerHTML = `
-        <!-- Avatar -->
-        <div class="avatar ${avatarClass} user-avatar" data-username="${data.username}">
-            ${data.username.charAt(0).toUpperCase()}
-        </div>
+    // Build avatar HTML
+    buildAvatar(username, avatarClass) {
+        return `
+            <div class="avatar ${avatarClass} user-avatar" data-username="${username}">
+                ${username.charAt(0).toUpperCase()}
+            </div>
+        `;
+    }
 
-        <!-- Message content wrapper -->
-        <div class="flex-1 max-w-[85%]">
-            <!-- Message bubble -->
+    // Build message bubble HTML
+    buildMessageBubble(username, content, bubbleClass, usernameColor) {
+        return `
             <div class="message-bubble ${bubbleClass}">
-                <!-- Username -->
-                <div class="text-xs font-semibold mb-1 ${bubbleClass === 'sent' ? 'text-pink-500' : 'text-purple-600'}">
-                    <a href="/dm/${data.username}/" class="hover:underline">
-                        ${data.username}
+                <div class="text-xs font-semibold mb-1 ${usernameColor}">
+                    <a href="/dm/${username}/" class="hover:underline">
+                        ${username}
                     </a>
                 </div>
-                ${messageContent}
+                ${content}
             </div>
+        `;
+    }
 
-            <!-- Reactions container -->
-            <div class="reactions-container"></div>
-        </div>
+    // Build message content (text + media)
+    buildMessageContent(textContent, mediaUrl) {
+        let content = '';
 
-        <!-- Quick reaction buttons (desktop only) -->
-        <div class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex space-x-1">
-            <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '❤️')" aria-label="React with heart">❤️</button>
-            <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👍')" aria-label="React with thumbs up">👍</button>
-            <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😂')" aria-label="React with laugh">😂</button>
-        </div>
-    `;
+        if (mediaUrl) {
+            content += this.buildMediaContent(mediaUrl);
+        }
 
-    chatLog.appendChild(messageContainer);
+        if (textContent) {
+            content += `<div class="message-content text-sm text-gray-700">${this.escapeHtml(textContent)}</div>`;
+        }
 
-    // Update user avatar if we have profile data
-    updateMessageAvatar(messageContainer, data.username);
+        return content;
+    }
 
-    // Add any existing reactions
-    if (data.reactions) {
-        Object.entries(data.reactions).forEach(([emoji, count]) => {
+    // Build media content based on type
+    buildMediaContent(mediaUrl) {
+        const mediaType = this.guessMediaType(mediaUrl);
+        const builders = {
+            image: () => this.buildImageContent(mediaUrl),
+            video: () => this.buildVideoContent(mediaUrl),
+            default: () => this.buildFileContent(mediaUrl)
+        };
+
+        return builders[mediaType] ? builders[mediaType]() : builders.default();
+    }
+
+    // Build image content
+    buildImageContent(url) {
+        return `
+            <div class="message-media">
+                <img src="${url}" alt="Uploaded image"
+                     onclick="window.openMediaPreview({type: 'image', url: '${url}'})"
+                     loading="lazy">
+            </div>
+        `;
+    }
+
+    // Build video content
+    buildVideoContent(url) {
+        return `
+            <div class="message-media">
+                <video src="${url}" controls>
+                    <source src="${url}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        `;
+    }
+
+    // Build file content
+    buildFileContent(url) {
+        const fileName = url.split('/').pop();
+        return `
+            <div class="message-media">
+                <a href="${url}" target="_blank" class="inline-flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="text-sm text-gray-700">${fileName}</span>
+                </a>
+            </div>
+        `;
+    }
+
+    // Build quick reaction buttons
+    buildQuickReactions(messageId) {
+        const reactions = ['❤️', '👍', '😂'];
+        const buttons = reactions.map(emoji =>
+            `<button class="emoji-reaction" onclick="sendReaction(${messageId}, '${emoji}')" aria-label="React with ${emoji}">${emoji}</button>`
+        ).join('');
+
+        return `
+            <div class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex space-x-1">
+                ${buttons}
+            </div>
+        `;
+    }
+
+    // Add reactions to message
+    addReactions(container, reactions, messageId) {
+        Object.entries(reactions).forEach(([emoji, count]) => {
             if (count > 0) {
-                const reactionUpdate = {
-                    message_id: data.message_id,
+                handleReactionUpdate({
+                    message_id: messageId,
                     reaction: emoji,
                     count: count
-                };
-                handleReactionUpdate(reactionUpdate);
+                });
             }
         });
     }
 
-    scrollToBottom();
-    removeTypingIndicator(data.username);
+    // Post-process message after adding to DOM
+    postProcessMessage(data) {
+        const container = document.querySelector(`[data-message-id="${data.message_id}"]`);
+        if (container) {
+            updateMessageAvatar(container, data.username);
+        }
+        scrollToBottom();
+        removeTypingIndicator(data.username);
+    }
+
+    // Utility functions
+    appendToChatLog(element) {
+        const chatLog = document.getElementById(this.chatLogId);
+        if (chatLog) {
+            chatLog.appendChild(element);
+        }
+    }
+
+    createElement(tag, attributes = {}) {
+        const element = document.createElement(tag);
+        Object.entries(attributes).forEach(([key, value]) => {
+            if (key === 'className') {
+                element.className = value;
+            } else {
+                element.setAttribute(key, value);
+            }
+        });
+        return element;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    guessMediaType(url) {
+        const extension = url.split('.').pop().toLowerCase();
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        const videoExtensions = ['mp4', 'webm', 'ogg', 'mov'];
+
+        if (imageExtensions.includes(extension)) return 'image';
+        if (videoExtensions.includes(extension)) return 'video';
+        return 'file';
+    }
+}
+
+// Create instance and backward-compatible function
+const chatMessageHandler = new ChatMessageHandler();
+
+function handleChatMessage(data) {
+    chatMessageHandler.handleMessage(data);
+}
+
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { ChatMessageHandler, handleChatMessage };
 }
 
 // Typing indicator
