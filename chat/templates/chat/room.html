@@ -2770,155 +2770,228 @@ function dismissAnnouncement(announcementId) {
 }
 
 // Whiteboard functionality
-function openWhiteboard() {
-    const modal = document.getElementById('whiteboard-modal');
-    if (modal) {
-        modal.classList.add('open');
-        initializeWhiteboard();
+class Whiteboard {
+    constructor(canvasId = 'whiteboard-canvas', modalId = 'whiteboard-modal') {
+        this.canvas = document.getElementById(canvasId);
+        this.modal = document.getElementById(modalId);
+        this.ctx = this.canvas?.getContext('2d');
+
+        // State
+        this.state = {
+            isDrawing: false,
+            tool: 'brush',
+            color: '#000000',
+            size: 5,
+            lastX: 0,
+            lastY: 0
+        };
+
+        // Bind methods
+        this.draw = this.draw.bind(this);
+        this.startDrawing = this.startDrawing.bind(this);
+        this.stopDrawing = this.stopDrawing.bind(this);
+        this.resizeCanvas = this.resizeCanvas.bind(this);
+    }
+
+    open() {
+        if (!this.modal) return;
+        this.modal.classList.add('open');
+        this.initialize();
+    }
+
+    initialize() {
+        if (!this.canvas || !this.ctx) return;
+
+        this.resizeCanvas();
+        this.setupEventListeners();
+        this.setupTools();
+    }
+
+    setupEventListeners() {
+        // Canvas events
+        this.canvas.addEventListener('mousedown', this.startDrawing);
+        this.canvas.addEventListener('mousemove', this.draw);
+        this.canvas.addEventListener('mouseup', this.stopDrawing);
+        this.canvas.addEventListener('mouseout', this.stopDrawing);
+
+        // Touch support for mobile
+        this.canvas.addEventListener('touchstart', this.handleTouch(this.startDrawing));
+        this.canvas.addEventListener('touchmove', this.handleTouch(this.draw));
+        this.canvas.addEventListener('touchend', this.stopDrawing);
+
+        // Window resize
+        window.addEventListener('resize', this.resizeCanvas);
+    }
+
+    setupTools() {
+        // Tool selection
+        document.querySelectorAll('[data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => this.selectTool(btn));
+        });
+
+        // Color and size controls
+        this.bindControl('brush-color', 'change', (e) => this.state.color = e.target.value);
+        this.bindControl('brush-size', 'change', (e) => this.state.size = parseInt(e.target.value));
+
+        // Action buttons
+        this.bindControl('clear-whiteboard', 'click', () => this.clear());
+        this.bindControl('save-whiteboard', 'click', () => this.save());
+    }
+
+    bindControl(id, event, handler) {
+        const element = document.getElementById(id);
+        if (element) element.addEventListener(event, handler);
+    }
+
+    selectTool(btn) {
+        this.state.tool = btn.dataset.tool;
+        document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    resizeCanvas() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+    }
+
+    getCoordinates(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
+
+    handleTouch(handler) {
+        return (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent(e.type, {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                handler(mouseEvent);
+            }
+        };
+    }
+
+    startDrawing(e) {
+        this.state.isDrawing = true;
+        const { x, y } = this.getCoordinates(e);
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        this.state.lastX = x;
+        this.state.lastY = y;
+    }
+
+    draw(e) {
+        if (!this.state.isDrawing) return;
+
+        const { x, y } = this.getCoordinates(e);
+
+        // Configure drawing
+        Object.assign(this.ctx, {
+            lineWidth: this.state.size,
+            strokeStyle: this.state.color,
+            lineCap: 'round'
+        });
+
+        // Draw
+        this.ctx.lineTo(x, y);
+        this.ctx.stroke();
+
+        // Send update if WebSocket is available
+        this.sendUpdate('draw', {
+            fromX: this.state.lastX,
+            fromY: this.state.lastY,
+            toX: x,
+            toY: y,
+            color: this.state.color,
+            size: this.state.size
+        });
+
+        this.state.lastX = x;
+        this.state.lastY = y;
+    }
+
+    stopDrawing() {
+        this.state.isDrawing = false;
+    }
+
+    clear() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.sendUpdate('clear');
+    }
+
+    save() {
+        const link = document.createElement('a');
+        link.download = `whiteboard-${Date.now()}.png`;
+        link.href = this.canvas.toDataURL();
+        link.click();
+    }
+
+    sendUpdate(action, data = {}) {
+        if (typeof websocket !== 'undefined' && websocket?.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({
+                type: 'whiteboard',
+                action,
+                ...data
+            }));
+        }
+    }
+
+    // Handle incoming updates from other users
+    handleUpdate(data) {
+        if (!this.ctx) return;
+
+        switch (data.action) {
+            case 'draw':
+                this.ctx.beginPath();
+                this.ctx.moveTo(data.fromX, data.fromY);
+                this.ctx.lineTo(data.toX, data.toY);
+                Object.assign(this.ctx, {
+                    strokeStyle: data.color,
+                    lineWidth: data.size,
+                    lineCap: 'round'
+                });
+                this.ctx.stroke();
+                break;
+
+            case 'clear':
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                break;
+        }
+    }
+
+    // Cleanup
+    destroy() {
+        window.removeEventListener('resize', this.resizeCanvas);
+        // Remove other event listeners if needed
     }
 }
 
-function initializeWhiteboard() {
-    const canvas = document.getElementById('whiteboard-canvas');
-    if (!canvas) return;
+// Create global instance and helper functions for backward compatibility
+let whiteboardInstance;
 
-    const ctx = canvas.getContext('2d');
-    let isDrawing = false;
-    let currentTool = 'brush';
-    let currentColor = '#000000';
-    let currentSize = 5;
-
-    // Set canvas size
-    function resizeCanvas() {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+function openWhiteboard() {
+    if (!whiteboardInstance) {
+        whiteboardInstance = new Whiteboard();
     }
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    // Tool selection
-    document.querySelectorAll('[data-tool]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            currentTool = this.dataset.tool;
-            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-
-    // Color and size selection
-    const colorPicker = document.getElementById('brush-color');
-    const sizePicker = document.getElementById('brush-size');
-
-    if (colorPicker) {
-        colorPicker.addEventListener('change', (e) => {
-            currentColor = e.target.value;
-        });
-    }
-
-    if (sizePicker) {
-        sizePicker.addEventListener('change', (e) => {
-            currentSize = parseInt(e.target.value);
-        });
-    }
-
-    // Drawing events
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-
-    function startDrawing(e) {
-        isDrawing = true;
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-    }
-
-    function draw(e) {
-        if (!isDrawing) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        ctx.lineWidth = currentSize;
-        ctx.strokeStyle = currentColor;
-        ctx.lineCap = 'round';
-
-        ctx.lineTo(x, y);
-        ctx.stroke();
-
-        // Send update via WebSocket
-        if (websocket && websocket.readyState === WebSocket.OPEN) {
-            websocket.send(JSON.stringify({
-                'type': 'whiteboard',
-                'action': 'draw',
-                'fromX': ctx.lastX,
-                'fromY': ctx.lastY,
-                'toX': x,
-                'toY': y,
-                'color': currentColor,
-                'size': currentSize
-            }));
-        }
-
-        ctx.lastX = x;
-        ctx.lastY = y;
-    }
-
-    function stopDrawing() {
-        isDrawing = false;
-    }
-
-    // Clear button
-    const clearBtn = document.getElementById('clear-whiteboard');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (websocket && websocket.readyState === WebSocket.OPEN) {
-                websocket.send(JSON.stringify({
-                    'type': 'whiteboard',
-                    'action': 'clear'
-                }));
-            }
-        });
-    }
-
-    // Save button
-    const saveBtn = document.getElementById('save-whiteboard');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.download = 'whiteboard.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        });
-    }
+    whiteboardInstance.open();
 }
 
 function handleWhiteboardUpdate(data) {
-    const canvas = document.getElementById('whiteboard-canvas');
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-
-    if (data.action === 'draw') {
-        ctx.beginPath();
-        ctx.moveTo(data.fromX, data.fromY);
-        ctx.lineTo(data.toX, data.toY);
-        ctx.strokeStyle = data.color;
-        ctx.lineWidth = data.size;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-    } else if (data.action === 'clear') {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (whiteboardInstance) {
+        whiteboardInstance.handleUpdate(data);
     }
+}
+
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { Whiteboard, openWhiteboard, handleWhiteboardUpdate };
 }
 
 // Media library
