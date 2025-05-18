@@ -655,6 +655,15 @@
     display: none;
   }
 
+  /* Jump to bottom button enhancements */
+  .jump-to-bottom {
+    bottom: 5.5rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    z-index: 15;
+  }
+
   /* Message notification styling */
   .app-notification {
     position: fixed;
@@ -798,6 +807,14 @@
     /* Show the toggle button in the header */
     #header-sidebar-toggle {
       display: flex !important;
+    }
+
+    /* Hide the floating sidebar toggle button */
+    .sidebar-toggle {
+      display: flex;
+      bottom: 20px;
+      left: 20px;
+      z-index: 40;
     }
 
     .message-bubble {
@@ -1080,6 +1097,13 @@
       padding-bottom: 0;
     }
 
+    /* Hide jump to bottom button on mobile */
+    @media (max-width: 768px) {
+      #jump-to-bottom {
+        display: none;
+      }
+    }
+
     /* Message improvements */
     .message-bubble {
       max-width: 90%;
@@ -1268,24 +1292,24 @@
           </h3>
 
           <div class="grid grid-cols-1 gap-2 mt-3">
-            <!-- Feature Buttons -->
-            <button id="open-media-library" class="btn rounded-lg text-sm py-2.5">
+            <!-- Feature Buttons - Updated alignment -->
+            <button id="open-media-library" class="btn rounded-lg text-sm py-2.5 w-full flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Media Library
             </button>
 
-            <button id="open-whiteboard" class="btn rounded-lg text-sm py-2.5">
+            <button id="open-whiteboard" class="btn rounded-lg text-sm py-2.5 w-full flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               Whiteboard
             </button>
 
-            <button id="create-meetup-btn-alt" class="btn rounded-lg text-sm py-2.5">
+            <button id="create-meetup-btn-alt" class="btn rounded-lg text-sm py-2.5 w-full flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Plan a Meetup
             </button>
@@ -1574,7 +1598,21 @@
           </button>
         </form>
       </div>
+
+      <!-- Jump to bottom button -->
+      <button id="jump-to-bottom" class="jump-to-bottom fixed bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center" aria-label="Jump to bottom">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </button>
     </div>
+  </div>
+
+  <!-- Sidebar Toggle Button - Made visible for mobile -->
+  <div class="sidebar-toggle" id="sidebar-toggle">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
   </div>
 
   <!-- Mobile Overlay -->
@@ -1799,7 +1837,12 @@
   <script>
     window.roomName = "{{ room_name|escapejs }}";
     window.username = "{{ username|escapejs }}";
-    document.addEventListener('DOMContentLoaded', function() {
+          document.addEventListener('DOMContentLoaded', function() {
+      // Attach file input to attachment button
+      document.getElementById('attachment-btn').addEventListener('click', function() {
+        document.getElementById('file-input').click();
+      });
+
       // Header menu toggle (mobile)
       document.getElementById('header-sidebar-toggle').addEventListener('click', function() {
         document.getElementById('app-sidebar').classList.add('active');
@@ -1816,6 +1859,12 @@
       document.getElementById('mobile-overlay').addEventListener('click', function() {
         document.getElementById('app-sidebar').classList.remove('active');
         document.getElementById('mobile-overlay').classList.remove('active');
+      });
+
+      // Mobile sidebar handlers
+      document.getElementById('sidebar-toggle').addEventListener('click', function() {
+        document.getElementById('app-sidebar').classList.add('active');
+        document.getElementById('mobile-overlay').classList.add('active');
       });
 
       // Close sidebar when clicking overlay
