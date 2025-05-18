@@ -782,7 +782,10 @@
 
     /* Hide the floating sidebar toggle button */
     .sidebar-toggle {
-      display: none;
+      display: flex;
+      bottom: 20px;
+      left: 20px;
+      z-index: 40;
     }
 
     .message-bubble {
@@ -833,7 +836,7 @@
     .input-area {
       padding: 0.5rem 0.75rem;
       position: fixed; /* Changed from sticky to fixed */
-      bottom: 60px; /* Position above the bottom nav */
+      bottom: 0; /* Position at the bottom without bottom nav */
       left: 0;
       right: 0;
       background-color: white;
@@ -854,7 +857,7 @@
 
     /* Adjust chat container to make room for fixed elements */
     .chat-container {
-      padding-bottom: 140px; /* Add space for input area and bottom nav */
+      padding-bottom: 80px; /* Add space for input area only */
       margin-bottom: 0;
     }
 
@@ -1013,84 +1016,9 @@
       object-fit: cover;
     }
 
-    /* Mobile bottom nav - RESTORED AND IMPROVED */
+    /* Mobile bottom nav - REMOVED */
     .mobile-bottom-nav {
-      display: flex;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 64px; /* Slightly taller for better tap targets */
-      background: rgba(255, 255, 255, 0.95); /* More sophisticated semi-transparent look */
-      backdrop-filter: blur(10px); /* Glass effect for modern look */
-      -webkit-backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(236, 72, 153, 0.1);
-      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
-      z-index: 30;
-      justify-content: space-around;
-      align-items: center;
-    }
-
-    .mobile-nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      height: 100%;
-      color: var(--text-secondary);
-      position: relative;
-      transition: all 0.2s ease;
-      overflow: visible;
-    }
-
-    /* Refined active state */
-    .mobile-nav-item.active {
-      color: var(--primary);
-    }
-
-    /* Modern active indicator */
-    .mobile-nav-item.active::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 25%;
-      right: 25%;
-      height: 4px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 4px 4px 0 0;
-      box-shadow: 0 -1px 5px rgba(236, 72, 153, 0.3);
-    }
-
-    /* Enhance icons with subtle glow when active */
-    .mobile-nav-item.active i {
-      filter: drop-shadow(0 0 3px rgba(236, 72, 153, 0.4));
-    }
-
-    /* Better icon styling */
-    .mobile-nav-item i {
-      font-size: 20px;
-      margin-bottom: 5px;
-      transition: all 0.2s ease;
-    }
-
-    /* Add notification indicator */
-    .mobile-nav-item .notification-badge {
-      position: absolute;
-      top: 6px;
-      right: 50%;
-      margin-right: -20px;
-      width: 8px;
-      height: 8px;
-      background-color: var(--primary);
-      border-radius: 50%;
-    }
-
-    .mobile-nav-item span {
-      font-size: 0.7rem;
-      font-weight: 500;
-      margin-top: 0.2rem;
-      opacity: 0.9;
+      display: none;
     }
 
     /* Improved mini-avatar styling */
@@ -1115,7 +1043,7 @@
 
     /* Move floating buttons up */
     .jump-to-bottom {
-      bottom: 130px; /* Above input area AND bottom nav */
+      bottom: 80px; /* Above input area only */
       right: 0.5rem;
     }
 
@@ -1623,33 +1551,11 @@
     </div>
   </div>
 
-  <!-- Mobile Toggle Buttons -->
+  <!-- Sidebar Toggle Button - Made visible for mobile -->
   <div class="sidebar-toggle" id="sidebar-toggle">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
-  </div>
-
-  <!-- Mobile Bottom Navigation - RESTORED WITH MODERN ICONS -->
-  <div class="mobile-bottom-nav">
-    <button class="mobile-nav-item active" id="mobile-home">
-      <i class="fa-solid fa-house"></i>
-      <span>Home</span>
-    </button>
-    <button class="mobile-nav-item" id="mobile-media">
-      <i class="fa-solid fa-images"></i>
-      <span>Media</span>
-    </button>
-    <button class="mobile-nav-item" id="mobile-users">
-      <i class="fa-solid fa-users"></i>
-      <span>Users</span>
-    </button>
-    <button class="mobile-nav-item" id="mobile-profile">
-      <div class="avatar avatar-pink user-avatar mini-avatar" data-username="{{ username }}">
-        {{ username|slice:":1"|upper }}
-      </div>
-      <span>Profile</span>
-    </button>
   </div>
 
   <!-- Mobile Overlay -->
@@ -1893,35 +1799,16 @@
         document.getElementById('mobile-overlay').classList.remove('active');
       });
 
-      // Mobile bottom navigation actions
-      const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
-      mobileNavItems.forEach(item => {
-        item.addEventListener('click', function() {
-          // Remove active class from all items
-          mobileNavItems.forEach(navItem => navItem.classList.remove('active'));
-          // Add active class to clicked item
-          this.classList.add('active');
+      // Mobile sidebar handlers
+      document.getElementById('sidebar-toggle').addEventListener('click', function() {
+        document.getElementById('app-sidebar').classList.add('active');
+        document.getElementById('mobile-overlay').classList.add('active');
+      });
 
-          // Handle different actions based on nav item id
-          if (this.id === 'mobile-home') {
-            // Default view - just show messages
-          } else if (this.id === 'mobile-media') {
-            // Open media library
-            document.getElementById('media-library-modal').classList.add('active');
-          } else if (this.id === 'mobile-users') {
-            // Show users panel or open sidebar to users section
-            document.getElementById('app-sidebar').classList.add('active');
-            document.getElementById('mobile-overlay').classList.add('active');
-          } else if (this.id === 'mobile-profile') {
-            // Open profile options
-            const profileMenu = document.getElementById('profile-menu');
-            if (profileMenu) {
-              profileMenu.classList.add('active');
-            } else {
-              document.getElementById('user-profile-btn').click();
-            }
-          }
-        });
+      // Close sidebar when clicking overlay
+      document.getElementById('mobile-overlay').addEventListener('click', function() {
+        document.getElementById('app-sidebar').classList.remove('active');
+        document.getElementById('mobile-overlay').classList.remove('active');
       });
 
       // Add swipe gestures for mobile
