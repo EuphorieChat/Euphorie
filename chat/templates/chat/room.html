@@ -1999,6 +1999,9 @@
       // Add modal display CSS
       addModalCSS();
 
+      // Add extra UI improvements
+      addUIImprovements();
+
       initializeWebSocket();
       initializeUIElements();
       initializeEventListeners();
@@ -2024,6 +2027,86 @@
               width: 100%;
               height: 100%;
               background-color: rgba(0, 0, 0, 0.5);
+          }
+      `;
+      document.head.appendChild(style);
+  }
+
+  // Additional UI improvements
+  function addUIImprovements() {
+      const style = document.createElement('style');
+      style.textContent = `
+          /* Improved Meetup Modal */
+          #meetup-modal .modal-content {
+              max-width: 500px;
+              width: 95%;
+              border-radius: 16px;
+              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+          }
+
+          #meetup-modal h2 {
+              margin-bottom: 1.5rem;
+              font-size: 1.5rem;
+          }
+
+          #meetup-form .btn {
+              padding: 0.75rem 1.5rem;
+              font-weight: 600;
+              border-radius: 10px;
+              transition: all 0.2s ease;
+          }
+
+          #meetup-form #cancel-meetup {
+              background-color: #f3f4f6;
+              color: #4b5563;
+              border: 1px solid #e5e7eb;
+          }
+
+          #meetup-form #cancel-meetup:hover {
+              background-color: #e5e7eb;
+          }
+
+          #meetup-form [type="submit"] {
+              background: linear-gradient(135deg, #ec4899, #9333ea);
+              color: white;
+          }
+
+          #meetup-form [type="submit"]:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+          }
+
+          /* Larger Whiteboard for Desktop */
+          @media (min-width: 1024px) {
+              #whiteboard-modal .modal-content {
+                  max-width: 90%;
+                  width: 90%;
+                  height: 85vh;
+              }
+
+              #whiteboard-canvas {
+                  min-height: 65vh;
+              }
+          }
+
+          /* Make sure cancel buttons are always visible */
+          .modal .btn-secondary,
+          .modal [id^="cancel"] {
+              background-color: #f3f4f6;
+              color: #4b5563 !important;
+              border: 1px solid #e5e7eb;
+              padding: 0.5rem 1rem;
+              border-radius: 0.5rem;
+              font-weight: 500;
+              margin-right: 0.5rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+          }
+
+          .modal .btn-secondary:hover,
+          .modal [id^="cancel"]:hover {
+              background-color: #e5e7eb;
           }
       `;
       document.head.appendChild(style);
@@ -2412,13 +2495,65 @@
           });
       });
 
-      // Rooms button - NEW
+      // Rooms button - UPDATED to direct to homepage (same as logo)
       const openRoomsBtn = document.getElementById('open-rooms-btn');
       if (openRoomsBtn) {
           openRoomsBtn.addEventListener('click', function() {
-              // Redirect to rooms list
-              window.location.href = '/rooms/';
+              // Redirect to homepage (same as logo)
+              window.location.href = '/';
           });
+      }
+
+      // Enhanced Meetup Form - IMPROVED
+      const meetupForm = document.getElementById('meetup-form');
+      if (meetupForm) {
+          meetupForm.addEventListener('submit', function(e) {
+              e.preventDefault();
+
+              const title = document.getElementById('meetup-title').value;
+              const datetime = document.getElementById('meetup-datetime').value;
+              const location = document.getElementById('meetup-location').value;
+              const description = document.getElementById('meetup-description').value;
+
+              if (!title || !datetime || !location) {
+                  showNotification('Please fill out all required fields', 'error');
+                  return;
+              }
+
+              // Send meetup data
+              if (websocket && websocket.readyState === WebSocket.OPEN) {
+                  websocket.send(JSON.stringify({
+                      'type': 'meetup',
+                      'action': 'create',
+                      'data': {
+                          'title': title,
+                          'datetime': datetime,
+                          'location': location,
+                          'description': description
+                      }
+                  }));
+
+                  // Clear form and close modal
+                  meetupForm.reset();
+                  document.getElementById('meetup-modal').classList.remove('active', 'open');
+
+                  showNotification('Meetup created successfully!');
+              } else {
+                  showNotification('Connection error. Please try again.', 'error');
+              }
+          });
+
+          // Make cancel button more prominent
+          const cancelMeetupBtn = document.getElementById('cancel-meetup');
+          if (cancelMeetupBtn) {
+              cancelMeetupBtn.classList.add('btn-secondary');
+              cancelMeetupBtn.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+              `;
+          }
       }
 
       // Initialize long-press for mobile reactions
@@ -3220,22 +3355,112 @@
       });
   }
 
-  // Meetups
+  // Meetups - IMPROVED
   function handleMeetupsUpdate(data) {
       if (data.meetups) {
           currentMeetups = data.meetups;
+
+          // If we received new meetups, notify user
+          if (data.action === 'created' && data.creator && data.creator !== window.username) {
+              const meetup = data.meetups[0]; // Usually the new one
+              showNotification(`${data.creator} created a new meetup: ${meetup.title}`);
+          }
       }
   }
 
+  // IMPROVED Meetup Modal with better UI/UX
   function openMeetupModal() {
       const modal = document.getElementById('meetup-modal');
       if (modal) {
+          // Enhance the meetup form UI before showing
+          enhanceMeetupForm();
+
           modal.classList.add('open');
           modal.classList.add('active');
+
+          // Set default date to tomorrow at noon
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(12, 0, 0, 0);
+
+          const datetimeField = document.getElementById('meetup-datetime');
+          if (datetimeField) {
+              const dateStr = tomorrow.toISOString().slice(0, 16);
+              datetimeField.value = dateStr;
+          }
       }
   }
 
-  // Whiteboard functionality - IMPROVED
+  function enhanceMeetupForm() {
+      // Add icons and improve the form elements
+      const titleField = document.getElementById('meetup-title');
+      const datetimeField = document.getElementById('meetup-datetime');
+      const locationField = document.getElementById('meetup-location');
+      const descriptionField = document.getElementById('meetup-description');
+
+      // Wrap each field in a styled container
+      const fieldElements = [
+          { element: titleField, icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+          { element: datetimeField, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+          { element: locationField, icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
+          { element: descriptionField, icon: 'M4 6h16M4 12h16M4 18h7' }
+      ];
+
+      fieldElements.forEach(({element, icon}) => {
+          if (element) {
+              // Only style if not already styled
+              const parent = element.parentElement;
+              if (!parent.querySelector('svg')) {
+                  const labelElement = parent.querySelector('label');
+
+                  if (labelElement) {
+                      labelElement.innerHTML = `
+                          <div class="flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icon}" />
+                              </svg>
+                              ${labelElement.textContent}
+                          </div>
+                      `;
+                  }
+
+                  element.classList.add('transition-all', 'duration-200');
+                  element.addEventListener('focus', function() {
+                      this.classList.add('ring-2', 'ring-pink-300', 'border-pink-300');
+                  });
+                  element.addEventListener('blur', function() {
+                      this.classList.remove('ring-2', 'ring-pink-300', 'border-pink-300');
+                  });
+              }
+          }
+      });
+
+      // Make sure the cancel button is styled properly
+      const cancelBtn = document.getElementById('cancel-meetup');
+      if (cancelBtn) {
+          if (!cancelBtn.querySelector('svg')) {
+              cancelBtn.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+              `;
+          }
+      }
+
+      // Enhance the submit button
+      const submitBtn = document.querySelector('#meetup-form [type="submit"]');
+      if (submitBtn && !submitBtn.querySelector('svg')) {
+          submitBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Create Meetup
+          `;
+      }
+  }
+
+  // Whiteboard functionality - IMPROVED with larger size on desktop
   function openWhiteboard() {
       const modal = document.getElementById('whiteboard-modal');
       if (modal) {
@@ -3389,6 +3614,51 @@
               // Text and shape would need more complex handlers
           });
       });
+
+      // Add a fullscreen toggle for better drawing on desktop
+      const whiteboardHeader = document.querySelector('#whiteboard-modal .modal-content > div:first-child');
+      if (whiteboardHeader && !document.getElementById('whiteboard-fullscreen-btn')) {
+          const fullscreenBtn = document.createElement('button');
+          fullscreenBtn.id = 'whiteboard-fullscreen-btn';
+          fullscreenBtn.className = 'p-2 rounded-lg hover:bg-gray-100 text-gray-500';
+          fullscreenBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+              </svg>
+          `;
+
+          let isFullscreen = false;
+          fullscreenBtn.addEventListener('click', function() {
+              const modalContent = document.querySelector('#whiteboard-modal .modal-content');
+              if (modalContent) {
+                  if (!isFullscreen) {
+                      modalContent.style.width = '95%';
+                      modalContent.style.height = '95vh';
+                      modalContent.style.maxWidth = '95%';
+                      this.innerHTML = `
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                      `;
+                  } else {
+                      modalContent.style.width = '';
+                      modalContent.style.height = '';
+                      modalContent.style.maxWidth = '';
+                      this.innerHTML = `
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                          </svg>
+                      `;
+                  }
+                  isFullscreen = !isFullscreen;
+
+                  // Resize canvas to fit new container size
+                  setTimeout(resizeCanvas, 300);
+              }
+          });
+
+          whiteboardHeader.insertBefore(fullscreenBtn, whiteboardHeader.lastChild);
+      }
 
       console.log("Whiteboard initialized with drawing capabilities");
   }
@@ -3909,7 +4179,6 @@
           attemptReconnect();
       }
   });
-
   </script>
 </body>
 </html>
