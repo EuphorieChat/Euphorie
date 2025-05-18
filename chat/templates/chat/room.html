@@ -119,25 +119,15 @@
 
   /* Sidebar sections to organize content */
   .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     padding-top: 1rem;
     width: 100%;
   }
 
   .sidebar-content {
-    display: none;
     width: 100%;
     color: white;
     padding: 1rem;
-    opacity: 0;
-    transition: opacity 0.3s var(--ease);
-  }
-
-  .app-sidebar.expanded .sidebar-content {
     display: block;
-    opacity: 1;
   }
 
   .sidebar-section {
@@ -162,18 +152,21 @@
   }
 
   .sidebar-item {
-    width: 48px;
     height: 48px;
-    border-radius: 30%;
+    border-radius: 12px;
     display: flex;
     align-items: center;
-    justify-content: center;
     color: white;
     margin-bottom: 0.75rem;
     cursor: pointer;
-    position: relative;
+    padding: 0 1rem;
     transition: all 0.2s ease;
     background: rgba(255, 255, 255, 0.1);
+    width: 100%;
+  }
+
+  .sidebar-item svg {
+    margin-right: 12px;
   }
 
   .sidebar-item:hover {
@@ -184,28 +177,6 @@
   .sidebar-item.active {
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
-  }
-
-  .sidebar-tooltip {
-    position: absolute;
-    left: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.75rem;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.2s ease;
-    margin-left: 0.5rem;
-    z-index: 50;
-  }
-
-  .sidebar-item:hover .sidebar-tooltip {
-    opacity: 1;
   }
 
   /* Sidebar content styles for dark background */
@@ -231,23 +202,6 @@
 
   .app-sidebar .border-gray-200 {
     border-color: rgba(255, 255, 255, 0.2);
-  }
-
-  /* Toggle button for sidebar expansion */
-  .sidebar-expand-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    cursor: pointer;
-    z-index: 5;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
   }
 
   /* Main content area */
@@ -331,16 +285,9 @@
     to {transform: rotate(360deg);}
   }
 
-  /* Right sidebar */
+  /* Right sidebar - hide for desktop */
   .info-sidebar {
-    width: 280px;
-    background: white;
-    border-left: 1px solid rgba(236, 72, 153, 0.1);
-    height: 100%;
-    overflow-y: auto;
-    flex-shrink: 0;
-    z-index: 15;
-    transition: transform 0.3s var(--ease);
+    display: none;
   }
 
   /* Message styling */
@@ -427,8 +374,7 @@
   }
 
   .info-toggle {
-    bottom: 20px;
-    right: 20px;
+    display: none; /* Hide info toggle since there's no right sidebar */
   }
 
   .mobile-overlay {
@@ -613,11 +559,6 @@
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     }
 
-    /* Hide the right sidebar completely since we're consolidating */
-    .info-sidebar {
-      display: none;
-    }
-
     .sidebar-toggle {
       display: flex;
       z-index: 60; /* Ensure button is above other elements */
@@ -639,11 +580,6 @@
     .sidebar-toggle:active, .emoji-btn:active, .reaction:active, .mobile-message-controls button:active {
       transform: scale(0.95);
       transition: transform 0.1s;
-    }
-
-    /* Hide the info toggle since we're consolidating */
-    .info-toggle {
-      display: none;
     }
 
     .message-bubble {
@@ -704,11 +640,30 @@
       margin-bottom: 0;
     }
 
-    /* Larger touch targets */
+    /* Restore vertical sidebar items (icon-only) on mobile */
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
     .sidebar-item {
       width: 48px;
       height: 48px;
+      border-radius: 30%;
       margin: 0 auto 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .sidebar-item svg {
+      margin-right: 0;
+    }
+
+    .sidebar-item span {
+      display: none;
     }
 
     /* Make buttons more tappable */
@@ -965,13 +920,6 @@
   <div class="app-wrapper">
     <!-- Left Sidebar -->
     <div class="app-sidebar" id="app-sidebar">
-      <!-- Expand button -->
-      <div class="sidebar-expand-btn" id="sidebar-expand-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-
       <!-- Mobile sidebar header -->
       <div class="sidebar-mobile-header">
         <h2 class="text-white text-lg font-semibold">Euphorie</h2>
@@ -989,7 +937,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-          <span class="sidebar-tooltip">{{ room_name }}</span>
+          <span>{{ room_name }}</span>
         </div>
 
         <!-- Whiteboard -->
@@ -997,7 +945,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
-          <span class="sidebar-tooltip">Whiteboard</span>
+          <span>Whiteboard</span>
         </div>
 
         <!-- Media Library -->
@@ -1005,7 +953,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span class="sidebar-tooltip">Media Library</span>
+          <span>Media Library</span>
         </div>
 
         <!-- Plan Meetup -->
@@ -1013,7 +961,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span class="sidebar-tooltip">Plan Meetup</span>
+          <span>Plan Meetup</span>
         </div>
 
         <!-- Other Rooms -->
@@ -1021,7 +969,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
-          <span class="sidebar-tooltip">Rooms</span>
+          <span>Rooms</span>
         </div>
 
         <!-- Settings -->
@@ -1030,7 +978,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span class="sidebar-tooltip">Settings</span>
+          <span>Settings</span>
         </div>
 
         <!-- Profile / User Menu - at bottom -->
@@ -1038,11 +986,11 @@
           <div class="avatar avatar-pink user-avatar" data-username="{{ username }}">
             {{ username|slice:":1"|upper }}
           </div>
-          <span class="sidebar-tooltip">Your Profile</span>
+          <span>{{ username }}</span>
         </div>
       </div>
 
-      <!-- Sidebar Content Section (Previously Right Sidebar) -->
+      <!-- Sidebar Content Section -->
       <div class="sidebar-content">
         <!-- Users Online -->
         <div class="sidebar-section">
@@ -1205,13 +1153,6 @@
             </svg>
             <span id="online-users-count">0</span> online
           </div>
-
-          <!-- Toggle Users Sidebar Button -->
-          <button id="toggle-users-sidebar" class="p-2 rounded-lg hover:bg-gray-100">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </button>
 
           <!-- Bookmark Button -->
           <button id="bookmark-room" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-pink-500">
@@ -1416,17 +1357,12 @@
         </svg>
       </button>
     </div>
+  </div>
 
   <!-- Mobile Toggle Buttons -->
   <div class="sidebar-toggle" id="sidebar-toggle">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  </div>
-
-  <div class="info-toggle" id="info-toggle">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
     </svg>
   </div>
 
@@ -1681,11 +1617,6 @@
     window.roomName = "{{ room_name|escapejs }}";
     window.username = "{{ username|escapejs }}";
     document.addEventListener('DOMContentLoaded', function() {
-      // Toggle sidebar expansion
-      document.getElementById('sidebar-expand-btn').addEventListener('click', function() {
-        document.getElementById('app-sidebar').classList.toggle('expanded');
-      });
-
       // Mobile sidebar toggle
       document.getElementById('sidebar-toggle').addEventListener('click', function() {
         document.getElementById('app-sidebar').classList.add('active');
@@ -1702,11 +1633,6 @@
       document.getElementById('mobile-overlay').addEventListener('click', function() {
         document.getElementById('app-sidebar').classList.remove('active');
         document.getElementById('mobile-overlay').classList.remove('active');
-      });
-
-      // Header sidebar toggle button
-      document.getElementById('toggle-sidebar-btn').addEventListener('click', function() {
-        document.getElementById('app-sidebar').classList.toggle('expanded');
       });
 
       // Add swipe gestures for mobile
