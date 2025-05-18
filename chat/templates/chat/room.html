@@ -3511,87 +3511,103 @@ function createPreviewItem(file) {
 }
 
 function uploadFiles(files) {
-    if (!files || files.length === 0) return;
+  if (!files || files.length === 0) return;
 
-    const formData = new FormData();
-    Array.from(files).forEach(file => {
-        formData.append('media', file);
-    });
+  const formData = new FormData();
+  Array.from(files).forEach(file => {
+    formData.append('media', file);
+  });
 
-    // Show progress
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    if (progressContainer && progressBar) {
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
+  // Show progress
+  const progressContainer = document.getElementById('progress-container');
+  const progressBar = document.getElementById('progress-bar');
+  if (progressContainer && progressBar) {
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = '0%';
+  }
+
+  // Create XMLHttpRequest for progress tracking
+  const xhr = new XMLHttpRequest();
+
+  // Track upload progress
+  xhr.upload.addEventListener('progress', (e) => {
+    if (e.lengthComputable && progressBar) {
+      const percentComplete = (e.loaded / e.total) * 100;
+      progressBar.style.width = percentComplete + '%';
     }
+  });
 
-    // Create XMLHttpRequest for progress tracking
-    const xhr = new XMLHttpRequest();
+  // Handle completion
+  xhr.addEventListener('load', () => {
+    if (xhr.status === 200) {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (data.success && data.urls) {
+          console.log('Upload successful, received URLs:', data.urls);
 
-    // Track upload progress
-    xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable && progressBar) {
-            const percentComplete = (e.loaded / e.total) * 100;
-            progressBar.style.width = percentComplete + '%';
-        }
-    });
+          // Fix malformed URLs if needed
+          const fixedUrls = data.urls.map(url => fixMalformedMediaUrl(url));
+          console.log('Fixed URLs:', fixedUrls);
 
-    // Handle completion
-    xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
-            try {
-                const data = JSON.parse(xhr.responseText);
-                if (data.success && data.urls) {
-                    // Send each uploaded file URL as a message via WebSocket
-                    data.urls.forEach(url => {
-                        if (websocket && websocket.readyState === WebSocket.OPEN) {
-                            websocket.send(JSON.stringify({
-                                'type': 'chat',
-                                'message': `[MEDIA:${url}]`
-                            }));
-                        }
-                    });
-
-                    // Clear preview
-                    document.getElementById('preview').classList.add('hidden');
-                    document.getElementById('file-input').value = '';
-
-                    showNotification('File(s) uploaded successfully');
-
-                    // Hide progress after a short delay
-                    setTimeout(() => {
-                        if (progressContainer) {
-                            progressContainer.classList.add('hidden');
-                            if (progressBar) progressBar.style.width = '0%';
-                        }
-                    }, 500);
-                } else {
-                    showNotification('Upload failed: ' + (data.error || 'Unknown error'), 'error');
-                    if (progressContainer) progressContainer.classList.add('hidden');
-                }
-            } catch (e) {
-                console.error('Error parsing upload response:', e);
-                showNotification('Upload failed: Invalid response', 'error');
-                if (progressContainer) progressContainer.classList.add('hidden');
+          // Send each uploaded file URL as a message via WebSocket
+          fixedUrls.forEach(url => {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+              websocket.send(JSON.stringify({
+                'type': 'chat',
+                'message': `[MEDIA:${url}]`
+              }));
             }
+          });
+
+          // Clear preview
+          document.getElementById('preview').classList.add('hidden');
+          document.getElementById('preview-content').innerHTML = '';
+          document.getElementById('file-input').value = '';
+
+          showNotification('File(s) uploaded successfully');
+
+          // Refresh media library if it's open
+          if (document.getElementById('media-library-modal').classList.contains('active')) {
+            setTimeout(() => {
+              loadRoomMedia(); // Refresh with a slight delay to ensure server has processed
+            }, 1000);
+          }
+
+          // Hide progress after a short delay
+          setTimeout(() => {
+            if (progressContainer) {
+              progressContainer.classList.add('hidden');
+              if (progressBar) progressBar.style.width = '0%';
+            }
+          }, 500);
         } else {
-            showNotification('Upload failed: Server error', 'error');
-            if (progressContainer) progressContainer.classList.add('hidden');
+          console.error('Upload API response not successful:', data);
+          showNotification('Upload failed: ' + (data.error || 'Unknown error'), 'error');
+          if (progressContainer) progressContainer.classList.add('hidden');
         }
-    });
-
-    // Handle errors
-    xhr.addEventListener('error', () => {
-        console.error('Upload error');
-        showNotification('Upload failed: Network error', 'error');
+      } catch (e) {
+        console.error('Error parsing upload response:', e, xhr.responseText);
+        showNotification('Upload failed: Invalid response', 'error');
         if (progressContainer) progressContainer.classList.add('hidden');
-    });
+      }
+    } else {
+      console.error('Upload request failed with status:', xhr.status);
+      showNotification('Upload failed: Server error ' + xhr.status, 'error');
+      if (progressContainer) progressContainer.classList.add('hidden');
+    }
+  });
 
-    // Send request
-    xhr.open('POST', '/api/upload_media/');
-    xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
-    xhr.send(formData);
+  // Handle errors
+  xhr.addEventListener('error', () => {
+    console.error('Upload network error');
+    showNotification('Upload failed: Network error', 'error');
+    if (progressContainer) progressContainer.classList.add('hidden');
+  });
+
+  // Send request
+  xhr.open('POST', '/api/upload_media/');
+  xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+  xhr.send(formData);
 }
 
 // Helper function to guess media type from URL
@@ -4376,19 +4392,46 @@ function fixMalformedMediaUrl(url) {
   // Log the original URL for debugging
   console.log('Original URL:', url);
 
-  // Case 1: URLs with domain duplication like "https://euphorie.com/media/https%3A/euphorie.comchat_uploads/..."
+  // Case 1: If the URL is already an absolute URL with http/https, check for duplicated domains
+  if (url.startsWith('http')) {
+    // Look for duplicated domains
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
+
+    // Check if path contains the domain again
+    if (path.includes(urlObj.hostname)) {
+      const pathParts = path.split('/');
+      let fixedPath = '';
+
+      // Skip segments that contain the domain
+      for (let i = 0; i < pathParts.length; i++) {
+        if (!pathParts[i].includes(urlObj.hostname)) {
+          fixedPath += '/' + pathParts[i];
+        }
+      }
+
+      const fixedUrl = fixedPath || '/';
+      console.log('Fixed URL (absolute with duplicated domain):', fixedUrl);
+      return fixedUrl;
+    }
+
+    // No duplication found - URL seems fine
+    return url;
+  }
+
+  // Case 2: URLs with domain duplication like "https://euphorie.com/media/https%3A/euphorie.comchat_uploads/..."
   if (url.includes('/media/https%3A/') || url.includes('/media/https:/')) {
     // Extract just the filename part
     const parts = url.split('/');
     const filename = parts[parts.length - 1];
 
     // Reconstruct a proper URL
-    const fixedUrl = `/chat_uploads/${filename}`;
-    console.log('Fixed URL (case 1):', fixedUrl);
+    const fixedUrl = `/media/chat_uploads/${filename}`;
+    console.log('Fixed URL (encoded URL in path):', fixedUrl);
     return fixedUrl;
   }
 
-  // Case 2: URLs with domain duplication like "https://euphorie.com/https://euphorie.com/..."
+  // Case 3: URLs with domain duplication like "https://euphorie.com/https://euphorie.com/..."
   if (url.includes('://') && url.indexOf('://') !== url.lastIndexOf('://')) {
     // Find the second occurrence of the protocol
     const secondProtocolIndex = url.indexOf('://', url.indexOf('://') + 3);
@@ -4397,29 +4440,22 @@ function fixMalformedMediaUrl(url) {
     const domainEndIndex = url.indexOf('/', secondProtocolIndex + 3);
     if (domainEndIndex !== -1) {
       const fixedUrl = url.substring(domainEndIndex);
-      console.log('Fixed URL (case 2):', fixedUrl);
+      console.log('Fixed URL (duplicated protocol):', fixedUrl);
       return fixedUrl;
     }
   }
 
-  // Case 3: If the URL contains the current domain but doesn't start with http(s)
-  const currentDomain = window.location.hostname;
-  if (!url.startsWith('http') && url.includes(currentDomain)) {
-    // Extract just the path after the domain
-    const domainIndex = url.indexOf(currentDomain);
-    const pathStart = url.indexOf('/', domainIndex + currentDomain.length);
-
-    if (pathStart !== -1) {
-      const fixedUrl = url.substring(pathStart);
-      console.log('Fixed URL (case 3):', fixedUrl);
-      return fixedUrl;
-    }
+  // Case 4: If URL contains '/chat_uploads/' without '/media/' prefix
+  if (url.includes('/chat_uploads/') && !url.includes('/media/chat_uploads/')) {
+    const fixedUrl = url.replace('/chat_uploads/', '/media/chat_uploads/');
+    console.log('Fixed URL (missing media prefix):', fixedUrl);
+    return fixedUrl;
   }
 
-  // For already correct URLs, make sure they are either absolute or properly relative
+  // Case 5: For already correct URLs, make sure they are either absolute or properly relative
   if (!url.startsWith('http') && !url.startsWith('/')) {
     const fixedUrl = '/' + url;
-    console.log('Fixed URL (case 4):', fixedUrl);
+    console.log('Fixed URL (adding leading slash):', fixedUrl);
     return fixedUrl;
   }
 
@@ -4427,18 +4463,28 @@ function fixMalformedMediaUrl(url) {
   return url;
 }
 
-function loadRoomMedia() {
+function loadRoomMedia(page = 1, appendResults = false) {
   const mediaGrid = document.getElementById('media-grid');
   if (!mediaGrid) return;
 
-  // Show loading state
-  mediaGrid.innerHTML = `
-    <div class="col-span-full flex items-center justify-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-    </div>
-  `;
+  // Show loading state only on first page load
+  if (!appendResults) {
+    mediaGrid.innerHTML = `
+      <div class="col-span-full flex items-center justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+      </div>
+    `;
+  } else {
+    // Add a loading indicator at the bottom when loading more
+    const loadingMore = document.createElement('div');
+    loadingMore.id = 'loading-more-indicator';
+    loadingMore.className = 'col-span-full flex items-center justify-center py-4';
+    loadingMore.innerHTML = `<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>`;
+    mediaGrid.appendChild(loadingMore);
+  }
 
-  fetch(`/api/room/${window.roomName}/media/`)
+  // Add page parameter to the API request
+  fetch(`/api/room/${window.roomName}/media/?page=${page}&limit=24`)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -4447,6 +4493,13 @@ function loadRoomMedia() {
     })
     .then(data => {
       console.log('Media library response:', data);
+      console.log('Media items returned:', data.media ? data.media.length : 0);
+
+      // Remove loading more indicator if it exists
+      const loadingMore = document.getElementById('loading-more-indicator');
+      if (loadingMore) {
+        loadingMore.remove();
+      }
 
       if (data.success && data.media && data.media.length > 0) {
         // Process and fix each media URL
@@ -4466,8 +4519,15 @@ function loadRoomMedia() {
           return processedItem;
         });
 
-        displayMediaGrid(processedMedia);
-      } else {
+        if (appendResults) {
+          // Append to existing media display
+          addMediaItemsToGrid(processedMedia);
+        } else {
+          // Replace current display
+          displayMediaGrid(processedMedia, data.has_more, page);
+        }
+      } else if (!appendResults) {
+        // Only show empty state if this is the initial load
         mediaGrid.innerHTML = `
           <div class="empty-state">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -4482,22 +4542,87 @@ function loadRoomMedia() {
             </button>
           </div>
         `;
+
+        // Add event listener to the upload button
+        const uploadBtn = document.getElementById('upload-new-media');
+        if (uploadBtn) {
+          uploadBtn.addEventListener('click', function() {
+            document.getElementById('media-library-modal').classList.remove('active', 'open');
+            document.getElementById('file-input').click();
+          });
+        }
       }
     })
     .catch(error => {
       console.error('Error loading media:', error);
-      mediaGrid.innerHTML = `
-        <div class="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <p>Error loading media files. Please try again later.</p>
-          <button id="retry-load-media" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
-            Retry
-          </button>
-        </div>
-      `;
+
+      if (!appendResults) {
+        mediaGrid.innerHTML = `
+          <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p>Error loading media files. Please try again later.</p>
+            <button id="retry-load-media" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
+              Retry
+            </button>
+          </div>
+        `;
+
+        // Add retry button handler
+        const retryBtn = document.getElementById('retry-load-media');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', function() {
+            loadRoomMedia();
+          });
+        }
+      }
     });
+}
+
+// Helper function to add more media items to the grid
+function addMediaItemsToGrid(mediaItems) {
+  const mediaGrid = document.getElementById('media-grid');
+  if (!mediaGrid) return;
+
+  // Group new items by date
+  const mediaByDate = groupMediaByDate(mediaItems);
+
+  // Process each date group
+  Object.entries(mediaByDate).forEach(([date, items]) => {
+    // Check if date header already exists
+    let dateHeader = Array.from(mediaGrid.querySelectorAll('.date-header')).find(
+      header => header.textContent.includes(date)
+    );
+
+    // If date header doesn't exist, create it
+    if (!dateHeader && Object.keys(mediaByDate).length > 1) {
+      dateHeader = document.createElement('div');
+      dateHeader.className = 'date-header';
+      dateHeader.innerHTML = `<h3>${date}</h3>`;
+
+      // Find position to insert - should go before the "Upload More" button
+      const uploadMoreBtn = mediaGrid.querySelector('#upload-more-btn');
+      if (uploadMoreBtn) {
+        mediaGrid.insertBefore(dateHeader, uploadMoreBtn.parentElement);
+      } else {
+        mediaGrid.appendChild(dateHeader);
+      }
+    }
+
+    // Add each media item
+    items.forEach(item => {
+      const mediaItem = createMediaItemElement(item);
+
+      // Insert before the "Upload More" button
+      const uploadMoreBtn = mediaGrid.querySelector('#upload-more-btn');
+      if (uploadMoreBtn) {
+        mediaGrid.insertBefore(mediaItem, uploadMoreBtn.parentElement);
+      } else {
+        mediaGrid.appendChild(mediaItem);
+      }
+    });
+  });
 }
 
 function detectMediaType(url) {
@@ -4538,182 +4663,218 @@ function detectMediaType(url) {
     return 'file';
 }
 
-function displayMediaGrid(media) {
-    const mediaGrid = document.getElementById('media-grid');
-    if (!mediaGrid) return;
+function displayMediaGrid(media, hasMore = false, currentPage = 1) {
+  const mediaGrid = document.getElementById('media-grid');
+  if (!mediaGrid) return;
 
-    mediaGrid.innerHTML = '';
+  mediaGrid.innerHTML = '';
 
-    // Log to help with debugging
-    console.log('Displaying media grid with items:', media.length);
+  // Log to help with debugging
+  console.log('Displaying media grid with items:', media.length);
 
-    // Error fallback for images
-    const imageErrorHandler = `
-        onerror="this.onerror=null;
-        this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f3f4f6%22></rect><text x=%2250%%22 y=%2250%%22 font-size=%2220%22 text-anchor=%22middle%22 alignment-baseline=%22middle%22 fill=%22%23a1a1aa%22>Image Error</text></svg>';
-        this.parentNode.classList.add('image-error');"
-    `;
+  // Error fallback for images
+  const imageErrorHandler = `
+      onerror="this.onerror=null;
+      this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f3f4f6%22></rect><text x=%2250%%22 y=%2250%%22 font-size=%2220%22 text-anchor=%22middle%22 alignment-baseline=%22middle%22 fill=%22%23a1a1aa%22>Image Error</text></svg>';
+      this.parentNode.classList.add('image-error');
+      console.error('Image failed to load:', this.src);"
+  `;
 
-    // Group media by date
-    const mediaByDate = groupMediaByDate(media);
+  // Group media by date
+  const mediaByDate = groupMediaByDate(media);
 
-    // Display media in groups
-    Object.entries(mediaByDate).forEach(([date, items]) => {
-        // Add date header if more than one date group
-        if (Object.keys(mediaByDate).length > 1) {
-            const dateHeader = document.createElement('div');
-            dateHeader.className = 'date-header';
-            dateHeader.innerHTML = `<h3>${date}</h3>`;
-            mediaGrid.appendChild(dateHeader);
-        }
-
-        // Add media items
-        items.forEach(item => {
-            const mediaItem = document.createElement('div');
-            mediaItem.className = 'media-item';
-            mediaItem.dataset.mediaType = item.type;
-
-            // Add console log to help with debugging
-            console.log('Creating media item:', {
-                type: item.type,
-                url: item.url,
-                filename: getFileNameFromUrl(item.url)
-            });
-
-            // Add appropriate content based on media type
-            if (item.type === 'image') {
-                mediaItem.innerHTML = `
-                    <img src="${item.url}" alt="Image" loading="lazy" ${imageErrorHandler}>
-                    <div class="item-overlay"></div>
-                    <div class="item-title">${getFileNameFromUrl(item.url)}</div>
-                    <div class="media-actions">
-                        <button class="media-action-btn view-btn" aria-label="View">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </button>
-                        <button class="media-action-btn share-btn" aria-label="Share">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
-            } else if (item.type === 'video') {
-                mediaItem.innerHTML = `
-                    <video src="${item.url}" muted poster="data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23374151%22></rect><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22%236b7280%22></circle><polygon points=%2240,35 65,50 40,65%22 fill=%22white%22></polygon></svg>"></video>
-                    <div class="item-overlay"></div>
-                    <div class="item-title">${getFileNameFromUrl(item.url)}</div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div class="media-actions">
-                        <button class="media-action-btn view-btn" aria-label="Play">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            </svg>
-                        </button>
-                        <button class="media-action-btn share-btn" aria-label="Share">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
-            } else {
-                // Other file types
-                mediaItem.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full bg-gray-100 p-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <div class="text-sm text-gray-700 text-center font-medium">${getFileNameFromUrl(item.url)}</div>
-                    </div>
-                    <div class="media-actions">
-                        <button class="media-action-btn download-btn" aria-label="Download">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </button>
-                        <button class="media-action-btn share-btn" aria-label="Share">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
-            }
-
-            // Try to add event listeners safely with error handling
-            try {
-                // Find the appropriate clickable element - prioritize the view button
-                const viewBtn = mediaItem.querySelector('.view-btn');
-                const mediaElement = mediaItem.querySelector('img, video');
-
-                if (viewBtn) {
-                    viewBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openMediaPreview(item);
-                    });
-                }
-
-                if (mediaElement && !mediaElement.hasAttribute('data-click-handler')) {
-                    mediaElement.setAttribute('data-click-handler', 'true');
-                    mediaElement.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openMediaPreview(item);
-                    });
-                }
-
-                const shareBtn = mediaItem.querySelector('.share-btn');
-                if (shareBtn) {
-                    shareBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        shareMedia(item);
-                    });
-                }
-
-                const downloadBtn = mediaItem.querySelector('.download-btn');
-                if (downloadBtn) {
-                    downloadBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        window.open(item.url, '_blank');
-                    });
-                }
-            } catch (err) {
-                console.error('Error adding event listeners to media item:', err);
-            }
-
-            mediaGrid.appendChild(mediaItem);
-        });
-    });
-
-    // Add a "Upload More" button at the end
-    const uploadMoreContainer = document.createElement('div');
-    uploadMoreContainer.className = 'col-span-full';
-    uploadMoreContainer.innerHTML = `
-        <button id="upload-more-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Upload More Media
-        </button>
-    `;
-
-    mediaGrid.appendChild(uploadMoreContainer);
-
-    // Add upload functionality
-    const uploadMoreBtn = document.getElementById('upload-more-btn');
-    if (uploadMoreBtn) {
-        uploadMoreBtn.addEventListener('click', function() {
-            document.getElementById('media-library-modal').classList.remove('active', 'open');
-            document.getElementById('file-input').click();
-        });
+  // Display media in groups
+  Object.entries(mediaByDate).forEach(([date, items]) => {
+    // Add date header if more than one date group
+    if (Object.keys(mediaByDate).length > 1) {
+      const dateHeader = document.createElement('div');
+      dateHeader.className = 'date-header';
+      dateHeader.innerHTML = `<h3>${date}</h3>`;
+      mediaGrid.appendChild(dateHeader);
     }
+
+    // Add media items
+    items.forEach(item => {
+      const mediaItem = createMediaItemElement(item, imageErrorHandler);
+      mediaGrid.appendChild(mediaItem);
+    });
+  });
+
+  // Add a "Load More" button if there are more items
+  if (hasMore) {
+    const loadMoreContainer = document.createElement('div');
+    loadMoreContainer.className = 'col-span-full mt-4 mb-6';
+    loadMoreContainer.innerHTML = `
+      <button id="load-more-btn" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center gap-2 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+        Load More Media
+      </button>
+    `;
+    mediaGrid.appendChild(loadMoreContainer);
+
+    // Add load more button handler
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', function() {
+        loadRoomMedia(currentPage + 1, true);
+        // Replace the button with a loading indicator
+        this.innerHTML = `
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-700"></div>
+          <span class="ml-2">Loading...</span>
+        `;
+        this.disabled = true;
+      });
+    }
+  }
+
+  // Add a "Upload More" button at the end
+  const uploadMoreContainer = document.createElement('div');
+  uploadMoreContainer.className = 'col-span-full';
+  uploadMoreContainer.innerHTML = `
+    <button id="upload-more-btn" class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mx-auto">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg>
+      Upload More Media
+    </button>
+  `;
+
+  mediaGrid.appendChild(uploadMoreContainer);
+
+  // Add upload functionality
+  const uploadMoreBtn = document.getElementById('upload-more-btn');
+  if (uploadMoreBtn) {
+    uploadMoreBtn.addEventListener('click', function() {
+      document.getElementById('media-library-modal').classList.remove('active', 'open');
+      document.getElementById('file-input').click();
+    });
+  }
+}
+
+// Helper function to create a media item element
+function createMediaItemElement(item, imageErrorHandler = '') {
+  const mediaItem = document.createElement('div');
+  mediaItem.className = 'media-item';
+  mediaItem.dataset.mediaType = item.type;
+  mediaItem.dataset.mediaUrl = item.url;
+
+  // Add console log to help with debugging
+  console.log('Creating media item:', {
+    type: item.type,
+    url: item.url,
+    filename: getFileNameFromUrl(item.url)
+  });
+
+  // Add appropriate content based on media type
+  if (item.type === 'image') {
+    mediaItem.innerHTML = `
+      <img src="${item.url}" alt="Image" loading="lazy" ${imageErrorHandler}>
+      <div class="item-overlay"></div>
+      <div class="item-title">${getFileNameFromUrl(item.url)}</div>
+      <div class="media-actions">
+        <button class="media-action-btn view-btn" aria-label="View">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </button>
+        <button class="media-action-btn share-btn" aria-label="Share">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+        </button>
+      </div>
+    `;
+  } else if (item.type === 'video') {
+    mediaItem.innerHTML = `
+      <video src="${item.url}" muted poster="data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23374151%22></rect><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22%236b7280%22></circle><polygon points=%2240,35 65,50 40,65%22 fill=%22white%22></polygon></svg>"></video>
+      <div class="item-overlay"></div>
+      <div class="item-title">${getFileNameFromUrl(item.url)}</div>
+      <div class="absolute inset-0 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div class="media-actions">
+        <button class="media-action-btn view-btn" aria-label="Play">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          </svg>
+        </button>
+        <button class="media-action-btn share-btn" aria-label="Share">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+        </button>
+      </div>
+    `;
+  } else {
+    // Other file types
+    mediaItem.innerHTML = `
+      <div class="flex flex-col items-center justify-center h-full bg-gray-100 p-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <div class="text-sm text-gray-700 text-center font-medium">${getFileNameFromUrl(item.url)}</div>
+      </div>
+      <div class="media-actions">
+        <button class="media-action-btn download-btn" aria-label="Download">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </button>
+        <button class="media-action-btn share-btn" aria-label="Share">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+        </button>
+      </div>
+    `;
+  }
+
+  // Try to add event listeners safely with error handling
+  try {
+    // Find the appropriate clickable element - prioritize the view button
+    const viewBtn = mediaItem.querySelector('.view-btn');
+    const mediaElement = mediaItem.querySelector('img, video');
+
+    if (viewBtn) {
+      viewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openMediaPreview(item);
+      });
+    }
+
+    if (mediaElement) {
+      mediaElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openMediaPreview(item);
+      });
+    }
+
+    const shareBtn = mediaItem.querySelector('.share-btn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        shareMedia(item);
+      });
+    }
+
+    const downloadBtn = mediaItem.querySelector('.download-btn');
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.open(item.url, '_blank');
+      });
+    }
+  } catch (err) {
+    console.error('Error adding event listeners to media item:', err);
+  }
+
+  return mediaItem;
 }
 
 // Helper function to group media by date
@@ -4782,13 +4943,43 @@ window.openMediaPreview = function(item) {
     return;
   }
 
-  // Ensure the URL has the media prefix if needed
-  if (item && item.url) {
-    // If URL still doesn't have /media/ prefix but has chat_uploads
+  // Ensure we have a valid item object
+  if (!item) {
+    console.error('Invalid media item:', item);
+    showNotification('Unable to preview media: Invalid item', 'error');
+    return;
+  }
+
+  // If passed as a DOM element or event, extract media data from the element
+  if (item instanceof Event || (item instanceof Element)) {
+    const element = item instanceof Event ? item.currentTarget : item;
+    const mediaElement = element.closest('.media-item');
+
+    if (mediaElement) {
+      item = {
+        type: mediaElement.dataset.mediaType || 'image',
+        url: mediaElement.dataset.mediaUrl || ''
+      };
+    } else {
+      console.error('Could not find parent media item');
+      return;
+    }
+  }
+
+  // Ensure URL is properly formatted
+  if (item.url) {
+    // Fix the URL if needed
+    item.url = fixMalformedMediaUrl(item.url);
+
+    // Check if URL still doesn't have /media/ prefix but has chat_uploads
     if (item.url.includes('/chat_uploads/') && !item.url.includes('/media/chat_uploads/')) {
       console.log('Fixing URL for preview:', item.url);
       item.url = item.url.replace('/chat_uploads/', '/media/chat_uploads/');
     }
+  } else {
+    console.error('Media item missing URL:', item);
+    showNotification('Unable to preview media: Missing URL', 'error');
+    return;
   }
 
   // Create or update modal with better visibility
