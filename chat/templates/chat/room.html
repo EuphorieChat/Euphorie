@@ -705,41 +705,68 @@
     outline: none;
   }
 
-  .message-bubble .reactions-container {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
-    padding-top: 6px;
-    width: 100%;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  /* Emoji reaction buttons inside bubble */
+  .reaction-buttons-in-bubble {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    padding: 1px 2px;
+    display: flex;
+    gap: 1px;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 5;
   }
 
-  /* Adjust reaction styling for inside bubble context */
-  .message-bubble .reaction {
-    background-color: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(2px);
-    padding: 1px 5px;
-    font-size: 0.65rem;
+  /* Make message bubble position relative for absolute positioning */
+  .message-bubble {
+    position: relative;
   }
 
-  /* Different styling for sent vs received messages */
-  .message-bubble.sent .reactions-container {
-    border-top-color: rgba(255, 255, 255, 0.2);
+  /* Show reaction buttons on message hover */
+  .message-bubble:hover .reaction-buttons-in-bubble {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
   }
 
-  .message-bubble.received .reactions-container {
-    border-top-color: rgba(0, 0, 0, 0.05);
+  /* Styling for each emoji button */
+  .reaction-buttons-in-bubble .emoji-reaction {
+    font-size: 0.75rem;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border-radius: 50%;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* To ensure reaction text is readable on colorful backgrounds */
-  .message-bubble.sent .reaction {
-    background-color: rgba(255, 255, 255, 0.4);
+  .reaction-buttons-in-bubble .emoji-reaction:hover {
+    transform: scale(1.2);
+    background: rgba(236, 72, 153, 0.1);
   }
 
-  /* Ensure good spacing when no reactions are present but container exists */
-  .message-bubble .reactions-container:empty {
-    display: none;
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .reaction-buttons-in-bubble {
+      padding: 1px;
+      bottom: 3px;
+      right: 3px;
+    }
+
+    .reaction-buttons-in-bubble .emoji-reaction {
+      width: 20px;
+      height: 20px;
+      font-size: 0.7rem;
+    }
   }
 
   /* Mobile reactions improvements */
@@ -1739,14 +1766,14 @@
                         {% endfor %}
                     </div>
                     {% endif %}
-                </div>
 
-                <!-- Quick reaction buttons - keep these outside for hover functionality -->
-                <div class="reaction-buttons">
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '❤️')" aria-label="React with heart">❤️</button>
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '👍')" aria-label="React with thumbs up">👍</button>
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '😂')" aria-label="React with laugh">😂</button>
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '✨')" aria-label="React with sparkles">✨</button>
+                    <!-- MOVED: Quick reaction buttons - now INSIDE message bubble -->
+                    <div class="reaction-buttons-in-bubble">
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '❤️')" aria-label="React with heart">❤️</button>
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '👍')" aria-label="React with thumbs up">👍</button>
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '😂')" aria-label="React with laugh">😂</button>
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '✨')" aria-label="React with sparkles">✨</button>
+                    </div>
                 </div>
             </div>
         </div>
