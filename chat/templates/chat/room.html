@@ -112,15 +112,58 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding-top: 1rem;
     position: relative;
     z-index: 20;
     transition: width 0.3s var(--ease);
+    overflow-y: auto;
   }
 
   .app-sidebar.expanded {
-    width: 240px;
+    width: 280px; /* Wider to accommodate more content */
+  }
+
+  /* Sidebar sections to organize content */
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 1rem;
+    width: 100%;
+  }
+
+  .sidebar-content {
+    display: none;
+    width: 100%;
+    color: white;
+    padding: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s var(--ease);
+  }
+
+  .app-sidebar.expanded .sidebar-content {
+    display: block;
+    opacity: 1;
+  }
+
+  .sidebar-section {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .sidebar-section h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: white;
+    display: flex;
+    align-items: center;
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    width: 100%;
+    margin: 0.5rem 0;
   }
 
   .sidebar-item {
@@ -168,6 +211,48 @@
 
   .sidebar-item:hover .sidebar-tooltip {
     opacity: 1;
+  }
+
+  /* Sidebar content styles for dark background */
+  .app-sidebar .btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .app-sidebar .btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .app-sidebar .text-gray-500,
+  .app-sidebar .text-gray-700 {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .app-sidebar .bg-white {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .app-sidebar .border-gray-200 {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Toggle button for sidebar expansion */
+  .sidebar-expand-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
   }
 
   /* Main content area */
@@ -373,38 +458,69 @@
   @media (max-width: 768px) {
     /* General mobile adjustments */
     .app-sidebar {
-      width: 0;
+      width: 0; /* Hidden by default */
       position: fixed;
       left: 0;
       top: 0;
       height: 100%;
       z-index: 50;
+      transition: width 0.3s var(--ease);
     }
 
     .app-sidebar.active {
-      width: 72px;
+      width: 280px; /* Full width when active */
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     }
 
+    /* Hide the right sidebar completely since we're consolidating */
     .info-sidebar {
-      position: fixed;
-      right: 0;
-      top: 0;
-      transform: translateX(100%);
-      z-index: 50;
-      height: 100%;
+      display: none;
     }
 
-    .info-sidebar.active {
-      transform: translateX(0);
-    }
-
-    .sidebar-toggle, .info-toggle {
+    .sidebar-toggle {
       display: flex;
-      z-index: 60; /* Ensure buttons are above other elements */
+      z-index: 60; /* Ensure button is above other elements */
+      position: fixed;
+      bottom: 70px;
+      left: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: var(--shadow-lg);
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Hide the info toggle since we're consolidating */
+    .info-toggle {
+      display: none;
     }
 
     .message-bubble {
       max-width: 85%;
+    }
+
+    /* Add sidebar header for mobile */
+    .sidebar-mobile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      color: white;
     }
 
     /* Improved input area on mobile */
@@ -432,8 +548,9 @@
 
     /* Larger touch targets */
     .sidebar-item {
-      width: 56px;
-      height: 56px;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 0.75rem;
     }
 
     /* Make buttons more tappable */
@@ -542,10 +659,6 @@
       right: 0.5rem;
     }
 
-    .sidebar-toggle, .info-toggle {
-      bottom: 70px;
-    }
-
     /* Message improvements */
     .message-bubble {
       max-width: 90%;
@@ -564,15 +677,20 @@
       opacity: 0.75;
     }
 
-    /* Position toggle buttons in more accessible locations */
-    .sidebar-toggle {
-      bottom: 70px;
-      left: 10px;
+    /* Mobile overlay for sidebar */
+    .mobile-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
     }
 
-    .info-toggle {
-      bottom: 70px;
-      right: 10px;
+    .mobile-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     /* Simplify input on very small screens */
@@ -740,61 +858,229 @@
   <div class="app-wrapper">
     <!-- Left Sidebar -->
     <div class="app-sidebar" id="app-sidebar">
-      <!-- Home Button -->
-      <div class="sidebar-item active" data-room="{{ room_name }}">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      <!-- Expand button -->
+      <div class="sidebar-expand-btn" id="sidebar-expand-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-        <span class="sidebar-tooltip">{{ room_name }}</span>
       </div>
 
-      <!-- Whiteboard -->
-      <div class="sidebar-item" id="open-whiteboard-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-        </svg>
-        <span class="sidebar-tooltip">Whiteboard</span>
-      </div>
-
-      <!-- Media Library -->
-      <div class="sidebar-item" id="open-media-library-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <span class="sidebar-tooltip">Media Library</span>
-      </div>
-
-      <!-- Plan Meetup -->
-      <div class="sidebar-item" id="create-meetup-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <span class="sidebar-tooltip">Plan Meetup</span>
-      </div>
-
-      <!-- Other Rooms -->
-      <div class="sidebar-item" id="open-rooms-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-        <span class="sidebar-tooltip">Rooms</span>
-      </div>
-
-      <!-- Settings -->
-      <div class="sidebar-item" id="settings-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <span class="sidebar-tooltip">Settings</span>
-      </div>
-
-      <!-- Profile / User Menu - at bottom -->
-      <div class="mt-auto mb-4 sidebar-item" id="user-profile-btn">
-        <div class="avatar avatar-pink user-avatar" data-username="{{ username }}">
-          {{ username|slice:":1"|upper }}
+      <!-- Mobile sidebar header -->
+      <div class="sidebar-mobile-header">
+        <h2 class="text-white text-lg font-semibold">Euphorie</h2>
+        <div class="sidebar-close" id="sidebar-close-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </div>
-        <span class="sidebar-tooltip">Your Profile</span>
+      </div>
+
+      <!-- Navigation Icons -->
+      <div class="sidebar-nav">
+        <!-- Home Button -->
+        <div class="sidebar-item active" data-room="{{ room_name }}">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span class="sidebar-tooltip">{{ room_name }}</span>
+        </div>
+
+        <!-- Whiteboard -->
+        <div class="sidebar-item" id="open-whiteboard-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          <span class="sidebar-tooltip">Whiteboard</span>
+        </div>
+
+        <!-- Media Library -->
+        <div class="sidebar-item" id="open-media-library-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="sidebar-tooltip">Media Library</span>
+        </div>
+
+        <!-- Plan Meetup -->
+        <div class="sidebar-item" id="create-meetup-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="sidebar-tooltip">Plan Meetup</span>
+        </div>
+
+        <!-- Other Rooms -->
+        <div class="sidebar-item" id="open-rooms-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <span class="sidebar-tooltip">Rooms</span>
+        </div>
+
+        <!-- Settings -->
+        <div class="sidebar-item" id="settings-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span class="sidebar-tooltip">Settings</span>
+        </div>
+
+        <!-- Profile / User Menu - at bottom -->
+        <div class="mt-auto mb-4 sidebar-item" id="user-profile-btn">
+          <div class="avatar avatar-pink user-avatar" data-username="{{ username }}">
+            {{ username|slice:":1"|upper }}
+          </div>
+          <span class="sidebar-tooltip">Your Profile</span>
+        </div>
+      </div>
+
+      <!-- Sidebar Content Section (Previously Right Sidebar) -->
+      <div class="sidebar-content">
+        <!-- Users Online -->
+        <div class="sidebar-section">
+          <h3 class="flex items-center">
+            <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
+            Users in Room
+          </h3>
+          <ul id="user-list" class="space-y-1 max-h-48 overflow-y-auto hide-scrollbar">
+            <!-- User list populated by JS -->
+            <li class="user-item flex items-center justify-between animate-pulse">
+              <div class="flex items-center gap-2">
+                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
+                <div class="h-3 w-20 bg-gray-200 rounded"></div>
+              </div>
+            </li>
+            <li class="user-item flex items-center justify-between animate-pulse">
+              <div class="flex items-center gap-2">
+                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
+                <div class="h-3 w-24 bg-gray-200 rounded"></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Recommended Rooms -->
+        <div class="sidebar-section">
+          <h3 class="flex items-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            Recommended Rooms
+          </h3>
+          <div id="recommended-rooms-list" class="space-y-2.5">
+            <!-- Room item skeleton (for loading state) -->
+            <div class="animate-pulse">
+              <div class="room-card">
+                <div class="flex items-center gap-2.5">
+                  <div class="h-9 w-9 rounded-lg bg-gray-200 flex-shrink-0"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="h-3.5 bg-gray-200 rounded w-3/4 mb-1.5"></div>
+                    <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Friends Online -->
+        <div class="sidebar-section">
+          <h3 class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Friends Online
+          </h3>
+          <div id="online-friends-list" class="space-y-2 text-sm">
+            <div class="animate-pulse space-y-2">
+              <div class="flex items-center gap-2">
+                <div class="h-8 w-8 rounded-full bg-gray-200"></div>
+                <div class="flex-1 space-y-1">
+                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Room Actions -->
+        <div class="sidebar-section">
+          <h3 class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            </svg>
+            Room Actions
+          </h3>
+
+          <div class="grid grid-cols-1 gap-2 mt-3">
+            <!-- Feature Buttons -->
+            <button id="open-media-library" class="btn rounded-lg text-sm py-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Media Library
+            </button>
+
+            <button id="open-whiteboard" class="btn rounded-lg text-sm py-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Whiteboard
+            </button>
+
+            <button id="create-meetup-btn-alt" class="btn rounded-lg text-sm py-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Plan a Meetup
+            </button>
+
+            {% if user.is_authenticated %}
+            <!-- Authenticated user options -->
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn rounded-lg text-sm py-2 w-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            </form>
+            {% else %}
+            <!-- Guest user login option -->
+            <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn rounded-lg text-sm py-2 w-full flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              Login
+            </a>
+            {% endif %}
+
+            {% if can_delete and user.is_authenticated %}
+            <form method="post" action="{% url 'delete_room' room_name %}">
+              {% csrf_token %}
+              <button type="submit" class="btn rounded-lg bg-red-900/20 text-red-400 text-sm py-2 w-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Room
+              </button>
+            </form>
+            {% endif %}
+
+            {% if user.is_staff or user.username == room.creator.username %}
+            <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn rounded-lg bg-blue-900/20 text-blue-400 text-sm py-2 w-full flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Admin Panel
+            </a>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1423,9 +1709,38 @@
     <span id="notification-message">Notification message</span>
   </div>
 
-  <script>
-  window.roomName = "{{ room_name|escapejs }}";
-  window.username = "{{ username|escapejs }}";
-  </script>
+        <script>
+        window.roomName = "{{ room_name|escapejs }}";
+        window.username = "{{ username|escapejs }}";
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle sidebar expansion
+            document.getElementById('sidebar-expand-btn').addEventListener('click', function() {
+                document.getElementById('app-sidebar').classList.toggle('expanded');
+            });
+
+            // Mobile sidebar toggle
+            document.getElementById('sidebar-toggle').addEventListener('click', function() {
+                document.getElementById('app-sidebar').classList.add('active');
+                document.getElementById('mobile-overlay').classList.add('active');
+            });
+
+            // Mobile sidebar close
+            document.getElementById('sidebar-close-btn').addEventListener('click', function() {
+                document.getElementById('app-sidebar').classList.remove('active');
+                document.getElementById('mobile-overlay').classList.remove('active');
+            });
+
+            // Close sidebar when clicking overlay
+            document.getElementById('mobile-overlay').addEventListener('click', function() {
+                document.getElementById('app-sidebar').classList.remove('active');
+                document.getElementById('mobile-overlay').classList.remove('active');
+            });
+
+            // Header sidebar toggle button
+            document.getElementById('toggle-sidebar-btn').addEventListener('click', function() {
+                document.getElementById('app-sidebar').classList.toggle('expanded');
+            });
+        });
+        </script>
 </body>
 </html>
