@@ -1963,6 +1963,19 @@
             document.body.classList.add('logged-in');
         }
 
+        // Set room name if not already defined
+        if (!window.roomName) {
+            // Extract room name from URL path if not defined
+            const pathParts = window.location.pathname.split('/');
+            const roomIndex = pathParts.indexOf('chat') + 1;
+            if (roomIndex > 0 && roomIndex < pathParts.length) {
+                window.roomName = pathParts[roomIndex];
+            } else {
+                console.error('Could not determine room name from URL');
+                showNotification('Error: Could not determine room name', 'error');
+            }
+        }
+
         initializeWebSocket();
         initializeUIElements();
         initializeEventListeners();
@@ -1975,55 +1988,66 @@
 
     // WebSocket initialization
     function initializeWebSocket() {
+        if (!window.roomName) {
+            console.error('Room name is not defined, cannot establish WebSocket connection');
+            showNotification('Connection error: Room name is not defined', 'error');
+            return;
+        }
+
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const wsUrl = `${protocol}://${window.location.host}/ws/chat/${window.roomName}/`;
 
-        websocket = new WebSocket(wsUrl);
+        try {
+            websocket = new WebSocket(wsUrl);
 
-        websocket.onopen = function(e) {
-            console.log('WebSocket connected');
-            reconnectAttempts = 0;
+            websocket.onopen = function(e) {
+                console.log('WebSocket connected');
+                reconnectAttempts = 0;
 
-            // Request initial data
-            websocket.send(JSON.stringify({
-                'type': 'users',
-                'action': 'list'
-            }));
-
-            // Request meetups
-            websocket.send(JSON.stringify({
-                'type': 'meetup',
-                'action': 'list'
-            }));
-
-            // Request friends list
-            websocket.send(JSON.stringify({
-                'type': 'friends',
-                'action': 'list_online'
-            }));
-
-            // Request recommendations with delay to avoid overload
-            setTimeout(() => {
+                // Request initial data
                 websocket.send(JSON.stringify({
-                    'type': 'recommendations',
-                    'action': 'get'
+                    'type': 'users',
+                    'action': 'list'
                 }));
-            }, 500);
-        };
 
-        websocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            handleWebSocketMessage(data);
-        };
+                // Request meetups
+                websocket.send(JSON.stringify({
+                    'type': 'meetup',
+                    'action': 'list'
+                }));
 
-        websocket.onclose = function(e) {
-            console.log('WebSocket closed');
-            attemptReconnect();
-        };
+                // Request friends list
+                websocket.send(JSON.stringify({
+                    'type': 'friends',
+                    'action': 'list_online'
+                }));
 
-        websocket.onerror = function(e) {
-            console.error('WebSocket error:', e);
-        };
+                // Request recommendations with delay to avoid overload
+                setTimeout(() => {
+                    websocket.send(JSON.stringify({
+                        'type': 'recommendations',
+                        'action': 'get'
+                    }));
+                }, 500);
+            };
+
+            websocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                handleWebSocketMessage(data);
+            };
+
+            websocket.onclose = function(e) {
+                console.log('WebSocket closed');
+                attemptReconnect();
+            };
+
+            websocket.onerror = function(e) {
+                console.error('WebSocket error:', e);
+            };
+        } catch (error) {
+            console.error('Error establishing WebSocket connection:', error);
+            showNotification('Failed to connect to chat server', 'error');
+        }
     }
 
     // Handle incoming WebSocket messages
@@ -2086,10 +2110,12 @@
         if (chatLog) {
             chatLog.addEventListener('scroll', function() {
                 const jumpToBottomBtn = document.getElementById('jump-to-bottom');
-                if (this.scrollHeight - this.scrollTop - this.clientHeight > 100) {
-                    jumpToBottomBtn.classList.add('visible');
-                } else {
-                    jumpToBottomBtn.classList.remove('visible');
+                if (jumpToBottomBtn) {
+                    if (this.scrollHeight - this.scrollTop - this.clientHeight > 100) {
+                        jumpToBottomBtn.classList.add('visible');
+                    } else {
+                        jumpToBottomBtn.classList.remove('visible');
+                    }
                 }
             });
         }
@@ -2121,6 +2147,32 @@
             fileInput.addEventListener('change', handleFileSelect);
         }
 
+        // Attachment button - FIXED
+        const attachmentBtn = document.getElementById('attachment-btn');
+        if (attachmentBtn) {
+            attachmentBtn.addEventListener('click', function() {
+                document.getElementById('file-input').click();
+            });
+        }
+
+        // Mobile sidebar toggle - FIXED
+        const headerSidebarToggle = document.getElementById('header-sidebar-toggle');
+        if (headerSidebarToggle) {
+            headerSidebarToggle.addEventListener('click', function() {
+                document.getElementById('app-sidebar').classList.toggle('active');
+                document.getElementById('mobile-overlay').classList.toggle('active');
+            });
+        }
+
+        // Mobile overlay click to close sidebar
+        const mobileOverlay = document.getElementById('mobile-overlay');
+        if (mobileOverlay) {
+            mobileOverlay.addEventListener('click', function() {
+                document.getElementById('app-sidebar').classList.remove('active');
+                this.classList.remove('active');
+            });
+        }
+
         // Emoji panel
         const emojiButton = document.getElementById('emoji-button');
         const emojiPanel = document.getElementById('emoji-panel');
@@ -2135,19 +2187,33 @@
                     emojiPanel.classList.remove('show');
                 });
             });
+
+            // Close emoji panel when clicking elsewhere
+            document.addEventListener('click', function(e) {
+                if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+                    emojiPanel.classList.remove('show');
+                }
+            });
         }
 
         // User profile toggle
-        const userProfileToggle = document.getElementById('user-profile-toggle');
+        const userProfileBtn = document.getElementById('user-profile-btn');
         const profileMenu = document.getElementById('profile-menu');
-        if (userProfileToggle && profileMenu) {
-            userProfileToggle.addEventListener('click', function(e) {
+        if (userProfileBtn && profileMenu) {
+            userProfileBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                profileMenu.classList.toggle('open');
+                profileMenu.classList.toggle('active');
+
+                // Position the menu
+                const rect = userProfileBtn.getBoundingClientRect();
+                profileMenu.style.top = rect.bottom + 'px';
+                profileMenu.style.left = rect.left + 'px';
             });
 
-            document.addEventListener('click', function() {
-                profileMenu.classList.remove('open');
+            document.addEventListener('click', function(e) {
+                if (!profileMenu.contains(e.target) && !userProfileBtn.contains(e.target)) {
+                    profileMenu.classList.remove('active');
+                }
             });
         }
 
@@ -2155,7 +2221,7 @@
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
-                    this.classList.remove('open');
+                    this.classList.remove('active');
                 }
             });
         });
@@ -2174,20 +2240,32 @@
 
         // Media library
         const openMediaLibraryBtn = document.getElementById('open-media-library');
+        const openMediaLibraryBtnAlt = document.getElementById('open-media-library-btn');
         if (openMediaLibraryBtn) {
             openMediaLibraryBtn.addEventListener('click', openMediaLibrary);
+        }
+        if (openMediaLibraryBtnAlt) {
+            openMediaLibraryBtnAlt.addEventListener('click', openMediaLibrary);
         }
 
         // Whiteboard
         const openWhiteboardBtn = document.getElementById('open-whiteboard');
+        const openWhiteboardBtnAlt = document.getElementById('open-whiteboard-btn');
         if (openWhiteboardBtn) {
             openWhiteboardBtn.addEventListener('click', openWhiteboard);
+        }
+        if (openWhiteboardBtnAlt) {
+            openWhiteboardBtnAlt.addEventListener('click', openWhiteboard);
         }
 
         // Create meetup
         const createMeetupBtn = document.getElementById('create-meetup-btn');
+        const createMeetupBtnAlt = document.getElementById('create-meetup-btn-alt');
         if (createMeetupBtn) {
             createMeetupBtn.addEventListener('click', openMeetupModal);
+        }
+        if (createMeetupBtnAlt) {
+            createMeetupBtnAlt.addEventListener('click', openMeetupModal);
         }
 
         // Profile picture change
@@ -2201,18 +2279,11 @@
             btn.addEventListener('click', function() {
                 const modal = this.closest('.modal');
                 if (modal) {
+                    modal.classList.remove('active');
                     modal.classList.remove('open');
                 }
             });
         });
-
-        // Mobile menu toggle (if exists)
-        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-        if (mobileMenuToggle) {
-            mobileMenuToggle.addEventListener('click', function() {
-                // Handle mobile menu toggle
-            });
-        }
 
         // Initialize long-press for mobile reactions
         initializeMobileReactions();
@@ -2278,12 +2349,17 @@
             }));
 
             messageInput.value = '';
+        } else {
+            showNotification('Connection error: Could not send message. Please refresh the page.', 'error');
+            console.error('WebSocket not connected. Current state:', websocket ? websocket.readyState : 'null');
         }
     }
 
     // Fixed handleChatMessage to properly parse media from message content
     function handleChatMessage(data) {
         const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
+
         const messageContainer = document.createElement('div');
         messageContainer.className = 'flex items-start gap-2 group mb-4';
         messageContainer.setAttribute('data-message-id', data.message_id);
@@ -2414,6 +2490,7 @@
 
         const typingIndicator = document.getElementById('typing-indicator');
         const typingUsername = document.getElementById('typing-username');
+        if (!typingIndicator || !typingUsername) return;
 
         typingIndicator.classList.remove('hidden');
         typingUsername.textContent = `${username} is typing...`;
@@ -2422,7 +2499,7 @@
 
     function removeTypingIndicator(username) {
         const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator.getAttribute('data-typing-user') === username) {
+        if (typingIndicator && typingIndicator.getAttribute('data-typing-user') === username) {
             typingIndicator.classList.add('hidden');
         }
     }
@@ -2443,6 +2520,7 @@
             }));
         } else {
             console.error('WebSocket is not open. Reaction not sent:', { messageId, emoji });
+            showNotification('Connection error: Could not send reaction', 'error');
         }
 
         // Add immediate visual feedback
@@ -2554,6 +2632,8 @@
         const previewContent = document.getElementById('preview-content');
         const cancelBtn = document.getElementById('cancel-preview');
 
+        if (!preview || !previewContent) return;
+
         preview.classList.remove('hidden');
         previewContent.innerHTML = '';
 
@@ -2605,6 +2685,8 @@
     }
 
     function uploadFiles(files) {
+        if (!files || files.length === 0) return;
+
         const formData = new FormData();
         Array.from(files).forEach(file => {
             formData.append('media', file);
@@ -2613,15 +2695,17 @@
         // Show progress
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
+        if (progressContainer && progressBar) {
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+        }
 
         // Create XMLHttpRequest for progress tracking
         const xhr = new XMLHttpRequest();
 
         // Track upload progress
         xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
+            if (e.lengthComputable && progressBar) {
                 const percentComplete = (e.loaded / e.total) * 100;
                 progressBar.style.width = percentComplete + '%';
             }
@@ -2651,21 +2735,23 @@
 
                         // Hide progress after a short delay
                         setTimeout(() => {
-                            progressContainer.classList.add('hidden');
-                            progressBar.style.width = '0%';
+                            if (progressContainer) {
+                                progressContainer.classList.add('hidden');
+                                if (progressBar) progressBar.style.width = '0%';
+                            }
                         }, 500);
                     } else {
                         showNotification('Upload failed: ' + (data.error || 'Unknown error'), 'error');
-                        progressContainer.classList.add('hidden');
+                        if (progressContainer) progressContainer.classList.add('hidden');
                     }
                 } catch (e) {
                     console.error('Error parsing upload response:', e);
                     showNotification('Upload failed: Invalid response', 'error');
-                    progressContainer.classList.add('hidden');
+                    if (progressContainer) progressContainer.classList.add('hidden');
                 }
             } else {
                 showNotification('Upload failed: Server error', 'error');
-                progressContainer.classList.add('hidden');
+                if (progressContainer) progressContainer.classList.add('hidden');
             }
         });
 
@@ -2673,7 +2759,7 @@
         xhr.addEventListener('error', () => {
             console.error('Upload error');
             showNotification('Upload failed: Network error', 'error');
-            progressContainer.classList.add('hidden');
+            if (progressContainer) progressContainer.classList.add('hidden');
         });
 
         // Send request
@@ -2832,6 +2918,8 @@
     // Bookmarks
     function toggleBookmark() {
         const bookmarkBtn = document.getElementById('bookmark-room');
+        if (!bookmarkBtn) return;
+
         const isBookmarked = bookmarkBtn.classList.contains('bookmarked');
 
         fetch('/api/toggle_bookmark_room/', {
@@ -2929,6 +3017,7 @@
         const modal = document.getElementById('meetup-modal');
         if (modal) {
             modal.classList.add('open');
+            modal.classList.add('active');
         }
     }
 
@@ -2937,6 +3026,7 @@
         const modal = document.getElementById('whiteboard-modal');
         if (modal) {
             modal.classList.add('open');
+            modal.classList.add('active');
 
             // Initialize canvas if needed
             initializeWhiteboard();
@@ -2958,6 +3048,7 @@
         const modal = document.getElementById('media-library-modal');
         if (modal) {
             modal.classList.add('open');
+            modal.classList.add('active');
             loadRoomMedia();
         }
     }
@@ -3068,6 +3159,7 @@
         }
 
         modal.classList.add('open');
+        modal.classList.add('active');
 
         // Add close button listener
         const closeBtn = document.getElementById('close-media-preview');
@@ -3077,6 +3169,7 @@
 
             newCloseBtn.addEventListener('click', () => {
                 modal.classList.remove('open');
+                modal.classList.remove('active');
                 // Stop video playback if exists
                 const video = content.querySelector('video');
                 if (video) {
@@ -3149,6 +3242,7 @@
         const modal = document.getElementById('profile-pic-modal');
         if (modal) {
             modal.classList.add('open');
+            modal.classList.add('active');
             initializeProfilePicModal();
         }
     }
@@ -3239,6 +3333,7 @@
                 const modal = document.getElementById('profile-pic-modal');
                 if (modal) {
                     modal.classList.remove('open');
+                    modal.classList.remove('active');
                 }
 
                 showNotification('Profile picture updated');
@@ -3249,6 +3344,7 @@
 
     // Utility functions
     function escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -3283,6 +3379,15 @@
         if (toast && messageEl) {
             messageEl.textContent = message;
             toast.classList.remove('hidden');
+
+            // Add appropriate styling based on type
+            if (type === 'error') {
+                toast.classList.remove('from-pink-500', 'to-purple-500');
+                toast.classList.add('from-red-500', 'to-orange-500');
+            } else {
+                toast.classList.remove('from-red-500', 'to-orange-500');
+                toast.classList.add('from-pink-500', 'to-purple-500');
+            }
 
             setTimeout(() => {
                 toast.classList.add('hidden');
