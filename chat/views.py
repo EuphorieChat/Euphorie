@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from datetime import timedelta
 from django.db import models
+from django.conf import settings
 import json
 import os
 import re
@@ -385,13 +386,29 @@ def signup(request):
         form = UserCreationForm()
     return render(request, 'chat/signup.html', {'form': form})
 
+os.makedirs(os.path.join(settings.MEDIA_ROOT, 'chat_uploads'), exist_ok=True)
+
 @csrf_exempt
 def upload_media(request):
     if request.method == 'POST' and request.FILES.getlist('media'):
+        # Ensure the directory exists
+        os.makedirs(os.path.join(settings.MEDIA_ROOT, 'chat_uploads'), exist_ok=True)
+
         urls = []
         for f in request.FILES.getlist('media'):
-            path = default_storage.save(f'chat_uploads/{f.name}', ContentFile(f.read()))
-            urls.append(default_storage.url(path))
+            # Save to media/chat_uploads/ directory
+            file_path = f'chat_uploads/{f.name}'
+            saved_path = default_storage.save(file_path, ContentFile(f.read()))
+
+            # Build full URL with the correct /media/ prefix and domain
+            url = request.build_absolute_uri(settings.MEDIA_URL + saved_path)
+
+            # Debug info - will appear in your console logs
+            print(f"File saved to: {os.path.join(settings.MEDIA_ROOT, saved_path)}")
+            print(f"URL generated: {url}")
+
+            urls.append(url)
+
         return JsonResponse({'success': True, 'urls': urls})
     return JsonResponse({'success': False, 'error': 'No files received'}, status=400)
 
