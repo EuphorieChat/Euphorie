@@ -4317,8 +4317,33 @@ function loadRoomMedia() {
             return response.json();
         })
         .then(data => {
+            console.log('Media library response:', data); // Debug what's coming from the API
+
             if (data.success && data.media && data.media.length > 0) {
-                displayMediaGrid(data.media);
+                // Process media items to ensure proper type detection and URL encoding
+                const processedMedia = data.media.map(item => {
+                    // Clone the item to avoid modifying the original
+                    const processedItem = {...item};
+
+                    // Make sure URL is properly encoded
+                    if (processedItem.url) {
+                        // Only encode parts after the last slash to preserve the path structure
+                        const urlParts = processedItem.url.split('/');
+                        const fileName = urlParts.pop();
+                        const encodedFileName = encodeURIComponent(fileName).replace(/%2F/g, '/');
+                        urlParts.push(encodedFileName);
+                        processedItem.url = urlParts.join('/');
+                    }
+
+                    // Ensure media type is correctly set based on URL if not already defined
+                    if (!processedItem.type) {
+                        processedItem.type = detectMediaType(processedItem.url);
+                    }
+
+                    return processedItem;
+                });
+
+                displayMediaGrid(processedMedia);
             } else {
                 mediaGrid.innerHTML = `
                     <div class="empty-state">
@@ -4334,15 +4359,6 @@ function loadRoomMedia() {
                         </button>
                     </div>
                 `;
-
-                // Add upload functionality
-                const uploadBtn = document.getElementById('upload-new-media');
-                if (uploadBtn) {
-                    uploadBtn.addEventListener('click', function() {
-                        document.getElementById('media-library-modal').classList.remove('active', 'open');
-                        document.getElementById('file-input').click();
-                    });
-                }
             }
         })
         .catch(error => {
@@ -4352,19 +4368,51 @@ function loadRoomMedia() {
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    <p>Error loading media files</p>
+                    <p>Error loading media files. Please try again later.</p>
                     <button id="retry-load-media" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
                         Retry
                     </button>
                 </div>
             `;
-
-            // Add retry functionality
-            const retryBtn = document.getElementById('retry-load-media');
-            if (retryBtn) {
-                retryBtn.addEventListener('click', loadRoomMedia);
-            }
         });
+}
+
+function detectMediaType(url) {
+    if (!url) return 'file';
+
+    // Normalize URL to lowercase for comparison
+    const normalizedUrl = url.toLowerCase();
+
+    // Common image extensions
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif'];
+    if (imageExtensions.some(ext => normalizedUrl.endsWith(ext))) {
+        return 'image';
+    }
+
+    // Common video extensions
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.wmv', '.mkv', '.flv'];
+    if (videoExtensions.some(ext => normalizedUrl.endsWith(ext))) {
+        return 'video';
+    }
+
+    // Check for image/video content in the URL
+    if (normalizedUrl.includes('/image/') || normalizedUrl.includes('/images/')) {
+        return 'image';
+    }
+    if (normalizedUrl.includes('/video/') || normalizedUrl.includes('/videos/')) {
+        return 'video';
+    }
+
+    // Check for content-type hints in URL
+    if (normalizedUrl.includes('type=image')) {
+        return 'image';
+    }
+    if (normalizedUrl.includes('type=video')) {
+        return 'video';
+    }
+
+    // Default to file
+    return 'file';
 }
 
 function displayMediaGrid(media) {
@@ -4372,6 +4420,16 @@ function displayMediaGrid(media) {
     if (!mediaGrid) return;
 
     mediaGrid.innerHTML = '';
+
+    // Log to help with debugging
+    console.log('Displaying media grid with items:', media.length);
+
+    // Error fallback for images
+    const imageErrorHandler = `
+        onerror="this.onerror=null;
+        this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f3f4f6%22></rect><text x=%2250%%22 y=%2250%%22 font-size=%2220%22 text-anchor=%22middle%22 alignment-baseline=%22middle%22 fill=%22%23a1a1aa%22>Image Error</text></svg>';
+        this.parentNode.classList.add('image-error');"
+    `;
 
     // Group media by date
     const mediaByDate = groupMediaByDate(media);
@@ -4392,10 +4450,17 @@ function displayMediaGrid(media) {
             mediaItem.className = 'media-item';
             mediaItem.dataset.mediaType = item.type;
 
+            // Add console log to help with debugging
+            console.log('Creating media item:', {
+                type: item.type,
+                url: item.url,
+                filename: getFileNameFromUrl(item.url)
+            });
+
             // Add appropriate content based on media type
             if (item.type === 'image') {
                 mediaItem.innerHTML = `
-                    <img src="${item.url}" alt="Image" loading="lazy">
+                    <img src="${item.url}" alt="Image" loading="lazy" ${imageErrorHandler}>
                     <div class="item-overlay"></div>
                     <div class="item-title">${getFileNameFromUrl(item.url)}</div>
                     <div class="media-actions">
@@ -4414,7 +4479,7 @@ function displayMediaGrid(media) {
                 `;
             } else if (item.type === 'video') {
                 mediaItem.innerHTML = `
-                    <video src="${item.url}" muted></video>
+                    <video src="${item.url}" muted poster="data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23374151%22></rect><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22%236b7280%22></circle><polygon points=%2240,35 65,50 40,65%22 fill=%22white%22></polygon></svg>"></video>
                     <div class="item-overlay"></div>
                     <div class="item-title">${getFileNameFromUrl(item.url)}</div>
                     <div class="absolute inset-0 flex items-center justify-center">
@@ -4460,26 +4525,44 @@ function displayMediaGrid(media) {
                 `;
             }
 
-            // Add event listeners
-            mediaItem.querySelector('.view-btn, video, img').addEventListener('click', (e) => {
-                e.stopPropagation();
-                openMediaPreview(item);
-            });
+            // Try to add event listeners safely with error handling
+            try {
+                // Find the appropriate clickable element - prioritize the view button
+                const viewBtn = mediaItem.querySelector('.view-btn');
+                const mediaElement = mediaItem.querySelector('img, video');
 
-            const shareBtn = mediaItem.querySelector('.share-btn');
-            if (shareBtn) {
-                shareBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    shareMedia(item);
-                });
-            }
+                if (viewBtn) {
+                    viewBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openMediaPreview(item);
+                    });
+                }
 
-            const downloadBtn = mediaItem.querySelector('.download-btn');
-            if (downloadBtn) {
-                downloadBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.open(item.url, '_blank');
-                });
+                if (mediaElement && !mediaElement.hasAttribute('data-click-handler')) {
+                    mediaElement.setAttribute('data-click-handler', 'true');
+                    mediaElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openMediaPreview(item);
+                    });
+                }
+
+                const shareBtn = mediaItem.querySelector('.share-btn');
+                if (shareBtn) {
+                    shareBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        shareMedia(item);
+                    });
+                }
+
+                const downloadBtn = mediaItem.querySelector('.download-btn');
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        window.open(item.url, '_blank');
+                    });
+                }
+            } catch (err) {
+                console.error('Error adding event listeners to media item:', err);
             }
 
             mediaGrid.appendChild(mediaItem);
