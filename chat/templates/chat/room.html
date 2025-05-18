@@ -115,6 +115,18 @@
     position: relative;
     z-index: 20;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    scroll-behavior: smooth; /* Smooth scrolling */
+    -webkit-overflow-scrolling: touch; /* Better momentum scrolling on iOS */
+  }
+
+  /* Keep sidebar content constrained to prevent horizontal overflow */
+  .sidebar-content,
+  .sidebar-section,
+  .sidebar-nav {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   /* Sidebar sections to organize content */
@@ -163,7 +175,9 @@
     padding: 0 1rem;
     transition: all 0.2s ease;
     background: rgba(255, 255, 255, 0.1);
-    width: 100%;
+    width: calc(100% - 2rem); /* Account for margin */
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .sidebar-item svg {
@@ -648,30 +662,54 @@
     .sidebar-nav .grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      gap: 12px;
+      padding: 12px;
     }
 
     .sidebar-item {
       width: 100%;
       height: 70px;
-      border-radius: 12px;
+      border-radius: 14px; /* Slightly more rounded */
       margin: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 0;
+      padding: 10px 0;
       text-align: center;
+      background: rgba(255, 255, 255, 0.08); /* Subtle background */
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.2s ease;
     }
 
     .sidebar-item svg {
       margin-right: 0;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      height: 24px;
+      width: 24px;
     }
 
     .sidebar-item span {
       display: block;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    /* Enhanced active state for sidebar items */
+    .sidebar-item.active {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.8), rgba(147, 51, 234, 0.8));
+      box-shadow: 0 5px 10px rgba(236, 72, 153, 0.3);
+      transform: translateY(-2px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Hover effect */
+    .sidebar-item:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-2px);
     }
 
     .sidebar-item.col-span-2 {
@@ -788,11 +826,13 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 60px;
-      background: white;
-      border-top: 1px solid var(--border);
-      box-shadow: 0 -1px 5px rgba(0,0,0,0.05);
-      z-index: 30; /* Lower than toggle buttons but higher than most content */
+      height: 64px; /* Slightly taller for better tap targets */
+      background: rgba(255, 255, 255, 0.95); /* More sophisticated semi-transparent look */
+      backdrop-filter: blur(10px); /* Glass effect for modern look */
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(236, 72, 153, 0.1);
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+      z-index: 30;
       justify-content: space-around;
       align-items: center;
     }
@@ -806,23 +846,39 @@
       height: 100%;
       color: var(--text-secondary);
       position: relative;
+      transition: all 0.2s ease;
       overflow: visible;
     }
 
+    /* Refined active state */
     .mobile-nav-item.active {
       color: var(--primary);
     }
 
-    /* Active state highlighting */
+    /* Modern active indicator */
     .mobile-nav-item.active::after {
       content: '';
       position: absolute;
       bottom: 0;
-      left: 30%;
-      right: 30%;
-      height: 3px;
-      background: var(--primary);
-      border-radius: 3px 3px 0 0;
+      left: 25%;
+      right: 25%;
+      height: 4px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 4px 4px 0 0;
+      box-shadow: 0 -1px 5px rgba(236, 72, 153, 0.3);
+    }
+
+    /* Enhance icons with subtle glow when active */
+    .mobile-nav-item.active svg {
+      filter: drop-shadow(0 0 3px rgba(236, 72, 153, 0.4));
+    }
+
+    /* Better icon styling */
+    .mobile-nav-item svg {
+      height: 24px;
+      width: 24px;
+      margin-bottom: 5px;
+      transition: all 0.2s ease;
     }
 
     /* Add notification indicator */
@@ -839,13 +895,18 @@
 
     .mobile-nav-item span {
       font-size: 0.7rem;
-      margin-top: 0.25rem;
+      font-weight: 500;
+      margin-top: 0.2rem;
+      opacity: 0.9;
     }
 
+    /* Improved mini-avatar styling */
     .mini-avatar {
-      width: 28px;
-      height: 28px;
-      font-size: 0.7rem;
+      width: 32px;
+      height: 32px;
+      font-size: 0.8rem;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(236, 72, 153, 0.1);
+      margin-bottom: 2px;
     }
 
     /* Fix avatar sizes for better proportions */
@@ -907,6 +968,15 @@
 
     /* Fix for very small screens */
     @media (max-width: 360px) {
+      .mobile-nav-item svg {
+        height: 22px;
+        width: 22px;
+      }
+
+      .mobile-nav-item span {
+        font-size: 0.65rem;
+      }
+
       .message-bubble {
         max-width: 95%;
       }
