@@ -1955,6 +1955,7 @@
     let activeUsers = new Set();
     let currentMeetups = [];
     let isTyping = false;
+    let roomsLoaded = false; // Track if rooms have been loaded
 
     // Initialize everything when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
@@ -1976,15 +1977,56 @@
             }
         }
 
+        // Fix for sidebar overlap issue
+        fixSidebarOverlap();
+
         initializeWebSocket();
         initializeUIElements();
         initializeEventListeners();
         loadUserProfiles();
-        loadRecommendations();
+        loadRecommendations(); // Load recommendations from API first
         loadActiveUsers();
         loadBookmarkedRooms();
         scrollToBottom();
     });
+
+    // Fix for sidebar overlap issue
+    function fixSidebarOverlap() {
+        // Add CSS fix for mobile view
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (max-width: 768px) {
+                /* Fix for sidebar overlap */
+                .app-sidebar {
+                    position: fixed;
+                    left: -280px; /* Hide offscreen initially */
+                    top: 0;
+                    height: 100%;
+                    transition: left 0.3s var(--ease);
+                    z-index: 50;
+                    width: 280px;
+                }
+
+                .app-sidebar.active {
+                    left: 0;
+                    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+                }
+
+                /* Ensure input area is visible and not overlapped */
+                .input-area {
+                    width: 100%;
+                    left: 0;
+                    z-index: 25;
+                }
+
+                /* Make sure emoji picker appears above other elements */
+                .emoji-panel {
+                    z-index: 30;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 
     // WebSocket initialization
     function initializeWebSocket() {
@@ -2023,12 +2065,16 @@
                 }));
 
                 // Request recommendations with delay to avoid overload
+                // Only if API call didn't work
                 setTimeout(() => {
-                    websocket.send(JSON.stringify({
-                        'type': 'recommendations',
-                        'action': 'get'
-                    }));
-                }, 500);
+                    if (!roomsLoaded) {
+                        console.log('Requesting recommendations via WebSocket as fallback');
+                        websocket.send(JSON.stringify({
+                            'type': 'recommendations',
+                            'action': 'get'
+                        }));
+                    }
+                }, 1000);
             };
 
             websocket.onmessage = function(e) {
@@ -2155,12 +2201,19 @@
             });
         }
 
-        // Mobile sidebar toggle - FIXED
+        // Mobile sidebar toggle - FIXED with improved functionality
         const headerSidebarToggle = document.getElementById('header-sidebar-toggle');
         if (headerSidebarToggle) {
             headerSidebarToggle.addEventListener('click', function() {
-                document.getElementById('app-sidebar').classList.toggle('active');
-                document.getElementById('mobile-overlay').classList.toggle('active');
+                const sidebar = document.getElementById('app-sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+
+                sidebar.classList.toggle('active');
+                if (overlay) {
+                    overlay.classList.toggle('active');
+                }
+
+                console.log('Toggled sidebar:', sidebar.classList.contains('active') ? 'opened' : 'closed');
             });
         }
 
@@ -2168,7 +2221,8 @@
         const mobileOverlay = document.getElementById('mobile-overlay');
         if (mobileOverlay) {
             mobileOverlay.addEventListener('click', function() {
-                document.getElementById('app-sidebar').classList.remove('active');
+                const sidebar = document.getElementById('app-sidebar');
+                sidebar.classList.remove('active');
                 this.classList.remove('active');
             });
         }
@@ -2177,7 +2231,8 @@
         const emojiButton = document.getElementById('emoji-button');
         const emojiPanel = document.getElementById('emoji-panel');
         if (emojiButton && emojiPanel) {
-            emojiButton.addEventListener('click', function() {
+            emojiButton.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent click-outside handler from immediately closing panel
                 emojiPanel.classList.toggle('show');
             });
 
@@ -2583,7 +2638,7 @@
         }
     }
 
-    // User management
+    // User management - UPDATED to make usernames white
     function handleUsersUpdate(data) {
         const userList = document.getElementById('user-list');
         if (!userList) return;
@@ -2603,10 +2658,10 @@
                     <div class="avatar avatar-green h-6 w-6 text-xs user-avatar" data-username="${username}">
                         ${username.charAt(0).toUpperCase()}
                     </div>
-                    <span class="text-sm font-medium text-gray-700">${username}</span>
+                    <span class="text-sm font-medium text-white">${username}</span>
                 </div>
                 ${username !== window.username ? `
-                    <button class="text-pink-500 hover:text-pink-600 text-xs" onclick="showUserPopover(this, '${username}')">
+                    <button class="text-pink-300 hover:text-pink-100 text-xs" onclick="showUserPopover(this, '${username}')">
                         •••
                     </button>
                 ` : ''}
@@ -2847,8 +2902,9 @@
         updateAllUserAvatars(data.username);
     }
 
-    // Room recommendations
+    // Room recommendations - FIXED to prevent disappearing
     function loadRecommendations() {
+        console.log('Loading recommendations via API');
         // Fetch recommendations via API
         fetch('/api/get_recommendations/')
             .then(response => {
@@ -2859,37 +2915,44 @@
             })
             .then(data => {
                 if (data.success && data.rooms && Array.isArray(data.rooms)) {
+                    console.log('Successfully loaded recommendations via API:', data.rooms.length);
                     updateRecommendedRooms(data.rooms);
+                    roomsLoaded = true; // Mark as loaded so WebSocket doesn't overwrite
                 }
             })
             .catch(error => {
                 console.error('Error loading recommendations:', error);
-                // Try WebSocket as fallback
-                if (websocket && websocket.readyState === WebSocket.OPEN) {
-                    websocket.send(JSON.stringify({
-                        'type': 'recommendations',
-                        'action': 'get'
-                    }));
-                }
+                // Don't try WebSocket here, it will be done in the WebSocket onopen handler
             });
     }
 
-    // Handle WebSocket recommendations update
+    // Handle WebSocket recommendations update - FIXED to prevent overwriting
     function handleRecommendationsUpdate(data) {
         if (data.action === 'list' && data.rooms && Array.isArray(data.rooms)) {
-            updateRecommendedRooms(data.rooms);
+            console.log('Received recommendations via WebSocket:', data.rooms.length);
+            // Only update if we haven't already loaded recommendations via API
+            if (!roomsLoaded) {
+                updateRecommendedRooms(data.rooms);
+                roomsLoaded = true;
+            } else {
+                console.log('Ignoring WebSocket recommendations as already loaded via API');
+            }
         }
     }
 
     // Update recommended rooms display
     function updateRecommendedRooms(rooms) {
         const recommendedList = document.getElementById('recommended-rooms-list');
-        if (!recommendedList) return;
+        if (!recommendedList) {
+            console.error("Can't find recommended-rooms-list element");
+            return;
+        }
 
+        console.log(`Updating recommended rooms UI with ${rooms.length} rooms`);
         recommendedList.innerHTML = '';
 
         if (rooms.length === 0) {
-            recommendedList.innerHTML = '<div class="text-sm text-gray-500 text-center py-4">No recommendations available</div>';
+            recommendedList.innerHTML = '<div class="text-sm text-gray-300 text-center py-4">No recommendations available</div>';
             return;
         }
 
@@ -2900,19 +2963,21 @@
             roomLink.innerHTML = `
                 <div class="room-card">
                     <div class="flex items-center gap-2.5">
-                        <div class="room-icon bg-gradient-to-br from-pink-400 to-purple-400 text-white">
+                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-pink-400 to-purple-400 text-white flex items-center justify-center">
                             ${room.category ? getCategoryIcon(room.category) : '💬'}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-medium text-sm text-gray-800 truncate">${room.display_name || room.name}</div>
-                            <div class="text-xs text-gray-500">${room.message_count || 0} messages</div>
+                            <div class="font-medium text-sm text-white truncate">${room.display_name || room.name}</div>
+                            <div class="text-xs text-gray-300">${room.message_count || 0} messages</div>
                         </div>
-                        ${room.category ? `<span class="room-category">${room.category}</span>` : ''}
+                        ${room.category ? `<span class="text-xs text-gray-300">${room.category}</span>` : ''}
                     </div>
                 </div>
             `;
             recommendedList.appendChild(roomLink);
         });
+
+        console.log('Recommended rooms UI updated successfully');
     }
 
     // Bookmarks
@@ -2982,7 +3047,7 @@
         onlineFriendsList.innerHTML = '';
 
         if (friends.length === 0) {
-            onlineFriendsList.innerHTML = '<div class="text-sm text-gray-500 text-center py-2">No friends online</div>';
+            onlineFriendsList.innerHTML = '<div class="text-sm text-gray-300 text-center py-2">No friends online</div>';
             return;
         }
 
@@ -2994,8 +3059,8 @@
                     ${friend.username.charAt(0).toUpperCase()}
                 </div>
                 <div class="flex-1">
-                    <div class="font-medium text-sm">${friend.username}</div>
-                    <div class="text-xs text-gray-500">Online</div>
+                    <div class="font-medium text-sm text-white">${friend.username}</div>
+                    <div class="text-xs text-gray-300">Online</div>
                 </div>
             `;
             friendItem.addEventListener('click', () => {
