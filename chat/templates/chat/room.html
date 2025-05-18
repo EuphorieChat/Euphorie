@@ -4735,87 +4735,164 @@ window.openMediaPreview = function(item) {
   modal.classList.add('active');
 };
 
-// Update media preview modal with enhanced UI and better visibility
+// Update this function to handle URLs properly
 function updateMediaPreviewModal(modal, item) {
-    const modalContent = modal.querySelector('.modal-content');
+    // Log for debugging
+    console.log('Updating media preview modal with item:', item);
 
-    if (!modalContent) return;
+    // Handle null/undefined items
+    if (!item || !item.url) {
+        console.error('Invalid item or missing URL:', item);
+        return;
+    }
 
-    // Set up the enhanced preview modal
-    const fileName = getFileNameFromUrl(item.url);
+    const modalContent = modal.querySelector('#media-preview-content');
+    if (!modalContent) {
+        console.error('Media preview content container not found!');
+        return;
+    }
 
-    modalContent.innerHTML = `
-        <div class="preview-header">
-            <h3 class="preview-title">${fileName}</h3>
-            <button id="close-media-preview" class="modal-close-btn" aria-label="Close">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
+    // Get filename for display
+    const fileName = item.url.split('/').pop();
 
-        <div class="preview-content">
-            ${item.type === 'image' ?
-                `<img src="${item.url}" class="max-w-full max-h-[65vh] object-contain">` :
-             item.type === 'video' ?
-                `<video src="${item.url}" controls class="max-w-full max-h-[65vh]">
+    // Clear previous content and set up structure
+    modalContent.innerHTML = '';
+
+    // Add content based on media type
+    if (item.type === 'image') {
+        // Create image with error handler
+        modalContent.innerHTML = `
+            <div class="flex flex-col items-center">
+                <img src="${item.url}" alt="${fileName}"
+                     class="max-w-full max-h-[70vh] object-contain"
+                     onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f3f4f6%22></rect><text x=%2250%%22 y=%2250%%22 font-size=%2220%22 text-anchor=%22middle%22 alignment-baseline=%22middle%22 fill=%22%23a1a1aa%22>Image Error</text></svg>'; console.error('Image failed to load:', this.src);">
+
+                <div class="mt-4 flex gap-4">
+                    <a href="${item.url}" download="${fileName}" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                    </a>
+                    <button onclick="shareMedia({url: '${item.url}'})" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 rounded-lg text-white flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        Share
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Also try to preload the image to detect errors early
+        const preloadImg = new Image();
+        preloadImg.src = item.url;
+        preloadImg.onerror = function() {
+            console.error('Image preload failed:', item.url);
+
+            // Try with the /media/ prefix explicitly if it failed
+            if (!item.url.includes('/media/')) {
+                const fixedUrl = '/media/' + item.url.replace(/^\//g, '');
+                console.log('Trying alternative URL:', fixedUrl);
+
+                const imgElement = modalContent.querySelector('img');
+                if (imgElement) {
+                    imgElement.src = fixedUrl;
+                }
+            }
+        };
+    } else if (item.type === 'video') {
+        // Create video player
+        modalContent.innerHTML = `
+            <div class="flex flex-col items-center">
+                <video src="${item.url}" controls class="max-w-full max-h-[70vh]">
                     <source src="${item.url}" type="video/mp4">
                     Your browser does not support the video tag.
-                </video>` :
-                `<div class="flex flex-col items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p class="text-lg font-medium text-gray-700 mb-4">${fileName}</p>
-                </div>`
-            }
+                </video>
 
-            <div class="preview-actions">
-                <button id="download-preview" class="preview-btn download-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Download
-                </button>
-                <button id="share-preview" class="preview-btn share-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                    </svg>
-                    Share
-                </button>
+                <div class="mt-4 flex gap-4">
+                    <a href="${item.url}" download="${fileName}" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                    </a>
+                    <button onclick="shareMedia({url: '${item.url}'})" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 rounded-lg text-white flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        Share
+                    </button>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    } else {
+        // For other file types
+        modalContent.innerHTML = `
+            <div class="flex flex-col items-center p-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
 
-    // Add download button functionality
-    const downloadBtn = modalContent.querySelector('#download-preview');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', function() {
-            window.open(item.url, '_blank');
-        });
+                <h3 class="text-lg font-semibold mb-2">${fileName}</h3>
+
+                <div class="mt-4 flex gap-4">
+                    <a href="${item.url}" target="_blank" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open File
+                    </a>
+                    <a href="${item.url}" download="${fileName}" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 rounded-lg text-white flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                    </a>
+                </div>
+            </div>
+        `;
     }
 
-    // Add share button functionality
-    const shareBtn = modalContent.querySelector('#share-preview');
-    if (shareBtn) {
-        shareBtn.addEventListener('click', function() {
-            shareMedia(item);
-        });
+    // Make sure close button exists
+    let closeBtn = modal.querySelector('#close-media-preview');
+    if (!closeBtn) {
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'close-media-preview';
+        closeBtn.className = 'absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full z-50';
+        closeBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        `;
+        modal.appendChild(closeBtn);
     }
 
-    // Add close button functionality
-    const closeBtn = modalContent.querySelector('#close-media-preview');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            modal.classList.remove('open', 'active');
+    // Add close button event listener
+    closeBtn.onclick = function() {
+        modal.classList.remove('active', 'open');
 
-            // Stop video playback if exists
-            const video = modalContent.querySelector('video');
+        // Stop video if it's playing
+        const video = modal.querySelector('video');
+        if (video) {
+            video.pause();
+        }
+    };
+
+    // Also close on click outside the content
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            modal.classList.remove('active', 'open');
+
+            // Stop video if it's playing
+            const video = modal.querySelector('video');
             if (video) {
                 video.pause();
             }
-        });
-    }
+        }
+    };
+
+    console.log('Media preview modal updated with content');
 }
 
 // User popover
