@@ -3123,6 +3123,13 @@ function extractMediaUrl(text) {
 }
 
 function renderMediaContent(url) {
+    // Fix URLs that are missing the /media/ prefix
+    if (url && url.includes('/chat_uploads/') && !url.includes('/media/chat_uploads/')) {
+        console.log('Fixing URL path in renderMediaContent:', url);
+        url = url.replace('/chat_uploads/', '/media/chat_uploads/');
+        console.log('Fixed URL:', url);
+    }
+
     const safeUrl = escapeHtml(url);
     const type = guessMediaType(safeUrl);
 
@@ -4702,15 +4709,22 @@ function shareMedia(item) {
 
 // Media preview with improved visibility
 window.openMediaPreview = function(item) {
-  const modal = document.getElementById('media-preview-modal');
-  if (!modal) return;
+  // Log for debugging
+  console.log('Opening media preview:', item);
 
-  // Fix the URL before creating the preview
+  const modal = document.getElementById('media-preview-modal');
+  if (!modal) {
+    console.error('Media preview modal element not found!');
+    return;
+  }
+
+  // Ensure the URL has the media prefix if needed
   if (item && item.url) {
-    item = {
-      ...item,
-      url: fixMalformedMediaUrl(item.url)
-    };
+    // If URL still doesn't have /media/ prefix but has chat_uploads
+    if (item.url.includes('/chat_uploads/') && !item.url.includes('/media/chat_uploads/')) {
+      console.log('Fixing URL for preview:', item.url);
+      item.url = item.url.replace('/chat_uploads/', '/media/chat_uploads/');
+    }
   }
 
   // Create or update modal with better visibility
