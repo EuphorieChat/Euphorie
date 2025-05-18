@@ -104,10 +104,11 @@
     overflow: hidden;
   }
 
-  /* Left Sidebar */
+  /* =========== REFINED SIDEBAR STYLES =========== */
+  /* Base sidebar improvements */
   .app-sidebar {
     width: 280px;
-    background: linear-gradient(to bottom, #2c2a36, #1a1a2e);
+    background: linear-gradient(145deg, #2c2a36 0%, #1a1a2e 100%);
     height: 100%;
     flex-shrink: 0;
     display: flex;
@@ -115,36 +116,155 @@
     position: relative;
     z-index: 20;
     overflow-y: auto;
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-    scroll-behavior: smooth; /* Smooth scrolling */
-    -webkit-overflow-scrolling: touch; /* Better momentum scrolling on iOS */
-  }
-
-  /* Keep sidebar content constrained to prevent horizontal overflow */
-  .sidebar-content,
-  .sidebar-section,
-  .sidebar-nav {
-    width: 100%;
-    max-width: 100%;
     overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: inset -5px 0 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s var(--ease);
   }
 
-  /* Sidebar sections to organize content */
+  /* Sidebar header with logo and app name */
+  .sidebar-header {
+    padding: 1.25rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-logo {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 2px 10px rgba(236, 72, 153, 0.3);
+  }
+
+  .sidebar-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.02em;
+  }
+
+  /* Improved sidebar navigation */
   .sidebar-nav {
-    padding-top: 1rem;
+    padding: 1rem 0.75rem;
     width: 100%;
   }
 
+  .sidebar-nav-heading {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 0 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Enhanced sidebar items */
+  .sidebar-item {
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    padding: 0 1rem;
+    transition: all 0.2s var(--ease);
+    position: relative;
+    overflow: hidden;
+    font-weight: 500;
+  }
+
+  .sidebar-item:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.2s var(--ease);
+  }
+
+  .sidebar-item:hover:before {
+    opacity: 1;
+  }
+
+  .sidebar-item svg {
+    margin-right: 12px;
+    flex-shrink: 0;
+    transition: transform 0.2s var(--ease);
+  }
+
+  .sidebar-item span {
+    position: relative;
+    z-index: 1;
+  }
+
+  .sidebar-item:hover {
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .sidebar-item:hover svg {
+    transform: scale(1.1);
+  }
+
+  .sidebar-item.active {
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-item.active:before {
+    opacity: 0;
+  }
+
+  .sidebar-item.active:after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 12px;
+    z-index: 0;
+  }
+
+  .sidebar-item.active svg,
+  .sidebar-item.active span {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Divider between navigation and content */
+  .sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 0.75rem 0;
+    width: 100%;
+  }
+
+  /* Content sections in sidebar */
   .sidebar-content {
     width: 100%;
     color: white;
-    padding: 1rem;
+    padding: 0.75rem 1rem 1.5rem 1rem;
     display: block;
   }
 
   .sidebar-section {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-section:last-child {
+    border-bottom: none;
   }
 
   .sidebar-section h3 {
@@ -156,80 +276,161 @@
     align-items: center;
   }
 
-  .sidebar-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-    width: 100%;
-    margin: 0.5rem 0;
+  .sidebar-section h3 svg {
+    margin-right: 0.5rem;
+    opacity: 0.9;
   }
 
-  /* Update sidebar items for desktop */
-  .sidebar-item {
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    color: white;
+  /* User list styling */
+  #user-list {
+    margin-left: 0.25rem;
+  }
+
+  .user-item {
     margin-bottom: 0.5rem;
-    cursor: pointer;
-    padding: 0 1rem;
-    transition: all 0.2s ease;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background-color 0.2s var(--ease);
+  }
+
+  .user-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .user-item .user-avatar {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Recommended rooms styling */
+  .room-card {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s var(--ease);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .room-card:hover {
+    transform: translateY(-2px);
+    background-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Room actions buttons */
+  .sidebar-section .btn {
     background: rgba(255, 255, 255, 0.1);
-    width: calc(100% - 2rem); /* Account for margin */
-    max-width: 100%;
-    box-sizing: border-box;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s var(--ease);
+    border-radius: 10px;
+    font-weight: 500;
   }
 
-  .sidebar-item svg {
-    margin-right: 12px;
-    flex-shrink: 0;
+  .sidebar-section .btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
   }
 
-  /* Profile item specific styling */
+  .sidebar-section .btn svg {
+    transition: transform 0.2s var(--ease);
+  }
+
+  .sidebar-section .btn:hover svg {
+    transform: scale(1.1);
+  }
+
+  /* Online status indicator */
+  .online-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: var(--success);
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    position: relative;
+  }
+
+  .online-indicator:after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--success);
+    opacity: 0.4;
+    animation: pulse 2s infinite;
+    top: -2px;
+    left: -2px;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.4;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.2;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.4;
+    }
+  }
+
+  /* Profile item at bottom */
   .profile-item {
     margin-top: auto;
     margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
   }
 
-  /* Override for grid layout */
-  .grid .sidebar-item {
-    margin-bottom: 0;
+  .profile-item .user-avatar {
+    width: 38px;
+    height: 38px;
+    margin-right: 0.75rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
   }
 
-  .sidebar-item:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.2);
+  .profile-item .user-info {
+    flex: 1;
   }
 
-  .sidebar-item.active {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
+  .profile-item .username {
+    font-weight: 600;
+    color: white;
+    font-size: 0.9rem;
   }
 
-  /* Sidebar content styles for dark background */
-  .app-sidebar .btn {
+  .profile-item .user-status {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+  }
+
+  .profile-item .settings-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(255, 255, 255, 0.1);
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease);
   }
 
-  .app-sidebar .btn:hover {
+  .profile-item .settings-btn:hover {
     background: rgba(255, 255, 255, 0.2);
+    transform: rotate(15deg);
   }
-
-  .app-sidebar .text-gray-500,
-  .app-sidebar .text-gray-700 {
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  .app-sidebar .bg-white {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .app-sidebar .border-gray-200 {
-    border-color: rgba(255, 255, 255, 0.2);
-  }
+  /* =========== END REFINED SIDEBAR STYLES =========== */
 
   /* Main content area */
   .main-content {
@@ -453,19 +654,6 @@
     opacity: 1;
   }
 
-  /* Sidebar sections */
-  .sidebar-section {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(236, 72, 153, 0.1);
-  }
-
-  .sidebar-section h3 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: var(--text-primary);
-  }
-
   /* Typing indicator */
   .typing-indicator {
     margin-left: 3rem;
@@ -583,7 +771,7 @@
 
     .app-sidebar.active {
       width: 280px; /* Full width when active */
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     }
 
     /* Show the toggle button in the header */
@@ -605,7 +793,7 @@
       word-break: break-word;
     }
 
-    /* Add sidebar header for mobile */
+    /* Sidebar mobile header */
     .sidebar-mobile-header {
       display: flex;
       justify-content: space-between;
@@ -614,15 +802,30 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
+    .sidebar-mobile-logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
     .sidebar-close {
-      width: 44px; /* Increased for better tap target */
-      height: 44px; /* Increased for better tap target */
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
+      border-radius: 10px;
       color: white;
+      transition: all 0.2s var(--ease);
+    }
+
+    .sidebar-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(90deg);
     }
 
     /* Improved input area on mobile */
@@ -654,11 +857,7 @@
       margin-bottom: 0;
     }
 
-    /* Restore vertical sidebar items (icon-only) on mobile */
-    .sidebar-nav {
-      padding: 0;
-    }
-
+    /* Grid layout for mobile */
     .sidebar-nav .grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -668,20 +867,19 @@
 
     .sidebar-item {
       width: 100%;
-      height: 70px;
-      border-radius: 14px; /* Slightly more rounded */
+      height: 80px;
+      border-radius: 14px;
       margin: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 10px 0;
+      padding: 0;
       text-align: center;
-      background: rgba(255, 255, 255, 0.08); /* Subtle background */
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: all 0.2s ease;
     }
 
     .sidebar-item svg {
@@ -698,18 +896,13 @@
       opacity: 0.9;
     }
 
-    /* Enhanced active state for sidebar items */
     .sidebar-item.active {
       background: linear-gradient(135deg, rgba(236, 72, 153, 0.8), rgba(147, 51, 234, 0.8));
-      box-shadow: 0 5px 10px rgba(236, 72, 153, 0.3);
-      transform: translateY(-2px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 5px 15px rgba(236, 72, 153, 0.3);
     }
 
-    /* Hover effect */
-    .sidebar-item:hover:not(.active) {
-      background: rgba(255, 255, 255, 0.12);
-      transform: translateY(-2px);
+    .sidebar-item.active:after {
+      display: none;
     }
 
     .sidebar-item.col-span-2 {
@@ -1000,11 +1193,17 @@
 </head>
 <body>
   <div class="app-wrapper">
-    <!-- Left Sidebar -->
+    <!-- Left Sidebar - REFINED VERSION -->
     <div class="app-sidebar" id="app-sidebar">
+      <!-- Desktop Header -->
+      <div class="sidebar-header">
+        <div class="sidebar-logo">E</div>
+        <h1 class="sidebar-title">Euphorie</h1>
+      </div>
+
       <!-- Mobile sidebar header -->
       <div class="sidebar-mobile-header">
-        <h2 class="text-white text-lg font-semibold">Euphorie</h2>
+        <div class="sidebar-mobile-logo">Euphorie</div>
         <div class="sidebar-close" id="sidebar-close-btn">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -1012,18 +1211,20 @@
         </div>
       </div>
 
-      <!-- Navigation Icons - Clustered in Grid Layout -->
+      <!-- Main Navigation -->
       <div class="sidebar-nav">
-        <!-- Navigation Cluster - Main Actions -->
-        <div class="grid grid-cols-2 gap-3 px-3 pt-3 w-full">
-          <!-- Home Button -->
-          <div class="sidebar-item active col-span-2" data-room="{{ room_name }}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span>{{ room_name }}</span>
-          </div>
+        <p class="sidebar-nav-heading">Current Room</p>
+        <!-- Main Room Button -->
+        <div class="sidebar-item active col-span-2" data-room="{{ room_name }}">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span>{{ room_name }}</span>
+        </div>
 
+        <p class="sidebar-nav-heading mt-4">Room Tools</p>
+        <!-- Navigation Cluster - Main Actions -->
+        <div class="grid grid-cols-2 gap-3 pt-1 w-full">
           <!-- Whiteboard -->
           <div class="sidebar-item" id="open-whiteboard-btn">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1055,46 +1256,29 @@
             </svg>
             <span>Rooms</span>
           </div>
-
-          <!-- Settings -->
-          <div class="sidebar-item" id="settings-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>Settings</span>
-          </div>
-        </div>
-
-        <!-- Profile / User Menu - at bottom -->
-        <div class="mt-auto sidebar-item profile-item mx-3 mb-4" id="user-profile-btn">
-          <div class="avatar avatar-pink user-avatar" data-username="{{ username }}">
-            {{ username|slice:":1"|upper }}
-          </div>
-          <span>{{ username }}</span>
         </div>
       </div>
 
       <!-- Sidebar Content Section -->
       <div class="sidebar-content">
-        <!-- Users Online -->
+        <!-- Users Online Section -->
         <div class="sidebar-section">
           <h3 class="flex items-center">
-            <span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>
-            Users in Room
+            <span class="online-indicator"></span>
+            Active Users
           </h3>
           <ul id="user-list" class="space-y-1 max-h-48 overflow-y-auto hide-scrollbar">
             <!-- User list populated by JS -->
             <li class="user-item flex items-center justify-between animate-pulse">
               <div class="flex items-center gap-2">
-                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
-                <div class="h-3 w-20 bg-gray-200 rounded"></div>
+                <div class="h-8 w-8 rounded-full bg-gray-600/40"></div>
+                <div class="h-3 w-20 bg-gray-600/40 rounded"></div>
               </div>
             </li>
             <li class="user-item flex items-center justify-between animate-pulse">
               <div class="flex items-center gap-2">
-                <div class="h-6 w-6 rounded-full bg-gray-200"></div>
-                <div class="h-3 w-24 bg-gray-200 rounded"></div>
+                <div class="h-8 w-8 rounded-full bg-gray-600/40"></div>
+                <div class="h-3 w-24 bg-gray-600/40 rounded"></div>
               </div>
             </li>
           </ul>
@@ -1102,43 +1286,22 @@
 
         <!-- Recommended Rooms -->
         <div class="sidebar-section">
-          <h3 class="flex items-center mb-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <h3 class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
-            Recommended Rooms
+            Popular Rooms
           </h3>
-          <div id="recommended-rooms-list" class="space-y-2.5">
+          <div id="recommended-rooms-list" class="space-y-1.5 mt-3">
             <!-- Room item skeleton (for loading state) -->
             <div class="animate-pulse">
               <div class="room-card">
                 <div class="flex items-center gap-2.5">
-                  <div class="h-9 w-9 rounded-lg bg-gray-200 flex-shrink-0"></div>
+                  <div class="h-9 w-9 rounded-lg bg-gray-600/40 flex-shrink-0"></div>
                   <div class="flex-1 min-w-0">
-                    <div class="h-3.5 bg-gray-200 rounded w-3/4 mb-1.5"></div>
-                    <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+                    <div class="h-3.5 bg-gray-600/40 rounded w-3/4 mb-1.5"></div>
+                    <div class="h-2.5 bg-gray-600/40 rounded w-1/2"></div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Friends Online -->
-        <div class="sidebar-section">
-          <h3 class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            Friends Online
-          </h3>
-          <div id="online-friends-list" class="space-y-2 text-sm">
-            <div class="animate-pulse space-y-2">
-              <div class="flex items-center gap-2">
-                <div class="h-8 w-8 rounded-full bg-gray-200"></div>
-                <div class="flex-1 space-y-1">
-                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-                  <div class="h-2 bg-gray-200 rounded w-1/2"></div>
                 </div>
               </div>
             </div>
@@ -1148,29 +1311,29 @@
         <!-- Room Actions -->
         <div class="sidebar-section">
           <h3 class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             </svg>
-            Room Actions
+            Room Settings
           </h3>
 
           <div class="grid grid-cols-1 gap-2 mt-3">
             <!-- Feature Buttons -->
-            <button id="open-media-library" class="btn rounded-lg text-sm py-2">
+            <button id="open-media-library" class="btn rounded-lg text-sm py-2.5">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Media Library
             </button>
 
-            <button id="open-whiteboard" class="btn rounded-lg text-sm py-2">
+            <button id="open-whiteboard" class="btn rounded-lg text-sm py-2.5">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               Whiteboard
             </button>
 
-            <button id="create-meetup-btn-alt" class="btn rounded-lg text-sm py-2">
+            <button id="create-meetup-btn-alt" class="btn rounded-lg text-sm py-2.5">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -1181,7 +1344,7 @@
             <!-- Authenticated user options -->
             <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}
-              <button type="submit" class="btn rounded-lg text-sm py-2 w-full flex items-center justify-center">
+              <button type="submit" class="btn rounded-lg text-sm py-2.5 w-full flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -1190,7 +1353,7 @@
             </form>
             {% else %}
             <!-- Guest user login option -->
-            <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn rounded-lg text-sm py-2 w-full flex items-center justify-center">
+            <a href="{% url 'login' %}?next=/chat/{{ room_name }}/" class="btn rounded-lg text-sm py-2.5 w-full flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>
@@ -1201,7 +1364,7 @@
             {% if can_delete and user.is_authenticated %}
             <form method="post" action="{% url 'delete_room' room_name %}">
               {% csrf_token %}
-              <button type="submit" class="btn rounded-lg bg-red-900/20 text-red-400 text-sm py-2 w-full flex items-center justify-center">
+              <button type="submit" class="btn rounded-lg bg-red-900/20 text-red-400 text-sm py-2.5 w-full flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
@@ -1211,7 +1374,7 @@
             {% endif %}
 
             {% if user.is_staff or user.username == room.creator.username %}
-            <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn rounded-lg bg-blue-900/20 text-blue-400 text-sm py-2 w-full flex items-center justify-center">
+            <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn rounded-lg bg-blue-900/20 text-blue-400 text-sm py-2.5 w-full flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1221,6 +1384,26 @@
             {% endif %}
           </div>
         </div>
+      </div>
+
+      <!-- Profile / User Section - at bottom -->
+      <div class="profile-item mx-3 mb-4" id="user-profile-btn">
+        <div class="avatar user-avatar" data-username="{{ username }}">
+          {{ username|slice:":1"|upper }}
+        </div>
+        <div class="user-info">
+          <div class="username">{{ username }}</div>
+          <div class="user-status">
+            <span class="online-indicator" style="width: 6px; height: 6px;"></span>
+            <span>Online</span>
+          </div>
+        </div>
+        <button class="settings-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
       </div>
     </div>
 
