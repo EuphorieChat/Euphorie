@@ -576,9 +576,38 @@
     outline: none;
   }
 
-  /* Mobile message controls */
-  .mobile-message-controls {
-    display: none;
+  /* More compact mobile message controls */
+  @media (max-width: 768px) {
+    /* More compact emoji reactions */
+    .reactions-container {
+      gap: 0.15rem;
+      margin-top: 0.15rem;
+    }
+
+    .reaction {
+      padding: 0.15rem 0.35rem;
+      font-size: 0.7rem;
+    }
+
+    /* Hide mobile message controls, use desktop-style hover controls instead */
+    .mobile-message-controls {
+      display: none;
+    }
+
+    /* Show desktop reaction buttons on mobile too */
+    .group-hover\:opacity-100 {
+      opacity: 1 !important;
+    }
+
+    .hidden.sm\:flex {
+      display: flex !important;
+    }
+
+    /* Make emoji reaction buttons smaller on mobile */
+    .emoji-reaction {
+      font-size: 0.9rem;
+      padding: 0.15rem;
+    }
   }
 
   /* Mobile controls */
@@ -832,17 +861,44 @@
       transform: rotate(90deg);
     }
 
-    /* Improved input area on mobile */
-    .input-area {
-      padding: 0.5rem 0.75rem;
-      position: fixed; /* Changed from sticky to fixed */
-      bottom: 0; /* Position at the bottom without bottom nav */
-      left: 0;
-      right: 0;
-      background-color: white;
-      z-index: 25; /* Ensure it's above most content */
-      border-top: 1px solid var(--border);
-      transform: translateZ(0); /* Hardware acceleration */
+    /* Mobile input area improvements */
+    @media (max-width: 768px) {
+      .input-area {
+        padding: 0.5rem 0.75rem;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        z-index: 25;
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      /* Make buttons match desktop styling */
+      .input-area .btn-icon {
+        background-image: var(--desktop-btn-gradient, linear-gradient(to right, var(--primary), var(--secondary)));
+        color: white;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 2px 5px rgba(236, 72, 153, 0.3);
+        transition: all 0.2s ease;
+      }
+
+      .input-area .btn-icon:hover,
+      .input-area .btn-icon:active {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 7px rgba(236, 72, 153, 0.4);
+      }
+
+      /* Hide file upload label text */
+      .input-area .btn-icon .sr-only {
+        display: none;
+      }
+
+      /* Adjust chat container padding */
+      .chat-container {
+        padding-bottom: 70px;
+      }
     }
 
     /* Keyboard handling improvements */
@@ -1041,10 +1097,11 @@
       padding-bottom: 0;
     }
 
-    /* Move floating buttons up */
-    .jump-to-bottom {
-      bottom: 80px; /* Above input area only */
-      right: 0.5rem;
+    /* Hide jump to bottom button on mobile */
+    @media (max-width: 768px) {
+      #jump-to-bottom {
+        display: none;
+      }
     }
 
     /* Message improvements */
@@ -1523,14 +1580,14 @@
             />
           </div>
 
-          <!-- File Upload -->
-          <label for="file-input" class="btn-icon bg-purple-100 text-purple-600 hover:bg-purple-200 p-2 rounded-lg" data-tooltip="Attach files" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-            <span class="sr-only">Attach files</span>
-          </label>
-          <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
+      <!-- Attachment Button - Enhanced -->
+      <button type="button" class="btn-icon bg-gradient-to-r from-purple-500 to-purple-700 text-white p-2 rounded-lg" id="attachment-btn" data-tooltip="Attach files" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+        <span class="sr-only">Attach files</span>
+      </button>
+      <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
 
           <!-- Send Button -->
           <button type="submit" id="send-btn" class="btn-icon bg-gradient-to-r from-pink-500 to-purple-500 text-white p-2 rounded-lg" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
