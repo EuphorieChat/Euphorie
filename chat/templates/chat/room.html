@@ -705,6 +705,43 @@
     outline: none;
   }
 
+  .message-bubble .reactions-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 6px;
+    width: 100%;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /* Adjust reaction styling for inside bubble context */
+  .message-bubble .reaction {
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(2px);
+    padding: 1px 5px;
+    font-size: 0.65rem;
+  }
+
+  /* Different styling for sent vs received messages */
+  .message-bubble.sent .reactions-container {
+    border-top-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .message-bubble.received .reactions-container {
+    border-top-color: rgba(0, 0, 0, 0.05);
+  }
+
+  /* To ensure reaction text is readable on colorful backgrounds */
+  .message-bubble.sent .reaction {
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+
+  /* Ensure good spacing when no reactions are present but container exists */
+  .message-bubble .reactions-container:empty {
+    display: none;
+  }
+
   /* Mobile reactions improvements */
   @media (max-width: 768px) {
     .reaction-buttons {
@@ -1689,22 +1726,22 @@
                         {{ message.content|safe }}
                     </div>
                     {% endif %}
+
+                    <!-- Reactions container - MOVED INSIDE the message bubble -->
+                    {% if message.reactions %}
+                    <div class="reactions-container mt-2 pt-2 border-t border-gray-100">
+                        {% for emoji, count in message.reactions.items %}
+                            {% if count > 0 %}
+                            <div class="reaction" data-emoji="{{ emoji }}" onclick="sendReaction({{ message.id }}, '{{ emoji }}')">
+                                {{ emoji }} <span class="reaction-count">{{ count }}</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
 
-                <!-- Reactions container - outside the message bubble -->
-                {% if message.reactions %}
-                <div class="reactions-container">
-                    {% for emoji, count in message.reactions.items %}
-                        {% if count > 0 %}
-                        <div class="reaction" data-emoji="{{ emoji }}" onclick="sendReaction({{ message.id }}, '{{ emoji }}')">
-                            {{ emoji }} <span class="reaction-count">{{ count }}</span>
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- New Quick reaction buttons - appears on hover -->
+                <!-- Quick reaction buttons - keep these outside for hover functionality -->
                 <div class="reaction-buttons">
                     <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '❤️')" aria-label="React with heart">❤️</button>
                     <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '👍')" aria-label="React with thumbs up">👍</button>
