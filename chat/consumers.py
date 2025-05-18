@@ -629,7 +629,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         return {
                             'exists': True,
                             'is_protected': False,
-                            'has_access': True
+                            'has_access': True,
+                            'is_dm': True,
+                            'other_username': next((u for u in usernames if u != self.user.username), None)
                         }
                     else:
                         # User is not a participant in this DM
@@ -637,7 +639,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         return {
                             'exists': True,
                             'is_protected': False,
-                            'has_access': False
+                            'has_access': False,
+                            'is_dm': True
                         }
                 else:
                     # Invalid DM room name format
@@ -645,20 +648,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     return {
                         'exists': True,
                         'is_protected': False,
-                        'has_access': False
+                        'has_access': False,
+                        'is_dm': True
                     }
 
             # Non-DM room, check for password protection
             return {
                 'exists': True,
                 'is_protected': room.is_protected,
-                'has_access': True  # Default access for non-DM rooms
+                'has_access': True,  # Default access for non-DM rooms
+                'is_dm': False
             }
         except Room.DoesNotExist:
             return {
                 'exists': False,
                 'is_protected': False,
-                'has_access': False
+                'has_access': False,
+                'is_dm': False
             }
 
     @database_sync_to_async
@@ -670,6 +676,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 room=room,
                 content=content
             )
+
+            # If this is a DM room, check if we need to notify the recipient
+            if room.is_dm and self.is_authenticated:
+                # Extract usernames from room name (format: dm_username1_username2)
+                parts = self.room_name.split('_')
+                if len(parts) >= 3 and parts[0] == 'dm':
+                    # Get the usernames from the room name
+                    usernames = parts[1:]
+
+                    # Find the recipient (the other user, not the sender)
+                    recipient_username = next((username for username in usernames if username != self.user.username), None)
+
+                    if recipient_username:
+                        # You could implement a notification system here to let the user know they have a message
+                        # For now, we'll just log it
+                        logger.info(f"DM sent to {recipient_username} from {self.user.username} in room {self.room_name}")
+
+                        # Here you could add code to send an email or push notification
+                        # For example:
+                        # send_dm_notification(recipient_username, self.user.username, content)
+
             return message.id
         except Exception as e:
             logger.error(f"Error saving message: {str(e)}")

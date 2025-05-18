@@ -904,7 +904,8 @@ def direct_message(request, username):
     # Get the user to message
     recipient = get_object_or_404(User, username=username)
 
-    # Check if the users are friends
+    # Check if the users are friends (if you want to keep this restriction, otherwise remove it)
+    # We'll change this to be optional - DMs can be sent even if users aren't friends
     is_friend = UserRelationship.get_friendship(request.user, recipient)
 
     # Get or create a DM room
@@ -925,14 +926,51 @@ def direct_message(request, username):
     # Get messages for this room
     messages = Message.objects.filter(room=room).order_by('timestamp')
 
+    # Build reactions map
+    reactions_map = {}
+    all_reactions = Reaction.objects.filter(
+        message__room=room
+    ).values('message_id', 'emoji').annotate(count=Count('id'))
+
+    for reaction in all_reactions:
+        msg_id = str(reaction['message_id'])
+        if msg_id not in reactions_map:
+            reactions_map[msg_id] = {}
+        reactions_map[msg_id][reaction['emoji']] = reaction['count']
+
+    # Process messages
+    processed_messages = []
+    for msg in messages:
+        msg_data = {
+            'id': msg.id,
+            'user': msg.user,
+            'content': msg.content,
+            'timestamp': msg.timestamp,
+            'media_url': None,
+            'reactions': reactions_map.get(str(msg.id), {})
+        }
+
+        # Check if content contains media in [MEDIA:] format
+        if '[MEDIA:' in msg.content:
+            import re
+            media_match = re.search(r'\[MEDIA:(.*?)\]', msg.content)
+            if media_match:
+                msg_data['media_url'] = media_match.group(1)
+                # Remove media tag from content for display
+                msg_data['content'] = re.sub(r'\[MEDIA:.*?\]', '', msg.content).strip()
+
+        processed_messages.append(msg_data)
+
     context = {
         'room_name': room_name,
         'room': room,
         'username': request.user.username,
         'recipient': recipient,
-        'messages': messages,
+        'messages': processed_messages,
+        'reactions': reactions_map,
         'is_friend': is_friend and is_friend.status == 'accepted',
         'timestamp': timezone.now().timestamp(),
+        'is_dm': True,  # Add this flag to let the template know this is a DM
     }
 
     return render(request, 'chat/room.html', context)

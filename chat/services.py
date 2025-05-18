@@ -248,3 +248,86 @@ def get_friend_suggestions(user, limit=10):
         suggestions.extend(list(similar_interest_users[:remaining]))
 
     return suggestions
+
+def create_dm_notification(recipient_username, sender_username, message_content=None):
+    """
+    Create a notification for a direct message
+
+    Args:
+        recipient_username: Username of the message recipient
+        sender_username: Username of the message sender
+        message_content: Optional preview of the message content
+
+    Returns:
+        True if the notification was created successfully, False otherwise
+    """
+    try:
+        # Get user objects
+        from django.contrib.auth.models import User
+
+        try:
+            recipient = User.objects.get(username=recipient_username)
+            sender = User.objects.get(username=sender_username)
+        except User.DoesNotExist:
+            return False
+
+        # Create notification
+        # Note: You need to create a Notification model, but for now we'll just print
+        print(f"DM notification: {sender_username} sent a message to {recipient_username}")
+
+        # Example of what you might do with a Notification model:
+        # Notification.objects.create(
+        #     user=recipient,
+        #     sender=sender,
+        #     notification_type='dm',
+        #     message=message_content[:100] if message_content else "You have a new message",
+        #     is_read=False
+        # )
+
+        # For now, we'll just return True
+        return True
+
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creating DM notification: {str(e)}")
+        return False
+
+def get_unread_dm_count(user):
+    """
+    Get count of unread direct messages for a user
+
+    Args:
+        user: User object
+
+    Returns:
+        Count of unread DMs
+    """
+    if not user or not user.is_authenticated:
+        return 0
+
+    try:
+        # This is a placeholder - you would need to implement your own logic
+        # based on your message tracking system
+        from django.db.models import Count, Q
+        from .models import Room, Message
+
+        # Get all DM rooms the user is part of
+        dm_rooms = []
+        for room in Room.objects.filter(is_dm=True):
+            parts = room.name.split('_')
+            if len(parts) >= 3 and parts[0] == 'dm':
+                usernames = parts[1:]
+                if user.username in usernames:
+                    dm_rooms.append(room)
+
+        # For each room, get the timestamp of the user's last viewed message
+        # This would require a LastRead model to track when users last viewed messages
+        # For now, we'll simply return 0
+        return 0
+
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting unread DM count: {str(e)}")
+        return 0
