@@ -33,8 +33,8 @@ def index(request):
     categories = Category.objects.all().order_by('name')
 
     # Get rooms with message counts using select_related but avoid conflicting with the property
-    # Use a different name for the annotation to avoid conflict with property
-    all_rooms = Room.objects.all()\
+    # UPDATED: Exclude DM rooms from public listing
+    all_rooms = Room.objects.filter(is_dm=False)\
         .select_related('creator', 'category')\
         .annotate(msg_count=models.Count('messages'))\
         .order_by('-created_at')
@@ -62,7 +62,7 @@ def index(request):
         }
         rooms.append(room_data)
 
-    # Get trending rooms - most messages first
+    # Get trending rooms - most messages first - EXCLUDE DMs
     # Use the annotation for sorting
     trending_rooms = sorted(
         [room for room in all_rooms if getattr(room, 'msg_count', 0) > 0],
@@ -146,9 +146,9 @@ def load_more_rooms(request):
 
     # Handle the "trending" category - this uses your existing special logic
     if category == 'trending':
-        # Get all rooms with their message counts
+        # Get all rooms with their message counts - EXCLUDE DMs
         rooms_with_counts = []
-        for room in Room.objects.all()[:100]:  # Limit to first 100 for efficiency
+        for room in Room.objects.filter(is_dm=False)[:100]:  # Limit to first 100 for efficiency
             message_count = room.message_count  # Using your model property
             if message_count > 0:
                 rooms_with_counts.append((room, message_count))
@@ -177,8 +177,8 @@ def load_more_rooms(request):
         has_next = len(rooms_with_counts) > page_end
 
     else:
-        # Build base queryset
-        room_queryset = Room.objects.all()
+        # Build base queryset - EXCLUDE DMs
+        room_queryset = Room.objects.filter(is_dm=False)
 
         # Apply category filter if provided and not "all"
         if category and category != 'all':
@@ -234,12 +234,12 @@ def load_more_rooms(request):
 
         has_next = total_count > (offset + page_size)
 
-    # Get trending rooms for the trending section (if not already fetched)
+    # Get trending rooms for the trending section (if not already fetched) - EXCLUDE DMs
     trending_rooms_data = []
     if category != 'trending' and sort_by != 'trending':
         # Logic for trending is similar to the category == 'trending' case
         rooms_with_counts = []
-        for room in Room.objects.all()[:50]:  # Limit to first 50 for efficiency
+        for room in Room.objects.filter(is_dm=False)[:50]:  # Limit to first 50 for efficiency
             message_count = room.message_count  # Using your model property
             if message_count > 0:
                 rooms_with_counts.append((room, message_count))
@@ -266,9 +266,27 @@ def load_more_rooms(request):
         'has_more': has_next
     })
 
+
 def room(request, room_name):
     request.timestamp = int(time.time())
     room = get_object_or_404(Room, name=room_name)
+
+    # ADDED: Check access for DM rooms - only allow the participants to access
+    if room.is_dm:
+        # For DM rooms, extract usernames from the room name (format: dm_username1_username2)
+        parts = room_name.split('_')
+        if len(parts) >= 3 and parts[0] == 'dm':
+            # Get the usernames from the room name
+            usernames = parts[1:]
+            # If the current user's username is not in the usernames, deny access
+            if not request.user.is_authenticated or (request.user.username not in usernames and not request.user.is_staff):
+                # Redirect to home with an error message
+                messages.error(request, "You don't have permission to access this private conversation.")
+                return redirect('index')
+        else:
+            # If the room name format is invalid for a DM, deny access
+            messages.error(request, "Invalid direct message room.")
+            return redirect('index')
 
     # Get messages and parse media URLs
     messages_qs = Message.objects.filter(room=room).order_by('timestamp')
@@ -729,9 +747,11 @@ def search_rooms(request):
     if not query:
         return JsonResponse({'rooms': []})
 
+    # UPDATED: Exclude DMs from search results
     rooms = Room.objects.filter(
         Q(name__icontains=query) |
-        Q(category__name__icontains=query)
+        Q(category__name__icontains=query),
+        is_dm=False  # Exclude DM rooms
     ).order_by('-created_at')
 
     results = []
@@ -771,13 +791,13 @@ def explore_rooms(request):
     """
     View for the explore rooms page - displays categorized rooms and allows filtering
     """
-    # Get all active rooms (limit to 15 for initial load)
-    all_rooms = Room.objects.all().order_by('-created_at')[:15]
+    # Get all active rooms (limit to 15 for initial load) - EXCLUDE DMs
+    all_rooms = Room.objects.filter(is_dm=False).order_by('-created_at')[:15]
 
-    # Get trending rooms - rooms with most messages
+    # Get trending rooms - rooms with most messages - EXCLUDE DMs
     # First get all rooms with their message counts
     rooms_with_counts = []
-    for room in Room.objects.all()[:50]:  # Limit to first 50 for efficiency
+    for room in Room.objects.filter(is_dm=False)[:50]:  # Limit to first 50 for efficiency
         message_count = room.message_count  # Using your model property
         if message_count > 0:
             rooms_with_counts.append((room, message_count))
@@ -796,7 +816,7 @@ def explore_rooms(request):
 
     # Add room count to categories
     for category in categories:
-        category.room_count = Room.objects.filter(category=category).count()
+        category.room_count = Room.objects.filter(category=category, is_dm=False).count()
 
     # Sort categories by room count
     categories = sorted(categories, key=lambda x: x.room_count, reverse=True)
@@ -805,7 +825,7 @@ def explore_rooms(request):
     category_choices = [(category.slug, category.name) for category in Category.objects.all()]
 
     # Check if there are more rooms to load
-    has_more = Room.objects.count() > 15
+    has_more = Room.objects.filter(is_dm=False).count() > 15
 
     context = {
         'all_rooms': all_rooms,

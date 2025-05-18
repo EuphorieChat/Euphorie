@@ -20,6 +20,7 @@ from .services import (
 logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncWebsocketConsumer):
+
     async def connect(self):
         # Track connection info for later use
         self.room_name = self.scope['url_route']['kwargs']['room_name']
@@ -32,12 +33,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Log connection attempt
         logger.info(f"WebSocket connect attempt: room={self.room_name}, user={self.user.username if self.is_authenticated else 'anonymous'}")
 
-        # Check if room exists and user has access (password check)
+        # Check if room exists and user has access
         room_access = await self.check_room_access()
+
         if not room_access['exists']:
             # Room doesn't exist, reject the connection
             logger.warning(f"Connection rejected: Room '{self.room_name}' does not exist")
             await self.close(code=4004)
+            return
+
+        # Check if user has access to this room (for DMs)
+        if not room_access['has_access']:
+            # User doesn't have permission to access this room
+            logger.warning(f"Connection rejected: User does not have access to room '{self.room_name}'")
+            await self.close(code=4003)
             return
 
         # Check if room is password protected and user has access
@@ -601,17 +610,55 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Database operations
     @database_sync_to_async
     def check_room_access(self):
-        """Check if room exists and if it's password protected"""
+        """Check if room exists and if user has access permissions"""
         try:
             room = Room.objects.get(name=self.room_name)
+
+            # First check if room is a DM
+            if room.is_dm:
+                # For DM rooms, we need to check if the current user is one of the participants
+                # Extract usernames from room name (format: dm_username1_username2)
+                parts = self.room_name.split('_')
+
+                if len(parts) >= 3 and parts[0] == 'dm':
+                    # Get the usernames from the room name
+                    usernames = parts[1:]
+
+                    # If user is authenticated and username is in the DM participants, allow access
+                    if self.is_authenticated and self.user.username in usernames:
+                        return {
+                            'exists': True,
+                            'is_protected': False,
+                            'has_access': True
+                        }
+                    else:
+                        # User is not a participant in this DM
+                        logger.warning(f"DM access denied for {self.user.username if self.is_authenticated else 'anonymous'} to {self.room_name}")
+                        return {
+                            'exists': True,
+                            'is_protected': False,
+                            'has_access': False
+                        }
+                else:
+                    # Invalid DM room name format
+                    logger.warning(f"Invalid DM room name format: {self.room_name}")
+                    return {
+                        'exists': True,
+                        'is_protected': False,
+                        'has_access': False
+                    }
+
+            # Non-DM room, check for password protection
             return {
                 'exists': True,
-                'is_protected': room.is_protected
+                'is_protected': room.is_protected,
+                'has_access': True  # Default access for non-DM rooms
             }
         except Room.DoesNotExist:
             return {
                 'exists': False,
-                'is_protected': False
+                'is_protected': False,
+                'has_access': False
             }
 
     @database_sync_to_async
@@ -976,8 +1023,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     messages__user=self.user
                 ).distinct().values_list('id', flat=True)
 
-                # Get recommendations - exclude rooms the user is already in
-                recommendations = Room.objects.exclude(
+                # Get recommendations - exclude rooms the user is already in and exclude DMs
+                recommendations = Room.objects.filter(is_dm=False).exclude(
                     id__in=user_rooms
                 ).annotate(
                     message_count=Count('messages')
@@ -985,8 +1032,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
                 return recommendations
             else:
-                # For anonymous users, just return popular rooms
-                return Room.objects.annotate(
+                # For anonymous users, just return popular rooms - exclude DMs
+                return Room.objects.filter(is_dm=False).annotate(
                     message_count=Count('messages')
                 ).order_by('-message_count')[:5]
         except Exception as e:
