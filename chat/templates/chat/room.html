@@ -16,6 +16,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 
   <!-- Include the CSS -->
   <style>
@@ -1012,7 +1013,7 @@
       object-fit: cover;
     }
 
-    /* Mobile bottom nav */
+    /* Mobile bottom nav - RESTORED AND IMPROVED */
     .mobile-bottom-nav {
       display: flex;
       position: fixed;
@@ -1062,14 +1063,13 @@
     }
 
     /* Enhance icons with subtle glow when active */
-    .mobile-nav-item.active svg {
+    .mobile-nav-item.active i {
       filter: drop-shadow(0 0 3px rgba(236, 72, 153, 0.4));
     }
 
     /* Better icon styling */
-    .mobile-nav-item svg {
-      height: 24px;
-      width: 24px;
+    .mobile-nav-item i {
+      font-size: 20px;
       margin-bottom: 5px;
       transition: all 0.2s ease;
     }
@@ -1161,9 +1161,8 @@
 
     /* Fix for very small screens */
     @media (max-width: 360px) {
-      .mobile-nav-item svg {
-        height: 22px;
-        width: 22px;
+      .mobile-nav-item i {
+        font-size: 18px;
       }
 
       .mobile-nav-item span {
@@ -1195,21 +1194,11 @@
   <div class="app-wrapper">
     <!-- Left Sidebar - REFINED VERSION -->
     <div class="app-sidebar" id="app-sidebar">
-      <!-- Desktop Header -->
-      <div class="sidebar-header">
+      <!-- Desktop Header - Now a link to home -->
+      <a href="/" class="sidebar-header">
         <div class="sidebar-logo">E</div>
         <h1 class="sidebar-title">Euphorie</h1>
-      </div>
-
-      <!-- Mobile sidebar header -->
-      <div class="sidebar-mobile-header">
-        <div class="sidebar-mobile-logo">Euphorie</div>
-        <div class="sidebar-close" id="sidebar-close-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </div>
-      </div>
+      </a>
 
       <!-- Main Navigation -->
       <div class="sidebar-nav">
@@ -1626,8 +1615,8 @@
       </div>
 
       <!-- Jump to bottom button -->
-      <button id="jump-to-bottom" class="jump-to-bottom" aria-label="Jump to bottom">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <button id="jump-to-bottom" class="jump-to-bottom fixed bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center" aria-label="Jump to bottom">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
         </svg>
       </button>
@@ -1639,6 +1628,28 @@
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
+  </div>
+
+  <!-- Mobile Bottom Navigation - RESTORED WITH MODERN ICONS -->
+  <div class="mobile-bottom-nav">
+    <button class="mobile-nav-item active" id="mobile-home">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </button>
+    <button class="mobile-nav-item" id="mobile-media">
+      <i class="fa-solid fa-images"></i>
+      <span>Media</span>
+    </button>
+    <button class="mobile-nav-item" id="mobile-users">
+      <i class="fa-solid fa-users"></i>
+      <span>Users</span>
+    </button>
+    <button class="mobile-nav-item" id="mobile-profile">
+      <div class="avatar avatar-pink user-avatar mini-avatar" data-username="{{ username }}">
+        {{ username|slice:":1"|upper }}
+      </div>
+      <span>Profile</span>
+    </button>
   </div>
 
   <!-- Mobile Overlay -->
@@ -1871,7 +1882,7 @@
       });
 
       // Mobile sidebar close
-      document.getElementById('sidebar-close-btn').addEventListener('click', function() {
+      document.getElementById('sidebar-close-btn') && document.getElementById('sidebar-close-btn').addEventListener('click', function() {
         document.getElementById('app-sidebar').classList.remove('active');
         document.getElementById('mobile-overlay').classList.remove('active');
       });
@@ -1880,6 +1891,37 @@
       document.getElementById('mobile-overlay').addEventListener('click', function() {
         document.getElementById('app-sidebar').classList.remove('active');
         document.getElementById('mobile-overlay').classList.remove('active');
+      });
+
+      // Mobile bottom navigation actions
+      const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+      mobileNavItems.forEach(item => {
+        item.addEventListener('click', function() {
+          // Remove active class from all items
+          mobileNavItems.forEach(navItem => navItem.classList.remove('active'));
+          // Add active class to clicked item
+          this.classList.add('active');
+
+          // Handle different actions based on nav item id
+          if (this.id === 'mobile-home') {
+            // Default view - just show messages
+          } else if (this.id === 'mobile-media') {
+            // Open media library
+            document.getElementById('media-library-modal').classList.add('active');
+          } else if (this.id === 'mobile-users') {
+            // Show users panel or open sidebar to users section
+            document.getElementById('app-sidebar').classList.add('active');
+            document.getElementById('mobile-overlay').classList.add('active');
+          } else if (this.id === 'mobile-profile') {
+            // Open profile options
+            const profileMenu = document.getElementById('profile-menu');
+            if (profileMenu) {
+              profileMenu.classList.add('active');
+            } else {
+              document.getElementById('user-profile-btn').click();
+            }
+          }
+        });
       });
 
       // Add swipe gestures for mobile
