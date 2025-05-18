@@ -444,7 +444,7 @@
     isolation: isolate;
   }
 
-  /* Header */
+  /* Header - FIXED VERSION */
   .app-header {
     height: 60px;
     padding: 0 1rem;
@@ -453,7 +453,20 @@
     background-color: white;
     border-bottom: 1px solid rgba(236, 72, 153, 0.1);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    z-index: 10;
+    z-index: 20;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: transform 0.2s ease;
+  }
+
+  /* Ensure input area doesn't cover header when keyboard is active */
+  .keyboard-active .app-header {
+    /* Ensure visible during keyboard activation */
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 
   .header-title {
@@ -474,6 +487,8 @@
     flex: 1;
     overflow-y: auto;
     padding: 0.75rem 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 80px;
     background-color: #f8fafc;
     display: flex;
     flex-direction: column;
@@ -547,12 +562,17 @@
     border-bottom-left-radius: 0.25rem;
   }
 
-  /* Input area */
+  /* Input area - FIXED VERSION */
   .input-area {
     padding: 0.75rem 1rem;
     background-color: white;
     border-top: 1px solid rgba(236, 72, 153, 0.1);
     z-index: 30;
+    /* Fixed positioning for mobile */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
   }
 
   .input-wrapper {
@@ -637,6 +657,38 @@
 
   /* More compact mobile message controls */
   @media (max-width: 768px) {
+    /* Ensure proper mobile behavior */
+    body {
+      /* Prevent scroll bounce on iOS */
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .app-wrapper {
+      /* Allow scrolling within the wrapper */
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-content {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .chat-container {
+      /* Fill remaining space */
+      flex: 1;
+      overflow-y: auto;
+      /* Ensure content doesn't scroll under header/input */
+      -webkit-overflow-scrolling: touch;
+    }
+
     /* More compact emoji reactions */
     .emoji-reaction {
       width: 28px;
@@ -674,162 +726,7 @@
       font-size: 0.9rem;
       padding: 0.15rem;
     }
-  }
 
-  /* Mobile controls */
-  .sidebar-toggle, .info-toggle {
-    position: fixed;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    box-shadow: var(--shadow-lg);
-    z-index: 40;
-    cursor: pointer;
-  }
-
-  .sidebar-toggle {
-    bottom: 20px;
-    left: 20px;
-  }
-
-  .info-toggle {
-    display: none; /* Hide info toggle since there's no right sidebar */
-  }
-
-  .mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 30;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-  }
-
-  .mobile-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  /* Mobile bottom navigation */
-  .mobile-bottom-nav {
-    display: none;
-  }
-
-  /* Jump to bottom button enhancements */
-  .jump-to-bottom {
-    bottom: 5.5rem;
-    right: 1rem;
-    width: 40px;
-    height: 40px;
-    z-index: 15;
-  }
-
-  /* Message notification styling */
-  .app-notification {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 0.75rem 1rem;
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-100%);
-    opacity: 0;
-    transition: all 0.3s ease;
-    z-index: 100;
-  }
-
-  .app-notification.active {
-    transform: translateY(0);
-    opacity: 1;
-  }
-
-  /* Typing indicator */
-  .typing-indicator {
-    margin-left: 3rem;
-    margin-bottom: 0.5rem;
-  }
-
-  /* Avatar */
-  .avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: white;
-    box-shadow: var(--shadow-sm);
-    transition: transform var(--duration-normal) var(--ease);
-    background-size: cover;
-    background-position: center;
-  }
-
-  /* Enhanced animations */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Fix for profile menu and other modals appearing in chat */
-  .profile-menu, .modal, #user-options-popover {
-    z-index: 100;
-    position: absolute;
-    display: none;
-  }
-
-  .profile-menu.active, .modal.active, #user-options-popover.active {
-    display: block;
-  }
-
-  .emoji-panel {
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    background: white;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    padding: 0.75rem;
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0.375rem;
-    margin-bottom: 0.5rem;
-    z-index: 100;
-    animation: fadeIn 0.2s ease;
-    display: none;
-    border: 1px solid var(--border);
-  }
-
-  .emoji-panel.show {
-    display: grid;
-  }
-
-  .emoji-btn {
-    width: 2.25rem;
-    height: 2.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    cursor: pointer;
-    border-radius: var(--radius-md);
-    transition: all var(--duration-normal) var(--ease);
-  }
-
-  .emoji-btn:hover {
-    background-color: var(--primary-light);
-    transform: scale(1.1);
-  }
-
-  /* MOBILE OPTIMIZATIONS */
-  @media (max-width: 768px) {
     /* General mobile adjustments */
     .app-sidebar {
       width: 0; /* Hidden by default */
@@ -1222,6 +1119,138 @@
         animation-iteration-count: 1 !important;
       }
     }
+  }
+
+  /* Fix for profile menu and other modals appearing in chat */
+  .profile-menu, .modal, #user-options-popover {
+    z-index: 100;
+    position: absolute;
+    display: none;
+  }
+
+  .profile-menu.active, .modal.active, #user-options-popover.active {
+    display: block;
+  }
+
+  .emoji-panel {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.375rem;
+    margin-bottom: 0.5rem;
+    z-index: 100;
+    animation: fadeIn 0.2s ease;
+    display: none;
+    border: 1px solid var(--border);
+  }
+
+  .emoji-panel.show {
+    display: grid;
+  }
+
+  .emoji-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .emoji-btn:hover {
+    background-color: var(--primary-light);
+    transform: scale(1.1);
+  }
+
+  /* Enhanced animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Mobile controls */
+  .sidebar-toggle, .info-toggle {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    box-shadow: var(--shadow-lg);
+    z-index: 40;
+    cursor: pointer;
+  }
+
+  .sidebar-toggle {
+    bottom: 20px;
+    left: 20px;
+  }
+
+  .info-toggle {
+    display: none; /* Hide info toggle since there's no right sidebar */
+  }
+
+  /* Jump to bottom button enhancements */
+  .jump-to-bottom {
+    bottom: 5.5rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    z-index: 15;
+  }
+
+  /* Message notification styling */
+  .app-notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 1rem;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 100;
+  }
+
+  .app-notification.active {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Typing indicator */
+  .typing-indicator {
+    margin-left: 3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Avatar */
+  .avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: white;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-normal) var(--ease);
+    background-size: cover;
+    background-position: center;
   }
   </style>
 </head>
@@ -1880,7 +1909,7 @@
   <script>
     window.roomName = "{{ room_name|escapejs }}";
     window.username = "{{ username|escapejs }}";
-          document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
       // Attach file input to attachment button
       document.getElementById('attachment-btn').addEventListener('click', function() {
         document.getElementById('file-input').click();
@@ -1905,16 +1934,12 @@
       });
 
       // Mobile sidebar handlers
-      document.getElementById('sidebar-toggle').addEventListener('click', function() {
-        document.getElementById('app-sidebar').classList.add('active');
-        document.getElementById('mobile-overlay').classList.add('active');
-      });
-
-      // Close sidebar when clicking overlay
-      document.getElementById('mobile-overlay').addEventListener('click', function() {
-        document.getElementById('app-sidebar').classList.remove('active');
-        document.getElementById('mobile-overlay').classList.remove('active');
-      });
+      if (document.getElementById('sidebar-toggle')) {
+        document.getElementById('sidebar-toggle').addEventListener('click', function() {
+          document.getElementById('app-sidebar').classList.add('active');
+          document.getElementById('mobile-overlay').classList.add('active');
+        });
+      }
 
       // Add swipe gestures for mobile
       const chatContainer = document.getElementById('chat-log');
@@ -1943,15 +1968,53 @@
         }
       }
 
-      // Keyboard detection for mobile
-      const messageInput = document.getElementById('chat-message-input');
+      // Fix for header disappearing issue on mobile
+      const appHeader = document.querySelector('.app-header');
+      const chatInput = document.getElementById('chat-message-input');
 
-      messageInput.addEventListener('focus', function() {
+      // Better keyboard handling for mobile
+      chatInput.addEventListener('focus', function() {
         document.body.classList.add('keyboard-active');
+        // Ensure header stays visible
+        appHeader.style.position = 'sticky';
+        appHeader.style.top = '0';
+        appHeader.style.zIndex = '20';
       });
 
-      messageInput.addEventListener('blur', function() {
+      chatInput.addEventListener('blur', function() {
         document.body.classList.remove('keyboard-active');
+        // Short timeout to allow UI to settle
+        setTimeout(function() {
+          // Reset header position
+          appHeader.style.position = '';
+          appHeader.style.top = '';
+        }, 300);
+      });
+
+      // Add touchend event to ensure header is visible when tapping outside input
+      document.addEventListener('touchend', function(e) {
+        if (e.target !== chatInput && document.body.classList.contains('keyboard-active')) {
+          // If we tapped outside the input while keyboard is active
+          setTimeout(function() {
+            if (document.activeElement !== chatInput) {
+              document.body.classList.remove('keyboard-active');
+              // Reset header
+              appHeader.style.position = '';
+              appHeader.style.top = '';
+            }
+          }, 100);
+        }
+      });
+
+      // Additional fix for iOS Safari
+      window.addEventListener('resize', function() {
+        // On iOS, keyboard appearing/disappearing triggers resize
+        if (document.activeElement !== chatInput) {
+          document.body.classList.remove('keyboard-active');
+          // Reset header
+          appHeader.style.position = '';
+          appHeader.style.top = '';
+        }
       });
 
       // Progressive message loading for performance
