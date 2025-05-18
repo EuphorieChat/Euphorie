@@ -441,6 +441,7 @@
     height: 100%;
     overflow: hidden;
     position: relative;
+    isolation: isolate;
   }
 
   /* Header */
@@ -479,6 +480,8 @@
     position: relative;
     -webkit-overflow-scrolling: touch;
     transform: translateZ(0);
+    z-index: 5;
+    isolation: isolate;
   }
 
   /* Pull-to-refresh indicator */
@@ -549,7 +552,7 @@
     padding: 0.75rem 1rem;
     background-color: white;
     border-top: 1px solid rgba(236, 72, 153, 0.1);
-    z-index: 10;
+    z-index: 30;
   }
 
   .input-wrapper {
@@ -576,17 +579,80 @@
     outline: none;
   }
 
+  /* Enhanced emoji reactions styling */
+  .reactions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+    padding-left: 2px;
+  }
+
+  .reaction {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .reaction:hover {
+    background-color: #fce7f3;
+    transform: translateY(-1px);
+    border-color: rgba(236, 72, 153, 0.3);
+  }
+
+  .reaction-count {
+    font-weight: 600;
+    font-size: 0.65rem;
+    color: #64748b;
+  }
+
+  /* Quick reaction buttons */
+  .emoji-reaction {
+    font-size: 0.9rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    opacity: 0.9;
+    transition: all 0.2s ease;
+  }
+
+  .emoji-reaction:hover {
+    transform: scale(1.15);
+    opacity: 1;
+    background: #fce7f3;
+  }
+
   /* More compact mobile message controls */
   @media (max-width: 768px) {
     /* More compact emoji reactions */
-    .reactions-container {
-      gap: 0.15rem;
-      margin-top: 0.15rem;
+    .emoji-reaction {
+      width: 28px;
+      height: 28px;
+      margin-right: 2px;
     }
 
-    .reaction {
-      padding: 0.15rem 0.35rem;
-      font-size: 0.7rem;
+    .reactions-container {
+      margin-left: 2px;
+    }
+
+    /* Show emoji reactions on mobile without hover */
+    .absolute.right-0.top-0.opacity-0.group-hover\:opacity-100 {
+      opacity: 0.9 !important;
+      right: 5px !important;
+      top: 5px !important;
     }
 
     /* Hide mobile message controls, use desktop-style hover controls instead */
@@ -706,43 +772,21 @@
     background-position: center;
   }
 
-  /* Adaptations from previous styles - keeping necessary behaviors */
-  .reactions-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.15rem;
-    margin-top: 0.15rem;
+  /* Enhanced animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  .reaction {
-    background-color: white;
-    border-radius: var(--radius-xl);
-    padding: 0.15rem 0.35rem;
-    font-size: 0.7rem;
-    box-shadow: var(--shadow-sm);
-    cursor: pointer;
-    transition: transform var(--duration-normal) var(--ease),
-                background-color var(--duration-normal) var(--ease);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.15rem;
+  /* Fix for profile menu and other modals appearing in chat */
+  .profile-menu, .modal, #user-options-popover {
+    z-index: 100;
+    position: absolute;
+    display: none;
   }
 
-  .reaction:hover {
-    background-color: var(--primary-light);
-    transform: scale(1.05);
-  }
-
-  .emoji-reaction {
-    transition: all var(--duration-normal) var(--ease);
-    font-size: 0.85rem;
-    padding: 0.25rem;
-    opacity: 0.7;
-  }
-
-  .emoji-reaction:hover {
-    transform: scale(1.1);
-    opacity: 1;
+  .profile-menu.active, .modal.active, #user-options-popover.active {
+    display: block;
   }
 
   .emoji-panel {
@@ -782,12 +826,6 @@
   .emoji-btn:hover {
     background-color: var(--primary-light);
     transform: scale(1.1);
-  }
-
-  /* Enhanced animations */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
   }
 
   /* MOBILE OPTIMIZATIONS */
@@ -858,53 +896,51 @@
     }
 
     /* Mobile input area improvements */
-    @media (max-width: 768px) {
-      .input-area {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background-color: white;
-        z-index: 25;
-        padding: 0.5rem 0.75rem;
-        border-top: 1px solid var(--border);
-        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
-      }
+    .input-area {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: white;
+      z-index: 25;
+      padding: 0.5rem 0.75rem;
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    }
 
-      /* Make buttons match desktop styling */
-      .input-area .btn-icon {
-        background-image: var(--desktop-btn-gradient, linear-gradient(to right, var(--primary), var(--secondary)));
-        color: white;
-        border-radius: var(--radius-lg);
-        box-shadow: 0 2px 5px rgba(236, 72, 153, 0.3);
-        transition: all 0.2s ease;
-      }
+    /* Make buttons match desktop styling */
+    .input-area .btn-icon {
+      background-image: var(--desktop-btn-gradient, linear-gradient(to right, var(--primary), var(--secondary)));
+      color: white;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 2px 5px rgba(236, 72, 153, 0.3);
+      transition: all 0.2s ease;
+    }
 
-      .input-area .btn-icon:hover,
-      .input-area .btn-icon:active {
-        transform: translateY(-1px);
-        box-shadow: 0 3px 7px rgba(236, 72, 153, 0.4);
-      }
+    .input-area .btn-icon:hover,
+    .input-area .btn-icon:active {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 7px rgba(236, 72, 153, 0.4);
+    }
 
-      /* Hide file upload label text */
-      .input-area .btn-icon .sr-only {
-        display: none;
-      }
+    /* Hide file upload label text */
+    .input-area .btn-icon .sr-only {
+      display: none;
+    }
 
-      /* Adjust chat container padding */
-      .chat-container {
-        padding-bottom: 70px;
-      }
+    /* Adjust chat container padding */
+    .chat-container {
+      padding-bottom: 70px;
+    }
 
-      /* Refine message controls */
-      .mobile-message-controls {
-        gap: 0.25rem;
-      }
+    /* Refine message controls */
+    .mobile-message-controls {
+      gap: 0.25rem;
+    }
 
-      .mobile-message-controls button {
-        width: 30px;
-        height: 30px;
-      }
+    .mobile-message-controls button {
+      width: 30px;
+      height: 30px;
     }
 
     /* Keyboard handling improvements - FIXED */
@@ -1114,10 +1150,8 @@
     }
 
     /* Hide jump to bottom button on mobile */
-    @media (max-width: 768px) {
-      #jump-to-bottom {
-        display: none;
-      }
+    #jump-to-bottom {
+      display: none;
     }
 
     /* Message improvements */
