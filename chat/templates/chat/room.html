@@ -1977,8 +1977,8 @@
             }
         }
 
-        // Fix for sidebar overlap issue
-        fixSidebarOverlap();
+        // Fix for sidebar overlap and chat input issues
+        fixLayoutIssues();
 
         initializeWebSocket();
         initializeUIElements();
@@ -1990,11 +1990,32 @@
         scrollToBottom();
     });
 
-    // Fix for sidebar overlap issue
-    function fixSidebarOverlap() {
-        // Add CSS fix for mobile view
+    // Fix for sidebar overlap and chat input issues
+    function fixLayoutIssues() {
+        // Add CSS fix for mobile and desktop view
         const style = document.createElement('style');
         style.textContent = `
+            /* Desktop chat input fix */
+            @media (min-width: 769px) {
+                .main-content {
+                    width: calc(100% - 280px);
+                    margin-left: 280px;
+                }
+
+                .input-area {
+                    width: calc(100% - 280px);
+                    left: 280px;
+                    padding: 0.75rem 1rem;
+                    box-sizing: border-box;
+                }
+
+                /* Ensure proper spacing */
+                .chat-container {
+                    padding-bottom: 80px;
+                }
+            }
+
+            /* Mobile view fixes */
             @media (max-width: 768px) {
                 /* Fix for sidebar overlap */
                 .app-sidebar {
@@ -2002,7 +2023,7 @@
                     left: -280px; /* Hide offscreen initially */
                     top: 0;
                     height: 100%;
-                    transition: left 0.3s var(--ease);
+                    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
                     z-index: 50;
                     width: 280px;
                 }
@@ -2019,10 +2040,22 @@
                     z-index: 25;
                 }
 
-                /* Make sure emoji picker appears above other elements */
-                .emoji-panel {
-                    z-index: 30;
+                /* Main content takes full width on mobile */
+                .main-content {
+                    width: 100%;
+                    margin-left: 0;
                 }
+            }
+
+            /* Make sure emoji picker appears above other elements */
+            .emoji-panel {
+                z-index: 30;
+            }
+
+            /* Fix for reactions positioning */
+            .reactions-container {
+                min-height: 22px; /* Ensure there's always space for reactions */
+                margin-top: 2px;
             }
         `;
         document.head.appendChild(style);
@@ -2410,7 +2443,7 @@
         }
     }
 
-    // Fixed handleChatMessage to properly parse media from message content
+    // Fixed handleChatMessage to properly initialize reactions container
     function handleChatMessage(data) {
         const chatLog = document.getElementById('chat-log');
         if (!chatLog) return;
@@ -2446,7 +2479,7 @@
                 </div>
                 <div class="reactions-container"></div>
 
-                <!-- New Quick reaction buttons -->
+                <!-- Quick reaction buttons -->
                 <div class="reaction-buttons">
                     <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '❤️')" aria-label="React with heart">❤️</button>
                     <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👍')" aria-label="React with thumbs up">👍</button>
@@ -2459,10 +2492,22 @@
         chatLog.appendChild(messageContainer);
         updateMessageAvatar(messageContainer, data.username);
 
-        if (data.reactions) {
-            for (const [emoji, count] of Object.entries(data.reactions)) {
-                if (count > 0) {
-                    handleReactionUpdate({ message_id: data.message_id, reaction: emoji, count });
+        // Ensure the reactions container is properly set up
+        const reactionsContainer = messageContainer.querySelector('.reactions-container');
+        if (reactionsContainer) {
+            // Initialize with any existing reactions
+            if (data.reactions) {
+                for (const [emoji, count] of Object.entries(data.reactions)) {
+                    if (count > 0) {
+                        const reactionEl = document.createElement('div');
+                        reactionEl.className = 'reaction';
+                        reactionEl.setAttribute('data-emoji', emoji);
+                        reactionEl.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
+                        reactionEl.onclick = function() {
+                            sendReaction(data.message_id, emoji);
+                        };
+                        reactionsContainer.appendChild(reactionEl);
+                    }
                 }
             }
         }
@@ -2559,7 +2604,7 @@
         }
     }
 
-    // Enhanced reaction handling for our updated UI
+    // Enhanced reaction handling for our updated UI - FIXED for first reaction
     window.sendReaction = function(messageId, emoji) {
         if (!messageId || !emoji) {
             console.warn('sendReaction: Missing messageId or emoji.');
@@ -2576,13 +2621,38 @@
         } else {
             console.error('WebSocket is not open. Reaction not sent:', { messageId, emoji });
             showNotification('Connection error: Could not send reaction', 'error');
+            return; // Don't try to update UI if connection isn't open
         }
 
         // Add immediate visual feedback
-        const reactionsContainer = document.querySelector(`[data-message-id="${messageId}"] .reactions-container`);
+        const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageEl) {
+            console.error('Could not find message element for reaction:', messageId);
+            return;
+        }
 
-        // If reactions container doesn't exist, create it
-        if (!reactionsContainer) return;
+        let reactionsContainer = messageEl.querySelector('.reactions-container');
+
+        // If reactions container doesn't exist or is not properly configured, fix it
+        if (!reactionsContainer) {
+            console.warn('Creating missing reactions container for message:', messageId);
+            const messageWrapper = messageEl.querySelector('.message-wrapper');
+            if (messageWrapper) {
+                reactionsContainer = document.createElement('div');
+                reactionsContainer.className = 'reactions-container';
+
+                // Insert after message bubble but before reaction buttons
+                const messageBubble = messageWrapper.querySelector('.message-bubble');
+                if (messageBubble) {
+                    messageBubble.insertAdjacentElement('afterend', reactionsContainer);
+                } else {
+                    messageWrapper.appendChild(reactionsContainer);
+                }
+            } else {
+                console.error('Could not find message wrapper to add reactions container');
+                return;
+            }
+        }
 
         // Check if this emoji reaction already exists
         let reactionEl = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
@@ -2606,16 +2676,39 @@
             newReaction.innerHTML = `${emoji} <span class="reaction-count">1</span>`;
             newReaction.onclick = function() { sendReaction(messageId, emoji); };
             reactionsContainer.appendChild(newReaction);
+
+            console.log('Added new reaction:', emoji, 'to message:', messageId);
         }
     };
 
     // Enhanced reaction update handling
     function handleReactionUpdate(data) {
         const messageEl = document.querySelector(`[data-message-id="${data.message_id}"]`);
-        if (!messageEl) return;
+        if (!messageEl) {
+            console.error('Cannot update reaction: Message element not found', data.message_id);
+            return;
+        }
 
-        const reactionsContainer = messageEl.querySelector('.reactions-container');
-        if (!reactionsContainer) return;
+        let reactionsContainer = messageEl.querySelector('.reactions-container');
+        if (!reactionsContainer) {
+            console.warn('Creating missing reactions container for update:', data.message_id);
+            const messageWrapper = messageEl.querySelector('.message-wrapper');
+            if (messageWrapper) {
+                reactionsContainer = document.createElement('div');
+                reactionsContainer.className = 'reactions-container';
+
+                // Insert after message bubble but before reaction buttons
+                const messageBubble = messageWrapper.querySelector('.message-bubble');
+                if (messageBubble) {
+                    messageBubble.insertAdjacentElement('afterend', reactionsContainer);
+                } else {
+                    messageWrapper.appendChild(reactionsContainer);
+                }
+            } else {
+                console.error('Could not find message wrapper to add reactions container');
+                return;
+            }
+        }
 
         let reactionEl = reactionsContainer.querySelector(`[data-emoji="${data.reaction}"]`);
 
@@ -3539,6 +3632,7 @@
             attemptReconnect();
         }
     });
+
   </script>
 </body>
 </html>
