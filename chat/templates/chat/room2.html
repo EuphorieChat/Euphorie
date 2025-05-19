@@ -705,6 +705,70 @@
     outline: none;
   }
 
+/* Emoji reaction buttons inside bubble */
+.reaction-buttons-in-bubble {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 1px 2px;
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  z-index: 5;
+}
+
+/* Make message bubble position relative for absolute positioning */
+.message-bubble {
+  position: relative;
+}
+
+/* Show reaction buttons on message hover */
+.message-bubble:hover .reaction-buttons-in-bubble {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* Styling for each emoji button */
+.reaction-buttons-in-bubble .emoji-reaction {
+  font-size: 0.75rem;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border-radius: 50%;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reaction-buttons-in-bubble .emoji-reaction:hover {
+  transform: scale(1.2);
+  background: rgba(236, 72, 153, 0.1);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .reaction-buttons-in-bubble {
+    padding: 1px;
+    bottom: 3px;
+    right: 3px;
+  }
+
+  .reaction-buttons-in-bubble .emoji-reaction {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+  }
+}
+
   /* Mobile reactions improvements */
   @media (max-width: 768px) {
     .reaction-buttons {
@@ -1615,16 +1679,19 @@
           </svg>
         </button>
 
-        <h1 class="header-title gradient-text">{{ room_name|title }}</h1>
+        <a href="/" class="header-title gradient-text hover:opacity-80 transition-opacity">{{ room_name|title }}</a>
 
         <div class="header-actions">
           <!-- Users Online Counter -->
-          <div class="flex items-center mr-4 text-sm text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <span id="online-users-count">0</span> online
-          </div>
+            <div class="flex items-center mr-4 bg-gradient-to-r from-pink-50 to-purple-50 px-3 py-1.5 rounded-full border border-pink-100 shadow-sm">
+              <div class="flex items-center mr-1.5 text-pink-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <span id="online-users-count" class="font-semibold text-pink-600">0</span>
+              <span class="ml-1 text-xs text-gray-600">online</span>
+            </div>
 
           <!-- Bookmark Button -->
           <button id="bookmark-room" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-pink-500">
@@ -1689,27 +1756,27 @@
                         {{ message.content|safe }}
                     </div>
                     {% endif %}
-                </div>
 
-                <!-- Reactions container - outside the message bubble -->
-                {% if message.reactions %}
-                <div class="reactions-container">
-                    {% for emoji, count in message.reactions.items %}
-                        {% if count > 0 %}
-                        <div class="reaction" data-emoji="{{ emoji }}" onclick="sendReaction({{ message.id }}, '{{ emoji }}')">
-                            {{ emoji }} <span class="reaction-count">{{ count }}</span>
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
+                    <!-- Reactions container - MOVED INSIDE the message bubble -->
+                    {% if message.reactions %}
+                    <div class="reactions-container mt-2 pt-2 border-t border-gray-100">
+                        {% for emoji, count in message.reactions.items %}
+                            {% if count > 0 %}
+                            <div class="reaction" data-emoji="{{ emoji }}" onclick="sendReaction({{ message.id }}, '{{ emoji }}')">
+                                {{ emoji }} <span class="reaction-count">{{ count }}</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
-                <!-- New Quick reaction buttons - appears on hover -->
-                <div class="reaction-buttons">
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '❤️')" aria-label="React with heart">❤️</button>
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '👍')" aria-label="React with thumbs up">👍</button>
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '😂')" aria-label="React with laugh">😂</button>
-                    <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '✨')" aria-label="React with sparkles">✨</button>
+                    <!-- MOVED: Quick reaction buttons - now INSIDE message bubble -->
+                    <div class="reaction-buttons-in-bubble">
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '❤️')" aria-label="React with heart">❤️</button>
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '👍')" aria-label="React with thumbs up">👍</button>
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '😂')" aria-label="React with laugh">😂</button>
+                        <button class="emoji-reaction" onclick="sendReaction({{ message.id }}, '✨')" aria-label="React with sparkles">✨</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1901,7 +1968,7 @@
         <input type="color" id="brush-color" value="#000000" class="cursor-pointer h-9 w-9 rounded-md overflow-hidden">
         <select id="brush-size" class="rounded-md px-2 py-1 border border-gray-200 bg-white">
           <option value="2">Thin</option>
-          <option value="5" selected>Medium</option>
+          <option value="5">Medium</option>
           <option value="10">Thick</option>
         </select>
         <button class="px-3 py-1.5 rounded-md bg-pink-500 text-white shadow-sm active" data-tool="brush">Brush</button>
