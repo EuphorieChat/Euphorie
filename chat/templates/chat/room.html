@@ -3791,6 +3791,7 @@ function toggleBookmark() {
     if (!bookmarkBtn) return;
 
     const isBookmarked = bookmarkBtn.classList.contains('bookmarked');
+    const bookmarkIcon = bookmarkBtn.querySelector('svg');
 
     fetch('/api/toggle_bookmark_room/', {
         method: 'POST',
@@ -3806,8 +3807,25 @@ function toggleBookmark() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Toggle classes
             bookmarkBtn.classList.toggle('bookmarked');
             bookmarkBtn.classList.toggle('text-pink-500');
+
+            // ADDED: Update the SVG fill for better visual feedback
+            if (!isBookmarked) {
+                // Filling the bookmark icon when bookmarked
+                bookmarkIcon.setAttribute('fill', 'currentColor');
+                bookmarkIcon.setAttribute('class', 'h-5 w-5 transition-transform transform scale-110');
+                // Add a subtle animation
+                setTimeout(() => {
+                    bookmarkIcon.setAttribute('class', 'h-5 w-5');
+                }, 300);
+            } else {
+                // Removing the fill when unbookmarked
+                bookmarkIcon.setAttribute('fill', 'none');
+                bookmarkIcon.setAttribute('class', 'h-5 w-5');
+            }
+
             showNotification(isBookmarked ? 'Bookmark removed' : 'Room bookmarked');
         }
     })
@@ -3828,8 +3846,16 @@ function loadBookmarkedRooms() {
                 // Update UI to show bookmarked status
                 const bookmarkBtn = document.getElementById('bookmark-room');
                 if (bookmarkBtn && data.bookmarked_rooms.some(room => room.name === window.roomName)) {
+                    const bookmarkIcon = bookmarkBtn.querySelector('svg');
+
+                    // Add classes
                     bookmarkBtn.classList.add('bookmarked');
                     bookmarkBtn.classList.add('text-pink-500');
+
+                    // ADDED: Fill the icon to show bookmarked state
+                    if (bookmarkIcon) {
+                        bookmarkIcon.setAttribute('fill', 'currentColor');
+                    }
                 }
             }
         })
