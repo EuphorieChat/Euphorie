@@ -21,28 +21,28 @@
   <!-- Include the CSS -->
   <style>
   :root {
-    --primary: #ec4899;
-    --primary-hover: #db2777;
-    --primary-light: #fce7f3;
-    --secondary: #9333ea;
-    --secondary-light: #f3e8ff;
-    --secondary-hover: #7e22ce;
-    --accent: #f97316;
-    --accent-light: #fff7ed;
-    --dark: #1f2937;
-    --light: #f9fafb;
-    --danger: #ef4444;
-    --success: #10b981;
-    --info: #3b82f6;
-    --warning: #f59e0b;
-    --surface: #ffffff;
-    --surface-hover: #f8fafc;
-    --surface-active: #f1f5f9;
-    --border: #e2e8f0;
-    --border-focus: #cbd5e1;
-    --text-primary: #334155;
-    --text-secondary: #64748b;
-    --text-tertiary: #94a3b8;
+    --primary: #f472b6;            /* Pink-400 - soft light pink */
+    --primary-hover: #ec4899;      /* Pink-500 - slightly deeper pink for hover */
+    --primary-light: #fce7f3;      /* Pink-50 - very light pink background */
+    --secondary: #60a5fa;          /* Blue-400 - light sky blue */
+    --secondary-hover: #3b82f6;    /* Blue-500 - slightly deeper blue for hover */
+    --secondary-light: #eff6ff;    /* Blue-50 - very light blue background */
+    --accent: #fcd34d;             /* Amber-300 - light yellow */
+    --accent-light: #fef3c7;       /* Amber-50 - very light yellow background */
+    --dark: #1f2937;               /* Unchanged */
+    --light: #f9fafb;              /* Unchanged */
+    --danger: #ef4444;             /* Unchanged */
+    --success: #10b981;            /* Unchanged */
+    --info: #3b82f6;               /* Unchanged */
+    --warning: #f59e0b;            /* Unchanged */
+    --surface: #ffffff;            /* Unchanged */
+    --surface-hover: #f8fafc;      /* Unchanged */
+    --surface-active: #f1f5f9;     /* Unchanged */
+    --border: #e2e8f0;             /* Unchanged */
+    --border-focus: #cbd5e1;       /* Unchanged */
+    --text-primary: #334155;       /* Unchanged */
+    --text-secondary: #64748b;     /* Unchanged */
+    --text-tertiary: #94a3b8;      /* Unchanged */
     --radius-sm: 0.375rem;
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
@@ -53,6 +53,7 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --duration-fast: 0.15s;
     --duration-normal: 0.25s;
     --duration-slow: 0.35s;
@@ -109,7 +110,8 @@
   /* Base sidebar improvements */
   .app-sidebar {
     width: 280px;
-    background: linear-gradient(145deg, #2c2a36 0%, #1a1a2e 100%);
+    background: white;
+    background-image: linear-gradient(145deg, #fdfaff 0%, #f8fafc 100%);
     height: 100%;
     flex-shrink: 0;
     display: flex;
@@ -120,7 +122,8 @@
     overflow-x: hidden;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
-    box-shadow: inset -5px 0 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    border-right: 1px solid var(--border);
     transition: all 0.3s var(--ease);
   }
 
@@ -130,7 +133,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   }
 
   .sidebar-logo {
@@ -149,7 +152,10 @@
   .sidebar-title {
     font-size: 1.125rem;
     font-weight: 600;
-    color: white;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     letter-spacing: 0.02em;
   }
 
@@ -163,9 +169,10 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
     padding: 0 0.5rem;
     margin-bottom: 0.75rem;
+    font-weight: 600;
   }
 
   /* Enhanced sidebar items */
@@ -174,34 +181,30 @@
     border-radius: 12px;
     display: flex;
     align-items: center;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
     cursor: pointer;
     padding: 0 1rem;
-    transition: all 0.2s var(--ease);
+    transition: all 0.2s var(--ease-spring);
     position: relative;
     overflow: hidden;
     font-weight: 500;
+    background: white;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
   }
 
-  .sidebar-item:before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    opacity: 0;
-    transition: opacity 0.2s var(--ease);
-  }
-
-  .sidebar-item:hover:before {
-    opacity: 1;
+  .sidebar-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-focus);
   }
 
   .sidebar-item svg {
     margin-right: 12px;
     flex-shrink: 0;
     transition: transform 0.2s var(--ease);
+    color: var(--text-secondary);
   }
 
   .sidebar-item span {
@@ -210,43 +213,32 @@
   }
 
   .sidebar-item:hover {
-    color: white;
-    transform: translateY(-2px);
+    color: var(--text-primary);
   }
 
   .sidebar-item:hover svg {
     transform: scale(1.1);
+    color: var(--primary);
   }
 
   .sidebar-item.active {
-    color: white;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .sidebar-item.active:before {
-    opacity: 0;
-  }
-
-  .sidebar-item.active:after {
-    content: '';
-    position: absolute;
-    inset: 0;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 12px;
-    z-index: 0;
+    color: white;
+    box-shadow: 0 4px 10px rgba(236, 72, 153, 0.25);
+    border: none;
   }
 
   .sidebar-item.active svg,
   .sidebar-item.active span {
     position: relative;
     z-index: 1;
+    color: white;
   }
 
   /* Divider between navigation and content */
   .sidebar-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border);
     margin: 0.75rem 0;
     width: 100%;
   }
@@ -254,14 +246,14 @@
   /* Content sections in sidebar */
   .sidebar-content {
     width: 100%;
-    color: white;
+    color: var(--text-primary);
     padding: 0.75rem 1rem 1.5rem 1rem;
     display: block;
   }
 
   .sidebar-section {
     padding: 1rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border);
   }
 
   .sidebar-section:last-child {
@@ -272,14 +264,14 @@
     font-size: 0.875rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: white;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
   }
 
   .sidebar-section h3 svg {
     margin-right: 0.5rem;
-    opacity: 0.9;
+    color: var(--primary);
   }
 
   /* User list styling */
@@ -295,47 +287,52 @@
   }
 
   .user-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: var(--surface-hover);
   }
 
   .user-item .user-avatar {
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
   }
 
   /* Recommended rooms styling */
   .room-card {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: white;
     border-radius: 10px;
     padding: 0.75rem;
     margin-bottom: 0.75rem;
-    transition: all 0.2s var(--ease);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s var(--ease-spring);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
   }
 
   .room-card:hover {
     transform: translateY(-2px);
-    background-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-focus);
   }
 
   /* Room actions buttons */
   .sidebar-section .btn {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.2s var(--ease);
+    background: white;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    transition: all 0.2s var(--ease-spring);
     border-radius: 10px;
     font-weight: 500;
+    box-shadow: var(--shadow-sm);
   }
 
   .sidebar-section .btn:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--surface-hover);
+    border-color: var(--border-focus);
     transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
   }
 
   .sidebar-section .btn svg {
     transition: transform 0.2s var(--ease);
+    color: var(--primary);
   }
 
   .sidebar-section .btn:hover svg {
@@ -384,18 +381,21 @@
   .profile-item {
     margin-top: auto;
     margin-bottom: 1rem;
-    background: rgba(255, 255, 255, 0.08);
+    background: white;
     border-radius: 12px;
     padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
   }
 
   .profile-item .user-avatar {
     width: 38px;
     height: 38px;
     margin-right: 0.75rem;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
   }
 
   .profile-item .user-info {
@@ -404,13 +404,13 @@
 
   .profile-item .username {
     font-weight: 600;
-    color: white;
+    color: var(--text-primary);
     font-size: 0.9rem;
   }
 
   .profile-item .user-status {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
   }
@@ -422,13 +422,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--surface-hover);
+    color: var(--text-secondary);
     transition: all 0.2s var(--ease);
+    border: 1px solid var(--border);
   }
 
   .profile-item .settings-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--primary-light);
+    color: var(--primary);
     transform: rotate(15deg);
   }
   /* =========== END REFINED SIDEBAR STYLES =========== */
@@ -875,7 +877,7 @@
 
     .app-sidebar.active {
       width: 280px; /* Full width when active */
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
     }
 
     /* Show the toggle button in the header */
@@ -898,13 +900,12 @@
       justify-content: space-between;
       align-items: center;
       padding: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--border);
     }
 
     .sidebar-mobile-logo {
       font-size: 1.25rem;
       font-weight: 700;
-      color: white;
       background: linear-gradient(to right, var(--primary), var(--secondary));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -916,14 +917,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--surface-hover);
       border-radius: 10px;
-      color: white;
+      color: var(--text-secondary);
       transition: all 0.2s var(--ease);
+      border: 1px solid var(--border);
     }
 
     .sidebar-close:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--primary-light);
+      color: var(--primary);
       transform: rotate(90deg);
     }
 
@@ -1010,10 +1013,9 @@
       justify-content: center;
       padding: 0;
       text-align: center;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      background: white;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
     }
 
     .sidebar-item svg {
@@ -1027,16 +1029,16 @@
       display: block;
       font-size: 0.75rem;
       font-weight: 500;
-      opacity: 0.9;
     }
 
     .sidebar-item.active {
-      background: linear-gradient(135deg, rgba(236, 72, 153, 0.8), rgba(147, 51, 234, 0.8));
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       box-shadow: 0 5px 15px rgba(236, 72, 153, 0.3);
+      color: white;
     }
 
-    .sidebar-item.active:after {
-      display: none;
+    .sidebar-item.active svg {
+      color: white;
     }
 
     .sidebar-item.col-span-2 {
@@ -1468,7 +1470,7 @@
       <div class="sidebar-nav">
         <p class="sidebar-nav-heading">Current Room</p>
         <!-- Main Room Button -->
-        <div class="sidebar-item active col-span-2" data-room="{{ room_name }}">
+        <div class="sidebar-item active" data-room="{{ room_name }}">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
@@ -1524,14 +1526,14 @@
             <!-- User list populated by JS -->
             <li class="user-item flex items-center justify-between animate-pulse">
               <div class="flex items-center gap-2">
-                <div class="h-8 w-8 rounded-full bg-gray-600/40"></div>
-                <div class="h-3 w-20 bg-gray-600/40 rounded"></div>
+                <div class="h-8 w-8 rounded-full bg-gray-200/40"></div>
+                <div class="h-3 w-20 bg-gray-200/40 rounded"></div>
               </div>
             </li>
             <li class="user-item flex items-center justify-between animate-pulse">
               <div class="flex items-center gap-2">
-                <div class="h-8 w-8 rounded-full bg-gray-600/40"></div>
-                <div class="h-3 w-24 bg-gray-600/40 rounded"></div>
+                <div class="h-8 w-8 rounded-full bg-gray-200/40"></div>
+                <div class="h-3 w-24 bg-gray-200/40 rounded"></div>
               </div>
             </li>
           </ul>
@@ -1540,7 +1542,7 @@
         <!-- Recommended Rooms -->
         <div class="sidebar-section">
           <h3 class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             Popular Rooms
@@ -1550,10 +1552,10 @@
             <div class="animate-pulse">
               <div class="room-card">
                 <div class="flex items-center gap-2.5">
-                  <div class="h-9 w-9 rounded-lg bg-gray-600/40 flex-shrink-0"></div>
+                  <div class="h-9 w-9 rounded-lg bg-gray-200/40 flex-shrink-0"></div>
                   <div class="flex-1 min-w-0">
-                    <div class="h-3.5 bg-gray-600/40 rounded w-3/4 mb-1.5"></div>
-                    <div class="h-2.5 bg-gray-600/40 rounded w-1/2"></div>
+                    <div class="h-3.5 bg-gray-200/40 rounded w-3/4 mb-1.5"></div>
+                    <div class="h-2.5 bg-gray-200/40 rounded w-1/2"></div>
                   </div>
                 </div>
               </div>
@@ -1564,7 +1566,7 @@
         <!-- Room Actions -->
         <div class="sidebar-section">
           <h3 class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             </svg>
             Room Settings
@@ -1617,7 +1619,7 @@
             {% if can_delete and user.is_authenticated %}
             <form method="post" action="{% url 'delete_room' room_name %}">
               {% csrf_token %}
-              <button type="submit" class="btn rounded-lg bg-red-900/20 text-red-400 text-sm py-2.5 w-full flex items-center justify-center">
+              <button type="submit" class="btn rounded-lg bg-red-50 text-red-500 text-sm py-2.5 w-full flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
@@ -1627,9 +1629,9 @@
             {% endif %}
 
             {% if user.is_staff or user.username == room.creator.username %}
-            <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn rounded-lg bg-blue-900/20 text-blue-400 text-sm py-2.5 w-full flex items-center justify-center">
+            <a href="{% url 'admin_room_detail' room_name=room_name %}" class="btn rounded-lg bg-blue-50 text-blue-500 text-sm py-2.5 w-full flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               Admin Panel
