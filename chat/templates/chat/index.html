@@ -1800,14 +1800,54 @@ select:focus-visible {
             </button>
         </div>
     </body>
+
 <script>
 // Fixed Euphorie functionality
 document.addEventListener('DOMContentLoaded', () => {
+  // Function to randomize room cards
+  function randomizeRoomCards() {
+    const cardView = document.getElementById('card-view');
+    if (!cardView) return;
+
+    // Get all room cards
+    const roomCards = Array.from(cardView.querySelectorAll('.room-card'));
+    if (roomCards.length <= 1) return; // No need to shuffle if there's only one or zero cards
+
+    // Fisher-Yates shuffle algorithm
+    for (let i = roomCards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      // Remove from DOM to avoid reference issues
+      if (roomCards[i].parentNode === cardView) cardView.removeChild(roomCards[i]);
+      if (roomCards[j].parentNode === cardView) cardView.removeChild(roomCards[j]);
+      // Swap
+      [roomCards[i], roomCards[j]] = [roomCards[j], roomCards[i]];
+      // Re-insert into DOM
+      cardView.appendChild(roomCards[j]);
+      cardView.appendChild(roomCards[i]);
+    }
+
+    // Re-apply animations with staggered delays
+    roomCards.forEach((card, index) => {
+      card.style.animationDelay = `${index * 0.05}s`;
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+
+      setTimeout(() => {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 50 + (index * 50));
+    });
+  }
+
   // Force "All Rooms" category to be selected by default
   localStorage.setItem('euphorie_selected_category', 'all');
 
   // Get all room cards and make sure they're visible
   const allRoomCards = document.querySelectorAll('.room-card');
+
+  // Randomize the cards on page load
+  randomizeRoomCards();
+
   // Store the original room cards structure for later restoration
   const originalCardView = document.getElementById('card-view').innerHTML;
 
