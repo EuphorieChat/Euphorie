@@ -1800,37 +1800,55 @@ select:focus-visible {
             </button>
         </div>
     </body>
-
 <script>
 // Fixed Euphorie functionality
 document.addEventListener('DOMContentLoaded', () => {
-  // Function to randomize room cards
+  // Force "All Rooms" category to be selected by default
+  localStorage.setItem('euphorie_selected_category', 'all');
+
+  // Get all room cards
+  const cardView = document.getElementById('card-view');
+  const allRoomCards = document.querySelectorAll('.room-card');
+
+  // Store the original room cards structure BEFORE randomizing
+  let originalCardView = cardView ? cardView.innerHTML : '';
+
+  // Function to randomize room cards using a safer approach
   function randomizeRoomCards() {
-    const cardView = document.getElementById('card-view');
     if (!cardView) return;
 
-    // Get all room cards
-    const roomCards = Array.from(cardView.querySelectorAll('.room-card'));
+    // Get all room cards as an array
+    const roomCards = Array.from(document.querySelectorAll('.room-card'));
     if (roomCards.length <= 1) return; // No need to shuffle if there's only one or zero cards
 
-    // Fisher-Yates shuffle algorithm
-    for (let i = roomCards.length - 1; i > 0; i--) {
+    // Create a new array with shuffled indices
+    const indices = Array.from({ length: roomCards.length }, (_, i) => i);
+
+    // Fisher-Yates shuffle algorithm on the indices
+    for (let i = indices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      // Remove from DOM to avoid reference issues
-      if (roomCards[i].parentNode === cardView) cardView.removeChild(roomCards[i]);
-      if (roomCards[j].parentNode === cardView) cardView.removeChild(roomCards[j]);
-      // Swap
-      [roomCards[i], roomCards[j]] = [roomCards[j], roomCards[i]];
-      // Re-insert into DOM
-      cardView.appendChild(roomCards[j]);
-      cardView.appendChild(roomCards[i]);
+      [indices[i], indices[j]] = [indices[j], indices[i]];
     }
+
+    // Clear the container and append in new order
+    const fragment = document.createDocumentFragment();
+    indices.forEach(index => {
+      fragment.appendChild(roomCards[index]);
+    });
+
+    // Clear the container
+    while (cardView.firstChild) {
+      cardView.removeChild(cardView.firstChild);
+    }
+
+    // Add all elements back in new order
+    cardView.appendChild(fragment);
 
     // Re-apply animations with staggered delays
     roomCards.forEach((card, index) => {
-      card.style.animationDelay = `${index * 0.05}s`;
       card.style.opacity = '0';
       card.style.transform = 'translateY(20px)';
+      card.style.animationDelay = `${index * 0.05}s`;
 
       setTimeout(() => {
         card.style.opacity = '1';
@@ -1839,17 +1857,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Force "All Rooms" category to be selected by default
-  localStorage.setItem('euphorie_selected_category', 'all');
-
-  // Get all room cards and make sure they're visible
-  const allRoomCards = document.querySelectorAll('.room-card');
-
   // Randomize the cards on page load
-  randomizeRoomCards();
-
-  // Store the original room cards structure for later restoration
-  const originalCardView = document.getElementById('card-view').innerHTML;
+  if (cardView && allRoomCards.length > 0) {
+    randomizeRoomCards();
+  }
 
   allRoomCards.forEach(card => {
     card.style.display = '';
@@ -1951,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Filter rooms based on search
-        const matchingRooms = Array.from(allRoomCards).filter(card => {
+        const matchingRooms = Array.from(document.querySelectorAll('.room-card')).filter(card => {
           const roomName = card.querySelector('.room-name').textContent.toLowerCase();
           return roomName.includes(searchValue);
         });
@@ -2016,12 +2027,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to reset the rooms display to original state
   function resetRoomsDisplay() {
     const cardView = document.getElementById('card-view');
-    if (cardView) {
+    if (cardView && originalCardView) {
       cardView.innerHTML = originalCardView;
 
       // Re-select all room cards after resetting display
-      const allRoomCards = document.querySelectorAll('.room-card');
-      allRoomCards.forEach(card => {
+      document.querySelectorAll('.room-card').forEach(card => {
         card.style.display = '';
         card.style.opacity = '1';
         card.style.transform = 'translateY(0)';
@@ -2438,10 +2448,12 @@ document.addEventListener('DOMContentLoaded', () => {
     syncDesktopCategories();
   }
 
-  // Function to fetch trending rooms - Mocked for now
+  // Function to fetch trending rooms - Fixed to work with the randomized cards
   function fetchTrendingRooms() {
     const cardView = document.getElementById('card-view');
     if (!cardView) return;
+
+    const loadMoreContainer = document.getElementById('load-more-container');
 
     // Display loading state
     const loadingTemplate = `
@@ -2463,25 +2475,40 @@ document.addEventListener('DOMContentLoaded', () => {
       loadMoreContainer.classList.add('hidden');
     }
 
-    // Fallback to check for existing trending rooms on the page
-    setTimeout(() => {
-      // Check if there are any rooms with message count > 20 (as defined in the HTML)
-      const trendingRooms = [];
-      allRoomCards.forEach(room => {
-        const trendingIndicator = room.querySelector('.trending-indicator');
-        if (trendingIndicator) {
-          // Clone the room card to avoid issues with the original
-          const clone = room.cloneNode(true);
-          trendingRooms.push(clone);
-        }
-      });
+    // We need to use the original HTML to find trending rooms, as current DOM might be altered
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = originalCardView;
 
+    // Find trending rooms from original HTML
+    const trendingRooms = [];
+    const originalRoomCards = tempDiv.querySelectorAll('.room-card');
+
+    originalRoomCards.forEach(room => {
+      const trendingIndicator = room.querySelector('.trending-indicator');
+      if (trendingIndicator) {
+        // Clone the room card to avoid issues with the original
+        const clone = room.cloneNode(true);
+        trendingRooms.push(clone);
+      }
+    });
+
+    // Wait a bit to simulate loading
+    setTimeout(() => {
       if (trendingRooms.length > 0) {
         // Show only trending rooms
         cardView.innerHTML = '';
 
-        trendingRooms.forEach(room => {
+        trendingRooms.forEach((room, index) => {
           cardView.appendChild(room);
+
+          // Apply fade-in animations
+          room.style.opacity = '0';
+          room.style.transform = 'translateY(20px)';
+
+          setTimeout(() => {
+            room.style.opacity = '1';
+            room.style.transform = 'translateY(0)';
+          }, 50 + (index * 50));
         });
 
         // Show load more if there are more rooms
