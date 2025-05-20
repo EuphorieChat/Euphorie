@@ -15,11 +15,1193 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Same CSS styles from your original file would go here -->
-  <style>
-    /* Include the same CSS from your original file */
-    /* For brevity, I'm not repeating all the CSS here */
-  </style>
+  <!-- CSS styles remain unchanged -->
+<style>
+:root {
+  /* Pastel color scheme - light, soft and cheerful */
+  --primary: #f472b6;            /* Pink-400 - soft light pink */
+  --primary-hover: #ec4899;      /* Pink-500 - slightly deeper pink for hover */
+  --primary-light: #fce7f3;      /* Pink-50 - very light pink background */
+  --secondary: #60a5fa;          /* Blue-400 - light sky blue */
+  --secondary-hover: #3b82f6;    /* Blue-500 - slightly deeper blue for hover */
+  --secondary-light: #eff6ff;    /* Blue-50 - very light blue background */
+  --accent: #fcd34d;             /* Amber-300 - light yellow */
+  --accent-light: #fef3c7;       /* Amber-50 - very light yellow background */
+  --dark: #1f2937;               /* Unchanged */
+  --light: #f9fafb;              /* Unchanged */
+  --danger: #ef4444;             /* Unchanged */
+  --success: #10b981;            /* Unchanged */
+  --info: #3b82f6;               /* Unchanged */
+  --warning: #f59e0b;            /* Unchanged */
+  --surface: #ffffff;            /* Unchanged */
+  --surface-hover: #f8fafc;      /* Unchanged */
+  --surface-active: #f1f5f9;     /* Unchanged */
+  --border: #e2e8f0;             /* Unchanged */
+  --border-focus: #cbd5e1;       /* Unchanged */
+  --text-primary: #334155;       /* Unchanged */
+  --text-secondary: #64748b;     /* Unchanged */
+  --text-tertiary: #94a3b8;      /* Unchanged */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 0.15s;
+  --duration-normal: 0.25s;
+  --duration-slow: 0.35s;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(244, 114, 182, 0.04), transparent 25%),
+    radial-gradient(circle at 90% 90%, rgba(96, 165, 250, 0.04), transparent 25%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex-grow: 1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--text-tertiary);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-secondary);
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Header & Navigation */
+.app-header {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.app-header.scrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-md);
+}
+
+/* Cards & Containers */
+.surface-card {
+  background-color: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.surface-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+}
+
+/* Room Cards */
+.room-card {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--duration-normal) var(--ease-spring),
+              box-shadow var(--duration-normal) var(--ease),
+              border-color var(--duration-normal) var(--ease);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.4s var(--ease) forwards;
+  will-change: transform, opacity;
+}
+
+.room-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+}
+
+.room-card-footer {
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(to right, var(--primary-light), var(--secondary-light));
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.room-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+  z-index: 1;
+}
+
+.room-card:hover .join-btn {
+  color: var(--primary);
+  transform: translateX(4px);
+}
+
+.room-card:hover .room-name {
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.room-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  transition: all var(--duration-normal) var(--ease);
+  margin-bottom: 0.5rem;
+}
+
+.join-btn {
+  transition: all var(--duration-normal) var(--ease);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Rooms Grid */
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Animation Keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Animations for staggered room cards */
+.rooms-grid > .room-card:nth-child(1) { animation-delay: 0.05s; }
+.rooms-grid > .room-card:nth-child(2) { animation-delay: 0.10s; }
+.rooms-grid > .room-card:nth-child(3) { animation-delay: 0.15s; }
+.rooms-grid > .room-card:nth-child(4) { animation-delay: 0.20s; }
+.rooms-grid > .room-card:nth-child(5) { animation-delay: 0.25s; }
+.rooms-grid > .room-card:nth-child(6) { animation-delay: 0.30s; }
+.rooms-grid > .room-card:nth-child(7) { animation-delay: 0.35s; }
+.rooms-grid > .room-card:nth-child(8) { animation-delay: 0.40s; }
+.rooms-grid > .room-card:nth-child(9) { animation-delay: 0.45s; }
+
+/* Badges & Status Indicators */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.badge-primary {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.badge-secondary {
+  background-color: var(--secondary-light);
+  color: var(--secondary);
+}
+
+.badge-accent {
+  background-color: var(--accent-light);
+  color: var(--accent);
+}
+
+.badge-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.badge-sm {
+  font-size: 0.65rem;
+  padding: 0.125rem 0.375rem;
+}
+
+.online-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success);
+  display: inline-block;
+  margin-right: 0.375rem;
+  position: relative;
+}
+
+.online-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--success);
+  opacity: 0.4;
+  animation: pulse 2s infinite;
+  z-index: -1;
+  transform-origin: center;
+}
+
+.trending-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 1rem 0.25rem 1rem 1rem;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  box-shadow: var(--shadow-md);
+  animation: pulse 2s infinite;
+  z-index: 5;
+}
+
+/* Buttons & Controls */
+.btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  transition: all var(--duration-normal) var(--ease-spring);
+  cursor: pointer;
+  will-change: transform, box-shadow;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 0.8s;
+}
+
+.btn:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background-color: white;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+  border-color: var(--border-focus);
+  background-color: var(--surface-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+.btn-icon {
+  padding: 0.5rem;
+  border-radius: 9999px;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.btn-icon:hover {
+  background-color: var(--surface-hover);
+  transform: translateY(-1px);
+}
+
+/* Desktop Category Cards with Scroll Buttons */
+.desktop-categories-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.desktop-categories-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  padding: 0.5rem 0;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.desktop-categories-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.desktop-category-card {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  background: white;
+  border: 1px solid var(--border);
+  transition: all var(--duration-normal) var(--ease-spring);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  flex-shrink: 0; /* Prevent cards from shrinking */
+}
+
+.desktop-category-card:hover, .desktop-category-card.active {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px -5px rgba(236, 72, 153, 0.3);
+}
+
+.desktop-category-card.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-color: transparent;
+}
+
+.desktop-category-card:hover .desktop-category-name,
+.desktop-category-card.active .desktop-category-name {
+  color: black;
+  font-weight: 600;
+}
+
+.desktop-category-card:hover .desktop-category-icon,
+.desktop-category-card.active .desktop-category-icon {
+  background-color: white;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.desktop-category-card.active .desktop-category-icon svg,
+.desktop-category-card.active .desktop-category-icon span {
+  color: var(--primary);
+}
+
+.desktop-category-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  transition: all var(--duration-normal) var(--ease);
+  box-shadow: 0 3px 10px -2px rgba(236, 72, 153, 0.2);
+}
+
+.desktop-category-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: all var(--duration-normal) var(--ease);
+}
+
+/* Scroll buttons for desktop categories */
+.desktop-categories-scroll-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-normal) var(--ease);
+  flex-shrink: 0;
+  z-index: 10;
+  opacity: 0.9;
+}
+
+.desktop-categories-scroll-btn:hover {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.desktop-categories-scroll-btn:active {
+  transform: translateY(0);
+}
+
+.desktop-categories-scroll-btn.scroll-left {
+  left: 0;
+}
+
+.desktop-categories-scroll-btn.scroll-right {
+  right: 0;
+}
+
+/* Hide scroll buttons when not needed (JS will handle this) */
+.desktop-categories-scroll-btn.hidden {
+  display: none;
+}
+
+/* ===== IMPROVED MOBILE CATEGORIES ===== */
+.mobile-categories-showcase {
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 0.75rem 0;
+  margin: 0 -0.5rem;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+}
+
+.mobile-category-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 74px;
+  margin: 0 0.5rem;
+  border-radius: var(--radius-lg);
+  background: white;
+  border: 1px solid var(--border);
+  transition: all var(--duration-normal) var(--ease-spring);
+  scroll-snap-align: start;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-category-card:hover, .mobile-category-card.active {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px -5px rgba(236, 72, 153, 0.3);
+}
+
+.mobile-category-card.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-color: transparent;
+}
+
+.mobile-category-card:hover .mobile-category-name,
+.mobile-category-card.active .mobile-category-name {
+  color: black;
+  font-weight: 600; /* increased from 500 to 600 */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* adds shadow to text */
+}
+
+.mobile-category-card:hover .mobile-category-icon,
+.mobile-category-card.active .mobile-category-icon {
+  background-color: white; /* Keep white background instead of transparent */
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.mobile-category-card.active .mobile-category-icon svg,
+.mobile-category-card.active .mobile-category-icon span {
+  color: var(--primary); /* Keep icon color as primary instead of white */
+}
+
+.mobile-category-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  transition: all var(--duration-normal) var(--ease);
+  box-shadow: 0 3px 10px -2px rgba(236, 72, 153, 0.2);
+}
+
+.mobile-category-name {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: all var(--duration-normal) var(--ease);
+}
+
+#categories-expanded-panel {
+  animation: fadeIn 0.3s ease-out forwards;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+/* ===== IMPROVED SEARCH MODAL ===== */
+.search-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 20vh;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.search-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.search-modal-content {
+  width: 90%;
+  max-width: 600px;
+  background-color: white;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  transform: translateY(-20px);
+  transition: transform 0.3s ease;
+}
+
+.search-modal.active .search-modal-content {
+  transform: translateY(0);
+}
+
+.search-modal-header {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-modal-body {
+  padding: 1rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  transition: all var(--duration-normal) var(--ease);
+  font-size: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-input:hover {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-md);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+}
+
+.close-search {
+  margin-left: 1rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.close-search:hover {
+  background-color: var(--primary-light);
+}
+
+/* User Area */
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  font-size: 0.75rem;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.user-avatar-sm {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.65rem;
+}
+
+.user-avatar-lg {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1rem;
+}
+
+/* Friends Section */
+.friend-avatar {
+  position: relative;
+  transition: all var(--duration-normal) var(--ease-spring);
+}
+
+.friend-avatar:hover {
+  transform: translateY(-3px);
+}
+
+.friend-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.status-online {
+  background-color: var(--success);
+}
+
+.status-away {
+  background-color: var(--warning);
+}
+
+.status-offline {
+  background-color: var(--text-tertiary);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Additional styles for stat cards */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  background-color: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-focus);
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.stat-icon-primary {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.stat-icon-secondary {
+  background-color: var(--secondary-light);
+  color: var(--secondary);
+}
+
+.stat-icon-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+/* Create room card styles */
+.create-room-card {
+  background-color: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease);
+  box-shadow: var(--shadow-sm);
+}
+
+.create-room-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+}
+
+.input-icon-left {
+  left: 0.75rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  transition: all var(--duration-normal) var(--ease);
+  font-size: 0.875rem;
+}
+
+.input-with-icon-left {
+  padding-left: 2.25rem;
+}
+
+.input:hover {
+  border-color: var(--border-focus);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+}
+
+.create-room-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-normal) var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+}
+
+.create-room-btn:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.create-room-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+  /* Mobile Bottom Navigation */
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    z-index: 50;
+    transform: translateY(100%);
+    animation: fadeIn 0.5s ease-in-out forwards;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .nav-item.active {
+    color: var(--primary);
+  }
+
+  .nav-item:active {
+    transform: scale(0.9);
+  }
+
+  .nav-item-icon {
+    margin-bottom: 0.25rem;
+    position: relative;
+  }
+
+  .nav-item-label {
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+
+  .nav-notification {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    font-size: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+
+  /* Mobile Pulse Animation for Activity */
+  .pulse {
+    position: relative;
+  }
+
+  .pulse::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(244, 114, 182, 0.3);
+    transform: translate(-50%, -50%);
+    animation: gentle-fade 3s infinite ease-in-out !important;
+  }
+
+  @keyframes gentle-fade {
+    0%, 100% {
+      opacity: 0.1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.3;
+      transform: scale(1.1);
+    }
+  }
+
+  /* Replace pulse animation with gentle fade for all elements */
+  .online-indicator::after {
+    animation: gentle-fade 3s infinite ease-in-out !important;
+  }
+
+  .trending-indicator {
+    animation: gentle-fade 3s infinite ease-in-out !important;
+  }
+
+  /* Enhanced Mobile Room Cards */
+  .room-card {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.2s var(--ease),
+                border-color 0.2s var(--ease);
+    min-height: 0 !important;
+  }
+
+  .room-card:active {
+    transform: scale(0.97);
+  }
+
+  .room-card-content {
+    padding: 0.5rem 0.75rem !important;
+    min-height: 90px !important;
+  }
+
+  .room-card-footer {
+    padding: 0.25rem 0.5rem !important;
+  }
+
+  /* Mobile Categories Showcase Enhancements */
+  .mobile-categories-showcase {
+    margin: 0 -1rem;
+    padding: 1rem;
+    position: relative;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 1rem;
+    background: linear-gradient(to right, rgba(248, 250, 252, 0.8), rgba(248, 250, 252, 0.5));
+    border-radius: var(--radius-lg);
+  }
+
+  .mobile-category-card {
+    scroll-snap-align: start;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s var(--ease);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+                0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  .mobile-category-card:active {
+    transform: scale(0.95);
+  }
+
+  .mobile-category-card.active {
+    transform: translateY(-5px);
+  }
+
+  /* Page transition animations */
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* Add breathing room at bottom for nav bar */
+  main {
+    padding-bottom: 5rem !important;
+  }
+
+  /* Compact UI for mobile */
+  .app-header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .surface-card {
+    border-radius: var(--radius-lg);
+  }
+
+  /* Fix mobile grid for rooms to ensure they display */
+  .rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Better loading states for mobile */
+  .mobile-skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(226, 232, 240, 0.3) 25%,
+      rgba(226, 232, 240, 0.5) 50%,
+      rgba(226, 232, 240, 0.3) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: var(--radius-md);
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* More efficient use of space */
+  .mobile-categories-showcase {
+    margin: 0 -0.5rem;
+    padding: 0.5rem;
+  }
+
+  /* Optimize mobile bottom navigation */
+  .mobile-bottom-nav {
+    padding: 0.5rem 0.25rem;
+  }
+
+  /* Reduce margins and padding throughout */
+  .mb-6 {
+    margin-bottom: 1rem !important;
+  }
+
+  .p-4 {
+    padding: 0.75rem !important;
+  }
+
+  /* Smaller text for mobile */
+  .room-name {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Simplified badge display for mobile */
+  .badge {
+    padding: 0.125rem 0.375rem;
+    font-size: 0.65rem;
+  }
+}
+
+/* Media queries */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .rooms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  /* Desktop category responsiveness for tablets */
+  .desktop-category-card {
+    padding: 0.5rem 0.75rem;
+    margin-right: 0.5rem;
+  }
+
+  .desktop-category-icon {
+    width: 28px;
+    height: 28px;
+    margin-right: 0.5rem;
+  }
+
+  .desktop-category-name {
+    font-size: 0.75rem;
+  }
+
+  /* Adjust scroll buttons on tablets */
+  .desktop-categories-scroll-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+/* NEW: Accessibility improvements */
+@media (prefers-reduced-motion) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* NEW: Focus styles for accessibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+</style>
 </head>
 <body>
   <!-- Sticky Top Navigation with glass effect -->
@@ -55,8 +1237,98 @@
                 <!-- Your button (e.g., user avatar or name) -->
             </button>
             <div id="user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-50" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
-                <!-- Dropdown menu content remains the same -->
-                <!-- ... -->
+                <div class="py-1" role="none">
+                    <!-- Existing menu items -->
+                    <a href="{% url 'user_profile' username=request.user.username %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        My Profile
+                    </a>
+                    <a href="{% url 'friends_list' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 relative" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Friends
+                        {% if pending_friend_requests_count > 0 %}
+                        <span class="ml-auto h-4 w-4 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                            {{ pending_friend_requests_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'admin_user_settings' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Settings
+                    </a>
+
+                    <!-- Check if user is staff or created any rooms before showing admin section -->
+                    {% if user.is_staff or user_created_rooms %}
+                    <!-- Add a divider before admin section -->
+                    <div class="border-t border-gray-100 my-1"></div>
+
+                    <!-- Admin Management Section -->
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500">Management</div>
+
+                    <!-- Staff-only links -->
+                    {% if user.is_staff %}
+                    <a href="{% url 'admin_dashboard' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                        Dashboard
+                    </a>
+                    {% endif %}
+
+                    <!-- Available to both staff and room creators -->
+                    <a href="{% url 'admin_rooms' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        Manage Rooms
+                    </a>
+
+                    <!-- Staff-only links -->
+                    {% if user.is_staff %}
+                    <a href="{% url 'admin_messages' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        Messages
+                    </a>
+
+                    <a href="{% url 'admin_user_activity' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        User Activity
+                    </a>
+
+                    <a href="{% url 'admin_user_settings' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        User Settings
+                    </a>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Original logout button at the bottom -->
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <form method="post" action="{% url 'logout' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Logout
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -76,8 +1348,30 @@
 
   <!-- Search Modal (Hidden by default) -->
   <div id="search-modal" class="search-modal">
-    <!-- Search modal content remains the same -->
-    <!-- ... -->
+    <div class="search-modal-content">
+      <div class="search-modal-header">
+        <div class="relative flex-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            id="modal-search-input"
+            placeholder="Search rooms..."
+            class="search-input"
+            autofocus
+          />
+        </div>
+        <button id="close-search" class="close-search">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="search-modal-body" id="search-results">
+        <p class="text-gray-500 text-center py-4">Type to search for rooms...</p>
+      </div>
+    </div>
   </div>
 
   <main class="container mx-auto p-4 sm:p-6 max-w-7xl">
@@ -206,12 +1500,12 @@
               </div>
               <h3 class="text-base font-semibold text-gray-800">Friends Online</h3>
             </div>
-            <a href="{% url 'friends_list' %}" class="text-xs text-pink-500 hover:underline flex items-center group">
-              View all
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
+                <a href="{% url 'friends_list' %}" class="text-xs text-pink-500 hover:underline flex items-center group">
+                View all
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                </a>
           </div>
         </div>
         <div id="online-friends-container" class="p-4 flex flex-wrap gap-4">
@@ -229,97 +1523,97 @@
       {% endif %}
     </div>
 
-    <!-- Browse Categories and Active Chat Rooms Header -->
+    <!-- Browse Categories and Active Chat Rooms Header - NO EMPTY SPACE -->
     <div class="mb-4">
-      <!-- Mobile view header and categories -->
+      <!-- Mobile view header and PRETTIER categories -->
       <div class="sm:hidden">
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-sm font-semibold text-gray-700">Browse Categories</h3>
         </div>
 
-        <!-- Mobile category buttons -->
+        <!-- Enhanced prettier mobile category buttons -->
         <div class="flex overflow-x-auto hide-scrollbar py-2 gap-3 mb-4">
             <!-- All rooms card for mobile -->
             <button data-category="all" class="mobile-category-card active" style="background: linear-gradient(135deg, #fdf2f8 0%, #ede9fe 100%); border: none; box-shadow: 0 4px 15px -3px rgba(244, 114, 182, 0.2);">
-              <div class="mobile-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(244, 114, 182, 0.2);">
+            <div class="mobile-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(244, 114, 182, 0.2);">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-              </div>
-              <span class="mobile-category-name text-pink-600 font-medium">All Rooms</span>
+            </div>
+            <span class="mobile-category-name text-pink-600 font-medium">All Rooms</span>
             </button>
 
             <!-- Trending Card -->
             <button data-category="trending" class="mobile-category-card" style="background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%); border: none; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.05);">
-              <div class="mobile-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(236, 72, 153, 0.05);">
+            <div class="mobile-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(236, 72, 153, 0.05);">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
-              </div>
-              <span class="mobile-category-name text-gray-700">Trending</span>
+            </div>
+            <span class="mobile-category-name text-gray-700">Trending</span>
             </button>
 
             <!-- Dynamic Categories -->
             {% for category in categories %}
             <button data-category="{{ category.slug|default:category.name|lower }}" class="mobile-category-card" style="background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%); border: none; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.05);">
-              <div class="mobile-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(236, 72, 153, 0.05);">
+            <div class="mobile-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(236, 72, 153, 0.05);">
                 <span>{{ category.icon|default:"🌟" }}</span>
-              </div>
-              <span class="mobile-category-name text-gray-700">{{ category.name }}</span>
+            </div>
+            <span class="mobile-category-name text-gray-700">{{ category.name }}</span>
             </button>
             {% endfor %}
         </div>
       </div>
 
-      <!-- Desktop categories -->
-      <div class="hidden sm:block mb-4">
+        <!-- Desktop categories - Card-based style with horizontal scrolling -->
+        <div class="hidden sm:block mb-4">
         <div class="desktop-categories-wrapper">
             <!-- Left scroll button -->
             <button class="desktop-categories-scroll-btn scroll-left" aria-label="Scroll categories left">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
+            </svg>
             </button>
 
             <div class="desktop-categories-container">
-              <button data-category="all" class="desktop-category-card active" style="background: linear-gradient(135deg, #fdf2f8 0%, #ede9fe 100%); border: none; box-shadow: 0 4px 15px -3px rgba(244, 114, 182, 0.2);">
+            <button data-category="all" class="desktop-category-card active" style="background: linear-gradient(135deg, #fdf2f8 0%, #ede9fe 100%); border: none; box-shadow: 0 4px 15px -3px rgba(244, 114, 182, 0.2);">
                 <div class="desktop-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(244, 114, 182, 0.2);">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
+                </svg>
                 </div>
                 <span class="desktop-category-name text-pink-600 font-medium">All Rooms</span>
-              </button>
+            </button>
 
-              <!-- Trending Card -->
-              <button data-category="trending" class="desktop-category-card" style="background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%); border: none; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.05);">
+            <!-- Trending Card -->
+            <button data-category="trending" class="desktop-category-card" style="background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%); border: none; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.05);">
                 <div class="desktop-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(236, 72, 153, 0.05);">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
+                </svg>
                 </div>
                 <span class="desktop-category-name text-gray-700">Trending</span>
-              </button>
+            </button>
 
-              <!-- Dynamic Categories -->
-              {% for category in categories %}
-              <button data-category="{{ category.slug|default:category.name|lower }}" class="desktop-category-card" style="background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%); border: none; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.05);">
+            <!-- Dynamic Categories -->
+            {% for category in categories %}
+            <button data-category="{{ category.slug|default:category.name|lower }}" class="desktop-category-card" style="background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%); border: none; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.05);">
                 <div class="desktop-category-icon bg-white flex items-center justify-center" style="border: 2px solid rgba(236, 72, 153, 0.05);">
-                  <span>{{ category.icon|default:"🌟" }}</span>
+                <span>{{ category.icon|default:"🌟" }}</span>
                 </div>
                 <span class="desktop-category-name text-gray-700">{{ category.name }}</span>
-              </button>
-              {% endfor %}
+            </button>
+            {% endfor %}
             </div>
 
             <!-- Right scroll button -->
             <button class="desktop-categories-scroll-btn scroll-right" aria-label="Scroll categories right">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
+            </svg>
             </button>
         </div>
-      </div>
+        </div>
 
       <!-- Active Chat Rooms Header -->
       <div class="flex justify-between items-center mb-4">
@@ -331,26 +1625,18 @@
           </div>
           <h2 class="text-lg font-bold text-gray-800">Active Chat Rooms</h2>
         </div>
-        <div class="flex items-center">
-          <button id="shuffle-rooms-btn" class="text-sm text-blue-500 flex items-center mr-4 hover:underline">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Shuffle
-          </button>
-          <div class="text-sm text-gray-500 flex items-center">
-            <span class="online-indicator mr-1"></span>
-            <span>{{ active_rooms|length }} rooms available</span>
-          </div>
+        <div class="text-sm text-gray-500 flex items-center">
+          <span class="online-indicator mr-1"></span>
+          <span>{{ active_rooms|length }} rooms available</span>
         </div>
       </div>
     </div>
 
-    <!-- Card View - Rooms Grid -->
+    <!-- Card View - Enhanced with better visual hierarchy -->
     <div class="rooms-grid" id="card-view">
       {% if active_rooms %}
         {% for room in active_rooms %}
-        <a href="{% url 'room' room.name %}" class="room-card surface-card" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}" data-message-count="{{ room.message_count }}">
+        <a href="{% url 'room' room.name %}" class="room-card surface-card" data-category="{% if room.category %}{{ room.category_slug }}{% else %}all{% endif %}">
           {% if room.message_count > 20 %}
           <div class="trending-indicator bg-pink-100 text-pink-600 shadow-sm">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -368,7 +1654,7 @@
               <span class="badge badge-sm bg-blue-50 text-blue-500">Active</span>
             </div>
 
-            <!-- Activity indicator -->
+            <!-- Refined activity indicator - more visible but still elegant -->
             <div class="h-3 bg-gray-50 rounded-md mb-3 overflow-hidden">
               {% if room.message_count > 30 %}
                 <div class="h-full w-3/4 bg-gradient-to-r from-blue-200 to-pink-200 rounded-md"></div>
@@ -406,7 +1692,7 @@
         </a>
         {% endfor %}
       {% else %}
-        <!-- Empty state -->
+        <!-- Empty state - Enhanced visual design -->
         <div class="col-span-full py-12 surface-card flex flex-col items-center">
           <div class="w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -429,7 +1715,7 @@
       {% endif %}
     </div>
 
-    <!-- Load more button -->
+    <!-- Load more button - will be hidden initially -->
     <div class="text-center mt-6 hidden" id="load-more-container">
       <button id="load-more-button" class="btn btn-secondary flex items-center gap-2 mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -463,147 +1749,58 @@
 
   <!-- Mobile Bottom Navigation -->
   <div class="mobile-bottom-nav hidden sm:hidden">
-    <!-- Mobile nav items remain the same -->
-  </div>
-
+    <a href="{% url 'index' %}" class="nav-item active">
+      <div class="nav-item-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      </div>
+      <span class="nav-item-label">Home</span>
+    </a>
+        <a href="{% url 'explore_rooms' %}" class="nav-item">
+        <div class="nav-item-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+        </div>
+        <span class="nav-item-label">Explore</span>
+        </a>
+    <div class="nav-item relative" id="create-room-nav">
+      <div class="absolute inset-0 bg-gradient-to-r from-pink-400 to-purple-400 opacity-10 rounded-md"></div>
+      <div class="nav-item-icon pulse">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </div>
+      <span class="nav-item-label">Create</span>
+    </div>
+        <a href="{% url 'friends_list' %}" class="nav-item">
+        <div class="nav-item-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            {% if pending_friend_requests_count > 0 %}
+            <span class="nav-notification">{{ pending_friend_requests_count }}</span>
+            {% endif %}
+        </div>
+        <span class="nav-item-label">Friends</span>
+        </a>
+            <button class="nav-item" id="profile-nav" aria-label="Open profile menu">
+            <div class="nav-item-icon">
+                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium">
+                {{ user.username|slice:":1"|upper }}
+                </div>
+                {% if pending_friend_requests_count > 0 %}
+                <span class="absolute -top-1 -right-1 h-4 w-4 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {{ pending_friend_requests_count }}
+                </span>
+                {% endif %}
+            </div>
+            <span class="nav-item-label">Profile</span>
+            </button>
+        </div>
+    </body>
 <script>
-
-document.addEventListener('DOMContentLoaded', () => {
-  // All the original JavaScript functionality
-  // ... (existing functionality)
-
-  // Room shuffling functionality
-  function shuffleRooms() {
-    const cardView = document.getElementById('card-view');
-    if (!cardView) return;
-
-    // Get all room cards
-    const roomCards = Array.from(cardView.querySelectorAll('.room-card'));
-    if (roomCards.length <= 1) return; // No need to shuffle if 0 or 1 card
-
-    // Fisher-Yates shuffle algorithm
-    for (let i = roomCards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      // Remove from DOM
-      roomCards[i].remove();
-      roomCards[j].remove();
-      // Swap positions in array
-      [roomCards[i], roomCards[j]] = [roomCards[j], roomCards[i]];
-    }
-
-    // Reinsert all cards in new order
-    roomCards.forEach(card => {
-      cardView.appendChild(card);
-      // Add a small delay for visual stagger effect
-      setTimeout(() => {
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-      }, Math.random() * 300);
-    });
-
-    // Save the current shuffle in localStorage
-    localStorage.setItem('euphorie_room_order', JSON.stringify(roomCards.map(card => card.querySelector('.room-name').textContent)));
-  }
-
-  // Smart room ordering by user preference - simulated
-  function orderRoomsByPreference() {
-    // This is a placeholder for future implementation
-    // For now, we'll use a pseudo-preference algorithm based on:
-    // 1. Message count (higher = more engaging rooms)
-    // 2. Recently created rooms
-    // 3. With some randomization to keep things fresh
-
-    const cardView = document.getElementById('card-view');
-    if (!cardView) return;
-
-    const roomCards = Array.from(cardView.querySelectorAll('.room-card'));
-    if (roomCards.length <= 1) return;
-
-    // Sort by a combination of message count and random factor
-    roomCards.sort((a, b) => {
-      const aMessageCount = parseInt(a.getAttribute('data-message-count') || '0');
-      const bMessageCount = parseInt(b.getAttribute('data-message-count') || '0');
-
-      // Add some randomness (30% random, 70% message count)
-      const randomFactor = Math.random() * 0.3;
-      const messageFactor = 0.7 * (bMessageCount - aMessageCount) / Math.max(1, Math.max(aMessageCount, bMessageCount));
-
-      return messageFactor + randomFactor;
-    });
-
-    // Reinsert all cards in new order
-    roomCards.forEach(card => {
-      cardView.appendChild(card);
-      // Add a small delay for visual stagger effect
-      setTimeout(() => {
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-      }, Math.random() * 200);
-    });
-  }
-
-  // Shuffle rooms on page load with a small chance
-  if (Math.random() < 0.5) { // 50% chance to shuffle
-    orderRoomsByPreference();
-  } else {
-    // Check if we have a saved order
-    const savedOrder = localStorage.getItem('euphorie_room_order');
-    if (savedOrder) {
-      try {
-        // Restore saved order
-        const roomOrder = JSON.parse(savedOrder);
-        const cardView = document.getElementById('card-view');
-        if (cardView) {
-          const roomCards = Array.from(cardView.querySelectorAll('.room-card'));
-
-          // Sort based on saved order
-          roomCards.sort((a, b) => {
-            const aName = a.querySelector('.room-name').textContent;
-            const bName = b.querySelector('.room-name').textContent;
-            const aIndex = roomOrder.indexOf(aName);
-            const bIndex = roomOrder.indexOf(bName);
-
-            // If room is not in saved order, put it at the end
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-
-            return aIndex - bIndex;
-          });
-
-          // Reinsert all cards in restored order
-          roomCards.forEach(card => {
-            cardView.appendChild(card);
-            setTimeout(() => {
-              card.style.opacity = '1';
-              card.style.transform = 'translateY(0)';
-            }, Math.random() * 200);
-          });
-        }
-      } catch (e) {
-        console.error('Error restoring room order:', e);
-        shuffleRooms(); // Fallback to shuffle
-      }
-    } else {
-      // No saved order, shuffle normally
-      shuffleRooms();
-    }
-  }
-
-  // Add event listener to shuffle button
-  const shuffleBtn = document.getElementById('shuffle-rooms-btn');
-  if (shuffleBtn) {
-    shuffleBtn.addEventListener('click', () => {
-      // Add animation to button
-      shuffleBtn.classList.add('animate-spin');
-      setTimeout(() => {
-        shuffleBtn.classList.remove('animate-spin');
-      }, 500);
-
-      // Shuffle the rooms
-      shuffleRooms();
-    });
-  }
-
 // Fixed Euphorie functionality
 document.addEventListener('DOMContentLoaded', () => {
   // Force "All Rooms" category to be selected by default
