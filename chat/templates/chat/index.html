@@ -1248,48 +1248,6 @@ select:focus-visible {
 .search-category-btn:nth-child(7) { animation-delay: 0.35s; }
 .search-category-btn:nth-child(8) { animation-delay: 0.4s; }
 
-/* Search categories scroll buttons */
-.search-modal-categories-wrapper {
-  position: relative;
-}
-
-.search-categories-scroll-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: white;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--duration-normal) var(--ease);
-  z-index: 10;
-  opacity: 0.9;
-}
-
-.search-categories-scroll-btn:hover {
-  background-color: var(--primary-light);
-  color: var(--primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.search-categories-scroll-btn:active {
-  transform: translateY(0);
-}
-
-/* Ensure the categories have padding to prevent overlap with scroll buttons */
-.search-modal-categories {
-  padding-left: 28px;
-  padding-right: 28px;
-}
-
-.search-categories-scroll-btn.hidden {
-  display: none;
-}
-
 </style>
 </head>
 <body>
@@ -1435,35 +1393,47 @@ select:focus-visible {
     </div>
   </header>
 
-  <!-- New Category Filter Section with scroll buttons -->
-  <div class="search-modal-categories-wrapper relative">
-    <!-- Left scroll button -->
-    <button class="search-categories-scroll-btn scroll-left absolute left-0 top-1/2 transform -translate-y-1/2 z-10 hidden">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
+  <!-- Search Modal (Hidden by default) -->
+  <div id="search-modal" class="search-modal">
+    <div class="search-modal-content">
+      <div class="search-modal-header">
+        <div class="relative flex-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            id="modal-search-input"
+            placeholder="Search rooms..."
+            class="search-input"
+            autofocus
+          />
+        </div>
+        <button id="close-search" class="close-search">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-    <!-- Categories container -->
-    <div class="search-modal-categories p-3 border-b border-gray-100 overflow-x-auto px-8">
-      <div class="flex gap-2 pb-1 search-categories-container">
-        <button data-category="all" class="search-category-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-pink-500 text-white">
-          All Rooms
-        </button>
-        {% for category in categories %}
-        <button data-category="{{ category.slug }}" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-          {{ category.icon }} {{ category.name }}
-        </button>
-        {% endfor %}
+      <!-- New Category Filter Section -->
+      <div class="search-modal-categories p-3 border-b border-gray-100 overflow-x-auto">
+        <div class="flex gap-2 pb-1">
+          <button data-category="all" class="search-category-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-pink-500 text-white">
+            All Rooms
+          </button>
+          {% for category in categories %}
+          <button data-category="{{ category.slug }}" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+            {{ category.icon }} {{ category.name }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="search-modal-body" id="search-results">
+        <p class="text-gray-500 text-center py-4">Type to search for rooms...</p>
       </div>
     </div>
-
-    <!-- Right scroll button -->
-    <button class="search-categories-scroll-btn scroll-right absolute right-0 top-1/2 transform -translate-y-1/2 z-10">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-      </svg>
-    </button>
   </div>
 
   <main class="container mx-auto p-4 sm:p-6 max-w-7xl">
@@ -2713,64 +2683,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initDesktopCategoryCards();
   showMobileNavigation();
 });
-
-// Initialize the search modal categories scroll buttons
-  function initSearchCategoriesScroll() {
-    const categoriesContainer = document.querySelector('.search-modal-categories');
-    const categoriesInnerContainer = document.querySelector('.search-categories-container');
-    const scrollLeftBtn = document.querySelector('.search-categories-scroll-btn.scroll-left');
-    const scrollRightBtn = document.querySelector('.search-categories-scroll-btn.scroll-right');
-
-    if (!categoriesContainer || !scrollLeftBtn || !scrollRightBtn) return;
-
-    // Handle left scroll button click
-    scrollLeftBtn.addEventListener('click', () => {
-      categoriesContainer.scrollBy({
-        left: -200,
-        behavior: 'smooth'
-      });
-    });
-
-    // Handle right scroll button click
-    scrollRightBtn.addEventListener('click', () => {
-      categoriesContainer.scrollBy({
-        left: 200,
-        behavior: 'smooth'
-      });
-    });
-
-    // Update scroll buttons visibility based on scroll position
-    function updateScrollButtons() {
-      // Check if scrolling is possible
-      const canScrollLeft = categoriesContainer.scrollLeft > 0;
-      const canScrollRight = categoriesContainer.scrollLeft < (categoriesContainer.scrollWidth - categoriesContainer.clientWidth - 10);
-
-      // Update visibility
-      scrollLeftBtn.classList.toggle('hidden', !canScrollLeft);
-      scrollRightBtn.classList.toggle('hidden', !canScrollRight);
-    }
-
-    // Initialize scroll buttons visibility
-    updateScrollButtons();
-
-    // Update on scroll
-    categoriesContainer.addEventListener('scroll', updateScrollButtons);
-
-    // Update on window resize
-    window.addEventListener('resize', updateScrollButtons);
-  }
-
-  // Call the initialization function when search modal is opened
-  const searchModal = document.getElementById('search-modal');
-  const searchToggle = document.getElementById('search-toggle');
-
-  if (searchModal && searchToggle) {
-    // Initialize when search modal is opened
-    searchToggle.addEventListener('click', () => {
-      // Delay to ensure modal is fully visible
-      setTimeout(initSearchCategoriesScroll, 300);
-    });
-  }
 
 </script>
 </html>
