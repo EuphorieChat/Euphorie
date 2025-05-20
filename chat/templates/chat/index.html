@@ -1810,8 +1810,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const cardView = document.getElementById('card-view');
   const allRoomCards = document.querySelectorAll('.room-card');
 
-  // No need to store original card view since we want it randomized always
-
   // Function to randomize room cards using a safer approach
   function randomizeRoomCards() {
     if (!cardView) return;
@@ -1861,7 +1859,8 @@ document.addEventListener('DOMContentLoaded', () => {
     randomizeRoomCards();
   }
 
-  allRoomCards.forEach(card => {
+  // Make sure cards are visible after randomization
+  document.querySelectorAll('.room-card').forEach(card => {
     card.style.display = '';
     card.style.opacity = '1';
     card.style.transform = 'translateY(0)';
@@ -2023,21 +2022,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const categoryButtons = document.querySelectorAll('[data-category]');
   let isCustomFilteringActive = false;
 
-  // Function to filter rooms by category
+  // Function to filter rooms by category - FIXED VERSION
   function filterRoomsByCategory(category) {
-    const cardView = document.getElementById('card-view');
-    if (!cardView) return;
-
     // If trending, handle special case
     if (category === 'trending') {
       fetchTrendingRooms();
       isCustomFilteringActive = true;
+
+      // Update active state of all category buttons
+      updateCategoryButtonStates(category);
       return;
     }
 
-    // For non-trending categories, just filter the existing cards
+    // For non-trending categories, filter the existing cards
     const allRoomCards = document.querySelectorAll('.room-card');
-    let visibleCount = 0;
 
     allRoomCards.forEach(card => {
       const roomCategory = card.getAttribute('data-category');
@@ -2049,7 +2047,6 @@ document.addEventListener('DOMContentLoaded', () => {
           card.style.opacity = '1';
           card.style.transform = 'translateY(0)';
         }, 10);
-        visibleCount++;
       } else {
         // Hide this card with animation
         card.style.opacity = '0';
@@ -2220,6 +2217,123 @@ document.addEventListener('DOMContentLoaded', () => {
           loadMoreBtn.click();
         }, 500);
       }
+    }
+  }
+
+  // Function to fetch trending rooms
+  function fetchTrendingRooms() {
+    const cardView = document.getElementById('card-view');
+    if (!cardView) return;
+
+    const loadMoreContainer = document.getElementById('load-more-container');
+
+    // Display loading state
+    const loadingTemplate = `
+      <div class="col-span-full py-8 flex flex-col items-center surface-card">
+        <div class="w-16 h-16 flex items-center justify-center mb-3">
+          <svg class="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <p class="text-gray-600 font-medium">Loading trending rooms...</p>
+      </div>
+    `;
+
+    cardView.innerHTML = loadingTemplate;
+
+    // Hide load more button while loading
+    if (loadMoreContainer) {
+      loadMoreContainer.classList.add('hidden');
+    }
+
+    // Simulate loading delay
+    setTimeout(() => {
+      // Find all trending rooms (rooms with trending-indicator)
+      const trendingRooms = [];
+
+      // Look in ALL room cards, including hidden ones
+      const allRoomElements = document.querySelectorAll('.room-card');
+
+      allRoomElements.forEach(roomElement => {
+        // Check if the room has a trending indicator
+        const hasTrendingIndicator = roomElement.querySelector('.trending-indicator') !== null;
+
+        // Alternative check: room has many messages (15+)
+        let hasHighMessageCount = false;
+        const badgeElement = roomElement.querySelector('.badge');
+        if (badgeElement) {
+          const badgeText = badgeElement.textContent.trim();
+          const messageCountMatch = badgeText.match(/(\d+)\s*message/);
+          if (messageCountMatch && parseInt(messageCountMatch[1]) >= 15) {
+            hasHighMessageCount = true;
+          }
+        }
+
+        // If trending or high message count, add to trending rooms
+        if (hasTrendingIndicator || hasHighMessageCount) {
+          // Clone the room to avoid reference issues
+          const roomClone = roomElement.cloneNode(true);
+          trendingRooms.push(roomClone);
+        }
+      });
+
+      // Display trending rooms or "no trending rooms" message
+      if (trendingRooms.length > 0) {
+        // Clear the container
+        cardView.innerHTML = '';
+
+        // Add trending rooms
+        trendingRooms.forEach((room, index) => {
+          // Make sure the room is visible
+          room.style.display = '';
+          room.style.opacity = '0';
+          room.style.transform = 'translateY(20px)';
+
+          // Add to container
+          cardView.appendChild(room);
+
+          // Animate in
+          setTimeout(() => {
+            room.style.opacity = '1';
+            room.style.transform = 'translateY(0)';
+          }, 50 + (index * 50));
+        });
+
+        // Show load more if many trending rooms
+        if (loadMoreContainer && trendingRooms.length > 12) {
+          loadMoreContainer.classList.remove('hidden');
+        }
+      } else {
+        // No trending rooms found
+        displayNoTrendingRooms();
+      }
+    }, 800);
+  }
+
+  function displayNoTrendingRooms() {
+    const cardView = document.getElementById('card-view');
+    if (!cardView) return;
+
+    const noRoomsTemplate = `
+      <div class="col-span-full py-8 flex flex-col items-center surface-card">
+        <div class="w-20 h-20 bg-gradient-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">No trending rooms yet</h3>
+        <p class="text-gray-500 mb-4">Be the first to create a popular room!</p>
+        <button onclick="document.querySelector('[data-category=all]').click();" class="btn btn-primary py-2 px-4">
+          View All Rooms
+        </button>
+      </div>
+    `;
+
+    cardView.innerHTML = noRoomsTemplate;
+
+    if (loadMoreContainer) {
+      loadMoreContainer.classList.add('hidden');
     }
   }
 
@@ -2428,122 +2542,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial sync
     syncDesktopCategories();
-  }
-
-  // Function to fetch trending rooms - Completely rewritten to work directly with DOM
-  function fetchTrendingRooms() {
-    const cardView = document.getElementById('card-view');
-    if (!cardView) return;
-
-    const loadMoreContainer = document.getElementById('load-more-container');
-
-    // Display loading state
-    const loadingTemplate = `
-      <div class="col-span-full py-8 flex flex-col items-center surface-card">
-        <div class="w-16 h-16 flex items-center justify-center mb-3">
-          <svg class="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        </div>
-        <p class="text-gray-600 font-medium">Loading trending rooms...</p>
-      </div>
-    `;
-
-    cardView.innerHTML = loadingTemplate;
-
-    // Hide load more button while loading
-    if (loadMoreContainer) {
-      loadMoreContainer.classList.add('hidden');
-    }
-
-    // New approach: Scan all cards directly from the current DOM
-    // This simulates the back-end call by finding cards with trending indicators
-    setTimeout(() => {
-      // Get all cards from the DOM
-      const allCards = document.querySelectorAll('.room-card');
-
-      // Find trending rooms by searching for trending indicators
-      const trendingRooms = [];
-
-      allCards.forEach(card => {
-        // Look for the trending indicator or check message count
-        const trendingIndicator = card.querySelector('.trending-indicator');
-
-        // If the card has a trending indicator, clone it and add to trending rooms
-        if (trendingIndicator) {
-          const clone = card.cloneNode(true);
-          trendingRooms.push(clone);
-        }
-
-        // Alternative approach: If there's no direct indicator, check for high message count
-        const badgeElement = card.querySelector('.badge');
-        if (badgeElement && !trendingIndicator) {
-          const badgeText = badgeElement.textContent.trim();
-          const messageCount = parseInt(badgeText);
-
-          // If message count is over 15, consider it trending
-          if (!isNaN(messageCount) && messageCount > 15) {
-            const clone = card.cloneNode(true);
-            trendingRooms.push(clone);
-          }
-        }
-      });
-
-      // Display trending rooms if found
-      if (trendingRooms.length > 0) {
-        // Clear the loading message
-        cardView.innerHTML = '';
-
-        // Add the trending rooms to the container
-        trendingRooms.forEach((room, index) => {
-          cardView.appendChild(room);
-
-          // Apply fade-in animations
-          room.style.opacity = '0';
-          room.style.transform = 'translateY(20px)';
-
-          setTimeout(() => {
-            room.style.opacity = '1';
-            room.style.transform = 'translateY(0)';
-          }, 50 + (index * 50));
-        });
-
-        // Show load more if there are lots of trending rooms
-        if (loadMoreContainer && trendingRooms.length > 12) {
-          loadMoreContainer.classList.remove('hidden');
-        }
-      } else {
-        // Display no trending rooms message
-        displayNoTrendingRooms();
-      }
-    }, 1000); // Simulate network delay for better UX
-  }
-
-  function displayNoTrendingRooms() {
-    const cardView = document.getElementById('card-view');
-    if (!cardView) return;
-
-    const noRoomsTemplate = `
-      <div class="col-span-full py-8 flex flex-col items-center surface-card">
-        <div class="w-20 h-20 bg-gradient-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-        </div>
-        <h3 class="text-xl font-bold text-gray-800 mb-2">No trending rooms yet</h3>
-        <p class="text-gray-500 mb-4">Be the first to create a popular room!</p>
-        <button onclick="document.querySelector('[data-category=all]').click();" class="btn btn-primary py-2 px-4">
-          View All Rooms
-        </button>
-      </div>
-    `;
-
-    cardView.innerHTML = noRoomsTemplate;
-
-    if (loadMoreContainer) {
-      loadMoreContainer.classList.add('hidden');
-    }
   }
 
   // Mobile optimizations
