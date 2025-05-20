@@ -1810,8 +1810,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cardView = document.getElementById('card-view');
   const allRoomCards = document.querySelectorAll('.room-card');
 
-  // Store the original room cards structure BEFORE randomizing
-  let originalCardView = cardView ? cardView.innerHTML : '';
+  // No need to store original card view since we want it randomized always
 
   // Function to randomize room cards using a safer approach
   function randomizeRoomCards() {
@@ -2024,59 +2023,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const categoryButtons = document.querySelectorAll('[data-category]');
   let isCustomFilteringActive = false;
 
-  // Function to reset the rooms display to original state
-  function resetRoomsDisplay() {
-    const cardView = document.getElementById('card-view');
-    if (cardView && originalCardView) {
-      cardView.innerHTML = originalCardView;
-
-      // Re-select all room cards after resetting display
-      document.querySelectorAll('.room-card').forEach(card => {
-        card.style.display = '';
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-      });
-
-      isCustomFilteringActive = false;
-    }
-  }
-
   // Function to filter rooms by category
   function filterRoomsByCategory(category) {
-    // If we're in a special state (like trending), reset first
-    if (isCustomFilteringActive && category !== 'trending') {
-      resetRoomsDisplay();
-    }
-
-    const allRoomCards = document.querySelectorAll('.room-card');
-    let visibleCount = 0;
+    const cardView = document.getElementById('card-view');
+    if (!cardView) return;
 
     // If trending, handle special case
     if (category === 'trending') {
       fetchTrendingRooms();
       isCustomFilteringActive = true;
-    } else {
-      allRoomCards.forEach(card => {
-        const roomCategory = card.getAttribute('data-category');
-
-        if (category === 'all' || roomCategory === category) {
-          // Show this card with animation
-          card.style.display = '';
-          setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-          }, 10);
-          visibleCount++;
-        } else {
-          // Hide this card with animation
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(10px)';
-          setTimeout(() => {
-            card.style.display = 'none';
-          }, 300);
-        }
-      });
+      return;
     }
+
+    // For non-trending categories, just filter the existing cards
+    const allRoomCards = document.querySelectorAll('.room-card');
+    let visibleCount = 0;
+
+    allRoomCards.forEach(card => {
+      const roomCategory = card.getAttribute('data-category');
+
+      if (category === 'all' || roomCategory === category) {
+        // Show this card with animation
+        card.style.display = '';
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, 10);
+        visibleCount++;
+      } else {
+        // Hide this card with animation
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+          card.style.display = 'none';
+        }, 300);
+      }
+    });
 
     // Update active state of all category buttons
     updateCategoryButtonStates(category);
@@ -2448,7 +2430,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncDesktopCategories();
   }
 
-  // Function to fetch trending rooms - Fixed to work with the randomized cards
+  // Function to fetch trending rooms - Completely rewritten to work directly with DOM
   function fetchTrendingRooms() {
     const cardView = document.getElementById('card-view');
     if (!cardView) return;
@@ -2475,29 +2457,45 @@ document.addEventListener('DOMContentLoaded', () => {
       loadMoreContainer.classList.add('hidden');
     }
 
-    // We need to use the original HTML to find trending rooms, as current DOM might be altered
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = originalCardView;
-
-    // Find trending rooms from original HTML
-    const trendingRooms = [];
-    const originalRoomCards = tempDiv.querySelectorAll('.room-card');
-
-    originalRoomCards.forEach(room => {
-      const trendingIndicator = room.querySelector('.trending-indicator');
-      if (trendingIndicator) {
-        // Clone the room card to avoid issues with the original
-        const clone = room.cloneNode(true);
-        trendingRooms.push(clone);
-      }
-    });
-
-    // Wait a bit to simulate loading
+    // New approach: Scan all cards directly from the current DOM
+    // This simulates the back-end call by finding cards with trending indicators
     setTimeout(() => {
+      // Get all cards from the DOM
+      const allCards = document.querySelectorAll('.room-card');
+
+      // Find trending rooms by searching for trending indicators
+      const trendingRooms = [];
+
+      allCards.forEach(card => {
+        // Look for the trending indicator or check message count
+        const trendingIndicator = card.querySelector('.trending-indicator');
+
+        // If the card has a trending indicator, clone it and add to trending rooms
+        if (trendingIndicator) {
+          const clone = card.cloneNode(true);
+          trendingRooms.push(clone);
+        }
+
+        // Alternative approach: If there's no direct indicator, check for high message count
+        const badgeElement = card.querySelector('.badge');
+        if (badgeElement && !trendingIndicator) {
+          const badgeText = badgeElement.textContent.trim();
+          const messageCount = parseInt(badgeText);
+
+          // If message count is over 15, consider it trending
+          if (!isNaN(messageCount) && messageCount > 15) {
+            const clone = card.cloneNode(true);
+            trendingRooms.push(clone);
+          }
+        }
+      });
+
+      // Display trending rooms if found
       if (trendingRooms.length > 0) {
-        // Show only trending rooms
+        // Clear the loading message
         cardView.innerHTML = '';
 
+        // Add the trending rooms to the container
         trendingRooms.forEach((room, index) => {
           cardView.appendChild(room);
 
@@ -2511,7 +2509,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }, 50 + (index * 50));
         });
 
-        // Show load more if there are more rooms
+        // Show load more if there are lots of trending rooms
         if (loadMoreContainer && trendingRooms.length > 12) {
           loadMoreContainer.classList.remove('hidden');
         }
@@ -2519,7 +2517,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Display no trending rooms message
         displayNoTrendingRooms();
       }
-    }, 1000);
+    }, 1000); // Simulate network delay for better UX
   }
 
   function displayNoTrendingRooms() {
