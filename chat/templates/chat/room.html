@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 {% load static %}
@@ -476,80 +475,55 @@
     isolation: isolate;
   }
 
-  /* FIXED Header - Clean and stable */
+  /* Header - FIXED VERSION */
   .app-header {
-    height: 60px;
-    min-height: 60px;
-    max-height: 60px;
-    padding: 0 1rem;
-    display: flex;
-    align-items: center;
-    background-color: white;
-    border-bottom: 1px solid rgba(236, 72, 153, 0.1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    z-index: 20;
-    position: sticky;
-    top: 0;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-shrink: 0;
-    isolation: isolate;
+      height: 60px !important;
+      min-height: 60px !important;
+      max-height: 60px !important;
+      padding: 0 1rem !important;
+      display: flex !important;
+      align-items: center !important;
+      background-color: white !important;
+      border-bottom: 1px solid rgba(236, 72, 153, 0.1) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+      z-index: 20 !important;
+      position: sticky !important;
+      top: 0 !important;
+      justify-content: space-between !important;
+      gap: 1rem !important;
+      flex-direction: row !important;
+      flex-shrink: 0 !important;
+      flex-grow: 0 !important;
+      box-sizing: border-box !important;
   }
 
-  /* Hide mobile menu button on desktop */
-  #header-sidebar-toggle {
-    display: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    color: #6b7280;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    align-items: center;
-    justify-content: center;
-  }
-
-  #header-sidebar-toggle:hover {
-    background-color: #f3f4f6;
-    color: #ec4899;
+  /* Ensure input area doesn't cover header when keyboard is active */
+  .keyboard-active .app-header {
+    /* Ensure visible during keyboard activation */
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 
   .header-title {
-    flex: 1;
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
+      flex: 1 !important;
+      margin: 0 !important;
+      font-size: 1.125rem !important;
+      font-weight: 600 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      height: 27px !important;
+      line-height: 27px !important;
   }
 
   .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-shrink: 0;
-  }
-
-  /* DM Status - properly hidden by default */
-  #dm-status {
-    display: none;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(to right, #fce7f3, #f3e8ff);
-    border-bottom: 1px solid #f8d7da;
-    justify-content: center;
-    align-items: center;
-    height: 0;
-    overflow: hidden;
-    transition: height 0.2s ease;
-  }
-
-  #dm-status.show {
-    display: flex;
-    height: 40px;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      flex-shrink: 0 !important;
+      min-width: 120px !important;
+      height: 40px !important;
   }
 
   /* Chat container */
@@ -824,92 +798,20 @@
   background: rgba(236, 72, 153, 0.1);
 }
 
-  /* FIXED Emoji Panel CSS - Properly positioned and sized */
-  .emoji-panel {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    padding: 0.75rem;
-    display: none;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
-    z-index: 100;
-    animation: fadeIn 0.2s ease;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    width: 320px;
-    max-height: 250px;
-    overflow-y: auto;
-    min-width: 280px;
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .reaction-buttons-in-bubble {
+    padding: 1px;
+    bottom: 3px;
+    right: 3px;
   }
 
-  .emoji-panel.show {
-    display: grid;
+  .reaction-buttons-in-bubble .emoji-reaction {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
   }
-
-  .emoji-btn {
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    background: transparent;
-    border: none;
-  }
-
-  .emoji-btn:hover {
-    background-color: rgba(236, 72, 153, 0.1);
-    transform: scale(1.1);
-  }
-
-  /* Enhanced scrollbar for emoji panel */
-  .emoji-panel::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .emoji-panel::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .emoji-panel::-webkit-scrollbar-thumb {
-    background-color: rgba(236, 72, 153, 0.3);
-    border-radius: 20px;
-  }
-
-  .emoji-panel::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(236, 72, 153, 0.5);
-  }
-
-  /* Mobile optimizations */
-  @media (max-width: 768px) {
-    .reaction-buttons-in-bubble {
-      padding: 1px;
-      bottom: 3px;
-      right: 3px;
-    }
-
-    .reaction-buttons-in-bubble .emoji-reaction {
-      width: 20px;
-      height: 20px;
-      font-size: 0.7rem;
-    }
-
-    .emoji-panel {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 300px;
-      max-width: 90vw;
-    }
-  }
+}
 
   /* Mobile reactions improvements */
   @media (max-width: 768px) {
@@ -1108,6 +1010,32 @@
       padding-bottom: 70px;
     }
 
+    /* Keyboard handling improvements - FIXED */
+    @keyframes keyboard-slide {
+      from { transform: translateY(0); }
+      to { transform: translateY(0); } /* Changed from -320px to 0 */
+    }
+
+    .keyboard-active .input-area {
+      /* No animation needed */
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 25;
+    }
+
+    /* Ensure chat container has proper padding */
+    .keyboard-active .chat-container {
+      padding-bottom: 70px;
+    }
+
+    /* Adjust chat container to make room for fixed elements */
+    .chat-container {
+      padding-bottom: 80px; /* Add space for input area only */
+      margin-bottom: 0;
+    }
+
     /* Grid layout for mobile */
     .sidebar-nav .grid {
       display: grid;
@@ -1244,6 +1172,11 @@
       object-fit: cover;
     }
 
+    /* Mobile bottom nav - REMOVED */
+    .mobile-bottom-nav {
+      display: none;
+    }
+
     /* Improved mini-avatar styling */
     .mini-avatar {
       width: 32px;
@@ -1339,24 +1272,6 @@
     }
   }
 
-  /* Desktop layout adjustments to prevent header issues */
-  @media (min-width: 769px) {
-    .main-content {
-      margin-left: 280px;
-      width: calc(100% - 280px);
-    }
-
-    .input-area {
-      margin-left: 280px;
-      width: calc(100% - 280px);
-    }
-
-    /* Ensure chat container has proper padding */
-    .chat-container {
-      padding-bottom: 80px;
-    }
-  }
-
   /* Fix for profile menu and other modals appearing in chat */
   .profile-menu, .modal, #user-options-popover {
     z-index: 100;
@@ -1366,6 +1281,129 @@
 
   .profile-menu.active, .modal.active, #user-options-popover.active {
     display: block;
+  }
+
+  /* Fixed Emoji Panel CSS */
+  .emoji-panel {
+      position: absolute;
+      bottom: 100%;
+      left: 0; /* Changed from right: 0 to left: 0 */
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      padding: 0.75rem;
+      display: none;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.375rem;
+      margin-bottom: 0.5rem;
+      z-index: 100;
+      animation: fadeIn 0.2s ease;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      width: 320px; /* Increased width for better visibility */
+      max-height: 250px; /* Increased max height */
+      overflow-y: auto;
+  }
+
+  /* Alternative positioning for better mobile experience */
+  @media (max-width: 640px) {
+      .emoji-panel {
+          position: fixed;
+          bottom: 80px; /* Position above input area */
+          left: 50%;
+          transform: translateX(-50%);
+          width: 300px;
+          max-width: 90vw;
+      }
+  }
+
+  .emoji-panel.show {
+      display: grid;
+  }
+
+  .emoji-btn {
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      background: transparent;
+      border: none;
+  }
+
+  .emoji-btn:hover {
+      background-color: rgba(236, 72, 153, 0.1);
+      transform: scale(1.1);
+  }
+
+  /* Enhanced scrollbar for emoji panel */
+  .emoji-panel::-webkit-scrollbar {
+      width: 6px;
+  }
+
+  .emoji-panel::-webkit-scrollbar-track {
+      background: transparent;
+  }
+
+  .emoji-panel::-webkit-scrollbar-thumb {
+      background-color: rgba(236, 72, 153, 0.3);
+      border-radius: 20px;
+  }
+
+  .emoji-panel::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(236, 72, 153, 0.5);
+  }
+
+  /* Demo styling */
+  .demo-container {
+      margin: 2rem auto;
+      max-width: 600px;
+      padding: 2rem;
+      background: #f8fafc;
+      border-radius: 12px;
+  }
+
+  .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+      border: 1px solid #e5e7eb;
+  }
+
+  .demo-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 0.5rem;
+  }
+
+  .emoji-button {
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+  }
+
+  .emoji-button:hover {
+      background-color: rgba(236, 72, 153, 0.1);
+  }
+
+  @keyframes fadeIn {
+      from {
+          opacity: 0;
+          transform: translateY(10px);
+      }
+      to {
+          opacity: 1;
+          transform: translateY(0);
+      }
   }
 
   /* Mobile controls */
@@ -1529,17 +1567,6 @@
     }
   }
   </style>
-
-<style>
-/* Emergency layout fix */
-@media (min-width: 769px) {
-    .main-content { width: calc(100% - 280px) !important; margin-left: 280px !important; }
-    .input-area { width: calc(100% - 280px) !important; left: 280px !important; }
-}
-.input-area { display: block !important; position: fixed !important; bottom: 0 !important; }
-#message-form { display: flex !important; gap: 0.75rem !important; }
-.btn-icon { display: flex !important; }
-</style>
 
   <script>
     // Set these variables directly from Django template context
