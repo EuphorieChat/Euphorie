@@ -477,21 +477,24 @@
 
   /* Header - FIXED VERSION */
   .app-header {
-      height: 60px;
-      padding: 0 1rem;
-      display: flex;
-      align-items: center;
-      background-color: white;
-      border-bottom: 1px solid rgba(236, 72, 153, 0.1);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      z-index: 20;
-      position: sticky;
-      top: 0;
-      left: 0;
-      right: 0;
-      transition: transform 0.2s ease;
-      justify-content: space-between; /* This ensures proper spacing */
-      gap: 1rem; /* Adds consistent spacing between elements */
+      height: 60px !important;
+      min-height: 60px !important;
+      max-height: 60px !important;
+      padding: 0 1rem !important;
+      display: flex !important;
+      align-items: center !important;
+      background-color: white !important;
+      border-bottom: 1px solid rgba(236, 72, 153, 0.1) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+      z-index: 20 !important;
+      position: sticky !important;
+      top: 0 !important;
+      justify-content: space-between !important;
+      gap: 1rem !important;
+      flex-direction: row !important;
+      flex-shrink: 0 !important;
+      flex-grow: 0 !important;
+      box-sizing: border-box !important;
   }
 
   /* Ensure input area doesn't cover header when keyboard is active */
@@ -503,16 +506,24 @@
   }
 
   .header-title {
-    flex: 1;
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
+      flex: 1 !important;
+      margin: 0 !important;
+      font-size: 1.125rem !important;
+      font-weight: 600 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      height: 27px !important;
+      line-height: 27px !important;
   }
 
   .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      flex-shrink: 0 !important;
+      min-width: 120px !important;
+      height: 40px !important;
   }
 
   /* Chat container */
@@ -2761,77 +2772,6 @@ function addUIImprovements() {
             color: #4b5563;
             font-weight: 500;
             margin-bottom: 1.5rem;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-// Fix for sidebar overlap and chat input issues
-function fixLayoutIssues() {
-    // Add CSS fix for mobile and desktop view
-    const style = document.createElement('style');
-    style.textContent = `
-        /* Desktop chat input fix */
-        @media (min-width: 769px) {
-            .main-content {
-                width: calc(100% - 280px);
-                margin-left: 280px;
-            }
-
-            .input-area {
-                width: calc(100% - 280px);
-                left: 280px;
-                padding: 0.75rem 1rem;
-                box-sizing: border-box;
-            }
-
-            /* Ensure proper spacing */
-            .chat-container {
-                padding-bottom: 80px;
-            }
-        }
-
-        /* Mobile view fixes */
-        @media (max-width: 768px) {
-            /* Fix for sidebar overlap */
-            .app-sidebar {
-                position: fixed;
-                left: -280px; /* Hide offscreen initially */
-                top: 0;
-                height: 100%;
-                transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                z-index: 50;
-                width: 280px;
-            }
-
-            .app-sidebar.active {
-                left: 0;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            }
-
-            /* Ensure input area is visible and not overlapped */
-            .input-area {
-                width: 100%;
-                left: 0;
-                z-index: 25;
-            }
-
-            /* Main content takes full width on mobile */
-            .main-content {
-                width: 100%;
-                margin-left: 0;
-            }
-        }
-
-        /* Make sure emoji picker appears above other elements */
-        .emoji-panel {
-            z-index: 30;
-        }
-
-        /* Fix for reactions positioning */
-        .reactions-container {
-            min-height: 22px; /* Ensure there's always space for reactions */
-            margin-top: 2px;
         }
     `;
     document.head.appendChild(style);
