@@ -2157,6 +2157,14 @@ let currentMeetups = [];
 let isTyping = false;
 let roomsLoaded = false; // Track if rooms have been loaded
 
+function isUserAuthenticated() {
+    return window.username && window.username !== 'Guest';
+}
+
+function showAuthRequiredMessage() {
+    showNotification('Please log in to use this feature', 'error');
+}
+
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Add logged-in class to body for CSS styling
@@ -3122,6 +3130,12 @@ function initializeMobileReactions() {
 function handleMessageSubmit(e) {
     e.preventDefault();
 
+    // Check authentication first
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     const messageInput = document.getElementById('chat-message-input');
     const message = messageInput.value.trim();
 
@@ -3312,6 +3326,12 @@ function removeTypingIndicator(username) {
 
 // Enhanced reaction handling for our updated UI - FIXED for first reaction
 window.sendReaction = function(messageId, emoji) {
+    // Check authentication first
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     if (!messageId || !emoji) {
         console.warn('sendReaction: Missing messageId or emoji.');
         return;
@@ -3327,10 +3347,10 @@ window.sendReaction = function(messageId, emoji) {
     } else {
         console.error('WebSocket is not open. Reaction not sent:', { messageId, emoji });
         showNotification('Connection error: Could not send reaction', 'error');
-        return; // Don't try to update UI if connection isn't open
+        return;
     }
 
-    // Add immediate visual feedback
+    // Add immediate visual feedback (only if authenticated)
     const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
     if (!messageEl) {
         console.error('Could not find message element for reaction:', messageId);
@@ -3339,7 +3359,6 @@ window.sendReaction = function(messageId, emoji) {
 
     let reactionsContainer = messageEl.querySelector('.reactions-container');
 
-    // If reactions container doesn't exist or is not properly configured, fix it
     if (!reactionsContainer) {
         console.warn('Creating missing reactions container for message:', messageId);
         const messageWrapper = messageEl.querySelector('.message-wrapper');
@@ -3347,7 +3366,6 @@ window.sendReaction = function(messageId, emoji) {
             reactionsContainer = document.createElement('div');
             reactionsContainer.className = 'reactions-container';
 
-            // Insert after message bubble but before reaction buttons
             const messageBubble = messageWrapper.querySelector('.message-bubble');
             if (messageBubble) {
                 messageBubble.insertAdjacentElement('afterend', reactionsContainer);
@@ -3360,22 +3378,18 @@ window.sendReaction = function(messageId, emoji) {
         }
     }
 
-    // Check if this emoji reaction already exists
     let reactionEl = reactionsContainer.querySelector(`[data-emoji="${emoji}"]`);
 
     if (reactionEl) {
-        // Update existing reaction count
         const countSpan = reactionEl.querySelector('.reaction-count');
         const currentCount = parseInt(countSpan.textContent);
         countSpan.textContent = currentCount + 1;
 
-        // Add animation class then remove it
         reactionEl.classList.add('new');
         setTimeout(() => {
             reactionEl.classList.remove('new');
         }, 500);
     } else {
-        // Create new reaction
         const newReaction = document.createElement('div');
         newReaction.className = 'reaction new';
         newReaction.setAttribute('data-emoji', emoji);
@@ -3485,6 +3499,14 @@ function handleUsersUpdate(data) {
 
 // File upload handling
 function handleFileSelect(e) {
+    // Check authentication first
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        // Reset the file input
+        e.target.value = '';
+        return;
+    }
+
     const files = e.target.files;
     if (files.length === 0) return;
 
@@ -3502,7 +3524,6 @@ function handleFileSelect(e) {
         previewContent.appendChild(previewItem);
     });
 
-    // Add cancel button listener
     if (cancelBtn) {
         cancelBtn.addEventListener('click', function() {
             preview.classList.add('hidden');
@@ -3511,9 +3532,9 @@ function handleFileSelect(e) {
         });
     }
 
-    // Upload files
     uploadFiles(files);
 }
+
 
 function createPreviewItem(file) {
     const item = document.createElement('div');
@@ -3787,6 +3808,11 @@ function updateRecommendedRooms(rooms) {
 
 // Bookmarks
 function toggleBookmark() {
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     const bookmarkBtn = document.getElementById('bookmark-room');
     if (!bookmarkBtn) return;
 
@@ -3807,21 +3833,16 @@ function toggleBookmark() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Toggle classes
             bookmarkBtn.classList.toggle('bookmarked');
             bookmarkBtn.classList.toggle('text-pink-500');
 
-            // ADDED: Update the SVG fill for better visual feedback
             if (!isBookmarked) {
-                // Filling the bookmark icon when bookmarked
                 bookmarkIcon.setAttribute('fill', 'currentColor');
                 bookmarkIcon.setAttribute('class', 'h-5 w-5 transition-transform transform scale-110');
-                // Add a subtle animation
                 setTimeout(() => {
                     bookmarkIcon.setAttribute('class', 'h-5 w-5');
                 }, 300);
             } else {
-                // Removing the fill when unbookmarked
                 bookmarkIcon.setAttribute('fill', 'none');
                 bookmarkIcon.setAttribute('class', 'h-5 w-5');
             }
@@ -3917,16 +3938,17 @@ function handleMeetupsUpdate(data) {
 
 // IMPROVED Meetup Modal with better UI/UX and visibility
 function openMeetupModal() {
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     const modal = document.getElementById('meetup-modal');
     if (modal) {
-        // Create improved meetup modal with better visibility if not already done
         createEnhancedMeetupModal();
-
-        // Show the modal
         modal.classList.add('open');
         modal.classList.add('active');
 
-        // Set default date to tomorrow at noon
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(12, 0, 0, 0);
@@ -4077,16 +4099,18 @@ function createEnhancedMeetupModal() {
 
 // Whiteboard functionality - remains unchanged as requested
 function openWhiteboard() {
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     const modal = document.getElementById('whiteboard-modal');
     if (modal) {
         modal.classList.add('open');
         modal.classList.add('active');
-
-        // Initialize canvas if needed
         initializeWhiteboard();
     }
 }
-
 // Whiteboard implementation
 function initializeWhiteboard() {
     const canvas = document.getElementById('whiteboard-canvas');
@@ -4299,16 +4323,16 @@ function handleWhiteboardUpdate(data) {
 
 // Media library - IMPROVED with better UI/UX and visibility
 function openMediaLibrary() {
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     const modal = document.getElementById('media-library-modal');
     if (modal) {
-        // Create enhanced media library modal with better visibility
         createEnhancedMediaLibrary();
-
-        // Show the modal
         modal.classList.add('open');
         modal.classList.add('active');
-
-        // Load media for the room
         loadRoomMedia();
     }
 }
@@ -5021,6 +5045,11 @@ function updateMediaPreviewModal(modal, item) {
 
 // User popover
 window.showUserPopover = function(element, username) {
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     const popover = document.getElementById('user-options-popover');
     if (!popover) return;
 
@@ -5030,7 +5059,6 @@ window.showUserPopover = function(element, username) {
 
     popover.classList.remove('hidden');
 
-    // Update popover content
     const dmLink = popover.querySelector('.dm-user-link');
     const addFriendBtn = popover.querySelector('.add-friend-btn');
 
@@ -5043,7 +5071,6 @@ window.showUserPopover = function(element, username) {
         addFriendBtn.onclick = () => addFriend(username);
     }
 
-    // Hide on click outside
     document.addEventListener('click', function hidePopover(e) {
         if (!popover.contains(e.target) && e.target !== element) {
             popover.classList.add('hidden');
@@ -5052,7 +5079,33 @@ window.showUserPopover = function(element, username) {
     });
 };
 
+function handleTypingAuthenticated() {
+    if (!isUserAuthenticated()) {
+        return; // Just silently return, don't show error for typing
+    }
+
+    if (!isTyping) {
+        isTyping = true;
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({
+                'type': 'typing',
+                'username': window.username
+            }));
+        }
+    }
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        isTyping = false;
+    }, 1000);
+}
+
 function addFriend(username) {
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
     fetch('/api/add_friend/', {
         method: 'POST',
         headers: {
@@ -5076,6 +5129,7 @@ function addFriend(username) {
         showNotification('Failed to send friend request', 'error');
     });
 }
+
 
 // Profile picture modal
 function openProfilePicModal() {
