@@ -1102,7 +1102,7 @@ def direct_message(request, username):
         'is_dm': True,  # Add this flag to let the template know this is a DM
     }
 
-    return render(request, 'chat/manage/room.html', context)
+    return render(request, 'chat/room.html', context)
 
 def get_bookmarked_rooms(request):
     """Get the user's bookmarked rooms"""
