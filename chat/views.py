@@ -450,9 +450,18 @@ def ensure_user_has_profile(user):
     except UserProfile.DoesNotExist:
         # Create new profile with avatar
         profile_data = generate_random_dicebear_avatar(user.username)
+        # Generate random country if not already set
+        import random
+        country_codes = [
+            'US', 'CA', 'GB', 'DE', 'FR', 'JP', 'AU', 'BR', 'IN', 'CN',
+            'RU', 'IT', 'ES', 'MX', 'KR', 'NL', 'SE', 'NO', 'DK', 'FI'
+        ]
+        random_country = random.choice(country_codes)
+
         profile = UserProfile.objects.create(
             user=user,
-            profile_picture_data=json.dumps(profile_data)
+            profile_picture_data=json.dumps(profile_data),
+            country_code=random_country
         )
         return profile_data
 
@@ -471,18 +480,30 @@ def signup(request):
         if form.is_valid():
             user = form.save()
 
-            # Create user profile with random DiceBear avatar
+            # Create user profile with random DiceBear avatar and random country
             try:
                 profile_data = generate_random_dicebear_avatar(user.username)
+
+                # Generate random country for new users
+                import random
+                country_codes = [
+                    'US', 'CA', 'GB', 'DE', 'FR', 'JP', 'AU', 'BR', 'IN', 'CN',
+                    'RU', 'IT', 'ES', 'MX', 'KR', 'NL', 'SE', 'NO', 'DK', 'FI',
+                    'SG', 'TH', 'PH', 'MY', 'ID', 'VN', 'TR', 'EG', 'ZA', 'NG',
+                    'KE', 'AR', 'CL', 'CO', 'PE', 'PL', 'CZ', 'HU', 'GR', 'PT'
+                ]
+                random_country = random.choice(country_codes)
+
                 profile, created = UserProfile.objects.get_or_create(user=user)
                 profile.profile_picture_data = json.dumps(profile_data)
+                profile.country_code = random_country
                 profile.save()
 
-                print(f"Created DiceBear avatar for new user: {user.username} - Style: {profile_data['style']}")
+                print(f"Created DiceBear avatar and assigned country {random_country} for new user: {user.username} - Style: {profile_data['style']}")
 
             except Exception as e:
-                print(f"Error creating avatar for {user.username}: {str(e)}")
-                # Don't fail registration if avatar creation fails
+                print(f"Error creating avatar/country for {user.username}: {str(e)}")
+                # Don't fail registration if avatar/country creation fails
                 pass
 
             login(request, user)
@@ -1186,6 +1207,11 @@ def get_user_profile(request, username):
                 'profile_picture': {
                     'type': 'gradient',
                     'gradient': 'from-gray-400 to-gray-500'
+                },
+                'country': {
+                    'code': None,
+                    'flag': '🌍',
+                    'name': 'Unknown'
                 }
             })
 
@@ -1223,11 +1249,19 @@ def get_user_profile(request, username):
                 # Fall back to gradient
                 pass
 
+        # Get country information
+        country_data = {
+            'code': profile.country_code,
+            'flag': profile.country_flag_emoji,
+            'name': profile.country_name
+        }
+
         # Return successful response
         return JsonResponse({
             'success': True,
             'username': username,
-            'profile_picture': profile_data
+            'profile_picture': profile_data,
+            'country': country_data
         })
 
     except User.DoesNotExist:
@@ -1238,6 +1272,11 @@ def get_user_profile(request, username):
             'profile_picture': {
                 'type': 'gradient',
                 'gradient': get_consistent_gradient(username)
+            },
+            'country': {
+                'code': None,
+                'flag': '🌍',
+                'name': 'Unknown'
             }
         })
 
@@ -1254,6 +1293,11 @@ def get_user_profile(request, username):
             'profile_picture': {
                 'type': 'gradient',
                 'gradient': get_consistent_gradient(username)
+            },
+            'country': {
+                'code': None,
+                'flag': '🌍',
+                'name': 'Unknown'
             }
         })
 

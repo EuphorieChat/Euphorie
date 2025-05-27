@@ -398,7 +398,63 @@ class UserProfile(models.Model):
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     bio = models.TextField(max_length=500, blank=True)
     profile_picture_data = models.TextField(blank=True, null=True)
-
+    country_code = models.CharField(max_length=2, blank=True, null=True, help_text="ISO 3166-1 alpha-2 country code")
 
     def __str__(self):
         return self.user.username
+
+    @property
+    def country_flag_emoji(self):
+        """Convert country code to flag emoji"""
+        if not self.country_code:
+            return "🌍"  # Default world emoji
+
+        # Convert country code to flag emoji
+        # Each country code letter maps to a regional indicator symbol
+        flag_emoji = ""
+        for char in self.country_code.upper():
+            if 'A' <= char <= 'Z':
+                flag_emoji += chr(ord(char) - ord('A') + ord('🇦'))
+        return flag_emoji if flag_emoji else "🌍"
+
+    @property
+    def country_name(self):
+        """Get country name from country code"""
+        country_names = {
+            'US': 'United States',
+            'CA': 'Canada',
+            'GB': 'United Kingdom',
+            'DE': 'Germany',
+            'FR': 'France',
+            'JP': 'Japan',
+            'AU': 'Australia',
+            'BR': 'Brazil',
+            'IN': 'India',
+            'CN': 'China',
+            'RU': 'Russia',
+            'IT': 'Italy',
+            'ES': 'Spain',
+            'MX': 'Mexico',
+            'KR': 'South Korea',
+            'NL': 'Netherlands',
+            'SE': 'Sweden',
+            'NO': 'Norway',
+            'DK': 'Denmark',
+            'FI': 'Finland',
+            'SG': 'Singapore',
+            'TH': 'Thailand',
+            'PH': 'Philippines',
+            'MY': 'Malaysia',
+            'ID': 'Indonesia',
+            'VN': 'Vietnam',
+            'TR': 'Turkey',
+            'EG': 'Egypt',
+            'ZA': 'South Africa',
+            'NG': 'Nigeria',
+            'KE': 'Kenya',
+            'AR': 'Argentina',
+            'CL': 'Chile',
+            'CO': 'Colombia',
+            'PE': 'Peru'
+        }
+        return country_names.get(self.country_code, 'Unknown')

@@ -2090,6 +2090,192 @@ background: rgba(236, 72, 153, 0.1);
     font-weight: 500;
     margin-bottom: 1.5rem;
 }
+
+/* Add this CSS to your room.html template's <style> section */
+
+/* Country flag enhancements */
+.country-flag {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 0.7em;
+    background: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    z-index: 1;
+    pointer-events: auto;
+    user-select: none;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.country-flag:hover {
+    transform: scale(1.2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Ensure avatars have relative positioning for flag placement */
+.user-avatar {
+    position: relative;
+}
+
+/* Make sure the parent containers support the flag positioning */
+.message-wrapper .avatar,
+.user-item .avatar,
+.profile-item .avatar {
+    position: relative;
+}
+
+/* Flag tooltip styling */
+.country-flag[title]:hover::before {
+    content: attr(title);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    animation: fadeInTooltip 0.3s ease forwards;
+}
+
+@keyframes fadeInTooltip {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Special handling for different avatar sizes */
+.avatar.h-6.w-6 + .country-flag {
+    width: 12px;
+    height: 12px;
+    font-size: 0.6em;
+    bottom: -1px;
+    right: -1px;
+}
+
+.avatar.h-8.w-8 + .country-flag {
+    width: 16px;
+    height: 16px;
+    font-size: 0.7em;
+    bottom: -2px;
+    right: -2px;
+}
+
+.avatar.h-10.w-10 + .country-flag {
+    width: 18px;
+    height: 18px;
+    font-size: 0.8em;
+    bottom: -2px;
+    right: -2px;
+}
+
+/* Profile section flag styling */
+.profile-item .country-flag {
+    width: 20px;
+    height: 20px;
+    font-size: 0.8em;
+    bottom: -3px;
+    right: -3px;
+}
+
+/* Mini avatar flag adjustments */
+.mini-avatar + .country-flag {
+    width: 14px;
+    height: 14px;
+    font-size: 0.65em;
+    bottom: -1px;
+    right: -1px;
+}
+
+/* Message avatar containers need relative positioning */
+.flex.items-start.gap-2.group .avatar {
+    position: relative;
+}
+
+/* Ensure flags work well with gradient backgrounds */
+.bg-gradient-to-br + .country-flag {
+    border: 1px solid rgba(255,255,255,0.8);
+}
+
+/* Flag visibility improvements */
+.country-flag {
+    text-shadow: none;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .country-flag {
+        width: 14px;
+        height: 14px;
+        font-size: 0.65em;
+    }
+
+    .avatar.h-6.w-6 + .country-flag {
+        width: 10px;
+        height: 10px;
+        font-size: 0.55em;
+    }
+
+    .profile-item .country-flag {
+        width: 16px;
+        height: 16px;
+        font-size: 0.7em;
+    }
+}
+
+/* Special styling for users without countries (show world emoji) */
+.country-flag.default-world {
+    opacity: 0.6;
+    filter: grayscale(20%);
+}
+
+/* Animation for when flags are first loaded */
+.country-flag.new-flag {
+    animation: flagAppear 0.5s ease forwards;
+}
+
+@keyframes flagAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Ensure flags don't interfere with click events on avatars */
+.user-avatar:hover .country-flag {
+    pointer-events: none;
+}
+
+/* Better flag positioning for different avatar shapes */
+.avatar.rounded-full + .country-flag {
+    border-radius: 50%;
+}
+
+.avatar.rounded-lg + .country-flag {
+    border-radius: 25%;
+}
+
   </style>
 
   <script>
@@ -2781,6 +2967,7 @@ let maxReconnectAttempts = 5;
 let reconnectInterval = 1000;
 let messageHistory = new Map();
 let userProfiles = new Map();
+let userCountries = new Map();
 let activeUsers = new Set();
 let currentMeetups = [];
 let isTyping = false;
@@ -3833,6 +4020,11 @@ function handleChatMessage(data) {
     const chatLog = document.getElementById('chat-log');
     if (!chatLog) return;
 
+    // Fetch profile data if not already loaded
+    if (!userProfiles.has(data.username) || !userCountries.has(data.username)) {
+        fetchUserProfile(data.username);
+    }
+
     const messageContainer = document.createElement('div');
     messageContainer.className = 'flex items-start gap-2 group mb-4';
     messageContainer.setAttribute('data-message-id', data.message_id);
@@ -3851,8 +4043,10 @@ function handleChatMessage(data) {
     if (!mediaContent && !textHtml) return; // Don't render empty messages
 
     messageContainer.innerHTML = `
-        <div class="avatar ${avatarClass} user-avatar" data-username="${data.username}">
-            ${escapeHtml(data.username.charAt(0).toUpperCase())}
+        <div class="relative">
+            <div class="avatar ${avatarClass} user-avatar" data-username="${data.username}">
+                ${escapeHtml(data.username.charAt(0).toUpperCase())}
+            </div>
         </div>
 
         <div class="flex-1 max-w-[85%] message-wrapper">
@@ -3872,25 +4066,25 @@ function handleChatMessage(data) {
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👍')" aria-label="React with thumbs up">👍</button>
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😂')" aria-label="React with laugh">😂</button>
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '✨')" aria-label="React with sparkles">✨</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🔥')" aria-label="React with sparkles">🔥</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🎉')" aria-label="React with sparkles">🎉</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥰')" aria-label="React with sparkles">🥰</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😎')" aria-label="React with sparkles">😎</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤔')" aria-label="React with sparkles">🤔</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👀')" aria-label="React with sparkles">👀</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💯')" aria-label="React with sparkles">💯</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙏')" aria-label="React with sparkles">🙏</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💪')" aria-label="React with sparkles">💪</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🌟')" aria-label="React with sparkles">🌟</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💕')" aria-label="React with sparkles">💕</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤩')" aria-label="React with sparkles">🤩</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😍')" aria-label="React with sparkles">😍</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥳')" aria-label="React with sparkles">🥳</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😁')" aria-label="React with sparkles">😁</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😅')" aria-label="React with sparkles">😅</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙂')" aria-label="React with sparkles">🙂</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫠')" aria-label="React with sparkles">🫠</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫢')" aria-label="React with sparkles">🫢</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🔥')" aria-label="React with fire">🔥</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🎉')" aria-label="React with party">🎉</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥰')" aria-label="React with love">🥰</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😎')" aria-label="React with cool">😎</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤔')" aria-label="React with thinking">🤔</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👀')" aria-label="React with eyes">👀</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💯')" aria-label="React with 100">💯</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙏')" aria-label="React with pray">🙏</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💪')" aria-label="React with muscle">💪</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🌟')" aria-label="React with star">🌟</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💕')" aria-label="React with hearts">💕</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤩')" aria-label="React with star eyes">🤩</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😍')" aria-label="React with love eyes">😍</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥳')" aria-label="React with party face">🥳</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😁')" aria-label="React with grin">😁</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😅')" aria-label="React with laugh sweat">😅</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙂')" aria-label="React with slight smile">🙂</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫠')" aria-label="React with melting">🫠</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫢')" aria-label="React with hand over mouth">🫢</button>
             </div>
         </div>
     `;
@@ -3921,6 +4115,44 @@ function handleChatMessage(data) {
     scrollToBottom();
     removeTypingIndicator(data.username);
 }
+
+// Add CSS for the country flag styling
+const flagStyles = document.createElement('style');
+flagStyles.innerHTML = `
+    .country-flag {
+        pointer-events: none;
+        user-select: none;
+        font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+    }
+
+    .user-avatar-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    /* Ensure flag is visible on different backgrounds */
+    .country-flag {
+        text-shadow: 0 0 2px rgba(255,255,255,0.8);
+    }
+
+    /* Hover effect for country information */
+    .country-flag:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        white-space: nowrap;
+        z-index: 1000;
+        pointer-events: none;
+    }
+`;
+document.head.appendChild(flagStyles);
 
 function extractMediaUrl(text) {
     const match = text.match(/\[MEDIA:(.*?)\]/);
@@ -4154,13 +4386,17 @@ function handleUsersUpdate(data) {
 
     data.users.forEach(username => {
         activeUsers.add(username);
+
+        // Fetch profile data if not already loaded
+        if (!userProfiles.has(username) || !userCountries.has(username)) {
+            fetchUserProfile(username);
+        }
+
         const userItem = document.createElement('li');
         userItem.className = 'user-item flex items-center justify-between';
 
-        const userProfile = userProfiles.get(username) || { type: 'gradient', gradient: 'from-pink-400 to-purple-400' };
-
         userItem.innerHTML = `
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 relative">
                 <div class="avatar avatar-green h-6 w-6 text-xs user-avatar" data-username="${username}">
                     ${username.charAt(0).toUpperCase()}
                 </div>
@@ -4183,7 +4419,7 @@ function handleUsersUpdate(data) {
         onlineCount.textContent = activeUsers.size;
     }
 
-    // NEW: Dispatch an event to notify that active users have been updated
+    // Dispatch event for other parts of the app
     const event = new CustomEvent('activeUsersUpdated', {
         detail: { users: Array.from(activeUsers) }
     });
@@ -4382,9 +4618,20 @@ function fetchUserProfile(username) {
     fetch(`/api/profile/${username}/`)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.profile_picture) {
-                console.log(`Loaded profile for ${username}:`, data.profile_picture);
-                userProfiles.set(username, data.profile_picture);
+            if (data.success) {
+                console.log(`Loaded profile for ${username}:`, data);
+
+                // Store profile picture data
+                if (data.profile_picture) {
+                    userProfiles.set(username, data.profile_picture);
+                }
+
+                // Store country data
+                if (data.country) {
+                    userCountries.set(username, data.country);
+                    console.log(`Country for ${username}:`, data.country);
+                }
+
                 updateAllUserAvatars(username);
             } else {
                 console.log(`No profile data for ${username}, using default`);
@@ -4398,6 +4645,14 @@ function fetchUserProfile(username) {
                 gradient: getConsistentGradient(username)
             };
             userProfiles.set(username, defaultProfile);
+
+            // Set default country
+            userCountries.set(username, {
+                code: null,
+                flag: '🌍',
+                name: 'Unknown'
+            });
+
             updateAllUserAvatars(username);
         });
 }
@@ -4431,6 +4686,8 @@ function updateAllUserAvatars(username) {
 
 function updateAvatarElement(avatar, username) {
     const profile = userProfiles.get(username);
+    const country = userCountries.get(username) || { flag: '🌍', name: 'Unknown' };
+
     if (!profile) return;
 
     // Clear any existing styles
@@ -4468,6 +4725,47 @@ function updateAvatarElement(avatar, username) {
     } else {
         // Fallback to initials
         avatar.textContent = username.charAt(0).toUpperCase();
+    }
+
+    // Add country flag as a small overlay or badge
+    addCountryFlag(avatar, country, username);
+}
+
+function addCountryFlag(avatar, country, username) {
+    // Remove any existing flag
+    const existingFlag = avatar.parentElement.querySelector('.country-flag');
+    if (existingFlag) {
+        existingFlag.remove();
+    }
+
+    if (country && country.flag && country.flag !== '🌍') {
+        const flagElement = document.createElement('span');
+        flagElement.className = 'country-flag';
+        flagElement.textContent = country.flag;
+        flagElement.title = `${username} - ${country.name}`;
+
+        // Style the flag as a small badge
+        flagElement.style.cssText = `
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            font-size: 0.7em;
+            background: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            z-index: 1;
+        `;
+
+        // Make sure the parent container is positioned relative
+        if (avatar.parentElement) {
+            avatar.parentElement.style.position = 'relative';
+            avatar.parentElement.appendChild(flagElement);
+        }
     }
 }
 
