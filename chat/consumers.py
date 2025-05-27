@@ -822,12 +822,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def create_meetup(self, meetup_data):
         try:
             room = Room.objects.get(name=self.room_name)
+            from django.utils.dateparse import parse_datetime
 
             meetup = Meetup.objects.create(
                 title=meetup_data.get('title'),
                 description=meetup_data.get('description', ''),
-                parsed_datetime = parse_datetime(meetup_data.get('datetime')),
-                datetime=parse_datetime,
+                datetime=parse_datetime(meetup_data.get('datetime')), 
                 location=meetup_data.get('location'),
                 room=room,
                 creator=self.user
