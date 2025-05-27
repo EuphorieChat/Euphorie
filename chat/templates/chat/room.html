@@ -4867,6 +4867,110 @@ function addCountryFlag(avatar, country, username) {
     }
 }
 
+function addCountryFlagWithFallback(avatar, country, username) {
+    console.log(`🏁 Adding country flag with fallback for ${username}:`, country);
+
+    // Remove any existing flag
+    const existingFlag = avatar.querySelector('.country-flag');
+    if (existingFlag) {
+        existingFlag.remove();
+    }
+
+    if (!country || !country.code || country.code === 'Unknown') {
+        console.log(`❌ No valid country data for ${username}:`, country);
+        return;
+    }
+
+    const flagElement = document.createElement('span');
+    flagElement.className = 'country-flag';
+    flagElement.title = `${username} - ${country.name || country.code}`;
+
+    // Try emoji first
+    if (country.flag && country.flag !== '🌍') {
+        // Decode Unicode if needed
+        let decodedFlag = country.flag;
+        if (country.flag.includes('\\u')) {
+            decodedFlag = country.flag.replace(/\\u([0-9a-fA-F]{4})/g, (match, code) => {
+                return String.fromCharCode(parseInt(code, 16));
+            });
+        }
+
+        flagElement.textContent = decodedFlag;
+        flagElement.style.cssText = `
+            position: absolute !important;
+            bottom: -2px !important;
+            right: -2px !important;
+            width: 16px !important;
+            height: 16px !important;
+            background: white !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+            z-index: 10 !important;
+            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+            font-size: 10px !important;
+        `;
+
+        avatar.style.position = 'relative';
+        avatar.appendChild(flagElement);
+
+        // Test if emoji is actually visible after a short delay
+        setTimeout(() => {
+            const rect = flagElement.getBoundingClientRect();
+            const computedStyle = window.getComputedStyle(flagElement);
+
+            // If the emoji seems to not be rendering properly, fall back to country code
+            if (rect.width === 0 || computedStyle.fontSize === '0px') {
+                console.log(`🔄 Emoji not visible for ${username}, switching to country code`);
+                switchToCountryCode();
+            } else {
+                console.log(`✅ Emoji flag visible for ${username}: ${decodedFlag}`);
+            }
+        }, 200);
+
+    } else {
+        // Use country code directly
+        switchToCountryCode();
+    }
+
+    function switchToCountryCode() {
+        // Get a color based on the country code
+        const getCountryColor = (code) => {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'];
+            let hash = 0;
+            for (let i = 0; i < code.length; i++) {
+                hash = ((hash << 5) - hash) + code.charCodeAt(i);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        };
+
+        flagElement.textContent = country.code;
+        flagElement.style.cssText = `
+            position: absolute !important;
+            bottom: -2px !important;
+            right: -2px !important;
+            width: 18px !important;
+            height: 18px !important;
+            background: ${getCountryColor(country.code)} !important;
+            border: 1px solid rgba(255,255,255,0.8) !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+            z-index: 10 !important;
+            font-size: 7px !important;
+            font-weight: 700 !important;
+            color: white !important;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.5) !important;
+        `;
+
+        console.log(`✅ Country code flag created for ${username}: ${country.code}`);
+    }
+}
 
 const profileFetchCache = new Set();
 
