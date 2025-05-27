@@ -17,6 +17,11 @@ class Command(BaseCommand):
             help='Clear existing rooms before generating new ones',
         )
         parser.add_argument(
+            '--clear-categories',
+            action='store_true',
+            help='Clear existing categories before generating new ones',
+        )
+        parser.add_argument(
             '--rooms-only',
             action='store_true',
             help='Only create rooms, no chat history',
@@ -36,6 +41,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('🚀 Starting chat content generation...'))
 
+        if options['clear_categories']:
+            self.clear_existing_categories()
+
         if options['clear_rooms']:
             self.clear_existing_rooms()
 
@@ -50,6 +58,12 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('✅ Chat content generation completed!'))
 
+    def clear_existing_categories(self):
+        """Clear existing categories"""
+        self.stdout.write('🧹 Clearing existing categories...')
+        Category.objects.all().delete()
+        self.stdout.write(self.style.SUCCESS('✅ Existing categories cleared'))
+
     def clear_existing_rooms(self):
         """Clear existing rooms (except DM rooms)"""
         self.stdout.write('🧹 Clearing existing rooms...')
@@ -57,35 +71,42 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('✅ Existing rooms cleared'))
 
     def create_categories(self):
-        """Create engaging categories"""
-        categories_data = [
-            {'name': 'Technology', 'slug': 'technology', 'icon': '💻'},
+        """Create engaging categories using the model's built-in method"""
+        self.stdout.write('📁 Setting up categories...')
+
+        # Use the existing method from the model which handles duplicates properly
+        Category.create_default_categories()
+
+        # Add additional categories that aren't in the default set
+        additional_categories = [
             {'name': 'Gaming', 'slug': 'gaming', 'icon': '🎮'},
-            {'name': 'Creative', 'slug': 'creative', 'icon': '🎨'},
-            {'name': 'Social', 'slug': 'social', 'icon': '👋'},
-            {'name': 'Learning', 'slug': 'learning', 'icon': '📚'},
             {'name': 'Health & Fitness', 'slug': 'health', 'icon': '🧘'},
-            {'name': 'Music', 'slug': 'music', 'icon': '🎵'},
             {'name': 'Food & Cooking', 'slug': 'food', 'icon': '🍕'},
-            {'name': 'Travel', 'slug': 'travel', 'icon': '✈️'},
-            {'name': 'Sports', 'slug': 'sports', 'icon': '⚽'},
             {'name': 'Movies & TV', 'slug': 'entertainment', 'icon': '🎬'},
-            {'name': 'Books', 'slug': 'books', 'icon': '📖'},
-            {'name': 'Science', 'slug': 'science', 'icon': '🔬'},
             {'name': 'Business', 'slug': 'business', 'icon': '💼'},
             {'name': 'Random', 'slug': 'random', 'icon': '🎲'},
         ]
 
-        for cat_data in categories_data:
-            category, created = Category.objects.get_or_create(
-                slug=cat_data['slug'],
-                defaults={
-                    'name': cat_data['name'],
-                    'icon': cat_data['icon']
-                }
-            )
-            if created:
-                self.stdout.write(f'📁 Created category: {cat_data["name"]}')
+        for cat_data in additional_categories:
+            try:
+                category, created = Category.objects.get_or_create(
+                    name=cat_data['name'],
+                    defaults={
+                        'slug': cat_data['slug'],
+                        'icon': cat_data['icon']
+                    }
+                )
+                if created:
+                    self.stdout.write(f'📁 Created category: {cat_data["name"]}')
+                else:
+                    # Update existing category with icon and slug if missing
+                    if not category.icon:
+                        category.icon = cat_data['icon']
+                    if not category.slug:
+                        category.slug = cat_data['slug']
+                    category.save()
+            except Exception as e:
+                self.stdout.write(f'⚠️  Category {cat_data["name"]} already exists or error: {str(e)}')
 
     def create_engaging_rooms(self):
         """Create a variety of engaging rooms"""
@@ -183,7 +204,41 @@ class Command(BaseCommand):
 
         for room_data in rooms_data:
             try:
-                category = Category.objects.get(slug=room_data['category'])
+                # Try to get category by slug first, then by name (case-insensitive)
+                category = None
+                try:
+                    category = Category.objects.get(slug=room_data['category'])
+                except Category.DoesNotExist:
+                    # Try by name if slug doesn't work
+                    try:
+                        category_name_mapping = {
+                            'technology': 'Technology',
+                            'gaming': 'Gaming',
+                            'creative': 'Creative',
+                            'social': 'Social',
+                            'learning': 'Education',  # Learning maps to Education
+                            'health': 'Health & Wellness',
+                            'music': 'Music',
+                            'food': 'Food & Cooking',
+                            'travel': 'Travel',
+                            'sports': 'Sports',
+                            'entertainment': 'Movies & TV',
+                            'books': 'Books & Reading',
+                            'science': 'Science',
+                            'business': 'Business',
+                            'random': 'Other'  # Random maps to Other
+                        }
+                        category_name = category_name_mapping.get(room_data['category'], room_data['category'].title())
+                        category = Category.objects.get(name=category_name)
+                    except Category.DoesNotExist:
+                        # Create the category if it doesn't exist
+                        category = Category.objects.create(
+                            name=room_data['category'].title(),
+                            slug=room_data['category'],
+                            icon='🌟'  # Default icon
+                        )
+                        self.stdout.write(f'📁 Created new category: {category.name}')
+
                 creator = random.choice(users)
 
                 room, created = Room.objects.get_or_create(
@@ -198,9 +253,11 @@ class Command(BaseCommand):
 
                 if created:
                     self.stdout.write(f'🏠 Created room: {room.display_name}')
+                else:
+                    self.stdout.write(f'🏠 Room already exists: {room.display_name}')
 
-            except Category.DoesNotExist:
-                self.stdout.write(f'⚠️  Category not found: {room_data["category"]}')
+            except Exception as e:
+                self.stdout.write(f'❌ Error creating room {room_data["name"]}: {str(e)}')
 
     def generate_chat_history(self, num_conversations):
         """Generate realistic chat conversations"""
@@ -258,53 +315,62 @@ class Command(BaseCommand):
         with transaction.atomic():
             total_messages = 0
             for room in rooms:
-                # Determine room category for conversation templates
-                room_category = 'social'  # default
-                if room.category:
-                    category_slug = room.category.slug
-                    if category_slug in conversation_templates:
-                        room_category = category_slug
-                    elif 'tech' in category_slug.lower():
-                        room_category = 'technology'
-                    elif 'game' in category_slug.lower() or 'gaming' in category_slug.lower():
-                        room_category = 'gaming'
-                    elif 'creative' in category_slug.lower() or 'art' in category_slug.lower():
-                        room_category = 'creative'
-                    elif 'learn' in category_slug.lower() or 'education' in category_slug.lower():
-                        room_category = 'learning'
+                try:
+                    # Determine room category for conversation templates
+                    room_category = 'social'  # default
+                    if room.category:
+                        category_slug = room.category.slug
+                        if category_slug in conversation_templates:
+                            room_category = category_slug
+                        elif 'tech' in category_slug.lower():
+                            room_category = 'technology'
+                        elif 'game' in category_slug.lower() or 'gaming' in category_slug.lower():
+                            room_category = 'gaming'
+                        elif 'creative' in category_slug.lower() or 'art' in category_slug.lower():
+                            room_category = 'creative'
+                        elif 'learn' in category_slug.lower() or 'education' in category_slug.lower():
+                            room_category = 'learning'
 
-                templates = conversation_templates.get(room_category, conversation_templates['social'])
+                    templates = conversation_templates.get(room_category, conversation_templates['social'])
 
-                # Generate conversations for this room
-                room_messages = 0
-                for i in range(num_conversations):
-                    # Pick a random conversation template
-                    conversation = random.choice(templates)
+                    # Generate conversations for this room
+                    room_messages = 0
+                    for i in range(num_conversations):
+                        try:
+                            # Pick a random conversation template
+                            conversation = random.choice(templates)
 
-                    # Pick random users for this conversation
-                    conversation_users = random.sample(users, min(len(conversation), len(users)))
+                            # Pick random users for this conversation
+                            conversation_users = random.sample(users, min(len(conversation), len(users)))
 
-                    # Generate timestamps (spread over last 30 days)
-                    base_time = timezone.now() - timedelta(days=random.randint(0, 30))
+                            # Generate timestamps (spread over last 30 days)
+                            base_time = timezone.now() - timedelta(days=random.randint(0, 30))
 
-                    for j, message_text in enumerate(conversation):
-                        user = conversation_users[j % len(conversation_users)]
-                        timestamp = base_time + timedelta(minutes=j * random.randint(1, 10))
+                            for j, message_text in enumerate(conversation):
+                                user = conversation_users[j % len(conversation_users)]
+                                timestamp = base_time + timedelta(minutes=j * random.randint(1, 10))
 
-                        # Occasionally add a GIF message
-                        if random.random() < 0.05:  # 5% chance
-                            message_text = random.choice(gif_messages)
+                                # Occasionally add a GIF message
+                                if random.random() < 0.05:  # 5% chance
+                                    message_text = random.choice(gif_messages)
 
-                        Message.objects.create(
-                            user=user,
-                            room=room,
-                            content=message_text,
-                            timestamp=timestamp
-                        )
-                        room_messages += 1
-                        total_messages += 1
+                                Message.objects.create(
+                                    user=user,
+                                    room=room,
+                                    content=message_text,
+                                    timestamp=timestamp
+                                )
+                                room_messages += 1
+                                total_messages += 1
+                        except Exception as e:
+                            self.stdout.write(f'⚠️  Error creating conversation {i+1} in {room.display_name}: {str(e)}')
+                            continue
 
-                self.stdout.write(f'💬 Generated {room_messages} messages for {room.display_name}')
+                    self.stdout.write(f'💬 Generated {room_messages} messages for {room.display_name}')
+
+                except Exception as e:
+                    self.stdout.write(f'❌ Error processing room {room.display_name}: {str(e)}')
+                    continue
 
             self.stdout.write(self.style.SUCCESS(f'✅ Generated {total_messages} total messages'))
 
