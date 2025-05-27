@@ -5307,13 +5307,14 @@ function updateRecommendedRooms(rooms) {
         return;
     }
 
-    // Show up to 3 recommendations with formatted names
+    // Show up to 3 recommendations - use display_name from server or fallback to raw name
     rooms.slice(0, 3).forEach(room => {
         const roomLink = document.createElement('a');
         roomLink.href = `/chat/${room.name}/`;
 
-        // Format the display name
-        const displayName = formatRoomName(room.display_name || room.name);
+        // Use display_name if provided by server, otherwise use name as-is
+        // Server should handle formatting via Django template filters
+        const displayName = room.display_name || room.name || 'Unknown Room';
 
         roomLink.innerHTML = `
             <div class="room-card">
@@ -5332,7 +5333,7 @@ function updateRecommendedRooms(rooms) {
         recommendedList.appendChild(roomLink);
     });
 
-    console.log('Recommended rooms UI updated successfully with formatted names');
+    console.log('Recommended rooms UI updated successfully');
 }
 
 // Bookmarks
