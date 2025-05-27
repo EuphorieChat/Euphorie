@@ -382,7 +382,7 @@ def room(request, room_name):
             'reactions': reactions_map.get(str(msg.id), {})
         }
 
-        # Check if content contains media in [MEDIA:] format
+        # Check if content contains media in [MEDIA:] format OR GIF format
         if '[MEDIA:' in msg.content:
             import re
             media_match = re.search(r'\[MEDIA:(.*?)\]', msg.content)
@@ -390,6 +390,14 @@ def room(request, room_name):
                 msg_data['media_url'] = media_match.group(1)
                 # Remove media tag from content for display
                 msg_data['content'] = re.sub(r'\[MEDIA:.*?\]', '', msg.content).strip()
+        elif '[GIF:' in msg.content:
+            # NEW: Handle GIF messages
+            import re
+            gif_match = re.search(r'\[GIF:(.*?)\]', msg.content)
+            if gif_match:
+                msg_data['media_url'] = '[GIF:' + gif_match.group(1) + ']'
+                # Remove GIF tag from content for display
+                msg_data['content'] = re.sub(r'\[GIF:.*?\]', '', msg.content).strip()
 
         messages.append(msg_data)
 
@@ -429,6 +437,7 @@ def room(request, room_name):
         'can_delete': request.user.is_authenticated and room.creator == request.user,
         'upcoming_meetups': upcoming_meetups,
         'active_announcements': active_announcements,
+        'GIPHY_API_KEY': settings.GIPHY_API_KEY,  # NEW: Add Giphy API key
     }
 
     return render(request, 'chat/room.html', context)

@@ -2239,6 +2239,135 @@ background: rgba(236, 72, 153, 0.1);
     z-index: 10 !important;
 }
 
+/* Giphy Panel Styles */
+.giphy-panel {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    padding: 0.75rem;
+    display: none;
+    flex-direction: column;
+    margin-bottom: 0.5rem;
+    z-index: 100;
+    width: 350px;
+    max-height: 400px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.giphy-panel.show {
+    display: flex;
+}
+
+.giphy-search {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.giphy-search:focus {
+    outline: none;
+    border-color: #ec4899;
+    box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.1);
+}
+
+.giphy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    overflow-y: auto;
+    max-height: 280px;
+    scrollbar-width: thin;
+}
+
+.giphy-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.giphy-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.giphy-grid::-webkit-scrollbar-thumb {
+    background-color: rgba(236, 72, 153, 0.3);
+    border-radius: 20px;
+}
+
+.giphy-item {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.giphy-item:hover {
+    transform: scale(1.05);
+    border-color: #ec4899;
+}
+
+.giphy-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.giphy-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #6b7280;
+}
+
+.giphy-empty {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+}
+
+.trending-gifs {
+    margin-bottom: 1rem;
+}
+
+.trending-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* GIF message styling */
+.gif-message {
+    max-width: 100%;
+}
+
+.gif-message img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    max-height: 200px;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+    .giphy-panel {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 320px;
+        max-width: 90vw;
+    }
+}
+
   </style>
 
   <script>
@@ -2623,75 +2752,101 @@ background: rgba(236, 72, 153, 0.1);
         </div>
       </div>
 
-      <!-- Input Area - COMPACT VERSION -->
-      <div class="input-area" style="padding: 0.5rem 0.75rem;">
-        <form id="message-form" class="flex gap-1.5 items-center">
-          <div class="input-wrapper flex-1" style="padding: 0 0.5rem;">
-            <!-- Emoji Button - Smaller -->
-            <div class="relative">
-              <button id="emoji-button" type="button" class="text-lg emoji-button" data-tooltip="Emojis" {% if not user.is_authenticated %}disabled style="opacity: 0.5; pointer-events: none;"{% endif %}>
-                <span aria-label="Emoji picker" style="font-size: 1.2rem;">😊</span>
-              </button>
-              <div id="emoji-panel" class="emoji-panel">
-                <!-- Emojis grid -->
-                <div class="emoji-btn">😊</div>
-                <div class="emoji-btn">😂</div>
-                <div class="emoji-btn">❤️</div>
-                <div class="emoji-btn">👍</div>
-                <div class="emoji-btn">🔥</div>
-                <div class="emoji-btn">✨</div>
-                <div class="emoji-btn">🎉</div>
-                <div class="emoji-btn">🥰</div>
-                <div class="emoji-btn">😎</div>
-                <div class="emoji-btn">🤔</div>
-                <div class="emoji-btn">👀</div>
-                <div class="emoji-btn">💯</div>
-                <div class="emoji-btn">🙏</div>
-                <div class="emoji-btn">💪</div>
-                <div class="emoji-btn">🌟</div>
-                <div class="emoji-btn">💕</div>
-                <div class="emoji-btn">🤩</div>
-                <div class="emoji-btn">😍</div>
-                <div class="emoji-btn">🥳</div>
-                <div class="emoji-btn">😁</div>
-                <div class="emoji-btn">😅</div>
-                <div class="emoji-btn">🙂</div>
-                <div class="emoji-btn">🫠</div>
-                <div class="emoji-btn">🫢</div>
-              </div>
-            </div>
+        <!-- Input Area - UPDATED WITH GIPHY -->
+        <div class="input-area" style="padding: 0.5rem 0.75rem;">
+            <form id="message-form" class="flex gap-1.5 items-center">
+                <div class="input-wrapper flex-1" style="padding: 0 0.5rem;">
+                    <!-- Emoji Button - EXISTING -->
+                    <div class="relative">
+                        <button id="emoji-button" type="button" class="text-lg emoji-button" data-tooltip="Emojis" {% if not user.is_authenticated %}disabled style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                            <span aria-label="Emoji picker" style="font-size: 1.2rem;">😊</span>
+                        </button>
+                        <div id="emoji-panel" class="emoji-panel">
+                            <!-- Emojis grid -->
+                            <div class="emoji-btn">😊</div>
+                            <div class="emoji-btn">😂</div>
+                            <div class="emoji-btn">❤️</div>
+                            <div class="emoji-btn">👍</div>
+                            <div class="emoji-btn">🔥</div>
+                            <div class="emoji-btn">✨</div>
+                            <div class="emoji-btn">🎉</div>
+                            <div class="emoji-btn">🥰</div>
+                            <div class="emoji-btn">😎</div>
+                            <div class="emoji-btn">🤔</div>
+                            <div class="emoji-btn">👀</div>
+                            <div class="emoji-btn">💯</div>
+                            <div class="emoji-btn">🙏</div>
+                            <div class="emoji-btn">💪</div>
+                            <div class="emoji-btn">🌟</div>
+                            <div class="emoji-btn">💕</div>
+                            <div class="emoji-btn">🤩</div>
+                            <div class="emoji-btn">😍</div>
+                            <div class="emoji-btn">🥳</div>
+                            <div class="emoji-btn">😁</div>
+                            <div class="emoji-btn">😅</div>
+                            <div class="emoji-btn">🙂</div>
+                            <div class="emoji-btn">🫠</div>
+                            <div class="emoji-btn">🫢</div>
+                        </div>
+                    </div>
 
-            <!-- Message Input - Smaller padding -->
-            <input
-              id="chat-message-input"
-              type="text"
-              placeholder="{% if user.is_authenticated %}Type a message...{% else %}Log in to join the conversation{% endif %}"
-              autocomplete="off"
-              class="chat-input"
-              style="padding: 0.5rem 0.25rem;"
-              {% if not user.is_authenticated %}disabled{% endif %}
-              aria-label="Message input"
-            />
-          </div>
+                    <!-- NEW: Giphy Button -->
+                    <div class="relative">
+                        <button id="giphy-button" type="button" class="text-lg giphy-button ml-2" data-tooltip="GIFs" {% if not user.is_authenticated %}disabled style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                            <span class="font-bold text-pink-500" style="font-size: 0.75rem;">GIF</span>
+                        </button>
+                        <div id="giphy-panel" class="giphy-panel">
+                            <input type="text" id="giphy-search" class="giphy-search" placeholder="Search for GIFs..." />
 
-      <!-- Attachment Button - Smaller -->
-      <button type="button" class="btn-icon bg-gradient-to-r from-purple-500 to-purple-700 text-white p-1.5 rounded-lg" id="attachment-btn" data-tooltip="Attach files" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-        </svg>
-        <span class="sr-only">Attach files</span>
-      </button>
-      <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
+                            <div id="trending-section" class="trending-gifs">
+                                <div class="trending-label">Trending</div>
+                                <div id="trending-grid" class="giphy-grid"></div>
+                            </div>
 
-          <!-- Send Button - Smaller -->
-          <button type="submit" id="send-btn" class="btn-icon bg-gradient-to-r from-pink-500 to-purple-500 text-white p-1.5 rounded-lg" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            <span class="sr-only">Send message</span>
-          </button>
-        </form>
-      </div>
+                            <div id="search-results" class="giphy-grid" style="display: none;"></div>
+
+                            <div id="giphy-loading" class="giphy-loading" style="display: none;">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
+                            </div>
+
+                            <div id="giphy-empty" class="giphy-empty" style="display: none;">
+                                <div class="text-4xl mb-2">🔍</div>
+                                <div>No GIFs found</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Message Input - EXISTING -->
+                    <input
+                    id="chat-message-input"
+                    type="text"
+                    placeholder="{% if user.is_authenticated %}Type a message...{% else %}Log in to join the conversation{% endif %}"
+                    autocomplete="off"
+                    class="chat-input"
+                    style="padding: 0.5rem 0.25rem;"
+                    {% if not user.is_authenticated %}disabled{% endif %}
+                    aria-label="Message input"
+                    />
+                </div>
+
+                <!-- Attachment Button - EXISTING -->
+                <button type="button" class="btn-icon bg-gradient-to-r from-purple-500 to-purple-700 text-white p-1.5 rounded-lg" id="attachment-btn" data-tooltip="Attach files" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    <span class="sr-only">Attach files</span>
+                </button>
+                <input id="file-input" type="file" accept="image/*,video/*" class="hidden" multiple {% if not user.is_authenticated %}disabled{% endif %} />
+
+                <!-- Send Button - EXISTING -->
+                <button type="submit" id="send-btn" class="btn-icon bg-gradient-to-r from-pink-500 to-purple-500 text-white p-1.5 rounded-lg" data-tooltip="Send" {% if not user.is_authenticated %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    <span class="sr-only">Send message</span>
+                </button>
+            </form>
+        </div>
 
       <!-- Jump to bottom button -->
       <button id="jump-to-bottom" class="jump-to-bottom fixed bg-white shadow-lg rounded-full w-8 h-8 flex items-center justify-center" aria-label="Jump to bottom" style="bottom: 4rem; right: 0.75rem;">
@@ -4118,12 +4273,39 @@ flagStyles.innerHTML = `
 document.head.appendChild(flagStyles);
 
 function extractMediaUrl(text) {
+    // Check for GIF format
+    if (text.includes('[GIF:') && text.includes(']')) {
+        const match = text.match(/\[GIF:(.*?)\]/);
+        return match ? '[GIF:' + match[1] + ']' : null;
+    }
+
+    // Check for regular media format
     const match = text.match(/\[MEDIA:(.*?)\]/);
     return match ? match[1] : null;
 }
 
 function renderMediaContent(url) {
-    // Fix URLs that are missing the /media/ prefix
+    // Check if it's a GIF message
+    if (url && url.startsWith('[GIF:') && url.endsWith(']')) {
+        try {
+            const gifDataStr = url.slice(5, -1); // Remove [GIF: and ]
+            const gifData = JSON.parse(gifDataStr);
+            return `
+                <div class="message-media gif-message">
+                    <img src="${escapeHtml(gifData.url)}" alt="${escapeHtml(gifData.title)}"
+                         loading="lazy" style="max-height: 200px; border-radius: 8px;">
+                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                        <span class="font-bold text-pink-500">GIF</span>
+                        <span>via GIPHY</span>
+                    </div>
+                </div>`;
+        } catch (e) {
+            console.error('Error parsing GIF data:', e);
+            return '<div class="text-xs text-red-500">Invalid GIF data</div>';
+        }
+    }
+
+    // Fix URLs that are missing the /media/ prefix (existing code)
     if (url && url.includes('/chat_uploads/') && !url.includes('/media/chat_uploads/')) {
         console.log('Fixing URL path in renderMediaContent:', url);
         url = url.replace('/chat_uploads/', '/media/chat_uploads/');
@@ -6901,6 +7083,218 @@ document.addEventListener('visibilitychange', function() {
         attemptReconnect();
     }
 });
+
+
+class GiphyIntegration {
+    constructor() {
+        this.API_KEY = '{{ GIPHY_API_KEY }}';
+        this.BASE_URL = 'https://api.giphy.com/v1/gifs';
+
+        this.panel = document.getElementById('giphy-panel');
+        this.searchInput = document.getElementById('giphy-search');
+        this.trendingGrid = document.getElementById('trending-grid');
+        this.searchResults = document.getElementById('search-results');
+        this.loading = document.getElementById('giphy-loading');
+        this.empty = document.getElementById('giphy-empty');
+        this.trendingSection = document.getElementById('trending-section');
+
+        this.searchTimeout = null;
+        this.currentQuery = '';
+
+        this.init();
+    }
+
+    init() {
+        if (!this.API_KEY || this.API_KEY === '{{ GIPHY_API_KEY }}') {
+            console.warn('Giphy API key not configured');
+            return;
+        }
+
+        this.loadTrendingGifs();
+
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', (e) => {
+                clearTimeout(this.searchTimeout);
+                const query = e.target.value.trim();
+
+                if (query.length === 0) {
+                    this.showTrending();
+                    return;
+                }
+
+                this.searchTimeout = setTimeout(() => {
+                    this.searchGifs(query);
+                }, 300);
+            });
+        }
+    }
+
+    async loadTrendingGifs() {
+        try {
+            this.showLoading();
+            const response = await fetch(`${this.BASE_URL}/trending?api_key=${this.API_KEY}&limit=9&rating=pg`);
+            const data = await response.json();
+
+            if (data.data && data.data.length > 0) {
+                this.displayGifs(data.data, this.trendingGrid);
+            }
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error loading trending GIFs:', error);
+            this.hideLoading();
+        }
+    }
+
+    async searchGifs(query) {
+        if (query === this.currentQuery) return;
+        this.currentQuery = query;
+
+        try {
+            this.showLoading();
+            this.hideEmpty();
+
+            const response = await fetch(`${this.BASE_URL}/search?api_key=${this.API_KEY}&q=${encodeURIComponent(query)}&limit=9&rating=pg`);
+            const data = await response.json();
+
+            if (data.data && data.data.length > 0) {
+                this.displayGifs(data.data, this.searchResults);
+                this.showSearchResults();
+            } else {
+                this.showEmpty();
+                this.hideSearchResults();
+            }
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error searching GIFs:', error);
+            this.hideLoading();
+            this.showEmpty();
+        }
+    }
+
+    displayGifs(gifs, container) {
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        gifs.forEach(gif => {
+            const gifItem = document.createElement('div');
+            gifItem.className = 'giphy-item';
+            gifItem.innerHTML = `<img src="${gif.images.fixed_height_small.url}" alt="${gif.title}" loading="lazy">`;
+
+            gifItem.addEventListener('click', () => {
+                this.selectGif(gif);
+            });
+
+            container.appendChild(gifItem);
+        });
+    }
+
+    selectGif(gif) {
+        const gifData = {
+            type: 'gif',
+            url: gif.images.original.url,
+            previewUrl: gif.images.fixed_height_small.url,
+            title: gif.title,
+            id: gif.id
+        };
+
+        // Send via WebSocket
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({
+                'type': 'chat',
+                'message': `[GIF:${JSON.stringify(gifData)}]`
+            }));
+        }
+
+        // Close panel and reset
+        if (this.panel) {
+            this.panel.classList.remove('show');
+        }
+        if (this.searchInput) {
+            this.searchInput.value = '';
+        }
+        this.showTrending();
+    }
+
+    showLoading() {
+        if (this.loading) this.loading.style.display = 'flex';
+        if (this.empty) this.empty.style.display = 'none';
+    }
+
+    hideLoading() {
+        if (this.loading) this.loading.style.display = 'none';
+    }
+
+    showEmpty() {
+        if (this.empty) this.empty.style.display = 'block';
+        this.hideSearchResults();
+    }
+
+    hideEmpty() {
+        if (this.empty) this.empty.style.display = 'none';
+    }
+
+    showTrending() {
+        if (this.trendingSection) this.trendingSection.style.display = 'block';
+        this.hideSearchResults();
+        this.hideEmpty();
+    }
+
+    showSearchResults() {
+        if (this.trendingSection) this.trendingSection.style.display = 'none';
+        if (this.searchResults) this.searchResults.style.display = 'grid';
+    }
+
+    hideSearchResults() {
+        if (this.searchResults) this.searchResults.style.display = 'none';
+    }
+}
+
+// Initialize Giphy when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Only initialize if user is authenticated
+    if (isUserAuthenticated()) {
+        const giphyIntegration = new GiphyIntegration();
+
+        // Giphy button toggle
+        const giphyButton = document.getElementById('giphy-button');
+        const giphyPanel = document.getElementById('giphy-panel');
+
+        if (giphyButton && giphyPanel) {
+            giphyButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                giphyPanel.classList.toggle('show');
+
+                // Close emoji panel if open
+                const emojiPanel = document.getElementById('emoji-panel');
+                if (emojiPanel) {
+                    emojiPanel.classList.remove('show');
+                }
+            });
+        }
+
+        // Update existing emoji button to close giphy panel
+        const emojiButton = document.getElementById('emoji-button');
+        if (emojiButton) {
+            const originalEmojiHandler = emojiButton.onclick;
+            emojiButton.addEventListener('click', function(e) {
+                if (giphyPanel) {
+                    giphyPanel.classList.remove('show');
+                }
+            });
+        }
+
+        // Close panels when clicking outside
+        document.addEventListener('click', function(e) {
+            if (giphyPanel && giphyButton &&
+                !giphyPanel.contains(e.target) &&
+                !giphyButton.contains(e.target)) {
+                giphyPanel.classList.remove('show');
+            }
+        });
+    }
+});
+
   </script>
 </body>
 </html>

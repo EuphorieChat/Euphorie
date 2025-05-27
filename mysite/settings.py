@@ -163,3 +163,4 @@ FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
 
+GIPHY_API_KEY = 'qoc842aljfpKrwVO0sFAIzD3KSzJqtSQ'
