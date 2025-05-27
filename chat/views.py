@@ -25,6 +25,71 @@ from .models import (
     Announcement, AnnouncementReadStatus
 )
 import time
+import random
+from urllib.parse import quote
+
+def generate_random_dicebear_avatar(username):
+    """Generate a random DiceBear avatar for a new user"""
+    # DiceBear 7.x styles (free, no API key needed)
+    styles = [
+        'adventurer', 'adventurer-neutral', 'avataaars', 'avataaars-neutral',
+        'big-ears', 'big-ears-neutral', 'big-smile', 'bottts', 'bottts-neutral',
+        'croodles', 'croodles-neutral', 'fun-emoji', 'icons', 'identicon',
+        'lorelei', 'lorelei-neutral', 'micah', 'miniavs',
+        'open-peeps', 'personas', 'pixel-art', 'pixel-art-neutral',
+        'shapes', 'thumbs'
+    ]
+
+    # Choose a random style
+    avatar_style = random.choice(styles)
+
+    # Use username as seed for consistency
+    seed = username
+
+    # Generate consistent colors based on username
+    colors = get_user_colors_for_avatar(username)
+
+    # Build URL
+    url = f"https://api.dicebear.com/7.x/{avatar_style}/svg?seed={quote(seed)}&size=200"
+
+    # Add background color for some styles
+    if avatar_style in ['initials', 'shapes', 'identicon']:
+        bg_color = colors['bg'].replace('#', '')
+        url += f"&backgroundColor={bg_color}"
+
+    return {
+        'type': 'avatar_url',
+        'url': url,
+        'service': 'dicebear',
+        'style': avatar_style,
+        'seed': seed
+    }
+
+def get_user_colors_for_avatar(username):
+    """Generate consistent colors based on username"""
+    # Create a hash from username for consistency
+    hash_val = abs(hash(username))
+
+    # Define beautiful color palettes
+    palettes = [
+        {'bg': '#FF6B6B', 'accent': '#4ECDC4', 'text': '#FFFFFF'},  # Red-Teal
+        {'bg': '#4ECDC4', 'accent': '#45B7D1', 'text': '#FFFFFF'},  # Teal-Blue
+        {'bg': '#45B7D1', 'accent': '#96CEB4', 'text': '#FFFFFF'},  # Blue-Green
+        {'bg': '#96CEB4', 'accent': '#FECA57', 'text': '#2C3E50'},  # Green-Yellow
+        {'bg': '#FECA57', 'accent': '#FF9FF3', 'text': '#2C3E50'},  # Yellow-Pink
+        {'bg': '#FF9FF3', 'accent': '#54A0FF', 'text': '#FFFFFF'},  # Pink-Blue
+        {'bg': '#54A0FF', 'accent': '#5F27CD', 'text': '#FFFFFF'},  # Blue-Purple
+        {'bg': '#5F27CD', 'accent': '#00D2D3', 'text': '#FFFFFF'},  # Purple-Cyan
+        {'bg': '#00D2D3', 'accent': '#FF9F43', 'text': '#2C3E50'},  # Cyan-Orange
+        {'bg': '#FF9F43', 'accent': '#10AC84', 'text': '#FFFFFF'},  # Orange-Green
+        {'bg': '#10AC84', 'accent': '#EE5A24', 'text': '#FFFFFF'},  # Green-Orange
+        {'bg': '#EE5A24', 'accent': '#0984E3', 'text': '#FFFFFF'},  # Orange-Blue
+        {'bg': '#A55EEA', 'accent': '#26C6DA', 'text': '#FFFFFF'},  # Purple-Cyan
+        {'bg': '#26C6DA', 'accent': '#FFA726', 'text': '#2C3E50'},  # Cyan-Amber
+        {'bg': '#FFA726', 'accent': '#66BB6A', 'text': '#FFFFFF'},  # Amber-Green
+    ]
+
+    return palettes[hash_val % len(palettes)]
 
 def index(request):
     # Create default categories if they don't exist
@@ -368,6 +433,31 @@ def room(request, room_name):
 
     return render(request, 'chat/room.html', context)
 
+def ensure_user_has_profile(user):
+    """Ensure user has a profile with an avatar, create one if needed"""
+    if not user.is_authenticated:
+        return None
+
+    try:
+        profile = UserProfile.objects.get(user=user)
+        # Check if profile has avatar data
+        if not profile.profile_picture_data:
+            # Generate new avatar
+            profile_data = generate_random_dicebear_avatar(user.username)
+            profile.profile_picture_data = json.dumps(profile_data)
+            profile.save()
+            return profile_data
+    except UserProfile.DoesNotExist:
+        # Create new profile with avatar
+        profile_data = generate_random_dicebear_avatar(user.username)
+        profile = UserProfile.objects.create(
+            user=user,
+            profile_picture_data=json.dumps(profile_data)
+        )
+        return profile_data
+
+    return None
+
 @login_required
 def delete_room(request, room_name):
     room = get_object_or_404(Room, name=room_name)
@@ -380,6 +470,21 @@ def signup(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+
+            # Create user profile with random DiceBear avatar
+            try:
+                profile_data = generate_random_dicebear_avatar(user.username)
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.profile_picture_data = json.dumps(profile_data)
+                profile.save()
+
+                print(f"Created DiceBear avatar for new user: {user.username} - Style: {profile_data['style']}")
+
+            except Exception as e:
+                print(f"Error creating avatar for {user.username}: {str(e)}")
+                # Don't fail registration if avatar creation fails
+                pass
+
             login(request, user)
             return redirect('index')
     else:
@@ -1127,6 +1232,18 @@ def get_user_profile(request, username):
                     profile_data = custom_profile_data
             except json.JSONDecodeError:
                 # Use default if JSON is invalid
+                pass
+        else:
+            # No profile data exists, create a DiceBear avatar
+            try:
+                new_profile_data = generate_random_dicebear_avatar(username)
+                profile.profile_picture_data = json.dumps(new_profile_data)
+                profile.save()
+                profile_data = new_profile_data
+                print(f"Auto-created DiceBear avatar for existing user: {username}")
+            except Exception as e:
+                print(f"Error auto-creating avatar for {username}: {str(e)}")
+                # Fall back to gradient
                 pass
 
         # Return successful response
