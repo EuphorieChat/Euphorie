@@ -4153,6 +4153,8 @@ function handleMessageSubmit(e) {
 
 // Fixed handleChatMessage to properly initialize reactions container
 function handleChatMessage(data) {
+    console.log('📨 Handling chat message:', data);
+
     const chatLog = document.getElementById('chat-log');
     if (!chatLog) return;
 
@@ -4171,45 +4173,61 @@ function handleChatMessage(data) {
 
     let textContent = data.message || data.content || '';
     let mediaContent = '';
+    let isGifMessage = false;
 
-    // ENHANCED: Check for GIF messages first
-    if (textContent.startsWith('[GIF:') && textContent.endsWith(']')) {
+    console.log('📝 Message content:', textContent);
+
+    // Check for GIF messages
+    if (textContent.includes('[GIF:') && textContent.includes(']')) {
+        console.log('🎯 Detected GIF message!');
+
         try {
-            const gifDataStr = textContent.slice(5, -1); // Remove [GIF: and ]
-            const gifData = JSON.parse(gifDataStr);
+            const gifMatch = textContent.match(/\[GIF:(.*?)\]/);
+            if (gifMatch) {
+                const gifDataStr = gifMatch[1];
+                const gifData = JSON.parse(gifDataStr);
 
-            console.log('Rendering new GIF message:', gifData);
+                console.log('✅ Parsed GIF data:', gifData);
 
-            // Create GIF media content
-            mediaContent = `
-                <div class="message-media gif-message">
-                    <img src="${escapeHtml(gifData.url)}" alt="${escapeHtml(gifData.title || 'GIF')}"
-                         loading="lazy" style="max-height: 200px; border-radius: 8px; max-width: 100%;"
-                         onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
-                    <div style="display: none;" class="text-xs text-red-500 p-2 bg-red-50 rounded">
-                        Failed to load GIF
+                // Store GIF data with message ID for later retrieval
+                const gifKey = `gif_${data.message_id}`;
+                window.gifMessageData.set(gifKey, gifData);
+
+                // Create GIF media content WITHOUT onclick in HTML
+                mediaContent = `
+                    <div class="message-media gif-message">
+                        <img src="${escapeHtml(gifData.url)}"
+                             alt="${escapeHtml(gifData.title || 'GIF')}"
+                             data-gif-key="${gifKey}"
+                             class="gif-preview-img"
+                             loading="lazy"
+                             style="max-height: 200px; border-radius: 8px; max-width: 100%; cursor: pointer;"
+                             onerror="console.error('GIF failed to load:', this.src); this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div style="display: none;" class="text-xs text-red-500 p-2 bg-red-50 rounded">
+                            Failed to load GIF
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <span class="font-bold text-pink-500">GIF</span>
+                            <span>via GIPHY</span>
+                            ${gifData.title ? `<span>• ${escapeHtml(gifData.title)}</span>` : ''}
+                        </div>
                     </div>
-                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                        <span class="font-bold text-pink-500">GIF</span>
-                        <span>via GIPHY</span>
-                        ${gifData.title ? `<span>• ${escapeHtml(gifData.title)}</span>` : ''}
-                    </div>
-                </div>
-            `;
+                `;
 
-            // Clear text content since it's now rendered as media
-            textContent = '';
+                isGifMessage = true;
+                textContent = ''; // Clear text content since it's now rendered as media
 
+                console.log('✅ Created GIF media content');
+            }
         } catch (e) {
-            console.error('Error parsing GIF data in new message:', e);
-            // Fall back to showing as text if parsing fails
+            console.error('❌ Error parsing GIF data:', e);
+            console.error('Raw GIF data string:', textContent);
         }
     } else {
-        // Handle regular media URLs
+        // Handle regular media URLs (existing logic)
         const mediaUrl = extractMediaUrl(textContent);
-        if (mediaUrl && !mediaUrl.startsWith('[GIF:')) {
+        if (mediaUrl && !mediaUrl.includes('[GIF:')) {
             mediaContent = renderMediaContent(mediaUrl);
-            // Remove MEDIA tags from text content
             textContent = textContent.replace(/\[MEDIA:.*?\]/g, '').trim();
         }
     }
@@ -4217,7 +4235,10 @@ function handleChatMessage(data) {
     const textHtml = textContent ? `<div class="message-content text-sm text-gray-700">${escapeHtml(textContent)}</div>` : '';
 
     // Don't render empty messages
-    if (!mediaContent && !textHtml) return;
+    if (!mediaContent && !textHtml) {
+        console.log('⚠️ Skipping empty message');
+        return;
+    }
 
     messageContainer.innerHTML = `
         <div class="relative">
@@ -4244,33 +4265,47 @@ function handleChatMessage(data) {
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👍')" aria-label="React with thumbs up">👍</button>
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😂')" aria-label="React with laugh">😂</button>
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '✨')" aria-label="React with sparkles">✨</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🔥')" aria-label="React with fire">🔥</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🎉')" aria-label="React with party">🎉</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥰')" aria-label="React with love">🥰</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😎')" aria-label="React with cool">😎</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤔')" aria-label="React with thinking">🤔</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👀')" aria-label="React with eyes">👀</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💯')" aria-label="React with 100">💯</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙏')" aria-label="React with pray">🙏</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💪')" aria-label="React with muscle">💪</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🌟')" aria-label="React with star">🌟</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💕')" aria-label="React with hearts">💕</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤩')" aria-label="React with star eyes">🤩</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😍')" aria-label="React with love eyes">😍</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥳')" aria-label="React with party face">🥳</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😁')" aria-label="React with grin">😁</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😅')" aria-label="React with laugh sweat">😅</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙂')" aria-label="React with slight smile">🙂</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫠')" aria-label="React with melting">🫠</button>
-                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫢')" aria-label="React with hand over mouth">🫢</button>
             </div>
         </div>
     `;
 
     chatLog.appendChild(messageContainer);
+
+    // STEP 4: Add click handlers AFTER the element is in the DOM
+    if (isGifMessage) {
+        const gifImg = messageContainer.querySelector('.gif-preview-img');
+        if (gifImg) {
+            const gifKey = gifImg.getAttribute('data-gif-key');
+            const gifData = window.gifMessageData.get(gifKey);
+
+            console.log('🖱️ Adding click handler for GIF:', gifKey, gifData);
+
+            gifImg.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                console.log('🖱️ GIF clicked, opening preview...');
+
+                if (gifData) {
+                    // Open preview with direct URL
+                    window.openMediaPreview({
+                        type: 'image',
+                        url: gifData.url,
+                        title: gifData.title || 'GIF',
+                        isGif: true
+                    });
+                } else {
+                    console.error('❌ No GIF data found for key:', gifKey);
+                }
+            });
+
+            console.log('✅ Click handler added successfully');
+        }
+    }
+
     updateMessageAvatar(messageContainer, data.username);
 
-    // Ensure the reactions container is properly set up
+    // Handle reactions
     const reactionsContainer = messageContainer.querySelector('.reactions-container');
     if (reactionsContainer && data.reactions) {
         for (const [emoji, count] of Object.entries(data.reactions)) {
@@ -4289,6 +4324,8 @@ function handleChatMessage(data) {
 
     scrollToBottom();
     removeTypingIndicator(data.username);
+
+    console.log('✅ Message rendered successfully');
 }
 
 // Add CSS for the country flag styling
@@ -6916,31 +6953,36 @@ function shareMedia(item) {
 
 // Media preview with improved visibility
 window.openMediaPreview = function(item) {
-  // Log for debugging
-  console.log('Opening media preview:', item);
+    console.log('🖼️ Opening media preview:', item);
 
-  const modal = document.getElementById('media-preview-modal');
-  if (!modal) {
-    console.error('Media preview modal element not found!');
-    return;
-  }
-
-  // Ensure the URL has the media prefix if needed
-  if (item && item.url) {
-    // If URL still doesn't have /media/ prefix but has chat_uploads
-    if (item.url.includes('/chat_uploads/') && !item.url.includes('/media/chat_uploads/')) {
-      console.log('Fixing URL for preview:', item.url);
-      item.url = item.url.replace('/chat_uploads/', '/media/chat_uploads/');
+    const modal = document.getElementById('media-preview-modal');
+    if (!modal) {
+        console.error('❌ Media preview modal not found!');
+        return;
     }
-  }
 
-  // Create or update modal with better visibility
-  updateMediaPreviewModal(modal, item);
+    // For GIFs, make sure we use the direct URL
+    if (item.isGif && item.url) {
+        console.log('🎯 Opening GIF preview with URL:', item.url);
 
-  // Show the modal
-  modal.classList.add('open');
-  modal.classList.add('active');
+        // Create or update modal content
+        updateMediaPreviewModal(modal, {
+            type: 'image',
+            url: item.url,
+            title: item.title || 'GIF',
+            isGif: true
+        });
+    } else {
+        // Handle regular media
+        updateMediaPreviewModal(modal, item);
+    }
+
+    // Show the modal
+    modal.classList.add('open');
+    modal.classList.add('active');
 };
+
+window.gifMessageData = new Map();
 
 // Update this function to handle URLs properly
 function updateMediaPreviewModal(modal, item) {
