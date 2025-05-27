@@ -3136,12 +3136,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadActiveUsers();
     loadBookmarkedRooms();
     scrollToBottom();
-
-    setTimeout(() => {
-        processExistingGifMessages();
-    }, 500);
-
-
 });
 
 // Add necessary CSS for modals
@@ -4310,7 +4304,11 @@ function renderMediaContent(url) {
             return `
                 <div class="message-media gif-message">
                     <img src="${escapeHtml(gifData.url)}" alt="${escapeHtml(gifData.title)}"
-                         loading="lazy" style="max-height: 200px; border-radius: 8px; max-width: 100%;">
+                         loading="lazy" style="max-height: 200px; border-radius: 8px; max-width: 100%;"
+                         onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div style="display: none;" class="text-xs text-red-500 p-2 bg-red-50 rounded">
+                        Failed to load GIF
+                    </div>
                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <span class="font-bold text-pink-500">GIF</span>
                         <span>via GIPHY</span>
@@ -4323,7 +4321,7 @@ function renderMediaContent(url) {
         }
     }
 
-    // Fix URLs that are missing the /media/ prefix (existing code)
+    // Handle regular media URLs (existing code)
     if (url && url.includes('/chat_uploads/') && !url.includes('/media/chat_uploads/')) {
         console.log('Fixing URL path in renderMediaContent:', url);
         url = url.replace('/chat_uploads/', '/media/chat_uploads/');
@@ -4362,6 +4360,50 @@ function renderMediaContent(url) {
                 </div>`;
     }
 }
+
+// Function to initialize GIF handling on page load
+function initializeGifHandling() {
+    // Add CSS for GIF-specific styling if not already present
+    if (!document.getElementById('gif-specific-styles')) {
+        const style = document.createElement('style');
+        style.id = 'gif-specific-styles';
+        style.textContent = `
+            .gif-message img {
+                transition: transform 0.2s ease;
+            }
+
+            .gif-message img:hover {
+                transform: scale(1.02);
+            }
+
+            .media-item[data-media-type="gif"] {
+                position: relative;
+            }
+
+            .media-item[data-media-type="gif"]:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(236, 72, 153, 0.15);
+            }
+
+            .gif-badge {
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    console.log('GIF handling initialized');
+}
+
+// Initialize GIF handling when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeGifHandling();
+});
 
 // Typing indicator
 function handleTyping() {
@@ -6062,8 +6104,9 @@ function createEnhancedMediaLibrary() {
                     <div class="flex gap-2">
                         <button class="media-filter-btn active" data-filter="all">All Media</button>
                         <button class="media-filter-btn" data-filter="images">Images</button>
+                        <button class="media-filter-btn" data-filter="gifs">GIFs</button>
                         <button class="media-filter-btn" data-filter="videos">Videos</button>
-                        <button class="media-filter-btn" data-filter="files">Other Files</button>
+                        <button class="media-filter-btn" data-filter="files">Files</button>
                     </div>
                 </div>
 
@@ -6078,7 +6121,7 @@ function createEnhancedMediaLibrary() {
             </div>
         `;
 
-        // Add filter functionality
+        // UPDATED: Enhanced filter functionality with GIF support
         modalContent.querySelectorAll('.media-filter-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 // Update active button
@@ -6092,22 +6135,93 @@ function createEnhancedMediaLibrary() {
                 const filter = this.getAttribute('data-filter');
                 const mediaItems = modalContent.querySelectorAll('.media-item');
 
+                console.log(`Filtering media by: ${filter}`);
+
+                let visibleCount = 0;
+
                 mediaItems.forEach(item => {
                     const type = item.getAttribute('data-media-type');
+                    let shouldShow = false;
 
-                    if (filter === 'all' ||
-                        (filter === 'images' && type === 'image') ||
-                        (filter === 'videos' && type === 'video') ||
-                        (filter === 'files' && type === 'file')) {
+                    switch (filter) {
+                        case 'all':
+                            shouldShow = true;
+                            break;
+                        case 'images':
+                            shouldShow = (type === 'image');
+                            break;
+                        case 'gifs':
+                            shouldShow = (type === 'gif');
+                            break;
+                        case 'videos':
+                            shouldShow = (type === 'video');
+                            break;
+                        case 'files':
+                            shouldShow = (type === 'file');
+                            break;
+                    }
+
+                    if (shouldShow) {
                         item.style.display = '';
+                        visibleCount++;
                     } else {
                         item.style.display = 'none';
                     }
                 });
+
+                console.log(`Showing ${visibleCount} items for filter: ${filter}`);
+
+                // Show empty state if no items match filter
+                if (visibleCount === 0) {
+                    const existingEmptyState = modalContent.querySelector('.filter-empty-state');
+                    if (existingEmptyState) {
+                        existingEmptyState.remove();
+                    }
+
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'filter-empty-state col-span-full flex flex-col items-center justify-center py-8 text-gray-500';
+
+                    let emptyMessage = '';
+                    switch (filter) {
+                        case 'images':
+                            emptyMessage = 'No images found';
+                            break;
+                        case 'gifs':
+                            emptyMessage = 'No GIFs found';
+                            break;
+                        case 'videos':
+                            emptyMessage = 'No videos found';
+                            break;
+                        case 'files':
+                            emptyMessage = 'No files found';
+                            break;
+                        default:
+                            emptyMessage = 'No media found';
+                    }
+
+                    emptyState.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-lg font-medium">${emptyMessage}</p>
+                        <p class="text-sm mt-1">Try selecting a different filter or upload some media.</p>
+                    `;
+
+                    const mediaGrid = modalContent.querySelector('#media-grid');
+                    if (mediaGrid) {
+                        mediaGrid.appendChild(emptyState);
+                    }
+                } else {
+                    // Remove empty state if items are visible
+                    const existingEmptyState = modalContent.querySelector('.filter-empty-state');
+                    if (existingEmptyState) {
+                        existingEmptyState.remove();
+                    }
+                }
             });
         });
 
-        // Add fullscreen functionality
+        // Add fullscreen functionality (existing code)
         const fullscreenBtn = modalContent.querySelector('#media-fullscreen-btn');
         if (fullscreenBtn) {
             let isFullscreen = false;
@@ -6136,7 +6250,7 @@ function createEnhancedMediaLibrary() {
             });
         }
 
-        // Add close button functionality
+        // Add close button functionality (existing code)
         const closeBtn = modalContent.querySelector('#close-media-library');
         if (closeBtn) {
             closeBtn.addEventListener('click', function() {
@@ -6144,6 +6258,41 @@ function createEnhancedMediaLibrary() {
             });
         }
     }
+}
+
+// Helper function to update filter button counts (optional enhancement)
+function updateFilterCounts() {
+    const modalContent = document.querySelector('#media-library-modal .modal-content');
+    if (!modalContent) return;
+
+    const mediaItems = modalContent.querySelectorAll('.media-item');
+    const counts = {
+        all: mediaItems.length,
+        images: 0,
+        gifs: 0,
+        videos: 0,
+        files: 0
+    };
+
+    mediaItems.forEach(item => {
+        const type = item.getAttribute('data-media-type');
+        if (counts.hasOwnProperty(type)) {
+            counts[type]++;
+        }
+    });
+
+    // Update button text with counts
+    modalContent.querySelectorAll('.media-filter-btn').forEach(btn => {
+        const filter = btn.getAttribute('data-filter');
+        const count = counts[filter] || 0;
+        const originalText = btn.textContent.split(' (')[0]; // Remove existing count
+
+        if (count > 0) {
+            btn.textContent = `${originalText} (${count})`;
+        } else {
+            btn.textContent = originalText;
+        }
+    });
 }
 
 // Function to fix malformed media URLs
@@ -6205,80 +6354,119 @@ function fixMalformedMediaUrl(url) {
 }
 
 function loadRoomMedia() {
-  const mediaGrid = document.getElementById('media-grid');
-  if (!mediaGrid) return;
+    const mediaGrid = document.getElementById('media-grid');
+    if (!mediaGrid) return;
 
-  // Show loading state
-  mediaGrid.innerHTML = `
-    <div class="col-span-full flex items-center justify-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-    </div>
-  `;
-
-  fetch(`/api/room/${window.roomName}/media/`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Media library response:', data);
-
-      if (data.success && data.media && data.media.length > 0) {
-        // Process and fix each media URL
-        const processedMedia = data.media.map(item => {
-          const processedItem = {...item};
-
-          // Fix the malformed URL
-          if (processedItem.url) {
-            processedItem.url = fixMalformedMediaUrl(processedItem.url);
-          }
-
-          // Ensure media type is correctly set
-          if (!processedItem.type) {
-            processedItem.type = detectMediaType(processedItem.url);
-          }
-
-          return processedItem;
-        });
-
-        displayMediaGrid(processedMedia);
-      } else {
-        mediaGrid.innerHTML = `
-          <div class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p>No media files have been shared in this room yet</p>
-            <button id="upload-new-media" class="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-pink-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              Upload Media
-            </button>
-          </div>
-        `;
-      }
-    })
-    .catch(error => {
-      console.error('Error loading media:', error);
-      mediaGrid.innerHTML = `
-        <div class="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <p>Error loading media files. Please try again later.</p>
-          <button id="retry-load-media" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
-            Retry
-          </button>
+    // Show loading state
+    mediaGrid.innerHTML = `
+        <div class="col-span-full flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
         </div>
-      `;
-    });
+    `;
+
+    fetch(`/api/room/${window.roomName}/media/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Media library response:', data);
+
+            if (data.success && data.media && data.media.length > 0) {
+                // Process and fix each media URL
+                const processedMedia = data.media.map(item => {
+                    const processedItem = {...item};
+
+                    // Handle GIF messages - ADDED THIS SECTION
+                    if (processedItem.url && processedItem.url.startsWith('[GIF:') && processedItem.url.endsWith(']')) {
+                        try {
+                            const gifDataStr = processedItem.url.slice(5, -1); // Remove [GIF: and ]
+                            const gifData = JSON.parse(gifDataStr);
+
+                            console.log('Processing GIF message:', gifData);
+
+                            // Keep the original format for processing, but mark as GIF
+                            processedItem.type = 'gif';
+                            processedItem.actualUrl = gifData.url;
+                            processedItem.title = gifData.title || 'GIF';
+                            processedItem.gifId = gifData.id;
+                            // Keep original URL for reference
+                            processedItem.originalUrl = processedItem.url;
+                        } catch (e) {
+                            console.error('Error parsing GIF data:', e);
+                            processedItem.type = 'file';
+                        }
+                    } else if (processedItem.url) {
+                        // Fix other malformed URLs
+                        processedItem.url = fixMalformedMediaUrl(processedItem.url);
+
+                        // Ensure media type is correctly set
+                        if (!processedItem.type) {
+                            processedItem.type = detectMediaType(processedItem.url);
+                        }
+                    }
+
+                    return processedItem;
+                });
+
+                displayMediaGrid(processedMedia);
+            } else {
+                mediaGrid.innerHTML = `
+                    <div class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p>No media files have been shared in this room yet</p>
+                        <button id="upload-new-media" class="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-pink-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            Upload Media
+                        </button>
+                    </div>
+                `;
+
+                // Add upload functionality to empty state button
+                const uploadBtn = document.getElementById('upload-new-media');
+                if (uploadBtn) {
+                    uploadBtn.addEventListener('click', function() {
+                        document.getElementById('media-library-modal').classList.remove('active', 'open');
+                        document.getElementById('file-input').click();
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading media:', error);
+            mediaGrid.innerHTML = `
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p>Error loading media files. Please try again later.</p>
+                    <button id="retry-load-media" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
+                        Retry
+                    </button>
+                </div>
+            `;
+
+            // Add retry functionality
+            const retryBtn = document.getElementById('retry-load-media');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', loadRoomMedia);
+            }
+        });
 }
 
 function detectMediaType(url) {
     if (!url) return 'file';
+
+    // Handle GIF messages first
+    if (url.startsWith('[GIF:') && url.endsWith(']')) {
+        return 'gif';
+    }
 
     // Normalize URL to lowercase for comparison
     const normalizedUrl = url.toLowerCase();
@@ -6311,8 +6499,40 @@ function detectMediaType(url) {
         return 'video';
     }
 
+    // Check for Giphy URLs
+    if (normalizedUrl.includes('giphy.com') || normalizedUrl.includes('giphy.gif')) {
+        return 'gif';
+    }
+
     // Default to file
     return 'file';
+}
+
+function extractGifData(content) {
+    if (!content || typeof content !== 'string') {
+        return null;
+    }
+
+    // Look for GIF pattern in content
+    const gifMatch = content.match(/\[GIF:(.*?)\]/);
+    if (!gifMatch) {
+        return null;
+    }
+
+    try {
+        const gifDataStr = gifMatch[1];
+        const gifData = JSON.parse(gifDataStr);
+
+        return {
+            url: gifData.url,
+            title: gifData.title || 'GIF',
+            id: gifData.id || Date.now().toString(),
+            originalContent: content
+        };
+    } catch (e) {
+        console.error('Error parsing GIF data from content:', e);
+        return null;
+    }
 }
 
 function displayMediaGrid(media) {
@@ -6348,17 +6568,58 @@ function displayMediaGrid(media) {
         items.forEach(item => {
             const mediaItem = document.createElement('div');
             mediaItem.className = 'media-item';
-            mediaItem.dataset.mediaType = item.type;
 
             // Add console log to help with debugging
             console.log('Creating media item:', {
                 type: item.type,
                 url: item.url,
-                filename: getFileNameFromUrl(item.url)
+                actualUrl: item.actualUrl,
+                title: item.title || getFileNameFromUrl(item.url)
             });
 
-            // Add appropriate content based on media type
-            if (item.type === 'image') {
+            // Handle different media types
+            if (item.type === 'gif') {
+                // Special handling for GIF messages
+                const displayUrl = item.actualUrl || item.url;
+                const displayTitle = item.title || 'GIF';
+
+                mediaItem.dataset.mediaType = 'gif'; // Set as gif for filtering
+
+                mediaItem.innerHTML = `
+                    <div class="relative w-full h-full">
+                        <img src="${displayUrl}" alt="GIF" loading="lazy" ${imageErrorHandler}>
+                        <div class="item-overlay"></div>
+                        <div class="item-title">${escapeHtml(displayTitle)}</div>
+                        <div class="absolute top-2 left-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                            <span>GIF</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="media-actions">
+                            <button class="media-action-btn view-btn" aria-label="View GIF">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                            <button class="media-action-btn send-btn" aria-label="Send to Chat">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                            </button>
+                            <button class="media-action-btn share-btn" aria-label="Share">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (item.type === 'image') {
+                // Regular images
+                mediaItem.dataset.mediaType = 'image';
+
                 mediaItem.innerHTML = `
                     <img src="${item.url}" alt="Image" loading="lazy" ${imageErrorHandler}>
                     <div class="item-overlay"></div>
@@ -6378,6 +6639,9 @@ function displayMediaGrid(media) {
                     </div>
                 `;
             } else if (item.type === 'video') {
+                // Videos
+                mediaItem.dataset.mediaType = 'video';
+
                 mediaItem.innerHTML = `
                     <video src="${item.url}" muted poster="data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23374151%22></rect><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22%236b7280%22></circle><polygon points=%2240,35 65,50 40,65%22 fill=%22white%22></polygon></svg>"></video>
                     <div class="item-overlay"></div>
@@ -6403,6 +6667,8 @@ function displayMediaGrid(media) {
                 `;
             } else {
                 // Other file types
+                mediaItem.dataset.mediaType = 'file';
+
                 mediaItem.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-full bg-gray-100 p-4">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -6425,27 +6691,57 @@ function displayMediaGrid(media) {
                 `;
             }
 
-            // Try to add event listeners safely with error handling
+            // Add event listeners with enhanced GIF handling
             try {
-                // Find the appropriate clickable element - prioritize the view button
                 const viewBtn = mediaItem.querySelector('.view-btn');
-                const mediaElement = mediaItem.querySelector('img, video');
-
                 if (viewBtn) {
                     viewBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        openMediaPreview(item);
+
+                        // For GIF messages, create a proper item object for preview
+                        if (item.type === 'gif') {
+                            const previewItem = {
+                                url: item.originalUrl, // Use original [GIF:...] format for proper parsing
+                                type: item.type,
+                                title: item.title || 'GIF'
+                            };
+                            openMediaPreview(previewItem);
+                        } else {
+                            openMediaPreview(item);
+                        }
                     });
                 }
 
+                // Handle media element clicks (images, videos)
+                const mediaElement = mediaItem.querySelector('img, video');
                 if (mediaElement && !mediaElement.hasAttribute('data-click-handler')) {
                     mediaElement.setAttribute('data-click-handler', 'true');
                     mediaElement.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        openMediaPreview(item);
+
+                        if (item.type === 'gif') {
+                            const previewItem = {
+                                url: item.originalUrl,
+                                type: item.type,
+                                title: item.title || 'GIF'
+                            };
+                            openMediaPreview(previewItem);
+                        } else {
+                            openMediaPreview(item);
+                        }
                     });
                 }
 
+                // Send button for GIFs
+                const sendBtn = mediaItem.querySelector('.send-btn');
+                if (sendBtn) {
+                    sendBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        sendGifToChat(item.actualUrl || item.url, item.title || 'GIF');
+                    });
+                }
+
+                // Share button
                 const shareBtn = mediaItem.querySelector('.share-btn');
                 if (shareBtn) {
                     shareBtn.addEventListener('click', (e) => {
@@ -6454,13 +6750,16 @@ function displayMediaGrid(media) {
                     });
                 }
 
+                // Download button
                 const downloadBtn = mediaItem.querySelector('.download-btn');
                 if (downloadBtn) {
                     downloadBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        window.open(item.url, '_blank');
+                        const downloadUrl = item.actualUrl || item.url;
+                        window.open(downloadUrl, '_blank');
                     });
                 }
+
             } catch (err) {
                 console.error('Error adding event listeners to media item:', err);
             }
@@ -6533,19 +6832,40 @@ function getFileNameFromUrl(url) {
 
 // Function to share media
 function shareMedia(item) {
-  // Fix the URL before copying
-  const fixedUrl = item.url ? fixMalformedMediaUrl(item.url) : '';
-  const fullUrl = fixedUrl.startsWith('http') ? fixedUrl : window.location.origin + fixedUrl;
+    let shareUrl = '';
 
-  // Copy item URL to clipboard
-  navigator.clipboard.writeText(fullUrl)
-    .then(() => {
-      showNotification('Media URL copied to clipboard!');
-    })
-    .catch(err => {
-      console.error('Error copying to clipboard:', err);
-      showNotification('Could not copy URL', 'error');
-    });
+    if (item.type === 'gif' && item.actualUrl) {
+        // For GIFs, use the actual Giphy URL
+        shareUrl = item.actualUrl;
+    } else if (item.url) {
+        // Fix the URL before copying
+        const fixedUrl = fixMalformedMediaUrl(item.url);
+        shareUrl = fixedUrl.startsWith('http') ? fixedUrl : window.location.origin + fixedUrl;
+    }
+
+    if (!shareUrl) {
+        showNotification('Could not generate share URL', 'error');
+        return;
+    }
+
+    // Copy item URL to clipboard
+    navigator.clipboard.writeText(shareUrl)
+        .then(() => {
+            const mediaType = item.type === 'gif' ? 'GIF' : 'Media';
+            showNotification(`${mediaType} URL copied to clipboard!`);
+        })
+        .catch(err => {
+            console.error('Error copying to clipboard:', err);
+            showNotification('Could not copy URL', 'error');
+
+            // Fallback: try to open URL in new tab
+            try {
+                window.open(shareUrl, '_blank');
+                showNotification('Opened in new tab');
+            } catch (e) {
+                console.error('Could not open URL:', e);
+            }
+        });
 }
 
 // Media preview with improved visibility
@@ -6587,6 +6907,28 @@ function updateMediaPreviewModal(modal, item) {
         return;
     }
 
+    // Handle GIF messages - ADDED THIS SECTION
+    if (item.url.startsWith('[GIF:') && item.url.endsWith(']')) {
+        try {
+            const gifDataStr = item.url.slice(5, -1); // Remove [GIF: and ]
+            const gifData = JSON.parse(gifDataStr);
+
+            console.log('Parsed GIF data:', gifData);
+
+            // Replace the item with parsed GIF data
+            item = {
+                ...item,
+                url: gifData.url,
+                type: 'image', // Treat GIFs as images for preview
+                title: gifData.title || 'GIF',
+                isGif: true // Mark as GIF for special handling
+            };
+        } catch (e) {
+            console.error('Error parsing GIF data:', e);
+            return;
+        }
+    }
+
     const modalContent = modal.querySelector('#media-preview-content');
     if (!modalContent) {
         console.error('Media preview content container not found!');
@@ -6594,16 +6936,24 @@ function updateMediaPreviewModal(modal, item) {
     }
 
     // Get filename for display
-    const fileName = item.url.split('/').pop();
+    const fileName = item.title || item.url.split('/').pop();
 
     // Clear previous content and set up structure
     modalContent.innerHTML = '';
 
     // Add content based on media type
     if (item.type === 'image') {
-        // Create image with error handler
+        // Create image with error handler (including GIFs)
+        const gifBadge = item.isGif ? `
+            <div class="absolute top-4 left-4 bg-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                <span>GIF</span>
+                <span class="text-xs">via GIPHY</span>
+            </div>
+        ` : '';
+
         modalContent.innerHTML = `
-            <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center relative">
+                ${gifBadge}
                 <img src="${item.url}" alt="${fileName}"
                      class="max-w-full max-h-[70vh] object-contain"
                      onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f3f4f6%22></rect><text x=%2250%%22 y=%2250%%22 font-size=%2220%22 text-anchor=%22middle%22 alignment-baseline=%22middle%22 fill=%22%23a1a1aa%22>Image Error</text></svg>'; console.error('Image failed to load:', this.src);">
@@ -6621,6 +6971,14 @@ function updateMediaPreviewModal(modal, item) {
                         </svg>
                         Share
                     </button>
+                    ${item.isGif ? `
+                        <button onclick="sendGifToChat('${item.url}', '${fileName}')" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-white flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            Send to Chat
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -6630,17 +6988,6 @@ function updateMediaPreviewModal(modal, item) {
         preloadImg.src = item.url;
         preloadImg.onerror = function() {
             console.error('Image preload failed:', item.url);
-
-            // Try with the /media/ prefix explicitly if it failed
-            if (!item.url.includes('/media/')) {
-                const fixedUrl = '/media/' + item.url.replace(/^\//g, '');
-                console.log('Trying alternative URL:', fixedUrl);
-
-                const imgElement = modalContent.querySelector('img');
-                if (imgElement) {
-                    imgElement.src = fixedUrl;
-                }
-            }
         };
     } else if (item.type === 'video') {
         // Create video player
@@ -6734,6 +7081,38 @@ function updateMediaPreviewModal(modal, item) {
     };
 
     console.log('Media preview modal updated with content');
+}
+
+function sendGifToChat(url, title) {
+    if (!isUserAuthenticated()) {
+        showAuthRequiredMessage();
+        return;
+    }
+
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        const gifData = {
+            url: url,
+            title: title || 'GIF',
+            id: Date.now().toString()
+        };
+
+        websocket.send(JSON.stringify({
+            'type': 'chat',
+            'message': `[GIF:${JSON.stringify(gifData)}]`
+        }));
+
+        // Close the media library modal
+        const modal = document.getElementById('media-library-modal');
+        if (modal) {
+            modal.classList.remove('active', 'open');
+        }
+
+        showNotification('GIF sent to chat!');
+        console.log('GIF sent to chat:', gifData);
+    } else {
+        showNotification('Connection error: Could not send GIF', 'error');
+        console.error('WebSocket not connected, cannot send GIF');
+    }
 }
 
 // User popover
@@ -7462,48 +7841,7 @@ function debugCountryFlags() {
     console.log('=== END FLAGS DEBUG ===');
 }
 
-function processExistingGifMessages() {
-    console.log('🔄 Processing existing GIF messages...');
 
-    // Find all message media elements that contain GIF data
-    document.querySelectorAll('.message-media').forEach(mediaElement => {
-        const textContent = mediaElement.textContent || mediaElement.innerText || '';
-
-        // Check if this element contains raw GIF JSON data
-        if (textContent.includes('[GIF:') && textContent.includes(']')) {
-            try {
-                // Extract the GIF data
-                const startIndex = textContent.indexOf('[GIF:');
-                const endIndex = textContent.indexOf(']', startIndex) + 1;
-                const gifString = textContent.slice(startIndex, endIndex);
-
-                // Parse the GIF data
-                const gifDataStr = gifString.slice(5, -1); // Remove [GIF: and ]
-                const gifData = JSON.parse(gifDataStr);
-
-                // Replace the raw text with proper GIF display
-                mediaElement.innerHTML = `
-                    <div class="gif-message">
-                        <img src="${gifData.url}" alt="${gifData.title || 'GIF'}"
-                             loading="lazy" style="max-height: 200px; border-radius: 8px; max-width: 100%;"
-                             onerror="console.warn('GIF failed to load:', this.src); this.style.display='none';">
-                        <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                            <span class="font-bold text-pink-500">GIF</span>
-                            <span>via GIPHY</span>
-                            ${gifData.title ? `<span>• ${gifData.title}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-
-                console.log('✅ Processed GIF:', gifData.title);
-
-            } catch (error) {
-                console.error('❌ Error processing GIF message:', error);
-                mediaElement.innerHTML = '<div class="text-xs text-red-500">Invalid GIF data</div>';
-            }
-        }
-    });
-}
 
   </script>
 </body>
