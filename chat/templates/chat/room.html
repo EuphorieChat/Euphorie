@@ -5291,6 +5291,90 @@ function handleRecommendationsUpdate(data) {
     }
 }
 
+function formatRoomName(roomName) {
+    if (!roomName) return roomName;
+
+    return roomName
+        .replace(/-/g, ' ')           // Replace hyphens with spaces
+        .split(' ')
+        .map(word => {
+            const lower = word.toLowerCase();
+            // Keep common words lowercase (except first word)
+            if (['and', 'or', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with'].includes(lower)) {
+                return lower;
+            }
+            // Keep tech acronyms uppercase
+            else if (['ai', 'ui', 'ux', 'api', 'html', 'css', 'js', 'php', 'sql', 'ios', 'android'].includes(lower)) {
+                return word.toUpperCase();
+            }
+            // Normal title case
+            else {
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }
+        })
+        .join(' ')
+        .replace(/^\w/, c => c.toUpperCase()); // Always capitalize first word
+}
+
+function formatAllRoomNames() {
+    console.log('🏷️ Formatting room names...');
+
+    // Format header title
+    const headerTitle = document.querySelector('.header-title');
+    if (headerTitle && window.roomName) {
+        headerTitle.textContent = formatRoomName(window.roomName);
+        console.log('✅ Formatted header title:', formatRoomName(window.roomName));
+    }
+
+    // Format sidebar current room name
+    const sidebarRoomSpan = document.querySelector('.sidebar-item.active span');
+    if (sidebarRoomSpan && window.roomName) {
+        sidebarRoomSpan.textContent = formatRoomName(window.roomName);
+        console.log('✅ Formatted sidebar room name:', formatRoomName(window.roomName));
+    }
+
+    // Format page title
+    if (window.roomName) {
+        document.title = `Euphorie - ${formatRoomName(window.roomName)} 💬`;
+        console.log('✅ Formatted page title');
+    }
+
+    // Format recommended room names
+    document.querySelectorAll('.room-card .font-medium, .room-card .text-white').forEach(element => {
+        const currentText = element.textContent.trim();
+        if (currentText.includes('-')) {
+            element.textContent = formatRoomName(currentText);
+            console.log('✅ Formatted recommended room:', formatRoomName(currentText));
+        }
+    });
+
+    // Format any room links
+    document.querySelectorAll('a[href*="/chat/"]').forEach(link => {
+        const roomNameMatch = link.href.match(/\/chat\/([^\/]+)\//);
+        if (roomNameMatch) {
+            const roomName = roomNameMatch[1];
+            const textElements = link.querySelectorAll('*');
+            textElements.forEach(el => {
+                if (el.textContent.trim() === roomName) {
+                    el.textContent = formatRoomName(roomName);
+                }
+            });
+        }
+    });
+
+    console.log('✅ Finished formatting room names');
+}
+
+// ADD THIS to your existing DOMContentLoaded event listener:
+document.addEventListener('DOMContentLoaded', function() {
+    // ... your existing code ...
+
+    // Format room names after everything loads
+    setTimeout(() => {
+        formatAllRoomNames();
+    }, 500);
+});
+
 // Update recommended rooms display
 function updateRecommendedRooms(rooms) {
     const recommendedList = document.getElementById('recommended-rooms-list');
@@ -5307,10 +5391,14 @@ function updateRecommendedRooms(rooms) {
         return;
     }
 
-    // Show up to 3 recommendations
+    // Show up to 3 recommendations with formatted names
     rooms.slice(0, 3).forEach(room => {
         const roomLink = document.createElement('a');
         roomLink.href = `/chat/${room.name}/`;
+
+        // Format the display name
+        const displayName = formatRoomName(room.display_name || room.name);
+
         roomLink.innerHTML = `
             <div class="room-card">
                 <div class="flex items-center gap-2.5">
@@ -5318,7 +5406,7 @@ function updateRecommendedRooms(rooms) {
                         ${room.category ? getCategoryIcon(room.category) : '💬'}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="font-medium text-sm text-white truncate">${room.display_name || room.name}</div>
+                        <div class="font-medium text-sm text-white truncate">${displayName}</div>
                         <div class="text-xs text-gray-300">${room.message_count || 0} messages</div>
                     </div>
                     ${room.category ? `<span class="text-xs text-gray-300">${room.category}</span>` : ''}
@@ -5328,7 +5416,7 @@ function updateRecommendedRooms(rooms) {
         recommendedList.appendChild(roomLink);
     });
 
-    console.log('Recommended rooms UI updated successfully');
+    console.log('Recommended rooms UI updated successfully with formatted names');
 }
 
 // Bookmarks
