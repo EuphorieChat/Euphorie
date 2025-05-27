@@ -2091,159 +2091,103 @@ background: rgba(236, 72, 153, 0.1);
     margin-bottom: 1.5rem;
 }
 
-/* Add this CSS to your room.html template's <style> section */
-
-/* Country flag enhancements */
+/* Base country flag styling */
 .country-flag {
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    font-size: 0.7em;
-    background: white;
-    border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    z-index: 1;
-    pointer-events: auto;
-    user-select: none;
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-    transition: all 0.2s ease;
+    position: absolute !important;
+    bottom: -2px !important;
+    right: -2px !important;
+    font-size: 0.7em !important;
+    background: white !important;
+    border-radius: 50% !important;
+    width: 16px !important;
+    height: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+    transition: all 0.2s ease !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    border: 1px solid rgba(255,255,255,0.8) !important;
 }
 
 .country-flag:hover {
-    transform: scale(1.2);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transform: scale(1.2) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
 }
 
-/* Ensure avatars have relative positioning for flag placement */
-.user-avatar {
-    position: relative;
+/* Ensure all avatar containers support relative positioning */
+.user-avatar,
+.avatar {
+    position: relative !important;
 }
 
-/* Make sure the parent containers support the flag positioning */
+/* Specific avatar container fixes */
 .message-wrapper .avatar,
 .user-item .avatar,
-.profile-item .avatar {
-    position: relative;
-}
-
-/* Flag tooltip styling */
-.country-flag[title]:hover::before {
-    content: attr(title);
-    position: absolute;
-    bottom: 120%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.9);
-    color: white;
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    white-space: nowrap;
-    z-index: 1000;
-    opacity: 0;
-    animation: fadeInTooltip 0.3s ease forwards;
-}
-
-@keyframes fadeInTooltip {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(5px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
-}
-
-/* Special handling for different avatar sizes */
-.avatar.h-6.w-6 + .country-flag {
-    width: 12px;
-    height: 12px;
-    font-size: 0.6em;
-    bottom: -1px;
-    right: -1px;
-}
-
-.avatar.h-8.w-8 + .country-flag {
-    width: 16px;
-    height: 16px;
-    font-size: 0.7em;
-    bottom: -2px;
-    right: -2px;
-}
-
-.avatar.h-10.w-10 + .country-flag {
-    width: 18px;
-    height: 18px;
-    font-size: 0.8em;
-    bottom: -2px;
-    right: -2px;
-}
-
-/* Profile section flag styling */
-.profile-item .country-flag {
-    width: 20px;
-    height: 20px;
-    font-size: 0.8em;
-    bottom: -3px;
-    right: -3px;
-}
-
-/* Mini avatar flag adjustments */
-.mini-avatar + .country-flag {
-    width: 14px;
-    height: 14px;
-    font-size: 0.65em;
-    bottom: -1px;
-    right: -1px;
-}
-
-/* Message avatar containers need relative positioning */
-.flex.items-start.gap-2.group .avatar {
-    position: relative;
-}
-
-/* Ensure flags work well with gradient backgrounds */
-.bg-gradient-to-br + .country-flag {
-    border: 1px solid rgba(255,255,255,0.8);
+.profile-item .avatar,
+.sidebar-item .avatar {
+    position: relative !important;
 }
 
 /* Flag visibility improvements */
 .country-flag {
-    text-shadow: none;
-    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+    text-shadow: none !important;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)) !important;
 }
 
-/* Responsive adjustments for mobile */
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .country-flag {
-        width: 14px;
-        height: 14px;
-        font-size: 0.65em;
-    }
-
-    .avatar.h-6.w-6 + .country-flag {
-        width: 10px;
-        height: 10px;
-        font-size: 0.55em;
-    }
-
-    .profile-item .country-flag {
-        width: 16px;
-        height: 16px;
-        font-size: 0.7em;
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 0.65em !important;
+        bottom: -1px !important;
+        right: -1px !important;
     }
 }
 
-/* Special styling for users without countries (show world emoji) */
-.country-flag.default-world {
-    opacity: 0.6;
-    filter: grayscale(20%);
+/* Very small avatars */
+.avatar.h-6.w-6 .country-flag,
+.avatar.w-6.h-6 .country-flag {
+    width: 12px !important;
+    height: 12px !important;
+    font-size: 0.6em !important;
+    bottom: -1px !important;
+    right: -1px !important;
+}
+
+/* Medium avatars */
+.avatar.h-8.w-8 .country-flag,
+.avatar.w-8.h-8 .country-flag {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 0.7em !important;
+    bottom: -2px !important;
+    right: -2px !important;
+}
+
+/* Large avatars */
+.avatar.h-10.w-10 .country-flag,
+.avatar.w-10.h-10 .country-flag {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 0.8em !important;
+    bottom: -2px !important;
+    right: -2px !important;
+}
+
+/* Profile section flag styling */
+.profile-item .country-flag {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 0.8em !important;
+    bottom: -3px !important;
+    right: -3px !important;
 }
 
 /* Animation for when flags are first loaded */
@@ -2262,18 +2206,33 @@ background: rgba(236, 72, 153, 0.1);
     }
 }
 
-/* Ensure flags don't interfere with click events on avatars */
-.user-avatar:hover .country-flag {
-    pointer-events: none;
-}
-
 /* Better flag positioning for different avatar shapes */
-.avatar.rounded-full + .country-flag {
-    border-radius: 50%;
+.avatar.rounded-full .country-flag {
+    border-radius: 50% !important;
 }
 
-.avatar.rounded-lg + .country-flag {
-    border-radius: 25%;
+.avatar.rounded-lg .country-flag {
+    border-radius: 25% !important;
+}
+
+/* Ensure flags work well with gradient backgrounds */
+.bg-gradient-to-br .country-flag {
+    border: 1px solid rgba(255,255,255,0.8) !important;
+}
+
+/* Debug styling (remove in production) */
+.debug-flag {
+    border: 2px solid red !important;
+    background: yellow !important;
+    color: black !important;
+}
+
+/* Fix for flags in different contexts */
+.sidebar-nav .country-flag,
+.chat-container .country-flag,
+.user-list .country-flag {
+    position: absolute !important;
+    z-index: 10 !important;
 }
 
   </style>
@@ -4591,67 +4550,151 @@ function guessMediaType(url) {
 
 // User profiles
 function loadUserProfiles() {
+    console.log('Loading user profiles...');
+
     // Load profile for current user
     if (window.username !== 'Guest') {
         fetchUserProfile(window.username);
     }
 
-    // Load profiles for users in messages
-    document.querySelectorAll('.user-avatar').forEach(avatar => {
-        const username = avatar.getAttribute('data-username');
-        if (username && username !== 'Guest') {
-            fetchUserProfile(username);
-        }
-    });
+    // Function to load profiles for existing avatars
+    function loadExistingAvatars() {
+        const avatars = document.querySelectorAll('.user-avatar');
+        console.log(`Found ${avatars.length} avatar elements`);
 
-    // Also load profiles for any users mentioned in the user list
-    setTimeout(() => {
-        activeUsers.forEach(username => {
-            if (username !== 'Guest' && !userProfiles.has(username)) {
+        avatars.forEach(avatar => {
+            const username = avatar.getAttribute('data-username');
+            if (username && username !== 'Guest') {
+                console.log(`Loading profile for avatar: ${username}`);
                 fetchUserProfile(username);
             }
         });
-    }, 1000);
+    }
+
+    // Load immediately
+    loadExistingAvatars();
+
+    // Also load after a short delay in case avatars are added dynamically
+    setTimeout(loadExistingAvatars, 1000);
+    setTimeout(loadExistingAvatars, 3000);
+
+    // Load profiles for active users when that data becomes available
+    setTimeout(() => {
+        activeUsers.forEach(username => {
+            if (username !== 'Guest' && !userProfiles.has(username)) {
+                console.log(`Loading profile for active user: ${username}`);
+                fetchUserProfile(username);
+            }
+        });
+    }, 2000);
 }
 
+// Enhanced CSS for country flags (add this to your existing styles)
+const enhancedFlagStyles = `
+.country-flag {
+    position: absolute !important;
+    bottom: -2px !important;
+    right: -2px !important;
+    font-size: 0.7em !important;
+    background: white !important;
+    border-radius: 50% !important;
+    width: 16px !important;
+    height: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+    transition: all 0.2s ease !important;
+    line-height: 1 !important;
+    text-align: center !important;
+}
+
+.country-flag:hover {
+    transform: scale(1.2) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+}
+
+/* Ensure avatar containers support relative positioning */
+.user-avatar {
+    position: relative !important;
+}
+
+/* Responsive flag sizes */
+@media (max-width: 768px) {
+    .country-flag {
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 0.65em !important;
+        bottom: -1px !important;
+        right: -1px !important;
+    }
+}
+`;
+
+// Add the enhanced styles to the page
+if (!document.getElementById('enhanced-flag-styles')) {
+    const styleElement = document.createElement('style');
+    styleElement.id = 'enhanced-flag-styles';
+    styleElement.textContent = enhancedFlagStyles;
+    document.head.appendChild(styleElement);
+}
+
+// Call the debug function to test (remove this in production)
+document.addEventListener('DOMContentLoaded', function() {
+    // Add a delay to ensure everything is loaded
+    setTimeout(() => {
+        console.log('=== TESTING COUNTRY FLAGS ===');
+        debugCountryFlags();
+    }, 2000);
+});
+
 function fetchUserProfile(username) {
+    console.log(`Fetching profile for: ${username}`);
+
     fetch(`/api/profile/${username}/`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                console.log(`Loaded profile for ${username}:`, data);
+            console.log(`Profile response for ${username}:`, data);
 
+            if (data.success) {
                 // Store profile picture data
                 if (data.profile_picture) {
                     userProfiles.set(username, data.profile_picture);
+                    console.log(`✅ Profile picture stored for ${username}`);
                 }
 
                 // Store country data
                 if (data.country) {
                     userCountries.set(username, data.country);
-                    console.log(`Country for ${username}:`, data.country);
+                    console.log(`✅ Country data stored for ${username}:`, data.country);
                 }
 
+                // Force update all avatars for this user
                 updateAllUserAvatars(username);
             } else {
-                console.log(`No profile data for ${username}, using default`);
+                console.warn(`Profile fetch failed for ${username}:`, data);
             }
         })
         .catch(error => {
-            console.error('Error fetching profile:', error);
-            // Use default gradient as fallback
+            console.error(`Error fetching profile for ${username}:`, error);
+
+            // Set default data to prevent repeated failed requests
             const defaultProfile = {
                 type: 'gradient',
                 gradient: getConsistentGradient(username)
             };
             userProfiles.set(username, defaultProfile);
 
-            // Set default country
-            userCountries.set(username, {
+            const defaultCountry = {
                 code: null,
                 flag: '🌍',
                 name: 'Unknown'
-            });
+            };
+            userCountries.set(username, defaultCountry);
 
             updateAllUserAvatars(username);
         });
@@ -4685,10 +4728,18 @@ function updateAllUserAvatars(username) {
 }
 
 function updateAvatarElement(avatar, username) {
+    console.log(`Updating avatar element for: ${username}`);
+
     const profile = userProfiles.get(username);
     const country = userCountries.get(username) || { flag: '🌍', name: 'Unknown' };
 
-    if (!profile) return;
+    console.log(`Profile data for ${username}:`, profile);
+    console.log(`Country data for ${username}:`, country);
+
+    if (!profile) {
+        console.warn(`No profile data for ${username}, skipping avatar update`);
+        return;
+    }
 
     // Clear any existing styles
     avatar.style.backgroundImage = '';
@@ -4727,45 +4778,33 @@ function updateAvatarElement(avatar, username) {
         avatar.textContent = username.charAt(0).toUpperCase();
     }
 
-    // Add country flag as a small overlay or badge
+    // ALWAYS try to add country flag
     addCountryFlag(avatar, country, username);
 }
 
 function addCountryFlag(avatar, country, username) {
+    console.log(`Adding country flag for ${username}:`, country);
+
     // Remove any existing flag
-    const existingFlag = avatar.parentElement.querySelector('.country-flag');
+    const existingFlag = avatar.querySelector('.country-flag');
     if (existingFlag) {
         existingFlag.remove();
     }
 
+    // Only add flag if we have valid country data
     if (country && country.flag && country.flag !== '🌍') {
         const flagElement = document.createElement('span');
         flagElement.className = 'country-flag';
         flagElement.textContent = country.flag;
         flagElement.title = `${username} - ${country.name}`;
 
-        // Style the flag as a small badge
-        flagElement.style.cssText = `
-            position: absolute;
-            bottom: -2px;
-            right: -2px;
-            font-size: 0.7em;
-            background: white;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            z-index: 1;
-        `;
+        // FIXED: Position the flag relative to the avatar itself, not its parent
+        avatar.style.position = 'relative';
+        avatar.appendChild(flagElement);
 
-        // Make sure the parent container is positioned relative
-        if (avatar.parentElement) {
-            avatar.parentElement.style.position = 'relative';
-            avatar.parentElement.appendChild(flagElement);
-        }
+        console.log(`✅ Flag ${country.flag} added for ${username}`);
+    } else {
+        console.log(`❌ No valid country data for ${username}:`, country);
     }
 }
 
