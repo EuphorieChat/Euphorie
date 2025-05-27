@@ -2117,7 +2117,11 @@ background: rgba(236, 72, 153, 0.1);
 
 .country-flag:hover {
     transform: scale(1.2) !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3) !important;
+}
+
+.country-flag {
+    cursor: help !important;
 }
 
 /* Ensure all avatar containers support relative positioning */
@@ -2154,9 +2158,9 @@ background: rgba(236, 72, 153, 0.1);
 /* Very small avatars */
 .avatar.h-6.w-6 .country-flag,
 .avatar.w-6.h-6 .country-flag {
-    width: 12px !important;
-    height: 12px !important;
-    font-size: 0.6em !important;
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 6px !important;
     bottom: -1px !important;
     right: -1px !important;
 }
@@ -4785,7 +4789,7 @@ function updateAvatarElement(avatar, username) {
 }
 
 function addCountryFlag(avatar, country, username) {
-    console.log(`🏁 Adding country indicator for ${username}:`, country);
+    console.log(`🏁 Adding country code indicator for ${username}:`, country);
 
     // Remove any existing flag
     const existingFlag = avatar.querySelector('.country-flag');
@@ -4793,21 +4797,34 @@ function addCountryFlag(avatar, country, username) {
         existingFlag.remove();
     }
 
-    // Only add flag if we have valid country data
+    // Only add indicator if we have valid country data
     if (country && country.code && country.code !== 'Unknown') {
         const flagElement = document.createElement('span');
         flagElement.className = 'country-flag';
-
-        // Use country code instead of emoji for better compatibility
         flagElement.textContent = country.code;
-        flagElement.title = `${username} - ${country.name || 'Unknown Country'}`;
+        flagElement.title = `${username} - ${country.name || country.code}`;
 
-        // Get a color based on the country code for visual variety
-        const getCountryColor = (code) => {
-            const colors = [
+        // Country-specific colors for visual appeal
+        const countryColors = {
+            'GB': '#FF6B6B', 'US': '#4ECDC4', 'FR': '#45B7D1', 'DE': '#96CEB4',
+            'BE': '#FECA57', 'EG': '#FF9FF3', 'CA': '#54A0FF', 'JP': '#5F27CD',
+            'AU': '#00D2D3', 'IN': '#FF9F43', 'BR': '#C44569', 'RU': '#F8B500',
+            'CN': '#786FA6', 'IT': '#4B6584', 'ES': '#F5B041', 'NL': '#20BF6B',
+            'SE': '#00CED1', 'NO': '#FFD700', 'DK': '#FF69B4', 'FI': '#32CD32',
+            'MX': '#FF7675', 'AR': '#74B9FF', 'KR': '#A29BFE', 'TH': '#FD79A8',
+            'PH': '#FDCB6E', 'MY': '#6C5CE7', 'SG': '#E17055', 'ID': '#00B894'
+        };
+
+        // Get color for country, or generate one if not in our list
+        function getCountryColor(code) {
+            if (countryColors[code]) {
+                return countryColors[code];
+            }
+
+            // Generate consistent color based on country code
+            const fallbackColors = [
                 '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
-                '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43',
-                '#C44569', '#F8B500', '#786FA6', '#4B6584', '#F5B041'
+                '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43'
             ];
 
             let hash = 0;
@@ -4816,8 +4833,8 @@ function addCountryFlag(avatar, country, username) {
                 hash = hash & hash; // Convert to 32-bit integer
             }
 
-            return colors[Math.abs(hash) % colors.length];
-        };
+            return fallbackColors[Math.abs(hash) % fallbackColors.length];
+        }
 
         const bgColor = getCountryColor(country.code);
 
@@ -4829,146 +4846,48 @@ function addCountryFlag(avatar, country, username) {
             width: 18px !important;
             height: 18px !important;
             background: ${bgColor} !important;
-            border: 1px solid rgba(255,255,255,0.8) !important;
+            border: 1px solid rgba(255,255,255,0.9) !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
             z-index: 10 !important;
             pointer-events: none !important;
             user-select: none !important;
-            font-family: 'Inter', 'Arial', sans-serif !important;
+            font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif !important;
             font-size: 7px !important;
             font-weight: 700 !important;
             color: white !important;
             line-height: 1 !important;
             text-align: center !important;
-            text-shadow: 0 1px 1px rgba(0,0,0,0.5) !important;
-            letter-spacing: -0.5px !important;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.6) !important;
+            letter-spacing: -0.2px !important;
+            transition: transform 0.2s ease !important;
         `;
 
         // Ensure avatar container supports positioning
         avatar.style.position = 'relative';
         avatar.appendChild(flagElement);
 
-        console.log(`✅ Country code indicator created for ${username}: ${country.code}`);
+        // Add subtle hover effect
+        flagElement.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.2)';
+        });
 
-        // Add a subtle animation
+        flagElement.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+
+        // Add entrance animation
         flagElement.style.transform = 'scale(0)';
-        flagElement.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-
         setTimeout(() => {
             flagElement.style.transform = 'scale(1)';
         }, 100);
 
+        console.log(`✅ Country code indicator created for ${username}: ${country.code} (${bgColor})`);
     } else {
         console.log(`❌ No valid country data for ${username}:`, country);
-    }
-}
-
-function addCountryFlagWithFallback(avatar, country, username) {
-    console.log(`🏁 Adding country flag with fallback for ${username}:`, country);
-
-    // Remove any existing flag
-    const existingFlag = avatar.querySelector('.country-flag');
-    if (existingFlag) {
-        existingFlag.remove();
-    }
-
-    if (!country || !country.code || country.code === 'Unknown') {
-        console.log(`❌ No valid country data for ${username}:`, country);
-        return;
-    }
-
-    const flagElement = document.createElement('span');
-    flagElement.className = 'country-flag';
-    flagElement.title = `${username} - ${country.name || country.code}`;
-
-    // Try emoji first
-    if (country.flag && country.flag !== '🌍') {
-        // Decode Unicode if needed
-        let decodedFlag = country.flag;
-        if (country.flag.includes('\\u')) {
-            decodedFlag = country.flag.replace(/\\u([0-9a-fA-F]{4})/g, (match, code) => {
-                return String.fromCharCode(parseInt(code, 16));
-            });
-        }
-
-        flagElement.textContent = decodedFlag;
-        flagElement.style.cssText = `
-            position: absolute !important;
-            bottom: -2px !important;
-            right: -2px !important;
-            width: 16px !important;
-            height: 16px !important;
-            background: white !important;
-            border: 1px solid rgba(0,0,0,0.1) !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
-            z-index: 10 !important;
-            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
-            font-size: 10px !important;
-        `;
-
-        avatar.style.position = 'relative';
-        avatar.appendChild(flagElement);
-
-        // Test if emoji is actually visible after a short delay
-        setTimeout(() => {
-            const rect = flagElement.getBoundingClientRect();
-            const computedStyle = window.getComputedStyle(flagElement);
-
-            // If the emoji seems to not be rendering properly, fall back to country code
-            if (rect.width === 0 || computedStyle.fontSize === '0px') {
-                console.log(`🔄 Emoji not visible for ${username}, switching to country code`);
-                switchToCountryCode();
-            } else {
-                console.log(`✅ Emoji flag visible for ${username}: ${decodedFlag}`);
-            }
-        }, 200);
-
-    } else {
-        // Use country code directly
-        switchToCountryCode();
-    }
-
-    function switchToCountryCode() {
-        // Get a color based on the country code
-        const getCountryColor = (code) => {
-            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'];
-            let hash = 0;
-            for (let i = 0; i < code.length; i++) {
-                hash = ((hash << 5) - hash) + code.charCodeAt(i);
-            }
-            return colors[Math.abs(hash) % colors.length];
-        };
-
-        flagElement.textContent = country.code;
-        flagElement.style.cssText = `
-            position: absolute !important;
-            bottom: -2px !important;
-            right: -2px !important;
-            width: 18px !important;
-            height: 18px !important;
-            background: ${getCountryColor(country.code)} !important;
-            border: 1px solid rgba(255,255,255,0.8) !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
-            z-index: 10 !important;
-            font-size: 7px !important;
-            font-weight: 700 !important;
-            color: white !important;
-            text-shadow: 0 1px 1px rgba(0,0,0,0.5) !important;
-        `;
-
-        console.log(`✅ Country code flag created for ${username}: ${country.code}`);
     }
 }
 
