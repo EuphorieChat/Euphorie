@@ -4783,7 +4783,7 @@ function updateAvatarElement(avatar, username) {
 }
 
 function addCountryFlag(avatar, country, username) {
-    console.log(`Adding country flag for ${username}:`, country);
+    console.log(`🏁 Adding country flag for ${username}:`, country);
 
     // Remove any existing flag
     const existingFlag = avatar.querySelector('.country-flag');
@@ -4794,18 +4794,116 @@ function addCountryFlag(avatar, country, username) {
     // Only add flag if we have valid country data
     if (country && country.flag && country.flag !== '🌍') {
         const flagElement = document.createElement('span');
-        flagElement.className = 'country-flag';
+        flagElement.className = 'country-flag new-flag';
+
+        // Set the flag emoji with multiple fallbacks
         flagElement.textContent = country.flag;
+        flagElement.innerHTML = country.flag; // Backup method
+        flagElement.setAttribute('data-flag', country.flag); // Store in attribute
+
         flagElement.title = `${username} - ${country.name}`;
 
-        // FIXED: Position the flag relative to the avatar itself, not its parent
+        // Enhanced styling for better emoji display
+        flagElement.style.cssText = `
+            position: absolute !important;
+            bottom: -2px !important;
+            right: -2px !important;
+            width: 16px !important;
+            height: 16px !important;
+            background: white !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+            z-index: 10 !important;
+            pointer-events: none !important;
+            user-select: none !important;
+            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'Android Emoji', sans-serif !important;
+            font-size: 10px !important;
+            line-height: 1 !important;
+            text-align: center !important;
+            font-style: normal !important;
+            font-weight: normal !important;
+            text-decoration: none !important;
+            text-shadow: none !important;
+        `;
+
+        // Ensure avatar container supports positioning
         avatar.style.position = 'relative';
         avatar.appendChild(flagElement);
 
-        console.log(`✅ Flag ${country.flag} added for ${username}`);
+        // Debug logging
+        console.log(`✅ Flag element created for ${username}`);
+        console.log('- Flag emoji:', country.flag);
+        console.log('- Flag element textContent:', flagElement.textContent);
+        console.log('- Flag element innerHTML:', flagElement.innerHTML);
+
+        // Fallback: If emoji doesn't display, try alternative methods
+        setTimeout(() => {
+            if (flagElement.textContent !== country.flag) {
+                console.log(`🔄 Retrying flag for ${username}`);
+                flagElement.textContent = country.flag;
+                flagElement.innerHTML = country.flag;
+            }
+        }, 100);
+
     } else {
         console.log(`❌ No valid country data for ${username}:`, country);
     }
+}
+
+function fixExistingFlags() {
+    console.log('🔧 Fixing existing flags...');
+
+    const flags = document.querySelectorAll('.country-flag');
+    flags.forEach((flag, index) => {
+        const title = flag.title || '';
+        const username = title.split(' - ')[0];
+
+        if (username) {
+            // Get fresh country data
+            if (userCountries && userCountries.has(username)) {
+                const country = userCountries.get(username);
+                if (country && country.flag && country.flag !== '🌍') {
+                    console.log(`Fixing flag ${index + 1} for ${username}: ${country.flag}`);
+
+                    // Clear and reset the flag
+                    flag.textContent = '';
+                    flag.innerHTML = '';
+
+                    setTimeout(() => {
+                        flag.textContent = country.flag;
+                        flag.innerHTML = country.flag;
+
+                        // Force font rendering
+                        flag.style.fontFamily = "'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif";
+                        flag.style.fontSize = '10px';
+                        flag.style.lineHeight = '1';
+
+                        console.log(`✅ Fixed flag for ${username}: "${flag.textContent}"`);
+                    }, 10);
+                }
+            }
+        }
+    });
+}
+
+function countryCodeToFlag(countryCode) {
+    if (!countryCode || countryCode.length !== 2) {
+        return '🌍';
+    }
+
+    // Convert country code to flag emoji
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt(0));
+
+    const flag = String.fromCodePoint(...codePoints);
+    console.log(`Converting ${countryCode} to flag: ${flag}`);
+    return flag;
 }
 
 function updateMessageAvatar(messageEl, username) {
