@@ -786,54 +786,31 @@ def get_room_media(request, room_name):
         messages = Message.objects.filter(room=room)
 
         media_list = []
+        import re
+
         for message in messages:
-            # Skip messages without media
-            if not hasattr(message, 'media') or not message.media:
-                continue
+            # Check if message content contains media URLs
+            if '[MEDIA:' in message.content:
+                media_match = re.search(r'\[MEDIA:(.*?)\]', message.content)
+                if media_match:
+                    url = media_match.group(1)
 
-            # Skip media without files
-            if not message.media.name:
-                continue
+                    # Determine media type based on file extension
+                    media_type = 'image'
+                    if url.lower().endswith(('.mp4', '.webm', '.mov', '.avi')):
+                        media_type = 'video'
+                    elif not url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                        media_type = 'file'
 
-            # Get the timestamp (adjust field name based on your model)
-            # Try different possible field names for timestamp
-            timestamp = None
-            for field_name in ['created_at', 'timestamp', 'created', 'date_created', 'sent_at']:
-                if hasattr(message, field_name):
-                    timestamp_field = getattr(message, field_name)
-                    if timestamp_field:
-                        timestamp = timestamp_field.isoformat()
-                        break
-
-            # If no timestamp found, use current time
-            if not timestamp:
-                from django.utils import timezone
-                timestamp = timezone.now().isoformat()
-
-            # Determine media type based on file extension
-            url = message.media.url
-            media_type = 'image'
-            if url.lower().endswith(('.mp4', '.webm', '.mov', '.avi')):
-                media_type = 'video'
-
-            # Add to media list
-            media_list.append({
-                'type': media_type,
-                'url': url,
-                'timestamp': timestamp
-            })
+                    media_list.append({
+                        'type': media_type,
+                        'url': url,
+                        'timestamp': message.timestamp.isoformat()
+                    })
 
         return JsonResponse({'success': True, 'media': media_list})
 
     except Exception as e:
-        # Log the error for debugging
-        import logging
-        import traceback
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error in get_room_media for {room_name}: {str(e)}")
-        logger.error(traceback.format_exc())
-
-        # Return an empty list rather than an error
         return JsonResponse({'success': True, 'media': []})
 
 def get_active_users(request, room_name):

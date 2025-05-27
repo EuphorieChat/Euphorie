@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 from .models import UserProfile
+from django.utils.dateparse import parse_datetime
 
 from .models import Room, Message, Reaction, Meetup, Announcement, AnnouncementReadStatus, RoomBookmark
 from .services import (
@@ -178,7 +179,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 # Silent fail - don't send error messages to guests
                 logger.debug(f"Authentication required for {message_type}, user not authenticated")
                 return
-            
+
             # Profile updates
             if message_type == 'profile_update':
                 profile_data = text_data_json.get('profile_data', {})
@@ -303,7 +304,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 logger.info(f"Received meetup action: {action}")
 
                 if action == 'create':
-                    meetup_data = text_data_json.get('meetup', {})
+                    meetup_data = text_data_json.get('data', {})
 
                     if not meetup_data:
                         return
@@ -825,7 +826,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             meetup = Meetup.objects.create(
                 title=meetup_data.get('title'),
                 description=meetup_data.get('description', ''),
-                datetime=timezone.datetime.fromisoformat(meetup_data.get('datetime')),
+                parsed_datetime = parse_datetime(meetup_data.get('datetime')),
+                datetime=parse_datetime,
                 location=meetup_data.get('location'),
                 room=room,
                 creator=self.user

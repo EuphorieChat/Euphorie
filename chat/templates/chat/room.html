@@ -2194,6 +2194,20 @@ background: rgba(236, 72, 153, 0.1);
           </div>
         </div>
 
+        <!-- ADD THE MEETUPS SECTION HERE -->
+        <div class="sidebar-section">
+          <h3 class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Upcoming Meetups
+          </h3>
+          <div id="meetups-list" class="space-y-1.5 mt-3">
+            <!-- Meetups will be populated here -->
+          </div>
+        </div>
+        <!-- END MEETUPS SECTION -->
+
         <!-- Room Actions -->
         <div class="sidebar-section">
           <h3 class="flex items-center">
@@ -4670,6 +4684,31 @@ function handleMeetupsUpdate(data) {
             showNotification(`${data.creator} created a new meetup: ${meetup.title}`);
         }
     }
+}
+
+function updateMeetupsDisplay(meetups) {
+    const meetupsList = document.getElementById('meetups-list');
+    if (!meetupsList) return;
+
+    meetupsList.innerHTML = '';
+
+    if (meetups.length === 0) {
+        meetupsList.innerHTML = '<div class="text-sm text-gray-300 text-center py-2">No upcoming meetups</div>';
+        return;
+    }
+
+    meetups.forEach(meetup => {
+        const meetupDate = new Date(meetup.datetime);
+        const meetupItem = document.createElement('div');
+        meetupItem.className = 'meetup-item p-2 bg-white rounded-lg mb-2 border';
+        meetupItem.innerHTML = `
+            <div class="font-medium text-sm">${meetup.title}</div>
+            <div class="text-xs text-gray-500">${meetupDate.toLocaleDateString()} at ${meetupDate.toLocaleTimeString()}</div>
+            <div class="text-xs text-gray-600">${meetup.location}</div>
+            <div class="text-xs text-green-600">${meetup.attendees.length} attending</div>
+        `;
+        meetupsList.appendChild(meetupItem);
+    });
 }
 
 // IMPROVED Meetup Modal with better UI/UX and visibility
