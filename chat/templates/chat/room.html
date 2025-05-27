@@ -907,20 +907,36 @@ background: rgba(236, 72, 153, 0.1);
   }
 
   /* General mobile adjustments */
-  @media (max-width: 768px) {
-    .app-sidebar {
-      position: fixed !important;
-      left: -280px !important;
-      visibility: hidden !important;
-      transition: none !important; /* Remove transition initially */
-    }
+  .app-sidebar {
+    width: 0; /* Hidden by default */
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 50;
+    transition: width 0.3s var(--ease);
+  }
 
-    .app-sidebar.active {
+  .app-sidebar.active {
+    width: 280px; /* Full width when active */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  }
+
+  @media (max-width: 768px) {
+  .app-sidebar {
+    position: fixed !important;
+    left: -280px !important;
+    visibility: hidden !important;
+    transition: none !important; /* Remove transition initially */
+  }
+
+  .app-sidebar.active {
       left: 0;
       visibility: visible; /* Show when active */
       transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Re-add transition */
     }
   }
+
 
   /* Show the toggle button in the header */
   #header-sidebar-toggle {
