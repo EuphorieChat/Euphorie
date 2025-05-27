@@ -7091,8 +7091,14 @@ document.addEventListener('visibilitychange', function() {
 
 class GiphyIntegration {
     constructor() {
-        this.API_KEY = '{{ GIPHY_API_KEY }}'; // This will be replaced by Django with your real key
+        // FIXED: Properly get the API key from Django template context
+        this.API_KEY = '{{ GIPHY_API_KEY }}';
         this.BASE_URL = 'https://api.giphy.com/v1/gifs';
+
+        // Debug the API key first
+        console.log('Raw API key from template:', this.API_KEY);
+        console.log('API key length:', this.API_KEY ? this.API_KEY.length : 0);
+        console.log('API key starts with template syntax?', this.API_KEY.startsWith('{{'));
 
         // Get elements with error checking
         this.panel = document.getElementById('giphy-panel');
@@ -7103,41 +7109,50 @@ class GiphyIntegration {
         this.empty = document.getElementById('giphy-empty');
         this.trendingSection = document.getElementById('trending-section');
 
-        // Debug logging to help troubleshoot
-        console.log('GiphyIntegration elements found:', {
+        this.searchTimeout = null;
+        this.currentQuery = '';
+        this.isInitialized = false;
+
+        // Debug elements
+        console.log('Giphy elements found:', {
             panel: !!this.panel,
             searchInput: !!this.searchInput,
             trendingGrid: !!this.trendingGrid,
             searchResults: !!this.searchResults,
             loading: !!this.loading,
             empty: !!this.empty,
-            trendingSection: !!this.trendingSection,
-            apiKey: this.API_KEY ? this.API_KEY.substring(0, 10) + '...' : 'NOT SET'
+            trendingSection: !!this.trendingSection
         });
-
-        this.searchTimeout = null;
-        this.currentQuery = '';
-        this.isInitialized = false;
 
         // Only initialize if we have the required elements
         if (this.panel && this.searchInput) {
             this.init();
         } else {
-            console.error('Required Giphy elements not found! Make sure your HTML includes the giphy-panel and giphy-search elements.');
+            console.error('Required Giphy elements not found!');
         }
     }
 
     init() {
-        // Check if API key is properly configured
-        if (!this.API_KEY || this.API_KEY === '{{ GIPHY_API_KEY }}' || this.API_KEY.length < 10) {
-            console.error('Giphy API key not configured properly. Check your settings.py file.');
+        // FIXED: Better API key validation
+        if (!this.API_KEY ||
+            this.API_KEY === '{{ GIPHY_API_KEY }}' ||
+            this.API_KEY.startsWith('{{') ||
+            this.API_KEY.length < 10) {
+
+            console.error('Giphy API key not properly configured:', {
+                hasKey: !!this.API_KEY,
+                keyLength: this.API_KEY ? this.API_KEY.length : 0,
+                isTemplate: this.API_KEY && this.API_KEY.startsWith('{{'),
+                key: this.API_KEY ? this.API_KEY.substring(0, 10) + '...' : 'EMPTY'
+            });
+
             this.showError('GIF search unavailable - API key not configured');
             return;
         }
 
-        console.log('Initializing Giphy with API key ending in:', this.API_KEY.substring(-10));
+        console.log('Initializing Giphy with valid API key');
 
-        // Load trending GIFs when panel first opens
+        // Load trending GIFs
         this.loadTrendingGifs();
 
         // Set up search functionality
@@ -7150,25 +7165,20 @@ class GiphyIntegration {
     setupSearch() {
         if (!this.searchInput) return;
 
-        // Search on input with debouncing
         this.searchInput.addEventListener('input', (e) => {
             clearTimeout(this.searchTimeout);
             const query = e.target.value.trim();
-
-            console.log('Search input:', query);
 
             if (query.length === 0) {
                 this.showTrending();
                 return;
             }
 
-            // Debounce search to avoid too many API calls
             this.searchTimeout = setTimeout(() => {
                 this.searchGifs(query);
             }, 300);
         });
 
-        // Handle Enter key for immediate search
         this.searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const query = e.target.value.trim();
@@ -7179,7 +7189,6 @@ class GiphyIntegration {
             }
         });
 
-        // Clear search when Escape is pressed
         this.searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.searchInput.value = '';
@@ -7189,13 +7198,11 @@ class GiphyIntegration {
     }
 
     async loadTrendingGifs() {
-        console.log('Loading trending GIFs...');
-
         try {
             this.showLoading();
 
             const url = `${this.BASE_URL}/trending?api_key=${this.API_KEY}&limit=9&rating=pg`;
-            console.log('Fetching trending GIFs from Giphy API...');
+            console.log('Fetching trending GIFs...');
 
             const response = await fetch(url);
 
@@ -7204,16 +7211,11 @@ class GiphyIntegration {
             }
 
             const data = await response.json();
-            console.log('Received trending data:', {
-                count: data.data?.length || 0,
-                pagination: data.pagination
-            });
 
             if (data.data && data.data.length > 0) {
                 this.displayGifs(data.data, this.trendingGrid);
-                console.log(`Successfully loaded ${data.data.length} trending GIFs`);
+                console.log(`Loaded ${data.data.length} trending GIFs`);
             } else {
-                console.warn('No trending GIFs found in response');
                 this.showError('No trending GIFs available');
             }
 
@@ -7222,24 +7224,19 @@ class GiphyIntegration {
         } catch (error) {
             console.error('Error loading trending GIFs:', error);
             this.hideLoading();
-            this.showError('Failed to load trending GIFs. Please try again.');
+            this.showError('Failed to load trending GIFs');
         }
     }
 
     async searchGifs(query) {
-        // Avoid duplicate searches
         if (query === this.currentQuery) return;
         this.currentQuery = query;
-
-        console.log('Searching for GIFs with query:', query);
 
         try {
             this.showLoading();
             this.hideEmpty();
 
             const url = `${this.BASE_URL}/search?api_key=${this.API_KEY}&q=${encodeURIComponent(query)}&limit=9&rating=pg`;
-            console.log('Searching GIFs...');
-
             const response = await fetch(url);
 
             if (!response.ok) {
@@ -7247,18 +7244,11 @@ class GiphyIntegration {
             }
 
             const data = await response.json();
-            console.log('Search results:', {
-                query: query,
-                count: data.data?.length || 0,
-                pagination: data.pagination
-            });
 
             if (data.data && data.data.length > 0) {
                 this.displayGifs(data.data, this.searchResults);
                 this.showSearchResults();
-                console.log(`Found ${data.data.length} GIFs for "${query}"`);
             } else {
-                console.log(`No GIFs found for "${query}"`);
                 this.showEmpty(`No GIFs found for "${query}"`);
                 this.hideSearchResults();
             }
@@ -7273,56 +7263,30 @@ class GiphyIntegration {
     }
 
     displayGifs(gifs, container) {
-        if (!container) {
-            console.error('Container not found for displaying GIFs');
-            return;
-        }
+        if (!container) return;
 
-        console.log(`Displaying ${gifs.length} GIFs in container`);
-
-        // Clear existing content
         container.innerHTML = '';
 
-        gifs.forEach((gif, index) => {
-            try {
-                const gifItem = document.createElement('div');
-                gifItem.className = 'giphy-item';
+        gifs.forEach((gif) => {
+            const gifItem = document.createElement('div');
+            gifItem.className = 'giphy-item';
 
-                // Use fixed_height_small for grid display (better performance)
-                const previewUrl = gif.images.fixed_height_small?.url || gif.images.original?.url;
+            const previewUrl = gif.images.fixed_height_small?.url || gif.images.original?.url;
 
-                if (previewUrl) {
-                    gifItem.innerHTML = `
-                        <img src="${previewUrl}"
-                             alt="${this.escapeHtml(gif.title || 'GIF')}"
-                             loading="lazy"
-                             onerror="this.parentElement.style.display='none'">
-                    `;
+            if (previewUrl) {
+                gifItem.innerHTML = `<img src="${previewUrl}" alt="${this.escapeHtml(gif.title || 'GIF')}" loading="lazy">`;
 
-                    // Add click handler to select GIF
-                    gifItem.addEventListener('click', () => {
-                        console.log('GIF selected:', gif.title);
-                        this.selectGif(gif);
-                    });
+                gifItem.addEventListener('click', () => {
+                    this.selectGif(gif);
+                });
 
-                    container.appendChild(gifItem);
-                } else {
-                    console.warn('GIF missing image URL:', gif);
-                }
-
-            } catch (error) {
-                console.error(`Error displaying GIF ${index}:`, error);
+                container.appendChild(gifItem);
             }
         });
-
-        console.log(`Successfully displayed ${container.children.length} GIFs`);
     }
 
     selectGif(gif) {
-        console.log('Selecting GIF:', gif.title);
-
         try {
-            // Prepare GIF data for sending
             const gifData = {
                 type: 'gif',
                 url: gif.images.original?.url || gif.images.fixed_height?.url,
@@ -7333,23 +7297,17 @@ class GiphyIntegration {
                 height: gif.images.original?.height
             };
 
-            console.log('Sending GIF data:', gifData);
-
-            // Send via WebSocket if available
             if (typeof websocket !== 'undefined' && websocket && websocket.readyState === WebSocket.OPEN) {
                 websocket.send(JSON.stringify({
                     'type': 'chat',
                     'message': `[GIF:${JSON.stringify(gifData)}]`
                 }));
-                console.log('GIF sent via WebSocket');
-            } else {
-                console.error('WebSocket not available or not connected');
-                this.showError('Cannot send GIF - connection issue');
-                return;
-            }
 
-            // Close panel and reset UI
-            this.closePanel();
+                this.closePanel();
+                console.log('GIF sent successfully');
+            } else {
+                this.showError('Cannot send GIF - connection issue');
+            }
 
         } catch (error) {
             console.error('Error selecting GIF:', error);
@@ -7361,32 +7319,21 @@ class GiphyIntegration {
         if (this.panel) {
             this.panel.classList.remove('show');
         }
-
         if (this.searchInput) {
             this.searchInput.value = '';
         }
-
-        // Reset to trending
         this.showTrending();
         this.currentQuery = '';
-
-        console.log('Giphy panel closed');
     }
 
-    // UI State Management Methods
+    // UI State Management
     showLoading() {
-        if (this.loading) {
-            this.loading.style.display = 'flex';
-        }
-        if (this.empty) {
-            this.empty.style.display = 'none';
-        }
+        if (this.loading) this.loading.style.display = 'flex';
+        if (this.empty) this.empty.style.display = 'none';
     }
 
     hideLoading() {
-        if (this.loading) {
-            this.loading.style.display = 'none';
-        }
+        if (this.loading) this.loading.style.display = 'none';
     }
 
     showEmpty(message = 'No GIFs found') {
@@ -7401,9 +7348,7 @@ class GiphyIntegration {
     }
 
     hideEmpty() {
-        if (this.empty) {
-            this.empty.style.display = 'none';
-        }
+        if (this.empty) this.empty.style.display = 'none';
     }
 
     showError(message) {
@@ -7418,29 +7363,20 @@ class GiphyIntegration {
     }
 
     showTrending() {
-        if (this.trendingSection) {
-            this.trendingSection.style.display = 'block';
-        }
+        if (this.trendingSection) this.trendingSection.style.display = 'block';
         this.hideSearchResults();
         this.hideEmpty();
     }
 
     showSearchResults() {
-        if (this.trendingSection) {
-            this.trendingSection.style.display = 'none';
-        }
-        if (this.searchResults) {
-            this.searchResults.style.display = 'grid';
-        }
+        if (this.trendingSection) this.trendingSection.style.display = 'none';
+        if (this.searchResults) this.searchResults.style.display = 'grid';
     }
 
     hideSearchResults() {
-        if (this.searchResults) {
-            this.searchResults.style.display = 'none';
-        }
+        if (this.searchResults) this.searchResults.style.display = 'none';
     }
 
-    // Utility method to escape HTML
     escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -7448,61 +7384,50 @@ class GiphyIntegration {
         return div.innerHTML;
     }
 
-    // Public method to check if Giphy is ready
     isReady() {
         return this.isInitialized && this.API_KEY && this.API_KEY.length > 10;
-    }
-
-    // Public method to manually refresh trending GIFs
-    refresh() {
-        if (this.isReady()) {
-            this.loadTrendingGifs();
-        }
     }
 }
 
 // Initialize Giphy when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, checking authentication...');
-
-    // Only initialize if user is authenticated
+    // Only initialize Giphy if user is authenticated
     if (typeof isUserAuthenticated === 'function' && isUserAuthenticated()) {
-        console.log('User authenticated, initializing Giphy integration...');
+        console.log('Initializing Giphy integration for authenticated user...');
 
         // Initialize Giphy integration
         const giphyIntegration = new GiphyIntegration();
 
-        // Set up button event listeners
+        // FIXED: Better event handling that doesn't interfere with existing emoji code
         const giphyButton = document.getElementById('giphy-button');
         const giphyPanel = document.getElementById('giphy-panel');
-        const emojiButton = document.getElementById('emoji-button');
-        const emojiPanel = document.getElementById('emoji-panel');
 
-        console.log('UI elements found:', {
-            giphyButton: !!giphyButton,
-            giphyPanel: !!giphyPanel,
-            emojiButton: !!emojiButton,
-            emojiPanel: !!emojiPanel
-        });
-
-        // Giphy button click handler
         if (giphyButton && giphyPanel) {
-            giphyButton.addEventListener('click', function(e) {
+            // Remove existing event listeners to avoid conflicts
+            giphyButton.replaceWith(giphyButton.cloneNode(true));
+            const newGiphyButton = document.getElementById('giphy-button');
+
+            newGiphyButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 console.log('Giphy button clicked');
 
-                const isCurrentlyVisible = giphyPanel.classList.contains('show');
+                // Toggle Giphy panel
+                const isVisible = giphyPanel.classList.contains('show');
 
-                if (isCurrentlyVisible) {
+                if (isVisible) {
                     giphyPanel.classList.remove('show');
-                    console.log('Hiding Giphy panel');
                 } else {
                     giphyPanel.classList.add('show');
-                    console.log('Showing Giphy panel');
 
-                    // Focus search input after a brief delay
+                    // Close emoji panel if open
+                    const emojiPanel = document.getElementById('emoji-panel');
+                    if (emojiPanel) {
+                        emojiPanel.classList.remove('show');
+                    }
+
+                    // Focus search input
                     setTimeout(() => {
                         const searchInput = document.getElementById('giphy-search');
                         if (searchInput) {
@@ -7510,65 +7435,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }, 100);
                 }
-
-                // Close emoji panel if open
-                if (emojiPanel) {
-                    emojiPanel.classList.remove('show');
-                }
-            });
-        } else {
-            console.error('Giphy button or panel not found in DOM');
-        }
-
-        // Emoji button - close giphy panel when emoji panel opens
-        if (emojiButton && emojiPanel) {
-            emojiButton.addEventListener('click', function(e) {
-                e.stopPropagation();
-
-                // Close giphy panel when opening emoji panel
-                if (giphyPanel) {
-                    giphyPanel.classList.remove('show');
-                }
-
-                // Toggle emoji panel (your existing logic)
-                emojiPanel.classList.toggle('show');
             });
         }
 
-        // Close panels when clicking outside
+        // FIXED: Don't interfere with existing emoji button functionality
+        // The original emoji button event listener should still work
+
+        // Close panels when clicking outside (improved)
         document.addEventListener('click', function(e) {
-            const clickedGiphyButton = giphyButton && giphyButton.contains(e.target);
-            const clickedGiphyPanel = giphyPanel && giphyPanel.contains(e.target);
-            const clickedEmojiButton = emojiButton && emojiButton.contains(e.target);
-            const clickedEmojiPanel = emojiPanel && emojiPanel.contains(e.target);
+            const giphyButton = document.getElementById('giphy-button');
+            const giphyPanel = document.getElementById('giphy-panel');
 
-            if (!clickedGiphyButton && !clickedGiphyPanel && giphyPanel) {
+            // Only close Giphy panel if click is outside both button and panel
+            if (giphyPanel && giphyButton &&
+                !giphyButton.contains(e.target) &&
+                !giphyPanel.contains(e.target)) {
                 giphyPanel.classList.remove('show');
-            }
-
-            if (!clickedEmojiButton && !clickedEmojiPanel && emojiPanel) {
-                emojiPanel.classList.remove('show');
             }
         });
 
-        // Mobile keyboard handling
-        if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-            let initialViewportHeight = window.innerHeight;
-
-            window.addEventListener('resize', function() {
-                const currentHeight = window.innerHeight;
-                const heightDifference = initialViewportHeight - currentHeight;
-
-                // If keyboard is likely open (significant height reduction)
-                if (heightDifference > 150) {
-                    // Close panels to avoid conflicts with keyboard
-                    if (giphyPanel) giphyPanel.classList.remove('show');
-                    if (emojiPanel) emojiPanel.classList.remove('show');
-                }
-            });
-        }
-
-        // Make giphyIntegration available globally for debugging
+        // Make available globally for debugging
         window.giphyIntegration = giphyIntegration;
 
         console.log('Giphy integration setup complete');
