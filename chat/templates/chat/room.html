@@ -3133,8 +3133,23 @@ document.addEventListener('DOMContentLoaded', function() {
     loadBookmarkedRooms();
     scrollToBottom();
 
-    // Initialize GIF handling (without trying to fix existing messages)
-    initializeGifHandling();
+    // Initialize GIF handling - UPDATED ORDER
+    setTimeout(() => {
+        initializeGifHandling();
+        initializeGifProcessing(); // Add this line
+        cleanupBrokenGifImages();  // Add this line
+    }, 1000);
+
+    // Initialize Giphy integration for authenticated users
+    if (typeof isUserAuthenticated === 'function' && isUserAuthenticated()) {
+        console.log('Initializing Giphy integration for authenticated user...');
+
+        setTimeout(() => {
+            const giphyIntegration = new GiphyIntegration();
+            setupGiphyEventListeners();
+            window.giphyIntegration = giphyIntegration;
+        }, 1500);
+    }
 
     console.log('Euphorie chat room loaded successfully');
 });
@@ -7832,6 +7847,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// ADD this helper function to setup Giphy event listeners:
+function setupGiphyEventListeners() {
+    const giphyButton = document.getElementById('giphy-button');
+    const giphyPanel = document.getElementById('giphy-panel');
+
+    if (giphyButton && giphyPanel) {
+        // Remove existing event listeners to avoid conflicts
+        giphyButton.replaceWith(giphyButton.cloneNode(true));
+        const newGiphyButton = document.getElementById('giphy-button');
+
+        newGiphyButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log('Giphy button clicked');
+
+            // Toggle Giphy panel
+            const isVisible = giphyPanel.classList.contains('show');
+
+            if (isVisible) {
+                giphyPanel.classList.remove('show');
+            } else {
+                giphyPanel.classList.add('show');
+
+                // Close emoji panel if open
+                const emojiPanel = document.getElementById('emoji-panel');
+                if (emojiPanel) {
+                    emojiPanel.classList.remove('show');
+                }
+
+                // Focus search input
+                setTimeout(() => {
+                    const searchInput = document.getElementById('giphy-search');
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }, 100);
+            }
+        });
+    }
+
+    // Close panels when clicking outside
+    document.addEventListener('click', function(e) {
+        const giphyButton = document.getElementById('giphy-button');
+        const giphyPanel = document.getElementById('giphy-panel');
+
+        if (giphyPanel && giphyButton &&
+            !giphyButton.contains(e.target) &&
+            !giphyPanel.contains(e.target)) {
+            giphyPanel.classList.remove('show');
+        }
+    });
+}
+
 // Initialize Giphy when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Only initialize Giphy if user is authenticated
@@ -7929,7 +7998,150 @@ function debugCountryFlags() {
     console.log('=== END FLAGS DEBUG ===');
 }
 
+function processExistingGifMessages() {
+    console.log('🔄 Processing existing GIF messages...');
 
+    // Find all message content elements that might contain GIF data
+    document.querySelectorAll('.message-content').forEach(messageContent => {
+        const textContent = messageContent.textContent.trim();
+
+        // Check if this message contains GIF data
+        if (textContent.includes('[GIF:') && textContent.includes(']')) {
+            console.log('🎯 Found GIF message to process:', textContent);
+
+            try {
+                const gifMatch = textContent.match(/\[GIF:(.*?)\]/);
+                if (gifMatch) {
+                    const gifDataStr = gifMatch[1];
+                    const gifData = JSON.parse(gifDataStr);
+
+                    console.log('✅ Parsed GIF data:', gifData);
+
+                    // Replace the text content with proper GIF HTML
+                    const messageBubble = messageContent.closest('.message-bubble');
+                    if (messageBubble) {
+                        // Create the media content
+                        const mediaContent = document.createElement('div');
+                        mediaContent.className = 'message-media gif-message';
+
+                        // Generate a unique key for this GIF
+                        const messageId = messageBubble.closest('[data-message-id]')?.getAttribute('data-message-id') || Date.now();
+                        const gifKey = `gif_${messageId}`;
+
+                        // Store GIF data for later use
+                        if (!window.gifMessageData) {
+                            window.gifMessageData = new Map();
+                        }
+                        window.gifMessageData.set(gifKey, gifData);
+
+                        mediaContent.innerHTML = `
+                            <img src="${escapeHtml(gifData.url)}"
+                                 alt="${escapeHtml(gifData.title || 'GIF')}"
+                                 data-gif-key="${gifKey}"
+                                 class="gif-preview-img"
+                                 loading="lazy"
+                                 style="max-height: 200px; border-radius: 8px; max-width: 100%; cursor: pointer;"
+                                 onerror="console.error('GIF failed to load:', this.src); this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div style="display: none;" class="text-xs text-red-500 p-2 bg-red-50 rounded">
+                                Failed to load GIF
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                <span class="font-bold text-pink-500">GIF</span>
+                                <span>via GIPHY</span>
+                                ${gifData.title ? `<span>• ${escapeHtml(gifData.title)}</span>` : ''}
+                            </div>
+                        `;
+
+                        // Replace the text content with media content
+                        messageContent.replaceWith(mediaContent);
+
+                        // Add click handler
+                        const gifImg = mediaContent.querySelector('.gif-preview-img');
+                        if (gifImg) {
+                            gifImg.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                console.log('🖱️ Existing GIF clicked, opening preview...');
+
+                                window.openMediaPreview({
+                                    type: 'image',
+                                    url: gifData.url,
+                                    title: gifData.title || 'GIF',
+                                    isGif: true
+                                });
+                            });
+                        }
+
+                        console.log('✅ Processed existing GIF message successfully');
+                    }
+                }
+            } catch (e) {
+                console.error('❌ Error processing existing GIF message:', e);
+                console.error('Raw content:', textContent);
+            }
+        }
+    });
+
+    console.log('✅ Finished processing existing GIF messages');
+}
+
+function initializeGifProcessing() {
+    // Initialize the gif data map if it doesn't exist
+    if (!window.gifMessageData) {
+        window.gifMessageData = new Map();
+    }
+
+    // Process existing messages on page load
+    processExistingGifMessages();
+
+    console.log('🎬 GIF processing initialized');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing initialization code ...
+
+    // Add GIF processing after other initialization
+    setTimeout(() => {
+        initializeGifProcessing();
+    }, 1000); // Small delay to ensure everything else is loaded
+
+    // ... rest of existing code ...
+});
+
+function cleanupBrokenGifImages() {
+    // Find any img elements that are trying to load GIF JSON data as images
+    document.querySelectorAll('img').forEach(img => {
+        const src = img.src;
+        if (src && src.includes('[GIF:')) {
+            console.log('🧹 Cleaning up broken GIF image:', src);
+
+            // Try to extract the GIF data and fix the image
+            try {
+                const urlPart = src.split('[GIF:')[1];
+                if (urlPart) {
+                    const jsonPart = urlPart.split(']')[0];
+                    const gifData = JSON.parse(jsonPart);
+
+                    // Replace with the actual GIF URL
+                    img.src = gifData.url;
+                    img.alt = gifData.title || 'GIF';
+
+                    console.log('✅ Fixed broken GIF image');
+                }
+            } catch (e) {
+                console.error('❌ Could not fix broken GIF image:', e);
+                // Hide the broken image
+                img.style.display = 'none';
+            }
+        }
+    });
+}
+
+// RUN cleanup on page load as a fallback
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(cleanupBrokenGifImages, 2000);
+});
 
   </script>
 </body>
