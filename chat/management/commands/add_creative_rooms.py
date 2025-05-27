@@ -458,18 +458,47 @@ class Command(BaseCommand):
             total_messages = 0
             for room in new_rooms:
                 try:
-                    # Match room category for appropriate conversations
-                    room_category = self.categorize_room(room)
-                    templates = conversation_templates.get(room_category, conversation_templates['social'])
+                    # First try to get room-specific conversations
+                    room_conversations = enhanced_conversation_templates.get(room.name)
+                    conversation_type = "room-specific"
+
+                    if not room_conversations:
+                        # Fall back to category-based conversations
+                        room_category = self.categorize_room(room)
+                        room_conversations = enhanced_conversation_templates.get(room_category)
+                        conversation_type = f"category-based ({room_category})"
+
+                    if not room_conversations:
+                        # Final fallback to general conversations
+                        room_conversations = fallback_conversations['general']
+                        conversation_type = "general fallback"
+                        self.stdout.write(f'⚠️  Using fallback conversations for {room.display_name}')
 
                     room_messages = 0
+                    conversations_used = set()  # Track used conversations to avoid immediate repeats
+
                     for i in range(num_conversations):
                         try:
-                            # Pick conversation template
-                            conversation = random.choice(templates)
+                            # Pick conversation template, avoiding recent repeats
+                            available_conversations = [conv for conv in room_conversations
+                                                     if str(conv) not in conversations_used]
+
+                            if not available_conversations:
+                                # Reset if we've used all conversations
+                                conversations_used.clear()
+                                available_conversations = room_conversations
+
+                            conversation = random.choice(available_conversations)
+                            conversations_used.add(str(conversation))
+
+                            # Limit conversations_used size to prevent memory issues
+                            if len(conversations_used) > len(room_conversations) // 2:
+                                conversations_used.clear()
+
+                            # Pick random users for this conversation
                             conversation_users = random.sample(users, min(len(conversation), len(users)))
 
-                            # Random time spread over last 45 days for more realistic distribution
+                            # More realistic time spread over last 45 days
                             base_time = timezone.now() - timedelta(days=random.randint(0, 45))
 
                             for j, message_text in enumerate(conversation):
@@ -506,37 +535,51 @@ class Command(BaseCommand):
                             self.stdout.write(f'⚠️  Error creating conversation {i+1} in {room.display_name}: {str(e)}')
                             continue
 
-                    self.stdout.write(f'💬 Generated {room_messages} engaging messages for {room.display_name}')
+                    self.stdout.write(f'💬 Generated {room_messages} targeted messages for {room.display_name} using {conversation_type} conversations')
 
                 except Exception as e:
                     self.stdout.write(f'❌ Error processing room {room.display_name}: {str(e)}')
                     continue
 
-            self.stdout.write(self.style.SUCCESS(f'✅ Generated {total_messages} total engaging messages!'))
+            self.stdout.write(self.style.SUCCESS(f'✅ Generated {total_messages} total room-specific messages!'))
 
     def categorize_room(self, room):
-        """Determine conversation category for room"""
+        """Determine conversation category for room - much more specific now"""
         room_name = room.name.lower()
 
-        # Map room names to conversation categories
-        if any(word in room_name for word in ['ai', 'code', 'tech', 'startup', 'crypto']):
+        # Then try specific keyword matching for categories
+        if any(word in room_name for word in ['ai', 'code', 'tech', 'programming', 'software', 'developer', 'stackoverflow']):
             return 'technology'
-        elif any(word in room_name for word in ['game', 'gaming', 'retro', 'netflix']):
+        elif any(word in room_name for word in ['game', 'gaming', 'rage', 'backlog', 'console', 'steam']):
             return 'gaming'
-        elif any(word in room_name for word in ['meme', 'dad-joke', 'cringe', 'conspiracy']):
+        elif any(word in room_name for word in ['meme', 'joke', 'humor', 'funny', 'cringe', 'dad-joke']):
             return 'memes'
-        elif any(word in room_name for word in ['mental', 'therapy', 'anxiety', 'existential']):
+        elif any(word in room_name for word in ['mental', 'therapy', 'anxiety', 'existential', 'crisis', 'depression', 'wellness']):
             return 'mental-health'
-        elif any(word in room_name for word in ['dating', 'relationship', 'single']):
+        elif any(word in room_name for word in ['dating', 'relationship', 'single', 'tinder', 'toxic', 'romance']):
             return 'dating'
-        elif any(word in room_name for word in ['pet', 'dog', 'cat', 'animal']):
+        elif any(word in room_name for word in ['pet', 'dog', 'cat', 'animal', 'puppy', 'kitten']):
             return 'pets'
-        elif any(word in room_name for word in ['food', 'cooking', 'coffee']):
+        elif any(word in room_name for word in ['food', 'cooking', 'recipe', 'kitchen', 'chef', 'meal', 'ramen', 'coffee', 'caffeine']):
             return 'food'
-        elif any(word in room_name for word in ['crypto', 'moon', 'broke']):
+        elif any(word in room_name for word in ['crypto', 'bitcoin', 'nft', 'blockchain', 'moon', 'hodl', 'dip']):
             return 'crypto'
+        elif any(word in room_name for word in ['work', 'job', 'career', 'office', 'meeting', 'boss', 'corporate', 'linkedin']):
+            return 'business'
+        elif any(word in room_name for word in ['art', 'creative', 'paint', 'draw', 'craft', 'pinterest', 'diy']):
+            return 'creative'
+        elif any(word in room_name for word in ['gym', 'workout', 'fitness', 'health', 'exercise', 'meditation']):
+            return 'health'
+        elif any(word in room_name for word in ['netflix', 'movie', 'tv', 'binge', 'streaming', 'show']):
+            return 'entertainment'
+        elif any(word in room_name for word in ['travel', 'vacation', 'flight', 'trip', 'adventure']):
+            return 'travel'
+        elif any(word in room_name for word in ['learn', 'course', 'study', 'education', 'skill', 'tutorial', 'duolingo']):
+            return 'learning'
+        elif any(word in room_name for word in ['conspiracy', 'weird', 'strange', 'bizarre', 'theory']):
+            return 'conspiracy'
         else:
-            return 'social'
+            return 'social'  # Default fallback
 
     def add_realistic_reactions(self):
         """Add more realistic and varied reactions"""
