@@ -440,7 +440,7 @@ def room(request, room_name):
         'GIPHY_API_KEY': settings.GIPHY_API_KEY,  # NEW: Add Giphy API key
     }
 
-    return render(request, 'chat/manage/room.html', context)
+    return render(request, 'chat/room.html', context)
 
 def ensure_user_has_profile(user):
     """Ensure user has a profile with an avatar, create one if needed"""
