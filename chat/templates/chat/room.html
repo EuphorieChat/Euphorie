@@ -4675,41 +4675,324 @@ function updateOnlineFriends(friends) {
 
 // Meetups - IMPROVED with enhanced UI/UX and better visibility
 function handleMeetupsUpdate(data) {
-    if (data.meetups) {
-        currentMeetups = data.meetups;
+    console.log('=== MEETUP UPDATE RECEIVED ===');
+    console.log('Data:', data);
+    console.log('Action:', data.action);
+    console.log('Meetups count:', data.meetups ? data.meetups.length : 0);
 
-        // If we received new meetups, notify user
-        if (data.action === 'created' && data.creator && data.creator !== window.username) {
-            const meetup = data.meetups[0]; // Usually the new one
-            showNotification(`${data.creator} created a new meetup: ${meetup.title}`);
+    if (data.meetups && Array.isArray(data.meetups)) {
+        currentMeetups = data.meetups;
+        console.log('Updated currentMeetups:', currentMeetups);
+
+        // Always update the display
+        updateMeetupsDisplay(data.meetups);
+
+        // Handle specific actions
+        if (data.action === 'created') {
+            resetSubmitButton();
+            closeMeetupModal();
+
+            console.log('Meetup created successfully, modal closed');
+            showNotification('Meetup created successfully!');
+
+            // If meetup was created by another user, show notification
+            if (data.creator && data.creator !== window.username) {
+                const newestMeetup = data.meetups[data.meetups.length - 1];
+                if (newestMeetup) {
+                    showNotification(`${data.creator} created a new meetup: ${newestMeetup.title}`);
+                }
+            }
         }
+    } else {
+        console.warn('Invalid meetups data received:', data);
+        // Still try to update display with empty array
+        updateMeetupsDisplay([]);
     }
 }
 
 function updateMeetupsDisplay(meetups) {
+    console.log('=== UPDATING MEETUPS DISPLAY ===');
+    console.log('Meetups to display:', meetups);
+
     const meetupsList = document.getElementById('meetups-list');
-    if (!meetupsList) return;
+    if (!meetupsList) {
+        console.error('❌ Meetups list element not found! Looking for #meetups-list');
 
-    meetupsList.innerHTML = '';
-
-    if (meetups.length === 0) {
-        meetupsList.innerHTML = '<div class="text-sm text-gray-300 text-center py-2">No upcoming meetups</div>';
+        // Debug: Show what elements are available
+        const possibleElements = document.querySelectorAll('[id*="meetup"]');
+        console.log('Available meetup-related elements:', possibleElements);
         return;
     }
 
-    meetups.forEach(meetup => {
-        const meetupDate = new Date(meetup.datetime);
-        const meetupItem = document.createElement('div');
-        meetupItem.className = 'meetup-item p-2 bg-white rounded-lg mb-2 border';
-        meetupItem.innerHTML = `
-            <div class="font-medium text-sm">${meetup.title}</div>
-            <div class="text-xs text-gray-500">${meetupDate.toLocaleDateString()} at ${meetupDate.toLocaleTimeString()}</div>
-            <div class="text-xs text-gray-600">${meetup.location}</div>
-            <div class="text-xs text-green-600">${meetup.attendees.length} attending</div>
+    console.log('✅ Found meetups list element');
+
+    // Clear existing content
+    meetupsList.innerHTML = '';
+
+    if (!meetups || meetups.length === 0) {
+        console.log('No meetups to display');
+        meetupsList.innerHTML = `
+            <div class="text-sm text-gray-400 text-center py-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                No upcoming meetups
+            </div>
         `;
-        meetupsList.appendChild(meetupItem);
+        return;
+    }
+
+    console.log(`Displaying ${meetups.length} meetups`);
+
+    // Show up to 3 meetups in sidebar
+    meetups.slice(0, 3).forEach((meetup, index) => {
+        try {
+            console.log(`Creating display for meetup ${index + 1}:`, meetup);
+
+            const meetupDate = new Date(meetup.datetime);
+            const isValidDate = !isNaN(meetupDate.getTime());
+
+            if (!isValidDate) {
+                console.warn('Invalid date for meetup:', meetup.datetime);
+                return;
+            }
+
+            const meetupItem = document.createElement('div');
+            meetupItem.className = 'meetup-item p-3 bg-white rounded-lg mb-2 border border-gray-200 hover:border-pink-300 hover:shadow-md transition-all cursor-pointer group';
+
+            // Format date and time
+            const dateOptions = {
+                month: 'short',
+                day: 'numeric',
+                weekday: 'short'
+            };
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            };
+
+            const formattedDate = meetupDate.toLocaleDateString(undefined, dateOptions);
+            const formattedTime = meetupDate.toLocaleTimeString(undefined, timeOptions);
+
+            meetupItem.innerHTML = `
+                <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold text-sm text-gray-800 truncate group-hover:text-pink-600 transition-colors">
+                            ${escapeHtml(meetup.title)}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1 space-y-1">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                ${formattedDate} at ${formattedTime}
+                            </div>
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                </svg>
+                                <span class="truncate">${escapeHtml(meetup.location)}</span>
+                            </div>
+                            <div class="flex items-center text-green-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                ${meetup.attendee_count || meetup.attendees?.length || 0} attending
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ml-2 flex-shrink-0">
+                        <div class="w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+            `;
+
+            // Add click handler to show more details
+            meetupItem.addEventListener('click', (e) => {
+                e.preventDefault();
+                showMeetupDetails(meetup);
+            });
+
+            meetupsList.appendChild(meetupItem);
+            console.log(`✅ Successfully added meetup ${index + 1} to display`);
+
+        } catch (error) {
+            console.error(`Error creating meetup item ${index + 1}:`, error);
+        }
     });
+
+    // Add "View All" link if there are more than 3 meetups
+    if (meetups.length > 3) {
+        const viewAllItem = document.createElement('div');
+        viewAllItem.className = 'text-center mt-2';
+        viewAllItem.innerHTML = `
+            <button class="text-xs text-pink-500 hover:text-pink-600 font-medium">
+                View all ${meetups.length} meetups →
+            </button>
+        `;
+        viewAllItem.addEventListener('click', () => {
+            showAllMeetups(meetups);
+        });
+        meetupsList.appendChild(viewAllItem);
+    }
+
+    console.log('✅ Meetups display updated successfully');
 }
+
+// FIXED: Request meetups on page load and WebSocket connection
+function initializeMeetups() {
+    console.log('Initializing meetups...');
+
+    // Request meetups from server when page loads
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        console.log('Requesting initial meetups data...');
+        websocket.send(JSON.stringify({
+            'type': 'meetup',
+            'action': 'list'
+        }));
+    } else {
+        console.log('WebSocket not ready, will request meetups when connected');
+
+        // Set up listener for when WebSocket connects
+        const originalOnOpen = websocket?.onopen;
+        if (websocket) {
+            websocket.onopen = function(e) {
+                if (originalOnOpen) originalOnOpen.call(this, e);
+
+                // Request meetups once connected
+                setTimeout(() => {
+                    if (websocket.readyState === WebSocket.OPEN) {
+                        console.log('WebSocket connected, requesting meetups...');
+                        websocket.send(JSON.stringify({
+                            'type': 'meetup',
+                            'action': 'list'
+                        }));
+                    }
+                }, 1000);
+            };
+        }
+    }
+}
+
+// ENHANCED: Show meetup details in a nice modal
+function showMeetupDetails(meetup) {
+    console.log('Showing meetup details:', meetup);
+
+    const meetupDate = new Date(meetup.datetime);
+    const formattedDate = meetupDate.toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    const formattedTime = meetupDate.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    // Create a simple modal (you can enhance this)
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-bold text-gray-800">${escapeHtml(meetup.title)}</h3>
+                <button class="close-modal text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div class="flex items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 mt-0.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        <div class="font-medium">${formattedDate}</div>
+                        <div class="text-gray-600">${formattedTime}</div>
+                    </div>
+                </div>
+
+                <div class="flex items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 mt-0.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    </svg>
+                    <div class="font-medium">${escapeHtml(meetup.location)}</div>
+                </div>
+
+                ${meetup.description ? `
+                <div class="flex items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 mt-0.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div class="text-gray-700">${escapeHtml(meetup.description)}</div>
+                </div>
+                ` : ''}
+
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <div>
+                        <span class="font-medium">${meetup.attendee_count || 0} attending</span>
+                        <span class="text-gray-600"> • Created by ${escapeHtml(meetup.created_by)}</span>
+                    </div>
+                </div>
+
+                ${meetup.attendees && meetup.attendees.length > 0 ? `
+                <div class="mt-4">
+                    <div class="text-xs font-medium text-gray-500 mb-2">ATTENDEES</div>
+                    <div class="flex flex-wrap gap-1">
+                        ${meetup.attendees.map(attendee =>
+                            `<span class="px-2 py-1 bg-gray-100 rounded-full text-xs">${escapeHtml(attendee)}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button class="close-modal px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium">
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Add close functionality
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal || e.target.classList.contains('close-modal')) {
+            document.body.removeChild(modal);
+        }
+    });
+
+    document.body.appendChild(modal);
+}
+
+// ENHANCED: Show all meetups (placeholder for future enhancement)
+function showAllMeetups(meetups) {
+    console.log('Show all meetups:', meetups);
+    // For now, just show the first meetup details
+    // You can enhance this to show a list of all meetups
+    if (meetups.length > 0) {
+        showMeetupDetails(meetups[0]);
+    }
+}
+
+// ENHANCED: Initialize meetups when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing meetups...');
+
+    // Wait a bit for WebSocket to be initialized
+    setTimeout(() => {
+        initializeMeetups();
+    }, 2000);
+});
+
 
 // IMPROVED Meetup Modal with better UI/UX and visibility
 function openMeetupModal() {
