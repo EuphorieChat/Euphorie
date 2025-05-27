@@ -477,19 +477,24 @@
 
   /* Header - FIXED VERSION */
   .app-header {
-    height: 60px;
-    padding: 0 1rem;
-    display: flex;
-    align-items: center;
-    background-color: white;
-    border-bottom: 1px solid rgba(236, 72, 153, 0.1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    z-index: 20;
-    position: sticky;
-    top: 0;
-    left: 0;
-    right: 0;
-    transition: transform 0.2s ease;
+      height: 60px !important;
+      min-height: 60px !important;
+      max-height: 60px !important;
+      padding: 0 1rem !important;
+      display: flex !important;
+      align-items: center !important;
+      background-color: white !important;
+      border-bottom: 1px solid rgba(236, 72, 153, 0.1) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+      z-index: 20 !important;
+      position: sticky !important;
+      top: 0 !important;
+      justify-content: space-between !important;
+      gap: 1rem !important;
+      flex-direction: row !important;
+      flex-shrink: 0 !important;
+      flex-grow: 0 !important;
+      box-sizing: border-box !important;
   }
 
   /* Ensure input area doesn't cover header when keyboard is active */
@@ -501,16 +506,24 @@
   }
 
   .header-title {
-    flex: 1;
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
+      flex: 1 !important;
+      margin: 0 !important;
+      font-size: 1.125rem !important;
+      font-weight: 600 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      height: 27px !important;
+      line-height: 27px !important;
   }
 
   .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      flex-shrink: 0 !important;
+      min-width: 120px !important;
+      height: 40px !important;
   }
 
   /* Chat container */
@@ -1270,49 +1283,127 @@
     display: block;
   }
 
+  /* Fixed Emoji Panel CSS */
   .emoji-panel {
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    background: white;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    padding: 0.75rem;
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0.375rem;
-    margin-bottom: 0.5rem;
-    z-index: 100;
-    animation: fadeIn 0.2s ease;
-    display: none;
-    border: 1px solid var(--border);
+      position: absolute;
+      bottom: 100%;
+      left: 0; /* Changed from right: 0 to left: 0 */
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      padding: 0.75rem;
+      display: none;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.375rem;
+      margin-bottom: 0.5rem;
+      z-index: 100;
+      animation: fadeIn 0.2s ease;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      width: 320px; /* Increased width for better visibility */
+      max-height: 250px; /* Increased max height */
+      overflow-y: auto;
+  }
+
+  /* Alternative positioning for better mobile experience */
+  @media (max-width: 640px) {
+      .emoji-panel {
+          position: fixed;
+          bottom: 80px; /* Position above input area */
+          left: 50%;
+          transform: translateX(-50%);
+          width: 300px;
+          max-width: 90vw;
+      }
   }
 
   .emoji-panel.show {
-    display: grid;
+      display: grid;
   }
 
   .emoji-btn {
-    width: 2.25rem;
-    height: 2.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    cursor: pointer;
-    border-radius: var(--radius-md);
-    transition: all var(--duration-normal) var(--ease);
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      background: transparent;
+      border: none;
   }
 
   .emoji-btn:hover {
-    background-color: var(--primary-light);
-    transform: scale(1.1);
+      background-color: rgba(236, 72, 153, 0.1);
+      transform: scale(1.1);
   }
 
-  /* Enhanced animations */
+  /* Enhanced scrollbar for emoji panel */
+  .emoji-panel::-webkit-scrollbar {
+      width: 6px;
+  }
+
+  .emoji-panel::-webkit-scrollbar-track {
+      background: transparent;
+  }
+
+  .emoji-panel::-webkit-scrollbar-thumb {
+      background-color: rgba(236, 72, 153, 0.3);
+      border-radius: 20px;
+  }
+
+  .emoji-panel::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(236, 72, 153, 0.5);
+  }
+
+  /* Demo styling */
+  .demo-container {
+      margin: 2rem auto;
+      max-width: 600px;
+      padding: 2rem;
+      background: #f8fafc;
+      border-radius: 12px;
+  }
+
+  .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+      border: 1px solid #e5e7eb;
+  }
+
+  .demo-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 0.5rem;
+  }
+
+  .emoji-button {
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+  }
+
+  .emoji-button:hover {
+      background-color: rgba(236, 72, 153, 0.1);
+  }
+
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+      from {
+          opacity: 0;
+          transform: translateY(10px);
+      }
+      to {
+          opacity: 1;
+          transform: translateY(0);
+      }
   }
 
   /* Mobile controls */
@@ -3198,6 +3289,25 @@ function handleChatMessage(data) {
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👍')" aria-label="React with thumbs up">👍</button>
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😂')" aria-label="React with laugh">😂</button>
                 <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '✨')" aria-label="React with sparkles">✨</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🔥')" aria-label="React with sparkles">🔥</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🎉')" aria-label="React with sparkles">🎉</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥰')" aria-label="React with sparkles">🥰</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😎')" aria-label="React with sparkles">😎</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤔')" aria-label="React with sparkles">🤔</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '👀')" aria-label="React with sparkles">👀</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💯')" aria-label="React with sparkles">💯</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙏')" aria-label="React with sparkles">🙏</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💪')" aria-label="React with sparkles">💪</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🌟')" aria-label="React with sparkles">🌟</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '💕')" aria-label="React with sparkles">💕</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🤩')" aria-label="React with sparkles">🤩</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😍')" aria-label="React with sparkles">😍</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🥳')" aria-label="React with sparkles">🥳</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😁')" aria-label="React with sparkles">😁</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '😅')" aria-label="React with sparkles">😅</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🙂')" aria-label="React with sparkles">🙂</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫠')" aria-label="React with sparkles">🫠</button>
+                <button class="emoji-reaction" onclick="sendReaction(${data.message_id}, '🫢')" aria-label="React with sparkles">🫢</button>
             </div>
         </div>
     `;
