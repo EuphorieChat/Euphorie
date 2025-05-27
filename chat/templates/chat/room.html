@@ -7091,16 +7091,11 @@ document.addEventListener('visibilitychange', function() {
 
 class GiphyIntegration {
     constructor() {
-        // FIXED: Properly get the API key from Django template context
+        // Get the API key from Django template
         this.API_KEY = '{{ GIPHY_API_KEY }}';
         this.BASE_URL = 'https://api.giphy.com/v1/gifs';
 
-        // Debug the API key first
-        console.log('Raw API key from template:', this.API_KEY);
-        console.log('API key length:', this.API_KEY ? this.API_KEY.length : 0);
-        console.log('API key starts with template syntax?', this.API_KEY.startsWith('{{'));
-
-        // Get elements with error checking
+        // Elements
         this.panel = document.getElementById('giphy-panel');
         this.searchInput = document.getElementById('giphy-search');
         this.trendingGrid = document.getElementById('trending-grid');
@@ -7113,8 +7108,14 @@ class GiphyIntegration {
         this.currentQuery = '';
         this.isInitialized = false;
 
-        // Debug elements
-        console.log('Giphy elements found:', {
+        // BETTER DEBUG LOGGING
+        console.log('=== GIPHY INITIALIZATION DEBUG ===');
+        console.log('Raw API key:', `"${this.API_KEY}"`);
+        console.log('API key type:', typeof this.API_KEY);
+        console.log('API key length:', this.API_KEY ? this.API_KEY.length : 0);
+        console.log('API key is string?', typeof this.API_KEY === 'string');
+        console.log('API key starts with {{?', this.API_KEY && this.API_KEY.startsWith('{{'));
+        console.log('Elements found:', {
             panel: !!this.panel,
             searchInput: !!this.searchInput,
             trendingGrid: !!this.trendingGrid,
@@ -7123,6 +7124,7 @@ class GiphyIntegration {
             empty: !!this.empty,
             trendingSection: !!this.trendingSection
         });
+        console.log('=== END GIPHY DEBUG ===');
 
         // Only initialize if we have the required elements
         if (this.panel && this.searchInput) {
@@ -7133,24 +7135,29 @@ class GiphyIntegration {
     }
 
     init() {
-        // FIXED: Better API key validation
-        if (!this.API_KEY ||
-            this.API_KEY === '{{ GIPHY_API_KEY }}' ||
-            this.API_KEY.startsWith('{{') ||
-            this.API_KEY.length < 10) {
+        // IMPROVED API key validation
+        const isValidKey = this.API_KEY &&
+                          typeof this.API_KEY === 'string' &&
+                          this.API_KEY !== '{{ GIPHY_API_KEY }}' &&
+                          !this.API_KEY.startsWith('{{') &&
+                          this.API_KEY.length >= 20 && // Giphy keys are usually longer
+                          this.API_KEY.trim() !== '';
 
-            console.error('Giphy API key not properly configured:', {
+        if (!isValidKey) {
+            console.error('❌ Giphy API key validation failed:', {
                 hasKey: !!this.API_KEY,
+                isString: typeof this.API_KEY === 'string',
                 keyLength: this.API_KEY ? this.API_KEY.length : 0,
-                isTemplate: this.API_KEY && this.API_KEY.startsWith('{{'),
-                key: this.API_KEY ? this.API_KEY.substring(0, 10) + '...' : 'EMPTY'
+                startsWithTemplate: this.API_KEY && this.API_KEY.startsWith('{{'),
+                isEmpty: this.API_KEY === '' || this.API_KEY.trim() === '',
+                actualKey: this.API_KEY ? `${this.API_KEY.substring(0, 10)}...` : 'NONE'
             });
 
-            this.showError('GIF search unavailable - API key not configured');
+            this.showError('GIF search unavailable - Check console for details');
             return;
         }
 
-        console.log('Initializing Giphy with valid API key');
+        console.log('✅ Giphy API key is valid, initializing...');
 
         // Load trending GIFs
         this.loadTrendingGifs();
@@ -7159,7 +7166,7 @@ class GiphyIntegration {
         this.setupSearch();
 
         this.isInitialized = true;
-        console.log('Giphy integration initialized successfully');
+        console.log('✅ Giphy integration initialized successfully');
     }
 
     setupSearch() {
@@ -7202,19 +7209,29 @@ class GiphyIntegration {
             this.showLoading();
 
             const url = `${this.BASE_URL}/trending?api_key=${this.API_KEY}&limit=9&rating=pg`;
-            console.log('Fetching trending GIFs...');
+            console.log('🔄 Fetching trending GIFs...');
 
             const response = await fetch(url);
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('❌ Giphy API Error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('✅ Giphy API Response:', {
+                dataCount: data.data?.length || 0,
+                pagination: data.pagination
+            });
 
             if (data.data && data.data.length > 0) {
                 this.displayGifs(data.data, this.trendingGrid);
-                console.log(`Loaded ${data.data.length} trending GIFs`);
+                console.log(`📱 Loaded ${data.data.length} trending GIFs`);
             } else {
                 this.showError('No trending GIFs available');
             }
@@ -7222,9 +7239,9 @@ class GiphyIntegration {
             this.hideLoading();
 
         } catch (error) {
-            console.error('Error loading trending GIFs:', error);
+            console.error('❌ Error loading trending GIFs:', error);
             this.hideLoading();
-            this.showError('Failed to load trending GIFs');
+            this.showError(`Failed to load GIFs: ${error.message}`);
         }
     }
 
@@ -7237,10 +7254,12 @@ class GiphyIntegration {
             this.hideEmpty();
 
             const url = `${this.BASE_URL}/search?api_key=${this.API_KEY}&q=${encodeURIComponent(query)}&limit=9&rating=pg`;
+            console.log(`🔍 Searching for: "${query}"`);
+
             const response = await fetch(url);
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -7248,17 +7267,19 @@ class GiphyIntegration {
             if (data.data && data.data.length > 0) {
                 this.displayGifs(data.data, this.searchResults);
                 this.showSearchResults();
+                console.log(`✅ Found ${data.data.length} GIFs for "${query}"`);
             } else {
                 this.showEmpty(`No GIFs found for "${query}"`);
                 this.hideSearchResults();
+                console.log(`❌ No GIFs found for "${query}"`);
             }
 
             this.hideLoading();
 
         } catch (error) {
-            console.error('Error searching GIFs:', error);
+            console.error('❌ Error searching GIFs:', error);
             this.hideLoading();
-            this.showError('Search failed. Please try again.');
+            this.showError(`Search failed: ${error.message}`);
         }
     }
 
@@ -7304,24 +7325,20 @@ class GiphyIntegration {
                 }));
 
                 this.closePanel();
-                console.log('GIF sent successfully');
+                console.log('📤 GIF sent successfully');
             } else {
                 this.showError('Cannot send GIF - connection issue');
             }
 
         } catch (error) {
-            console.error('Error selecting GIF:', error);
+            console.error('❌ Error selecting GIF:', error);
             this.showError('Failed to send GIF');
         }
     }
 
     closePanel() {
-        if (this.panel) {
-            this.panel.classList.remove('show');
-        }
-        if (this.searchInput) {
-            this.searchInput.value = '';
-        }
+        if (this.panel) this.panel.classList.remove('show');
+        if (this.searchInput) this.searchInput.value = '';
         this.showTrending();
         this.currentQuery = '';
     }
@@ -7385,9 +7402,60 @@ class GiphyIntegration {
     }
 
     isReady() {
-        return this.isInitialized && this.API_KEY && this.API_KEY.length > 10;
+        return this.isInitialized;
     }
 }
+
+// STEP 3: Updated initialization
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof isUserAuthenticated === 'function' && isUserAuthenticated()) {
+        console.log('🚀 Initializing Giphy for authenticated user...');
+
+        const giphyIntegration = new GiphyIntegration();
+
+        const giphyButton = document.getElementById('giphy-button');
+        const giphyPanel = document.getElementById('giphy-panel');
+
+        if (giphyButton && giphyPanel) {
+            giphyButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const isVisible = giphyPanel.classList.contains('show');
+
+                if (isVisible) {
+                    giphyPanel.classList.remove('show');
+                } else {
+                    giphyPanel.classList.add('show');
+
+                    // Close emoji panel
+                    const emojiPanel = document.getElementById('emoji-panel');
+                    if (emojiPanel) {
+                        emojiPanel.classList.remove('show');
+                    }
+
+                    // Focus search
+                    setTimeout(() => {
+                        const searchInput = document.getElementById('giphy-search');
+                        if (searchInput) searchInput.focus();
+                    }, 100);
+                }
+            });
+        }
+
+        // Close panels when clicking outside
+        document.addEventListener('click', function(e) {
+            if (giphyPanel && giphyButton &&
+                !giphyButton.contains(e.target) &&
+                !giphyPanel.contains(e.target)) {
+                giphyPanel.classList.remove('show');
+            }
+        });
+
+        window.giphyIntegration = giphyIntegration;
+        console.log('✅ Giphy setup complete');
+    }
+});
 
 // Initialize Giphy when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -7463,6 +7531,28 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('User not authenticated, skipping Giphy initialization');
     }
 });
+
+function debugCountryFlags() {
+    console.log('=== COUNTRY FLAGS DEBUG ===');
+
+    // Find all avatars
+    const avatars = document.querySelectorAll('.user-avatar');
+    console.log(`Found ${avatars.length} avatar elements`);
+
+    avatars.forEach((avatar, index) => {
+        const username = avatar.getAttribute('data-username');
+        const existingFlag = avatar.querySelector('.country-flag');
+
+        console.log(`Avatar ${index + 1}:`, {
+            username: username,
+            hasFlag: !!existingFlag,
+            flagContent: existingFlag ? existingFlag.textContent : 'none',
+            element: avatar
+        });
+    });
+
+    console.log('=== END FLAGS DEBUG ===');
+}
 
   </script>
 </body>
