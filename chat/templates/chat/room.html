@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
   <meta charset="UTF-8">
-  <title>Euphorie - {{ room_name|title }} 💬</title>
+  <title>Euphorie - {{ room_name|display_name }} 💬</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#ec4899">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2396,7 +2396,7 @@ background: rgba(236, 72, 153, 0.1);
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-          <span>{{ room_name }}</span>
+          <span>{{ room_name|display_name }}</span>
         </div>
 
         <p class="sidebar-nav-heading mt-4">Room Tools</p>
@@ -2617,7 +2617,7 @@ background: rgba(236, 72, 153, 0.1);
           </svg>
         </button>
 
-        <a href="/" class="header-title gradient-text hover:opacity-80 transition-opacity" style="font-size: 1rem !important;">{{ room_name|title }}</a>
+        <a href="/" class="header-title gradient-text hover:opacity-80 transition-opacity" style="font-size: 1rem !important;">{{ room_name|display_name }}</a>
 
         <div class="header-actions" style="gap: 0.5rem !important;">
           <!-- Users Online Counter - Smaller -->
@@ -5290,90 +5290,6 @@ function handleRecommendationsUpdate(data) {
         }
     }
 }
-
-function formatRoomName(roomName) {
-    if (!roomName) return roomName;
-
-    return roomName
-        .replace(/-/g, ' ')           // Replace hyphens with spaces
-        .split(' ')
-        .map(word => {
-            const lower = word.toLowerCase();
-            // Keep common words lowercase (except first word)
-            if (['and', 'or', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with'].includes(lower)) {
-                return lower;
-            }
-            // Keep tech acronyms uppercase
-            else if (['ai', 'ui', 'ux', 'api', 'html', 'css', 'js', 'php', 'sql', 'ios', 'android'].includes(lower)) {
-                return word.toUpperCase();
-            }
-            // Normal title case
-            else {
-                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-            }
-        })
-        .join(' ')
-        .replace(/^\w/, c => c.toUpperCase()); // Always capitalize first word
-}
-
-function formatAllRoomNames() {
-    console.log('🏷️ Formatting room names...');
-
-    // Format header title
-    const headerTitle = document.querySelector('.header-title');
-    if (headerTitle && window.roomName) {
-        headerTitle.textContent = formatRoomName(window.roomName);
-        console.log('✅ Formatted header title:', formatRoomName(window.roomName));
-    }
-
-    // Format sidebar current room name
-    const sidebarRoomSpan = document.querySelector('.sidebar-item.active span');
-    if (sidebarRoomSpan && window.roomName) {
-        sidebarRoomSpan.textContent = formatRoomName(window.roomName);
-        console.log('✅ Formatted sidebar room name:', formatRoomName(window.roomName));
-    }
-
-    // Format page title
-    if (window.roomName) {
-        document.title = `Euphorie - ${formatRoomName(window.roomName)} 💬`;
-        console.log('✅ Formatted page title');
-    }
-
-    // Format recommended room names
-    document.querySelectorAll('.room-card .font-medium, .room-card .text-white').forEach(element => {
-        const currentText = element.textContent.trim();
-        if (currentText.includes('-')) {
-            element.textContent = formatRoomName(currentText);
-            console.log('✅ Formatted recommended room:', formatRoomName(currentText));
-        }
-    });
-
-    // Format any room links
-    document.querySelectorAll('a[href*="/chat/"]').forEach(link => {
-        const roomNameMatch = link.href.match(/\/chat\/([^\/]+)\//);
-        if (roomNameMatch) {
-            const roomName = roomNameMatch[1];
-            const textElements = link.querySelectorAll('*');
-            textElements.forEach(el => {
-                if (el.textContent.trim() === roomName) {
-                    el.textContent = formatRoomName(roomName);
-                }
-            });
-        }
-    });
-
-    console.log('✅ Finished formatting room names');
-}
-
-// ADD THIS to your existing DOMContentLoaded event listener:
-document.addEventListener('DOMContentLoaded', function() {
-    // ... your existing code ...
-
-    // Format room names after everything loads
-    setTimeout(() => {
-        formatAllRoomNames();
-    }, 500);
-});
 
 // Update recommended rooms display
 function updateRecommendedRooms(rooms) {
