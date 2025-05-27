@@ -4653,50 +4653,40 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function fetchUserProfile(username) {
+    // Prevent multiple simultaneous requests for the same user
+    if (profileFetchCache.has(username)) {
+        return;
+    }
+
+    profileFetchCache.add(username);
     console.log(`Fetching profile for: ${username}`);
 
     fetch(`/api/profile/${username}/`)
         .then(response => response.json())
         .then(data => {
-            console.log(`Profile response for ${username}:`, data);
-
             if (data.success) {
                 // Store profile picture data
                 if (data.profile_picture) {
                     userProfiles.set(username, data.profile_picture);
-                    console.log(`✅ Profile picture stored for ${username}`);
                 }
 
                 // Store country data
                 if (data.country) {
                     userCountries.set(username, data.country);
-                    console.log(`✅ Country data stored for ${username}:`, data.country);
                 }
 
-                // Force update all avatars for this user
+                // Update all avatars for this user ONCE
                 updateAllUserAvatars(username);
-            } else {
-                console.warn(`Profile fetch failed for ${username}:`, data);
             }
         })
         .catch(error => {
             console.error(`Error fetching profile for ${username}:`, error);
-
-            // Set default data to prevent repeated failed requests
-            const defaultProfile = {
-                type: 'gradient',
-                gradient: getConsistentGradient(username)
-            };
-            userProfiles.set(username, defaultProfile);
-
-            const defaultCountry = {
-                code: null,
-                flag: '🌍',
-                name: 'Unknown'
-            };
-            userCountries.set(username, defaultCountry);
-
-            updateAllUserAvatars(username);
+        })
+        .finally(() => {
+            // Remove from cache after a delay to allow future updates if needed
+            setTimeout(() => {
+                profileFetchCache.delete(username);
+            }, 5000);
         });
 }
 
@@ -4722,19 +4712,26 @@ function getConsistentGradient(username) {
 }
 
 function updateAllUserAvatars(username) {
-    document.querySelectorAll(`.user-avatar[data-username="${username}"]`).forEach(avatar => {
-        updateAvatarElement(avatar, username);
+    const avatars = document.querySelectorAll(`.user-avatar[data-username="${username}"]`);
+
+    avatars.forEach(avatar => {
+        // Only update if not already processed
+        if (avatar.dataset.avatarProcessed !== 'true') {
+            updateAvatarElement(avatar, username);
+        }
     });
 }
 
 function updateAvatarElement(avatar, username) {
+    // Prevent infinite loops by checking if already processed
+    if (avatar.dataset.avatarProcessed === 'true') {
+        return;
+    }
+
     console.log(`Updating avatar element for: ${username}`);
 
     const profile = userProfiles.get(username);
     const country = userCountries.get(username) || { flag: '🌍', name: 'Unknown' };
-
-    console.log(`Profile data for ${username}:`, profile);
-    console.log(`Country data for ${username}:`, country);
 
     if (!profile) {
         console.warn(`No profile data for ${username}, skipping avatar update`);
@@ -4778,29 +4775,59 @@ function updateAvatarElement(avatar, username) {
         avatar.textContent = username.charAt(0).toUpperCase();
     }
 
-    // ALWAYS try to add country flag
-    addCountryFlag(avatar, country, username);
+    // Add country flag ONLY if it doesn't already exist
+    if (!avatar.querySelector('.country-flag')) {
+        addCountryFlag(avatar, country, username);
+    }
+
+    // Mark as processed to prevent infinite loops
+    avatar.dataset.avatarProcessed = 'true';
 }
 
 function addCountryFlag(avatar, country, username) {
     console.log(`🏁 Adding country flag for ${username}:`, country);
 
-    // Remove any existing flag
+    // Remove any existing flag first
     const existingFlag = avatar.querySelector('.country-flag');
     if (existingFlag) {
         existingFlag.remove();
     }
 
+    // Function to properly decode Unicode flag emojis
+    function decodeUnicodeFlag(flagStr) {
+        if (!flagStr) return '🌍';
+
+        // If it's already a proper emoji, return it
+        if (flagStr.length <= 4 && /[\u{1F1E6}-\u{1F1FF}]/u.test(flagStr)) {
+            return flagStr;
+        }
+
+        // If it contains Unicode escape sequences, decode them
+        if (flagStr.includes('\\u')) {
+            try {
+                let decoded = flagStr.replace(/\\u([0-9a-fA-F]{4})/g, (match, code) => {
+                    return String.fromCharCode(parseInt(code, 16));
+                });
+                return decoded;
+            } catch (e) {
+                console.error('Flag decode error:', e);
+                return '🌍';
+            }
+        }
+
+        return flagStr;
+    }
+
     // Only add flag if we have valid country data
     if (country && country.flag && country.flag !== '🌍') {
         const flagElement = document.createElement('span');
-        flagElement.className = 'country-flag new-flag';
+        flagElement.className = 'country-flag';
 
-        // Set the flag emoji with multiple fallbacks
-        flagElement.textContent = country.flag;
-        flagElement.innerHTML = country.flag; // Backup method
-        flagElement.setAttribute('data-flag', country.flag); // Store in attribute
+        // Decode the flag properly
+        const decodedFlag = decodeUnicodeFlag(country.flag);
 
+        // Set the flag emoji
+        flagElement.textContent = decodedFlag;
         flagElement.title = `${username} - ${country.name}`;
 
         // Enhanced styling for better emoji display
@@ -4820,91 +4847,23 @@ function addCountryFlag(avatar, country, username) {
             z-index: 10 !important;
             pointer-events: none !important;
             user-select: none !important;
-            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'Android Emoji', sans-serif !important;
+            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
             font-size: 10px !important;
             line-height: 1 !important;
             text-align: center !important;
-            font-style: normal !important;
-            font-weight: normal !important;
-            text-decoration: none !important;
-            text-shadow: none !important;
+            font-variant-emoji: emoji !important;
+            text-rendering: auto !important;
         `;
 
         // Ensure avatar container supports positioning
         avatar.style.position = 'relative';
         avatar.appendChild(flagElement);
 
-        // Debug logging
-        console.log(`✅ Flag element created for ${username}`);
-        console.log('- Flag emoji:', country.flag);
-        console.log('- Flag element textContent:', flagElement.textContent);
-        console.log('- Flag element innerHTML:', flagElement.innerHTML);
-
-        // Fallback: If emoji doesn't display, try alternative methods
-        setTimeout(() => {
-            if (flagElement.textContent !== country.flag) {
-                console.log(`🔄 Retrying flag for ${username}`);
-                flagElement.textContent = country.flag;
-                flagElement.innerHTML = country.flag;
-            }
-        }, 100);
-
-    } else {
-        console.log(`❌ No valid country data for ${username}:`, country);
+        console.log(`✅ Flag element created for ${username}: ${decodedFlag}`);
     }
 }
 
-function fixExistingFlags() {
-    console.log('🔧 Fixing existing flags...');
-
-    const flags = document.querySelectorAll('.country-flag');
-    flags.forEach((flag, index) => {
-        const title = flag.title || '';
-        const username = title.split(' - ')[0];
-
-        if (username) {
-            // Get fresh country data
-            if (userCountries && userCountries.has(username)) {
-                const country = userCountries.get(username);
-                if (country && country.flag && country.flag !== '🌍') {
-                    console.log(`Fixing flag ${index + 1} for ${username}: ${country.flag}`);
-
-                    // Clear and reset the flag
-                    flag.textContent = '';
-                    flag.innerHTML = '';
-
-                    setTimeout(() => {
-                        flag.textContent = country.flag;
-                        flag.innerHTML = country.flag;
-
-                        // Force font rendering
-                        flag.style.fontFamily = "'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif";
-                        flag.style.fontSize = '10px';
-                        flag.style.lineHeight = '1';
-
-                        console.log(`✅ Fixed flag for ${username}: "${flag.textContent}"`);
-                    }, 10);
-                }
-            }
-        }
-    });
-}
-
-function countryCodeToFlag(countryCode) {
-    if (!countryCode || countryCode.length !== 2) {
-        return '🌍';
-    }
-
-    // Convert country code to flag emoji
-    const codePoints = countryCode
-        .toUpperCase()
-        .split('')
-        .map(char => 127397 + char.charCodeAt(0));
-
-    const flag = String.fromCodePoint(...codePoints);
-    console.log(`Converting ${countryCode} to flag: ${flag}`);
-    return flag;
-}
+const profileFetchCache = new Set();
 
 function updateMessageAvatar(messageEl, username) {
     const avatar = messageEl.querySelector(`.user-avatar[data-username="${username}"]`);
