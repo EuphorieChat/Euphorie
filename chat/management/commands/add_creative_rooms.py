@@ -322,11 +322,25 @@ class Command(BaseCommand):
             }
 
             category_name = category_mapping.get(category_slug, category_slug.title())
-            return Category.objects.create(
-                name=category_name,
-                slug=category_slug,
-                icon='🌟'
-            )
+
+            # Try to get existing category by name first
+            try:
+                return Category.objects.get(name=category_name)
+            except Category.DoesNotExist:
+                # Create new category if it doesn't exist
+                try:
+                    return Category.objects.create(
+                        name=category_name,
+                        slug=category_slug,
+                        icon='🌟'
+                    )
+                except Exception as e:
+                    # If creation fails, try to find any similar category
+                    similar_categories = Category.objects.filter(name__icontains=category_slug.replace('-', ' '))
+                    if similar_categories.exists():
+                        return similar_categories.first()
+                    # Last resort: return a default category
+                    return Category.objects.get_or_create(name='Other', defaults={'slug': 'other', 'icon': '🌟'})[0]
 
     def generate_engaging_chat_history(self, num_conversations):
         """Generate super realistic and engaging chat conversations"""
