@@ -7794,6 +7794,26 @@ class GiphyIntegration {
     hideSearchResults() {
         if (this.searchResults) this.searchResults.style.display = 'none';
     }
+
+    setupInfiniteScroll() {
+    const panel = this.panel;
+
+    panel.addEventListener('scroll', () => {
+        const { scrollTop, scrollHeight, clientHeight } = panel;
+
+        // If user scrolled to bottom (within 50px)
+        if (scrollTop + clientHeight >= scrollHeight - 50) {
+            if (this.hasMoreResults && !this.isLoadingMore) {
+                // Load more based on current view
+                if (this.trendingSection.style.display !== 'none') {
+                    this.loadTrendingGifs(true);
+                } else if (this.searchResults.style.display !== 'none') {
+                    this.searchGifs(this.currentQuery, true);
+                }
+            }
+        }
+    });
+    }
 }
 
 // STEP 3: Updated initialization
