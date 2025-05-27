@@ -8012,9 +8012,19 @@ function processExistingGifMessages() {
             try {
                 const gifMatch = textContent.match(/\[GIF:(.*?)\]/);
                 if (gifMatch) {
-                    const gifDataStr = gifMatch[1];
-                    const gifData = JSON.parse(gifDataStr);
+                    let gifDataStr = gifMatch[1];
 
+                    // URL decode if necessary
+                    if (gifDataStr.includes('%')) {
+                        try {
+                            gifDataStr = decodeURIComponent(gifDataStr);
+                            console.log('Decoded GIF data string:', gifDataStr);
+                        } catch (decodeError) {
+                            console.warn('Failed to decode GIF data, using original:', decodeError);
+                        }
+                    }
+
+                    const gifData = JSON.parse(gifDataStr);
                     console.log('✅ Parsed GIF data:', gifData);
 
                     // Replace the text content with proper GIF HTML
@@ -8079,6 +8089,12 @@ function processExistingGifMessages() {
             } catch (e) {
                 console.error('❌ Error processing existing GIF message:', e);
                 console.error('Raw content:', textContent);
+
+                // Show error in place of broken content
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'text-xs text-red-500 p-2 bg-red-50 rounded';
+                errorDiv.textContent = 'Failed to load GIF message';
+                messageContent.replaceWith(errorDiv);
             }
         }
     });
@@ -8110,32 +8126,86 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function cleanupBrokenGifImages() {
+    console.log('🧹 Starting cleanup of broken GIF images...');
+
     // Find any img elements that are trying to load GIF JSON data as images
     document.querySelectorAll('img').forEach(img => {
         const src = img.src;
         if (src && src.includes('[GIF:')) {
             console.log('🧹 Cleaning up broken GIF image:', src);
 
-            // Try to extract the GIF data and fix the image
             try {
-                const urlPart = src.split('[GIF:')[1];
-                if (urlPart) {
-                    const jsonPart = urlPart.split(']')[0];
-                    const gifData = JSON.parse(jsonPart);
+                // Extract the GIF data part
+                const gifStart = src.indexOf('[GIF:');
+                if (gifStart === -1) return;
 
-                    // Replace with the actual GIF URL
-                    img.src = gifData.url;
-                    img.alt = gifData.title || 'GIF';
+                const gifPart = src.substring(gifStart);
+                const gifEnd = gifPart.indexOf(']');
+                if (gifEnd === -1) return;
 
-                    console.log('✅ Fixed broken GIF image');
+                const fullGifData = gifPart.substring(0, gifEnd + 1); // Include the ]
+                console.log('Extracted GIF data:', fullGifData);
+
+                // Get just the JSON part (remove [GIF: and ])
+                const jsonPart = fullGifData.substring(5, fullGifData.length - 1);
+                console.log('JSON part before decode:', jsonPart);
+
+                // URL decode if necessary
+                let decodedJson = jsonPart;
+                if (jsonPart.includes('%')) {
+                    try {
+                        decodedJson = decodeURIComponent(jsonPart);
+                        console.log('Decoded JSON:', decodedJson);
+                    } catch (decodeError) {
+                        console.warn('Failed to decode JSON, using original:', decodeError);
+                    }
                 }
+
+                // Parse the JSON
+                const gifData = JSON.parse(decodedJson);
+                console.log('✅ Parsed GIF data:', gifData);
+
+                // Replace with the actual GIF URL
+                img.src = gifData.url;
+                img.alt = gifData.title || 'GIF';
+
+                // Add click handler for preview
+                img.style.cursor = 'pointer';
+                img.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    window.openMediaPreview({
+                        type: 'image',
+                        url: gifData.url,
+                        title: gifData.title || 'GIF',
+                        isGif: true
+                    });
+                });
+
+                console.log('✅ Fixed broken GIF image successfully');
+
             } catch (e) {
                 console.error('❌ Could not fix broken GIF image:', e);
-                // Hide the broken image
-                img.style.display = 'none';
+                console.error('Full src:', src);
+
+                // Hide the broken image and show error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'text-xs text-red-500 p-2 bg-red-50 rounded flex items-center gap-2';
+                errorDiv.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Failed to load GIF</span>
+                `;
+
+                // Replace the broken image with error message
+                img.parentNode.replaceChild(errorDiv, img);
             }
         }
     });
+
+    console.log('✅ Finished cleanup of broken GIF images');
 }
 
 // RUN cleanup on page load as a fallback
