@@ -1190,6 +1190,18 @@ background: rgba(236, 72, 153, 0.1);
     width: 36px;
     height: 36px;
   }
+    .avatar.with-image {
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+  }
+
+  .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: inherit;
+  }
 
   /* Remove padding bottom since we're using fixed positioning */
   .app-wrapper {
@@ -4263,22 +4275,64 @@ function loadUserProfiles() {
     // Load profiles for users in messages
     document.querySelectorAll('.user-avatar').forEach(avatar => {
         const username = avatar.getAttribute('data-username');
-        if (username) {
+        if (username && username !== 'Guest') {
             fetchUserProfile(username);
         }
     });
+
+    // Also load profiles for any users mentioned in the user list
+    setTimeout(() => {
+        activeUsers.forEach(username => {
+            if (username !== 'Guest' && !userProfiles.has(username)) {
+                fetchUserProfile(username);
+            }
+        });
+    }, 1000);
 }
 
 function fetchUserProfile(username) {
     fetch(`/api/profile/${username}/`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            if (data.success && data.profile_picture) {
+                console.log(`Loaded profile for ${username}:`, data.profile_picture);
                 userProfiles.set(username, data.profile_picture);
                 updateAllUserAvatars(username);
+            } else {
+                console.log(`No profile data for ${username}, using default`);
             }
         })
-        .catch(error => console.error('Error fetching profile:', error));
+        .catch(error => {
+            console.error('Error fetching profile:', error);
+            // Use default gradient as fallback
+            const defaultProfile = {
+                type: 'gradient',
+                gradient: getConsistentGradient(username)
+            };
+            userProfiles.set(username, defaultProfile);
+            updateAllUserAvatars(username);
+        });
+}
+
+// Add this helper function after fetchUserProfile
+function getConsistentGradient(username) {
+    const gradients = [
+        'from-pink-400 to-purple-400',
+        'from-blue-400 to-indigo-400',
+        'from-green-400 to-teal-400',
+        'from-purple-400 to-pink-400',
+        'from-yellow-400 to-orange-400',
+        'from-red-400 to-pink-400',
+        'from-cyan-400 to-blue-400',
+        'from-emerald-400 to-green-500'
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+        hash += username.charCodeAt(i) * (i + 1);
+    }
+
+    return gradients[hash % gradients.length];
 }
 
 function updateAllUserAvatars(username) {
@@ -4291,13 +4345,41 @@ function updateAvatarElement(avatar, username) {
     const profile = userProfiles.get(username);
     if (!profile) return;
 
-    if (profile.type === 'image' && profile.url) {
+    // Clear any existing styles
+    avatar.style.backgroundImage = '';
+    avatar.classList.remove('with-image');
+
+    if (profile.type === 'avatar_url' && profile.url) {
+        // Handle URL-based avatars (DiceBear, UI Avatars, etc.)
         avatar.style.backgroundImage = `url(${profile.url})`;
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+        avatar.classList.add('with-image');
+        avatar.textContent = '';
+    } else if (profile.type === 'enhanced_initials') {
+        // Handle enhanced initials
+        avatar.style.backgroundColor = profile.background;
+        avatar.style.color = profile.text_color;
+        avatar.textContent = profile.initials;
+    } else if (profile.type === 'geometric') {
+        // Handle geometric patterns
+        avatar.style.background = `linear-gradient(45deg, ${profile.primary_color} 0%, ${profile.secondary_color} 50%, ${profile.tertiary_color} 100%)`;
+        avatar.textContent = username.charAt(0).toUpperCase();
+    } else if (profile.type === 'image' && profile.url) {
+        // Handle uploaded images
+        avatar.style.backgroundImage = `url(${profile.url})`;
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
         avatar.classList.add('with-image');
         avatar.textContent = '';
     } else if (profile.type === 'gradient' && profile.gradient) {
+        // Handle gradients
         avatar.className = avatar.className.replace(/from-\S+ to-\S+/, '');
         avatar.className += ` bg-gradient-to-br ${profile.gradient}`;
+        avatar.textContent = username.charAt(0).toUpperCase();
+    } else {
+        // Fallback to initials
+        avatar.textContent = username.charAt(0).toUpperCase();
     }
 }
 
