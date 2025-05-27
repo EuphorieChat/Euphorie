@@ -852,10 +852,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def create_meetup(self, meetup_data):
-        """Create a new meetup with your model structure"""
+        """Create a new meetup with proper timezone handling"""
         try:
             from django.utils.dateparse import parse_datetime
             from django.core.exceptions import ValidationError
+            from django.utils import timezone
 
             # Get the room
             room = Room.objects.get(name=self.room_name)
@@ -869,7 +870,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not parsed_datetime:
                 raise ValueError("Invalid datetime format")
 
-            # Check if datetime is in the future
+            # FIXED: Make the datetime timezone-aware if it's naive
+            if timezone.is_naive(parsed_datetime):
+                # Convert to timezone-aware datetime using the default timezone
+                parsed_datetime = timezone.make_aware(parsed_datetime)
+
+            # Now we can safely compare timezone-aware datetimes
             if parsed_datetime <= timezone.now():
                 raise ValueError("Meetup datetime must be in the future")
 
@@ -883,11 +889,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not location:
                 raise ValueError("Location is required")
 
-            # Create the meetup (matching your model exactly)
+            # Create the meetup
             meetup = Meetup.objects.create(
                 title=title,
-                description=description if description else None,  # Your model allows null
-                datetime=parsed_datetime,
+                description=description if description else None,
+                datetime=parsed_datetime,  # Now timezone-aware
                 location=location,
                 room=room,
                 creator=self.user
@@ -896,7 +902,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Add creator as attendee
             meetup.attendees.add(self.user)
 
-            logger.info(f"Meetup created: ID={meetup.id}, Title='{title}', Creator={self.user.username}")
+            logger.info(f"Meetup created: ID={meetup.id}, Title='{title}', Creator={self.user.username}, DateTime={parsed_datetime}")
             return meetup.id
 
         except Room.DoesNotExist:
