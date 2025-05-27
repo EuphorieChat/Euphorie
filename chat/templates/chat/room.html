@@ -4157,7 +4157,14 @@ function handleChatMessage(data) {
 
     let textContent = data.message || data.content || '';
     let mediaUrl = extractMediaUrl(textContent) || data.media_url || null;
-    if (mediaUrl) textContent = textContent.replace(/\[MEDIA:.*?\]/, '').trim();
+
+    // FIXED: Remove both MEDIA and GIF tags from text content
+    if (mediaUrl) {
+        // Remove [MEDIA:...] tags
+        textContent = textContent.replace(/\[MEDIA:.*?\]/g, '').trim();
+        // Remove [GIF:...] tags
+        textContent = textContent.replace(/\[GIF:.*?\]/g, '').trim();
+    }
 
     const mediaContent = mediaUrl ? renderMediaContent(mediaUrl) : '';
     const textHtml = textContent ? `<div class="message-content text-sm text-gray-700">${escapeHtml(textContent)}</div>` : '';
@@ -4297,10 +4304,11 @@ function renderMediaContent(url) {
             return `
                 <div class="message-media gif-message">
                     <img src="${escapeHtml(gifData.url)}" alt="${escapeHtml(gifData.title)}"
-                         loading="lazy" style="max-height: 200px; border-radius: 8px;">
+                         loading="lazy" style="max-height: 200px; border-radius: 8px; max-width: 100%;">
                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <span class="font-bold text-pink-500">GIF</span>
                         <span>via GIPHY</span>
+                        ${gifData.title ? `<span>• ${escapeHtml(gifData.title)}</span>` : ''}
                     </div>
                 </div>`;
         } catch (e) {
