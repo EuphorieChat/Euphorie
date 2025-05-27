@@ -3136,6 +3136,12 @@ document.addEventListener('DOMContentLoaded', function() {
     loadActiveUsers();
     loadBookmarkedRooms();
     scrollToBottom();
+
+    setTimeout(() => {
+        processExistingGifMessages();
+    }, 500);
+
+
 });
 
 // Add necessary CSS for modals
@@ -7454,6 +7460,49 @@ function debugCountryFlags() {
     });
 
     console.log('=== END FLAGS DEBUG ===');
+}
+
+function processExistingGifMessages() {
+    console.log('🔄 Processing existing GIF messages...');
+
+    // Find all message media elements that contain GIF data
+    document.querySelectorAll('.message-media').forEach(mediaElement => {
+        const textContent = mediaElement.textContent || mediaElement.innerText || '';
+
+        // Check if this element contains raw GIF JSON data
+        if (textContent.includes('[GIF:') && textContent.includes(']')) {
+            try {
+                // Extract the GIF data
+                const startIndex = textContent.indexOf('[GIF:');
+                const endIndex = textContent.indexOf(']', startIndex) + 1;
+                const gifString = textContent.slice(startIndex, endIndex);
+
+                // Parse the GIF data
+                const gifDataStr = gifString.slice(5, -1); // Remove [GIF: and ]
+                const gifData = JSON.parse(gifDataStr);
+
+                // Replace the raw text with proper GIF display
+                mediaElement.innerHTML = `
+                    <div class="gif-message">
+                        <img src="${gifData.url}" alt="${gifData.title || 'GIF'}"
+                             loading="lazy" style="max-height: 200px; border-radius: 8px; max-width: 100%;"
+                             onerror="console.warn('GIF failed to load:', this.src); this.style.display='none';">
+                        <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <span class="font-bold text-pink-500">GIF</span>
+                            <span>via GIPHY</span>
+                            ${gifData.title ? `<span>• ${gifData.title}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                console.log('✅ Processed GIF:', gifData.title);
+
+            } catch (error) {
+                console.error('❌ Error processing GIF message:', error);
+                mediaElement.innerHTML = '<div class="text-xs text-red-500">Invalid GIF data</div>';
+            }
+        }
+    });
 }
 
   </script>
