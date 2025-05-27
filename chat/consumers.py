@@ -300,59 +300,78 @@ class ChatConsumer(AsyncWebsocketConsumer):
             elif message_type == 'meetup':
                 action = text_data_json.get('action', '')
 
-                # Debug log
-                logger.info(f"Received meetup action: {action}")
+                logger.info(f"Received meetup action: {action} from user: {self.user.username if self.is_authenticated else 'anonymous'}")
 
                 if action == 'create':
                     meetup_data = text_data_json.get('data', {})
 
+                    logger.info(f"Meetup data received: {meetup_data}")
+
                     if not meetup_data:
+                        logger.warning("Meetup creation failed: no data provided")
+                        await self.send(json.dumps({
+                            'type': 'error',
+                            'message': 'No meetup data provided'
+                        }))
                         return
 
-                    # Create new meetup
-                    await self.create_meetup(meetup_data)
+                    # Validate required fields (based on your model)
+                    required_fields = ['title', 'datetime', 'location']
+                    missing_fields = [field for field in required_fields if not meetup_data.get(field, '').strip()]
 
-                    # Get updated meetups list
-                    meetups = await self.get_meetups()
+                    if missing_fields:
+                        logger.warning(f"Meetup creation failed: missing fields: {missing_fields}")
+                        await self.send(json.dumps({
+                            'type': 'error',
+                            'message': f'Missing required fields: {", ".join(missing_fields)}'
+                        }))
+                        return
 
-                    # Send updated list to all clients
-                    await self.channel_layer.group_send(
-                        self.room_group_name,
-                        {
-                            'type': 'meetups',
-                            'meetups': meetups
-                        }
-                    )
+                    try:
+                        # Create new meetup
+                        meetup_id = await self.create_meetup(meetup_data)
+                        logger.info(f"Meetup created successfully with ID: {meetup_id}")
+
+                        # Get updated meetups list
+                        meetups = await self.get_meetups()
+                        logger.info(f"Retrieved {len(meetups)} meetups after creation")
+
+                        # Send success response to all clients in the room
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            {
+                                'type': 'meetups_broadcast',
+                                'action': 'created',
+                                'meetups': meetups,
+                                'creator': self.user.username
+                            }
+                        )
+
+                    except Exception as e:
+                        logger.error(f"Error creating meetup: {str(e)}", exc_info=True)
+                        await self.send(json.dumps({
+                            'type': 'error',
+                            'message': f'Failed to create meetup: {str(e)}'
+                        }))
 
                 elif action == 'list':
-                    # Get meetups and send to client
-                    meetups = await self.get_meetups()
+                    try:
+                        # Get meetups and send to client
+                        meetups = await self.get_meetups()
+                        logger.info(f"Sending {len(meetups)} meetups to client")
 
-                    await self.send(json.dumps({
-                        'type': 'meetups',
-                        'meetups': meetups
-                    }))
-
-                elif action in ['join', 'leave']:
-                    meetup_id = text_data_json.get('meetup_id')
-
-                    if not meetup_id:
-                        return
-
-                    # Update meetup attendance
-                    await self.update_meetup_attendance(meetup_id, action == 'join')
-
-                    # Get updated meetups list
-                    meetups = await self.get_meetups()
-
-                    # Send updated list to all clients
-                    await self.channel_layer.group_send(
-                        self.room_group_name,
-                        {
+                        await self.send(json.dumps({
                             'type': 'meetups',
+                            'action': 'list',
                             'meetups': meetups
-                        }
-                    )
+                        }))
+                    except Exception as e:
+                        logger.error(f"Error getting meetups: {str(e)}")
+                        await self.send(json.dumps({
+                            'type': 'error',
+                            'message': 'Failed to load meetups'
+                        }))
+
 
             # Handle announcement message types
             elif message_type == 'announcement':
@@ -467,6 +486,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.warning(f"Invalid JSON received: {text_data[:100]}")
         except Exception as e:
             logger.error(f"Error processing message: {str(e)}", exc_info=True)
+
+    async def meetups_broadcast(self, event):
+        """Handle meetups broadcast messages"""
+        try:
+            await self.send(json.dumps({
+                'type': 'meetups',
+                'action': event.get('action', ''),
+                'meetups': event.get('meetups', []),
+                'creator': event.get('creator', '')
+            }))
+            logger.debug(f"Sent meetups broadcast to {self.user.username if self.is_authenticated else 'anonymous'}")
+        except Exception as e:
+            logger.error(f"Error sending meetups broadcast: {str(e)}")
 
     async def profile_update(self, event):
         username = event['username']
@@ -820,15 +852,43 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def create_meetup(self, meetup_data):
+        """Create a new meetup with your model structure"""
         try:
-            room = Room.objects.get(name=self.room_name)
             from django.utils.dateparse import parse_datetime
+            from django.core.exceptions import ValidationError
 
+            # Get the room
+            room = Room.objects.get(name=self.room_name)
+
+            # Parse and validate datetime
+            datetime_str = meetup_data.get('datetime')
+            if not datetime_str:
+                raise ValueError("Datetime is required")
+
+            parsed_datetime = parse_datetime(datetime_str)
+            if not parsed_datetime:
+                raise ValueError("Invalid datetime format")
+
+            # Check if datetime is in the future
+            if parsed_datetime <= timezone.now():
+                raise ValueError("Meetup datetime must be in the future")
+
+            # Validate required fields
+            title = meetup_data.get('title', '').strip()
+            location = meetup_data.get('location', '').strip()
+            description = meetup_data.get('description', '').strip()
+
+            if not title:
+                raise ValueError("Title is required")
+            if not location:
+                raise ValueError("Location is required")
+
+            # Create the meetup (matching your model exactly)
             meetup = Meetup.objects.create(
-                title=meetup_data.get('title'),
-                description=meetup_data.get('description', ''),
-                datetime=parse_datetime(meetup_data.get('datetime')), 
-                location=meetup_data.get('location'),
+                title=title,
+                description=description if description else None,  # Your model allows null
+                datetime=parsed_datetime,
+                location=location,
                 room=room,
                 creator=self.user
             )
@@ -836,39 +896,61 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Add creator as attendee
             meetup.attendees.add(self.user)
 
+            logger.info(f"Meetup created: ID={meetup.id}, Title='{title}', Creator={self.user.username}")
             return meetup.id
-        except Exception as e:
-            logger.error(f"Error creating meetup: {str(e)}")
+
+        except Room.DoesNotExist:
+            logger.error(f"Room not found: {self.room_name}")
+            raise ValueError("Room not found")
+        except ValueError as e:
+            logger.error(f"Validation error creating meetup: {str(e)}")
             raise
+        except Exception as e:
+            logger.error(f"Unexpected error creating meetup: {str(e)}", exc_info=True)
+            raise ValueError(f"Failed to create meetup: {str(e)}")
 
     @database_sync_to_async
     def get_meetups(self):
+        """Get meetups for the room"""
         try:
             room = Room.objects.get(name=self.room_name)
 
-            # Get upcoming meetups
+            # Get upcoming meetups (including today)
+            now = timezone.now()
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
             meetups = Meetup.objects.filter(
                 room=room,
-                datetime__gte=timezone.now()
-            ).order_by('datetime')
+                datetime__gte=today_start
+            ).order_by('datetime').select_related('creator').prefetch_related('attendees')
 
             result = []
             for meetup in meetups:
-                attendees = list(meetup.attendees.values_list('username', flat=True))
+                try:
+                    attendees = list(meetup.attendees.values_list('username', flat=True))
 
-                result.append({
-                    'id': meetup.id,
-                    'title': meetup.title,
-                    'datetime': meetup.datetime.isoformat(),
-                    'location': meetup.location,
-                    'description': meetup.description,
-                    'created_by': meetup.creator.username,
-                    'attendees': attendees
-                })
+                    result.append({
+                        'id': meetup.id,
+                        'title': meetup.title,
+                        'datetime': meetup.datetime.isoformat(),
+                        'location': meetup.location,
+                        'description': meetup.description or '',
+                        'created_by': meetup.creator.username,
+                        'attendees': attendees,
+                        'attendee_count': len(attendees)
+                    })
+                except Exception as e:
+                    logger.error(f"Error processing meetup {meetup.id}: {str(e)}")
+                    continue
 
+            logger.info(f"Retrieved {len(result)} meetups for room {self.room_name}")
             return result
+
+        except Room.DoesNotExist:
+            logger.error(f"Room not found when getting meetups: {self.room_name}")
+            return []
         except Exception as e:
-            logger.error(f"Error getting meetups: {str(e)}")
+            logger.error(f"Error getting meetups: {str(e)}", exc_info=True)
             return []
 
     @database_sync_to_async
