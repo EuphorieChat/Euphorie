@@ -345,16 +345,14 @@ def room(request, room_name):
             # Get the usernames from the room name
             usernames = parts[1:]
             # If the current user's username is not in the usernames, deny access
-        if room.is_dm:
-            parts = room_name.split('_')
-            if len(parts) >= 3 and parts[0] == 'dm':
-                usernames = parts[1:]
-                if not request.user.is_authenticated or (request.user.username not in usernames and not request.user.is_staff):
-                    # Silent redirect - no error message
-                    return redirect('index')
-            else:
-                # Silent redirect - no error message
+            if not request.user.is_authenticated or (request.user.username not in usernames and not request.user.is_staff):
+                # Redirect to home with an error message
+                messages.error(request, "You don't have permission to access this private conversation.")
                 return redirect('index')
+        else:
+            # If the room name format is invalid for a DM, deny access
+            messages.error(request, "Invalid direct message room.")
+            return redirect('index')
 
     # Get messages and parse media URLs
     messages_qs = Message.objects.filter(room=room).order_by('timestamp')

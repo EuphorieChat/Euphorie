@@ -175,12 +175,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             requires_auth = ['chat', 'typing', 'reaction', 'whiteboard', 'meetup', 'announcement', 'friends', 'recommendations']
 
             if message_type in requires_auth and not self.is_authenticated:
-                await self.send(json.dumps({
-                    'type': 'error',
-                    'message': 'Authentication required for this action'
-                }))
+                # Silent fail - don't send error messages to guests
+                logger.debug(f"Authentication required for {message_type}, user not authenticated")
                 return
-
+            
             # Profile updates
             if message_type == 'profile_update':
                 profile_data = text_data_json.get('profile_data', {})
