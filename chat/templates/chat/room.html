@@ -7643,7 +7643,7 @@ class GiphyIntegration {
         try {
             this.showLoading();
 
-            const url = `${this.BASE_URL}/trending?api_key=${this.API_KEY}&limit=9&rating=pg`;
+            const url = `${this.BASE_URL}/trending?api_key=${this.API_KEY}&limit=12&rating=pg`;
             console.log('📡 Fetching trending GIFs...');
 
             const response = await fetch(url);
@@ -7675,7 +7675,7 @@ class GiphyIntegration {
         try {
             this.showLoading();
 
-            const url = `${this.BASE_URL}/search?api_key=${this.API_KEY}&q=${encodeURIComponent(query)}&limit=9&rating=pg`;
+            const url = `${this.BASE_URL}/search?api_key=${this.API_KEY}&q=${encodeURIComponent(query)}&limit=12&rating=pg`;
             const response = await fetch(url);
 
             if (!response.ok) {
@@ -7795,24 +7795,6 @@ class GiphyIntegration {
         if (this.searchResults) this.searchResults.style.display = 'none';
     }
 
-    setupInfiniteScroll() {
-    const panel = this.panel;
-
-    panel.addEventListener('scroll', () => {
-        const { scrollTop, scrollHeight, clientHeight } = panel;
-
-        // If user scrolled to bottom (within 50px)
-        if (scrollTop + clientHeight >= scrollHeight - 50) {
-            if (this.hasMoreResults && !this.isLoadingMore) {
-                // Load more based on current view
-                if (this.trendingSection.style.display !== 'none') {
-                    this.loadTrendingGifs(true);
-                } else if (this.searchResults.style.display !== 'none') {
-                    this.searchGifs(this.currentQuery, true);
-                }
-            }
-        }
-    });
 }
 
 // STEP 3: Updated initialization
