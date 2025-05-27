@@ -3108,7 +3108,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set room name if not already defined
     if (!window.roomName) {
-        // Extract room name from URL path if not defined
         const pathParts = window.location.pathname.split('/');
         const roomIndex = pathParts.indexOf('chat') + 1;
         if (roomIndex > 0 && roomIndex < pathParts.length) {
@@ -3121,34 +3120,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fix for sidebar overlap and chat input issues
     fixLayoutIssues();
-
-    // Add modal display CSS
     addModalCSS();
-
-    // Add extra UI improvements
     addUIImprovements();
 
-    // Initialize WebSocket, UI, and event listeners
+    // Initialize everything
     initializeWebSocket();
     initializeUIElements();
     initializeEventListeners();
-
-    // Load user data and recommendations
     loadUserProfiles();
     loadRecommendations();
     loadActiveUsers();
     loadBookmarkedRooms();
-
-    // Scroll to bottom
     scrollToBottom();
 
-    // *** ADD THIS: Fix existing GIF messages ***
-    initializeExistingMessageFixes();
-
-    // Initialize GIF handling
+    // Initialize GIF handling (without trying to fix existing messages)
     initializeGifHandling();
 
-    console.log('Euphorie chat room loaded successfully with GIF support');
+    console.log('Euphorie chat room loaded successfully');
 });
 
 // Add necessary CSS for modals
@@ -3169,6 +3157,19 @@ function addModalCSS() {
         }
     `;
     document.head.appendChild(style);
+}
+
+function makeGifClickable(img, gifData) {
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', function() {
+        // Open preview with the actual GIF URL
+        window.openMediaPreview({
+            type: 'image',
+            url: gifData.url,
+            title: gifData.title || 'GIF',
+            isGif: true
+        });
+    });
 }
 
 // Additional UI improvements with better visibility
@@ -4169,20 +4170,54 @@ function handleChatMessage(data) {
     const bubbleClass = isSender ? 'sent' : 'received';
 
     let textContent = data.message || data.content || '';
-    let mediaUrl = extractMediaUrl(textContent) || data.media_url || null;
+    let mediaContent = '';
 
-    // FIXED: Remove both MEDIA and GIF tags from text content
-    if (mediaUrl) {
-        // Remove [MEDIA:...] tags
-        textContent = textContent.replace(/\[MEDIA:.*?\]/g, '').trim();
-        // Remove [GIF:...] tags
-        textContent = textContent.replace(/\[GIF:.*?\]/g, '').trim();
+    // ENHANCED: Check for GIF messages first
+    if (textContent.startsWith('[GIF:') && textContent.endsWith(']')) {
+        try {
+            const gifDataStr = textContent.slice(5, -1); // Remove [GIF: and ]
+            const gifData = JSON.parse(gifDataStr);
+
+            console.log('Rendering new GIF message:', gifData);
+
+            // Create GIF media content
+            mediaContent = `
+                <div class="message-media gif-message">
+                    <img src="${escapeHtml(gifData.url)}" alt="${escapeHtml(gifData.title || 'GIF')}"
+                         loading="lazy" style="max-height: 200px; border-radius: 8px; max-width: 100%;"
+                         onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div style="display: none;" class="text-xs text-red-500 p-2 bg-red-50 rounded">
+                        Failed to load GIF
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                        <span class="font-bold text-pink-500">GIF</span>
+                        <span>via GIPHY</span>
+                        ${gifData.title ? `<span>• ${escapeHtml(gifData.title)}</span>` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Clear text content since it's now rendered as media
+            textContent = '';
+
+        } catch (e) {
+            console.error('Error parsing GIF data in new message:', e);
+            // Fall back to showing as text if parsing fails
+        }
+    } else {
+        // Handle regular media URLs
+        const mediaUrl = extractMediaUrl(textContent);
+        if (mediaUrl && !mediaUrl.startsWith('[GIF:')) {
+            mediaContent = renderMediaContent(mediaUrl);
+            // Remove MEDIA tags from text content
+            textContent = textContent.replace(/\[MEDIA:.*?\]/g, '').trim();
+        }
     }
 
-    const mediaContent = mediaUrl ? renderMediaContent(mediaUrl) : '';
     const textHtml = textContent ? `<div class="message-content text-sm text-gray-700">${escapeHtml(textContent)}</div>` : '';
 
-    if (!mediaContent && !textHtml) return; // Don't render empty messages
+    // Don't render empty messages
+    if (!mediaContent && !textHtml) return;
 
     messageContainer.innerHTML = `
         <div class="relative">
@@ -4198,7 +4233,8 @@ function handleChatMessage(data) {
                         ${escapeHtml(data.username)}
                     </a>
                 </div>
-                ${mediaContent + textHtml}
+                ${mediaContent}
+                ${textHtml}
             </div>
             <div class="reactions-container"></div>
 
@@ -4236,20 +4272,17 @@ function handleChatMessage(data) {
 
     // Ensure the reactions container is properly set up
     const reactionsContainer = messageContainer.querySelector('.reactions-container');
-    if (reactionsContainer) {
-        // Initialize with any existing reactions
-        if (data.reactions) {
-            for (const [emoji, count] of Object.entries(data.reactions)) {
-                if (count > 0) {
-                    const reactionEl = document.createElement('div');
-                    reactionEl.className = 'reaction';
-                    reactionEl.setAttribute('data-emoji', emoji);
-                    reactionEl.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
-                    reactionEl.onclick = function() {
-                        sendReaction(data.message_id, emoji);
-                    };
-                    reactionsContainer.appendChild(reactionEl);
-                }
+    if (reactionsContainer && data.reactions) {
+        for (const [emoji, count] of Object.entries(data.reactions)) {
+            if (count > 0) {
+                const reactionEl = document.createElement('div');
+                reactionEl.className = 'reaction';
+                reactionEl.setAttribute('data-emoji', emoji);
+                reactionEl.innerHTML = `${emoji} <span class="reaction-count">${count}</span>`;
+                reactionEl.onclick = function() {
+                    sendReaction(data.message_id, emoji);
+                };
+                reactionsContainer.appendChild(reactionEl);
             }
         }
     }
