@@ -4785,83 +4785,88 @@ function updateAvatarElement(avatar, username) {
 }
 
 function addCountryFlag(avatar, country, username) {
-    console.log(`🏁 Adding country flag for ${username}:`, country);
+    console.log(`🏁 Adding country indicator for ${username}:`, country);
 
-    // Remove any existing flag first
+    // Remove any existing flag
     const existingFlag = avatar.querySelector('.country-flag');
     if (existingFlag) {
         existingFlag.remove();
     }
 
-    // Function to properly decode Unicode flag emojis
-    function decodeUnicodeFlag(flagStr) {
-        if (!flagStr) return '🌍';
-
-        // If it's already a proper emoji, return it
-        if (flagStr.length <= 4 && /[\u{1F1E6}-\u{1F1FF}]/u.test(flagStr)) {
-            return flagStr;
-        }
-
-        // If it contains Unicode escape sequences, decode them
-        if (flagStr.includes('\\u')) {
-            try {
-                let decoded = flagStr.replace(/\\u([0-9a-fA-F]{4})/g, (match, code) => {
-                    return String.fromCharCode(parseInt(code, 16));
-                });
-                return decoded;
-            } catch (e) {
-                console.error('Flag decode error:', e);
-                return '🌍';
-            }
-        }
-
-        return flagStr;
-    }
-
     // Only add flag if we have valid country data
-    if (country && country.flag && country.flag !== '🌍') {
+    if (country && country.code && country.code !== 'Unknown') {
         const flagElement = document.createElement('span');
         flagElement.className = 'country-flag';
 
-        // Decode the flag properly
-        const decodedFlag = decodeUnicodeFlag(country.flag);
+        // Use country code instead of emoji for better compatibility
+        flagElement.textContent = country.code;
+        flagElement.title = `${username} - ${country.name || 'Unknown Country'}`;
 
-        // Set the flag emoji
-        flagElement.textContent = decodedFlag;
-        flagElement.title = `${username} - ${country.name}`;
+        // Get a color based on the country code for visual variety
+        const getCountryColor = (code) => {
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
+                '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43',
+                '#C44569', '#F8B500', '#786FA6', '#4B6584', '#F5B041'
+            ];
 
-        // Enhanced styling for better emoji display
+            let hash = 0;
+            for (let i = 0; i < code.length; i++) {
+                hash = ((hash << 5) - hash) + code.charCodeAt(i);
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+
+            return colors[Math.abs(hash) % colors.length];
+        };
+
+        const bgColor = getCountryColor(country.code);
+
+        // Enhanced styling for country code display
         flagElement.style.cssText = `
             position: absolute !important;
             bottom: -2px !important;
             right: -2px !important;
-            width: 16px !important;
-            height: 16px !important;
-            background: white !important;
-            border: 1px solid rgba(0,0,0,0.1) !important;
+            width: 18px !important;
+            height: 18px !important;
+            background: ${bgColor} !important;
+            border: 1px solid rgba(255,255,255,0.8) !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
             z-index: 10 !important;
             pointer-events: none !important;
             user-select: none !important;
-            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
-            font-size: 10px !important;
+            font-family: 'Inter', 'Arial', sans-serif !important;
+            font-size: 7px !important;
+            font-weight: 700 !important;
+            color: white !important;
             line-height: 1 !important;
             text-align: center !important;
-            font-variant-emoji: emoji !important;
-            text-rendering: auto !important;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.5) !important;
+            letter-spacing: -0.5px !important;
         `;
 
         // Ensure avatar container supports positioning
         avatar.style.position = 'relative';
         avatar.appendChild(flagElement);
 
-        console.log(`✅ Flag element created for ${username}: ${decodedFlag}`);
+        console.log(`✅ Country code indicator created for ${username}: ${country.code}`);
+
+        // Add a subtle animation
+        flagElement.style.transform = 'scale(0)';
+        flagElement.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+
+        setTimeout(() => {
+            flagElement.style.transform = 'scale(1)';
+        }, 100);
+
+    } else {
+        console.log(`❌ No valid country data for ${username}:`, country);
     }
 }
+
 
 const profileFetchCache = new Set();
 
