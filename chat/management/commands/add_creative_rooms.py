@@ -56,7 +56,11 @@ class Command(BaseCommand):
             self.add_realistic_reactions()
             self.create_exciting_meetups()
 
-        self.stdout.write(self.style.SUCCESS('✨ CREATIVE content added! Your community just got way more interesting! ✨'))
+        self.stdout.write(self.style.SUCCESS(f'✨ CREATIVE content added! Your community just got way more interesting! ✨'))
+
+        # Count total rooms for user information
+        total_rooms = Room.objects.filter(is_dm=False).count()
+        self.stdout.write(self.style.SUCCESS(f'📊 Total rooms in your community: {total_rooms}'))
 
     def clear_existing_categories(self):
         """Clear existing categories"""
@@ -458,47 +462,18 @@ class Command(BaseCommand):
             total_messages = 0
             for room in new_rooms:
                 try:
-                    # First try to get room-specific conversations
-                    room_conversations = enhanced_conversation_templates.get(room.name)
-                    conversation_type = "room-specific"
-
-                    if not room_conversations:
-                        # Fall back to category-based conversations
-                        room_category = self.categorize_room(room)
-                        room_conversations = enhanced_conversation_templates.get(room_category)
-                        conversation_type = f"category-based ({room_category})"
-
-                    if not room_conversations:
-                        # Final fallback to general conversations
-                        room_conversations = fallback_conversations['general']
-                        conversation_type = "general fallback"
-                        self.stdout.write(f'⚠️  Using fallback conversations for {room.display_name}')
+                    # Match room category for appropriate conversations
+                    room_category = self.categorize_room(room)
+                    templates = conversation_templates.get(room_category, conversation_templates['social'])
 
                     room_messages = 0
-                    conversations_used = set()  # Track used conversations to avoid immediate repeats
-
                     for i in range(num_conversations):
                         try:
-                            # Pick conversation template, avoiding recent repeats
-                            available_conversations = [conv for conv in room_conversations
-                                                     if str(conv) not in conversations_used]
-
-                            if not available_conversations:
-                                # Reset if we've used all conversations
-                                conversations_used.clear()
-                                available_conversations = room_conversations
-
-                            conversation = random.choice(available_conversations)
-                            conversations_used.add(str(conversation))
-
-                            # Limit conversations_used size to prevent memory issues
-                            if len(conversations_used) > len(room_conversations) // 2:
-                                conversations_used.clear()
-
-                            # Pick random users for this conversation
+                            # Pick conversation template
+                            conversation = random.choice(templates)
                             conversation_users = random.sample(users, min(len(conversation), len(users)))
 
-                            # More realistic time spread over last 45 days
+                            # Random time spread over last 45 days for more realistic distribution
                             base_time = timezone.now() - timedelta(days=random.randint(0, 45))
 
                             for j, message_text in enumerate(conversation):
@@ -535,51 +510,42 @@ class Command(BaseCommand):
                             self.stdout.write(f'⚠️  Error creating conversation {i+1} in {room.display_name}: {str(e)}')
                             continue
 
-                    self.stdout.write(f'💬 Generated {room_messages} targeted messages for {room.display_name} using {conversation_type} conversations')
+                    self.stdout.write(f'💬 Generated {room_messages} engaging messages for {room.display_name}')
 
                 except Exception as e:
                     self.stdout.write(f'❌ Error processing room {room.display_name}: {str(e)}')
                     continue
 
-            self.stdout.write(self.style.SUCCESS(f'✅ Generated {total_messages} total room-specific messages!'))
+            self.stdout.write(self.style.SUCCESS(f'✅ Generated {total_messages} total engaging messages!'))
 
     def categorize_room(self, room):
-        """Determine conversation category for room - much more specific now"""
+        """Determine conversation category for room"""
         room_name = room.name.lower()
 
-        # Then try specific keyword matching for categories
-        if any(word in room_name for word in ['ai', 'code', 'tech', 'programming', 'software', 'developer', 'stackoverflow']):
+        # Map room names to conversation categories
+        if any(word in room_name for word in ['ai', 'code', 'tech', 'startup', 'crypto', 'wifi', 'password']):
             return 'technology'
-        elif any(word in room_name for word in ['game', 'gaming', 'rage', 'backlog', 'console', 'steam']):
+        elif any(word in room_name for word in ['game', 'gaming', 'retro', 'netflix', 'backlog', 'rage']):
             return 'gaming'
-        elif any(word in room_name for word in ['meme', 'joke', 'humor', 'funny', 'cringe', 'dad-joke']):
+        elif any(word in room_name for word in ['meme', 'dad-joke', 'cringe', 'conspiracy', 'gen-z', 'millennial']):
             return 'memes'
-        elif any(word in room_name for word in ['mental', 'therapy', 'anxiety', 'existential', 'crisis', 'depression', 'wellness']):
+        elif any(word in room_name for word in ['mental', 'therapy', 'anxiety', 'existential', 'social-battery', 'overthinking']):
             return 'mental-health'
-        elif any(word in room_name for word in ['dating', 'relationship', 'single', 'tinder', 'toxic', 'romance']):
+        elif any(word in room_name for word in ['dating', 'relationship', 'single', 'toxic-trait']):
             return 'dating'
-        elif any(word in room_name for word in ['pet', 'dog', 'cat', 'animal', 'puppy', 'kitten']):
+        elif any(word in room_name for word in ['pet', 'dog', 'cat', 'animal', 'nonna']):
             return 'pets'
-        elif any(word in room_name for word in ['food', 'cooking', 'recipe', 'kitchen', 'chef', 'meal', 'ramen', 'coffee', 'caffeine']):
+        elif any(word in room_name for word in ['food', 'cooking', 'coffee', 'ramen', 'curry', 'jollof', 'baguette', 'tacos', 'sushi', 'kimchi', 'leftovers']):
+            # Check if it's a cultural food room
+            if any(word in room_name for word in ['french', 'italian', 'korean', 'desi', 'jollof', 'lebanese', 'argentinian', 'ethiopian', 'polish', 'cuban', 'turkish', 'grandma', 'nonna', 'cultural']):
+                return 'food-cultural'
             return 'food'
-        elif any(word in room_name for word in ['crypto', 'bitcoin', 'nft', 'blockchain', 'moon', 'hodl', 'dip']):
+        elif any(word in room_name for word in ['crypto', 'moon', 'broke', 'nft', 'subscription']):
             return 'crypto'
-        elif any(word in room_name for word in ['work', 'job', 'career', 'office', 'meeting', 'boss', 'corporate', 'linkedin']):
-            return 'business'
-        elif any(word in room_name for word in ['art', 'creative', 'paint', 'draw', 'craft', 'pinterest', 'diy']):
-            return 'creative'
-        elif any(word in room_name for word in ['gym', 'workout', 'fitness', 'health', 'exercise', 'meditation']):
-            return 'health'
-        elif any(word in room_name for word in ['netflix', 'movie', 'tv', 'binge', 'streaming', 'show']):
-            return 'entertainment'
-        elif any(word in room_name for word in ['travel', 'vacation', 'flight', 'trip', 'adventure']):
-            return 'travel'
-        elif any(word in room_name for word in ['learn', 'course', 'study', 'education', 'skill', 'tutorial', 'duolingo']):
-            return 'learning'
-        elif any(word in room_name for word in ['conspiracy', 'weird', 'strange', 'bizarre', 'theory']):
-            return 'conspiracy'
+        elif any(word in room_name for word in ['culture', 'expat', 'heritage', 'diaspora', 'translation', 'language', 'global', 'third-culture', 'homesick']):
+            return 'social'  # Cultural rooms use social templates but could be enhanced
         else:
-            return 'social'  # Default fallback
+            return 'social'
 
     def add_realistic_reactions(self):
         """Add more realistic and varied reactions"""
@@ -588,10 +554,10 @@ class Command(BaseCommand):
         messages = Message.objects.all()
         users = list(User.objects.all())
 
-        # More realistic emoji distribution
+        # More realistic emoji distribution with cultural elements
         common_emojis = ['❤️', '👍', '😂', '💯', '🔥']  # 60% of reactions
-        uncommon_emojis = ['😮', '😢', '✨', '🎉', '👏', '🤔', '😍', '🤣', '💀', '🫶']  # 35%
-        rare_emojis = ['☠️', '💅', '✋', '👀', '🙈', '🤡', '👑', '💎', '🚀', '⚡']  # 5%
+        uncommon_emojis = ['😮', '😢', '✨', '🎉', '👏', '🤔', '😍', '🤣', '💀', '🫶', '🍜', '🌮', '☕']  # 35%
+        rare_emojis = ['☠️', '💅', '✋', '👀', '🙈', '🤡', '👑', '💎', '🚀', '⚡', '🌍', '🥺', '🤯']  # 5%
 
         reaction_count = 0
 
@@ -628,6 +594,7 @@ class Command(BaseCommand):
         users = list(User.objects.all())
 
         creative_meetup_templates = [
+            # Original creative meetups
             {
                 'title': 'Meme Creation Workshop',
                 'location': 'Discord Voice Channel #creativity',
@@ -678,6 +645,70 @@ class Command(BaseCommand):
                 'location': 'Tech Hub Community Room',
                 'description': 'Can humans still beat machines at random knowledge? Let\'s find out!'
             },
+
+            # NEW: Cultural and International Meetups
+            {
+                'title': 'International Potluck Disaster',
+                'location': 'Global Community Kitchen',
+                'description': 'Bring a dish from your culture! Or order takeout and pretend you made it.'
+            },
+            {
+                'title': 'Language Exchange Speed Dating',
+                'location': 'Polyglot Paradise Café',
+                'description': '5 minutes per language. Learn pickup lines in 12 different cultures!'
+            },
+            {
+                'title': 'Cultural Stereotype Roast Battle',
+                'location': 'Comedy Club International',
+                'description': 'Roast your own culture before anyone else can. Self-deprecation championship!'
+            },
+            {
+                'title': 'Homesick Food Therapy Session',
+                'location': 'Grandma\'s Kitchen (Virtual)',
+                'description': 'Cook childhood comfort foods together via video call. Crying is encouraged.'
+            },
+            {
+                'title': 'Third Culture Kids Support Circle',
+                'location': 'Nowhere and Everywhere Lounge',
+                'description': 'Where is home? Let\'s figure it out together over snacks from 5 different countries.'
+            },
+            {
+                'title': 'Translation Fails Comedy Night',
+                'location': 'Lost in Translation Theater',
+                'description': 'Share your worst Google Translate moments. Laughter is universal... hopefully.'
+            },
+            {
+                'title': 'Expat Survival Skills Workshop',
+                'location': 'International Adaptation Center',
+                'description': 'How to find your favorite snacks abroad and other essential life skills.'
+            },
+            {
+                'title': 'Cultural Dance Battle Royale',
+                'location': 'World Beat Dance Studio',
+                'description': 'Bollywood vs Salsa vs K-Pop vs Traditional Folk. May the best moves win!'
+            },
+            {
+                'title': 'International Karaoke Chaos',
+                'location': 'Babel Karaoke Bar',
+                'description': 'Sing songs in languages you don\'t speak. Confidence over accuracy!'
+            },
+            {
+                'title': 'Global Street Food Tour',
+                'location': 'Food Truck Festival Grounds',
+                'description': 'Taste the world without leaving the city. Antacids provided.'
+            },
+            {
+                'title': 'Passport Flex Contest',
+                'location': 'Immigration Office Waiting Room (Simulated)',
+                'description': 'Show off your stamp collection and share your border crossing horror stories.'
+            },
+            {
+                'title': 'Cultural Miscommunication Bingo',
+                'location': 'United Nations of Confusion',
+                'description': 'Turn awkward cultural moments into a fun game. Everyone wins (eventually).'
+            },
+
+            # More diverse creative meetups
             {
                 'title': 'Netflix & Actually Decide',
                 'location': 'Cozy Movie Theater',
@@ -702,6 +733,11 @@ class Command(BaseCommand):
                 'title': 'Work-From-Home Fashion Show',
                 'location': 'Virtual Runway (Zoom)',
                 'description': 'Professional on top, pajamas on bottom. Strut your WFH style!'
+            },
+            {
+                'title': 'Overthinking Olympics Opening Ceremony',
+                'location': 'Anxiety Arena',
+                'description': 'Competitive scenario planning. Current record: 47 outcomes for one text message.'
             }
         ]
 
