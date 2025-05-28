@@ -8,42 +8,88 @@ from chat.models import Room, Message, Category, Reaction, Meetup
 from django.db import transaction
 
 class Command(BaseCommand):
-    help = 'Generate 100+ additional creative, cultural, and lifestyle rooms'
+    help = 'Generate super engaging rooms and realistic chat history with creative content'
 
     def add_arguments(self, parser):
         parser.add_argument(
+            '--clear-rooms',
+            action='store_true',
+            help='Clear existing rooms before generating new ones',
+        )
+        parser.add_argument(
+            '--clear-categories',
+            action='store_true',
+            help='Clear existing categories before generating new ones',
+        )
+        parser.add_argument(
+            '--rooms-only',
+            action='store_true',
+            help='Only create rooms, no chat history',
+        )
+        parser.add_argument(
+            '--chat-only',
+            action='store_true',
+            help='Only generate chat history for existing rooms',
+        )
+        parser.add_argument(
             '--num-conversations',
             type=int,
-            default=50,
-            help='Number of conversations to generate per room (default: 50)',
+            default=75,
+            help='Number of conversations to generate per room (default: 75)',
         )
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('🌍 Creating MASSIVE room collection...'))
+        self.stdout.write(self.style.SUCCESS('🚀 Adding CREATIVE rooms and content to your existing community...'))
 
-        self.create_additional_categories()
-        self.create_all_rooms()
-        self.generate_diverse_chat_history(options['num_conversations'])
-        self.add_diverse_reactions()
-        self.create_themed_meetups()
+        if options['clear_categories']:
+            self.clear_existing_categories()
 
+        if options['clear_rooms']:
+            self.clear_existing_rooms()
+
+        if not options['chat_only']:
+            self.create_categories()
+            self.create_super_creative_rooms()
+
+        if not options['rooms_only']:
+            self.generate_engaging_chat_history(options['num_conversations'])
+            self.add_realistic_reactions()
+            self.create_exciting_meetups()
+
+        self.stdout.write(self.style.SUCCESS(f'✨ CREATIVE content added! Your community just got way more interesting! ✨'))
+
+        # Count total rooms for user information
         total_rooms = Room.objects.filter(is_dm=False).count()
-        self.stdout.write(self.style.SUCCESS(f'🎉 MASSIVE room expansion complete! Total community rooms: {total_rooms}'))
+        self.stdout.write(self.style.SUCCESS(f'📊 Total rooms in your community: {total_rooms}'))
 
-    def create_additional_categories(self):
-        """Create all missing categories"""
-        self.stdout.write('📁 Setting up all categories...')
+    def clear_existing_categories(self):
+        """Clear existing categories"""
+        self.stdout.write('🧹 Clearing existing categories...')
+        Category.objects.all().delete()
+        self.stdout.write(self.style.SUCCESS('✅ Existing categories cleared'))
+
+    def clear_existing_rooms(self):
+        """Clear existing rooms (except DM rooms)"""
+        self.stdout.write('🧹 Clearing existing rooms...')
+        Room.objects.filter(is_dm=False).delete()
+        self.stdout.write(self.style.SUCCESS('✅ Existing rooms cleared'))
+
+    def create_categories(self):
+        """Create engaging categories"""
+        self.stdout.write('📁 Setting up creative categories...')
+
+        # Use the existing method and add more categories
+        Category.create_default_categories()
 
         additional_categories = [
-            {'name': 'International', 'slug': 'international', 'icon': '🌍'},
-            {'name': 'Cultural Exchange', 'slug': 'cultural', 'icon': '🤝'},
-            {'name': 'Language Learning', 'slug': 'language', 'icon': '🗣️'},
-            {'name': 'Global Food', 'slug': 'global-food', 'icon': '🍜'},
-            {'name': 'Philosophy', 'slug': 'philosophy', 'icon': '🤯'},
-            {'name': 'Identity & Community', 'slug': 'identity', 'icon': '💕'},
-            {'name': 'Modern Society', 'slug': 'society', 'icon': '🌍'},
-            {'name': 'Lifestyle Hacks', 'slug': 'lifestyle', 'icon': '🛋️'},
-            {'name': 'Pop Culture', 'slug': 'pop-culture', 'icon': '🔥'},
+            {'name': 'Memes & Humor', 'slug': 'memes', 'icon': '😂'},
+            {'name': 'Crypto & NFTs', 'slug': 'crypto', 'icon': '🚀'},
+            {'name': 'Mental Health', 'slug': 'mental-health', 'icon': '🧠'},
+            {'name': 'Pets & Animals', 'slug': 'pets', 'icon': '🐕'},
+            {'name': 'Conspiracy Fun', 'slug': 'conspiracy', 'icon': '👁️'},
+            {'name': 'Dating & Relationships', 'slug': 'dating', 'icon': '💝'},
+            {'name': 'Productivity Hacks', 'slug': 'productivity', 'icon': '⚡'},
+            {'name': 'Weird News', 'slug': 'weird-news', 'icon': '🤯'},
         ]
 
         for cat_data in additional_categories:
@@ -60,353 +106,176 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(f'⚠️  Category error: {str(e)}')
 
-    def create_all_rooms(self):
-        """Create 100+ amazing rooms from all categories"""
+    def create_super_creative_rooms(self):
+        """Create ultra-engaging and creative rooms"""
         users = list(User.objects.all())
-        if len(users) < 5:
-            self.stdout.write(self.style.WARNING('⚠️  Creating default users for room creators...'))
-            default_users = ['global_nomad', 'culture_mixer', 'food_explorer', 'language_learner', 'world_traveler', 'tech_guru', 'creative_soul', 'productivity_ninja', 'philosophy_student', 'community_builder']
-            for username in default_users:
-                User.objects.get_or_create(username=username, defaults={'password': 'temp123!'})
-            users = list(User.objects.all())
+        if len(users) < 10:
+            self.stdout.write(self.style.WARNING('⚠️  You need more users for realistic rooms. Consider creating more users first.'))
+            return
 
         created_count = 0
+        skipped_count = 0
 
-        # COMPREHENSIVE ROOM COLLECTION 🌟
-        all_rooms = [
-            # Modern Life Essentials
-            {'name': 'wifi-went-out-again', 'display_name': 'WiFi Went Out Again', 'category': 'technology',
-             'description': 'Digital nomad nightmares and internet dependency support group'},
-            {'name': 'unread-email-hoarders', 'display_name': 'Unread Email Hoarders', 'category': 'technology',
-             'description': '47,000 unread emails and counting. We understand the anxiety.'},
-            {'name': 'adulting-level-expert', 'display_name': 'Adulting Level: Expert', 'category': 'social',
-             'description': 'For those who finally figured out taxes and laundry in the same week'},
-            {'name': 'who-ate-my-leftovers', 'display_name': 'Who Ate My Leftovers?', 'category': 'food',
-             'description': 'Roommate betrayal, office fridge crimes, and food theft justice'},
-            {'name': 'calendar-chaos-club', 'display_name': 'Calendar Chaos Club', 'category': 'productivity',
-             'description': 'Double-booked disasters and scheduling anxiety support'},
-            {'name': 'can-i-nap-here', 'display_name': 'Can I Nap Here?', 'category': 'health',
-             'description': 'Searching for socially acceptable napping locations worldwide'},
-            {'name': 'take-my-money-again', 'display_name': 'Take My Money Again', 'category': 'business',
-             'description': 'Impulse purchases and subscription service regret support'},
-            {'name': 'digital-detox-fantasies', 'display_name': 'Digital Detox Fantasies', 'category': 'mental-health',
-             'description': 'Dreaming of life without notifications, never actually doing it'},
-            {'name': 'minimalism-failed-me', 'display_name': 'Minimalism Failed Me', 'category': 'lifestyle',
-             'description': 'Marie Kondo said it would spark joy. It sparked anxiety instead.'},
-            {'name': 'wardrobe-identity-crisis', 'display_name': 'Wardrobe Identity Crisis', 'category': 'lifestyle',
-             'description': 'Closet full of clothes, nothing to wear, existential fashion questions'},
+        # Super creative and trendy room ideas
+        creative_rooms = [
+            # Technology & Innovation
+            {'name': 'ai-taking-over-help', 'display_name': 'AI is Taking Over... Help!', 'category': 'technology',
+             'description': 'Discuss AI developments, share AI fails, and plan for our robot overlord future'},
+            {'name': 'code-therapy-support-group', 'display_name': 'Code Therapy Support Group', 'category': 'technology',
+             'description': 'For when your code makes you cry. We understand your pain.'},
+            {'name': 'startup-graveyard', 'display_name': 'Startup Graveyard', 'category': 'business',
+             'description': 'Share your failed startup ideas and learn from others disasters'},
+            {'name': 'tiktok-vs-reality', 'display_name': 'TikTok vs Reality', 'category': 'social',
+             'description': 'When social media meets real life - the chaos unfolds'},
+            {'name': 'stackoverflow-confessions', 'display_name': 'Stack Overflow Confessions', 'category': 'technology',
+             'description': 'Admit your copy-paste sins and find absolution among fellow developers'},
 
-            # Productivity & Self-Help 🎯
-            {'name': 'goal-setting-squad', 'display_name': 'Goal Setting Squad', 'category': 'productivity',
-             'description': 'New year, new goals, same procrastination patterns'},
-            {'name': 'procrastination-rehab', 'display_name': 'Procrastination Rehab', 'category': 'productivity',
-             'description': 'Step 1: Admit you have a problem. Step 2: Do it tomorrow.'},
-            {'name': 'notion-addicts-anonymous', 'display_name': 'Notion Addicts Anonymous', 'category': 'productivity',
-             'description': 'Spent 6 hours organizing productivity system, got nothing done'},
-            {'name': 'morning-routine-flops', 'display_name': 'Morning Routine Flops', 'category': 'productivity',
-             'description': '5 AM club turned into 11 AM disaster club'},
-            {'name': 'deep-work-dojo', 'display_name': 'Deep Work Dojo', 'category': 'productivity',
-             'description': 'Training to focus for more than 15 minutes straight'},
-            {'name': 'sunday-scaries-support', 'display_name': 'Sunday Scaries Support', 'category': 'mental-health',
-             'description': 'That Sunday evening anxiety about Monday morning reality'},
-            {'name': 'bullet-journal-hype', 'display_name': 'Bullet Journal Hype', 'category': 'productivity',
-             'description': 'Beautiful spreads, chaotic life. The aesthetic vs reality gap.'},
-            {'name': 'dopamine-detox-lounge', 'display_name': 'Dopamine Detox Lounge', 'category': 'mental-health',
-             'description': 'Trying to rewire our reward systems in a dopamine-addicted world'},
-            {'name': '5am-club-dropouts', 'display_name': '5AM Club Dropouts', 'category': 'productivity',
-             'description': 'We tried. We failed. We accept our night owl destiny.'},
-            {'name': 'time-blocking-wizards', 'display_name': 'Time Blocking Wizards', 'category': 'productivity',
-             'description': 'Color-coded calendars and the illusion of control over time'},
+            # Gaming & Entertainment
+            {'name': 'gaming-addiction-anonymous', 'display_name': 'Gaming Addiction Anonymous', 'category': 'gaming',
+             'description': 'Hi, my name is... and I have 3000 hours in this game'},
+            {'name': 'retro-nostalgia-feels', 'display_name': 'Retro Nostalgia Feels', 'category': 'gaming',
+             'description': 'Remember when games came with actual manuals? Pepperidge Farm remembers.'},
+            {'name': 'netflix-what-to-watch', 'display_name': 'Netflix: What to Watch?', 'category': 'entertainment',
+             'description': 'Spend 2 hours deciding what to watch, then fall asleep 10 minutes in'},
+            {'name': 'cringe-childhood-memories', 'display_name': 'Cringe Childhood Memories', 'category': 'social',
+             'description': 'Share your most embarrassing childhood moments. We all have them.'},
+            {'name': 'backlog-shame-spiral', 'display_name': 'Backlog Shame Spiral', 'category': 'gaming',
+             'description': '400 games unplayed but let me buy this new one on sale'},
 
-            # Thought-Provoking & Existential 🤯
-            {'name': 'philosophy-for-breakfast', 'display_name': 'Philosophy for Breakfast', 'category': 'philosophy',
-             'description': 'Deep thoughts served with your morning coffee'},
-            {'name': 'time-is-a-social-construct', 'display_name': 'Time is a Social Construct', 'category': 'philosophy',
-             'description': 'Questioning everything about our relationship with time'},
-            {'name': 'what-even-is-consciousness', 'display_name': 'What Even Is Consciousness?', 'category': 'philosophy',
-             'description': 'Are we just complex biological machines? Discuss.'},
-            {'name': 'quantum-confusion-club', 'display_name': 'Quantum Confusion Club', 'category': 'science',
-             'description': 'Schrödinger\'s cat walked into a bar... or did it?'},
-            {'name': 'my-brain-won-t-shut-up', 'display_name': 'My Brain Won\'t Shut Up', 'category': 'mental-health',
-             'description': 'Racing thoughts, midnight epiphanies, and mental chatter support'},
-            {'name': 'future-anxiety-lounge', 'display_name': 'Future Anxiety Lounge', 'category': 'mental-health',
-             'description': 'Worrying about tomorrow while forgetting to live today'},
-            {'name': 'are-we-in-a-simulation', 'display_name': 'Are We in a Simulation?', 'category': 'philosophy',
-             'description': 'Matrix theories, glitch reports, and existential simulation dread'},
-            {'name': 'ethics-over-easy', 'display_name': 'Ethics Over Easy', 'category': 'philosophy',
-             'description': 'Moral dilemmas served simple, but never actually simple'},
-            {'name': 'metaphysical-musings', 'display_name': 'Metaphysical Musings', 'category': 'philosophy',
-             'description': 'Reality, existence, and other light breakfast topics'},
-            {'name': 'deep-thoughts-over-snacks', 'display_name': 'Deep Thoughts Over Snacks', 'category': 'philosophy',
-             'description': 'Philosophy tastes better with cheese and crackers'},
+            # Lifestyle & Modern Life
+            {'name': 'adulting-is-hard', 'display_name': 'Adulting is Hard', 'category': 'social',
+             'description': 'Why did nobody teach us how to do taxes or make friends as adults?'},
+            {'name': 'existential-crisis-3am', 'display_name': 'Existential Crisis at 3AM', 'category': 'mental-health',
+             'description': 'For those deep 3AM thoughts about life, universe, and everything'},
+            {'name': 'procrastination-station', 'display_name': 'Procrastination Station', 'category': 'productivity',
+             'description': 'Ill do it tomorrow... said everyone here, probably'},
+            {'name': 'plant-parent-struggles', 'display_name': 'Plant Parent Struggles', 'category': 'social',
+             'description': 'RIP to all the plants we killed with love (and overwatering)'},
+            {'name': 'social-battery-empty', 'display_name': 'Social Battery: Empty', 'category': 'mental-health',
+             'description': 'When you want to socialize but also want to hide under a blanket forever'},
 
-            # Gaming & Tech 🎮
-            {'name': 'patch-notes-and-popcorn', 'display_name': 'Patch Notes and Popcorn', 'category': 'gaming',
-             'description': 'Reading game updates like they\'re blockbuster movie plots'},
-            {'name': 'indie-dev-jam', 'display_name': 'Indie Dev Jam', 'category': 'technology',
-             'description': 'Small studios, big dreams, and the indie game development grind'},
-            {'name': 'late-night-grind-session', 'display_name': 'Late Night Grind Session', 'category': 'gaming',
-             'description': '3 AM gaming sessions where time ceases to exist'},
-            {'name': 'bug-squash-brigade', 'display_name': 'Bug Squash Brigade', 'category': 'technology',
-             'description': 'Hunting digital bugs with the persistence of actual exterminators'},
-            {'name': 'sandbox-society', 'display_name': 'Sandbox Society', 'category': 'gaming',
-             'description': 'Building virtual worlds when the real one gets overwhelming'},
-            {'name': 'speedrun-theory-hub', 'display_name': 'Speedrun Theory Hub', 'category': 'gaming',
-             'description': 'Frame-perfect optimization and the pursuit of digital perfection'},
-            {'name': 'ai-npcs-are-watching', 'display_name': 'AI NPCs Are Watching', 'category': 'gaming',
-             'description': 'When video game characters start feeling too real...'},
-            {'name': 'ragequit-confessional', 'display_name': 'Ragequit Confessional', 'category': 'gaming',
-             'description': 'Safe space for admitting your most embarrassing gaming meltdowns'},
-            {'name': 'boss-fight-buddies', 'display_name': 'Boss Fight Buddies', 'category': 'gaming',
-             'description': 'Moral support for impossible gaming challenges'},
-            {'name': 'inventory-overload', 'display_name': 'Inventory Overload', 'category': 'gaming',
-             'description': 'Hoarding virtual items like they\'re actual treasure'},
+            # Finance & Crypto
+            {'name': 'broke-millennial-club', 'display_name': 'Broke Millennial Club', 'category': 'business',
+             'description': 'Avocado toast destroyed our house-buying dreams, apparently'},
+            {'name': 'crypto-to-the-moon', 'display_name': '🚀 Crypto to the Moon', 'category': 'crypto',
+             'description': 'Diamond hands, paper hands, and everything in between'},
+            {'name': 'budgeting-for-dummies', 'display_name': 'Budgeting for Dummies', 'category': 'business',
+             'description': 'Why is coffee so expensive and why do I keep buying it?'},
+            {'name': 'nft-recovery-support', 'display_name': 'NFT Recovery Support', 'category': 'crypto',
+             'description': 'That expensive JPEG was supposed to be our retirement fund...'},
 
-            # Creativity & Hobbies 💡
-            {'name': 'digital-minimalist-designers', 'display_name': 'Digital Minimalist Designers', 'category': 'creative',
-             'description': 'Less is more, but making less look good is surprisingly hard'},
-            {'name': 'unfinished-projects-club', 'display_name': 'Unfinished Projects Club', 'category': 'creative',
-             'description': '47 started projects, 0 completed. We understand the struggle.'},
-            {'name': 'art-block-busters', 'display_name': 'Art Block Busters', 'category': 'creative',
-             'description': 'Breaking through creative walls with community support'},
-            {'name': 'from-scribbles-to-masterpieces', 'display_name': 'From Scribbles to Masterpieces', 'category': 'creative',
-             'description': 'Every artist started with terrible doodles. We celebrate the journey.'},
-            {'name': 'hobby-hop-express', 'display_name': 'Hobby Hop Express', 'category': 'creative',
-             'description': 'Knitting to pottery to coding to watercolors - all aboard!'},
-            {'name': 'journaling-over-judging', 'display_name': 'Journaling Over Judging', 'category': 'creative',
-             'description': 'Writing our thoughts without the inner critic commentary'},
-            {'name': 'sketchbook-confessions', 'display_name': 'Sketchbook Confessions', 'category': 'creative',
-             'description': 'Sharing the weird, wonderful world of personal art journals'},
-            {'name': 'fanfic-dungeon', 'display_name': 'Fanfic Dungeon', 'category': 'creative',
-             'description': 'Where beloved characters live their alternative lives'},
-            {'name': 'sticker-hoarders-unite', 'display_name': 'Sticker Hoarders Unite', 'category': 'creative',
-             'description': 'Too pretty to use, too awesome to throw away'},
-            {'name': 'diy-or-die-trying', 'display_name': 'DIY or Die Trying', 'category': 'creative',
-             'description': 'Pinterest projects vs reality - the eternal struggle'},
+            # Health & Wellness
+            {'name': 'gym-motivation-needed', 'display_name': 'Gym Motivation Needed', 'category': 'health',
+             'description': 'New year, new me... for the 47th time this year'},
+            {'name': 'cooking-disasters-club', 'display_name': 'Cooking Disasters Club', 'category': 'food',
+             'description': 'Burnt water? Set off smoke alarm making cereal? Youre home here.'},
+            {'name': 'sleep-schedule-what-schedule', 'display_name': 'Sleep Schedule? What Schedule?', 'category': 'health',
+             'description': 'Its 4AM and Im watching TikToks about productivity. Help.'},
+            {'name': 'meditation-but-make-it-chaos', 'display_name': 'Meditation But Make It Chaos', 'category': 'health',
+             'description': 'Mindfulness for people whose minds are never ful... wait, what?'},
 
-            # Chill & Community 🛋️
-            {'name': 'introvert-corner', 'display_name': 'Introvert Corner', 'category': 'social',
-             'description': 'Quiet space for people who recharge in solitude'},
-            {'name': 'weekend-reset-lounge', 'display_name': 'Weekend Reset Lounge', 'category': 'lifestyle',
-             'description': 'Sunday prep for conquering another week'},
-            {'name': 'tea-spill-coven', 'display_name': 'Tea Spill Coven', 'category': 'social',
-             'description': 'Gentle gossip and warm beverage appreciation'},
-            {'name': 'chaos-cozy-zone', 'display_name': 'Chaos Cozy Zone', 'category': 'lifestyle',
-             'description': 'Finding comfort in controlled disorder'},
-            {'name': 'virtual-hammock-hangout', 'display_name': 'Virtual Hammock Hangout', 'category': 'lifestyle',
-             'description': 'Digital space for mental relaxation and lazy conversations'},
-            {'name': 'soundscape-sanctuary', 'display_name': 'Soundscape Sanctuary', 'category': 'lifestyle',
-             'description': 'Ambient music, rain sounds, and audio therapy appreciation'},
-            {'name': 'late-night-rant-space', 'display_name': 'Late Night Rant Space', 'category': 'social',
-             'description': '2 AM thoughts that need to be shared with someone, anyone'},
-            {'name': '3am-epiphany-lounge', 'display_name': '3AM Epiphany Lounge', 'category': 'philosophy',
-             'description': 'Those profound midnight realizations that seem less profound at dawn'},
-            {'name': 'vibe-check-room', 'display_name': 'Vibe Check Room', 'category': 'social',
-             'description': 'Daily mood reports and emotional weather updates'},
-            {'name': 'extrovert-energy-boost', 'display_name': 'Extrovert Energy Boost', 'category': 'social',
-             'description': 'High-energy social charging station for people-powered humans'},
+            # Relationships & Dating
+            {'name': 'dating-app-horror-stories', 'display_name': 'Dating App Horror Stories', 'category': 'dating',
+             'description': 'Share your worst dating app experiences. Therapy through sharing.'},
+            {'name': 'single-and-loving-it', 'display_name': 'Single and Loving It', 'category': 'dating',
+             'description': 'Pizza never breaks your heart. Well, except your diet.'},
+            {'name': 'relationship-advice-from-singles', 'display_name': 'Relationship Advice from Singles', 'category': 'dating',
+             'description': 'The best relationship advice comes from people not in relationships'},
+            {'name': 'toxic-trait-confessions', 'display_name': 'Toxic Trait Confessions', 'category': 'dating',
+             'description': 'We all have them. Lets own them and work on them together.'},
 
-            # Trending Topics & Culture 🔥
-            {'name': 'pop-culture-chaos', 'display_name': 'Pop Culture Chaos', 'category': 'pop-culture',
-             'description': 'Celebrity drama, viral trends, and cultural zeitgeist discussion'},
-            {'name': 'cancel-culture-discussion-den', 'display_name': 'Cancel Culture Discussion Den', 'category': 'pop-culture',
-             'description': 'Nuanced conversations about accountability and redemption'},
-            {'name': 'spoiler-alert-zone', 'display_name': 'Spoiler Alert Zone', 'category': 'entertainment',
-             'description': 'Safe space for discussing plot twists and season finales'},
-            {'name': 'the-algorithm-got-me', 'display_name': 'The Algorithm Got Me', 'category': 'technology',
-             'description': 'How social media algorithms shape our reality and recommendations'},
-            {'name': 'bops-or-flops', 'display_name': 'Bops or Flops', 'category': 'music',
-             'description': 'Musical hot takes and song rating debates'},
-            {'name': 'hot-takes-only', 'display_name': 'Hot Takes Only', 'category': 'pop-culture',
-             'description': 'Controversial opinions served piping hot'},
-            {'name': 'fandom-feud-zone', 'display_name': 'Fandom Feud Zone', 'category': 'pop-culture',
-             'description': 'Passionate discussions between rival fan communities'},
-            {'name': 'influencer-irl-support', 'display_name': 'Influencer IRL Support', 'category': 'social',
-             'description': 'Reality check for social media vs actual life expectations'},
-            {'name': 'new-album-reaction', 'display_name': 'New Album Reaction', 'category': 'music',
-             'description': 'First listen experiences and musical discovery sharing'},
-            {'name': 'reality-tv-survivors', 'display_name': 'Reality TV Survivors', 'category': 'entertainment',
-             'description': 'Processing the emotional trauma of reality television'},
+            # Hobbies & Interests
+            {'name': 'i-bought-it-never-used-it', 'display_name': 'I Bought It, Never Used It', 'category': 'social',
+             'description': 'Share your impulse purchases gathering dust. Were all guilty.'},
+            {'name': 'conspiracy-theories-for-fun', 'display_name': 'Conspiracy Theories for Fun', 'category': 'conspiracy',
+             'description': 'Birds arent real, change my mind. (Keep it light and fun!)'},
+            {'name': 'weird-news-of-the-day', 'display_name': 'Weird News of the Day', 'category': 'weird-news',
+             'description': 'Florida man strikes again, and other bizarre news stories'},
+            {'name': 'conspiracy-bingo-night', 'display_name': 'Conspiracy Bingo Night', 'category': 'conspiracy',
+             'description': 'Finland doesnt exist, Wyoming is fake, birds are drones - BINGO!'},
 
-            # Money & Hustle 💸
-            {'name': 'side-hustle-hub', 'display_name': 'Side Hustle Hub', 'category': 'business',
-             'description': 'Multiple income streams and the entrepreneurial grind'},
-            {'name': 'broke-but-creative', 'display_name': 'Broke But Creative', 'category': 'business',
-             'description': 'Making art on a budget, resourcefulness over resources'},
-            {'name': 'money-memes-monday', 'display_name': 'Money Memes Monday', 'category': 'memes',
-             'description': 'Financial anxiety expressed through humor therapy'},
-            {'name': 'dream-job-lab', 'display_name': 'Dream Job Lab', 'category': 'business',
-             'description': 'Designing careers that don\'t feel like work'},
-            {'name': 'passive-income-panic', 'display_name': 'Passive Income Panic', 'category': 'business',
-             'description': 'Chasing financial freedom while managing financial anxiety'},
-            {'name': 'freelancer-therapy', 'display_name': 'Freelancer Therapy', 'category': 'business',
-             'description': 'Irregular income, irregular sleep, irregular sanity'},
-            {'name': 'zero-to-one-crew', 'display_name': 'Zero to One Crew', 'category': 'business',
-             'description': 'Building something from nothing with community support'},
-            {'name': 'budget-wizards', 'display_name': 'Budget Wizards', 'category': 'business',
-             'description': 'Making money magic happen with spreadsheet sorcery'},
-            {'name': 'overworked-underpaid-union', 'display_name': 'Overworked Underpaid Union', 'category': 'business',
-             'description': 'Solidarity in the struggle for fair compensation'},
-            {'name': 'sell-me-this-chatroom', 'display_name': 'Sell Me This Chatroom', 'category': 'business',
-             'description': 'Practice your pitch, perfect your persuasion skills'},
+            # Creative & Artistic
+            {'name': 'creative-block-support', 'display_name': 'Creative Block Support', 'category': 'creative',
+             'description': 'Staring at blank canvas/page/screen for 3 hours straight'},
+            {'name': 'pinterest-reality-check', 'display_name': 'Pinterest vs Reality Check', 'category': 'creative',
+             'description': 'Nailed it! ...or did we? Share your DIY disasters.'},
+            {'name': 'art-therapy-session', 'display_name': 'Art Therapy Session', 'category': 'creative',
+             'description': 'Create, share, and heal through artistic expression'},
+            {'name': 'craft-supply-addiction', 'display_name': 'Craft Supply Addiction', 'category': 'creative',
+             'description': 'I have 47 colors of the same paint but I NEED this new shade'},
 
-            # Relationships & Identity 💕
-            {'name': 'introvert-dating-help', 'display_name': 'Introvert Dating Help', 'category': 'dating',
-             'description': 'Romance advice for socially anxious hearts'},
-            {'name': 'meet-cute-museum', 'display_name': 'Meet Cute Museum', 'category': 'dating',
-             'description': 'Collecting stories of how people actually met their person'},
-            {'name': 'found-family-feels', 'display_name': 'Found Family Feels', 'category': 'identity',
-             'description': 'Celebrating chosen families and created connections'},
-            {'name': 'neurodivergent-nation', 'display_name': 'Neurodivergent Nation', 'category': 'identity',
-             'description': 'Celebrating different ways of thinking and being'},
-            {'name': 'identity-explorers', 'display_name': 'Identity Explorers', 'category': 'identity',
-             'description': 'Safe space for questioning, discovering, and becoming'},
-            {'name': 'love-is-weird-club', 'display_name': 'Love is Weird Club', 'category': 'dating',
-             'description': 'Navigating the beautiful strangeness of human connection'},
-            {'name': 'chosen-family-hangout', 'display_name': 'Chosen Family Hangout', 'category': 'identity',
-             'description': 'Where blood doesn\'t determine belonging'},
-            {'name': 'lgbtqia-space-capsule', 'display_name': 'LGBTQIA+ Space Capsule', 'category': 'identity',
-             'description': 'Queer community floating through the universe together'},
-            {'name': 'unfiltered-friendships', 'display_name': 'Unfiltered Friendships', 'category': 'social',
-             'description': 'Real talk about the work and worth of deep friendships'},
-            {'name': 'love-languages-in-action', 'display_name': 'Love Languages in Action', 'category': 'dating',
-             'description': 'Learning to speak and receive love in all its forms'},
+            # Pets & Animals
+            {'name': 'pets-judging-humans', 'display_name': 'Pets Judging Humans', 'category': 'pets',
+             'description': 'That look your pet gives you when you talk to them like babies'},
+            {'name': 'pet-tax-photos-required', 'display_name': 'Pet Tax (Photos Required)', 'category': 'pets',
+             'description': 'You mentioned your pet, now you must pay the photo tax'},
+            {'name': 'why-cats-are-plotting', 'display_name': 'Why Cats Are Plotting', 'category': 'pets',
+             'description': 'Evidence that cats are planning world domination. Discuss.'},
 
-            # World & Society 🌍
-            {'name': 'modern-life-crisis', 'display_name': 'Modern Life Crisis', 'category': 'society',
-             'description': 'Questioning everything about how we\'re supposed to live'},
-            {'name': 'news-but-make-it-chaotic', 'display_name': 'News But Make It Chaotic', 'category': 'society',
-             'description': 'Current events with a side of existential confusion'},
-            {'name': 'late-stage-capitalism-lounge', 'display_name': 'Late Stage Capitalism Lounge', 'category': 'society',
-             'description': 'Economic anxiety and system critique support group'},
-            {'name': 'eco-anxiety-support', 'display_name': 'Eco Anxiety Support', 'category': 'society',
-             'description': 'Climate feelings and environmental overwhelm therapy'},
-            {'name': 'future-of-work-watch', 'display_name': 'Future of Work Watch', 'category': 'society',
-             'description': 'Monitoring how AI and technology reshape human labor'},
-            {'name': 'cultural-curiosity-club', 'display_name': 'Cultural Curiosity Club', 'category': 'cultural',
-             'description': 'Learning about different ways people live and think'},
-            {'name': 'slow-living-movement', 'display_name': 'Slow Living Movement', 'category': 'lifestyle',
-             'description': 'Intentional pace in a speed-obsessed world'},
-            {'name': 'urban-survival-guide', 'display_name': 'Urban Survival Guide', 'category': 'society',
-             'description': 'City living tips for maintaining sanity and community'},
-            {'name': 'the-dystopia-diaries', 'display_name': 'The Dystopia Diaries', 'category': 'society',
-             'description': 'Living through interesting times with dark humor'},
-            {'name': 'planet-b-doesn-t-exist', 'display_name': 'Planet B Doesn\'t Exist', 'category': 'society',
-             'description': 'Environmental reality check and action planning'},
+            # Memes & Humor
+            {'name': 'meme-lords-assemble', 'display_name': 'Meme Lords Assemble', 'category': 'memes',
+             'description': 'Fresh memes, dank memes, and the occasional wholesome meme'},
+            {'name': 'dad-jokes-anonymous', 'display_name': 'Dad Jokes Anonymous', 'category': 'memes',
+             'description': 'Hi, Im dad. (And other jokes that make people groan)'},
+            {'name': 'gen-z-explaining-things', 'display_name': 'Gen Z Explaining Things', 'category': 'social',
+             'description': 'No cap, this slaps different. Translation services available.'},
+            {'name': 'millennial-translator', 'display_name': 'Millennial Translator', 'category': 'social',
+             'description': 'Explaining Gen Z slang to confused millennials since 2020'},
 
-            # Cultural & International Rooms 🌍
-            {'name': 'french-toast-debates', 'display_name': 'French Toast Debates', 'category': 'global-food',
-             'description': 'Pain perdu vs French toast vs eggy bread - the eternal breakfast debate'},
-            {'name': 'italian-grandma-energy', 'display_name': 'Italian Grandma Energy', 'category': 'global-food',
-             'description': 'Bringing that protective, food-pushing, life-advice-giving nonna vibe'},
-            {'name': 'british-weather-complaints', 'display_name': 'British Weather Complaints', 'category': 'international',
-             'description': 'It\'s raining again. Shocking. Absolutely shocking.'},
-            {'name': 'german-efficiency-club', 'display_name': 'German Efficiency Club', 'category': 'productivity',
-             'description': 'Organized chaos and productivity tips with Teutonic precision'},
-            {'name': 'chaotic-brazilian-groupchat', 'display_name': 'Chaotic Brazilian Group Chat', 'category': 'international',
-             'description': 'Pure energy, music, and joy with a side of beautiful chaos'},
-            {'name': 'korean-drama-emergency', 'display_name': 'Korean Drama Emergency', 'category': 'entertainment',
-             'description': 'Second lead syndrome, plot twists, and emotional breakdowns over fictional characters'},
-            {'name': 'desi-chaat-room', 'display_name': 'Desi Chaat Room', 'category': 'global-food',
-             'description': 'Spicy gossip, spicier food, and the warmest community vibes'},
-            {'name': 'aussie-slang-decoder', 'display_name': 'Aussie Slang Decoder', 'category': 'language',
-             'description': 'Fair dinkum translation services for non-Aussie speakers'},
-            {'name': 'jollof-wars-commence', 'display_name': 'Jollof Wars Commence', 'category': 'global-food',
-             'description': 'Nigerian vs Ghanaian vs Senegalese - may the best rice win'},
-            {'name': 'scandinavian-simplicity', 'display_name': 'Scandinavian Simplicity', 'category': 'lifestyle',
-             'description': 'Hygge, lagom, and the art of cozy minimalist living'},
+            # Work & Career
+            {'name': 'corporate-buzzword-bingo', 'display_name': 'Corporate Buzzword Bingo', 'category': 'business',
+             'description': 'Synergy! Paradigm shift! Circle back! *eye roll*'},
+            {'name': 'work-from-home-reality', 'display_name': 'Work From Home Reality', 'category': 'productivity',
+             'description': 'Professional on top, pajamas on bottom. We get it.'},
+            {'name': 'job-interview-prep-panic', 'display_name': 'Job Interview Prep Panic', 'category': 'business',
+             'description': 'Tell me about yourself... *internal screaming*'},
+            {'name': 'meeting-that-should-be-email', 'display_name': 'Meeting That Should Be An Email', 'category': 'business',
+             'description': 'Could have been solved in 2 sentences but here we are for an hour'},
 
-            # More Cultural Rooms
-            {'name': 'ramen-religion', 'display_name': 'Ramen Religion', 'category': 'global-food',
-             'description': 'Tonkotsu vs miso vs shoyu - finding spiritual enlightenment in broth'},
-            {'name': 'tacos-vs-burritos-showdown', 'display_name': 'Tacos vs Burritos Showdown', 'category': 'global-food',
-             'description': 'The great Mexican food format debate - choose your fighter'},
-            {'name': 'baguette-defenders-unite', 'display_name': 'Baguette Defenders Unite', 'category': 'global-food',
-             'description': 'Protecting the honor of French bread and butter simplicity'},
-            {'name': 'curry-confessions', 'display_name': 'Curry Confessions', 'category': 'global-food',
-             'description': 'Thai, Indian, Japanese, Malaysian - sharing curry secrets and spice tolerance'},
-            {'name': 'poutine-and-pride', 'display_name': 'Poutine and Pride', 'category': 'global-food',
-             'description': 'Canadian comfort food and eh-ing our way through life'},
-            {'name': 'lebanese-mezze-magic', 'display_name': 'Lebanese Mezze Magic', 'category': 'global-food',
-             'description': 'Small plates, big flavors, and endless hospitality'},
-            {'name': 'argentinian-steak-squad', 'display_name': 'Argentinian Steak Squad', 'category': 'global-food',
-             'description': 'Asado wisdom and the perfect empanada discussion'},
-            {'name': 'ethiopian-food-is-life', 'display_name': 'Ethiopian Food is Life', 'category': 'global-food',
-             'description': 'Injera appreciation and berbere spice blend worship'},
-            {'name': 'k-pop-and-kimchi', 'display_name': 'K-Pop and Kimchi', 'category': 'entertainment',
-             'description': 'Fermented cabbage and fermented fan energy - equally intense'},
-            {'name': 'sushi-snobs-sanctuary', 'display_name': 'Sushi Snobs Sanctuary', 'category': 'global-food',
-             'description': 'Omakase appreciation and California roll judgment'},
+            # Travel & Adventure
+            {'name': 'travel-fails-and-wins', 'display_name': 'Travel Fails and Wins', 'category': 'travel',
+             'description': 'Missed flights, amazing discoveries, and everything in between'},
+            {'name': 'staycation-ideas', 'display_name': 'Staycation Ideas', 'category': 'travel',
+             'description': 'Exploring your own city like a tourist. Hidden gems await!'},
+            {'name': 'travel-anxiety-support', 'display_name': 'Travel Anxiety Support', 'category': 'travel',
+             'description': 'What if I miss my flight? What if my luggage explodes? Lets panic together!'},
 
-            # Lifestyle & Cultural Experiences
-            {'name': 'greek-wedding-survivors', 'display_name': 'Greek Wedding Survivors', 'category': 'cultural',
-             'description': 'If you\'ve survived Greek family gatherings, you can survive anything'},
-            {'name': 'scottish-accent-appreciation', 'display_name': 'Scottish Accent Appreciation', 'category': 'cultural',
-             'description': 'Bonnie lads and lassies welcome - bring your best Highland banter'},
-            {'name': 'irish-storytellers-union', 'display_name': 'Irish Storytellers Union', 'category': 'cultural',
-             'description': 'Grand tales, greater craic, and the gift of the gab'},
-            {'name': 'polish-grandma-recipes', 'display_name': 'Polish Grandma Recipes', 'category': 'global-food',
-             'description': 'Babcia knows best - pierogi wisdom and unconditional love'},
-            {'name': 'cuban-coffee-addicts', 'display_name': 'Cuban Coffee Addicts', 'category': 'global-food',
-             'description': 'Cafecito culture and conversations that flow like café con leche'},
-            {'name': 'turkish-tea-time', 'display_name': 'Turkish Tea Time', 'category': 'global-food',
-             'description': 'Çay, conversation, and the art of Turkish hospitality'},
-            {'name': 'tokyo-night-owls', 'display_name': 'Tokyo Night Owls', 'category': 'international',
-             'description': 'Neon lights, convenience store meals, and 3 AM karaoke sessions'},
-            {'name': 'cairo-chaos-club', 'display_name': 'Cairo Chaos Club', 'category': 'international',
-             'description': 'Organized chaos, haggling skills, and pyramid-level endurance'},
-            {'name': 'new-zealand-yes-mate', 'display_name': 'New Zealand Yes Mate', 'category': 'international',
-             'description': 'Kiwi culture, sheep jokes, and Middle Earth appreciation'},
-            {'name': 'dutch-directness-zone', 'display_name': 'Dutch Directness Zone', 'category': 'cultural',
-             'description': 'Brutally honest feedback delivered with a smile and stroopwafels'},
+            # Science & Learning
+            {'name': 'explain-like-im-five', 'display_name': 'Explain Like Im Five', 'category': 'science',
+             'description': 'Complex topics made simple. No PhD required to understand!'},
+            {'name': 'random-wikipedia-rabbit-holes', 'display_name': 'Random Wikipedia Rabbit Holes', 'category': 'learning',
+             'description': 'Started reading about cats, ended up learning about medieval warfare'},
+            {'name': 'shower-science-thoughts', 'display_name': 'Shower Science Thoughts', 'category': 'science',
+             'description': 'Deep scientific thoughts that hit you while shampooing'},
 
-            # Expat & Global Experiences
-            {'name': 'third-culture-kids-lounge', 'display_name': 'Third Culture Kids Lounge', 'category': 'cultural',
-             'description': 'Where is home? Everywhere and nowhere, we get it.'},
-            {'name': 'lost-in-translation-club', 'display_name': 'Lost in Translation Club', 'category': 'language',
-             'description': 'When Google Translate fails you and cultural confusion ensues'},
-            {'name': 'expats-anonymous', 'display_name': 'Expats Anonymous', 'category': 'international',
-             'description': 'Missing home while loving adventure - the eternal expat struggle'},
-            {'name': 'reverse-culture-shock', 'display_name': 'Reverse Culture Shock', 'category': 'cultural',
-             'description': 'Coming home and feeling like a stranger in your own country'},
-            {'name': 'where-am-i-even-from', 'display_name': 'Where Am I Even From?', 'category': 'identity',
-             'description': 'Identity crisis for globally nomadic souls'},
-            {'name': 'national-anthem-jam-session', 'display_name': 'National Anthem Jam Session', 'category': 'cultural',
-             'description': 'Patriotic songs from around the world - sing along if you know the words'},
-            {'name': 'confused-heritage-hub', 'display_name': 'Confused Heritage Hub', 'category': 'identity',
-             'description': 'Mixed heritage, multiple passports, infinite identity questions'},
-            {'name': 'cultural-blend-cafe', 'display_name': 'Cultural Blend Café', 'category': 'cultural',
-             'description': 'Where different cultures mix and create something new'},
-            {'name': 'diaspora-dialogues', 'display_name': 'Diaspora Dialogues', 'category': 'cultural',
-             'description': 'Connecting cultures across oceans and generations'},
-            {'name': 'homesick-but-funny', 'display_name': 'Homesick But Funny', 'category': 'cultural',
-             'description': 'Laughing through the tears of missing home cooking'},
+            # Philosophy & Deep Thoughts
+            {'name': 'shower-thoughts-central', 'display_name': 'Shower Thoughts Central', 'category': 'social',
+             'description': 'Those random deep thoughts that hit you in the shower'},
+            {'name': 'life-advice-from-strangers', 'display_name': 'Life Advice from Strangers', 'category': 'social',
+             'description': 'Sometimes the best advice comes from people who dont know you'},
+            {'name': 'overthinking-olympics', 'display_name': 'Overthinking Olympics', 'category': 'mental-health',
+             'description': 'Competitive overthinking. Current record: 47 scenarios for one text message'},
 
-            # Cultural Traditions & Fun
-            {'name': 'holiday-traditions-gone-wrong', 'display_name': 'Holiday Traditions Gone Wrong', 'category': 'cultural',
-             'description': 'When cultural celebrations meet reality - disaster stories welcome'},
-            {'name': 'foreign-family-groupchat', 'display_name': 'Foreign Family Group Chat', 'category': 'cultural',
-             'description': 'Mom sends voice messages in three languages, chaos ensues'},
-            {'name': 'emoji-meaning-war', 'display_name': 'Emoji Meaning War', 'category': 'language',
-             'description': '🇯🇵 vs 🇺🇸 vs 🇧🇷 - when emojis mean different things globally'},
-            {'name': 'passport-stamps-and-chaos', 'display_name': 'Passport Stamps and Chaos', 'category': 'travel',
-             'description': 'Border crossing stories and immigration adventures'},
-            {'name': 'translation-fails-lounge', 'display_name': 'Translation Fails Lounge', 'category': 'language',
-             'description': 'When lost in translation becomes found in comedy gold'},
-            {'name': 'nonna-said-no', 'display_name': 'Nonna Said No', 'category': 'global-food',
-             'description': 'Italian grandmother wisdom trumps all arguments, always'},
-            {'name': 'momos-not-dumplings', 'display_name': 'Momos Not Dumplings', 'category': 'global-food',
-             'description': 'Tibetan food appreciation and proper terminology matters'},
-            {'name': 'spicy-means-different-things', 'display_name': 'Spicy Means Different Things', 'category': 'global-food',
-             'description': 'Your medium is my mild, your mild is my water'},
-            {'name': 'language-switchers-unite', 'display_name': 'Language Switchers Unite', 'category': 'language',
-             'description': 'Code-switching mid-sentence like a linguistic superhero'},
-            {'name': 'global-gossip-corner', 'display_name': 'Global Gossip Corner', 'category': 'cultural',
-             'description': 'International tea spilling with cultural context included'},
+            # Food & Cooking Adventures
+            {'name': 'ramen-isn-t-a-food-group', 'display_name': 'Ramen Isnt A Food Group', 'category': 'food',
+             'description': 'Adult nutrition advice for people who think cereal counts as dinner'},
+            {'name': 'baking-show-vs-reality', 'display_name': 'Baking Show vs Reality', 'category': 'food',
+             'description': 'They make it look so easy... narrator: it was not easy'},
+            {'name': 'caffeine-dependency-support', 'display_name': 'Caffeine Dependency Support', 'category': 'food',
+             'description': 'Step 1: Admit you have a problem. Step 2: Make coffee to think about it'},
+
+            # Modern Life Struggles
+            {'name': 'subscription-service-trapped', 'display_name': 'Subscription Service Trapped', 'category': 'business',
+             'description': 'How did I end up paying for 17 services I forgot I had?'},
+            {'name': 'password-manager-anxiety', 'display_name': 'Password Manager Anxiety', 'category': 'technology',
+             'description': 'What if I forget the master password? WHAT THEN?'},
+            {'name': 'notification-overwhelm', 'display_name': 'Notification Overwhelm', 'category': 'mental-health',
+             'description': '47 unread notifications and each one gives me anxiety'},
         ]
 
-        for room_data in all_rooms:
+        for room_data in creative_rooms:
             try:
+                # Get or create category
                 category = self.get_or_create_category(room_data['category'])
                 creator = random.choice(users)
 
@@ -421,21 +290,19 @@ class Command(BaseCommand):
                 )
 
                 if created:
-                    self.stdout.write(f'🏠✨ Created: {room.display_name}')
-                    created_count += 1
+                    self.stdout.write(f'🏠✨ Created CREATIVE room: {room.display_name}')
                 else:
-                    self.stdout.write(f'🏠 Exists: {room.display_name}')
+                    self.stdout.write(f'🏠 Room already exists, skipping: {room.display_name}')
 
             except Exception as e:
                 self.stdout.write(f'❌ Error creating room {room_data["name"]}: {str(e)}')
 
-        self.stdout.write(self.style.SUCCESS(f'🌟 Created {created_count} new rooms!'))
-
     def get_or_create_category(self, category_slug):
-        """Helper to get or create category with better error handling"""
+        """Helper to get or create category"""
         try:
             return Category.objects.get(slug=category_slug)
         except Category.DoesNotExist:
+            # Map common slugs to category names
             category_mapping = {
                 'technology': 'Technology',
                 'business': 'Business',
@@ -456,101 +323,180 @@ class Command(BaseCommand):
                 'travel': 'Travel',
                 'science': 'Science',
                 'learning': 'Education',
-                'philosophy': 'Philosophy',
-                'identity': 'Identity & Community',
-                'society': 'Modern Society',
-                'lifestyle': 'Lifestyle Hacks',
-                'pop-culture': 'Pop Culture',
-                'international': 'International',
-                'cultural': 'Cultural Exchange',
-                'language': 'Language Learning',
-                'global-food': 'Global Food',
             }
 
             category_name = category_mapping.get(category_slug, category_slug.title())
 
+            # Try to get existing category by name first
             try:
                 return Category.objects.get(name=category_name)
             except Category.DoesNotExist:
+                # Create new category if it doesn't exist
                 try:
                     return Category.objects.create(
                         name=category_name,
                         slug=category_slug,
                         icon='🌟'
                     )
-                except Exception:
+                except Exception as e:
+                    # If creation fails, try to find any similar category
+                    similar_categories = Category.objects.filter(name__icontains=category_slug.replace('-', ' '))
+                    if similar_categories.exists():
+                        return similar_categories.first()
+                    # Last resort: return a default category
                     return Category.objects.get_or_create(name='Other', defaults={'slug': 'other', 'icon': '🌟'})[0]
 
-    def generate_diverse_chat_history(self, num_conversations):
-        """Generate conversations for newly created rooms"""
-        self.stdout.write('💬 Generating diverse conversations...')
+    def generate_engaging_chat_history(self, num_conversations):
+        """Generate super realistic and engaging chat conversations"""
+        self.stdout.write('💬 Generating ENGAGING chat conversations for new rooms...')
 
         users = list(User.objects.all())
 
-        # Get recently created rooms (last 5 minutes)
+        # Only get rooms created in the last few minutes (newly created ones)
         recent_time = timezone.now() - timedelta(minutes=5)
         new_rooms = list(Room.objects.filter(is_dm=False, created_at__gte=recent_time))
 
+        # If no new rooms, get all rooms (fallback for existing command usage)
         if not new_rooms:
             new_rooms = list(Room.objects.filter(is_dm=False))
-            self.stdout.write(f'💬 Generating content for all {len(new_rooms)} rooms...')
+            self.stdout.write('💬 No new rooms detected, generating content for all rooms...')
+        else:
+            self.stdout.write(f'💬 Found {len(new_rooms)} newly created rooms to populate...')
 
         if not users or not new_rooms:
             self.stdout.write(self.style.WARNING('No users or rooms found!'))
             return
 
-        # Enhanced conversation templates for diverse rooms
+        # Enhanced conversation templates with modern, realistic content
         conversation_templates = {
-            'default': [
-                ["This community is amazing!", "Right? So many interesting people", "Found my tribe here", "Same energy as a cozy coffee shop", "But with better wifi and no pants required"],
-                ["Anyone else procrastinating right now?", "You called me out personally", "I have 47 things due tomorrow", "Procrastination is my superpower", "At least we're procrastinating together"],
-                ["Life is weird but we're all weird together", "Weirdness is the best part", "Normal is overrated anyway", "Embrace the chaos!", "Weird people make the world interesting"],
+            'technology': [
+                ["Just saw ChatGPT write better code than me 😭", "Welcome to 2024, my friend", "At least it can't debug my life choices", "Give it time...", "AI: *takes notes*"],
+                ["Anyone else getting imposter syndrome from all these AI tools?", "Every single day", "I feel like a fraud and I've been coding for 10 years", "Same! ChatGPT makes me question everything", "Maybe we should become AI prompt engineers instead 🤷‍♂️"],
+                ["My code worked on the first try today", "Impossible", "Screenshot or it didn't happen", "What dark magic did you use?", "Plot twist: it was Hello World"],
+                ["Spent 6 hours debugging. The problem was a missing semicolon.", "F in the chat", "This is why I have trust issues", "Classic! We've all been there", "Semicolons are the bane of my existence"],
+                ["Just deployed to production on a Friday", "You absolute madman", "Say goodbye to your weekend", "Famous last words", "It's been nice knowing you 🪦"],
             ],
-            'cultural': [
-                ["Teaching my friend to use chopsticks is a full-time job", "The patience required is superhuman", "Cultural dining lessons are intense", "Worth it when they finally get it", "Some traditions are worth preserving"],
-                ["Family group chat switched languages mid-conversation", "Peak multilingual chaos", "Google Translate is crying", "Love transcends language barriers", "Somehow we all understand each other"],
-                ["Homesickness hits different at 3 AM", "Missing places that don't exist anymore", "Home is people, not places", "Virtual hugs from internet family", "We carry home with us"],
+            'gaming': [
+                ["Just spent 40 hours on this indie game and I'm emotionally destroyed", "Which one broke your heart this time?", "Probably something with pixel art and depression", "Let me guess... it made you cry?", "Why do the best games hurt the most? 😢"],
+                ["My gaming backlog is longer than my life expectancy", "I have 400+ games on Steam and play the same 3", "The paradox of choice is real", "At least we're prepared for retirement", "Bold of you to assume we'll retire"],
+                ["Raid night got cancelled because someone's dog ate their internet cable", "That's... oddly specific", "Dogs: the real raid bosses", "Better excuse than 'my mom made dinner'", "Plot twist: the dog is actually a gaming prodigy"],
+                ["Finally beat that boss after 47 attempts", "CONGRATS! Which one finally fell?", "The one that haunts my dreams", "47? Those are rookie numbers 😏", "Time to celebrate with... the next impossible boss"],
+                ["Anyone else feel personally attacked by tutorial levels?", "If I can't figure out basic jumping, I'm doomed", "When the tutorial is harder than the actual game", "Modern games: Press X to have an existential crisis", "At least we have YouTube guides for everything"],
+            ],
+            'social': [
+                ["Why do I have social anxiety but also crave human interaction?", "The eternal paradox of our generation", "I want friends but also want to hide forever", "Social media makes it worse somehow", "Same energy: hungry but nothing sounds good"],
+                ["Made eye contact with a stranger today. Almost said 'you too' when they said good morning", "Classic awkward human moment", "We're all just winging it, aren't we?", "Social skills.exe has stopped working", "At least you didn't finger-gun them"],
+                ["My phone died and I had to make small talk with actual humans", "Thoughts and prayers", "How did people survive before smartphones?", "They probably had better social skills", "Breaking: Local millennial learns to converse without memes"],
+                ["Realized I've been wearing my shirt inside out all day", "Fashion icon 💅", "That's called making a statement", "Been there! Confidence is key", "As long as you owned it"],
+                ["Why do I overthink everything I say 0.3 seconds after saying it?", "Brain: 'That was weird, let's replay it 847 times'", "The anxiety spiral is real", "We're our own worst critics", "At least we're self-aware? ...right?"],
+            ],
+            'memes': [
+                ["When you realize you're the comic relief in your friend group", "Better than being the dramatic one", "I'm the cautionary tale friend", "Every friend group needs a jester 🃏", "My life is basically a meme at this point"],
+                ["POV: You're explaining a meme to your parents", "*internal screaming*", "It's not funny anymore when you have to explain it", "Mom: 'Why is the dog on fire?' Me: 'It's fine, this is fine'", "Generational humor gap is real"],
+                ["That moment when a meme describes your life perfectly", "When did memes become so relatable?", "Memes are the language of our people", "Sometimes I communicate purely in meme references", "We're living in a simulation and memes are the code"],
+                ["Just spent 2 hours scrolling through memes instead of being productive", "Those are rookie numbers", "Memes > adulting", "It's called research, thank you very much", "Productivity is overrated anyway"],
+                ["When someone doesn't laugh at your meme reference 💀", "Uncultured swine", "Not everyone can appreciate high-quality content", "Their loss, honestly", "Time to find new friends"],
+            ],
+            'mental-health': [
+                ["Friendly reminder that it's okay to not be okay", "Thank you, needed to hear this today ❤️", "Some days are just survival days", "Taking it one day at a time", "We're all doing our best with what we have"],
+                ["Therapy is expensive, but so is staying broken", "Insurance really needs to cover this better", "Mental health should be a priority, not a luxury", "Investing in yourself is never wasted money", "Your future self will thank you"],
+                ["Small wins today: I showered AND changed clothes", "That's actually huge! Proud of you", "Those days when basic self-care feels like climbing Everest", "Every small step counts 💙", "Self-care isn't selfish"],
+                ["Anxiety brain: 'What if everyone secretly hates you?' Logic brain: 'That's statistically impossible'", "Why does anxiety brain always win the argument?", "My anxiety has anxiety at this point", "Rational thoughts? In THIS economy?", "Brain: 'Let me overthink this perfectly normal interaction'"],
+                ["Anyone else feel like they're just pretending to be an adult?", "Fake it till you make it, right?", "We're all just kids in grown-up costumes", "Adulting is 90% googling how to do things", "When do we start feeling like real adults? Asking for a friend..."],
+            ],
+            'dating': [
+                ["Dating apps are basically window shopping for humans", "And somehow I'm always in the clearance section", "Swipe right for existential dread", "Why is everyone either a gym enthusiast or loves hiking?", "My bio: 'Fluent in sarcasm, expert at overthinking'"],
+                ["First date went well! We both forgot each other's names halfway through", "As long as you both forgot, it's fine 😂", "Modern romance at its finest", "Did you exchange numbers or just awkward stares?", "Plot twist: you're perfect for each other"],
+                ["Being single is great until you need someone to kill a spider", "Or open a pickle jar", "Or reach something on a high shelf", "Or tell you if that text sounds too needy", "Single life: 90% independence, 10% mild terror"],
+                ["My love language is memes and snacks", "Are you... me?", "Finally, someone who speaks my language", "Add Netflix and you've described my ideal relationship", "Where do I swipe right on this energy?"],
+                ["Relationship status: committed to avoiding commitment", "The commitment to non-commitment is real", "Why choose when you can be confused forever?", "Freedom is just another word for 'eating cereal for dinner'", "Single and ready to... stay single"],
+            ],
+            'pets': [
+                ["My cat judges me harder than my therapist", "Cats are just furry therapists who don't take insurance", "That disappointed cat stare hits different", "At least cats are honest about their opinions", "My cat's feedback is brutal but necessary"],
+                ["Dog: *exists* Me: 'WHO'S A GOOD BOY?!'", "Dogs bring out our inner toddler", "Every dog is the best dog, don't @ me", "Dogs are proof that pure joy exists", "We don't deserve dogs but here we are"],
+                ["Spent $200 on pet toys. Pet prefers the cardboard box.", "Cats have entered the chat", "Expensive toy < empty toilet paper roll", "They know exactly what they're doing", "Pets are basically expensive comedians"],
+                ["My pet has more personality than most humans I know", "And better communication skills", "They're just honest about their needs", "No small talk, just vibes", "Pets: the ultimate life coaches"],
+                ["Vet bill was more expensive than my car payment", "Pets: priceless. Also: literally priceless.", "Worth every penny though", "They own us, we just pay rent", "Love is expensive, apparently"],
             ],
             'food': [
-                ["Spice tolerance is cultural currency", "Your mild is my volcanic eruption", "Respect to all the heat levels", "Ice cream diplomacy required", "Food brings everyone together"],
-                ["Grandma's recipe: 'a pinch of this, a handful of that'", "Love cannot be measured", "Secret ingredient is always guilt", "Failed 47 attempts to recreate it", "Some magic can't be replicated"],
+                ["Cooked a meal without burning anything. I'm basically Gordon Ramsay now.", "Look at you, culinary genius! 👨‍🍳", "What's your secret? Asking for a friend who burns water", "Next step: not setting off the smoke alarm", "Careful, don't let the success go to your head"],
+                ["Ordered takeout while standing in my fully stocked kitchen", "The audacity! ...also same", "Cooking requires effort, ordering requires apps", "Your kitchen looks nice though", "Sometimes supporting local business is more important 😏"],
+                ["Made coffee so strong it made me question my life choices", "That's not coffee, that's rocket fuel", "When you can feel your heartbeat in your eyeballs", "Coffee: legal anxiety in a cup", "At least you're awake for your existential crisis"],
+                ["Pinterest recipe: 30 minutes. Reality: 3 hours and a minor breakdown", "Pinterest lies to us all", "Where do they find these magical kitchens?", "Pinterest: Instagram for disappointment", "My kitchen disasters could have their own show"],
+                ["Meal prep Sunday turned into 'eat cereal all week' Monday", "The struggle is real", "Planning vs. reality: there is no correlation", "Cereal is versatile! Breakfast, lunch, dinner...", "At least cereal doesn't judge your life choices"],
             ],
-            'productivity': [
-                ["Organized my entire productivity system today", "Got nothing actually productive done", "The irony is not lost on me", "At least it looks pretty", "Productivity theater at its finest"],
-                ["5 AM club lasted exactly one day", "We tried, we failed, we accept", "Night owl DNA is stronger", "Some battles aren't worth fighting", "Sleep is productivity too"],
+            'crypto': [
+                ["Bought the dip. It kept dipping. Send help.", "Instructions unclear, bought more dip", "The dip has layers, like an onion", "Diamond hands or just really bad at timing?", "Plot twist: it's all dip"],
+                ["Explaining crypto to my parents was harder than explaining memes", "Both are basically digital nonsense to them", "Dad: 'So it's imaginary money?' Me: 'Well...'", "Wait till they find out about NFTs", "Money is just a social construct anyway"],
+                ["Portfolio down 80% but I'm still bullish", "This is fine 🔥🐶🔥", "HODL life chose me", "Can't lose money if you never sell *taps head*", "Crypto: teaching patience through suffering"],
+                ["When lambo? Answer: Never lambo.", "Maybe bike? Bike is good too", "Lambo was the friends we made along the way", "Ramen tastes better when it's all you can afford", "The real treasure was the financial anxiety we gained"],
+                ["Gas fees cost more than my transaction", "Ethereum miners eating lobster while we eat ramen", "Paying $50 to move $10 makes perfect sense", "Math was never my strong suit anyway", "It's not about the money, it's about the principle!"],
             ],
-            'philosophy': [
-                ["3 AM existential crisis activated", "Why do we exist? Also, snacks?", "Philosophy hits different at midnight", "Deep thoughts need deep snacks", "Consciousness is wild when you think about it"],
-                ["Are we living or just surviving?", "Bit of both, honestly", "Surviving with style counts", "Making meaning in the chaos", "We're all just figuring it out"],
+            'conspiracy': [
+                ["Birds aren't real and you can't convince me otherwise", "Government drones everywhere!", "Have you ever seen a baby pigeon? Exactly.", "They charge on power lines, wake up sheeple", "Finally, someone who gets it! 🕊️🤖"],
+                ["Finland doesn't exist, change my mind", "Just a conspiracy by Big Geography", "It's all just east Sweden and west Russia", "Nokia was made in east Sweden, obviously", "The Finnish 'language' is just gibberish they made up"],
+                ["Wyoming isn't real. It's just a government rectangle", "Population: 3 people and some tumbleweeds", "Ever met anyone from Wyoming? Didn't think so", "It's where they keep the spare birds", "Wyoming: America's best kept non-secret"],
+                ["Mattress stores are money laundering fronts", "How else do they stay in business?", "Who buys mattresses that often?", "Big Mattress is controlling our sleep", "They're in cahoots with Big Pillow"],
+                ["The moon landing was filmed... on the moon", "Plot twist: it was real all along", "Stanley Kubrick was just really dedicated", "The conspiracy was making us think it was fake", "Reverse psychology at its finest"],
             ]
         }
+
+        # Extended reaction emojis for more variety
+        reaction_emojis = [
+            '❤️', '👍', '😂', '😮', '😢', '🔥', '✨', '🎉', '👏', '💯',
+            '🤔', '😍', '🤣', '💀', '☠️', '🫶', '💅', '✋', '👀', '🙈',
+            '🤡', '👑', '💎', '🚀', '⚡', '🌟', '💫', '🎯', '🎭', '🎪'
+        ]
+
+        # Fun GIF messages with realistic context
+        contextual_gifs = [
+            {'url': 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif', 'title': 'Mind Blown', 'context': ['amazing fact', 'plot twist', 'realization']},
+            {'url': 'https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif', 'title': 'Applause', 'context': ['achievement', 'good news', 'success']},
+            {'url': 'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif', 'title': 'Great Job', 'context': ['encouragement', 'celebration']},
+            {'url': 'https://media.giphy.com/media/1jkV5ifEE5ENHESRa/giphy.gif', 'title': 'Thinking', 'context': ['contemplation', 'confusion', 'planning']},
+            {'url': 'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif', 'title': 'Crying Laughing', 'context': ['hilarious', 'too funny', 'peak comedy']},
+            {'url': 'https://media.giphy.com/media/xT9IgHCTfp8CRshfQk/giphy.gif', 'title': 'This is Fine', 'context': ['disaster', 'chaos', 'everything wrong']},
+        ]
 
         with transaction.atomic():
             total_messages = 0
             for room in new_rooms:
                 try:
-                    # Choose appropriate conversation template
-                    room_type = self.categorize_room_type(room)
-                    templates = conversation_templates.get(room_type, conversation_templates['default'])
+                    # Match room category for appropriate conversations
+                    room_category = self.categorize_room(room)
+                    templates = conversation_templates.get(room_category, conversation_templates['social'])
 
                     room_messages = 0
                     for i in range(num_conversations):
                         try:
+                            # Pick conversation template
                             conversation = random.choice(templates)
                             conversation_users = random.sample(users, min(len(conversation), len(users)))
 
-                            # Spread conversations over last 30 days
-                            base_time = timezone.now() - timedelta(days=random.randint(0, 30))
+                            # Random time spread over last 45 days for more realistic distribution
+                            base_time = timezone.now() - timedelta(days=random.randint(0, 45))
 
                             for j, message_text in enumerate(conversation):
                                 user = conversation_users[j % len(conversation_users)]
+
+                                # More realistic time gaps between messages
                                 time_gap = random.choice([
-                                    random.randint(1, 3),    # Quick responses
-                                    random.randint(5, 15),   # Normal gap
-                                    random.randint(30, 120)  # Longer gap
+                                    random.randint(1, 3),    # Quick responses (60%)
+                                    random.randint(5, 15),   # Normal gap (30%)
+                                    random.randint(30, 120)  # Longer gap (10%)
                                 ])
                                 timestamp = base_time + timedelta(minutes=j * time_gap)
 
+                                # Occasionally add contextual GIFs (8% chance)
+                                if random.random() < 0.08:
+                                    # Pick a GIF based on message context
+                                    suitable_gifs = [gif for gif in contextual_gifs
+                                                   if any(context in message_text.lower() for context in gif['context'])]
+                                    if suitable_gifs:
+                                        gif = random.choice(suitable_gifs)
+                                        message_text = f'[GIF:{{"url":"{gif["url"]}","title":"{gif["title"]}","id":"generated"}}]'
+
+                                # Create message
                                 Message.objects.create(
                                     user=user,
                                     room=room,
@@ -561,105 +507,257 @@ class Command(BaseCommand):
                                 total_messages += 1
 
                         except Exception as e:
+                            self.stdout.write(f'⚠️  Error creating conversation {i+1} in {room.display_name}: {str(e)}')
                             continue
 
-                    self.stdout.write(f'💬 Generated {room_messages} messages for {room.display_name}')
+                    self.stdout.write(f'💬 Generated {room_messages} engaging messages for {room.display_name}')
 
                 except Exception as e:
                     self.stdout.write(f'❌ Error processing room {room.display_name}: {str(e)}')
                     continue
 
-            self.stdout.write(self.style.SUCCESS(f'✅ Generated {total_messages} total messages'))
+            self.stdout.write(self.style.SUCCESS(f'✅ Generated {total_messages} total engaging messages!'))
 
-    def categorize_room_type(self, room):
-        """Determine conversation type for room"""
+    def categorize_room(self, room):
+        """Determine conversation category for room with high specificity"""
         room_name = room.name.lower()
 
-        if any(word in room_name for word in ['cultural', 'expat', 'heritage', 'global', 'international']):
-            return 'cultural'
-        elif any(word in room_name for word in ['food', 'cooking', 'recipe', 'spicy', 'grandma']):
+        # HIGHLY SPECIFIC room matching for relevant conversations
+        if any(word in room_name for word in ['ai-taking-over', 'code-therapy', 'stackoverflow', 'password-manager', 'wifi']):
+            return 'technology'
+        elif any(word in room_name for word in ['gaming-addiction', 'backlog-shame', 'rage', 'completionist', 'speedrun']):
+            return 'gaming'
+        elif any(word in room_name for word in ['meme-lords', 'dad-jokes', 'gen-z', 'millennial', 'tiktok-vs-reality']):
+            return 'memes'
+        elif any(word in room_name for word in ['existential-crisis', 'social-battery', 'anxiety', 'overthinking', 'mental-health']):
+            return 'mental-health'
+        elif any(word in room_name for word in ['dating-app', 'single-and-loving', 'toxic-trait', 'relationship-advice']):
+            return 'dating'
+        elif any(word in room_name for word in ['pets-judging', 'pet-tax', 'cats-plotting', 'plant-parent']):
+            return 'pets'
+        elif any(word in room_name for word in ['crypto-to-moon', 'nft-recovery', 'broke-millennial']):
+            return 'crypto'
+        elif any(word in room_name for word in ['conspiracy-theories', 'birds-arent-real', 'finland-doesnt-exist']):
+            return 'conspiracy'
+        elif any(word in room_name for word in ['jollof-wars', 'italian-grandma', 'ramen-religion', 'curry-confessions', 'korean', 'desi', 'lebanese', 'nonna']):
+            return 'food-cultural'
+        elif any(word in room_name for word in ['cooking-disasters', 'baking-show', 'caffeine-dependency', 'ramen-isnt-food']):
             return 'food'
-        elif any(word in room_name for word in ['productivity', 'notion', 'time-blocking', 'goal']):
-            return 'productivity'
-        elif any(word in room_name for word in ['philosophy', 'consciousness', 'existential', 'metaphysical']):
-            return 'philosophy'
+        elif any(word in room_name for word in ['adulting-is-hard', 'third-culture', 'expat', 'cultural', 'global', 'international']):
+            return 'social'
         else:
-            return 'default'
+            return 'social'  # Safe default
 
-    def add_diverse_reactions(self):
-        """Add culturally diverse reactions"""
-        self.stdout.write('😊 Adding diverse reactions...')
+    def add_realistic_reactions(self):
+        """Add more realistic and varied reactions"""
+        self.stdout.write('😊 Adding realistic reactions...')
 
         messages = Message.objects.all()
         users = list(User.objects.all())
 
-        # Diverse emoji set including cultural elements
-        diverse_emojis = [
-            '❤️', '👍', '😂', '💯', '🔥', '✨', '🎉', '👏', '🤔', '😍',
-            '🌍', '🌮', '🍜', '☕', '🫶', '💀', '🙈', '👀', '🚀', '⚡'
-        ]
+        # More realistic emoji distribution with cultural elements
+        common_emojis = ['❤️', '👍', '😂', '💯', '🔥']  # 60% of reactions
+        uncommon_emojis = ['😮', '😢', '✨', '🎉', '👏', '🤔', '😍', '🤣', '💀', '🫶', '🍜', '🌮', '☕']  # 35%
+        rare_emojis = ['☠️', '💅', '✋', '👀', '🙈', '🤡', '👑', '💎', '🚀', '⚡', '🌍', '🥺', '🤯']  # 5%
 
         reaction_count = 0
-        for message in random.sample(list(messages), min(len(messages), int(len(messages) * 0.4))):
-            num_reactions = random.choices([1, 2, 3], weights=[60, 30, 10])[0]
+
+        # React to 45% of messages (more realistic)
+        for message in random.sample(list(messages), min(len(messages), int(len(messages) * 0.45))):
+            # Weighted emoji selection
+            emoji_pool = (common_emojis * 12 + uncommon_emojis * 7 + rare_emojis * 1)
+
+            # Each message gets 1-4 reactions (weighted toward fewer reactions)
+            num_reactions = random.choices([1, 2, 3, 4], weights=[50, 30, 15, 5])[0]
+
+            # Pick different users for reactions
             reacting_users = random.sample(users, min(num_reactions, len(users)))
 
             for user in reacting_users:
-                emoji = random.choice(diverse_emojis)
+                emoji = random.choice(emoji_pool)
+
+                # Avoid duplicate reactions
                 if not Reaction.objects.filter(message=message, user=user, emoji=emoji).exists():
-                    Reaction.objects.create(message=message, user=user, emoji=emoji)
+                    Reaction.objects.create(
+                        message=message,
+                        user=user,
+                        emoji=emoji
+                    )
                     reaction_count += 1
 
-        self.stdout.write(self.style.SUCCESS(f'✅ Added {reaction_count} diverse reactions'))
+        self.stdout.write(self.style.SUCCESS(f'✅ Added {reaction_count} realistic reactions'))
 
-    def create_themed_meetups(self):
-        """Create diverse themed meetups"""
-        self.stdout.write('📅 Creating themed meetups...')
+    def create_exciting_meetups(self):
+        """Create creative and engaging meetups"""
+        self.stdout.write('📅 Creating exciting meetups...')
 
         rooms = list(Room.objects.filter(is_dm=False))
         users = list(User.objects.all())
 
-        diverse_meetup_templates = [
+        creative_meetup_templates = [
+            # Original creative meetups
             {
-                'title': 'Global Coffee Culture Exchange',
-                'location': 'International Coffee House',
-                'description': 'Taste coffee traditions from around the world. Bring your cultural brewing methods!'
+                'title': 'Meme Creation Workshop',
+                'location': 'Discord Voice Channel #creativity',
+                'description': 'Learn to make dank memes! No artistic skills required, just terrible humor.'
             },
             {
-                'title': 'Productivity Systems Anonymous',
-                'location': 'Organization Station',
-                'description': 'Share your productivity failures and wins. No judgment, just understanding.'
+                'title': 'Existential Crisis Coffee Hour',
+                'location': 'Existential Café (Virtual)',
+                'description': 'Discuss life, the universe, and why we chose computer science. Therapy not included.'
             },
             {
-                'title': 'Philosophy Café Midnight Edition',
-                'location': 'The Thinking Space',
-                'description': 'Deep thoughts over deeper coffee. Existential crisis optional but welcome.'
+                'title': 'Pet Photo Contest & Show',
+                'location': 'Pet Paradise Community Center',
+                'description': 'Bring photos of your pets! Winner gets ultimate bragging rights and pet treats.'
             },
             {
-                'title': 'International Comfort Food Potluck',
-                'location': 'Global Kitchen Community Center',
-                'description': 'Bring a dish that reminds you of home. Stories included.'
+                'title': 'Cooking Disaster Recovery Workshop',
+                'location': 'Community Kitchen (Fire Extinguishers Ready)',
+                'description': 'Learn to cook without burning down the kitchen. Results not guaranteed.'
             },
             {
-                'title': 'Digital Detox Support Circle',
-                'location': 'Analog Life Café',
-                'description': 'Real-world meeting for screen-tired souls. Phones in basket at door.'
+                'title': 'Crypto Therapy Group Session',
+                'location': 'The Dip Recovery Center',
+                'description': 'Share your losses, celebrate small wins, plan for the next bull run.'
             },
             {
-                'title': 'Creative Block Breaker Session',
-                'location': 'Inspiration Station',
-                'description': 'Collaborative creativity to unstick stuck artists. All mediums welcome.'
+                'title': 'Adulting 101: Taxes and Tears',
+                'location': 'Adult Learning Center',
+                'description': 'Learn adult things our schools never taught us. Tissues provided.'
+            },
+            {
+                'title': 'Gaming Tournament of Shame',
+                'location': 'GameZone Arcade',
+                'description': 'Compete in games you\'re terrible at. Winning is optional, fun is mandatory.'
+            },
+            {
+                'title': 'Procrastination Support Meeting',
+                'location': 'TBD (We\'ll figure it out later)',
+                'description': 'Meet other professional procrastinators. We\'ll plan it... eventually.'
+            },
+            {
+                'title': 'Plant Parent Anonymous',
+                'location': 'Green Thumb Nursery',
+                'description': 'Share your plant murder stories and learn to keep things alive.'
+            },
+            {
+                'title': 'AI vs Humans: Trivia Night',
+                'location': 'Tech Hub Community Room',
+                'description': 'Can humans still beat machines at random knowledge? Let\'s find out!'
+            },
+
+            # NEW: Cultural and International Meetups
+            {
+                'title': 'International Potluck Disaster',
+                'location': 'Global Community Kitchen',
+                'description': 'Bring a dish from your culture! Or order takeout and pretend you made it.'
+            },
+            {
+                'title': 'Language Exchange Speed Dating',
+                'location': 'Polyglot Paradise Café',
+                'description': '5 minutes per language. Learn pickup lines in 12 different cultures!'
+            },
+            {
+                'title': 'Cultural Stereotype Roast Battle',
+                'location': 'Comedy Club International',
+                'description': 'Roast your own culture before anyone else can. Self-deprecation championship!'
+            },
+            {
+                'title': 'Homesick Food Therapy Session',
+                'location': 'Grandma\'s Kitchen (Virtual)',
+                'description': 'Cook childhood comfort foods together via video call. Crying is encouraged.'
+            },
+            {
+                'title': 'Third Culture Kids Support Circle',
+                'location': 'Nowhere and Everywhere Lounge',
+                'description': 'Where is home? Let\'s figure it out together over snacks from 5 different countries.'
+            },
+            {
+                'title': 'Translation Fails Comedy Night',
+                'location': 'Lost in Translation Theater',
+                'description': 'Share your worst Google Translate moments. Laughter is universal... hopefully.'
+            },
+            {
+                'title': 'Expat Survival Skills Workshop',
+                'location': 'International Adaptation Center',
+                'description': 'How to find your favorite snacks abroad and other essential life skills.'
+            },
+            {
+                'title': 'Cultural Dance Battle Royale',
+                'location': 'World Beat Dance Studio',
+                'description': 'Bollywood vs Salsa vs K-Pop vs Traditional Folk. May the best moves win!'
+            },
+            {
+                'title': 'International Karaoke Chaos',
+                'location': 'Babel Karaoke Bar',
+                'description': 'Sing songs in languages you don\'t speak. Confidence over accuracy!'
+            },
+            {
+                'title': 'Global Street Food Tour',
+                'location': 'Food Truck Festival Grounds',
+                'description': 'Taste the world without leaving the city. Antacids provided.'
+            },
+            {
+                'title': 'Passport Flex Contest',
+                'location': 'Immigration Office Waiting Room (Simulated)',
+                'description': 'Show off your stamp collection and share your border crossing horror stories.'
+            },
+            {
+                'title': 'Cultural Miscommunication Bingo',
+                'location': 'United Nations of Confusion',
+                'description': 'Turn awkward cultural moments into a fun game. Everyone wins (eventually).'
+            },
+
+            # More diverse creative meetups
+            {
+                'title': 'Netflix & Actually Decide',
+                'location': 'Cozy Movie Theater',
+                'description': 'Watch something together instead of scrolling for 2 hours. Revolutionary concept.'
+            },
+            {
+                'title': 'Social Anxiety Karaoke',
+                'location': 'Safe Space Karaoke Bar',
+                'description': 'Sing badly together in a judgment-free zone. Liquid courage optional.'
+            },
+            {
+                'title': 'Conspiracy Theory Bingo Night',
+                'location': 'The Truth is Out There Café',
+                'description': 'Fun conspiracy theories only! Birds aren\'t real, Finland doesn\'t exist, etc.'
+            },
+            {
+                'title': 'Dating App Horror Story Sharing',
+                'location': 'Survivors Support Center',
+                'description': 'Share your worst dating experiences. Therapy through laughter.'
+            },
+            {
+                'title': 'Work-From-Home Fashion Show',
+                'location': 'Virtual Runway (Zoom)',
+                'description': 'Professional on top, pajamas on bottom. Strut your WFH style!'
+            },
+            {
+                'title': 'Overthinking Olympics Opening Ceremony',
+                'location': 'Anxiety Arena',
+                'description': 'Competitive scenario planning. Current record: 47 outcomes for one text message.'
             }
         ]
 
         meetup_count = 0
-        for _ in range(random.randint(20, 30)):
+
+        # Create 25-35 meetups
+        for _ in range(random.randint(25, 35)):
             room = random.choice(rooms)
-            template = random.choice(diverse_meetup_templates)
+            template = random.choice(creative_meetup_templates)
             creator = random.choice(users)
 
-            future_date = timezone.now() + timedelta(days=random.randint(1, 60))
-            hour = random.randint(10, 20)
+            # Future dates (1-90 days from now for variety)
+            future_date = timezone.now() + timedelta(days=random.randint(1, 90))
+            # Realistic times (weekends more likely for fun events)
+            if future_date.weekday() >= 5:  # Weekend
+                hour = random.randint(10, 22)
+            else:  # Weekday
+                hour = random.choice([12, 17, 18, 19, 20])  # Lunch or evening
+
             future_date = future_date.replace(
                 hour=hour,
                 minute=random.choice([0, 15, 30, 45]),
@@ -676,11 +774,13 @@ class Command(BaseCommand):
                 creator=creator
             )
 
-            attendees = random.sample(users, random.randint(3, 10))
+            # Add realistic attendee count (2-12 people)
+            num_attendees = random.randint(2, 12)
+            attendees = random.sample(users, min(num_attendees, len(users)))
             if creator not in attendees:
                 attendees.append(creator)
 
             meetup.attendees.set(attendees)
             meetup_count += 1
 
-        self.stdout.write(self.style.SUCCESS(f'✅ Created {meetup_count} themed meetups'))
+        self.stdout.write(self.style.SUCCESS(f'✅ Created {meetup_count} exciting meetups!'))
