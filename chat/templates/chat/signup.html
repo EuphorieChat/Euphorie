@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+{% load socialaccount %}
+<head>
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon-180x180.png' %}">
+  <meta charset="UTF-8">
+  <title>Sign Up - Euphorie</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <style>
+    :root {
+      --primary: #ec4899;
+      --primary-hover: #db2777;
+      --primary-light: #fce7f3;
+      --secondary: #9333ea;
+      --secondary-light: #f3e8ff;
+      --secondary-hover: #7e22ce;
+      --accent: #f97316;
+      --accent-light: #fff7ed;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --info: #3b82f6;
+      --warning: #f59e0b;
+      --surface: #ffffff;
+      --surface-hover: #f8fafc;
+      --surface-active: #f1f5f9;
+      --border: #e2e8f0;
+      --border-focus: #cbd5e1;
+      --text-primary: #334155;
+      --text-secondary: #64748b;
+      --text-tertiary: #94a3b8;
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      --radius-2xl: 1.5rem;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-fast: 0.15s;
+      --duration-normal: 0.25s;
+      --duration-slow: 0.35s;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      background-image:
+        radial-gradient(circle at 10% 10%, rgba(236, 72, 153, 0.03), transparent 20%),
+        radial-gradient(circle at 90% 90%, rgba(147, 51, 234, 0.03), transparent 20%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      overflow-x: hidden;
+      width: 100%;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background-color: var(--text-tertiary);
+      border-radius: 20px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: var(--text-secondary);
+    }
+
+    /* Gradient text for branding */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* Header & Navigation */
+    .app-header {
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .app-header.scrolled {
+      background-color: rgba(255, 255, 255, 0.97);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Button styles - unified with room.html */
+    .btn {
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      padding: 0.5rem 1rem;
+      transition: all var(--duration-normal) var(--ease);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10, 10);
+      opacity: 0;
+      transition: transform 0.5s, opacity 0.8s;
+    }
+
+    .btn:active::after {
+      transform: scale(0, 0);
+      opacity: 0.3;
+      transition: 0s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary:hover {
+      box-shadow: var(--shadow-md);
+      opacity: 0.95;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--primary);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--primary-light);
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Enhanced card styles */
+    .signup-card {
+      background-color: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all var(--duration-normal) var(--ease);
+      box-shadow: var(--shadow-sm);
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.4s var(--ease) forwards;
+    }
+
+    .signup-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-focus);
+    }
+
+    /* Social signup buttons */
+    .social-btn {
+      transition: all var(--duration-normal) var(--ease);
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border);
+      background-color: white;
+    }
+
+    .social-btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(236, 72, 153, 0.1) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10, 10);
+      opacity: 0;
+      transition: transform 0.5s, opacity 0.8s;
+    }
+
+    .social-btn:active::after {
+      transform: scale(0, 0);
+      opacity: 0.3;
+      transition: 0s;
+    }
+
+    .social-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+      border-color: var(--border-focus);
+      background-color: var(--surface-hover);
+    }
+
+    /* Enhanced form elements */
+    .input-wrapper {
+      position: relative;
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background-color: var(--surface);
+      color: var(--text-primary);
+      transition: all var(--duration-normal) var(--ease);
+      font-size: 0.875rem;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .input-icon {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--primary);
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    .input-icon-left {
+      left: 1rem;
+    }
+
+    .input-with-icon-left {
+      padding-left: 2.75rem;
+    }
+
+    .input:focus ~ .input-icon {
+      color: var(--primary);
+    }
+
+    /* Enhanced checkbox styles */
+    .custom-checkbox {
+      display: flex;
+      align-items: flex-start;
+      cursor: pointer;
+    }
+
+    .custom-checkbox input[type="checkbox"] {
+      height: 1.1rem;
+      width: 1.1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: white;
+      margin-right: 0.5rem;
+      cursor: pointer;
+      position: relative;
+      transition: all var(--duration-normal) var(--ease);
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .custom-checkbox input[type="checkbox"]:hover {
+      border-color: var(--primary);
+    }
+
+    .custom-checkbox input[type="checkbox"]:checked {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-color: var(--primary);
+    }
+
+    .custom-checkbox input[type="checkbox"]:checked::after {
+      content: '✓';
+      font-size: 0.75rem;
+      color: white;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .custom-checkbox label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      line-height: 1.5;
+    }
+
+    /* Badge styles */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.125rem 0.5rem;
+      border-radius: var(--radius-xl);
+      font-size: 0.625rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+    }
+
+    .badge-secondary {
+      background-color: var(--primary-light);
+      color: var(--primary);
+    }
+
+    /* Animation Keyframes */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: -1000px 0;
+      }
+      100% {
+        background-position: 1000px 0;
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Signup button enhancement */
+    .signup-btn {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: var(--radius-lg);
+      padding: 0.75rem 1.25rem;
+      font-weight: 500;
+      transition: all var(--duration-normal) var(--ease);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .signup-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: translateX(-100%);
+      animation: shimmer 2s infinite;
+    }
+
+    .signup-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .signup-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Link styles */
+    .link {
+      color: var(--primary);
+      font-weight: 500;
+      transition: all var(--duration-normal) var(--ease);
+      position: relative;
+    }
+
+    .link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      transition: width var(--duration-normal) var(--ease);
+    }
+
+    .link:hover {
+      color: var(--primary-hover);
+    }
+
+    .link:hover::after {
+      width: 100%;
+    }
+
+    /* Error and help text styling */
+    .error-message {
+      color: var(--danger);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      animation: fadeIn 0.3s var(--ease);
+    }
+
+    .error-message::before {
+      content: "⚠";
+      font-size: 0.875rem;
+    }
+
+    .help-text {
+      color: var(--text-tertiary);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .help-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      cursor: help;
+    }
+
+    .help-tooltip .tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--dark);
+      color: white;
+      font-size: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-md);
+      white-space: pre-wrap;
+      max-width: 250px;
+      margin-bottom: 0.25rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: all var(--duration-normal) var(--ease);
+      z-index: 10;
+    }
+
+    .help-tooltip:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Password strength indicator */
+    .strength-indicator {
+      margin-top: 0.25rem;
+      height: 0.25rem;
+      width: 100%;
+      background-color: var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .strength-bar {
+      height: 100%;
+      transition: all var(--duration-normal) var(--ease);
+      border-radius: var(--radius-xl);
+    }
+
+    .strength-weak {
+      background-color: var(--danger);
+      width: 33%;
+    }
+
+    .strength-medium {
+      background-color: var(--warning);
+      width: 66%;
+    }
+
+    .strength-strong {
+      background: linear-gradient(135deg, var(--success), #10b981);
+      width: 100%;
+    }
+
+    /* Divider */
+    .divider {
+      position: relative;
+      margin: 1.5rem 0;
+    }
+
+    .divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background-color: var(--border);
+    }
+
+    .divider span {
+      position: relative;
+      background-color: white;
+      padding: 0 1rem;
+      color: var(--text-tertiary);
+      font-size: 0.75rem;
+    }
+
+    /* Footer enhancement */
+    footer {
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      transition: all var(--duration-normal) var(--ease);
+    }
+
+    footer a:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Focused state for accessibility */
+    *:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Loading state */
+    .loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* Success state for inputs */
+    .input-success {
+      border-color: var(--success);
+    }
+
+    .input-success:focus {
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .signup-card {
+        margin: 1rem;
+      }
+
+      .btn {
+        padding: 0.625rem 1rem;
+      }
+
+      footer .max-w-6xl {
+        padding: 1rem 0.5rem;
+      }
+    }
+
+    /* Enhanced hover states for better interactivity */
+    .hover-lift {
+      transition: transform var(--duration-normal) var(--ease);
+    }
+
+    .hover-lift:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Form group styling */
+    .form-group {
+      position: relative;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.375rem;
+    }
+
+    /* Success animation */
+    @keyframes checkmark {
+      0% {
+        transform: scale(0) rotate(45deg);
+      }
+      50% {
+        transform: scale(1.2) rotate(45deg);
+      }
+      100% {
+        transform: scale(1) rotate(45deg);
+      }
+    }
+
+    .checkmark {
+      animation: checkmark 0.3s var(--ease);
+    }
+  </style>
+</head>
+<body>
+  <!-- Enhanced Header -->
+  <header class="app-header py-3" id="header">
+    <div class="container mx-auto px-4 flex items-center justify-between">
+      <a href="{% url 'index' %}" class="flex items-center group">
+        <h1 class="text-xl font-bold gradient-text mr-2 group-hover:opacity-90 transition-opacity">Euphorie</h1>
+        <span class="badge badge-secondary">BETA</span>
+      </a>
+
+      <nav class="flex items-center gap-3">
+        <a href="{% url 'account_signup' %}" class="btn btn-primary">
+          Sign up
+        </a>
+        <a href="{% url 'account_login' %}" class="btn btn-secondary">
+          Login
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container mx-auto p-4 sm:p-6 max-w-md min-h-[calc(100vh-160px)] flex items-center justify-center">
+    <!-- Enhanced Signup Card -->
+    <div class="signup-card p-8 sm:p-10 w-full">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold gradient-text mb-3">Create Your Account</h2>
+        <p class="text-gray-500">Join Euphorie and start chatting with amazing people</p>
+      </div>
+
+      <!-- Social signup buttons with actual functionality -->
+      <div class="space-y-3 mb-8">
+        <a href="{% provider_login_url 'google' %}" class="social-btn w-full py-3 px-4 rounded-lg flex justify-center items-center gap-3 text-gray-700 font-medium hover-lift">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.0003 12.2224C22.0003 11.4002 21.9322 10.8002 21.7847 10.178H12.2031V13.8891H17.8247C17.7122 14.8113 17.1072 16.2002 15.8297 17.1335L15.8096 17.2578L19.0514 19.6335L19.2559 19.6545C21.1514 17.9224 22.0003 15.3113 22.0003 12.2224Z" fill="#4285F4"/>
+            <path d="M12.2039 22.0001C15.1258 22.0001 17.5717 21.1112 19.2567 19.6546L15.8305 17.1335C14.9828 17.7224 13.8039 18.1335 12.2039 18.1335C9.40078 18.1335 7.02189 16.4001 6.12422 13.9779L5.99563 13.9879L2.63867 16.4446L2.59961 16.5557C4.2717 19.778 7.98078 22.0001 12.2039 22.0001Z" fill="#34A853"/>
+            <path d="M6.12421 13.9779C5.93421 13.3557 5.82205 12.6891 5.82205 12.0001C5.82205 11.3112 5.93421 10.6446 6.11308 10.0223L6.10696 9.88901L2.69992 7.37793L2.59961 7.44458C1.98088 8.8668 1.64062 10.4001 1.64062 12.0001C1.64062 13.6002 1.98088 15.1335 2.59961 16.5557L6.12421 13.9779Z" fill="#FBBC05"/>
+            <path d="M12.2039 5.86667C14.0562 5.86667 15.3094 6.67778 16.0484 7.35556L19.1039 4.48889C17.5628 3.09333 15.1261 2.22222 12.2039 2.22222C7.98078 2.22222 4.2717 4.44444 2.59961 7.66667L6.11307 10.0222C7.02189 7.6 9.40078 5.86667 12.2039 5.86667Z" fill="#EB4335"/>
+          </svg>
+          <span>Continue with Google</span>
+        </a>
+
+        <a href="{% provider_login_url 'microsoft' %}" class="social-btn w-full py-3 px-4 rounded-lg flex justify-center items-center gap-3 text-gray-700 font-medium hover-lift">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="9" height="9" fill="#F25022"/>
+            <rect x="13" y="2" width="9" height="9" fill="#7FBA00"/>
+            <rect x="2" y="13" width="9" height="9" fill="#00A4EF"/>
+            <rect x="13" y="13" width="9" height="9" fill="#FFB900"/>
+          </svg>
+          <span>Continue with Microsoft</span>
+        </a>
+
+        <a href="{% provider_login_url 'apple' %}" class="social-btn w-full py-3 px-4 rounded-lg flex justify-center items-center gap-3 text-gray-700 font-medium hover-lift">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.0999 12.92C17.0786 10.7017 18.9069 9.1443 18.9788 9.08929C17.8352 7.39009 16.0645 7.14243 15.4336 7.12818C13.9108 6.97047 12.4452 8.0188 11.6733 8.0188C10.8869 8.0188 9.69214 7.1427 8.41446 7.17829C6.75246 7.212 5.19993 8.17499 4.342 9.64881C2.58379 12.6461 3.84286 17.0761 5.52699 19.2653C6.37924 20.3361 7.38362 21.5414 8.66842 21.4868C9.91321 21.4283 10.3948 20.66 11.889 20.66C13.3667 20.66 13.8205 21.4868 15.1222 21.4497C16.4616 21.4283 17.323 20.3696 18.1442 19.286C19.1343 18.0463 19.5404 16.8391 19.5594 16.7747C19.5214 16.7628 17.1248 15.8868 17.0999 12.92Z" fill="black"/>
+            <path d="M15.0096 5.41364C15.6882 4.57572 16.1419 3.43506 16.0182 2.28027C15.0619 2.32302 13.8601 2.95123 13.1434 3.76488C12.5106 4.47893 11.9588 5.66756 12.0968 6.77439C13.1814 6.8599 14.3072 6.2394 15.0096 5.41364Z" fill="black"/>
+          </svg>
+          <span>Continue with Apple</span>
+        </a>
+      </div>
+
+      <!-- Enhanced Divider -->
+      <div class="divider">
+        <div class="flex items-center">
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <span class="px-3 text-gray-500">or with email</span>
+          <div class="flex-1 h-px bg-gray-200"></div>
+        </div>
+      </div>
+
+      <!-- Enhanced Signup Form -->
+      <form method="post" class="space-y-5 mt-8" id="signup-form">
+        {% csrf_token %}
+
+        <!-- Username field -->
+        <div class="form-group">
+          <label for="id_username">
+            Username
+            {% if form.username.help_text %}
+            <span class="help-tooltip">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="tooltip">{{ form.username.help_text }}</span>
+            </span>
+            {% endif %}
+          </label>
+          <div class="input-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            {{ form.username|add_class:"input input-with-icon-left" }}
+          </div>
+          {% if form.username.errors %}
+            <p class="error-message">{{ form.username.errors|striptags }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Email field -->
+        <div class="form-group">
+          <label for="id_email">
+            Email
+            {% if form.email.help_text %}
+            <span class="help-tooltip">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="tooltip">{{ form.email.help_text }}</span>
+            </span>
+            {% endif %}
+          </label>
+          <div class="input-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            {{ form.email|add_class:"input input-with-icon-left" }}
+          </div>
+          {% if form.email.errors %}
+            <p class="error-message">{{ form.email.errors|striptags }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Password1 field -->
+        <div class="form-group">
+          <label for="id_password1">
+            Password
+            {% if form.password1.help_text %}
+            <span class="help-tooltip">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="tooltip">{{ form.password1.help_text }}</span>
+            </span>
+            {% endif %}
+          </label>
+          <div class="input-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            {{ form.password1|add_class:"input input-with-icon-left" }}
+            <div class="strength-indicator">
+              <div class="strength-bar" id="password-strength"></div>
+            </div>
+          </div>
+          {% if form.password1.errors %}
+            <p class="error-message">{{ form.password1.errors|striptags }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Password2 field -->
+        <div class="form-group">
+          <label for="id_password2">
+            Confirm Password
+            {% if form.password2.help_text %}
+            <span class="help-tooltip">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="tooltip">{{ form.password2.help_text }}</span>
+            </span>
+            {% endif %}
+          </label>
+          <div class="input-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 input-icon input-icon-left" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            {{ form.password2|add_class:"input input-with-icon-left" }}
+          </div>
+          {% if form.password2.errors %}
+            <p class="error-message">{{ form.password2.errors|striptags }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Enhanced terms and conditions checkbox -->
+        <div class="custom-checkbox mt-6">
+          <input id="terms" name="terms" type="checkbox" required />
+          <label for="terms">
+            I agree to the <a href="#" class="link text-sm">Terms of Service</a> and
+            <a href="#" class="link text-sm">Privacy Policy</a>
+          </label>
+        </div>
+
+        <!-- Enhanced non-field errors -->
+        {% if form.non_field_errors %}
+          <div class="p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
+            <p class="text-red-600 text-sm font-medium">{{ form.non_field_errors|striptags }}</p>
+          </div>
+        {% endif %}
+
+        <!-- Enhanced Signup Button -->
+        <button type="submit" id="signup-button" class="signup-btn w-full py-3 flex justify-center items-center gap-2">
+          <span class="relative z-10">Create Account</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </form>
+
+      <!-- Login link with better styling -->
+      <p class="mt-8 text-center text-sm text-gray-600">
+        Already have an account?
+        <a href="{% url 'account_login' %}" class="link">Log in</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- Enhanced Footer -->
+  <footer class="py-6">
+    <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center max-w-6xl">
+      <div class="mb-4 sm:mb-0 text-center sm:text-left">
+        <a href="{% url 'index' %}" class="flex items-center justify-center sm:justify-start">
+          <h2 class="text-lg font-bold gradient-text">Euphorie</h2>
+          <span class="text-xs text-gray-400 ml-1">v1.2.0</span>
+        </a>
+        <p class="text-xs text-gray-500 mt-1">© 2025 Euphorie. All rights reserved.</p>
+      </div>
+      <div class="flex items-center gap-6 text-xs">
+        <a href="https://crene.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-gray-500 hover:text-indigo-500 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span class="hover:underline underline-offset-2">Crene.com</span>
+        </a>
+        <a href="https://diaryvault.com" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-gray-500 hover:text-green-500 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <span class="hover:underline underline-offset-2">DiaryVault.com</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Header scroll effect
+      const header = document.getElementById('header');
+      if (header) {
+        window.addEventListener('scroll', function() {
+          if (window.scrollY > 10) {
+            header.classList.add('scrolled');
+          } else {
+            header.classList.remove('scrolled');
+          }
+        });
+      }
+
+      // Enhanced form submission animation
+      const signupForm = document.getElementById('signup-form');
+      const signupButton = document.getElementById('signup-button');
+
+      if (signupForm && signupButton) {
+        signupForm.addEventListener('submit', function(e) {
+          // Only animate if form is valid
+          if (this.checkValidity()) {
+            signupButton.innerHTML = `
+              <svg class="animate-spin h-5 w-5 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span class="relative z-10">Creating account...</span>
+            `;
+            signupButton.disabled = true;
+            signupButton.classList.add('loading');
+          }
+        });
+      }
+
+      // Focus username field on load with nice animation
+      const usernameInput = document.getElementById('id_username');
+      if (usernameInput) {
+        setTimeout(() => {
+          usernameInput.focus();
+        }, 500);
+      }
+
+      // Enhanced password strength indicator
+      const password1Input = document.getElementById('id_password1');
+      const passwordStrength = document.getElementById('password-strength');
+
+      if (password1Input && passwordStrength) {
+        password1Input.addEventListener('input', function() {
+          const value = this.value;
+          let strength = 0;
+
+          // Length check
+          if (value.length >= 8) strength += 1;
+          if (value.length >= 12) strength += 1;
+
+          // Character type checks
+          if (value.match(/[a-z]/) && value.match(/[A-Z]/)) strength += 1;
+          if (value.match(/\d/)) strength += 1;
+          if (value.match(/[^a-zA-Z\d]/)) strength += 1;
+
+          // Update strength bar
+          passwordStrength.className = 'strength-bar';
+
+          if (strength < 2) {
+            passwordStrength.classList.add('strength-weak');
+          } else if (strength < 4) {
+            passwordStrength.classList.add('strength-medium');
+          } else {
+            passwordStrength.classList.add('strength-strong');
+          }
+        });
+      }
+
+      // Password match validation
+      const password2Input = document.getElementById('id_password2');
+      if (password1Input && password2Input) {
+        password2Input.addEventListener('input', function() {
+          if (this.value && password1Input.value !== this.value) {
+            this.setCustomValidity('Passwords do not match');
+            this.classList.add('border-red-500');
+          } else {
+            this.setCustomValidity('');
+            this.classList.remove('border-red-500');
+            if (this.value) {
+              this.classList.add('input-success');
+            }
+          }
+        });
+      }
+
+      // Add ripple effect to buttons
+      document.querySelectorAll('.btn, .social-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+          const ripple = document.createElement('span');
+          const rect = this.getBoundingClientRect();
+          const size = Math.max(rect.width, rect.height);
+          const x = e.clientX - rect.left - size / 2;
+          const y = e.clientY - rect.top - size / 2;
+
+          ripple.style.width = ripple.style.height = size + 'px';
+          ripple.style.left = x + 'px';
+          ripple.style.top = y + 'px';
+          ripple.classList.add('ripple');
+
+          this.appendChild(ripple);
+
+          setTimeout(() => {
+            ripple.remove();
+          }, 600);
+        });
+      });
+
+      // Form validation animation
+      const inputs = document.querySelectorAll('.input');
+      inputs.forEach(input => {
+        input.addEventListener('invalid', function(e) {
+          e.preventDefault();
+          this.classList.add('shake');
+          setTimeout(() => {
+            this.classList.remove('shake');
+          }, 500);
+        });
+
+        // Live validation feedback
+        input.addEventListener('blur', function() {
+          if (this.checkValidity() && this.value) {
+            this.classList.add('input-success');
+          } else {
+            this.classList.remove('input-success');
+          }
+        });
+      });
+
+      // Terms checkbox enhancement
+      const termsCheckbox = document.getElementById('terms');
+      if (termsCheckbox) {
+        termsCheckbox.addEventListener('change', function() {
+          if (this.checked) {
+            this.classList.add('checkmark');
+          }
+        });
+      }
+    });
+  </script>
+
+  <style>
+    /* Ripple effect */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+      animation: ripple 0.6s linear;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* Shake animation for validation */
+    .shake {
+      animation: shake 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+  </style>
+</body>
+</html>
