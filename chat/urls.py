@@ -18,9 +18,9 @@ urlpatterns = [
     # Provides: account_login, account_signup, account_logout, account_reset_password, etc.
     path('accounts/', include('allauth.urls')),
 
-    # ADDED: Convenience redirects (optional - for shorter URLs)
-    path('login/', lambda request: redirect('/accounts/login/'), name='login_redirect'),
-    path('signup/', lambda request: redirect('/accounts/signup/'), name='signup_redirect'),
+    # ADDED: Convenience redirects (match template URL names)
+    path('login/', lambda request: redirect('/accounts/login/'), name='login'),
+    path('signup/', lambda request: redirect('/accounts/signup/'), name='signup'),
 
     # Custom logout (overrides allauth's logout for custom template)
     path('logout/', auth_views.LogoutView.as_view(template_name='chat/logged_out.html'), name='custom_logout'),
