@@ -91,4 +91,5 @@ urlpatterns = [
     # Profile Pictures
     path('api/update_profile/', views.update_profile, name='update_profile'),
     path('api/profile/<str:username>/', views.get_user_profile, name='get_user_profile'),
+
 ]
