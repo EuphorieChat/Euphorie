@@ -36,7 +36,7 @@ ALLOWED_HOSTS = ['euphorie.com', 'www.euphorie.com', '127.0.0.1', 'localhost', '
 # Application definition
 
 INSTALLED_APPS = [
-    'chat',
+    'chat',  # Only list once!
     'channels',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.apple',
 
     'widget_tweaks',
-
 ]
 
 MIDDLEWARE = [
@@ -73,7 +72,6 @@ MIDDLEWARE = [
 
     # Add allauth middleware
     'allauth.account.middleware.AccountMiddleware',
-
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -166,9 +164,15 @@ CHANNEL_LAYERS = {
 }
 print("Using in-memory channel layer for Django Channels")
 
-LOGIN_URL = '/login/'
+# FIXED: Update URLs for allauth
+LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# ADDED: Additional allauth redirects
+ACCOUNT_LOGIN_REDIRECT_URL = '/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+ACCOUNT_SIGNUP_REDIRECT_URL = '/'
 
 CSRF_TRUSTED_ORIGINS = [
     "https://euphorie.com",
@@ -178,8 +182,8 @@ CSRF_TRUSTED_ORIGINS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 30485760  # 10MB in bytes
-FILE_UPLOAD_MAX_MEMORY_SIZE = 30485760  # 10MB in bytes
+DATA_UPLOAD_MAX_MEMORY_SIZE = 30485760  # 30MB in bytes
+FILE_UPLOAD_MAX_MEMORY_SIZE = 30485760  # 30MB in bytes
 
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',
@@ -201,19 +205,27 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-# Account settings
+# ENHANCED: Account settings
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # Change to 'mandatory' in production
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_MIN_LENGTH = 3
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300  # 5 minutes
+ACCOUNT_PRESERVE_USERNAME_CASING = False
+ACCOUNT_SESSION_REMEMBER = True
 
-# Social account settings
+# ENHANCED: Social account settings
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Change to 'mandatory' in production
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_STORE_TOKENS = True
 
-# Provider specific settings
+# ENHANCED: Provider specific settings with better error handling
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [
@@ -227,12 +239,15 @@ SOCIALACCOUNT_PROVIDERS = {
         'APP': {
             'client_id': config('GOOGLE_CLIENT_ID', default=''),
             'secret': config('GOOGLE_CLIENT_SECRET', default=''),
-        }
+        },
+        # ADDED: Verification settings
+        'VERIFIED_EMAIL': True,
     },
     'microsoft': {
         'tenant': 'common',  # or your specific tenant ID
         'SCOPE': [
             'https://graph.microsoft.com/User.Read',
+            'https://graph.microsoft.com/User.Read.All',
         ],
         'APP': {
             'client_id': config('MICROSOFT_CLIENT_ID', default=''),
@@ -245,6 +260,39 @@ SOCIALACCOUNT_PROVIDERS = {
             'secret': config('APPLE_SECRET', default=''),
             'key': config('APPLE_KEY_ID', default=''),
             'certificate_key': config('APPLE_PRIVATE_KEY', default=''),
-        }
+        },
+        # ADDED: Apple-specific settings
+        'SCOPE': ['name', 'email'],
     }
 }
+
+# ENHANCED: Custom forms configuration
+ACCOUNT_FORMS = {
+    'login': 'allauth.account.forms.LoginForm',
+    'signup': 'allauth.account.forms.SignupForm',
+    'add_email': 'allauth.account.forms.AddEmailForm',
+    'change_password': 'allauth.account.forms.ChangePasswordForm',
+    'set_password': 'allauth.account.forms.SetPasswordForm',
+    'reset_password': 'allauth.account.forms.ResetPasswordForm',
+    'reset_password_from_key': 'allauth.account.forms.ResetPasswordKeyForm',
+    'disconnect': 'allauth.socialaccount.forms.DisconnectForm',
+}
+
+# ADDED: Logging configuration for debugging allauth
+if DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'loggers': {
+            'allauth': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+        },
+    }

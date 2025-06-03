@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
+from django.shortcuts import redirect
 from . import views, admin_views, api_views
 from .admin_views import admin_create_room, admin_user_settings
 
@@ -13,10 +14,16 @@ urlpatterns = [
     path('manage/friends/', views.friends_list, name='friends_list'),
     path('friends/', views.friends_list, name='friends_direct'),
 
-    # Authentication views from first urls.py
-    path('signup/', views.signup, name='signup'),
-    path('login/', auth_views.LoginView.as_view(template_name='chat/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(template_name='chat/logged_out.html'), name='logout'),
+    # Django Allauth URLs - This handles all authentication
+    # Provides: account_login, account_signup, account_logout, account_reset_password, etc.
+    path('accounts/', include('allauth.urls')),
+
+    # ADDED: Convenience redirects (optional - for shorter URLs)
+    path('login/', lambda request: redirect('/accounts/login/'), name='login_redirect'),
+    path('signup/', lambda request: redirect('/accounts/signup/'), name='signup_redirect'),
+
+    # Custom logout (overrides allauth's logout for custom template)
+    path('logout/', auth_views.LogoutView.as_view(template_name='chat/logged_out.html'), name='custom_logout'),
 
     # Password protection route from first urls.py
     path('room/<str:room_name>/password/', admin_views.room_password_check, name='room_password_check'),
@@ -45,7 +52,6 @@ urlpatterns = [
     path('manage/toggle-user-status-ajax/', admin_views.admin_toggle_user_status_ajax, name='admin_toggle_user_status_ajax'),
     path('manage/export-chat/<str:room_name>/', admin_views.admin_export_chat, name='admin_export_chat'),
 
-
     # API endpoints: Announcements from first urls.py
     path('api/announcement/<int:announcement_id>/mark_read/', admin_views.mark_announcement_read, name='mark_announcement_read'),
     path('api/room/<str:room_name>/create_announcement/', admin_views.create_announcement, name='create_announcement'),
@@ -68,7 +74,7 @@ urlpatterns = [
 
     # API endpoints: Friends functionality from first urls.py
     path('api/friend_request/', api_views.send_friend_request, name='send_friend_request'),
-    path('api/friend_response/', api_views.respond_to_friend_request, name='respond_to_friend_request'),
+    path('api/friend_response/', api_views.respond_to_friend_request, name='respond_to_friend_response'),
     path('api/remove_friend/', api_views.remove_friend, name='remove_friend'),
     path('api/friend_suggestions/', api_views.get_friend_suggestions_ajax, name='get_friend_suggestions_ajax'),
     path('api/online_friends/', api_views.get_online_friends_api, name='get_online_friends'),
