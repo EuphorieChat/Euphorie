@@ -219,7 +219,7 @@ ACCOUNT_PRESERVE_USERNAME_CASING = False
 ACCOUNT_SESSION_REMEMBER = True
 
 # ENHANCED: Social account settings
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'mandatory' 
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_STORE_TOKENS = True
@@ -241,11 +241,6 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
         },
         'OAUTH_PKCE_ENABLED': True,
-        'APP': {
-            'client_id': config('GOOGLE_CLIENT_ID', default=''),
-            'secret': config('GOOGLE_CLIENT_SECRET', default=''),
-        },
-        # ADDED: Verification settings
         'VERIFIED_EMAIL': True,
     },
     'microsoft': {
@@ -254,18 +249,8 @@ SOCIALACCOUNT_PROVIDERS = {
             'https://graph.microsoft.com/User.Read',
             'https://graph.microsoft.com/User.Read.All',
         ],
-        'APP': {
-            'client_id': config('MICROSOFT_CLIENT_ID', default=''),
-            'secret': config('MICROSOFT_CLIENT_SECRET', default=''),
-        }
     },
     'apple': {
-        'APP': {
-            'client_id': config('APPLE_CLIENT_ID', default=''),
-            'secret': config('APPLE_SECRET', default=''),
-            'key': config('APPLE_KEY_ID', default=''),
-            'certificate_key': config('APPLE_PRIVATE_KEY', default=''),
-        },
         # ADDED: Apple-specific settings
         'SCOPE': ['name', 'email'],
     }
