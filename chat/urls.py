@@ -14,10 +14,6 @@ urlpatterns = [
     path('manage/friends/', views.friends_list, name='friends_list'),
     path('friends/', views.friends_list, name='friends_direct'),
 
-    # Django Allauth URLs - This handles all authentication
-    # Provides: account_login, account_signup, account_logout, account_reset_password, etc.
-    path('accounts/', include('allauth.urls')),
-
     # ADDED: Convenience redirects (match template URL names)
     path('login/', lambda request: redirect('/accounts/login/'), name='login'),
     path('signup/', lambda request: redirect('/accounts/signup/'), name='signup'),
