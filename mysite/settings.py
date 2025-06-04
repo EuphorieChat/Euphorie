@@ -227,6 +227,9 @@ SOCIALACCOUNT_LOGIN_ON_GET = False
 SOCIALACCOUNT_AUTO_SIGNUP = False
 SOCIALACCOUNT_ONLY = False
 
+ACCOUNT_ADAPTER = 'chat.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'chat.adapters.CustomSocialAccountAdapter'
+
 # ENHANCED: Provider specific settings with better error handling
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
