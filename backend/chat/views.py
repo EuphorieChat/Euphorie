@@ -17,7 +17,7 @@ from .models import (
     Room, Message, UserProfile, RoomCategory, Friendship, 
     RoomBookmark, MessageReport, UserActivity
 )
-from .forms import RoomCreationForm, UserProfileForm, MessageForm
+from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
 # ==================== MAIN PAGES ====================
 
@@ -150,7 +150,7 @@ def room(request, room_name):
     context = {
         'room': room,
         'messages': messages_list,
-        'message_form': MessageForm(),
+        'message_form': QuickMessageForm(),
     }
     
     return render(request, 'chat/room_3d.html', context)
