@@ -194,7 +194,7 @@ def search_rooms(request):
         Q(description__icontains=query),
         is_public=True
     ).select_related('category', 'creator').annotate(
-        message_count=Count('messages')
+        total_messages=Count('messages')  # Changed from message_count to total_messages
     )[:10]
     
     rooms_data = [{
@@ -203,7 +203,7 @@ def search_rooms(request):
         'description': room.description or '',
         'category': room.category.name if room.category else '',
         'creator': room.creator.username,
-        'message_count': room.message_count,
+        'message_count': room.total_messages,  # Use the annotation
         'url': f'/room/{room.name}/',
     } for room in rooms]
     
