@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>{{ room.name }} - Euphorie 3D</title>
+    
+    <!-- Mobile CSS Integration -->
+    <link rel="stylesheet" href="/static/css/room/mobile.css">
+    <!-- Emotion System CSS -->
+    <link rel="stylesheet" href="/static/css/room/emotion-system.css">
+    
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: #0a0a0a;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #room-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #three-container {
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            cursor: grab;
+        }
+        
+        #three-container:active {
+            cursor: grabbing;
+        }
+        
+        /* Enhanced Chat Panel Styles with 3D Integration */
+        #chat-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 340px;
+            height: 280px; /* Increased height for better chat experience */
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .chat-header h3 {
+            margin: 0;
+            color: #4CAF50;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .connection-indicator {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            border: 1px solid;
+        }
+        
+        .connection-indicator.connected {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border-color: #4CAF50;
+        }
+        
+        .connection-indicator.connecting {
+            background: rgba(255, 167, 38, 0.2);
+            color: #FFA726;
+            border-color: #FFA726;
+        }
+        
+        .connection-indicator.disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            color: #F44336;
+            border-color: #F44336;
+        }
+        
+        .bubble-mode-toggle {
+            background: rgba(255, 107, 53, 0.2);
+            border: 1px solid rgba(255, 107, 53, 0.4);
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 8px;
+        }
+        
+        .bubble-mode-toggle:hover {
+            background: rgba(255, 107, 53, 0.3);
+        }
+        
+        .bubble-mode-toggle.active {
+            background: rgba(255, 107, 53, 0.8);
+            border-color: #FF6B35;
+        }
+        
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border-left: 3px solid #667eea;
+        }
+        
+        .chat-message.own {
+            background: rgba(102, 126, 234, 0.2);
+            border-left-color: #4CAF50;
+            margin-left: 20px;
+        }
+        
+        .chat-message.system {
+            background: rgba(255, 167, 38, 0.1);
+            border-left-color: #FFA726;
+            font-style: italic;
+        }
+        
+        .chat-message .username {
+            font-weight: bold;
+            font-size: 11px;
+            color: #667eea;
+            margin-bottom: 2px;
+        }
+        
+        .chat-message.own .username {
+            color: #4CAF50;
+        }
+        
+        .chat-message.system .username {
+            color: #FFA726;
+        }
+        
+        .chat-message .timestamp {
+            font-size: 10px;
+            opacity: 0.6;
+            float: right;
+        }
+        
+        .chat-message .text {
+            font-size: 12px;
+            line-height: 1.3;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            font-size: 10px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.5s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+        
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+        
+        #chat-input-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        #chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        
+        #chat-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+        }
+        
+        #chat-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        
+        #send-btn {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        #send-btn:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-1px);
+        }
+        
+        #send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Controls Panel Styles - Enhanced for Mobile */
+        #controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+        
+        .control-btn {
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 160px;
+            text-align: left;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .control-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Pet Panel Styles */
+        #pet-panel {
+            position: absolute;
+            bottom: 320px;
+            left: 20px;
+            width: 340px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .pet-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        .pet-status {
+            flex: 1;
+        }
+        
+        .pet-stats {
+            display: flex;
+            gap: 8px;
+            font-size: 10px;
+            opacity: 0.8;
+        }
+        
+        /* Status Panel */
+        #status-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        .status-item {
+            margin-bottom: 4px;
+        }
+        
+        .status-value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        /* Quick Actions */
+        #quick-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+        
+        .quick-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+        
+        /* Group Activity Indicator */
+        .group-active {
+            border: 2px solid #ff6b35 !important;
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.5) !important;
+        }
+        
+        /* Hide desktop controls on mobile */
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none !important;
+            }
+            
+            #chat-panel {
+                width: calc(100vw - 40px);
+                height: 200px;
+                left: 20px;
+                right: 20px;
+                bottom: 20px;
+            }
+            
+            #pet-panel {
+                width: calc(100vw - 40px);
+                left: 20px;
+                right: 20px;
+                bottom: 240px;
+                max-height: 120px;
+            }
+            
+            #controls-panel {
+                top: 20px;
+                right: 20px;
+                gap: 6px;
+            }
+            
+            .control-btn {
+                padding: 10px 12px;
+                font-size: 11px;
+                min-width: 120px;
+            }
+            
+            #status-panel {
+                top: 10px;
+                left: 10px;
+                font-size: 11px;
+                padding: 8px 12px;
+            }
+            
+            #quick-actions {
+                bottom: 240px;
+                right: 20px;
+                flex-direction: column;
+            }
+            
+            .quick-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+        }
+        
+        /* Animation keyframes */
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes slideOutRight {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Enhanced visual effects */
+        .ui-panel {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        .notification-new {
+            animation: pulse 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="room-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loading-spinner"></div>
+            <h2 style="margin: 0 0 10px 0;">Loading {{ room.name }}...</h2>
+            <p style="margin: 0; opacity: 0.8;">Initializing advanced 3D social platform...</p>
+            <div style="margin-top: 20px; font-size: 12px; opacity: 0.6;">
+                <div>• Loading Three.js renderer</div>
+                <div>• Initializing avatar & interaction systems</div>
+                <div>• Setting up 3D chat bubbles</div>
+                <div>• Connecting to Rust WebSocket server</div>
+                <div>• Optimizing for mobile devices</div>
+            </div>
+        </div>
+        
+        <!-- Status Panel -->
+        <div id="status-panel" class="ui-panel">
+            <div style="font-weight: bold; margin-bottom: 8px; color: #4CAF50;">🌟 Euphorie 3D v2.0</div>
+            <div class="status-item">Room: <span class="status-value">{{ room.name }}</span></div>
+            <div class="status-item">Scene: <span class="status-value">{{ room.get_scene_preset_display }}</span></div>
+            <div class="status-item">Users: <span class="status-value" id="user-count">{{ room.current_users }}/{{ room.max_users }}</span></div>
+            <div class="status-item">Bubbles: <span class="status-value" id="bubble-count">0</span></div>
+            <div class="status-item">Pets: <span class="status-value" id="pet-count">0</span></div>
+            <div class="status-item">Groups: <span class="status-value" id="group-count">0</span></div>
+        </div>
+        
+        <!-- 3D Container -->
+        <div id="three-container"></div>
+        
+        <!-- Pet Panel -->
+        <div id="pet-panel" class="ui-panel" style="display: none;">
+            <div style="font-weight: bold; margin-bottom: 8px; color: #FF6B35; display: flex; justify-content: space-between; align-items: center;">
+                🐾 Active Pets
+                <button onclick="window.PetSystem && window.PetSystem.assignRandomPet('default')" style="padding: 4px 8px; background: #FF6B35; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">+ Add Pet</button>
+            </div>
+            <div id="pet-list">
+                <div style="text-align: center; opacity: 0.7; font-size: 11px; padding: 20px;">
+                    No pets active. Click "Add Pet" to get a companion!
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Chat Panel with 3D Integration -->
+        <div id="chat-panel" class="ui-panel">
+            <div class="chat-header">
+                <h3>💬 Room Chat</h3>
+                <div class="chat-controls">
+                    <span id="connection-indicator" class="connection-indicator connecting">🔄 Connecting</span>
+                    <button id="bubble-mode-toggle" class="bubble-mode-toggle active">3D Bubbles</button>
+                </div>
+            </div>
+            
+            <!-- Typing Indicators -->
+            <div id="typing-indicators"></div>
+            
+            <div id="chat-messages">
+                <div class="chat-message system">
+                    <div class="username">System</div>
+                    <div class="text">
+                        <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
+                        <strong>🎮 3D Chat Bubbles:</strong><br>
+                        • Messages appear floating above avatars in 3D space<br>
+                        • Real-time synchronization with Rust WebSocket server<br>
+                        • Click the "3D Bubbles" toggle to enable/disable<br><br>
+                        <strong>🎮 Controls:</strong><br>
+                        • <span class="desktop-only">Mouse: Rotate camera, scroll to zoom<br>
+                        • Click avatars to interact<br></span>
+                        <span class="mobile-only">• Touch: Drag to rotate, pinch to zoom<br>
+                        • Tap avatars to interact<br></span>
+                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">1</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">W</kbd> Wave, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">2</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">D</kbd> Dance<br>
+                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities<br>
+                        <span class="mobile-only"><br><strong>📱 Mobile:</strong><br>
+                        • Use virtual joystick to move<br>
+                        • Swipe left/right to change scenes<br>
+                        • Long press for context menu</span>
+                    </div>
+                </div>
+            </div>
+            <div id="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200" disabled>
+                <button id="send-btn" disabled>Send</button>
+            </div>
+        </div>
+        
+        <!-- Controls Panel - Desktop Only -->
+        <div id="controls-panel" class="ui-panel desktop-only">
+            <button id="toggle-magic" class="control-btn">✨ Magic Effects</button>
+            <button id="avatar-customize" class="control-btn">👤 Customize Avatar</button>
+            <button id="emotions-control" class="control-btn emotion-control-btn">🎭 Emotions</button>
+            <button id="add-friends" class="control-btn">👥 Add Friends</button>
+            <button id="pet-toggle" class="control-btn">🐾 Pet Panel</button>
+            <button id="group-activities" class="control-btn">👫 Group Activities</button>
+            <button id="change-scene" class="control-btn">🏠 Environment</button>
+            <button id="weather-control" class="control-btn">🌦️ Weather</button>
+            <button id="time-control" class="control-btn">🌅 Time of Day</button>
+        </div>
+        
+        <!-- Quick Actions - Desktop Only -->
+        <div id="quick-actions" class="desktop-only">
+            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave')" title="Wave (1/W)">👋</button>
+            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance')" title="Dance (2/D)">💃</button>
+            <button class="quick-btn" onclick="window.EmotionSystem && window.EmotionSystem.showEmotionPanel()" title="Show Emotions (E)">🎭</button>
+            <button class="quick-btn" onclick="window.GroupInteractionSystem && window.GroupInteractionSystem.showGroupActivityMenu()" title="Group Activities (G)">👥</button>
+            <button class="quick-btn" onclick="window.PetSystem && window.PetSystem.assignRandomPet('default')" title="Get Pet">🐾</button>
+        </div>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Pass Django context to JavaScript -->
+    <script>
+        window.ROOM_CONFIG = {
+            roomId: '{{ room.id }}',
+            roomName: '{{ room.name }}',
+            scenePreset: '{{ room.scene_preset }}',
+            websocketUrl: '{{ websocket_url }}',
+            userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
+            username: {% if request.user.is_authenticated %}'{{ request.user.username }}'{% else %}'Guest'{% endif %},
+            maxUsers: {{ room.max_users }},
+            currentUsers: {{ room.current_users }},
+            // Rust WebSocket Server Configuration
+            rustWebSocketUrl: 'ws://127.0.0.1:9001',
+            chatBubblesEnabled: true,
+            bubbleConfig: {
+                maxBubbles: 20,
+                fadeTime: 5000,
+                maxDistance: 50,
+                fontSize: 16,
+                maxWidth: 300
+            }
+        };
+        
+        // Enhanced mobile detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                         ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+        
+        if (isMobile) {
+            document.body.classList.add('mobile-device');
+            
+            // Show mobile controls message
+            const mobileElements = document.querySelectorAll('.mobile-only');
+            mobileElements.forEach(el => el.style.display = 'inline');
+            
+            // Hide desktop elements
+            const desktopElements = document.querySelectorAll('.desktop-only');
+            desktopElements.forEach(el => el.style.display = 'none');
+        } else {
+            // Hide mobile elements
+            const mobileElements = document.querySelectorAll('.mobile-only');
+            mobileElements.forEach(el => el.style.display = 'none');
+        }
+    </script>
+
+    <!-- Rust WebSocket Manager -->
+    <script>
+        // Enhanced WebSocket Manager for Rust Server Integration
+        class EuphorieWebSocketManager {
+            constructor() {
+                this.socket = null;
+                this.connected = false;
+                this.authenticated = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.messageQueue = [];
+                this.typingTimer = null;
+                this.isTyping = false;
+                this.lastPingTime = 0;
+                
+                // Generate user ID if not provided
+                this.userId = window.ROOM_CONFIG.userId || 'guest_' + Math.random().toString(36).substr(2, 9);
+                this.username = window.ROOM_CONFIG.username || 'Guest';
+                this.roomId = window.ROOM_CONFIG.roomId;
+                
+                // Bind methods
+                this.connect = this.connect.bind(this);
+                this.send = this.send.bind(this);
+                this.handleMessage = this.handleMessage.bind(this);
+                this.handleOpen = this.handleOpen.bind(this);
+                this.handleClose = this.handleClose.bind(this);
+                this.handleError = this.handleError.bind(this);
+                
+                // Auto-connect
+                this.connect();
+            }
+            
+            connect() {
+                if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+                    return;
+                }
+                
+                try {
+                    const url = window.ROOM_CONFIG.rustWebSocketUrl;
+                    console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
+                    this.updateConnectionStatus('connecting');
+                    
+                    this.socket = new WebSocket(url);
+                    this.socket.onopen = this.handleOpen;
+                    this.socket.onmessage = this.handleMessage;
+                    this.socket.onclose = this.handleClose;
+                    this.socket.onerror = this.handleError;
+                    
+                } catch (error) {
+                    console.error('❌ WebSocket connection failed:', error);
+                    this.scheduleReconnect();
+                }
+            }
+            
+            handleOpen(event) {
+                console.log('✅ Connected to Rust WebSocket server');
+                this.connected = true;
+                this.reconnectAttempts = 0;
+                this.updateConnectionStatus('connected');
+                
+                // Send authentication message
+                this.send({
+                    type: 'auth',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    username: this.username,
+                    timestamp: Date.now()
+                });
+                
+                // Send queued messages
+                while (this.messageQueue.length > 0) {
+                    const message = this.messageQueue.shift();
+                    this.send(message);
+                }
+                
+                // Start ping interval
+                this.startPingInterval();
+            }
+            
+            handleMessage(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 Received message:', data);
+                    
+                    switch (data.type) {
+                        case 'auth_success':
+                            this.authenticated = true;
+                            console.log(`✅ Authentication successful for room: ${data.room_id}`);
+                            this.addSystemMessage(`Connected to ${data.room_info.name}`);
+                            this.enableChatInput();
+                            break;
+                            
+                        case 'auth_error':
+                            console.error(`❌ Authentication failed: ${data.error}`);
+                            this.addSystemMessage(`Authentication failed: ${data.error}`);
+                            break;
+                            
+                        case 'chat_message':
+                            this.handleChatMessage(data);
+                            break;
+                            
+                        case 'user_joined':
+                            console.log(`👋 ${data.username} joined the room`);
+                            this.addSystemMessage(`${data.username} joined the room`);
+                            break;
+                            
+                        case 'user_left':
+                            console.log(`👋 ${data.username} left the room`);
+                            this.addSystemMessage(`${data.username} left the room`);
+                            break;
+                            
+                        case 'emotion':
+                            this.handleEmotion(data);
+                            break;
+                            
+                        case 'interaction':
+                            this.handleInteraction(data);
+                            break;
+                            
+                        case 'typing':
+                            this.handleTyping(data);
+                            break;
+                            
+                        case 'pong':
+                            const latency = Date.now() - this.lastPingTime;
+                            console.log(`🏓 Pong received (${latency}ms)`);
+                            break;
+                            
+                        case 'system':
+                            this.addSystemMessage(data.message);
+                            break;
+                            
+                        case 'error':
+                            console.error(`❌ Server error: ${data.error}`);
+                            this.addSystemMessage(`Error: ${data.error}`);
+                            break;
+                            
+                        default:
+                            console.log(`🔍 Unknown message type: ${data.type}`);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error parsing WebSocket message:', error);
+                }
+            }
+            
+            handleChatMessage(data) {
+                const isOwn = data.user_id === this.userId;
+                this.addMessageToChat(data.username, data.message, isOwn);
+                
+                // Create 3D chat bubble if enabled and ChatBubbleSystem is available
+                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                    window.ChatBubbleSystem.createBubbleFromMessage(data);
+                }
+            }
+            
+            handleEmotion(data) {
+                console.log(`🎭 ${data.user_id} is feeling ${data.emotion}`);
+                
+                // Show emotion in chat
+                this.addSystemMessage(`${data.user_id} is feeling ${data.emotion} 🎭`);
+                
+                // Trigger 3D emotion if EmotionSystem is available
+                if (window.EmotionSystem) {
+                    window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
+                }
+            }
+            
+            handleInteraction(data) {
+                console.log(`🤝 Interaction: ${data.user_id} -> ${data.interaction_type}`);
+                
+                // Show interaction in chat
+                this.addSystemMessage(`${data.user_id} ${data.interaction_type} 🤝`);
+                
+                // Trigger 3D interaction if InteractionSystem is available
+                if (window.InteractionSystem) {
+                    window.InteractionSystem.handleRemoteInteraction(data);
+                }
+            }
+            
+            handleTyping(data) {
+                this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
+            }
+            
+            handleClose(event) {
+                console.log('🔌 WebSocket connection closed:', event);
+                this.connected = false;
+                this.authenticated = false;
+                this.updateConnectionStatus('disconnected');
+                this.disableChatInput();
+                
+                if (!event.wasClean) {
+                    this.scheduleReconnect();
+                }
+            }
+            
+            handleError(error) {
+                console.error('❌ WebSocket error:', error);
+                this.updateConnectionStatus('disconnected');
+            }
+            
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+                    
+                    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                    this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                } else {
+                    console.error('❌ Max reconnection attempts reached');
+                    this.updateConnectionStatus('disconnected');
+                    this.addSystemMessage('Connection failed. Please refresh the page.');
+                }
+            }
+            
+            send(data) {
+                if (this.connected && this.socket.readyState === WebSocket.OPEN) {
+                    try {
+                        this.socket.send(JSON.stringify(data));
+                        console.log('📤 Sent message:', data.type);
+                    } catch (error) {
+                        console.error('❌ Error sending message:', error);
+                    }
+                } else {
+                    console.log('📦 Queuing message (not connected):', data.type);
+                    this.messageQueue.push(data);
+                }
+            }
+            
+            sendChatMessage(message) {
+                if (!this.authenticated) {
+                    console.warn('❌ Not authenticated');
+                    return;
+                }
+                
+                this.send({
+                    type: 'chat_message',
+                    message: message,
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendEmotion(emotion) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'emotion',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    emotion: emotion,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendInteraction(interactionType, targetUserId = null, data = null) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'interaction',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    target_user_id: targetUserId,
+                    interaction_type: interactionType,
+                    data: data,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendTyping(isTyping) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'typing',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    is_typing: isTyping
+                });
+            }
+            
+            startPingInterval() {
+                setInterval(() => {
+                    if (this.connected) {
+                        this.lastPingTime = Date.now();
+                        this.send({
+                            type: 'ping',
+                            timestamp: this.lastPingTime
+                        });
+                    }
+                }, 30000); // Ping every 30 seconds
+            }
+            
+            updateConnectionStatus(status) {
+                const indicator = document.getElementById('connection-indicator');
+                if (indicator) {
+                    indicator.className = `connection-indicator ${status}`;
+                    
+                    switch (status) {
+                        case 'connected':
+                            indicator.textContent = '✅ Connected';
+                            break;
+                        case 'connecting':
+                            indicator.textContent = '🔄 Connecting';
+                            break;
+                        case 'disconnected':
+                            indicator.textContent = '❌ Disconnected';
+                            break;
+                    }
+                }
+            }
+            
+            enableChatInput() {
+                const chatInput = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('send-btn');
+                
+                if (chatInput) {
+                    chatInput.disabled = false;
+                    chatInput.placeholder = 'Type a message...';
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                }
+            }
+            
+            disableChatInput() {
+                const chatInput = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('send-btn');
+                
+                if (chatInput) {
+                    chatInput.disabled = true;
+                    chatInput.placeholder = 'Connecting...';
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                }
+            }
+            
+            addMessageToChat(username, message, isOwn = false) {
+                const chatMessages = document.getElementById('chat-messages');
+                if (!chatMessages) return;
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+                
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.innerHTML = `
+                    <div class="username">${this.escapeHtml(username)}</div>
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="text">${this.escapeHtml(message)}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Keep only last 50 messages for performance
+                while (chatMessages.children.length > 50) {
+                    chatMessages.removeChild(chatMessages.firstChild);
+                }
+            }
+            
+            addSystemMessage(message) {
+                const chatMessages = document.getElementById('chat-messages');
+                if (!chatMessages) return;
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message system';
+                
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.innerHTML = `
+                    <div class="username">System</div>
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="text">${this.escapeHtml(message)}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            updateTypingIndicator(userId, username, isTyping) {
+                const container = document.getElementById('typing-indicators');
+                if (!container) return;
+                
+                const indicatorId = `typing-${userId}`;
+                let indicator = document.getElementById(indicatorId);
+                
+                if (isTyping && userId !== this.userId) {
+                    if (!indicator) {
+                        indicator = document.createElement('div');
+                        indicator.id = indicatorId;
+                        indicator.className = 'typing-indicator';
+                        indicator.innerHTML = `
+                            <span>${this.escapeHtml(username)} is typing</span>
+                            <div class="typing-dots">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        `;
+                        container.appendChild(indicator);
+                    }
+                } else {
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                }
+            }
+            
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+        }
+        
+        // Initialize WebSocket Manager
+        window.WebSocketManager = null;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize WebSocket connection
+            window.WebSocketManager = new EuphorieWebSocketManager();
+            
+            // Setup chat input handlers
+            const chatInput = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            
+            if (chatInput && sendBtn) {
+                let typingTimer;
+                let isTyping = false;
+                
+                // Send message function
+                const sendMessage = () => {
+                    const message = chatInput.value.trim();
+                    if (!message || !window.WebSocketManager.authenticated) return;
+                    
+                    window.WebSocketManager.sendChatMessage(message);
+                    chatInput.value = '';
+                    
+                    // Stop typing indicator
+                    if (isTyping) {
+                        window.WebSocketManager.sendTyping(false);
+                        isTyping = false;
+                    }
+                };
+                
+                // Typing indicator logic
+                chatInput.addEventListener('input', () => {
+                    if (!isTyping && window.WebSocketManager.authenticated) {
+                        window.WebSocketManager.sendTyping(true);
+                        isTyping = true;
+                    }
+                    
+                    clearTimeout(typingTimer);
+                    typingTimer = setTimeout(() => {
+                        if (isTyping) {
+                            window.WebSocketManager.sendTyping(false);
+                            isTyping = false;
+                        }
+                    }, 2000);
+                });
+                
+                // Send on Enter
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+                
+                // Send on button click
+                sendBtn.addEventListener('click', sendMessage);
+            }
+            
+            // Setup bubble mode toggle
+            const bubbleModeToggle = document.getElementById('bubble-mode-toggle');
+            if (bubbleModeToggle) {
+                bubbleModeToggle.addEventListener('click', () => {
+                    window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
+                    bubbleModeToggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
+                    bubbleModeToggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
+                    
+                    if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                        window.ChatBubbleSystem.clearAllBubbles();
+                    }
+                });
+            }
+            
+            console.log('🚀 Euphorie WebSocket integration initialized');
+        });
+        
+        // Make WebSocket manager available for other systems
+        window.sendEmotion = function(emotion) {
+            if (window.WebSocketManager) {
+                window.WebSocketManager.sendEmotion(emotion);
+            }
+        };
+        
+        window.sendInteraction = function(type, targetId = null, data = null) {
+            if (window.WebSocketManager) {
+                window.WebSocketManager.sendInteraction(type, targetId, data);
+            }
+        };
+    </script>
+
+    <!-- Load JavaScript modules in order -->
+    <script>
+        // Enhanced error handling for script loading
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = callback;
+            script.onerror = () => {
+                console.error(`Failed to load script: ${src}`);
+                callback();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Load scripts sequentially with 3D chat bubble system
+        const scripts = [
+            '/static/js/core/globals.js',
+            '/static/js/core/event-bus.js',
+            '/static/js/systems/scene-manager.js',
+            '/static/js/systems/avatar-system.js',
+            '/static/js/systems/chat-bubble-system.js', // 3D chat bubbles
+            '/static/js/systems/interaction-system.js',
+            '/static/js/features/emotion-system.js',
+            '/static/js/systems/pet-system.js',
+            '/static/js/systems/group-interaction-system.js',
+            '/static/js/systems/advanced-scene-system.js',
+            '/static/js/ui/mobile-ui.js',
+            '/static/js/room-core.js'
+        ];
+        
+        let scriptIndex = 0;
+        function loadNextScript() {
+            if (scriptIndex < scripts.length) {
+                loadScript(scripts[scriptIndex], () => {
+                    console.log(`✅ Loaded: ${scripts[scriptIndex]}`);
+                    scriptIndex++;
+                    loadNextScript();
+                });
+            } else {
+                console.log('🚀 All systems loaded successfully!');
+                
+                // Initialize mobile UI if on mobile device
+                if (isMobile && window.MobileUI) {
+                    window.MobileUI.init();
+                    console.log('📱 Mobile UI initialized');
+                }
+                
+                // Initialize chat bubble system
+                if (window.ChatBubbleSystem) {
+                    window.ChatBubbleSystem.init();
+                    console.log('💬 Chat Bubble System initialized');
+                }
+                
+                // Initialize control panels
+                initializeControlPanels();
+                
+                // Hide loading screen
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    if (loadingScreen) {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingScreen.style.display = 'none';
+                        }, 500);
+                    }
+                }, 2000);
+            }
+        }
+        
+        function initializeControlPanels() {
+            // Initialize pet panel toggle
+            const petToggle = document.getElementById('pet-toggle');
+            const petPanel = document.getElementById('pet-panel');
+            const groupActivities = document.getElementById('group-activities');
+            const emotionsControl = document.getElementById('emotions-control');
+            
+            if (petToggle && petPanel) {
+                petToggle.addEventListener('click', () => {
+                    const isVisible = petPanel.style.display !== 'none';
+                    petPanel.style.display = isVisible ? 'none' : 'block';
+                    petToggle.style.background = isVisible ? 'rgba(255,255,255,0.1)' : 'rgba(255, 107, 53, 0.3)';
+                });
+            }
+            
+            if (groupActivities) {
+                groupActivities.addEventListener('click', () => {
+                    if (window.GroupInteractionSystem) {
+                        window.GroupInteractionSystem.showGroupActivityMenu();
+                    }
+                });
+            }
+            
+            // Initialize emotion control button with WebSocket integration
+            if (emotionsControl) {
+                emotionsControl.addEventListener('click', () => {
+                    console.log('🎭 Emotion button clicked');
+                    
+                    if (window.EmotionSystem && window.EmotionSystem.showEmotionPanel) {
+                        window.EmotionSystem.showEmotionPanel();
+                    } else {
+                        createInlineEmotionPanel();
+                    }
+                });
+            }
+            
+            // Counter update interval
+            setInterval(() => {
+                updateCounters();
+            }, 2000);
+        }
+        
+        function createInlineEmotionPanel() {
+            const existing = document.querySelectorAll('#emotion-panel');
+            existing.forEach(el => el.remove());
+            
+            const panel = document.createElement('div');
+            panel.id = 'emotion-panel';
+            panel.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(20, 20, 30, 0.95);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-radius: 15px;
+                padding: 25px;
+                z-index: 1500;
+                color: white;
+                min-width: 350px;
+                text-align: center;
+                backdrop-filter: blur(20px);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            `;
+            
+            panel.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #667eea;">🎭 Express Your Emotion</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <button onclick="triggerEmotion('happy')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😊<br>Happy</button>
+                    <button onclick="triggerEmotion('love')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😍<br>Love</button>
+                    <button onclick="triggerEmotion('excited')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">🤩<br>Excited</button>
+                    <button onclick="triggerEmotion('sad')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😢<br>Sad</button>
+                    <button onclick="triggerEmotion('angry')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😠<br>Angry</button>
+                    <button onclick="triggerEmotion('laughing')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😂<br>Laughing</button>
+                </div>
+                <button onclick="this.parentElement.remove()" style="padding: 10px 20px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white; cursor: pointer;">Close</button>
+            `;
+            
+            document.body.appendChild(panel);
+            
+            // Add hover effects
+            panel.querySelectorAll('button').forEach(btn => {
+                if (btn.onclick && btn.onclick.toString().includes('triggerEmotion')) {
+                    btn.addEventListener('mouseenter', () => {
+                        btn.style.background = 'rgba(255,255,255,0.2)';
+                        btn.style.transform = 'translateY(-2px)';
+                    });
+                    btn.addEventListener('mouseleave', () => {
+                        btn.style.background = 'rgba(255,255,255,0.1)';
+                        btn.style.transform = 'translateY(0)';
+                    });
+                }
+            });
+            
+            // Click outside to close
+            setTimeout(() => {
+                const closeHandler = (e) => {
+                    if (!panel.contains(e.target)) {
+                        panel.remove();
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                document.addEventListener('click', closeHandler);
+            }, 100);
+        }
+        
+        // Global emotion trigger function with WebSocket integration
+        window.triggerEmotion = function(emotion) {
+            console.log(`🎭 Triggering emotion: ${emotion}`);
+            
+            // Send emotion via WebSocket
+            if (window.sendEmotion) {
+                window.sendEmotion(emotion);
+            }
+            
+            // Show local visual feedback
+            const emotionIcons = {
+                happy: '😊', love: '😍', excited: '🤩',
+                sad: '😢', angry: '😠', laughing: '😂'
+            };
+            
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: rgba(102, 126, 234, 0.95);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                z-index: 2000;
+                backdrop-filter: blur(10px);
+                font-weight: 600;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            notification.textContent = `You're feeling ${emotion}! ${emotionIcons[emotion]}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.style.transform = 'translateX(0)', 10);
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+            
+            // Close panel
+            const panel = document.getElementById('emotion-panel');
+            if (panel) panel.remove();
+        };
+        
+        function updateCounters() {
+            // Update bubble count
+            if (window.ChatBubbleSystem) {
+                const bubbleCount = window.ChatBubbleSystem.getActiveBubbleCount();
+                const bubbleCountElement = document.getElementById('bubble-count');
+                if (bubbleCountElement) bubbleCountElement.textContent = bubbleCount;
+            }
+            
+            // Update other counters
+            if (window.PetSystem) {
+                const petCount = window.PetSystem.getAllPets().length;
+                const petCountElement = document.getElementById('pet-count');
+                if (petCountElement) petCountElement.textContent = petCount;
+            }
+            
+            if (window.GroupInteractionSystem) {
+                const groupCount = window.GroupInteractionSystem.getActiveGroups().length;
+                const groupCountElement = document.getElementById('group-count');
+                if (groupCountElement) groupCountElement.textContent = groupCount;
+            }
+        }
+        
+        // Start loading when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadNextScript);
+        } else {
+            loadNextScript();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euphorie WebSocket Test</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #00ff00; 
+            padding: 20px; 
+        }
+        .status { 
+            font-weight: bold; 
+            margin: 10px 0; 
+        }
+        .connected { color: #00ff00; }
+        .disconnected { color: #ff4444; }
+        button { 
+            background: #333; 
+            color: #00ff00; 
+            border: 1px solid #555; 
+            padding: 8px 12px; 
+            margin: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #444; }
+        input { 
+            background: #333; 
+            color: #00ff00; 
+            border: 1px solid #555; 
+            padding: 8px; 
+            margin: 5px; 
+        }
+        #log { 
+            background: #000; 
+            border: 1px solid #333; 
+            padding: 10px; 
+            height: 300px; 
+            overflow-y: auto; 
+            margin-top: 20px; 
+            font-size: 12px; 
+        }
+        .log-entry { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Euphorie WebSocket Server Test</h1>
+    <div class="status" id="status">Status: <span class="disconnected">Disconnected</span></div>
+    
+    <div>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <button onclick="authenticate()">Authenticate</button>
+        <button onclick="ping()">Ping</button>
+    </div>
+    
+    <div>
+        <input type="text" id="message" placeholder="Type a message..." style="width: 300px;">
+        <button onclick="sendMessage()">Send Chat</button>
+        <button onclick="sendEmotion()">Send Emotion 😊</button>
+    </div>
+    
+    <div id="log"></div>
+    
+    <script>
+        let socket = null;
+        let connected = false;
+        const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        
+        function updateStatus(status, isConnected) {
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = `Status: <span class="${isConnected ? 'connected' : 'disconnected'}">${status}</span>`;
+            connected = isConnected;
+        }
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function connect() {
+            if (socket) {
+                log('❌ Already connected');
+                return;
+            }
+            
+            log('🔌 Connecting to ws://127.0.0.1:9001...');
+            updateStatus('Connecting...', false);
+            
+            socket = new WebSocket('ws://127.0.0.1:9001');
+            
+            socket.onopen = function() {
+                updateStatus('Connected', true);
+                log('✅ Connected to server');
+            };
+            
+            socket.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleMessage(message);
+                } catch (e) {
+                    log(`📨 Raw: ${event.data}`);
+                }
+            };
+            
+            socket.onclose = function() {
+                updateStatus('Disconnected', false);
+                log('🔌 Connection closed');
+                socket = null;
+            };
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        }
+        
+        function authenticate() {
+            sendMessage({
+                type: 'auth',
+                user_id: userId,
+                room_id: 'test-room',
+                username: 'Test User',
+                timestamp: Date.now()
+            });
+        }
+        
+        function sendMessage(msgObj) {
+            if (msgObj && typeof msgObj === 'object') {
+                // Send a message object
+                if (socket && connected) {
+                    socket.send(JSON.stringify(msgObj));
+                    log(`📤 Sent: ${msgObj.type}`);
+                }
+            } else {
+                // Send a chat message
+                const text = document.getElementById('message').value.trim();
+                if (!text) return;
+                
+                const chatMsg = {
+                    type: 'chat_message',
+                    message: text,
+                    user_id: userId,
+                    room_id: 'test-room',
+                    timestamp: Date.now()
+                };
+                
+                if (socket && connected) {
+                    socket.send(JSON.stringify(chatMsg));
+                    log(`💬 Sent: ${text}`);
+                    document.getElementById('message').value = '';
+                }
+            }
+        }
+        
+        function sendEmotion() {
+            sendMessage({
+                type: 'emotion',
+                user_id: userId,
+                room_id: 'test-room',
+                emotion: 'happy',
+                timestamp: Date.now()
+            });
+        }
+        
+        function ping() {
+            sendMessage({
+                type: 'ping',
+                timestamp: Date.now()
+            });
+        }
+        
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'auth_success':
+                    log(`✅ Auth success: Room ${msg.room_id}`);
+                    break;
+                case 'chat_message':
+                    log(`💬 ${msg.username}: ${msg.message}`);
+                    break;
+                case 'emotion':
+                    log(`🎭 ${msg.user_id} feels ${msg.emotion}`);
+                    break;
+                case 'pong':
+                    log('🏓 Pong received');
+                    break;
+                case 'system':
+                    log(`🔔 ${msg.message}`);
+                    break;
+                default:
+                    log(`📨 ${JSON.stringify(msg)}`);
+            }
+        }
+        
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        log('🚀 Test client ready');
+        log(`👤 User ID: ${userId}`);
+    </script>
+</body>
+</html>
