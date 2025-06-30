@@ -27,7 +27,7 @@ def index(request):
     active_rooms = Room.objects.filter(is_public=True).select_related(
         'category', 'creator'
     ).annotate(
-        message_count=Count('messages')
+        total_messages=Count('messages')
     ).order_by('-last_activity')[:12]
     
     # Get room categories
@@ -64,7 +64,7 @@ def explore_rooms(request):
     rooms = Room.objects.filter(is_public=True).select_related(
         'category', 'creator'
     ).annotate(
-        message_count=Count('messages')
+        total_messages=Count('messages')
     )
     
     # Apply filters
@@ -84,15 +84,15 @@ def explore_rooms(request):
     
     # Apply filter types
     if filter_type == 'trending':
-        rooms = rooms.filter(message_count__gte=20)
+        rooms = rooms.filter(total_messages__gte=20)
     elif filter_type == 'newest':
         week_ago = timezone.now() - timedelta(days=7)
         rooms = rooms.filter(created_at__gte=week_ago)
     elif filter_type == 'popular':
-        rooms = rooms.filter(message_count__gte=10)
+        rooms = rooms.filter(total_messages__gte=10)
     
     # Order by activity
-    rooms = rooms.order_by('-last_activity', '-message_count')
+    rooms = rooms.order_by('-last_activity', '-total_messages')
     
     # Pagination
     paginator = Paginator(rooms, 24)
@@ -194,7 +194,7 @@ def search_rooms(request):
         Q(description__icontains=query),
         is_public=True
     ).select_related('category', 'creator').annotate(
-        total_messages=Count('messages')  # Changed from message_count to total_messages
+        total_messages=Count('messages')
     )[:10]
     
     rooms_data = [{
@@ -203,7 +203,7 @@ def search_rooms(request):
         'description': room.description or '',
         'category': room.category.name if room.category else '',
         'creator': room.creator.username,
-        'message_count': room.total_messages,  # Use the annotation
+        'message_count': room.total_messages,
         'url': f'/room/{room.name}/',
     } for room in rooms]
     
@@ -224,7 +224,7 @@ def user_profile(request, username):
     
     # Get user's rooms
     user_rooms = Room.objects.filter(creator=profile_user, is_public=True).annotate(
-        message_count=Count('messages')
+        total_messages=Count('messages')
     )[:6]
     
     # Check friendship status
@@ -435,7 +435,7 @@ def admin_dashboard(request):
 def admin_rooms(request):
     """Admin room management"""
     rooms = Room.objects.select_related('creator', 'category').annotate(
-        message_count=Count('messages')
+        total_messages=Count('messages')
     ).order_by('-created_at')
     
     return render(request, 'chat/admin/rooms.html', {'rooms': rooms})
@@ -644,8 +644,8 @@ def room_categories(request):
 def trending_rooms(request):
     """Get trending rooms"""
     trending = Room.objects.filter(is_public=True).annotate(
-        message_count=Count('messages')
-    ).filter(message_count__gte=20).order_by('-message_count')[:10]
+        total_messages=Count('messages')
+    ).filter(total_messages__gte=20).order_by('-total_messages')[:10]
     
     return render(request, 'chat/trending_rooms.html', {'rooms': trending})
 
