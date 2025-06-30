@@ -5,9 +5,9 @@ from . import views
 
 urlpatterns = [
     # ==================== MAIN PAGES ====================
-    path('', views.explore_rooms, name='index'),  # room_list.html is now homepage
+    path('', views.explore_rooms, name='index'),  # Enhanced room discovery as homepage
     path('room/<str:room_name>/', views.room, name='room'),
-    path('home/', views.index, name='home'),  # Old homepage moved here
+    path('quickstart/', views.index, name='home'),  # Original homepage moved to quickstart
     path('create-room/', views.create_room, name='create_room'),
     path('search/', views.search_rooms, name='search_rooms'),
     
@@ -52,7 +52,7 @@ urlpatterns = [
     path('terms-of-service/', views.terms_of_service, name='terms_of_service'),
     
     # ==================== AUTHENTICATION ====================
-    path('login/', views.user_login, name='login'),
-    path('signup/', views.user_signup, name='signup'),
-    path('logout/', views.user_logout, name='account_logout'),
+    path('auth/login/', views.user_login, name='login'),
+    path('auth/signup/', views.user_signup, name='signup'),
+    path('auth/logout/', views.user_logout, name='account_logout'),
 ]
