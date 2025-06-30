@@ -597,7 +597,7 @@ class AvatarCustomizationForm(forms.Form):
         
         for field in color_fields:
             color = cleaned_data.get(field)
-            if color and not re.match(r'^#[0-9A-Fa-f]{6}, color):
+            if color and not re.match(r'^#[0-9A-Fa-f]{6}$', color):
                 raise ValidationError(f"Invalid color code for {field.replace('_', ' ')}")
         
         return cleaned_data
