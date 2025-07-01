@@ -158,6 +158,19 @@ class Room(models.Model):
     def is_trending(self):
         """Check if room is trending based on recent activity"""
         return self.message_count > 20 and self.active_users_count > 5
+    
+    def get_scene_preset_display(self):
+        """Return a human-readable scene preset name"""
+        scene_presets = {
+            'modern_office': 'Modern Office',
+            'cyberpunk_city': 'Cyberpunk City', 
+            'forest_clearing': 'Forest Clearing',
+            'space_station': 'Space Station',
+            'cozy_library': 'Cozy Library',
+            'beach_resort': 'Beach Resort',
+        }
+        return scene_presets.get(getattr(self, 'scene_preset', 'modern_office'), 'Modern Office')
+
 
 
 class Message(models.Model):

@@ -111,7 +111,7 @@ def explore_rooms(request):
         ).count()
     
     context = {
-        'rooms': page_obj,
+        'rooms': page_obj,  # ✅ Change this to match template expectation
         'categories': categories,
         'current_category': category,
         'current_filter': filter_type,
