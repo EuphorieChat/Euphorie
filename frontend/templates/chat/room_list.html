@@ -7,13 +7,227 @@
 
 {% block extra_css %}
 <style>
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #fef7ff 0%, #f0f9ff 50%, #f3e8ff 100%);
+    border-radius: 2rem;
+    margin-bottom: 2rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(244, 114, 182, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(96, 165, 250, 0.1) 0%, transparent 40%);
+    pointer-events: none;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ec4899, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: #64748b;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.hero-stat {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.hero-stat:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.hero-stat-number {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: block;
+}
+
+.hero-stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Welcome Section for Authenticated Users */
+.welcome-section {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid #d1fae5;
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.welcome-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.welcome-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-right: 1rem;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+
+.welcome-text h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #065f46;
+    margin: 0;
+}
+
+.welcome-text p {
+    color: #047857;
+    margin: 0.25rem 0 0 0;
+    font-weight: 500;
+}
+
+.welcome-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.welcome-stat {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 1rem;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    transition: all 0.3s ease;
+}
+
+.welcome-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
+}
+
+.welcome-stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    color: white;
+}
+
+.welcome-stat-number {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #065f46;
+}
+
+.welcome-stat-label {
+    font-size: 0.75rem;
+    color: #047857;
+    font-weight: 500;
+}
+
+/* Categories Section */
+.categories-section {
+    margin-bottom: 2rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.section-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #f472b6, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-right: 1rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
 /* Desktop Categories */
 .desktop-categories-wrapper {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    gap: 1rem;
 }
 
 .desktop-categories-container {
@@ -22,9 +236,9 @@
     scroll-behavior: smooth;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding: 0.5rem 0;
-    gap: 0.75rem;
+    gap: 1rem;
     width: 100%;
+    padding: 0.5rem 0;
 }
 
 .desktop-categories-container::-webkit-scrollbar {
@@ -32,624 +246,1012 @@
 }
 
 .desktop-category-card {
-    display: inline-flex;
-    flex-direction: row;
+    display: flex;
     align-items: center;
-    justify-content: flex-start;
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius-lg);
+    padding: 1rem 1.5rem;
+    border-radius: 1.25rem;
     background: white;
-    border: 1px solid var(--border);
-    transition: all var(--duration-normal) var(--ease-spring);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 2px solid #f1f5f9;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
     flex-shrink: 0;
+    min-width: 140px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.desktop-category-card:hover, .desktop-category-card.active {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px -5px rgba(236, 72, 153, 0.3);
+.desktop-category-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(244, 114, 182, 0.15);
+    border-color: #f472b6;
 }
 
 .desktop-category-card.active {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, #f472b6, #3b82f6);
     border-color: transparent;
-}
-
-.desktop-category-card:hover .desktop-category-name,
-.desktop-category-card.active .desktop-category-name {
-    color: black;
-    font-weight: 600;
-}
-
-.desktop-category-card:hover .desktop-category-icon,
-.desktop-category-card.active .desktop-category-icon {
-    background-color: white;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    transform: scale(1.05);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-.desktop-category-card.active .desktop-category-icon svg,
-.desktop-category-card.active .desktop-category-icon span {
-    color: var(--primary);
+    color: white;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(244, 114, 182, 0.3);
 }
 
 .desktop-category-icon {
-    width: 32px;
-    height: 32px;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
-    background-color: white;
+    background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-right: 0.75rem;
-    transition: all var(--duration-normal) var(--ease);
-    box-shadow: 0 3px 10px -2px rgba(236, 72, 153, 0.2);
+    font-size: 1.25rem;
+    transition: all 0.3s ease;
+}
+
+.desktop-category-card.active .desktop-category-icon {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
 }
 
 .desktop-category-name {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    transition: all var(--duration-normal) var(--ease);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #334155;
+    transition: all 0.3s ease;
 }
 
-/* Scroll buttons */
-.desktop-categories-scroll-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background: white;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    box-shadow: var(--shadow-sm);
-    transition: all var(--duration-normal) var(--ease);
-    flex-shrink: 0;
-    z-index: 10;
-    opacity: 0.9;
-    cursor: pointer;
+.desktop-category-card.active .desktop-category-name {
+    color: white;
 }
 
-.desktop-categories-scroll-btn:hover {
-    background-color: var(--primary-light);
-    color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.desktop-categories-scroll-btn:active {
-    transform: translateY(0);
-}
-
-.desktop-categories-scroll-btn.hidden {
-    display: none;
-}
-
-/* Mobile categories */
+/* Mobile Categories */
 .mobile-categories-showcase {
     overflow-x: auto;
-    white-space: nowrap;
-    padding: 0.75rem 0;
-    margin: 0 -0.5rem;
+    padding: 1rem 0;
+    margin: 0 -1rem;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
 }
 
+.mobile-categories-grid {
+    display: flex;
+    gap: 1rem;
+    padding: 0 1rem;
+}
+
 .mobile-category-card {
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 74px;
-    height: 74px;
-    margin: 0 0.5rem;
-    border-radius: var(--radius-lg);
+    width: 80px;
+    height: 80px;
+    border-radius: 1.25rem;
     background: white;
-    border: 1px solid var(--border);
-    transition: all var(--duration-normal) var(--ease-spring);
+    border: 2px solid #f1f5f9;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     scroll-snap-align: start;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.mobile-category-card:hover, .mobile-category-card.active {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px -5px rgba(236, 72, 153, 0.3);
+.mobile-category-card:hover,
+.mobile-category-card.active {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(244, 114, 182, 0.15);
 }
 
 .mobile-category-card.active {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, #f472b6, #3b82f6);
     border-color: transparent;
-}
-
-.mobile-category-card:hover .mobile-category-name,
-.mobile-category-card.active .mobile-category-name {
-    color: black;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.mobile-category-card:hover .mobile-category-icon,
-.mobile-category-card.active .mobile-category-icon {
-    background-color: white;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    transform: scale(1.05);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-.mobile-category-card.active .mobile-category-icon svg,
-.mobile-category-card.active .mobile-category-icon span {
-    color: var(--primary);
+    color: white;
 }
 
 .mobile-category-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background-color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-    transition: all var(--duration-normal) var(--ease);
-    box-shadow: 0 3px 10px -2px rgba(236, 72, 153, 0.2);
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .mobile-category-name {
     font-size: 0.7rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    transition: all var(--duration-normal) var(--ease);
-}
-
-
-
-/* Stats overview */
-.stats-overview {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.overview-stat {
-    background: white;
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
+    font-weight: 600;
+    color: #334155;
+    transition: all 0.3s ease;
     text-align: center;
-    transition: all var(--duration-normal) var(--ease);
 }
 
-.overview-stat:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.overview-stat-icon {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    margin: 0 auto 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+.mobile-category-card.active .mobile-category-name {
     color: white;
 }
 
-.overview-stat-number {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
+/* Scroll buttons */
+.categories-scroll-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #f1f5f9;
+    color: #64748b;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
-.overview-stat-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
+.categories-scroll-btn:hover {
+    background: #f472b6;
+    color: white;
+    border-color: #f472b6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(244, 114, 182, 0.3);
+}
+
+/* Create Room Section */
+.create-room-section {
+    background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+    border-radius: 1.5rem;
+    margin-bottom: 2rem;
+    overflow: hidden;
+    border: 1px solid #fde68a;
+    position: relative;
+}
+
+.create-room-section::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.create-room-header {
+    padding: 1.5rem 2rem 0;
+    display: flex;
+    align-items: center;
+}
+
+.create-room-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-right: 1rem;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+}
+
+.create-room-text h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #92400e;
+    margin: 0;
+}
+
+.create-room-text p {
+    color: #a16207;
+    margin: 0.25rem 0 0 0;
     font-weight: 500;
 }
 
+.create-room-form {
+    padding: 1.5rem 2rem 2rem;
+}
 
+.form-group {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-input-group {
+    position: relative;
+}
+
+.form-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    color: #374151;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+    background: white;
+}
+
+.form-input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    transition: color 0.3s ease;
+}
+
+.form-input:focus + .form-input-icon {
+    color: #f59e0b;
+}
+
+.form-select {
+    padding: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    color: #374151;
+    min-width: 180px;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+    background: white;
+}
+
+.create-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.create-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+}
+
+/* Rooms Section */
+.rooms-section {
+    background: white;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.rooms-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.rooms-title {
+    display: flex;
+    align-items: center;
+}
+
+.rooms-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-right: 1rem;
+}
+
+.rooms-counter {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border: 1px solid #7dd3fc;
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.online-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: pulse 2s infinite;
+}
+
+/* Enhanced Rooms Grid */
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Enhanced Room Cards */
+.room-card {
+    background: white;
+    border-radius: 1.25rem;
+    border: 2px solid #f8fafc;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    position: relative;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.room-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: #f472b6;
+}
+
+.room-card-gradient {
+    height: 4px;
+    background: linear-gradient(90deg, #f472b6, #3b82f6, #10b981);
+}
+
+.room-card-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.room-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.room-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.room-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #dcfce7;
+}
+
+.room-status.user-room {
+    background: #eff6ff;
+    color: #1e40af;
+    border-color: #dbeafe;
+}
+
+.room-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.room-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.room-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.room-badge.category {
+    background: linear-gradient(135deg, #fef3c7, #fed7aa);
+    color: #92400e;
+    border-color: #fde68a;
+}
+
+.room-activity {
+    margin-bottom: 1rem;
+}
+
+.activity-bar {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.activity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f472b6, #3b82f6);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.activity-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.room-card-footer {
+    padding: 1rem 1.5rem;
+    background: #fafbfc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.room-creator {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.creator-avatar {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f472b6, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.join-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #f472b6;
+    transition: all 0.3s ease;
+}
+
+.room-card:hover .join-button {
+    color: #ec4899;
+    transform: translateX(4px);
+}
+
+.join-button svg {
+    transition: transform 0.3s ease;
+}
+
+.room-card:hover .join-button svg {
+    transform: translateX(2px);
+}
+
+/* Empty State */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 1.5rem;
+    border: 2px dashed #cbd5e1;
+}
+
+.empty-state-icon {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f472b6, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: white;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: #64748b;
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
 
 /* Mobile Optimizations */
-@media (max-width: 640px) {
-    .stats-overview {
-        grid-template-columns: repeat(2, 1fr);
+@media (max-width: 768px) {
+    .hero-content {
+        padding: 2rem 1.5rem;
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.125rem;
+    }
+    
+    .hero-stats {
+        gap: 1rem;
+    }
+    
+    .welcome-section {
+        padding: 1.5rem;
+        margin: 0 -1rem 2rem;
+        border-radius: 1rem;
+    }
+    
+    .welcome-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .welcome-avatar {
+        margin-right: 0;
+    }
+    
+    .welcome-stats {
+        grid-template-columns: repeat(3, 1fr);
         gap: 0.75rem;
     }
     
-    .overview-stat {
-        padding: 1rem;
+    .form-group {
+        grid-template-columns: 1fr;
+        gap: 1rem;
     }
     
-    .overview-stat-number {
-        font-size: 1.5rem;
+    .form-select {
+        min-width: auto;
     }
-
-    .mobile-categories-showcase {
+    
+    .rooms-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .rooms-section {
         margin: 0 -1rem;
-        padding: 1rem;
-        background: linear-gradient(to right, rgba(248, 250, 252, 0.8), rgba(248, 250, 252, 0.5));
-        border-radius: var(--radius-lg);
+        border-radius: 1rem;
+        padding: 1.5rem;
     }
+    
+    .categories-section {
+        margin: 0 -1rem 2rem;
+    }
+    
+    .create-room-section {
+        margin: 0 -1rem 2rem;
+        border-radius: 1rem;
+    }
+}
 
+@media (max-width: 640px) {
+    .desktop-categories-wrapper {
+        display: none;
+    }
+    
+    .hero-stats {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .hero-stat {
+        width: 100%;
+    }
+}
 
+@media (min-width: 641px) {
+    .mobile-categories-showcase {
+        display: none;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+}
+
+.room-card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.room-card:nth-child(1) { animation-delay: 0.1s; }
+.room-card:nth-child(2) { animation-delay: 0.2s; }
+.room-card:nth-child(3) { animation-delay: 0.3s; }
+.room-card:nth-child(4) { animation-delay: 0.4s; }
+.room-card:nth-child(5) { animation-delay: 0.5s; }
+.room-card:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- User Welcome & Quick Stats Section -->
-{% if user.is_authenticated %}
-<div class="mb-6">
-    <div class="surface-card p-4 sm:p-6 transition-all hover:shadow-md">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-lg font-bold text-gray-800">Welcome back, {{ user.username }}!</h2>
-                <p class="text-sm text-gray-500 mt-1">Your personal chat hub at Euphorie</p>
+<!-- Hero Section for Non-Authenticated Users -->
+{% if not user.is_authenticated %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1 class="hero-title">Welcome to Euphorie</h1>
+        <p class="hero-subtitle">Join amazing conversations in our vibrant community of chat rooms</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-number">{{ rooms|length }}</span>
+                <span class="hero-stat-label">Active Rooms</span>
             </div>
-            <div class="flex gap-3 flex-wrap">
-                <div class="stat-card group">
-                    <div class="stat-icon stat-icon-primary group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Your Rooms</div>
-                        <div class="text-lg font-bold text-gray-700">{{ rooms|length|default:0 }}</div>
-                    </div>
-                </div>
-                <div class="stat-card group">
-                    <div class="stat-icon stat-icon-secondary group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Friends</div>
-                        <div class="text-lg font-bold text-gray-700">0</div>
-                    </div>
-                </div>
-                <div class="stat-card group">
-                    <div class="stat-icon stat-icon-success group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Active Now</div>
-                        <div class="text-lg font-bold text-gray-700">{{ rooms|length }}</div>
-                    </div>
-                </div>
+            <div class="hero-stat">
+                <span class="hero-stat-number">∞</span>
+                <span class="hero-stat-label">Conversations</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-number">24/7</span>
+                <span class="hero-stat-label">Always Online</span>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
 
-
+<!-- Welcome Section for Authenticated Users -->
+{% if user.is_authenticated %}
+<div class="welcome-section">
+    <div class="welcome-header">
+        <div class="welcome-avatar">
+            {{ user.username|slice:":1"|upper }}
+        </div>
+        <div class="welcome-text">
+            <h2>Welcome back, {{ user.username }}!</h2>
+            <p>Ready to dive into some amazing conversations?</p>
+        </div>
+    </div>
+    <div class="welcome-stats">
+        <div class="welcome-stat">
+            <div class="welcome-stat-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+            </div>
+            <div class="welcome-stat-number">{{ rooms|length|default:0 }}</div>
+            <div class="welcome-stat-label">Your Rooms</div>
+        </div>
+        <div class="welcome-stat">
+            <div class="welcome-stat-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </div>
+            <div class="welcome-stat-number">0</div>
+            <div class="welcome-stat-label">Friends</div>
+        </div>
+        <div class="welcome-stat">
+            <div class="welcome-stat-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <div class="welcome-stat-number">{{ rooms|length }}</div>
+            <div class="welcome-stat-label">Active Now</div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Categories Section -->
-<!-- Desktop Categories (hidden on mobile) -->
-<div class="hidden sm:block mb-6">
-    <div class="desktop-categories-wrapper">
-        <button class="desktop-categories-scroll-btn scroll-left" id="categories-scroll-left">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+<div class="categories-section">
+    <div class="section-header">
+        <div class="section-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-        </button>
-
-        <div class="desktop-categories-container">
-            <div class="desktop-category-card active" data-category="all">
-                <div class="desktop-category-icon">
-                    <span class="text-sm">🌟</span>
-                </div>
-                <span class="desktop-category-name">All Rooms</span>
-            </div>
-
-            <div class="desktop-category-card" data-category="general">
-                <div class="desktop-category-icon">
-                    <span class="text-sm">💬</span>
-                </div>
-                <span class="desktop-category-name">General</span>
-            </div>
-
-            <div class="desktop-category-card" data-category="tech">
-                <div class="desktop-category-icon">
-                    <span class="text-sm">💻</span>
-                </div>
-                <span class="desktop-category-name">Tech</span>
-            </div>
-
-            <div class="desktop-category-card" data-category="gaming">
-                <div class="desktop-category-icon">
-                    <span class="text-sm">🎮</span>
-                </div>
-                <span class="desktop-category-name">Gaming</span>
-            </div>
-
-            <div class="desktop-category-card" data-category="music">
-                <div class="desktop-category-icon">
-                    <span class="text-sm">🎵</span>
-                </div>
-                <span class="desktop-category-name">Music</span>
-            </div>
-
-            <div class="desktop-category-card" data-category="art">
-                <div class="desktop-category-icon">
-                    <span class="text-sm">🎨</span>
-                </div>
-                <span class="desktop-category-name">Art</span>
-            </div>
-
-            <div class="desktop-category-card" data-category="sports">
-                <div class="desktop-category-icon">
-                    <span class="text-sm">⚽</span>
-                </div>
-                <span class="desktop-category-name">Sports</span>
-            </div>
         </div>
-
-        <button class="desktop-categories-scroll-btn scroll-right" id="categories-scroll-right">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-        </button>
+        <h2 class="section-title">Browse Categories</h2>
     </div>
-</div>
 
-<!-- Mobile Categories (visible on mobile only) -->
-<div class="sm:hidden mb-6">
-    <div class="mobile-categories-showcase">
-        <div class="mobile-category-card active" data-category="all">
-            <div class="mobile-category-icon">
-                <span class="text-sm">🌟</span>
+    <!-- Desktop Categories -->
+    <div class="hidden sm:block">
+        <div class="desktop-categories-wrapper">
+            <button class="categories-scroll-btn" id="categories-scroll-left">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
+            <div class="desktop-categories-container">
+                <div class="desktop-category-card active" data-category="all">
+                    <div class="desktop-category-icon">🌟</div>
+                    <span class="desktop-category-name">All Rooms</span>
+                </div>
+                <div class="desktop-category-card" data-category="general">
+                    <div class="desktop-category-icon">💬</div>
+                    <span class="desktop-category-name">General</span>
+                </div>
+                <div class="desktop-category-card" data-category="tech">
+                    <div class="desktop-category-icon">💻</div>
+                    <span class="desktop-category-name">Tech</span>
+                </div>
+                <div class="desktop-category-card" data-category="gaming">
+                    <div class="desktop-category-icon">🎮</div>
+                    <span class="desktop-category-name">Gaming</span>
+                </div>
+                <div class="desktop-category-card" data-category="music">
+                    <div class="desktop-category-icon">🎵</div>
+                    <span class="desktop-category-name">Music</span>
+                </div>
+                <div class="desktop-category-card" data-category="art">
+                    <div class="desktop-category-icon">🎨</div>
+                    <span class="desktop-category-name">Art</span>
+                </div>
+                <div class="desktop-category-card" data-category="sports">
+                    <div class="desktop-category-icon">⚽</div>
+                    <span class="desktop-category-name">Sports</span>
+                </div>
             </div>
-            <span class="mobile-category-name">All</span>
+
+            <button class="categories-scroll-btn" id="categories-scroll-right">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
         </div>
+    </div>
 
-        <div class="mobile-category-card" data-category="general">
-            <div class="mobile-category-icon">
-                <span class="text-sm">💬</span>
+    <!-- Mobile Categories -->
+    <div class="sm:hidden">
+        <div class="mobile-categories-showcase">
+            <div class="mobile-categories-grid">
+                <div class="mobile-category-card active" data-category="all">
+                    <div class="mobile-category-icon">🌟</div>
+                    <span class="mobile-category-name">All</span>
+                </div>
+                <div class="mobile-category-card" data-category="general">
+                    <div class="mobile-category-icon">💬</div>
+                    <span class="mobile-category-name">General</span>
+                </div>
+                <div class="mobile-category-card" data-category="tech">
+                    <div class="mobile-category-icon">💻</div>
+                    <span class="mobile-category-name">Tech</span>
+                </div>
+                <div class="mobile-category-card" data-category="gaming">
+                    <div class="mobile-category-icon">🎮</div>
+                    <span class="mobile-category-name">Gaming</span>
+                </div>
+                <div class="mobile-category-card" data-category="music">
+                    <div class="mobile-category-icon">🎵</div>
+                    <span class="mobile-category-name">Music</span>
+                </div>
+                <div class="mobile-category-card" data-category="art">
+                    <div class="mobile-category-icon">🎨</div>
+                    <span class="mobile-category-name">Art</span>
+                </div>
+                <div class="mobile-category-card" data-category="sports">
+                    <div class="mobile-category-icon">⚽</div>
+                    <span class="mobile-category-name">Sports</span>
+                </div>
             </div>
-            <span class="mobile-category-name">General</span>
-        </div>
-
-        <div class="mobile-category-card" data-category="tech">
-            <div class="mobile-category-icon">
-                <span class="text-sm">💻</span>
-            </div>
-            <span class="mobile-category-name">Tech</span>
-        </div>
-
-        <div class="mobile-category-card" data-category="gaming">
-            <div class="mobile-category-icon">
-                <span class="text-sm">🎮</span>
-            </div>
-            <span class="mobile-category-name">Gaming</span>
-        </div>
-
-        <div class="mobile-category-card" data-category="music">
-            <div class="mobile-category-icon">
-                <span class="text-sm">🎵</span>
-            </div>
-            <span class="mobile-category-name">Music</span>
-        </div>
-
-        <div class="mobile-category-card" data-category="art">
-            <div class="mobile-category-icon">
-                <span class="text-sm">🎨</span>
-            </div>
-            <span class="mobile-category-name">Art</span>
-        </div>
-
-        <div class="mobile-category-card" data-category="sports">
-            <div class="mobile-category-icon">
-                <span class="text-sm">⚽</span>
-            </div>
-            <span class="mobile-category-name">Sports</span>
         </div>
     </div>
 </div>
 
-<!-- Create Room Section for Authenticated Users -->
+<!-- Create Room Section -->
 {% if user.is_authenticated %}
-<div class="mb-6">
-    <div class="surface-card">
-        <div class="p-4 border-b border-gray-100 flex items-center">
-            <div class="bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg p-2 text-white mr-3">
+<div class="create-room-section">
+    <div class="create-room-header">
+        <div class="create-room-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+        </div>
+        <div class="create-room-text">
+            <h2>Create a New Room</h2>
+            <p>Start a conversation on any topic you love</p>
+        </div>
+    </div>
+    <form method="post" action="{% url 'create_room' %}" class="create-room-form" id="create-room-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <div class="form-input-group">
+                <input
+                    type="text"
+                    name="room_name"
+                    placeholder="Enter an awesome room name..."
+                    class="form-input"
+                    required
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 form-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+            </div>
+            <select name="room_category" class="form-select" required>
+                <option value="" disabled selected>Choose category</option>
+                <option value="general">💬 General</option>
+                <option value="tech">💻 Tech</option>
+                <option value="gaming">🎮 Gaming</option>
+                <option value="music">🎵 Music</option>
+                <option value="art">🎨 Art</option>
+                <option value="sports">⚽ Sports</option>
+            </select>
+            <button type="submit" class="create-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-            </div>
-            <div>
-                <h2 class="text-base font-semibold text-gray-800">Create a New Room</h2>
-                <p class="text-xs text-gray-500">Start a conversation on any topic</p>
-            </div>
+                Create Room
+            </button>
         </div>
-        <form method="post" action="{% url 'create_room' %}" class="p-4" id="create-room-form">
-            {% csrf_token %}
-            <div class="flex flex-col sm:flex-row gap-3 mb-3">
-                <div class="relative flex-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <input
-                        type="text"
-                        name="room_name"
-                        placeholder="Enter a room name..."
-                        class="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-lg bg-white text-gray-900 transition-all hover:border-gray-300 focus:outline-none focus:border-pink-500 focus:ring-3 focus:ring-pink-500/10"
-                        required
-                    />
-                </div>
-                <div class="relative sm:w-1/3">
-                    <select
-                        name="room_category"
-                        class="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white text-gray-900 appearance-none transition-all hover:border-gray-300 focus:outline-none focus:border-pink-500 focus:ring-3 focus:ring-pink-500/10"
-                        required
-                    >
-                        <option value="" disabled selected>Select category</option>
-                        <option value="general">💬 General</option>
-                        <option value="tech">💻 Tech</option>
-                        <option value="gaming">🎮 Gaming</option>
-                        <option value="music">🎵 Music</option>
-                        <option value="art">🎨 Art</option>
-                        <option value="sports">⚽ Sports</option>
-                    </select>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </div>
-            </div>
-            <div class="flex justify-end">
-                <button type="submit" class="btn btn-primary flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Create Room
-                </button>
-            </div>
-        </form>
-    </div>
+    </form>
 </div>
 {% endif %}
 
-<!-- Active Chat Rooms Header -->
-<div class="mb-4">
-    <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center">
-            <div class="bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg p-2 text-white mr-3 hidden sm:flex">
+<!-- Rooms Section -->
+<div class="rooms-section">
+    <div class="rooms-header">
+        <div class="rooms-title">
+            <div class="rooms-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                 </svg>
             </div>
-            <h2 class="text-lg font-bold text-gray-800">Chat Rooms</h2>
+            <h2 class="section-title">Chat Rooms</h2>
         </div>
-        <div class="flex items-center gap-3">
-            <div class="text-sm text-gray-500 flex items-center">
-                <span class="online-indicator mr-1"></span>
-                <span>{{ rooms|length }} rooms available</span>
-            </div>
+        <div class="rooms-counter">
+            <div class="online-dot"></div>
+            <span>{{ rooms|length }} rooms available</span>
         </div>
     </div>
-</div>
 
-<!-- Rooms Grid -->
-<div class="rooms-grid" id="rooms-container">
-    {% if rooms %}
-        {% for room in rooms %}
-        <a href="{% url 'room' room.name %}" class="room-card surface-card" 
-           data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
-           data-name="{{ room.display_name|default:room.name|lower }}"
-           data-filter="{% if room.creator == user %}user{% else %}available{% endif %}"
-           data-created="{{ room.created_at|date:'c' }}">
-            
-            {% if room.total_messages > 20 %}
-            <div class="trending-indicator">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                Trending
-            </div>
-            {% endif %}
-            
-            <div class="room-card-content">
-                <h3 class="room-name">{{ room.display_name|default:room.name }}</h3>
+    <!-- Rooms Grid -->
+    <div class="rooms-grid" id="rooms-container">
+        {% if rooms %}
+            {% for room in rooms %}
+            <a href="{% url 'room' room.name %}" class="room-card" 
+               data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
+               data-name="{{ room.display_name|default:room.name|lower }}"
+               data-filter="{% if room.creator == user %}user{% else %}available{% endif %}"
+               data-created="{{ room.created_at|date:'c' }}">
                 
-                <div class="text-sm text-gray-500 mb-3 flex flex-wrap gap-1">
-                    {% if room.category %}
-                    <span class="badge badge-sm {% if room.creator == user %}bg-green-50 text-green-500{% else %}bg-pink-50 text-pink-500{% endif %}">
-                        {% if room.category.icon %}{{ room.category.icon }}{% else %}💬{% endif %} {{ room.category.name }}
-                    </span>
-                    {% else %}
-                    <span class="badge badge-sm {% if room.creator == user %}bg-green-50 text-green-500{% else %}bg-pink-50 text-pink-500{% endif %}">💬 General</span>
-                    {% endif %}
+                <div class="room-card-gradient"></div>
+                
+                <div class="room-card-content">
+                    <div class="room-card-header">
+                        <h3 class="room-name">{{ room.display_name|default:room.name }}</h3>
+                        <div class="room-status {% if room.creator == user %}user-room{% endif %}">
+                            <div class="room-status-dot"></div>
+                            {% if room.creator == user %}Your Room{% else %}Available{% endif %}
+                        </div>
+                    </div>
                     
-                    {% if room.creator == user %}
-                    <span class="badge badge-sm bg-blue-50 text-blue-500">Your Room</span>
-                    {% else %}
-                    <span class="badge badge-sm bg-blue-50 text-blue-500">Available</span>
-                    {% endif %}
-                    
-                    {% if room.created_at|timesince|slice:":1" == "0" %}
-                    <span class="badge badge-sm bg-green-50 text-green-500">New</span>
-                    {% endif %}
+                    <div class="room-badges">
+                        <span class="room-badge category">
+                            {% if room.category %}
+                                {% if room.category.icon %}{{ room.category.icon }}{% else %}💬{% endif %} {{ room.category.name }}
+                            {% else %}
+                                💬 General
+                            {% endif %}
+                        </span>
+                        {% if room.created_at|timesince|slice:":1" == "0" %}
+                        <span class="room-badge">✨ New</span>
+                        {% endif %}
+                        {% if room.total_messages > 20 %}
+                        <span class="room-badge">🔥 Trending</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="room-activity">
+                        <div class="activity-bar">
+                            <div class="activity-fill" style="width: {% if room.total_messages > 30 %}75%{% elif room.total_messages > 15 %}50%{% else %}25%{% endif %}"></div>
+                        </div>
+                        <div class="activity-label">
+                            {{ room.total_messages|default:0 }} {% if room.total_messages == 1 %}message{% else %}messages{% endif %}
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Activity indicator -->
-                <div class="h-3 bg-gray-50 rounded-md mb-3 overflow-hidden">
-                    {% if room.total_messages > 30 %}
-                        <div class="h-full w-3/4 bg-gradient-to-r {% if room.creator == user %}from-green-200 to-blue-200{% else %}from-blue-200 to-pink-200{% endif %} rounded-md"></div>
-                    {% elif room.total_messages > 15 %}
-                        <div class="h-full w-1/2 bg-gradient-to-r {% if room.creator == user %}from-green-200 to-blue-200{% else %}from-blue-200 to-pink-200{% endif %} rounded-md"></div>
-                    {% else %}
-                        <div class="h-full w-1/4 bg-gradient-to-r {% if room.creator == user %}from-green-200 to-blue-200{% else %}from-blue-200 to-pink-200{% endif %} rounded-md"></div>
-                    {% endif %}
-                </div>
-
-                <div class="flex justify-between items-center mt-auto">
-                    <span class="text-xs text-gray-500 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                <div class="room-card-footer">
+                    <div class="room-creator">
+                        <div class="creator-avatar">
+                            {% if room.creator == user %}Y{% else %}{{ room.creator.username|slice:":1"|upper }}{% endif %}
+                        </div>
                         {% if room.creator == user %}You{% else %}{{ room.creator.username }}{% endif %}
-                    </span>
-                    <span class="inline-flex items-center">
-                        <span class="w-2 h-2 {% if room.creator == user %}bg-green-400{% else %}bg-blue-400{% endif %} rounded-full mr-1.5"></span>
-                        <span class="text-xs text-gray-500">{% if room.creator == user %}Member{% else %}Available{% endif %}</span>
-                    </span>
+                    </div>
+                    <div class="join-button">
+                        <span>{% if room.creator == user %}Enter{% elif user.is_authenticated %}Join{% else %}Sign in{% endif %}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </div>
                 </div>
-            </div>
-
-            <div class="room-card-footer">
-                <div class="badge badge-sm bg-gray-100 text-gray-600">
-                    {{ room.total_messages|default:0 }} {% if room.total_messages == 1 %}message{% else %}messages{% endif %}
-                </div>
-                <div class="join-btn flex items-center {% if room.creator == user %}text-green-500{% else %}text-pink-500{% endif %}">
-                    <span>{% if room.creator == user %}Enter{% elif user.is_authenticated %}Join{% else %}Sign in{% endif %}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </a>
+            {% endfor %}
+        {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                 </div>
+                <h3>No rooms found</h3>
+                <p>Be the first to create a room and start amazing conversations with people who share your interests!</p>
+                {% if user.is_authenticated %}
+                <a href="{% url 'create_room' %}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Create First Room
+                </a>
+                {% else %}
+                <a href="{% url 'signup' %}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    Sign Up to Create
+                </a>
+                {% endif %}
             </div>
-        </a>
-        {% endfor %}
-    {% else %}
-        <!-- Empty state -->
-        <div class="col-span-full py-12 surface-card flex flex-col items-center">
-            <div class="w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-            </div>
-            <h3 class="text-xl font-bold text-gray-800 mb-2">No rooms found</h3>
-            <p class="text-gray-600 mb-6 text-center max-w-md">Be the first to create a room and start amazing conversations!</p>
-            {% if user.is_authenticated %}
-            <a href="{% url 'create_room' %}" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Create First Room
-            </a>
-            {% else %}
-            <a href="{% url 'signup' %}" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-                Sign Up to Create
-            </a>
-            {% endif %}
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
@@ -693,14 +1295,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Re-apply animations with staggered delays
         roomCards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            card.style.animationDelay = `${index * 0.05}s`;
-
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 50 + (index * 50));
+            card.style.animationDelay = `${index * 0.1}s`;
         });
     }
 
@@ -708,8 +1303,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (roomCards.length > 0) {
         randomizeRoomCards();
     }
-
-
 
     // Category cards
     categoryCards.forEach(card => {
@@ -740,13 +1333,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function filterRooms() {
         let visibleCount = 0;
         
-        roomCards.forEach(card => {
+        roomCards.forEach((card, index) => {
             const roomCategory = card.getAttribute('data-category') || 'general';
             
             const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
             
             if (matchesCategory) {
                 card.style.display = '';
+                card.style.animationDelay = `${index * 0.1}s`;
                 setTimeout(() => {
                     card.style.opacity = '1';
                     card.style.transform = 'translateY(0)';
@@ -762,6 +1356,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 300);
             }
         });
+
+        // Update counter
+        const counter = document.querySelector('.rooms-counter span');
+        if (counter) {
+            counter.textContent = `${visibleCount} rooms ${currentCategory === 'all' ? 'available' : 'in ' + currentCategory}`;
+        }
     }
 
     // Category scroll buttons
@@ -789,8 +1389,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const canScrollRight = categoriesContainer.scrollLeft < 
                 (categoriesContainer.scrollWidth - categoriesContainer.clientWidth - 10);
 
-            scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.4';
-            scrollRightBtn.style.opacity = canScrollRight ? '1' : '0.4';
+            scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.5';
+            scrollRightBtn.style.opacity = canScrollRight ? '1' : '0.5';
         }
 
         updateScrollButtons();
@@ -808,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.innerHTML = `
-                    <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -818,6 +1418,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Enhanced hover effects for room cards
+    roomCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+        });
+
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(-6px)';
+        });
+    });
 
     // Initial filter
     filterRooms();
