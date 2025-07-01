@@ -144,9 +144,10 @@ def room(request, room_name):
         UserActivity.objects.create(
             user=request.user,
             room=room,
-            action='joined_room'
+            activity_type='joined_room',
+            description=f"Joined {room.display_name or room.name}"
         )
-    
+            
     context = {
         'room': room,
         'messages': messages_list,
@@ -169,7 +170,8 @@ def create_room(request):
             UserActivity.objects.create(
                 user=request.user,
                 room=room,
-                action='created_room'
+                activity_type='created_room',
+                description=f"Created room {room.display_name or room.name}"
             )
             
             messages.success(request, f'Room "{room.display_name}" created successfully!')
