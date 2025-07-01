@@ -5,199 +5,8 @@
 
 {% block description %}Discover and join amazing chat rooms on Euphorie - the next-generation chat platform{% endblock %}
 
-{% block search_modal %}
-<!-- Search Modal (Hidden by default) -->
-<div id="search-modal" class="search-modal">
-    <div class="search-modal-content">
-        <div class="search-modal-header">
-            <div class="relative flex-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                    type="text"
-                    id="modal-search-input"
-                    placeholder="Search rooms..."
-                    class="search-input"
-                    autofocus
-                />
-            </div>
-            <button id="close-search" class="close-search">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-
-        <!-- Category Filter Section with Scroll Buttons -->
-        <div class="desktop-categories-wrapper relative">
-            <button class="desktop-categories-scroll-btn scroll-left" id="search-categories-scroll-left">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-            </button>
-
-            <div class="search-modal-categories p-3 border-b border-gray-100 overflow-x-auto">
-                <div class="flex gap-2 pb-1">
-                    <button data-category="all" class="search-category-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-pink-500 text-white">
-                        All Rooms
-                    </button>
-                    <button data-category="general" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-                        💬 General
-                    </button>
-                    <button data-category="tech" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-                        💻 Tech
-                    </button>
-                    <button data-category="gaming" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-                        🎮 Gaming
-                    </button>
-                    <button data-category="music" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-                        🎵 Music
-                    </button>
-                    <button data-category="art" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-                        🎨 Art
-                    </button>
-                    <button data-category="sports" class="search-category-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-                        ⚽ Sports
-                    </button>
-                </div>
-            </div>
-
-            <button class="desktop-categories-scroll-btn scroll-right" id="search-categories-scroll-right">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
-        </div>
-
-        <div class="search-modal-body" id="search-results">
-            <p class="text-gray-500 text-center py-4">Type to search for rooms...</p>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
 {% block extra_css %}
 <style>
-/* Search Modal Styles */
-.search-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 100;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 20vh;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.search-modal.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.search-modal-content {
-    width: 90%;
-    max-width: 600px;
-    background-color: white;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
-    transform: translateY(-20px);
-    transition: transform 0.3s ease;
-}
-
-.search-modal.active .search-modal-content {
-    transform: translateY(0);
-}
-
-.search-modal-header {
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-}
-
-.search-modal-body {
-    padding: 1rem;
-    max-height: 50vh;
-    overflow-y: auto;
-}
-
-.search-input {
-    width: 100%;
-    padding: 0.875rem 1rem 0.875rem 2.5rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background-color: var(--surface);
-    color: var(--text-primary);
-    transition: all var(--duration-normal) var(--ease);
-    font-size: 1rem;
-    box-shadow: var(--shadow-sm);
-}
-
-.search-input:hover {
-    border-color: var(--border-focus);
-    box-shadow: var(--shadow-md);
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
-}
-
-.search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-tertiary);
-}
-
-.close-search {
-    margin-left: 1rem;
-    padding: 0.5rem;
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background-color 0.2s ease;
-}
-
-.close-search:hover {
-    background-color: var(--primary-light);
-}
-
-.search-modal-categories {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.search-modal-categories::-webkit-scrollbar {
-    display: none;
-}
-
-.search-category-btn {
-    white-space: nowrap;
-    transition: all var(--duration-normal) var(--ease-spring);
-    border: 1px solid transparent;
-}
-
-.search-category-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-}
-
-.search-category-btn.active {
-    box-shadow: var(--shadow-md);
-}
-
 /* Desktop Categories */
 .desktop-categories-wrapper {
     position: relative;
@@ -421,15 +230,7 @@
     border-color: transparent;
 }
 
-/* Page header styles */
-.page-header {
-    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
-    border-radius: var(--radius-xl);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    border: 1px solid var(--border);
-}
-
+/* Stats overview */
 .stats-overview {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -476,8 +277,8 @@
     font-weight: 500;
 }
 
-/* Search filter section */
-.search-filter-section {
+/* Filter section */
+.filter-section {
     background: white;
     border-radius: var(--radius-xl);
     border: 1px solid var(--border);
@@ -488,11 +289,6 @@
 
 /* Mobile Optimizations */
 @media (max-width: 640px) {
-    .page-header {
-        padding: 1.5rem;
-        margin: 0 -1rem 2rem;
-    }
-    
     .stats-overview {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
@@ -513,15 +309,10 @@
         border-radius: var(--radius-lg);
     }
 
-    .search-filter-section {
+    .filter-section {
         padding: 1rem;
         margin: 0 -1rem 1.5rem;
         border-radius: var(--radius-lg);
-    }
-
-    .search-modal-content {
-        width: 95%;
-        max-width: none;
     }
 }
 </style>
@@ -578,48 +369,30 @@
 </div>
 {% endif %}
 
-<!-- Search and Filter Section -->
-<div class="search-filter-section">
-    <div class="flex flex-col lg:flex-row gap-4">
-        <!-- Search Input -->
-        <div class="flex-1">
-            <div class="relative">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                    type="text"
-                    id="room-search"
-                    placeholder="Search rooms by name or topic..."
-                    class="search-input"
-                />
-            </div>
-        </div>
-
-        <!-- Filter Toggles -->
-        <div class="flex gap-2 flex-wrap">
-            <button class="filter-toggle active" data-filter="all">
-                All Rooms
-            </button>
-            <button class="filter-toggle" data-filter="user">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Your Rooms
-            </button>
-            <button class="filter-toggle" data-filter="available">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Available
-            </button>
-            <button class="filter-toggle" data-filter="newest">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Newest
-            </button>
-        </div>
+<!-- Filter Section (without search input) -->
+<div class="filter-section">
+    <div class="flex gap-2 flex-wrap justify-center sm:justify-start">
+        <button class="filter-toggle active" data-filter="all">
+            All Rooms
+        </button>
+        <button class="filter-toggle" data-filter="user">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Your Rooms
+        </button>
+        <button class="filter-toggle" data-filter="available">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Available
+        </button>
+        <button class="filter-toggle" data-filter="newest">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Newest
+        </button>
     </div>
 </div>
 
@@ -941,20 +714,12 @@
 {% block javascript %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('room-search');
-    const searchToggle = document.getElementById('search-toggle');
-    const searchModal = document.getElementById('search-modal');
-    const closeSearch = document.getElementById('close-search');
-    const modalSearchInput = document.getElementById('modal-search-input');
-    const searchResults = document.getElementById('search-results');
     const filterToggles = document.querySelectorAll('.filter-toggle');
     const categoryCards = document.querySelectorAll('[data-category]');
     const roomCards = document.querySelectorAll('.room-card');
     
     let currentFilter = 'all';
     let currentCategory = 'all';
-    let currentSearchCategory = 'all';
-    let searchTimeout;
 
     // Force "All Rooms" category to be selected by default
     localStorage.setItem('euphorie_selected_category', 'all');
@@ -1004,183 +769,6 @@ document.addEventListener('DOMContentLoaded', function() {
         randomizeRoomCards();
     }
 
-    // Search modal functionality
-    if (searchToggle && searchModal) {
-        searchToggle.addEventListener('click', () => {
-            searchModal.classList.add('active');
-            if (modalSearchInput) {
-                setTimeout(() => modalSearchInput.focus(), 300);
-            }
-            updateSearchCategoryButtons();
-        });
-
-        if (closeSearch) {
-            closeSearch.addEventListener('click', () => {
-                searchModal.classList.remove('active');
-            });
-        }
-
-        searchModal.addEventListener('click', (e) => {
-            if (e.target === searchModal) {
-                searchModal.classList.remove('active');
-            }
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && searchModal.classList.contains('active')) {
-                searchModal.classList.remove('active');
-            }
-        });
-    }
-
-    // Search functionality in the modal
-    if (modalSearchInput) {
-        modalSearchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                filterSearchResults();
-            }, 300);
-        });
-    }
-
-    // Search category buttons in modal
-    const searchCategoryBtns = document.querySelectorAll('.search-category-btn');
-    if (searchCategoryBtns) {
-        searchCategoryBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                searchCategoryBtns.forEach(b => b.classList.remove('active', 'bg-pink-500', 'text-white'));
-                searchCategoryBtns.forEach(b => b.classList.add('bg-gray-100', 'text-gray-700'));
-                this.classList.add('active', 'bg-pink-500', 'text-white');
-                this.classList.remove('bg-gray-100', 'text-gray-700');
-
-                currentSearchCategory = this.getAttribute('data-category');
-                filterSearchResults();
-                syncWithMainCategories(currentSearchCategory);
-            });
-        });
-    }
-
-    // Filter search results
-    function filterSearchResults() {
-        const searchValue = modalSearchInput.value.toLowerCase();
-
-        if (!searchValue.trim() && currentSearchCategory === 'all') {
-            searchResults.innerHTML = '<p class="text-gray-500 text-center py-4">Type to search for rooms or select a category...</p>';
-            return;
-        }
-
-        const allRoomCards = document.querySelectorAll('.room-card');
-        const matchingRooms = Array.from(allRoomCards).filter(card => {
-            const roomName = card.getAttribute('data-name') || '';
-            const roomCategory = card.getAttribute('data-category');
-
-            const matchesSearch = !searchValue.trim() || roomName.includes(searchValue);
-            const matchesCategory = currentSearchCategory === 'all' || roomCategory === currentSearchCategory;
-
-            return matchesSearch && matchesCategory;
-        });
-
-        if (matchingRooms.length === 0) {
-            searchResults.innerHTML = `
-                <div class="py-8 flex flex-col items-center">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                    <p class="text-gray-500 font-medium mb-2">No rooms found ${searchValue ? `matching "${searchValue}"` : ''} ${currentSearchCategory !== 'all' ? `in ${currentSearchCategory}` : ''}</p>
-                </div>
-            `;
-        } else {
-            searchResults.innerHTML = '';
-            matchingRooms.slice(0, 10).forEach(room => {
-                const roomName = room.querySelector('.room-name').textContent;
-                const roomBadges = room.querySelector('.text-sm.text-gray-500.mb-3').innerHTML;
-                const roomUrl = room.getAttribute('href');
-
-                const resultItem = document.createElement('a');
-                resultItem.href = roomUrl;
-                resultItem.className = 'block p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center';
-                resultItem.innerHTML = `
-                    <div class="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-400 rounded-md flex-shrink-0 flex items-center justify-center text-white mr-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="font-medium text-gray-800">${roomName}</h4>
-                        <div class="flex flex-wrap gap-1 mt-1">${roomBadges}</div>
-                    </div>
-                `;
-
-                searchResults.appendChild(resultItem);
-            });
-
-            if (matchingRooms.length > 10) {
-                const viewAllLink = document.createElement('div');
-                viewAllLink.className = 'mt-2 pt-2 border-t text-center';
-                viewAllLink.innerHTML = `
-                    <button class="text-sm text-pink-500 hover:underline py-2">
-                        View all ${matchingRooms.length} results
-                    </button>
-                `;
-                searchResults.appendChild(viewAllLink);
-            }
-        }
-    }
-
-    // Update search category buttons
-    function updateSearchCategoryButtons() {
-        const selectedCategory = localStorage.getItem('euphorie_selected_category') || 'all';
-        currentSearchCategory = selectedCategory;
-
-        searchCategoryBtns.forEach(btn => {
-            const btnCategory = btn.getAttribute('data-category');
-            if (btnCategory === selectedCategory) {
-                btn.classList.add('active', 'bg-pink-500', 'text-white');
-                btn.classList.remove('bg-gray-100', 'text-gray-700');
-            } else {
-                btn.classList.remove('active', 'bg-pink-500', 'text-white');
-                btn.classList.add('bg-gray-100', 'text-gray-700');
-            }
-        });
-    }
-
-    // Sync with main categories
-    function syncWithMainCategories(category) {
-        const mainCategoryBtn = document.querySelector(`.desktop-category-card[data-category="${category}"]`) ||
-                                document.querySelector(`.mobile-category-card[data-category="${category}"]`);
-
-        if (mainCategoryBtn) {
-            mainCategoryBtn.click();
-        } else {
-            localStorage.setItem('euphorie_selected_category', category);
-        }
-    }
-
-    // Main page search functionality
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                filterRooms();
-            }, 300);
-        });
-
-        // Focus search with '/' key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === '/' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT') {
-                e.preventDefault();
-                searchInput.focus();
-            }
-            if (e.key === 'Escape' && searchInput === document.activeElement) {
-                searchInput.value = '';
-                searchInput.blur();
-                filterRooms();
-            }
-        });
-    }
-
     // Filter toggles
     filterToggles.forEach(toggle => {
         toggle.addEventListener('click', function() {
@@ -1216,19 +804,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Combined filter function
+    // Filter function
     function filterRooms() {
-        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
         let visibleCount = 0;
         
         roomCards.forEach(card => {
-            const roomName = card.getAttribute('data-name') || '';
             const roomCategory = card.getAttribute('data-category') || 'general';
             const roomFilter = card.getAttribute('data-filter') || 'available';
             const roomCreated = new Date(card.getAttribute('data-created'));
             const isRecent = (Date.now() - roomCreated.getTime()) < (7 * 24 * 60 * 60 * 1000);
             
-            const matchesSearch = !searchTerm || roomName.includes(searchTerm);
             const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
             
             let matchesFilter = true;
@@ -1246,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     matchesFilter = true;
             }
             
-            if (matchesSearch && matchesCategory && matchesFilter) {
+            if (matchesCategory && matchesFilter) {
                 card.style.display = '';
                 setTimeout(() => {
                     card.style.opacity = '1';
@@ -1299,40 +884,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('resize', updateScrollButtons);
     }
 
-    // Search modal category scroll buttons
-    const searchCategoriesContainer = document.querySelector('.search-modal-categories');
-    const searchScrollLeftBtn = document.getElementById('search-categories-scroll-left');
-    const searchScrollRightBtn = document.getElementById('search-categories-scroll-right');
-
-    if (searchScrollLeftBtn && searchScrollRightBtn && searchCategoriesContainer) {
-        searchScrollLeftBtn.addEventListener('click', () => {
-            searchCategoriesContainer.scrollBy({
-                left: -200,
-                behavior: 'smooth'
-            });
-        });
-
-        searchScrollRightBtn.addEventListener('click', () => {
-            searchCategoriesContainer.scrollBy({
-                left: 200,
-                behavior: 'smooth'
-            });
-        });
-
-        function updateSearchScrollButtons() {
-            const canScrollLeft = searchCategoriesContainer.scrollLeft > 0;
-            const canScrollRight = searchCategoriesContainer.scrollLeft <
-                (searchCategoriesContainer.scrollWidth - searchCategoriesContainer.clientWidth - 10);
-
-            searchScrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.4';
-            searchScrollRightBtn.style.opacity = canScrollRight ? '1' : '0.4';
-        }
-
-        updateSearchScrollButtons();
-        searchCategoriesContainer.addEventListener('scroll', updateSearchScrollButtons);
-        window.addEventListener('resize', updateSearchScrollButtons);
-    }
-
     // Form animations
     const createRoomForm = document.getElementById('create-room-form');
     if (createRoomForm) {
@@ -1351,24 +902,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 submitBtn.disabled = true;
             }
-        });
-    }
-
-    // Mobile create button
-    const createRoomNav = document.getElementById('create-room-nav');
-    if (createRoomNav && createRoomForm) {
-        createRoomNav.addEventListener('click', function() {
-            createRoomForm.scrollIntoView({ behavior: 'smooth' });
-
-            createRoomForm.style.boxShadow = '0 0 0 3px rgba(244, 114, 182, 0.2)';
-            setTimeout(() => {
-                createRoomForm.style.boxShadow = '';
-            }, 1500);
-
-            setTimeout(() => {
-                const input = createRoomForm.querySelector('input[name="room_name"]');
-                if (input) input.focus();
-            }, 800);
         });
     }
 
