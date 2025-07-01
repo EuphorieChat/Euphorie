@@ -19,8 +19,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'chat',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
     # 'rooms',
 ]
+
+SITE_ID = 1
 
 # Middleware
 MIDDLEWARE = [
