@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.views.generic import TemplateView
 from django.shortcuts import redirect
-from . import views
+# REMOVED: from . import views  # This was causing the error!
 
 
 def redirect_to_app(request):
@@ -18,8 +18,7 @@ urlpatterns = [
     # ==================== ADMIN ====================
     path('admin/', admin.site.urls),
     path('auth/', include('allauth.urls')),
-    path('privacy/', views.privacy_policy, name='privacy_policy'),
-
+    
     # ==================== AUTHENTICATION URLS ====================
     # Django built-in auth views with custom templates
     path('accounts/login/', auth_views.LoginView.as_view(
@@ -58,9 +57,8 @@ urlpatterns = [
     ), name='password_reset_complete'),
     
     # ==================== STATIC PAGES ====================
-    path('privacy/', TemplateView.as_view(
-        template_name='pages/privacy_policy.html'
-    ), name='static_privacy'),
+    # NOTE: Privacy policy is now handled by the chat app, so we removed the duplicate
+    # The chat app's privacy_policy view will handle /privacy/
     
     path('terms/', TemplateView.as_view(
         template_name='pages/terms_of_service.html'
@@ -85,7 +83,7 @@ urlpatterns = [
     path('explore/', redirect_to_app, name='legacy_explore'),
     
     # ==================== MAIN CHAT APPLICATION ====================
-    # All main functionality handled by chat app
+    # All main functionality handled by chat app (including privacy policy)
     path('', include('chat.urls')),
     
     # ==================== API ENDPOINTS (Future) ====================
