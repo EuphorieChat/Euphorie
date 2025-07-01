@@ -39,6 +39,8 @@ urlpatterns = [
     path('admin/messages/', views.admin_messages, name='admin_messages'),
     path('admin/users/', views.admin_user_activity, name='admin_user_activity'),
     path('admin/settings/', views.admin_user_settings, name='admin_user_settings'),
+
+    path('explore-rooms/', views.explore_rooms, name='explore_rooms'),
     
     # ==================== API ENDPOINTS ====================
     path('api/profile/', views.api_user_profile, name='api_user_profile'),
