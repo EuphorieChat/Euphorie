@@ -7,6 +7,8 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, F
+from django.shortcuts import render
+from django.views.generic import TemplateView
 from django.utils import timezone
 from datetime import timedelta
 from django.views.decorators.http import require_http_methods
@@ -704,3 +706,16 @@ def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('index')
+
+def privacy_policy(request):
+    """Privacy policy page view"""
+    context = {
+        'page_title': 'Privacy Policy - Euphorie, Inc.',
+        'meta_description': 'Learn how Euphorie, Inc. protects your privacy and handles your data in our comprehensive privacy policy',
+        'site_name': 'Euphorie',
+        'privacy_policy_last_updated': 'June 17, 2025',
+        'privacy_email': 'privacy@euphorieinc.com',
+        'support_email': 'euphorieinc@gmail.com',
+        # Add any other context variables your template needs
+    }
+    return render(request, 'pages/privacy_policy.html', context)

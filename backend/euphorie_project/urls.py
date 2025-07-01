@@ -7,6 +7,8 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.views.generic import TemplateView
 from django.shortcuts import redirect
+from . import views
+
 
 def redirect_to_app(request):
     """Redirect legacy URLs to new structure"""
@@ -16,6 +18,7 @@ urlpatterns = [
     # ==================== ADMIN ====================
     path('admin/', admin.site.urls),
     path('auth/', include('allauth.urls')),
+    path('privacy/', views.privacy_policy, name='privacy_policy'),
 
     # ==================== AUTHENTICATION URLS ====================
     # Django built-in auth views with custom templates
