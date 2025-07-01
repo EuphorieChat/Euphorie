@@ -7,14 +7,22 @@
 
 {% block extra_css %}
 <style>
+/* Rooms Grid - Use from base template */
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
+}
+
 /* Compact Categories Bar */
 .categories-bar {
     background: white;
-    border-radius: 1rem;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-    border: 1px solid #f1f5f9;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
     position: sticky;
     top: 70px;
     z-index: 20;
@@ -25,7 +33,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-sm);
 }
 
 .categories-container {
@@ -34,9 +42,9 @@
     scroll-behavior: smooth;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    gap: 0.5rem;
+    gap: var(--space-sm);
     width: 100%;
-    padding: 0.25rem 0;
+    padding: var(--space-xs) 0;
 }
 
 .categories-container::-webkit-scrollbar {
@@ -46,31 +54,31 @@
 .category-chip {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
     border-radius: 2rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    transition: all 0.2s ease;
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    transition: all var(--duration-normal) var(--ease);
     cursor: pointer;
     flex-shrink: 0;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #64748b;
+    color: var(--text-secondary);
     white-space: nowrap;
 }
 
 .category-chip:hover {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
+    background: var(--surface-active);
+    border-color: var(--border-focus);
     transform: translateY(-1px);
 }
 
 .category-chip.active {
-    background: linear-gradient(135deg, #f472b6, #3b82f6);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     border-color: transparent;
     color: white;
-    box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .category-emoji {
@@ -85,17 +93,17 @@
     height: 2rem;
     border-radius: 50%;
     background: white;
-    border: 1px solid #e2e8f0;
-    color: #64748b;
-    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: all var(--duration-normal) var(--ease);
     cursor: pointer;
     flex-shrink: 0;
 }
 
 .scroll-btn:hover {
-    background: #f472b6;
+    background: var(--primary);
     color: white;
-    border-color: #f472b6;
+    border-color: var(--primary);
 }
 
 .scroll-btn:disabled {
@@ -105,160 +113,196 @@
 
 /* Create Room Quick Form */
 .quick-create {
-    background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-    border-radius: 1rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid #fde68a;
+    background: linear-gradient(135deg, var(--accent-light) 0%, #fed7aa 100%);
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    border: 1px solid var(--accent);
+}
+
+.quick-create h3 {
+    margin: 0 0 var(--space-md) 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
 }
 
 .quick-create-form {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-md);
     align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.form-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .quick-input {
     flex: 1;
-    padding: 0.75rem 1rem;
+    padding: var(--space-md) var(--space-md);
     border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 0.75rem;
+    border-radius: var(--radius-lg);
     background: rgba(255, 255, 255, 0.9);
     font-size: 0.875rem;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
+    font-family: inherit;
 }
 
 .quick-input:focus {
     outline: none;
-    border-color: #f59e0b;
+    border-color: var(--accent-dark);
     background: white;
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
 }
 
 .quick-select {
-    padding: 0.75rem;
+    padding: var(--space-md);
     border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 0.75rem;
+    border-radius: var(--radius-lg);
     background: rgba(255, 255, 255, 0.9);
     font-size: 0.875rem;
     min-width: 140px;
+    font-family: inherit;
 }
 
 .quick-btn {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, var(--accent-dark), #d97706);
     color: white;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-lg);
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
     white-space: nowrap;
+    font-family: inherit;
 }
 
 .quick-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
-/* Compact Rooms Grid */
-.rooms-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-}
-
-/* Compact Room Cards */
-.room-card {
+/* Enhanced Room Cards - Override base styles for explore page */
+.explore-room-card {
     background: white;
-    border-radius: 1rem;
-    border: 1px solid #f1f5f9;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
     text-decoration: none;
     display: flex;
     flex-direction: column;
-    height: 140px;
+    height: 180px;
     position: relative;
 }
 
-.room-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-    border-color: #f472b6;
+.explore-room-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
 }
 
-.room-card-header {
-    padding: 1rem 1rem 0.5rem;
+.explore-room-card-header {
+    padding: var(--space-lg) var(--space-lg) var(--space-sm);
     flex: 1;
 }
 
-.room-name {
-    font-size: 1rem;
+.explore-room-name {
+    font-size: 1.125rem;
     font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-sm) 0;
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    transition: all var(--duration-normal) var(--ease);
+}
+
+.explore-room-card:hover .explore-room-name {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .room-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
 }
 
 .room-badge {
     font-size: 0.7rem;
     font-weight: 500;
-    padding: 0.125rem 0.5rem;
+    padding: 0.125rem var(--space-sm);
     border-radius: 1rem;
-    background: #f8fafc;
-    color: #64748b;
-    border: 1px solid #e2e8f0;
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
 }
 
 .room-badge.category {
-    background: linear-gradient(135deg, #fef3c7, #fed7aa);
+    background: linear-gradient(135deg, var(--accent-light), #fed7aa);
     color: #92400e;
-    border-color: #fde68a;
+    border-color: var(--accent);
 }
 
 .room-badge.status {
-    background: #f0fdf4;
-    color: #166534;
+    background: var(--success-light);
+    color: var(--success);
     border-color: #dcfce7;
 }
 
 .room-badge.user-room {
-    background: #eff6ff;
-    color: #1e40af;
+    background: var(--secondary-light);
+    color: var(--secondary-dark);
     border-color: #dbeafe;
+}
+
+.room-badge.new {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border-color: var(--primary);
+    animation: pulse 2s infinite;
 }
 
 .room-activity {
     height: 3px;
-    background: #f1f5f9;
+    background: var(--surface-active);
     border-radius: 1.5px;
     overflow: hidden;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-sm);
 }
 
 .activity-fill {
     height: 100%;
-    background: linear-gradient(90deg, #f472b6, #3b82f6);
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     border-radius: 1.5px;
+    transition: width var(--duration-slow) var(--ease);
 }
 
-.room-card-footer {
-    padding: 0.75rem 1rem;
-    background: #fafbfc;
-    border-top: 1px solid #f1f5f9;
+.explore-room-card-footer {
+    padding: var(--space-md) var(--space-lg);
+    background: var(--surface-hover);
+    border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -268,35 +312,35 @@
 .room-creator {
     display: flex;
     align-items: center;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
 .creator-avatar {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
     border-radius: 50%;
-    background: linear-gradient(135deg, #f472b6, #3b82f6);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    margin-right: 0.5rem;
+    margin-right: var(--space-sm);
 }
 
-.join-btn {
+.explore-join-btn {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    color: #f472b6;
+    gap: var(--space-xs);
+    color: var(--primary);
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease);
 }
 
-.room-card:hover .join-btn {
-    color: #ec4899;
+.explore-room-card:hover .explore-join-btn {
+    color: var(--primary-hover);
     transform: translateX(2px);
 }
 
@@ -304,52 +348,89 @@
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 3rem 2rem;
-    background: #f8fafc;
-    border-radius: 1rem;
-    border: 2px dashed #cbd5e1;
+    padding: var(--space-2xl) var(--space-xl);
+    background: var(--surface-hover);
+    border-radius: var(--radius-xl);
+    border: 2px dashed var(--border-focus);
 }
 
 .empty-icon {
     width: 4rem;
     height: 4rem;
     border-radius: 50%;
-    background: linear-gradient(135deg, #f472b6, #3b82f6);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem;
+    margin: 0 auto var(--space-lg);
     color: white;
 }
 
 .empty-state h3 {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
 }
 
 .empty-state p {
-    color: #64748b;
-    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xl);
+}
+
+/* Search and Filter Bar */
+.filter-bar {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+    margin-bottom: var(--space-lg);
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: white;
+    font-size: 0.875rem;
+    transition: all var(--duration-normal) var(--ease);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+}
+
+.filter-select {
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: white;
+    font-size: 0.875rem;
+    min-width: 120px;
 }
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
     .categories-bar {
-        margin: 0 -1rem 1rem;
-        border-radius: 0.75rem;
+        margin: 0 -1rem var(--space-lg);
+        border-radius: var(--radius-lg);
         top: 60px;
+        padding: var(--space-md);
     }
     
     .quick-create {
-        margin: 0 -1rem 1rem;
-        border-radius: 0.75rem;
+        margin: 0 -1rem var(--space-lg);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
     }
     
     .quick-create-form {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: var(--space-sm);
     }
     
     .quick-select {
@@ -358,24 +439,34 @@
     
     .rooms-grid {
         grid-template-columns: 1fr;
-        gap: 0.75rem;
+        gap: var(--space-md);
+        margin-top: var(--space-md);
     }
     
-    .room-card {
-        height: 120px;
+    .explore-room-card {
+        height: 160px;
     }
     
-    .room-card-header {
-        padding: 0.75rem 1rem 0.5rem;
+    .explore-room-card-header {
+        padding: var(--space-md) var(--space-md) var(--space-sm);
     }
     
-    .room-name {
-        font-size: 0.95rem;
+    .explore-room-name {
+        font-size: 1rem;
         -webkit-line-clamp: 1;
     }
     
-    .room-card-footer {
-        padding: 0.5rem 1rem;
+    .explore-room-card-footer {
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-input {
+        min-width: auto;
     }
 }
 
@@ -387,178 +478,252 @@
     .scroll-btn {
         display: none;
     }
-}
-
-/* Animations */
-.room-card {
-    opacity: 0;
-    transform: translateY(10px);
-    animation: fadeInUp 0.3s ease forwards;
-}
-
-.room-card:nth-child(1) { animation-delay: 0.05s; }
-.room-card:nth-child(2) { animation-delay: 0.1s; }
-.room-card:nth-child(3) { animation-delay: 0.15s; }
-.room-card:nth-child(4) { animation-delay: 0.2s; }
-.room-card:nth-child(5) { animation-delay: 0.25s; }
-.room-card:nth-child(6) { animation-delay: 0.3s; }
-.room-card:nth-child(7) { animation-delay: 0.35s; }
-.room-card:nth-child(8) { animation-delay: 0.4s; }
-
-@keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    
+    .container {
+        padding: 0 var(--space-sm);
     }
+}
+
+/* Loading and Animation States */
+.rooms-grid.loading .explore-room-card {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.explore-room-card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.4s var(--ease) forwards;
+}
+
+.explore-room-card:nth-child(1) { animation-delay: 0.05s; }
+.explore-room-card:nth-child(2) { animation-delay: 0.1s; }
+.explore-room-card:nth-child(3) { animation-delay: 0.15s; }
+.explore-room-card:nth-child(4) { animation-delay: 0.2s; }
+.explore-room-card:nth-child(5) { animation-delay: 0.25s; }
+.explore-room-card:nth-child(6) { animation-delay: 0.3s; }
+.explore-room-card:nth-child(7) { animation-delay: 0.35s; }
+.explore-room-card:nth-child(8) { animation-delay: 0.4s; }
+
+/* Filter indicator */
+.active-filters {
+    display: flex;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.filter-tag {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.filter-tag button {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: var(--space-xs);
 }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<!-- Compact Categories Bar -->
-<div class="categories-bar">
-    <div class="categories-wrapper">
-        <button class="scroll-btn" id="scroll-left">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-        </button>
-
-        <div class="categories-container">
-            <div class="category-chip active" data-category="all">
-                <span class="category-emoji">🌟</span>
-                <span>All</span>
-            </div>
-            <div class="category-chip" data-category="general">
-                <span class="category-emoji">💬</span>
-                <span>General</span>
-            </div>
-            <div class="category-chip" data-category="tech">
-                <span class="category-emoji">💻</span>
-                <span>Tech</span>
-            </div>
-            <div class="category-chip" data-category="gaming">
-                <span class="category-emoji">🎮</span>
-                <span>Gaming</span>
-            </div>
-            <div class="category-chip" data-category="music">
-                <span class="category-emoji">🎵</span>
-                <span>Music</span>
-            </div>
-            <div class="category-chip" data-category="art">
-                <span class="category-emoji">🎨</span>
-                <span>Art</span>
-            </div>
-            <div class="category-chip" data-category="sports">
-                <span class="category-emoji">⚽</span>
-                <span>Sports</span>
-            </div>
-        </div>
-
-        <button class="scroll-btn" id="scroll-right">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-        </button>
+<div class="container mx-auto p-4 sm:p-6 max-w-7xl">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            <span class="gradient-text">Discover Rooms</span>
+        </h1>
+        <p class="text-gray-600">Find and join amazing conversations happening right now</p>
     </div>
-</div>
 
-<!-- Quick Create Room (for authenticated users) -->
-{% if user.is_authenticated %}
-<div class="quick-create">
-    <form method="post" action="{% url 'create_room' %}" class="quick-create-form" id="create-room-form">
-        {% csrf_token %}
-        <input
-            type="text"
-            name="room_name"
-            placeholder="Create a new room..."
-            class="quick-input"
-            required
-        />
-        <select name="room_category" class="quick-select" required>
-            <option value="" disabled selected>Category</option>
-            <option value="general">💬 General</option>
-            <option value="tech">💻 Tech</option>
-            <option value="gaming">🎮 Gaming</option>
-            <option value="music">🎵 Music</option>
-            <option value="art">🎨 Art</option>
-            <option value="sports">⚽ Sports</option>
+    <!-- Search and Filter Bar -->
+    <div class="filter-bar">
+        <input 
+            type="text" 
+            placeholder="Search rooms..." 
+            class="search-input"
+            id="room-search"
+        >
+        <select class="filter-select" id="sort-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="active">Most Active</option>
+            <option value="name">Name A-Z</option>
         </select>
-        <button type="submit" class="quick-btn">Create</button>
-    </form>
-</div>
-{% endif %}
+    </div>
 
-<!-- Rooms Grid -->
-<div class="rooms-grid" id="rooms-container">
-    {% if rooms %}
-        {% for room in rooms %}
-        <a href="{% url 'room' room.name %}" class="room-card" 
-           data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
-           data-name="{{ room.display_name|default:room.name|lower }}"
-           data-filter="{% if room.creator == user %}user{% else %}available{% endif %}"
-           data-created="{{ room.created_at|date:'c' }}">
-            
-            <div class="room-card-header">
-                <h3 class="room-name">{{ room.display_name|default:room.name }}</h3>
-                
-                <div class="room-meta">
-                    <span class="room-badge category">
-                        {% if room.category %}
-                            {% if room.category.icon %}{{ room.category.icon }}{% else %}💬{% endif %} {{ room.category.name }}
-                        {% else %}
-                            💬 General
-                        {% endif %}
-                    </span>
-                    {% if room.creator == user %}
-                    <span class="room-badge user-room">Your Room</span>
-                    {% else %}
-                    <span class="room-badge status">Available</span>
-                    {% endif %}
-                    {% if room.created_at|timesince|slice:":1" == "0" %}
-                    <span class="room-badge">New</span>
-                    {% endif %}
+    <!-- Active Filters Display -->
+    <div class="active-filters" id="active-filters" style="display: none;">
+        <!-- Dynamically populated -->
+    </div>
+
+    <!-- Compact Categories Bar -->
+    <div class="categories-bar">
+        <div class="categories-wrapper">
+            <button class="scroll-btn" id="scroll-left" aria-label="Scroll categories left">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
+            <div class="categories-container">
+                <div class="category-chip active" data-category="all">
+                    <span class="category-emoji">🌟</span>
+                    <span>All</span>
                 </div>
-
-                <div class="room-activity">
-                    <div class="activity-fill" style="width: {% if room.total_messages > 30 %}75%{% elif room.total_messages > 15 %}50%{% else %}25%{% endif %}"></div>
+                <div class="category-chip" data-category="general">
+                    <span class="category-emoji">💬</span>
+                    <span>General</span>
+                </div>
+                <div class="category-chip" data-category="tech">
+                    <span class="category-emoji">💻</span>
+                    <span>Tech</span>
+                </div>
+                <div class="category-chip" data-category="gaming">
+                    <span class="category-emoji">🎮</span>
+                    <span>Gaming</span>
+                </div>
+                <div class="category-chip" data-category="music">
+                    <span class="category-emoji">🎵</span>
+                    <span>Music</span>
+                </div>
+                <div class="category-chip" data-category="art">
+                    <span class="category-emoji">🎨</span>
+                    <span>Art</span>
+                </div>
+                <div class="category-chip" data-category="sports">
+                    <span class="category-emoji">⚽</span>
+                    <span>Sports</span>
                 </div>
             </div>
 
-            <div class="room-card-footer">
-                <div class="room-creator">
-                    <div class="creator-avatar">
-                        {% if room.creator == user %}Y{% else %}{{ room.creator.username|slice:":1"|upper }}{% endif %}
+            <button class="scroll-btn" id="scroll-right" aria-label="Scroll categories right">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Create Room (for authenticated users) -->
+    {% if user.is_authenticated %}
+    <div class="quick-create">
+        <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create Your Own Room
+        </h3>
+        <form method="post" action="{% url 'create_room' %}" class="quick-create-form" id="create-room-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">Room Name</label>
+                <input
+                    type="text"
+                    name="room_name"
+                    placeholder="Enter room name..."
+                    class="quick-input"
+                    required
+                />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select name="room_category" class="quick-select" required>
+                    <option value="" disabled selected>Choose...</option>
+                    <option value="general">💬 General</option>
+                    <option value="tech">💻 Tech</option>
+                    <option value="gaming">🎮 Gaming</option>
+                    <option value="music">🎵 Music</option>
+                    <option value="art">🎨 Art</option>
+                    <option value="sports">⚽ Sports</option>
+                </select>
+            </div>
+            <button type="submit" class="quick-btn">Create Room</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Rooms Grid -->
+    <div class="rooms-grid" id="rooms-container">
+        {% if rooms %}
+            {% for room in rooms %}
+            <a href="{% url 'room' room.name %}" class="explore-room-card" 
+               data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
+               data-name="{{ room.display_name|default:room.name|lower }}"
+               data-filter="{% if room.creator == user %}user{% else %}available{% endif %}"
+               data-created="{{ room.created_at|date:'c' }}"
+               data-activity="{{ room.total_messages|default:0 }}">
+                
+                <div class="explore-room-card-header">
+                    <h3 class="explore-room-name">{{ room.display_name|default:room.name }}</h3>
+                    
+                    <div class="room-meta">
+                        <span class="room-badge category">
+                            {% if room.category %}
+                                {% if room.category.icon %}{{ room.category.icon }}{% else %}💬{% endif %} {{ room.category.name }}
+                            {% else %}
+                                💬 General
+                            {% endif %}
+                        </span>
+                        {% if room.creator == user %}
+                        <span class="room-badge user-room">Your Room</span>
+                        {% else %}
+                        <span class="room-badge status">Available</span>
+                        {% endif %}
+                        {% if room.created_at|timesince|slice:":1" == "0" %}
+                        <span class="room-badge new">New</span>
+                        {% endif %}
                     </div>
-                    {% if room.creator == user %}You{% else %}{{ room.creator.username }}{% endif %}
+
+                    <div class="room-activity">
+                        <div class="activity-fill" style="width: {% if room.total_messages > 30 %}75%{% elif room.total_messages > 15 %}50%{% elif room.total_messages > 5 %}25%{% else %}10%{% endif %}"></div>
+                    </div>
                 </div>
-                <div class="join-btn">
-                    <span>{% if room.creator == user %}Enter{% elif user.is_authenticated %}Join{% else %}Sign in{% endif %}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+
+                <div class="explore-room-card-footer">
+                    <div class="room-creator">
+                        <div class="creator-avatar">
+                            {% if room.creator == user %}Y{% else %}{{ room.creator.username|slice:":1"|upper }}{% endif %}
+                        </div>
+                        {% if room.creator == user %}You{% else %}{{ room.creator.username }}{% endif %}
+                    </div>
+                    <div class="explore-join-btn">
+                        <span>{% if room.creator == user %}Enter{% elif user.is_authenticated %}Join{% else %}Sign in{% endif %}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                 </div>
+                <h3>No rooms found</h3>
+                <p>Be the first to create a room and start a conversation!</p>
+                {% if user.is_authenticated %}
+                <a href="{% url 'create_room' %}" class="btn btn-primary">Create First Room</a>
+                {% else %}
+                <a href="{% url 'signup' %}" class="btn btn-primary">Sign Up to Create</a>
+                {% endif %}
             </div>
-        </a>
-        {% endfor %}
-    {% else %}
-        <!-- Empty State -->
-        <div class="empty-state">
-            <div class="empty-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-            </div>
-            <h3>No rooms yet</h3>
-            <p>Be the first to create a room and start a conversation!</p>
-            {% if user.is_authenticated %}
-            <a href="{% url 'create_room' %}" class="btn btn-primary">Create First Room</a>
-            {% else %}
-            <a href="{% url 'signup' %}" class="btn btn-primary">Sign Up to Create</a>
-            {% endif %}
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
@@ -566,12 +731,30 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const categoryChips = document.querySelectorAll('.category-chip');
-    const roomCards = document.querySelectorAll('.room-card');
+    const roomCards = document.querySelectorAll('.explore-room-card');
     const scrollLeftBtn = document.getElementById('scroll-left');
     const scrollRightBtn = document.getElementById('scroll-right');
     const categoriesContainer = document.querySelector('.categories-container');
+    const searchInput = document.getElementById('room-search');
+    const sortSelect = document.getElementById('sort-select');
+    const roomsContainer = document.getElementById('rooms-container');
+    const activeFiltersContainer = document.getElementById('active-filters');
     
     let currentCategory = 'all';
+    let currentSearch = '';
+    let currentSort = 'newest';
+
+    // Initialize from localStorage
+    const savedCategory = localStorage.getItem('euphorie_selected_category');
+    if (savedCategory && savedCategory !== 'all') {
+        currentCategory = savedCategory;
+        categoryChips.forEach(chip => {
+            chip.classList.remove('active');
+            if (chip.getAttribute('data-category') === savedCategory) {
+                chip.classList.add('active');
+            }
+        });
+    }
 
     // Category selection
     categoryChips.forEach(chip => {
@@ -581,29 +764,143 @@ document.addEventListener('DOMContentLoaded', function() {
             
             currentCategory = this.getAttribute('data-category');
             localStorage.setItem('euphorie_selected_category', currentCategory);
-            filterRooms();
+            updateFilters();
+            filterAndSortRooms();
         });
     });
 
-    // Filter rooms
-    function filterRooms() {
-        let visibleCount = 0;
+    // Search functionality
+    searchInput.addEventListener('input', window.utils.debounce(function() {
+        currentSearch = this.value.toLowerCase().trim();
+        updateFilters();
+        filterAndSortRooms();
+    }, 300));
+
+    // Sort functionality
+    sortSelect.addEventListener('change', function() {
+        currentSort = this.value;
+        filterAndSortRooms();
+    });
+
+    // Update active filters display
+    function updateFilters() {
+        const activeFilters = [];
         
-        roomCards.forEach((card, index) => {
+        if (currentCategory !== 'all') {
+            const categoryChip = document.querySelector(`[data-category="${currentCategory}"]`);
+            if (categoryChip) {
+                const categoryName = categoryChip.textContent.trim();
+                activeFilters.push({
+                    type: 'category',
+                    label: `Category: ${categoryName}`,
+                    value: currentCategory
+                });
+            }
+        }
+        
+        if (currentSearch) {
+            activeFilters.push({
+                type: 'search',
+                label: `Search: "${currentSearch}"`,
+                value: currentSearch
+            });
+        }
+
+        if (activeFilters.length > 0) {
+            activeFiltersContainer.style.display = 'flex';
+            activeFiltersContainer.innerHTML = activeFilters.map(filter => `
+                <div class="filter-tag">
+                    ${filter.label}
+                    <button onclick="removeFilter('${filter.type}', '${filter.value}')" aria-label="Remove filter">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            activeFiltersContainer.style.display = 'none';
+        }
+
+        // Make removeFilter globally available
+        window.removeFilter = function(type, value) {
+            if (type === 'category') {
+                currentCategory = 'all';
+                categoryChips.forEach(chip => {
+                    chip.classList.remove('active');
+                    if (chip.getAttribute('data-category') === 'all') {
+                        chip.classList.add('active');
+                    }
+                });
+                localStorage.setItem('euphorie_selected_category', 'all');
+            } else if (type === 'search') {
+                currentSearch = '';
+                searchInput.value = '';
+            }
+            updateFilters();
+            filterAndSortRooms();
+        };
+    }
+
+    // Filter and sort rooms
+    function filterAndSortRooms() {
+        roomsContainer.classList.add('loading');
+        
+        const roomCardsArray = Array.from(roomCards);
+        let visibleCards = [];
+
+        // Filter rooms
+        roomCardsArray.forEach(card => {
             const roomCategory = card.getAttribute('data-category') || 'general';
-            const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+            const roomName = card.getAttribute('data-name') || '';
             
-            if (matchesCategory) {
+            const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+            const matchesSearch = !currentSearch || roomName.includes(currentSearch);
+            
+            if (matchesCategory && matchesSearch) {
                 card.style.display = '';
-                card.style.animationDelay = `${index * 0.05}s`;
-                visibleCount++;
+                visibleCards.push(card);
             } else {
                 card.style.display = 'none';
             }
         });
+
+        // Sort visible rooms
+        visibleCards.sort((a, b) => {
+            switch (currentSort) {
+                case 'newest':
+                    return new Date(b.getAttribute('data-created')) - new Date(a.getAttribute('data-created'));
+                case 'oldest':
+                    return new Date(a.getAttribute('data-created')) - new Date(b.getAttribute('data-created'));
+                case 'active':
+                    return parseInt(b.getAttribute('data-activity') || 0) - parseInt(a.getAttribute('data-activity') || 0);
+                case 'name':
+                    return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                default:
+                    return 0;
+            }
+        });
+
+        // Re-append sorted cards
+        visibleCards.forEach((card, index) => {
+            roomsContainer.appendChild(card);
+            card.style.animationDelay = `${index * 0.05}s`;
+        });
+
+        // Show/hide empty state
+        const emptyState = document.querySelector('.empty-state');
+        if (visibleCards.length === 0 && emptyState) {
+            emptyState.style.display = 'block';
+        } else if (emptyState) {
+            emptyState.style.display = 'none';
+        }
+
+        setTimeout(() => {
+            roomsContainer.classList.remove('loading');
+        }, 300);
     }
 
-    // Scroll functionality
+    // Scroll functionality for categories
     if (scrollLeftBtn && scrollRightBtn && categoriesContainer) {
         scrollLeftBtn.addEventListener('click', () => {
             categoriesContainer.scrollBy({ left: -200, behavior: 'smooth' });
@@ -620,6 +917,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.5';
             scrollRightBtn.style.opacity = canScrollRight ? '1' : '0.5';
+            scrollLeftBtn.disabled = !canScrollLeft;
+            scrollRightBtn.disabled = !canScrollRight;
         }
 
         updateScrollButtons();
@@ -627,10 +926,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('resize', updateScrollButtons);
     }
 
-    // Form submission
+    // Form submission handling
     const createForm = document.getElementById('create-room-form');
     if (createForm) {
-        createForm.addEventListener('submit', function() {
+        createForm.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('.quick-btn');
             if (submitBtn) {
                 submitBtn.innerHTML = 'Creating...';
@@ -639,34 +938,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Randomize room order
+    // Randomize room order initially for variety
     function shuffleRooms() {
-        const container = document.getElementById('rooms-container');
-        const cards = Array.from(container.querySelectorAll('.room-card'));
+        if (roomCards.length <= 1) return;
         
-        if (cards.length <= 1) return;
+        const cardsArray = Array.from(roomCards);
         
         // Fisher-Yates shuffle
-        for (let i = cards.length - 1; i > 0; i--) {
+        for (let i = cardsArray.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [cards[i], cards[j]] = [cards[j], cards[i]];
+            [cardsArray[i], cardsArray[j]] = [cardsArray[j], cardsArray[i]];
         }
         
         // Re-append in new order
-        cards.forEach(card => container.appendChild(card));
-        
-        // Reset animations
-        cards.forEach((card, index) => {
+        cardsArray.forEach((card, index) => {
+            roomsContainer.appendChild(card);
             card.style.animationDelay = `${index * 0.05}s`;
         });
     }
 
+    // Initialize
     if (roomCards.length > 0) {
         shuffleRooms();
     }
-
-    // Initial filter
-    filterRooms();
+    
+    updateFilters();
+    filterAndSortRooms();
 });
 </script>
 {% endblock %}
