@@ -13,6 +13,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
 import json
 
 from .models import (
@@ -563,8 +564,21 @@ def api_search_rooms(request):
 # ==================== UTILITY VIEWS ====================
 
 def privacy_policy(request):
-    """Privacy policy page"""
-    return render(request, 'chat/privacy_policy.html')
+    """Privacy policy page view"""
+    context = {
+        'page_title': 'Privacy Policy - Euphorie, Inc.',
+        'meta_description': 'Learn how Euphorie, Inc. protects your privacy and handles your data in our comprehensive privacy policy',
+        'site_name': 'Euphorie',
+        'privacy_policy_last_updated': 'June 17, 2025',
+        'privacy_email': 'privacy@euphorieinc.com',
+        'support_email': 'euphorieinc@gmail.com',
+        'billing_email': None,  # Set to None or remove if not used
+        'debug': True,  # Your template checks for this
+        # Add base template variables if needed
+        'pending_friend_requests_count': 0,
+        'user_created_rooms': False,
+    }
+    return render(request, 'pages/privacy_policy.html', context)
 
 def terms_of_service(request):
     """Terms of service page"""
@@ -706,16 +720,3 @@ def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('index')
-
-def privacy_policy(request):
-    """Privacy policy page view"""
-    context = {
-        'page_title': 'Privacy Policy - Euphorie, Inc.',
-        'meta_description': 'Learn how Euphorie, Inc. protects your privacy and handles your data in our comprehensive privacy policy',
-        'site_name': 'Euphorie',
-        'privacy_policy_last_updated': 'June 17, 2025',
-        'privacy_email': 'privacy@euphorieinc.com',
-        'support_email': 'euphorieinc@gmail.com',
-        # Add any other context variables your template needs
-    }
-    return render(request, 'pages/privacy_policy.html', context)
