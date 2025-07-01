@@ -578,7 +578,7 @@ def privacy_policy(request):
         'pending_friend_requests_count': 0,
         'user_created_rooms': False,
     }
-    return render(request, 'pages/privacy_policy.html', context)
+    return render(request, 'chat/privacy_policy.html', context)
 
 def terms_of_service(request):
     """Terms of service page"""
