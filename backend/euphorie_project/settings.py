@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security
 SECRET_KEY = 'django-insecure-your-secret-key-change-in-production'
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'euphorie.com', 'www.euphorie.com', '172.31.84.166']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'euphorie.com', 'www.euphorie.com', '172.31.84.166', '0.0.0.0']
 
 # Applications
 INSTALLED_APPS = [
