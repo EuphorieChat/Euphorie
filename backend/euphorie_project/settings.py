@@ -22,6 +22,9 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.microsoft',
+    'allauth.socialaccount.providers.apple',
     'widget_tweaks'
     # 'rooms',
 ]
@@ -72,6 +75,11 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://euphorie.com',
+    'https://www.euphorie.com',
+]
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
