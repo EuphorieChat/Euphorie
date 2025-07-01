@@ -23,9 +23,6 @@ window.RoomCore = {
             // Set up UI event handlers
             this.setupUIHandlers();
             
-            // Set up interaction instructions
-            this.showInteractionInstructions();
-            
             // Hide loading screen
             this.hideLoadingScreen();
             
