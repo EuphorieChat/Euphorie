@@ -50,6 +50,26 @@ window.Euphorie = {
             
             return `${size.toFixed(1)} ${units[unitIndex]}`;
         },
+        
+        // Device detection
+        isMobile: () => {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        },
+        
+        // Additional device detection utilities
+        isTablet: () => {
+            return /iPad|Android/i.test(navigator.userAgent) && window.innerWidth >= 768;
+        },
+        
+        isTouchDevice: () => {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        },
+        
+        getDeviceType: () => {
+            if (window.Euphorie.utils.isMobile()) return 'mobile';
+            if (window.Euphorie.utils.isTablet()) return 'tablet';
+            return 'desktop';
+        },
     },
     
     // Initialize the platform
@@ -57,12 +77,20 @@ window.Euphorie = {
         if (this.state.isInitialized) return;
         
         console.log('🚀 Initializing Euphorie 3D Platform v' + this.config.version);
+        console.log('📱 Device type:', this.utils.getDeviceType());
         
         try {
             // Set room configuration from Django
             if (window.ROOM_CONFIG) {
                 this.state.currentRoom = window.ROOM_CONFIG;
                 console.log('📍 Room loaded:', this.state.currentRoom.roomName);
+            }
+            
+            // Adjust configuration based on device
+            if (this.utils.isMobile()) {
+                this.config.updateRate = 30; // Lower FPS for mobile
+                this.config.memoryBudget = 25 * 1024 * 1024; // 25MB for mobile
+                console.log('📱 Mobile optimizations applied');
             }
             
             this.state.isInitialized = true;
@@ -74,6 +102,9 @@ window.Euphorie = {
         }
     },
 };
+
+// Make isMobile available globally for backward compatibility
+window.isMobile = window.Euphorie.utils.isMobile;
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
