@@ -1414,7 +1414,7 @@ window.PetSystem = {
         this.createParticleEffect(petData.group.position, 0xffd700, 'celebration');
     },
 
-    createParticleEffect: function(position, color, type) {
+    createParticleEffect: function(position, color, type, petSize = 0.5) {
         if (!window.SceneManager || !window.SceneManager.scene) return;
         
         // Create particle system
@@ -1432,7 +1432,7 @@ window.PetSystem = {
             );
             
             particle.position.copy(position);
-            particle.position.y += petData.config.size;
+            particle.position.y += petSize;
             particle.position.x += (Math.random() - 0.5) * 0.5;
             particle.position.z += (Math.random() - 0.5) * 0.5;
             
