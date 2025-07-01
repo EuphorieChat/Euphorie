@@ -132,46 +132,6 @@ window.RoomCore = {
         console.log('🎮 Enhanced UI handlers set up');
     },
     
-    showInteractionInstructions: function() {
-        const instructions = document.createElement('div');
-        instructions.id = 'interaction-instructions';
-        instructions.style.cssText = `
-            position: fixed;
-            bottom: 240px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            z-index: 100;
-            max-width: 280px;
-            font-size: 12px;
-            line-height: 1.4;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        `;
-        
-        instructions.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 8px;">🎮 Interaction Guide</div>
-            <div style="margin-bottom: 6px;">• Click avatars to interact</div>
-            <div style="margin-bottom: 6px;">• Press <kbd style="background: rgba(255,255,255,0.2); padding: 2px 4px; border-radius: 3px;">1</kbd> or <kbd style="background: rgba(255,255,255,0.2); padding: 2px 4px; border-radius: 3px;">W</kbd> to wave</div>
-            <div style="margin-bottom: 6px;">• Press <kbd style="background: rgba(255,255,255,0.2); padding: 2px 4px; border-radius: 3px;">2</kbd> or <kbd style="background: rgba(255,255,255,0.2); padding: 2px 4px; border-radius: 3px;">D</kbd> to dance</div>
-            <div style="margin-bottom: 10px;">• Drag mouse to rotate camera</div>
-            <button onclick="document.getElementById('interaction-instructions').remove()" 
-                    style="padding: 4px 8px; background: #666; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
-                Got it!
-            </button>
-        `;
-        
-        document.body.appendChild(instructions);
-        
-        // Auto-hide after 15 seconds
-        setTimeout(() => {
-            if (document.getElementById('interaction-instructions')) {
-                instructions.remove();
-            }
-        }, 15000);
-    },
-    
     setupCameraControls: function() {
         const container = document.getElementById('three-container');
         if (!container || !window.SceneManager.camera) return;
