@@ -1,56 +1,238 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Euphorie 🌟{% endblock %}
+{% block title %}Discover Amazing Rooms - Euphorie 🌟{% endblock %}
 
 {% block description %}Discover and join amazing chat rooms on Euphorie - the next-generation chat platform{% endblock %}
 
 {% block extra_css %}
 <style>
-/* Ultra Compact Rooms Grid - Fit more rooms */
+/* Rooms Grid - Use from base template */
 .rooms-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 0.75rem;
-    margin-top: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
 }
 
-/* Ultra Compact Room Cards */
+/* Compact Categories Bar */
+.categories-bar {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 70px;
+    z-index: 20;
+    backdrop-filter: blur(10px);
+}
+
+.categories-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.categories-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-xs) 0;
+}
+
+.categories-container::-webkit-scrollbar {
+    display: none;
+}
+
+.category-chip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 2rem;
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    transition: all var(--duration-normal) var(--ease);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.category-chip:hover {
+    background: var(--surface-active);
+    border-color: var(--border-focus);
+    transform: translateY(-1px);
+}
+
+.category-chip.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: transparent;
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.category-emoji {
+    font-size: 1rem;
+}
+
+.scroll-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: all var(--duration-normal) var(--ease);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.scroll-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.scroll-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Create Room Quick Form */
+.quick-create {
+    background: linear-gradient(135deg, var(--accent-light) 0%, #fed7aa 100%);
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    border: 1px solid var(--accent);
+}
+
+.quick-create h3 {
+    margin: 0 0 var(--space-md) 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.quick-create-form {
+    display: flex;
+    gap: var(--space-md);
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.form-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.quick-input {
+    flex: 1;
+    padding: var(--space-md) var(--space-md);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    transition: all var(--duration-normal) var(--ease);
+    font-family: inherit;
+}
+
+.quick-input:focus {
+    outline: none;
+    border-color: var(--accent-dark);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.quick-select {
+    padding: var(--space-md);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    min-width: 140px;
+    font-family: inherit;
+}
+
+.quick-btn {
+    background: linear-gradient(135deg, var(--accent-dark), #d97706);
+    color: white;
+    border: none;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease);
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.quick-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Enhanced Room Cards - Override base styles for explore page */
 .explore-room-card {
     background: white;
-    border-radius: 0.75rem;
+    border-radius: var(--radius-xl);
     border: 1px solid var(--border);
     overflow: hidden;
-    transition: all 0.15s var(--ease);
+    transition: all var(--duration-normal) var(--ease);
     text-decoration: none;
     display: flex;
     flex-direction: column;
-    height: 120px;
+    height: 180px;
     position: relative;
 }
 
 .explore-room-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
     border-color: var(--primary);
 }
 
 .explore-room-card-header {
-    padding: 0.75rem 0.75rem 0.25rem;
+    padding: var(--space-lg) var(--space-lg) var(--space-sm);
     flex: 1;
 }
 
 .explore-room-name {
-    font-size: 0.9rem;
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin: 0 0 0.375rem 0;
-    line-height: 1.2;
+    margin: 0 0 var(--space-sm) 0;
+    line-height: 1.3;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    transition: all 0.15s var(--ease);
+    transition: all var(--duration-normal) var(--ease);
 }
 
 .explore-room-card:hover .explore-room-name {
@@ -63,19 +245,18 @@
 .room-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    margin-bottom: 0.375rem;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
 }
 
 .room-badge {
-    font-size: 0.625rem;
+    font-size: 0.7rem;
     font-weight: 500;
-    padding: 0.125rem 0.375rem;
-    border-radius: 0.75rem;
+    padding: 0.125rem var(--space-sm);
+    border-radius: 1rem;
     background: var(--surface-hover);
     color: var(--text-secondary);
     border: 1px solid var(--border);
-    line-height: 1;
 }
 
 .room-badge.category {
@@ -100,32 +281,32 @@
     background: var(--primary-light);
     color: var(--primary-dark);
     border-color: var(--primary);
+    animation: pulse 2s infinite;
 }
 
 .room-activity {
-    height: 2px;
+    height: 3px;
     background: var(--surface-active);
-    border-radius: 1px;
+    border-radius: 1.5px;
     overflow: hidden;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-sm);
 }
 
 .activity-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--primary), var(--secondary));
-    border-radius: 1px;
-    transition: width 0.3s var(--ease);
+    border-radius: 1.5px;
+    transition: width var(--duration-slow) var(--ease);
 }
 
 .explore-room-card-footer {
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface-hover);
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.75rem;
-    min-height: 2rem;
+    font-size: 0.8rem;
 }
 
 .room-creator {
@@ -136,172 +317,120 @@
 }
 
 .creator-avatar {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 0.625rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    margin-right: 0.375rem;
+    margin-right: var(--space-sm);
 }
 
 .explore-join-btn {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-xs);
     color: var(--primary);
     font-weight: 600;
-    transition: all 0.15s var(--ease);
+    transition: all var(--duration-normal) var(--ease);
 }
 
 .explore-room-card:hover .explore-join-btn {
     color: var(--primary-hover);
-    transform: translateX(1px);
+    transform: translateX(2px);
 }
 
-/* Compact Create Room Quick Form */
-.quick-create {
-    background: linear-gradient(135deg, var(--accent-light) 0%, #fed7aa 100%);
-    border-radius: 0.75rem;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-    border: 1px solid var(--accent);
-}
-
-.quick-create h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-}
-
-.quick-create-form {
-    display: flex;
-    gap: 0.5rem;
-    align-items: end;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.form-label {
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.quick-input {
-    flex: 1;
-    padding: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 0.5rem;
-    background: rgba(255, 255, 255, 0.9);
-    font-size: 0.75rem;
-    transition: all 0.15s var(--ease);
-    font-family: inherit;
-}
-
-.quick-input:focus {
-    outline: none;
-    border-color: var(--accent-dark);
-    background: white;
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.1);
-}
-
-.quick-select {
-    padding: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 0.5rem;
-    background: rgba(255, 255, 255, 0.9);
-    font-size: 0.75rem;
-    min-width: 100px;
-    font-family: inherit;
-}
-
-.quick-btn {
-    background: linear-gradient(135deg, var(--accent-dark), #d97706);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s var(--ease);
-    white-space: nowrap;
-    font-family: inherit;
-}
-
-.quick-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Compact Empty State */
+/* Empty State */
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 2rem 1rem;
+    padding: var(--space-2xl) var(--space-xl);
     background: var(--surface-hover);
-    border-radius: 0.75rem;
+    border-radius: var(--radius-xl);
     border: 2px dashed var(--border-focus);
 }
 
 .empty-icon {
-    width: 3rem;
-    height: 3rem;
+    width: 4rem;
+    height: 4rem;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem;
+    margin: 0 auto var(--space-lg);
     color: white;
 }
 
 .empty-state h3 {
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-sm);
 }
 
 .empty-state p {
     color: var(--text-secondary);
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
+    margin-bottom: var(--space-xl);
 }
 
-/* Mobile Optimizations - Ultra Compact */
+/* Search and Filter Bar */
+.filter-bar {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+    margin-bottom: var(--space-lg);
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: white;
+    font-size: 0.875rem;
+    transition: all var(--duration-normal) var(--ease);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+}
+
+.filter-select {
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: white;
+    font-size: 0.875rem;
+    min-width: 120px;
+}
+
+/* Mobile Optimizations */
 @media (max-width: 768px) {
     .categories-bar {
-        margin: 0 -1rem 1rem;
-        border-radius: 0.5rem;
+        margin: 0 -1rem var(--space-lg);
+        border-radius: var(--radius-lg);
         top: 60px;
-        padding: 0.375rem;
+        padding: var(--space-md);
     }
     
     .quick-create {
-        margin: 0 -1rem 1rem;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
+        margin: 0 -1rem var(--space-lg);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
     }
     
     .quick-create-form {
         flex-direction: column;
-        gap: 0.375rem;
+        gap: var(--space-sm);
     }
     
     .quick-select {
@@ -309,45 +438,35 @@
     }
     
     .rooms-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 0.5rem;
-        margin-top: 0.5rem;
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+        margin-top: var(--space-md);
     }
     
     .explore-room-card {
-        height: 100px;
+        height: 160px;
     }
     
     .explore-room-card-header {
-        padding: 0.5rem 0.5rem 0.25rem;
+        padding: var(--space-md) var(--space-md) var(--space-sm);
     }
     
     .explore-room-name {
-        font-size: 0.8rem;
-        margin-bottom: 0.25rem;
+        font-size: 1rem;
+        -webkit-line-clamp: 1;
     }
     
     .explore-room-card-footer {
-        padding: 0.375rem 0.5rem;
-        font-size: 0.675rem;
-        min-height: 1.5rem;
+        padding: var(--space-sm) var(--space-md);
     }
     
-    .creator-avatar {
-        width: 1rem;
-        height: 1rem;
-        font-size: 0.5rem;
-        margin-right: 0.25rem;
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
     }
     
-    .room-badge {
-        font-size: 0.55rem;
-        padding: 0.125rem 0.25rem;
-    }
-    
-    .room-activity {
-        height: 1.5px;
-        margin-bottom: 0.25rem;
+    .search-input {
+        min-width: auto;
     }
 }
 
@@ -362,36 +481,6 @@
     
     .container {
         padding: 0 var(--space-sm);
-    }
-    
-    .rooms-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    }
-}
-
-/* Extra small screens - Maximum compactness */
-@media (max-width: 480px) {
-    .rooms-grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 0.375rem;
-    }
-    
-    .explore-room-card {
-        height: 90px;
-    }
-    
-    .explore-room-card-header {
-        padding: 0.375rem 0.375rem 0.25rem;
-    }
-    
-    .explore-room-name {
-        font-size: 0.75rem;
-    }
-    
-    .explore-room-card-footer {
-        padding: 0.25rem 0.375rem;
-        font-size: 0.625rem;
-        min-height: 1.25rem;
     }
 }
 
@@ -449,12 +538,40 @@
 
 {% block content %}
 <div class="container mx-auto p-4 sm:p-6 max-w-7xl">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            <span class="gradient-text">Discover Rooms</span>
+        </h1>
+        <p class="text-gray-600">Find and join amazing conversations happening right now</p>
+    </div>
 
-    <!-- Ultra Compact Categories Bar -->
+    <!-- Search and Filter Bar -->
+    <div class="filter-bar">
+        <input 
+            type="text" 
+            placeholder="Search rooms..." 
+            class="search-input"
+            id="room-search"
+        >
+        <select class="filter-select" id="sort-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="active">Most Active</option>
+            <option value="name">Name A-Z</option>
+        </select>
+    </div>
+
+    <!-- Active Filters Display -->
+    <div class="active-filters" id="active-filters" style="display: none;">
+        <!-- Dynamically populated -->
+    </div>
+
+    <!-- Compact Categories Bar -->
     <div class="categories-bar">
         <div class="categories-wrapper">
             <button class="scroll-btn" id="scroll-left" aria-label="Scroll categories left">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
@@ -491,30 +608,30 @@
             </div>
 
             <button class="scroll-btn" id="scroll-right" aria-label="Scroll categories right">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
             </button>
         </div>
     </div>
 
-    <!-- Compact Quick Create Room (for authenticated users) -->
+    <!-- Quick Create Room (for authenticated users) -->
     {% if user.is_authenticated %}
     <div class="quick-create">
         <h3>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Create Room
+            Create Your Own Room
         </h3>
         <form method="post" action="{% url 'create_room' %}" class="quick-create-form" id="create-room-form">
             {% csrf_token %}
             <div class="form-group">
-                <label class="form-label">Name</label>
+                <label class="form-label">Room Name</label>
                 <input
                     type="text"
                     name="room_name"
-                    placeholder="Room name..."
+                    placeholder="Enter room name..."
                     class="quick-input"
                     required
                 />
@@ -522,7 +639,7 @@
             <div class="form-group">
                 <label class="form-label">Category</label>
                 <select name="room_category" class="quick-select" required>
-                    <option value="" disabled selected>Choose</option>
+                    <option value="" disabled selected>Choose...</option>
                     <option value="general">💬 General</option>
                     <option value="tech">💻 Tech</option>
                     <option value="gaming">🎮 Gaming</option>
@@ -531,7 +648,7 @@
                     <option value="sports">⚽ Sports</option>
                 </select>
             </div>
-            <button type="submit" class="quick-btn">Create</button>
+            <button type="submit" class="quick-btn">Create Room</button>
         </form>
     </div>
     {% endif %}
@@ -618,9 +735,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const scrollLeftBtn = document.getElementById('scroll-left');
     const scrollRightBtn = document.getElementById('scroll-right');
     const categoriesContainer = document.querySelector('.categories-container');
+    const searchInput = document.getElementById('room-search');
+    const sortSelect = document.getElementById('sort-select');
     const roomsContainer = document.getElementById('rooms-container');
+    const activeFiltersContainer = document.getElementById('active-filters');
     
     let currentCategory = 'all';
+    let currentSearch = '';
+    let currentSort = 'newest';
 
     // Initialize from localStorage
     const savedCategory = localStorage.getItem('euphorie_selected_category');
@@ -642,12 +764,86 @@ document.addEventListener('DOMContentLoaded', function() {
             
             currentCategory = this.getAttribute('data-category');
             localStorage.setItem('euphorie_selected_category', currentCategory);
-            filterRooms();
+            updateFilters();
+            filterAndSortRooms();
         });
     });
 
-    // Filter rooms
-    function filterRooms() {
+    // Search functionality
+    searchInput.addEventListener('input', window.utils.debounce(function() {
+        currentSearch = this.value.toLowerCase().trim();
+        updateFilters();
+        filterAndSortRooms();
+    }, 300));
+
+    // Sort functionality
+    sortSelect.addEventListener('change', function() {
+        currentSort = this.value;
+        filterAndSortRooms();
+    });
+
+    // Update active filters display
+    function updateFilters() {
+        const activeFilters = [];
+        
+        if (currentCategory !== 'all') {
+            const categoryChip = document.querySelector(`[data-category="${currentCategory}"]`);
+            if (categoryChip) {
+                const categoryName = categoryChip.textContent.trim();
+                activeFilters.push({
+                    type: 'category',
+                    label: `Category: ${categoryName}`,
+                    value: currentCategory
+                });
+            }
+        }
+        
+        if (currentSearch) {
+            activeFilters.push({
+                type: 'search',
+                label: `Search: "${currentSearch}"`,
+                value: currentSearch
+            });
+        }
+
+        if (activeFilters.length > 0) {
+            activeFiltersContainer.style.display = 'flex';
+            activeFiltersContainer.innerHTML = activeFilters.map(filter => `
+                <div class="filter-tag">
+                    ${filter.label}
+                    <button onclick="removeFilter('${filter.type}', '${filter.value}')" aria-label="Remove filter">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            activeFiltersContainer.style.display = 'none';
+        }
+
+        // Make removeFilter globally available
+        window.removeFilter = function(type, value) {
+            if (type === 'category') {
+                currentCategory = 'all';
+                categoryChips.forEach(chip => {
+                    chip.classList.remove('active');
+                    if (chip.getAttribute('data-category') === 'all') {
+                        chip.classList.add('active');
+                    }
+                });
+                localStorage.setItem('euphorie_selected_category', 'all');
+            } else if (type === 'search') {
+                currentSearch = '';
+                searchInput.value = '';
+            }
+            updateFilters();
+            filterAndSortRooms();
+        };
+    }
+
+    // Filter and sort rooms
+    function filterAndSortRooms() {
         roomsContainer.classList.add('loading');
         
         const roomCardsArray = Array.from(roomCards);
@@ -656,9 +852,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter rooms
         roomCardsArray.forEach(card => {
             const roomCategory = card.getAttribute('data-category') || 'general';
-            const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+            const roomName = card.getAttribute('data-name') || '';
             
-            if (matchesCategory) {
+            const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+            const matchesSearch = !currentSearch || roomName.includes(currentSearch);
+            
+            if (matchesCategory && matchesSearch) {
                 card.style.display = '';
                 visibleCards.push(card);
             } else {
@@ -666,10 +865,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Re-append cards with staggered animation
+        // Sort visible rooms
+        visibleCards.sort((a, b) => {
+            switch (currentSort) {
+                case 'newest':
+                    return new Date(b.getAttribute('data-created')) - new Date(a.getAttribute('data-created'));
+                case 'oldest':
+                    return new Date(a.getAttribute('data-created')) - new Date(b.getAttribute('data-created'));
+                case 'active':
+                    return parseInt(b.getAttribute('data-activity') || 0) - parseInt(a.getAttribute('data-activity') || 0);
+                case 'name':
+                    return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                default:
+                    return 0;
+            }
+        });
+
+        // Re-append sorted cards
         visibleCards.forEach((card, index) => {
             roomsContainer.appendChild(card);
-            card.style.animationDelay = `${index * 0.03}s`;
+            card.style.animationDelay = `${index * 0.05}s`;
         });
 
         // Show/hide empty state
@@ -682,23 +897,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         setTimeout(() => {
             roomsContainer.classList.remove('loading');
-        }, 200);
+        }, 300);
     }
 
     // Scroll functionality for categories
     if (scrollLeftBtn && scrollRightBtn && categoriesContainer) {
         scrollLeftBtn.addEventListener('click', () => {
-            categoriesContainer.scrollBy({ left: -150, behavior: 'smooth' });
+            categoriesContainer.scrollBy({ left: -200, behavior: 'smooth' });
         });
 
         scrollRightBtn.addEventListener('click', () => {
-            categoriesContainer.scrollBy({ left: 150, behavior: 'smooth' });
+            categoriesContainer.scrollBy({ left: 200, behavior: 'smooth' });
         });
 
         function updateScrollButtons() {
             const canScrollLeft = categoriesContainer.scrollLeft > 0;
             const canScrollRight = categoriesContainer.scrollLeft < 
-                (categoriesContainer.scrollWidth - categoriesContainer.clientWidth - 5);
+                (categoriesContainer.scrollWidth - categoriesContainer.clientWidth - 10);
 
             scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.5';
             scrollRightBtn.style.opacity = canScrollRight ? '1' : '0.5';
@@ -738,7 +953,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Re-append in new order
         cardsArray.forEach((card, index) => {
             roomsContainer.appendChild(card);
-            card.style.animationDelay = `${index * 0.03}s`;
+            card.style.animationDelay = `${index * 0.05}s`;
         });
     }
 
@@ -747,7 +962,8 @@ document.addEventListener('DOMContentLoaded', function() {
         shuffleRooms();
     }
     
-    filterRooms();
+    updateFilters();
+    filterAndSortRooms();
 });
 </script>
 {% endblock %}
