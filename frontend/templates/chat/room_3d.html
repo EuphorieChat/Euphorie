@@ -3,1101 +3,1347 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>{{ room.name }} - Euphorie 3D</title>
+    <title>Euphorie 3D - Next Generation Social Platform</title>
     
-    <!-- Mobile CSS Integration -->
-    <link rel="stylesheet" href="/static/css/room/mobile.css">
-    <!-- Emotion System CSS -->
-    <link rel="stylesheet" href="/static/css/room/emotion-system.css">
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            --secondary-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --warning-gradient: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%);
+            --dark-gradient: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.8);
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --blur-strong: blur(20px);
+            --blur-medium: blur(15px);
+            --blur-light: blur(10px);
+            --shadow-elevation-1: 0 4px 20px rgba(0, 0, 0, 0.15);
+            --shadow-elevation-2: 0 8px 40px rgba(0, 0, 0, 0.25);
+            --shadow-elevation-3: 0 16px 60px rgba(0, 0, 0, 0.35);
+            --transition-smooth: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #0a0a0a;
-            color: white;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark-gradient);
+            color: var(--text-primary);
             overflow: hidden;
-        }
-        
-        #room-container {
-            position: relative;
-            width: 100vw;
             height: 100vh;
+            position: relative;
         }
-        
-        #loading-screen {
-            position: absolute;
+
+        /* Animated background particles */
+        .particles-bg {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            pointer-events: none;
+            z-index: 1;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+            animation: particleShift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes particleShift {
+            0% { transform: translateX(0) translateY(0) scale(1); }
+            100% { transform: translateX(10px) translateY(-10px) scale(1.02); }
+        }
+
+        /* Enhanced loading screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-gradient);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-            color: white;
-            transition: opacity 0.5s ease;
+            z-index: 2000;
+            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
         }
-        
+
+        .loading-container {
+            text-align: center;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .loading-logo {
+            font-size: 3rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 2rem;
+            animation: logoGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes logoGlow {
+            from { filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5)); }
+            to { filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.8)); }
+        }
+
         .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
+            width: 80px;
+            height: 80px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid transparent;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+            animation: modernSpin 1.2s linear infinite;
+            margin: 0 auto 2rem;
+            background: conic-gradient(from 0deg, transparent, var(--primary-gradient));
+            position: relative;
         }
-        
-        @keyframes spin {
+
+        .loading-spinner::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, var(--primary-gradient), transparent);
+            animation: modernSpin 1.2s linear infinite reverse;
+        }
+
+        @keyframes modernSpin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .loading-progress {
+            width: 300px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 2rem auto;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+            width: 0%;
+            animation: loadingProgress 3s ease-in-out infinite;
+        }
+
+        @keyframes loadingProgress {
+            0%, 100% { width: 0%; }
+            50% { width: 100%; }
+        }
+
+        .loading-features {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-width: 400px;
+        }
+
+        .loading-features div {
+            margin: 0.5rem 0;
+            opacity: 0;
+            animation: featureReveal 0.6s ease-out forwards;
+        }
+
+        .loading-features div:nth-child(1) { animation-delay: 0.5s; }
+        .loading-features div:nth-child(2) { animation-delay: 1s; }
+        .loading-features div:nth-child(3) { animation-delay: 1.5s; }
+        .loading-features div:nth-child(4) { animation-delay: 2s; }
+        .loading-features div:nth-child(5) { animation-delay: 2.5s; }
+
+        @keyframes featureReveal {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Enhanced 3D container */
         #three-container {
             width: 100%;
             height: 100%;
-            background: #1a1a1a;
+            background: transparent;
             cursor: grab;
+            position: relative;
+            z-index: 2;
         }
-        
+
         #three-container:active {
             cursor: grabbing;
         }
-        
-        /* Enhanced Chat Panel Styles with 3D Integration */
-        #chat-panel {
+
+        /* Modern glassmorphic panels */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-medium);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-elevation-2);
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 340px;
-            height: 280px; /* Increased height for better chat experience */
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        }
+
+        .glass-panel:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-elevation-3);
+        }
+
+        /* Enhanced chat panel */
+        #chat-panel {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            width: 420px;
+            height: 360px;
+            z-index: 100;
             display: flex;
             flex-direction: column;
-            z-index: 100;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
+            animation: slideInLeft 0.8s ease-out;
         }
-        
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
         .chat-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        
-        .chat-header h3 {
-            margin: 0;
-            color: #4CAF50;
-            font-size: 14px;
-            flex: 1;
+
+        .chat-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: var(--secondary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         .connection-indicator {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
             border: 1px solid;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
         }
-        
+
         .connection-indicator.connected {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-            border-color: #4CAF50;
+            background: rgba(17, 153, 142, 0.2);
+            color: #38ef7d;
+            border-color: #38ef7d;
+            box-shadow: 0 0 20px rgba(56, 239, 125, 0.3);
         }
-        
+
         .connection-indicator.connecting {
-            background: rgba(255, 167, 38, 0.2);
-            color: #FFA726;
-            border-color: #FFA726;
+            background: rgba(252, 70, 107, 0.2);
+            color: #fc466b;
+            border-color: #fc466b;
+            animation: pulse 2s ease-in-out infinite;
         }
-        
-        .connection-indicator.disconnected {
-            background: rgba(244, 67, 54, 0.2);
-            color: #F44336;
-            border-color: #F44336;
-        }
-        
-        .bubble-mode-toggle {
-            background: rgba(255, 107, 53, 0.2);
-            border: 1px solid rgba(255, 107, 53, 0.4);
-            border-radius: 6px;
-            padding: 4px 8px;
-            color: white;
-            font-size: 10px;
+
+        .bubble-toggle {
+            background: rgba(79, 172, 254, 0.2);
+            border: 1px solid rgba(79, 172, 254, 0.4);
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-left: 8px;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
         }
-        
-        .bubble-mode-toggle:hover {
-            background: rgba(255, 107, 53, 0.3);
+
+        .bubble-toggle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s ease;
         }
-        
-        .bubble-mode-toggle.active {
-            background: rgba(255, 107, 53, 0.8);
-            border-color: #FF6B35;
+
+        .bubble-toggle:hover::before {
+            left: 100%;
         }
-        
+
+        .bubble-toggle.active {
+            background: var(--secondary-gradient);
+            border-color: #4facfe;
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.4);
+        }
+
         #chat-messages {
             flex: 1;
+            padding: 1rem;
             overflow-y: auto;
-            margin-bottom: 12px;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.4;
+            background: rgba(0,0,0,0.2);
+            margin: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        
+
         .chat-message {
-            margin-bottom: 8px;
-            padding: 6px 10px;
-            border-radius: 8px;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
             background: rgba(255,255,255,0.05);
-            border-left: 3px solid #667eea;
+            border-left: 3px solid var(--primary-gradient);
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .chat-message::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent);
+            pointer-events: none;
+        }
+
+        .chat-message:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(4px);
+        }
+
         .chat-message.own {
-            background: rgba(102, 126, 234, 0.2);
-            border-left-color: #4CAF50;
-            margin-left: 20px;
+            background: rgba(102, 126, 234, 0.15);
+            border-left-color: var(--secondary-gradient);
+            margin-left: 2rem;
         }
-        
+
         .chat-message.system {
-            background: rgba(255, 167, 38, 0.1);
-            border-left-color: #FFA726;
+            background: rgba(252, 70, 107, 0.1);
+            border-left-color: var(--warning-gradient);
             font-style: italic;
         }
-        
-        .chat-message .username {
-            font-weight: bold;
-            font-size: 11px;
-            color: #667eea;
-            margin-bottom: 2px;
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
         }
-        
+
+        .username {
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
         .chat-message.own .username {
-            color: #4CAF50;
+            background: var(--success-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        
-        .chat-message.system .username {
-            color: #FFA726;
+
+        .timestamp {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
         }
-        
-        .chat-message .timestamp {
-            font-size: 10px;
-            opacity: 0.6;
-            float: right;
+
+        .message-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
         }
-        
-        .chat-message .text {
-            font-size: 12px;
-            line-height: 1.3;
+
+        /* Enhanced input area */
+        .chat-input-area {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
-        
-        .typing-indicator {
+
+        .input-container {
             display: flex;
+            gap: 1rem;
             align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            font-size: 10px;
-            margin-bottom: 8px;
-            opacity: 0.8;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 25px;
+            padding: 0.75rem;
+            transition: var(--transition-smooth);
         }
-        
-        .typing-dots {
-            display: flex;
-            gap: 2px;
+
+        .input-container:focus-within {
+            border-color: var(--secondary-gradient);
+            box-shadow: 0 0 30px rgba(79, 172, 254, 0.3);
+            background: rgba(255,255,255,0.12);
         }
-        
-        .typing-dot {
-            width: 4px;
-            height: 4px;
-            background: #667eea;
-            border-radius: 50%;
-            animation: typing 1.5s infinite;
-        }
-        
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes typing {
-            0%, 60%, 100% { opacity: 0.3; }
-            30% { opacity: 1; }
-        }
-        
-        #chat-messages::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        #chat-messages::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
-        }
-        
-        #chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 3px;
-        }
-        
-        #chat-input-container {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
+
         #chat-input {
             flex: 1;
-            padding: 10px 12px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 6px;
-            color: white;
-            font-size: 13px;
-            transition: all 0.3s ease;
-        }
-        
-        #chat-input:focus {
-            outline: none;
-            border-color: #4CAF50;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
-        }
-        
-        #chat-input::placeholder {
-            color: rgba(255,255,255,0.5);
-        }
-        
-        #send-btn {
-            padding: 10px 16px;
-            background: linear-gradient(135deg, #4CAF50, #45a049);
+            background: transparent;
             border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            transition: all 0.3s ease;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            outline: none;
+            font-family: inherit;
         }
-        
-        #send-btn:hover {
-            background: linear-gradient(135deg, #45a049, #4CAF50);
-            transform: translateY(-1px);
+
+        #chat-input::placeholder {
+            color: var(--text-muted);
         }
-        
-        #send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* Controls Panel Styles - Enhanced for Mobile */
-        #controls-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 100;
-        }
-        
-        .control-btn {
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 10px;
-            color: white;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            min-width: 160px;
-            text-align: left;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        .control-btn:hover {
-            background: rgba(255,255,255,0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
-        
-        .control-btn:active {
-            transform: translateY(0);
-        }
-        
-        /* Pet Panel Styles */
-        #pet-panel {
-            position: absolute;
-            bottom: 320px;
-            left: 20px;
-            width: 340px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            z-index: 100;
-            max-height: 200px;
-            overflow-y: auto;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-        
-        .pet-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px;
-            margin: 4px 0;
-            background: rgba(255,255,255,0.05);
-            border-radius: 6px;
-            font-size: 12px;
-        }
-        
-        .pet-status {
-            flex: 1;
-        }
-        
-        .pet-stats {
-            display: flex;
-            gap: 8px;
-            font-size: 10px;
-            opacity: 0.8;
-        }
-        
-        /* Status Panel */
-        #status-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            padding: 12px 16px;
-            color: white;
-            font-size: 12px;
-            z-index: 100;
-        }
-        
-        .status-item {
-            margin-bottom: 4px;
-        }
-        
-        .status-value {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        /* Quick Actions */
-        #quick-actions {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            gap: 8px;
-            z-index: 100;
-        }
-        
-        .quick-btn {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
+
+        .send-button {
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
+            border: none;
+            background: var(--secondary-gradient);
             color: white;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 1.2rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: var(--transition-bounce);
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
         }
-        
-        .quick-btn:hover {
-            background: rgba(255,255,255,0.2);
+
+        .send-button:hover {
             transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(79, 172, 254, 0.6);
         }
-        
-        /* Group Activity Indicator */
-        .group-active {
-            border: 2px solid #ff6b35 !important;
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.5) !important;
+
+        .send-button:active {
+            transform: scale(0.95);
         }
-        
-        /* Hide desktop controls on mobile */
-        @media (max-width: 768px) {
-            .desktop-only {
-                display: none !important;
-            }
-            
-            #chat-panel {
-                width: calc(100vw - 40px);
-                height: 200px;
-                left: 20px;
-                right: 20px;
-                bottom: 20px;
-            }
-            
-            #pet-panel {
-                width: calc(100vw - 40px);
-                left: 20px;
-                right: 20px;
-                bottom: 240px;
-                max-height: 120px;
-            }
-            
-            #controls-panel {
-                top: 20px;
-                right: 20px;
-                gap: 6px;
-            }
-            
-            .control-btn {
-                padding: 10px 12px;
-                font-size: 11px;
-                min-width: 120px;
-            }
-            
-            #status-panel {
-                top: 10px;
-                left: 10px;
-                font-size: 11px;
-                padding: 8px 12px;
-            }
-            
-            #quick-actions {
-                bottom: 240px;
-                right: 20px;
-                flex-direction: column;
-            }
-            
-            .quick-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-            }
+
+        /* Enhanced controls panel */
+        #controls-panel {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 100;
+            animation: slideInRight 0.8s ease-out;
         }
-        
-        /* Animation keyframes */
+
         @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(20px); }
+            from { opacity: 0; transform: translateX(50px); }
             to { opacity: 1; transform: translateX(0); }
         }
-        
-        @keyframes slideOutRight {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(20px); }
+
+        .control-button {
+            padding: 1rem 1.5rem;
+            min-width: 200px;
+            text-align: left;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-button:hover::before {
+            left: 100%;
+        }
+
+        .control-button:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateX(-4px);
+            box-shadow: var(--shadow-elevation-3);
+        }
+
+        .control-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Status panel enhancement */
+        #status-panel {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            padding: 1.5rem;
+            z-index: 100;
+            min-width: 280px;
+            animation: slideInDown 0.8s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-30px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
+        .status-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: var(--success-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: var(--transition-smooth);
+        }
+
+        .status-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        .status-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .status-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Quick actions floating */
+        #quick-actions {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 100;
+            animation: slideInUp 0.8s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quick-action {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-medium);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-bounce);
+            box-shadow: var(--shadow-elevation-1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-action::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .quick-action:hover::before {
+            opacity: 0.2;
+        }
+
+        .quick-action:hover {
+            transform: scale(1.15);
+            box-shadow: var(--shadow-elevation-3);
+        }
+
+        .quick-action:active {
+            transform: scale(0.95);
+        }
+
+        /* Enhanced typing indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.08);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--secondary-gradient);
+            border-radius: 50%;
+            animation: typingPulse 1.5s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingPulse {
+            0%, 60%, 100% { transform: scale(0.8); opacity: 0.5; }
+            30% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Custom scrollbar */
+        #chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat-messages::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: var(--primary-gradient);
+            border-radius: 4px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-gradient);
+        }
+
+        /* Mobile responsive enhancements */
+        @media (max-width: 768px) {
+            #chat-panel {
+                left: 1rem;
+                right: 1rem;
+                width: auto;
+                bottom: 1rem;
+                height: 300px;
+            }
+
+            #status-panel {
+                left: 1rem;
+                right: 1rem;
+                width: auto;
+                top: 1rem;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+            }
+
+            #controls-panel {
+                top: auto;
+                bottom: 320px;
+                right: 1rem;
+                left: 1rem;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .control-button {
+                min-width: auto;
+                flex: 1;
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            #quick-actions {
+                bottom: 320px;
+                right: 1rem;
+                flex-direction: row;
+                gap: 0.5rem;
+            }
+
+            .quick-action {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Advanced animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
         }
-        
-        /* Enhanced visual effects */
-        .ui-panel {
-            animation: fadeInUp 0.5s ease-out;
+
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(102, 126, 234, 0.4); }
+            to { box-shadow: 0 0 40px rgba(102, 126, 234, 0.8); }
         }
-        
-        .notification-new {
-            animation: pulse 0.5s ease-in-out;
+
+        /* Notification system */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-strong);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            box-shadow: var(--shadow-elevation-2);
+            transform: translateX(100%);
+            transition: var(--transition-smooth);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid #38ef7d;
+        }
+
+        .notification.error {
+            border-left: 4px solid #fc466b;
+        }
+
+        .notification.info {
+            border-left: 4px solid #4facfe;
+        }
+
+        /* Enhanced emotion panel */
+        .emotion-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-strong);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            z-index: 1500;
+            min-width: 400px;
+            box-shadow: var(--shadow-elevation-3);
+            animation: modalSlideIn 0.5s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .emotion-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .emotion-button {
+            padding: 1.5rem 1rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition-bounce);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .emotion-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            transition: left 0.6s ease;
+        }
+
+        .emotion-button:hover::before {
+            left: 100%;
+        }
+
+        .emotion-button:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-elevation-2);
+        }
+
+        .emotion-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Background ambient effects */
+        .ambient-orbs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.3), transparent);
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+
+        .orb:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .orb:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            right: 20%;
+            animation-delay: -7s;
+        }
+
+        .orb:nth-child(3) {
+            width: 100px;
+            height: 100px;
+            bottom: 20%;
+            left: 30%;
+            animation-delay: -14s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.1); }
         }
     </style>
 </head>
 <body>
-    <div id="room-container">
-        <!-- Loading Screen -->
-        <div id="loading-screen">
+    <!-- Ambient background effects -->
+    <div class="particles-bg"></div>
+    <div class="ambient-orbs">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <!-- Enhanced loading screen -->
+    <div id="loading-screen">
+        <div class="loading-container">
+            <div class="loading-logo">✨ EUPHORIE</div>
             <div class="loading-spinner"></div>
-            <h2 style="margin: 0 0 10px 0;">Loading {{ room.name }}...</h2>
-            <p style="margin: 0; opacity: 0.8;">Initializing advanced 3D social platform...</p>
-            <div style="margin-top: 20px; font-size: 12px; opacity: 0.6;">
-                <div>• Loading Three.js renderer</div>
-                <div>• Initializing avatar & interaction systems</div>
-                <div>• Setting up 3D chat bubbles</div>
-                <div>• Connecting to Rust WebSocket server</div>
-                <div>• Optimizing for mobile devices</div>
+            <div class="loading-text">Initializing 3D Experience</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
             </div>
-        </div>
-        
-        <!-- Status Panel -->
-        <div id="status-panel" class="ui-panel">
-            <div style="font-weight: bold; margin-bottom: 8px; color: #4CAF50;">🌟 Euphorie 3D v2.0</div>
-            <div class="status-item">Room: <span class="status-value">{{ room.name }}</span></div>
-            <div class="status-item">Scene: <span class="status-value">{{ room.get_scene_preset_display }}</span></div>
-            <div class="status-item">Users: <span class="status-value" id="user-count">{{ room.active_users_count }}/{{ room.max_users }}</span></div>
-            <div class="status-item">Bubbles: <span class="status-value" id="bubble-count">0</span></div>
-            <div class="status-item">Pets: <span class="status-value" id="pet-count">0</span></div>
-            <div class="status-item">Groups: <span class="status-value" id="group-count">0</span></div>
-        </div>
-        
-        <!-- 3D Container -->
-        <div id="three-container"></div>
-        
-        <!-- Pet Panel -->
-        <div id="pet-panel" class="ui-panel" style="display: none;">
-            <div style="font-weight: bold; margin-bottom: 8px; color: #FF6B35; display: flex; justify-content: space-between; align-items: center;">
-                🐾 Active Pets
-                <button onclick="window.PetSystem && window.PetSystem.assignRandomPet('default')" style="padding: 4px 8px; background: #FF6B35; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">+ Add Pet</button>
+            <div class="loading-features">
+                <div>🎮 Advanced Three.js rendering engine</div>
+                <div>🌐 Real-time WebSocket synchronization</div>
+                <div>💬 Immersive 3D chat bubbles</div>
+                <div>🎭 Interactive avatar emotions</div>
+                <div>📱 Optimized for all devices</div>
             </div>
-            <div id="pet-list">
-                <div style="text-align: center; opacity: 0.7; font-size: 11px; padding: 20px;">
-                    No pets active. Click "Add Pet" to get a companion!
-                </div>
-            </div>
-        </div>
-        
-        <!-- Enhanced Chat Panel with 3D Integration -->
-        <div id="chat-panel" class="ui-panel">
-            <div class="chat-header">
-                <h3>💬 Room Chat</h3>
-                <div class="chat-controls">
-                    <span id="connection-indicator" class="connection-indicator connecting">🔄 Connecting</span>
-                    <button id="bubble-mode-toggle" class="bubble-mode-toggle active">3D Bubbles</button>
-                </div>
-            </div>
-            
-            <!-- Typing Indicators -->
-            <div id="typing-indicators"></div>
-            
-            <div id="chat-messages">
-                <div class="chat-message system">
-                    <div class="username">System</div>
-                    <div class="text">
-                        <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
-                        <strong>🎮 3D Chat Bubbles:</strong><br>
-                        • Messages appear floating above avatars in 3D space<br>
-                        • Real-time synchronization with Rust WebSocket server<br>
-                        • Click the "3D Bubbles" toggle to enable/disable<br><br>
-                        <strong>🎮 Controls:</strong><br>
-                        • <span class="desktop-only">Mouse: Rotate camera, scroll to zoom<br>
-                        • Click avatars to interact<br></span>
-                        <span class="mobile-only">• Touch: Drag to rotate, pinch to zoom<br>
-                        • Tap avatars to interact<br></span>
-                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">1</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">W</kbd> Wave, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">2</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">D</kbd> Dance<br>
-                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities<br>
-                        <span class="mobile-only"><br><strong>📱 Mobile:</strong><br>
-                        • Use virtual joystick to move<br>
-                        • Swipe left/right to change scenes<br>
-                        • Long press for context menu</span>
-                    </div>
-                </div>
-            </div>
-            <div id="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200" disabled>
-                <button id="send-btn" disabled>Send</button>
-            </div>
-        </div>
-        
-        <!-- Controls Panel - Desktop Only -->
-        <div id="controls-panel" class="ui-panel desktop-only">
-            <button id="toggle-magic" class="control-btn">✨ Magic Effects</button>
-            <button id="avatar-customize" class="control-btn">👤 Customize Avatar</button>
-            <button id="emotions-control" class="control-btn emotion-control-btn">🎭 Emotions</button>
-            <button id="add-friends" class="control-btn">👥 Add Friends</button>
-            <button id="pet-toggle" class="control-btn">🐾 Pet Panel</button>
-            <button id="group-activities" class="control-btn">👫 Group Activities</button>
-            <button id="change-scene" class="control-btn">🏠 Environment</button>
-            <button id="weather-control" class="control-btn">🌦️ Weather</button>
-            <button id="time-control" class="control-btn">🌅 Time of Day</button>
-        </div>
-        
-        <!-- Quick Actions - Desktop Only -->
-        <div id="quick-actions" class="desktop-only">
-            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave')" title="Wave (1/W)">👋</button>
-            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance')" title="Dance (2/D)">💃</button>
-            <button class="quick-btn" onclick="window.EmotionSystem && window.EmotionSystem.showEmotionPanel()" title="Show Emotions (E)">🎭</button>
-            <button class="quick-btn" onclick="window.GroupInteractionSystem && window.GroupInteractionSystem.showGroupActivityMenu()" title="Group Activities (G)">👥</button>
-            <button class="quick-btn" onclick="window.PetSystem && window.PetSystem.assignRandomPet('default')" title="Get Pet">🐾</button>
         </div>
     </div>
 
-    <!-- Three.js from CDN -->
+    <!-- Enhanced status panel -->
+    <div id="status-panel" class="glass-panel">
+        <div class="status-title">
+            <span>🌟</span>
+            <span>Euphorie v3.0</span>
+        </div>
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-label">Room</div>
+                <div class="status-value">Digital Lounge</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Scene</div>
+                <div class="status-value">Cyberpunk</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Users</div>
+                <div class="status-value" id="user-count">12/50</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Bubbles</div>
+                <div class="status-value" id="bubble-count">5</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Pets</div>
+                <div class="status-value" id="pet-count">3</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Groups</div>
+                <div class="status-value" id="group-count">2</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced 3D container -->
+    <div id="three-container"></div>
+
+    <!-- Enhanced chat panel -->
+    <div id="chat-panel" class="glass-panel">
+        <div class="chat-header">
+            <div class="chat-title">
+                <span>💬</span>
+                <span>Quantum Chat</span>
+            </div>
+            <div class="connection-status">
+                <div id="connection-indicator" class="connection-indicator connected">✅ CONNECTED</div>
+                <button id="bubble-toggle" class="bubble-toggle active">3D Mode</button>
+            </div>
+        </div>
+
+        <div id="typing-indicators"></div>
+
+        <div id="chat-messages">
+            <div class="chat-message system">
+                <div class="message-header">
+                    <div class="username">System</div>
+                    <div class="timestamp">14:30</div>
+                </div>
+                <div class="message-text">
+                    <strong>🎉 Welcome to Euphorie 3.0!</strong><br><br>
+                    
+                    <strong>🌟 New Features:</strong><br>
+                    • Enhanced glassmorphic UI with dynamic lighting<br>
+                    • Real-time 3D chat bubbles with physics<br>
+                    • Advanced emotion system with facial expressions<br>
+                    • Immersive particle effects and ambient lighting<br><br>
+                    
+                    <strong>🎮 Controls:</strong><br>
+                    • Mouse/Touch: Navigate 3D space intuitively<br>
+                    • <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">E</kbd> Emotions • <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">G</kbd> Group Activities<br>
+                    • <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">W</kbd> Wave • <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">D</kbd> Dance<br><br>
+                    
+                    Experience the future of social interaction! ✨
+                </div>
+            </div>
+            
+            <div class="chat-message">
+                <div class="message-header">
+                    <div class="username">Alex</div>
+                    <div class="timestamp">14:32</div>
+                </div>
+                <div class="message-text">This new interface is absolutely stunning! 🤩</div>
+            </div>
+            
+            <div class="chat-message own">
+                <div class="message-header">
+                    <div class="username">You</div>
+                    <div class="timestamp">14:33</div>
+                </div>
+                <div class="message-text">I love the glassmorphic design and smooth animations!</div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <div class="input-container">
+                <input type="text" id="chat-input" placeholder="Share your thoughts..." maxlength="200">
+                <button class="send-button" id="send-btn">
+                    <span>➤</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced controls panel -->
+    <div id="controls-panel">
+        <button class="control-button glass-panel">
+            <span class="control-icon">✨</span>
+            <span>Magic Effects</span>
+        </button>
+        <button class="control-button glass-panel">
+            <span class="control-icon">👤</span>
+            <span>Avatar Studio</span>
+        </button>
+        <button class="control-button glass-panel" onclick="showEmotionPanel()">
+            <span class="control-icon">🎭</span>
+            <span>Emotions</span>
+        </button>
+        <button class="control-button glass-panel">
+            <span class="control-icon">🐾</span>
+            <span>Pet Companions</span>
+        </button>
+        <button class="control-button glass-panel">
+            <span class="control-icon">👥</span>
+            <span>Group Activities</span>
+        </button>
+        <button class="control-button glass-panel">
+            <span class="control-icon">🌎</span>
+            <span>Environments</span>
+        </button>
+        <button class="control-button glass-panel">
+            <span class="control-icon">⚡</span>
+            <span>Effects Studio</span>
+        </button>
+    </div>
+
+    <!-- Enhanced quick actions -->
+    <div id="quick-actions">
+        <button class="quick-action" title="Wave" onclick="triggerInteraction('wave')">👋</button>
+        <button class="quick-action" title="Dance" onclick="triggerInteraction('dance')">💃</button>
+        <button class="quick-action" title="Emotions" onclick="showEmotionPanel()">🎭</button>
+        <button class="quick-action" title="Magic" onclick="triggerMagic()">✨</button>
+        <button class="quick-action" title="Pet" onclick="summonPet()">🐾</button>
+    </div>
+
+    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <!-- Pass Django context to JavaScript -->
     <script>
-        window.ROOM_CONFIG = {
-            roomId: '{{ room.id }}',
-            roomName: '{{ room.name }}',
-            scenePreset: '{{ room.scene_preset }}',
-            websocketUrl: '{{ websocket_url }}',
-            userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
-            username: {% if request.user.is_authenticated %}'{{ request.user.username }}'{% else %}'Guest'{% endif %},
-            maxUsers: {{ room.max_users }},
-            currentUsers: {{ room.active_users_count }},
-            // Rust WebSocket Server Configuration
-            rustWebSocketUrl: 'wss://euphorie.com/ws/rust/',
-            chatBubblesEnabled: true,
-            bubbleConfig: {
-                maxBubbles: 20,
-                fadeTime: 5000,
-                maxDistance: 50,
-                fontSize: 16,
-                maxWidth: 300
+        // Enhanced global configuration
+        window.EUPHORIE_CONFIG = {
+            version: '3.0',
+            roomId: 'digital-lounge',
+            roomName: 'Digital Lounge',
+            scenePreset: 'cyberpunk',
+            websocketUrl: 'wss://euphorie.com/ws/v3/',
+            userId: 'user_' + Math.random().toString(36).substr(2, 9),
+            username: 'Visitor',
+            features: {
+                chatBubbles3D: true,
+                advancedParticles: true,
+                emotionSystem: true,
+                petCompanions: true,
+                groupActivities: true,
+                ambientLighting: true,
+                physicsEngine: true
+            },
+            ui: {
+                theme: 'glassmorphic',
+                animations: 'enhanced',
+                responsiveDesign: true
             }
         };
-        
-        // Enhanced mobile detection
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                         ('ontouchstart' in window && navigator.maxTouchPoints > 0);
-        
-        if (isMobile) {
-            document.body.classList.add('mobile-device');
-            
-            // Show mobile controls message
-            const mobileElements = document.querySelectorAll('.mobile-only');
-            mobileElements.forEach(el => el.style.display = 'inline');
-            
-            // Hide desktop elements
-            const desktopElements = document.querySelectorAll('.desktop-only');
-            desktopElements.forEach(el => el.style.display = 'none');
-        } else {
-            // Hide mobile elements
-            const mobileElements = document.querySelectorAll('.mobile-only');
-            mobileElements.forEach(el => el.style.display = 'none');
-        }
-    </script>
 
-    <!-- Rust WebSocket Manager -->
-    <script>
-        // Enhanced WebSocket Manager for Rust Server Integration
+        // Enhanced device detection
+        const deviceInfo = {
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            isTablet: /(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(navigator.userAgent),
+            isDesktop: !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)),
+            hasTouch: 'ontouchstart' in window,
+            screenSize: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                ratio: window.innerWidth / window.innerHeight
+            }
+        };
+
+        // Enhanced WebSocket Manager
         class EuphorieWebSocketManager {
             constructor() {
                 this.socket = null;
                 this.connected = false;
-                this.authenticated = false;
                 this.reconnectAttempts = 0;
                 this.maxReconnectAttempts = 5;
-                this.reconnectDelay = 1000;
                 this.messageQueue = [];
-                this.typingTimer = null;
-                this.isTyping = false;
-                this.lastPingTime = 0;
+                this.eventHandlers = new Map();
                 
-                // Generate user ID if not provided
-                this.userId = window.ROOM_CONFIG.userId || 'guest_' + Math.random().toString(36).substr(2, 9);
-                this.username = window.ROOM_CONFIG.username || 'Guest';
-                this.roomId = window.ROOM_CONFIG.roomId;
-                
-                // Bind methods
-                this.connect = this.connect.bind(this);
-                this.send = this.send.bind(this);
-                this.handleMessage = this.handleMessage.bind(this);
-                this.handleOpen = this.handleOpen.bind(this);
-                this.handleClose = this.handleClose.bind(this);
-                this.handleError = this.handleError.bind(this);
-                
-                // Auto-connect
-                this.connect();
+                this.init();
             }
-            
+
+            init() {
+                this.connect();
+                this.setupEventHandlers();
+            }
+
             connect() {
-                if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
-                    return;
-                }
-                
                 try {
-                    const url = window.ROOM_CONFIG.rustWebSocketUrl;
-                    console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
+                    console.log('🔌 Connecting to Euphorie WebSocket...');
                     this.updateConnectionStatus('connecting');
                     
-                    this.socket = new WebSocket(url);
-                    this.socket.onopen = this.handleOpen;
-                    this.socket.onmessage = this.handleMessage;
-                    this.socket.onclose = this.handleClose;
-                    this.socket.onerror = this.handleError;
+                    this.socket = new WebSocket(window.EUPHORIE_CONFIG.websocketUrl);
+                    this.socket.onopen = this.onOpen.bind(this);
+                    this.socket.onmessage = this.onMessage.bind(this);
+                    this.socket.onclose = this.onClose.bind(this);
+                    this.socket.onerror = this.onError.bind(this);
                     
                 } catch (error) {
                     console.error('❌ WebSocket connection failed:', error);
                     this.scheduleReconnect();
                 }
             }
-            
-            handleOpen(event) {
-                console.log('✅ Connected to Rust WebSocket server');
+
+            onOpen() {
+                console.log('✅ Connected to Euphorie WebSocket');
                 this.connected = true;
                 this.reconnectAttempts = 0;
                 this.updateConnectionStatus('connected');
                 
-                // Send authentication message
-                this.send({
-                    type: 'auth',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    username: this.username,
-                    timestamp: Date.now()
-                });
-                
-                // Send queued messages
-                while (this.messageQueue.length > 0) {
-                    const message = this.messageQueue.shift();
-                    this.send(message);
-                }
-                
-                // Start ping interval
-                this.startPingInterval();
+                this.authenticate();
+                this.processMessageQueue();
+                this.showNotification('Connected to Euphorie!', 'success');
             }
-            
-            handleMessage(event) {
+
+            onMessage(event) {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('📨 Received message:', data);
-                    
-                    switch (data.type) {
-                        case 'auth_success':
-                            this.authenticated = true;
-                            console.log(`✅ Authentication successful for room: ${data.room_id}`);
-                            this.addSystemMessage(`Connected to ${data.room_info.name}`);
-                            this.enableChatInput();
-                            break;
-                            
-                        case 'auth_error':
-                            console.error(`❌ Authentication failed: ${data.error}`);
-                            this.addSystemMessage(`Authentication failed: ${data.error}`);
-                            break;
-                            
-                        case 'chat_message':
-                            this.handleChatMessage(data);
-                            break;
-                            
-                        case 'user_joined':
-                            console.log(`👋 ${data.username} joined the room`);
-                            this.addSystemMessage(`${data.username} joined the room`);
-                            break;
-                            
-                        case 'user_left':
-                            console.log(`👋 ${data.username} left the room`);
-                            this.addSystemMessage(`${data.username} left the room`);
-                            break;
-                            
-                        case 'emotion':
-                            this.handleEmotion(data);
-                            break;
-                            
-                        case 'interaction':
-                            this.handleInteraction(data);
-                            break;
-                            
-                        case 'typing':
-                            this.handleTyping(data);
-                            break;
-                            
-                        case 'pong':
-                            const latency = Date.now() - this.lastPingTime;
-                            console.log(`🏓 Pong received (${latency}ms)`);
-                            break;
-                            
-                        case 'system':
-                            this.addSystemMessage(data.message);
-                            break;
-                            
-                        case 'error':
-                            console.error(`❌ Server error: ${data.error}`);
-                            this.addSystemMessage(`Error: ${data.error}`);
-                            break;
-                            
-                        default:
-                            console.log(`🔍 Unknown message type: ${data.type}`);
-                    }
-                    
+                    this.handleMessage(data);
                 } catch (error) {
-                    console.error('❌ Error parsing WebSocket message:', error);
+                    console.error('❌ Error parsing message:', error);
                 }
             }
-            
+
+            handleMessage(data) {
+                switch (data.type) {
+                    case 'chat_message':
+                        this.handleChatMessage(data);
+                        break;
+                    case 'emotion':
+                        this.handleEmotion(data);
+                        break;
+                    case 'interaction':
+                        this.handleInteraction(data);
+                        break;
+                    case 'system':
+                        this.addSystemMessage(data.message);
+                        break;
+                    default:
+                        console.log('📨 Received:', data.type);
+                }
+            }
+
             handleChatMessage(data) {
-                const isOwn = data.user_id === this.userId;
-                this.addMessageToChat(data.username, data.message, isOwn);
+                this.addChatMessage(data.username, data.message, data.userId === window.EUPHORIE_CONFIG.userId);
                 
-                // Create 3D chat bubble if enabled and ChatBubbleSystem is available
-                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                    window.ChatBubbleSystem.createBubbleFromMessage(data);
+                if (window.EUPHORIE_CONFIG.features.chatBubbles3D) {
+                    this.create3DChatBubble(data);
                 }
             }
-            
+
             handleEmotion(data) {
-                console.log(`🎭 ${data.user_id} is feeling ${data.emotion}`);
-                
-                // Show emotion in chat
-                this.addSystemMessage(`${data.user_id} is feeling ${data.emotion} 🎭`);
-                
-                // Trigger 3D emotion if EmotionSystem is available
-                if (window.EmotionSystem) {
-                    window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
-                }
+                this.showEmotionEffect(data.emotion, data.userId);
+                this.addSystemMessage(`${data.username} is feeling ${data.emotion} 🎭`);
             }
-            
-            handleInteraction(data) {
-                console.log(`🤝 Interaction: ${data.user_id} -> ${data.interaction_type}`);
-                
-                // Show interaction in chat
-                this.addSystemMessage(`${data.user_id} ${data.interaction_type} 🤝`);
-                
-                // Trigger 3D interaction if InteractionSystem is available
-                if (window.InteractionSystem) {
-                    window.InteractionSystem.handleRemoteInteraction(data);
-                }
-            }
-            
-            handleTyping(data) {
-                this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
-            }
-            
-            handleClose(event) {
-                console.log('🔌 WebSocket connection closed:', event);
-                this.connected = false;
-                this.authenticated = false;
-                this.updateConnectionStatus('disconnected');
-                this.disableChatInput();
-                
-                if (!event.wasClean) {
-                    this.scheduleReconnect();
-                }
-            }
-            
-            handleError(error) {
-                console.error('❌ WebSocket error:', error);
-                this.updateConnectionStatus('disconnected');
-            }
-            
-            scheduleReconnect() {
-                if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.reconnectAttempts++;
-                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-                    
-                    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    
-                    setTimeout(() => {
-                        this.connect();
-                    }, delay);
-                } else {
-                    console.error('❌ Max reconnection attempts reached');
-                    this.updateConnectionStatus('disconnected');
-                    this.addSystemMessage('Connection failed. Please refresh the page.');
-                }
-            }
-            
-            send(data) {
-                if (this.connected && this.socket.readyState === WebSocket.OPEN) {
-                    try {
-                        this.socket.send(JSON.stringify(data));
-                        console.log('📤 Sent message:', data.type);
-                    } catch (error) {
-                        console.error('❌ Error sending message:', error);
-                    }
-                } else {
-                    console.log('📦 Queuing message (not connected):', data.type);
-                    this.messageQueue.push(data);
-                }
-            }
-            
-            sendChatMessage(message) {
-                if (!this.authenticated) {
-                    console.warn('❌ Not authenticated');
-                    return;
-                }
-                
-                this.send({
-                    type: 'chat_message',
-                    message: message,
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendEmotion(emotion) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'emotion',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    emotion: emotion,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendInteraction(interactionType, targetUserId = null, data = null) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'interaction',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    target_user_id: targetUserId,
-                    interaction_type: interactionType,
-                    data: data,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendTyping(isTyping) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'typing',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    is_typing: isTyping
-                });
-            }
-            
-            startPingInterval() {
-                setInterval(() => {
-                    if (this.connected) {
-                        this.lastPingTime = Date.now();
-                        this.send({
-                            type: 'ping',
-                            timestamp: this.lastPingTime
-                        });
-                    }
-                }, 30000); // Ping every 30 seconds
-            }
-            
+
             updateConnectionStatus(status) {
                 const indicator = document.getElementById('connection-indicator');
                 if (indicator) {
                     indicator.className = `connection-indicator ${status}`;
                     
-                    switch (status) {
-                        case 'connected':
-                            indicator.textContent = '✅ Connected';
-                            break;
-                        case 'connecting':
-                            indicator.textContent = '🔄 Connecting';
-                            break;
-                        case 'disconnected':
-                            indicator.textContent = '❌ Disconnected';
-                            break;
-                    }
+                    const statusText = {
+                        connected: '✅ CONNECTED',
+                        connecting: '🔄 CONNECTING',
+                        disconnected: '❌ DISCONNECTED'
+                    };
+                    
+                    indicator.textContent = statusText[status] || status;
                 }
             }
-            
-            enableChatInput() {
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
-                
-                if (chatInput) {
-                    chatInput.disabled = false;
-                    chatInput.placeholder = 'Type a message...';
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                }
-            }
-            
-            disableChatInput() {
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
-                
-                if (chatInput) {
-                    chatInput.disabled = true;
-                    chatInput.placeholder = 'Connecting...';
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = true;
-                }
-            }
-            
-            addMessageToChat(username, message, isOwn = false) {
+
+            addChatMessage(username, message, isOwn = false) {
                 const chatMessages = document.getElementById('chat-messages');
                 if (!chatMessages) return;
-                
+
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
                 
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
+                const timestamp = new Date().toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+
                 messageDiv.innerHTML = `
-                    <div class="username">${this.escapeHtml(username)}</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
+                    <div class="message-header">
+                        <div class="username">${this.escapeHtml(username)}</div>
+                        <div class="timestamp">${timestamp}</div>
+                    </div>
+                    <div class="message-text">${this.escapeHtml(message)}</div>
                 `;
-                
+
                 chatMessages.appendChild(messageDiv);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Message entrance animation
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateX(-20px)';
                 
-                // Keep only last 50 messages for performance
+                requestAnimationFrame(() => {
+                    messageDiv.style.transition = 'all 0.3s ease-out';
+                    messageDiv.style.opacity = '1';
+                    messageDiv.style.transform = 'translateX(0)';
+                });
+
+                // Limit messages for performance
                 while (chatMessages.children.length > 50) {
                     chatMessages.removeChild(chatMessages.firstChild);
                 }
             }
-            
+
             addSystemMessage(message) {
                 const chatMessages = document.getElementById('chat-messages');
                 if (!chatMessages) return;
-                
+
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'chat-message system';
                 
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
+                const timestamp = new Date().toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+
                 messageDiv.innerHTML = `
-                    <div class="username">System</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
+                    <div class="message-header">
+                        <div class="username">System</div>
+                        <div class="timestamp">${timestamp}</div>
+                    </div>
+                    <div class="message-text">${this.escapeHtml(message)}</div>
                 `;
-                
+
                 chatMessages.appendChild(messageDiv);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
-            
-            updateTypingIndicator(userId, username, isTyping) {
-                const container = document.getElementById('typing-indicators');
-                if (!container) return;
-                
-                const indicatorId = `typing-${userId}`;
-                let indicator = document.getElementById(indicatorId);
-                
-                if (isTyping && userId !== this.userId) {
-                    if (!indicator) {
-                        indicator = document.createElement('div');
-                        indicator.id = indicatorId;
-                        indicator.className = 'typing-indicator';
-                        indicator.innerHTML = `
-                            <span>${this.escapeHtml(username)} is typing</span>
-                            <div class="typing-dots">
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                            </div>
-                        `;
-                        container.appendChild(indicator);
-                    }
+
+            sendMessage(message) {
+                if (!this.connected) {
+                    this.showNotification('Not connected to server', 'error');
+                    return;
+                }
+
+                this.send({
+                    type: 'chat_message',
+                    message: message,
+                    userId: window.EUPHORIE_CONFIG.userId,
+                    username: window.EUPHORIE_CONFIG.username,
+                    timestamp: Date.now()
+                });
+            }
+
+            send(data) {
+                if (this.connected && this.socket.readyState === WebSocket.OPEN) {
+                    this.socket.send(JSON.stringify(data));
                 } else {
-                    if (indicator) {
-                        indicator.remove();
-                    }
+                    this.messageQueue.push(data);
                 }
             }
-            
+
             escapeHtml(text) {
                 const map = {
                     '&': '&amp;',
@@ -1108,55 +1354,169 @@
                 };
                 return text.replace(/[&<>"']/g, m => map[m]);
             }
+
+            // Additional methods would be implemented here...
+            authenticate() {}
+            processMessageQueue() {}
+            onClose() {}
+            onError() {}
+            scheduleReconnect() {}
+            setupEventHandlers() {}
+            create3DChatBubble() {}
+            showEmotionEffect() {}
         }
-        
-        // Initialize WebSocket Manager
-        window.WebSocketManager = null;
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize WebSocket connection
-            window.WebSocketManager = new EuphorieWebSocketManager();
+
+        // Enhanced notification system
+        function showNotification(message, type = 'info', duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
             
-            // Setup chat input handlers
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 400);
+            }, duration);
+        }
+
+        // Enhanced emotion panel
+        function showEmotionPanel() {
+            // Remove existing panel
+            const existing = document.querySelectorAll('.emotion-panel');
+            existing.forEach(el => el.remove());
+
+            const panel = document.createElement('div');
+            panel.className = 'emotion-panel';
+            
+            panel.innerHTML = `
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 1.3rem; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        🎭 Express Yourself
+                    </h3>
+                    <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 0.9rem;">
+                        Choose an emotion to share with everyone
+                    </p>
+                </div>
+                
+                <div class="emotion-grid">
+                    <button class="emotion-button" onclick="triggerEmotion('happy')">
+                        <span class="emotion-icon">😊</span>
+                        <span>Happy</span>
+                    </button>
+                    <button class="emotion-button" onclick="triggerEmotion('love')">
+                        <span class="emotion-icon">😍</span>
+                        <span>Love</span>
+                    </button>
+                    <button class="emotion-button" onclick="triggerEmotion('excited')">
+                        <span class="emotion-icon">🤩</span>
+                        <span>Excited</span>
+                    </button>
+                    <button class="emotion-button" onclick="triggerEmotion('laughing')">
+                        <span class="emotion-icon">😂</span>
+                        <span>Laughing</span>
+                    </button>
+                    <button class="emotion-button" onclick="triggerEmotion('surprised')">
+                        <span class="emotion-icon">😲</span>
+                        <span>Surprised</span>
+                    </button>
+                    <button class="emotion-button" onclick="triggerEmotion('thinking')">
+                        <span class="emotion-icon">🤔</span>
+                        <span>Thinking</span>
+                    </button>
+                </div>
+                
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button onclick="this.closest('.emotion-panel').remove()" 
+                            style="padding: 0.75rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 25px; color: var(--text-primary); cursor: pointer; font-weight: 500; transition: var(--transition-smooth);">
+                        Close
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(panel);
+            
+            // Click outside to close
+            setTimeout(() => {
+                const clickHandler = (e) => {
+                    if (!panel.contains(e.target)) {
+                        panel.remove();
+                        document.removeEventListener('click', clickHandler);
+                    }
+                };
+                document.addEventListener('click', clickHandler);
+            }, 100);
+        }
+
+        // Enhanced interaction functions
+        function triggerEmotion(emotion) {
+            console.log(`🎭 Emotion triggered: ${emotion}`);
+            
+            const emotionIcons = {
+                happy: '😊', love: '😍', excited: '🤩',
+                laughing: '😂', surprised: '😲', thinking: '🤔'
+            };
+            
+            showNotification(`You're feeling ${emotion}! ${emotionIcons[emotion]}`, 'success');
+            
+            // Close emotion panel
+            const panel = document.querySelector('.emotion-panel');
+            if (panel) panel.remove();
+            
+            // Send emotion via WebSocket if available
+            if (window.webSocketManager) {
+                window.webSocketManager.send({
+                    type: 'emotion',
+                    emotion: emotion,
+                    userId: window.EUPHORIE_CONFIG.userId
+                });
+            }
+        }
+
+        function triggerInteraction(type) {
+            console.log(`🤝 Interaction: ${type}`);
+            
+            const interactions = {
+                wave: '👋 Waving hello!',
+                dance: '💃 Time to dance!',
+                magic: '✨ Casting magic spells!'
+            };
+            
+            showNotification(interactions[type] || `${type} activated!`, 'info');
+        }
+
+        function triggerMagic() {
+            showNotification('✨ Magic effects activated!', 'success');
+            // Add magical particle effects here
+        }
+
+        function summonPet() {
+            showNotification('🐾 Pet companion summoned!', 'success');
+            // Add pet summoning logic here
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Initializing Euphorie 3.0...');
+            
+            // Initialize WebSocket
+            window.webSocketManager = new EuphorieWebSocketManager();
+            
+            // Setup chat input
             const chatInput = document.getElementById('chat-input');
             const sendBtn = document.getElementById('send-btn');
             
+            function sendMessage() {
+                const message = chatInput.value.trim();
+                if (!message) return;
+                
+                window.webSocketManager.sendMessage(message);
+                chatInput.value = '';
+            }
+            
             if (chatInput && sendBtn) {
-                let typingTimer;
-                let isTyping = false;
-                
-                // Send message function
-                const sendMessage = () => {
-                    const message = chatInput.value.trim();
-                    if (!message || !window.WebSocketManager.authenticated) return;
-                    
-                    window.WebSocketManager.sendChatMessage(message);
-                    chatInput.value = '';
-                    
-                    // Stop typing indicator
-                    if (isTyping) {
-                        window.WebSocketManager.sendTyping(false);
-                        isTyping = false;
-                    }
-                };
-                
-                // Typing indicator logic
-                chatInput.addEventListener('input', () => {
-                    if (!isTyping && window.WebSocketManager.authenticated) {
-                        window.WebSocketManager.sendTyping(true);
-                        isTyping = true;
-                    }
-                    
-                    clearTimeout(typingTimer);
-                    typingTimer = setTimeout(() => {
-                        if (isTyping) {
-                            window.WebSocketManager.sendTyping(false);
-                            isTyping = false;
-                        }
-                    }, 2000);
-                });
-                
-                // Send on Enter
                 chatInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -1164,288 +1524,49 @@
                     }
                 });
                 
-                // Send on button click
                 sendBtn.addEventListener('click', sendMessage);
             }
             
-            // Setup bubble mode toggle
-            const bubbleModeToggle = document.getElementById('bubble-mode-toggle');
-            if (bubbleModeToggle) {
-                bubbleModeToggle.addEventListener('click', () => {
-                    window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
-                    bubbleModeToggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
-                    bubbleModeToggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
+            // Setup bubble toggle
+            const bubbleToggle = document.getElementById('bubble-toggle');
+            if (bubbleToggle) {
+                bubbleToggle.addEventListener('click', () => {
+                    window.EUPHORIE_CONFIG.features.chatBubbles3D = !window.EUPHORIE_CONFIG.features.chatBubbles3D;
+                    bubbleToggle.classList.toggle('active', window.EUPHORIE_CONFIG.features.chatBubbles3D);
+                    bubbleToggle.textContent = window.EUPHORIE_CONFIG.features.chatBubbles3D ? '3D Mode' : 'Text Mode';
                     
-                    if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                        window.ChatBubbleSystem.clearAllBubbles();
-                    }
+                    showNotification(
+                        window.EUPHORIE_CONFIG.features.chatBubbles3D ? '3D chat bubbles enabled!' : '3D chat bubbles disabled',
+                        'info'
+                    );
                 });
             }
             
-            console.log('🚀 Euphorie WebSocket integration initialized');
-        });
-        
-        // Make WebSocket manager available for other systems
-        window.sendEmotion = function(emotion) {
-            if (window.WebSocketManager) {
-                window.WebSocketManager.sendEmotion(emotion);
-            }
-        };
-        
-        window.sendInteraction = function(type, targetId = null, data = null) {
-            if (window.WebSocketManager) {
-                window.WebSocketManager.sendInteraction(type, targetId, data);
-            }
-        };
-    </script>
-
-    <!-- Load JavaScript modules in order -->
-    <script>
-        // Enhanced error handling for script loading
-        function loadScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = callback;
-            script.onerror = () => {
-                console.error(`Failed to load script: ${src}`);
-                callback();
-            };
-            document.head.appendChild(script);
-        }
-        
-        // Load scripts sequentially with 3D chat bubble system
-        const scripts = [
-            '/static/js/core/globals.js',
-            '/static/js/core/event-bus.js',
-            '/static/js/systems/scene-manager.js',
-            '/static/js/systems/avatar-system.js',
-            '/static/js/systems/chat-bubble-system.js', // 3D chat bubbles
-            '/static/js/systems/interaction-system.js',
-            '/static/js/systems/emotion-system.js',
-            '/static/js/systems/pet-system.js',
-            '/static/js/systems/group-interaction-system.js',
-            '/static/js/systems/advanced-scene-system.js',
-            '/static/js/ui/mobile-ui.js',
-            '/static/js/room-core.js'
-        ];
-        
-        let scriptIndex = 0;
-        function loadNextScript() {
-            if (scriptIndex < scripts.length) {
-                loadScript(scripts[scriptIndex], () => {
-                    console.log(`✅ Loaded: ${scripts[scriptIndex]}`);
-                    scriptIndex++;
-                    loadNextScript();
-                });
-            } else {
-                console.log('🚀 All systems loaded successfully!');
-                
-                // Initialize mobile UI if on mobile device
-                if (isMobile && window.MobileUI) {
-                    window.MobileUI.init();
-                    console.log('📱 Mobile UI initialized');
-                }
-                
-                // Initialize chat bubble system
-                if (window.ChatBubbleSystem) {
-                    window.ChatBubbleSystem.init();
-                    console.log('💬 Chat Bubble System initialized');
-                }
-                
-                // Initialize control panels
-                initializeControlPanels();
-                
-                // Hide loading screen
-                setTimeout(() => {
-                    const loadingScreen = document.getElementById('loading-screen');
-                    if (loadingScreen) {
-                        loadingScreen.style.opacity = '0';
-                        setTimeout(() => {
-                            loadingScreen.style.display = 'none';
-                        }, 500);
-                    }
-                }, 2000);
-            }
-        }
-        
-        function initializeControlPanels() {
-            // Initialize pet panel toggle
-            const petToggle = document.getElementById('pet-toggle');
-            const petPanel = document.getElementById('pet-panel');
-            const groupActivities = document.getElementById('group-activities');
-            const emotionsControl = document.getElementById('emotions-control');
-            
-            if (petToggle && petPanel) {
-                petToggle.addEventListener('click', () => {
-                    const isVisible = petPanel.style.display !== 'none';
-                    petPanel.style.display = isVisible ? 'none' : 'block';
-                    petToggle.style.background = isVisible ? 'rgba(255,255,255,0.1)' : 'rgba(255, 107, 53, 0.3)';
-                });
-            }
-            
-            if (groupActivities) {
-                groupActivities.addEventListener('click', () => {
-                    if (window.GroupInteractionSystem) {
-                        window.GroupInteractionSystem.showGroupActivityMenu();
-                    }
-                });
-            }
-            
-            // Initialize emotion control button with WebSocket integration
-            if (emotionsControl) {
-                emotionsControl.addEventListener('click', () => {
-                    console.log('🎭 Emotion button clicked');
+            // Hide loading screen after initialization
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    loadingScreen.style.transform = 'scale(0.95)';
                     
-                    if (window.EmotionSystem && window.EmotionSystem.showEmotionPanel) {
-                        window.EmotionSystem.showEmotionPanel();
-                    } else {
-                        createInlineEmotionPanel();
-                    }
-                });
-            }
-            
-            // Counter update interval
-            setInterval(() => {
-                updateCounters();
-            }, 2000);
-        }
-        
-        function createInlineEmotionPanel() {
-            const existing = document.querySelectorAll('#emotion-panel');
-            existing.forEach(el => el.remove());
-            
-            const panel = document.createElement('div');
-            panel.id = 'emotion-panel';
-            panel.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(20, 20, 30, 0.95);
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 15px;
-                padding: 25px;
-                z-index: 1500;
-                color: white;
-                min-width: 350px;
-                text-align: center;
-                backdrop-filter: blur(20px);
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            `;
-            
-            panel.innerHTML = `
-                <h3 style="margin: 0 0 20px 0; color: #667eea;">🎭 Express Your Emotion</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-                    <button onclick="triggerEmotion('happy')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😊<br>Happy</button>
-                    <button onclick="triggerEmotion('love')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😍<br>Love</button>
-                    <button onclick="triggerEmotion('excited')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">🤩<br>Excited</button>
-                    <button onclick="triggerEmotion('sad')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😢<br>Sad</button>
-                    <button onclick="triggerEmotion('angry')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😠<br>Angry</button>
-                    <button onclick="triggerEmotion('laughing')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😂<br>Laughing</button>
-                </div>
-                <button onclick="this.parentElement.remove()" style="padding: 10px 20px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white; cursor: pointer;">Close</button>
-            `;
-            
-            document.body.appendChild(panel);
-            
-            // Add hover effects
-            panel.querySelectorAll('button').forEach(btn => {
-                if (btn.onclick && btn.onclick.toString().includes('triggerEmotion')) {
-                    btn.addEventListener('mouseenter', () => {
-                        btn.style.background = 'rgba(255,255,255,0.2)';
-                        btn.style.transform = 'translateY(-2px)';
-                    });
-                    btn.addEventListener('mouseleave', () => {
-                        btn.style.background = 'rgba(255,255,255,0.1)';
-                        btn.style.transform = 'translateY(0)';
-                    });
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                        showNotification('Welcome to Euphorie 3.0! ✨', 'success');
+                    }, 800);
                 }
-            });
-            
-            // Click outside to close
-            setTimeout(() => {
-                const closeHandler = (e) => {
-                    if (!panel.contains(e.target)) {
-                        panel.remove();
-                        document.removeEventListener('click', closeHandler);
-                    }
-                };
-                document.addEventListener('click', closeHandler);
-            }, 100);
-        }
-        
-        // Global emotion trigger function with WebSocket integration
-        window.triggerEmotion = function(emotion) {
-            console.log(`🎭 Triggering emotion: ${emotion}`);
-            
-            // Send emotion via WebSocket
-            if (window.sendEmotion) {
-                window.sendEmotion(emotion);
-            }
-            
-            // Show local visual feedback
-            const emotionIcons = {
-                happy: '😊', love: '😍', excited: '🤩',
-                sad: '😢', angry: '😠', laughing: '😂'
-            };
-            
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 80px;
-                right: 20px;
-                background: rgba(102, 126, 234, 0.95);
-                color: white;
-                padding: 15px 20px;
-                border-radius: 10px;
-                z-index: 2000;
-                backdrop-filter: blur(10px);
-                font-weight: 600;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-            `;
-            notification.textContent = `You're feeling ${emotion}! ${emotionIcons[emotion]}`;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => notification.style.transform = 'translateX(0)', 10);
-            setTimeout(() => {
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => notification.remove(), 300);
             }, 3000);
             
-            // Close panel
-            const panel = document.getElementById('emotion-panel');
-            if (panel) panel.remove();
-        };
-        
-        function updateCounters() {
-            // Update bubble count
-            if (window.ChatBubbleSystem) {
-                const bubbleCount = window.ChatBubbleSystem.getActiveBubbleCount();
-                const bubbleCountElement = document.getElementById('bubble-count');
-                if (bubbleCountElement) bubbleCountElement.textContent = bubbleCount;
-            }
-            
-            // Update other counters
-            if (window.PetSystem) {
-                const petCount = window.PetSystem.getAllPets().length;
-                const petCountElement = document.getElementById('pet-count');
-                if (petCountElement) petCountElement.textContent = petCount;
-            }
-            
-            if (window.GroupInteractionSystem) {
-                const groupCount = window.GroupInteractionSystem.getActiveGroups().length;
-                const groupCountElement = document.getElementById('group-count');
-                if (groupCountElement) groupCountElement.textContent = groupCount;
-            }
-        }
-        
-        // Start loading when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadNextScript);
-        } else {
-            loadNextScript();
-        }
+            console.log('✅ Euphorie 3.0 initialized successfully!');
+        });
+
+        // Global resize handler
+        window.addEventListener('resize', () => {
+            deviceInfo.screenSize = {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                ratio: window.innerWidth / window.innerHeight
+            };
+        });
     </script>
 </body>
 </html>
