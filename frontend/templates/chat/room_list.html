@@ -64,18 +64,206 @@
   color: #f472b6;
 }
 
-/* Compact Category Bar */
+/* Enhanced Category Section with Future-Proofing */
+.category-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.category-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.category-scroll-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.category-scroll-btn:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+  opacity: 1;
+}
+
+.category-scroll-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Enhanced Category Bar */
 .category-bar {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
+  scroll-behavior: smooth;
   padding: 0.25rem 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  flex: 1;
+  min-width: 0;
 }
 
 .category-bar::-webkit-scrollbar {
   display: none;
+}
+
+.show-more-btn {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.show-more-btn:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+  border-color: #f472b6;
+}
+
+/* Categories Modal for Overflow */
+.categories-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.categories-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.categories-modal-content {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.categories-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.categories-modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.close-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-modal:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+}
+
+.categories-grid-modal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  padding: 1.5rem;
+}
+
+.category-modal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #fafbfc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.category-modal-btn:hover {
+  background: #f1f5f9;
+  border-color: #f472b6;
+  transform: translateY(-2px);
+}
+
+.category-modal-btn.active {
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.category-modal-icon {
+  font-size: 1.5rem;
+}
+
+.category-modal-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
+}
+
+.category-modal-btn.active .category-modal-name {
+  color: white;
 }
 
 .category-btn {
@@ -397,12 +585,21 @@
     gap: 1rem;
   }
   
-  .search-container {
-    min-width: auto;
+  .category-section {
+    order: 1;
   }
   
   .sort-controls {
+    order: 2;
     justify-content: space-between;
+  }
+  
+  .category-scroll-btn {
+    display: none;
+  }
+  
+  .show-more-btn {
+    display: flex;
   }
   
   .rooms-grid {
@@ -416,6 +613,10 @@
   
   .room-title {
     font-size: 0.85rem;
+  }
+  
+  .categories-grid-modal {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -433,6 +634,10 @@
     flex-direction: column;
     align-items: start;
     gap: 0.5rem;
+  }
+  
+  .categories-grid-modal {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -504,51 +709,63 @@
 {% endblock %}
 
 {% block content %}
-<!-- Compact Header with Search and Controls -->
+<!-- Compact Header with Categories and Controls -->
 <div class="compact-header">
   <div class="header-content">
-    <!-- Search -->
-    <div class="search-container">
-      <input
-        type="text"
-        id="room-search"
-        placeholder="Search rooms..."
-        class="search-input"
-      />
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-    </div>
-    
-    <!-- Compact Category Bar -->
-    <div class="category-bar">
-      <button class="category-btn active" data-category="all">
-        <span class="category-icon">🌟</span>
-        All
-      </button>
-      <button class="category-btn" data-category="general">
-        <span class="category-icon">💬</span>
-        General
-      </button>
-      <button class="category-btn" data-category="tech">
-        <span class="category-icon">💻</span>
-        Tech
-      </button>
-      <button class="category-btn" data-category="gaming">
-        <span class="category-icon">🎮</span>
-        Gaming
-      </button>
-      <button class="category-btn" data-category="music">
-        <span class="category-icon">🎵</span>
-        Music
-      </button>
-      <button class="category-btn" data-category="art">
-        <span class="category-icon">🎨</span>
-        Art
-      </button>
-      <button class="category-btn" data-category="sports">
-        <span class="category-icon">⚽</span>
-        Sports
+    <!-- Expandable Category Bar with Scroll Controls -->
+    <div class="category-section">
+      <div class="category-wrapper">
+        <button class="category-scroll-btn scroll-left" id="scroll-left">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        
+        <div class="category-bar" id="category-bar">
+          <button class="category-btn active" data-category="all">
+            <span class="category-icon">🌟</span>
+            All
+          </button>
+          <button class="category-btn" data-category="general">
+            <span class="category-icon">💬</span>
+            General
+          </button>
+          <button class="category-btn" data-category="tech">
+            <span class="category-icon">💻</span>
+            Tech
+          </button>
+          <button class="category-btn" data-category="gaming">
+            <span class="category-icon">🎮</span>
+            Gaming
+          </button>
+          <button class="category-btn" data-category="music">
+            <span class="category-icon">🎵</span>
+            Music
+          </button>
+          <button class="category-btn" data-category="art">
+            <span class="category-icon">🎨</span>
+            Art
+          </button>
+          <button class="category-btn" data-category="sports">
+            <span class="category-icon">⚽</span>
+            Sports
+          </button>
+          <!-- Future categories can be added here -->
+        </div>
+        
+        <button class="category-scroll-btn scroll-right" id="scroll-right">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Show More Categories Button (for mobile/overflow) -->
+      <button class="show-more-btn" id="show-more-categories">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01" />
+        </svg>
+        More
       </button>
     </div>
     
@@ -573,6 +790,23 @@
           </svg>
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expandable Categories Modal (for overflow) -->
+<div class="categories-modal hidden" id="categories-modal">
+  <div class="categories-modal-content">
+    <div class="categories-modal-header">
+      <h3>Browse Categories</h3>
+      <button class="close-modal" id="close-categories-modal">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="categories-grid-modal">
+      <!-- Categories will be populated here dynamically -->
     </div>
   </div>
 </div>
@@ -714,7 +948,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Get DOM elements
-  const searchInput = document.getElementById('room-search');
   const categoryBtns = document.querySelectorAll('.category-btn');
   const sortSelect = document.getElementById('sort-rooms');
   const viewBtns = document.querySelectorAll('.view-btn');
@@ -723,15 +956,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const resultsCount = document.getElementById('results-count');
   const activeFilter = document.getElementById('active-filter');
   
+  // Category scroll elements
+  const categoryBar = document.getElementById('category-bar');
+  const scrollLeftBtn = document.getElementById('scroll-left');
+  const scrollRightBtn = document.getElementById('scroll-right');
+  const showMoreBtn = document.getElementById('show-more-categories');
+  const categoriesModal = document.getElementById('categories-modal');
+  const closeModalBtn = document.getElementById('close-categories-modal');
+  
   let currentCategory = 'all';
   let currentSort = 'activity';
-  
-  // Search functionality
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      filterAndSortRooms();
-    });
-  }
   
   // Category filtering
   categoryBtns.forEach(btn => {
@@ -747,6 +981,129 @@ document.addEventListener('DOMContentLoaded', function() {
       filterAndSortRooms();
     });
   });
+  
+  // Category scroll functionality
+  if (scrollLeftBtn && scrollRightBtn && categoryBar) {
+    scrollLeftBtn.addEventListener('click', () => {
+      categoryBar.scrollBy({ left: -200, behavior: 'smooth' });
+    });
+    
+    scrollRightBtn.addEventListener('click', () => {
+      categoryBar.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+    
+    // Update scroll button states
+    function updateScrollButtons() {
+      if (!categoryBar) return;
+      
+      const canScrollLeft = categoryBar.scrollLeft > 0;
+      const canScrollRight = categoryBar.scrollLeft < 
+        (categoryBar.scrollWidth - categoryBar.clientWidth - 10);
+      
+      scrollLeftBtn.disabled = !canScrollLeft;
+      scrollRightBtn.disabled = !canScrollRight;
+      
+      scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.4';
+      scrollRightBtn.style.opacity = canScrollRight ? '1' : '0.4';
+    }
+    
+    // Initial update and listen for scroll
+    updateScrollButtons();
+    categoryBar.addEventListener('scroll', updateScrollButtons);
+    window.addEventListener('resize', updateScrollButtons);
+  }
+  
+  // Show more categories modal
+  if (showMoreBtn && categoriesModal && closeModalBtn) {
+    showMoreBtn.addEventListener('click', () => {
+      populateCategoriesModal();
+      categoriesModal.classList.remove('hidden');
+      categoriesModal.classList.add('show');
+    });
+    
+    closeModalBtn.addEventListener('click', () => {
+      categoriesModal.classList.remove('show');
+      setTimeout(() => {
+        categoriesModal.classList.add('hidden');
+      }, 300);
+    });
+    
+    // Close modal on backdrop click
+    categoriesModal.addEventListener('click', (e) => {
+      if (e.target === categoriesModal) {
+        closeModalBtn.click();
+      }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && categoriesModal.classList.contains('show')) {
+        closeModalBtn.click();
+      }
+    });
+  }
+  
+  // Populate categories modal dynamically
+  function populateCategoriesModal() {
+    const modalGrid = document.querySelector('.categories-grid-modal');
+    if (!modalGrid) return;
+    
+    // Clear existing content
+    modalGrid.innerHTML = '';
+    
+    // Get all category buttons and create modal versions
+    const categories = [
+      { category: 'all', icon: '🌟', name: 'All Rooms' },
+      { category: 'general', icon: '💬', name: 'General' },
+      { category: 'tech', icon: '💻', name: 'Technology' },
+      { category: 'gaming', icon: '🎮', name: 'Gaming' },
+      { category: 'music', icon: '🎵', name: 'Music' },
+      { category: 'art', icon: '🎨', name: 'Art & Design' },
+      { category: 'sports', icon: '⚽', name: 'Sports' },
+      // Future categories can be added here
+      { category: 'food', icon: '🍕', name: 'Food & Cooking' },
+      { category: 'travel', icon: '✈️', name: 'Travel' },
+      { category: 'books', icon: '📚', name: 'Books & Reading' },
+      { category: 'movies', icon: '🎬', name: 'Movies & TV' },
+      { category: 'science', icon: '🔬', name: 'Science' },
+      { category: 'business', icon: '💼', name: 'Business' },
+      { category: 'health', icon: '💪', name: 'Health & Fitness' },
+      { category: 'education', icon: '🎓', name: 'Education' },
+      { category: 'photography', icon: '📸', name: 'Photography' }
+    ];
+    
+    categories.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = `category-modal-btn ${cat.category === currentCategory ? 'active' : ''}`;
+      btn.setAttribute('data-category', cat.category);
+      btn.innerHTML = `
+        <div class="category-modal-icon">${cat.icon}</div>
+        <div class="category-modal-name">${cat.name}</div>
+      `;
+      
+      btn.addEventListener('click', () => {
+        // Update active state in modal
+        document.querySelectorAll('.category-modal-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Update main category buttons
+        categoryBtns.forEach(b => b.classList.remove('active'));
+        const mainBtn = document.querySelector(`.category-btn[data-category="${cat.category}"]`);
+        if (mainBtn) {
+          mainBtn.classList.add('active');
+        }
+        
+        // Update current category and filter
+        currentCategory = cat.category;
+        filterAndSortRooms();
+        
+        // Close modal
+        closeModalBtn.click();
+      });
+      
+      modalGrid.appendChild(btn);
+    });
+  }
   
   // Sort functionality
   if (sortSelect) {
@@ -778,7 +1135,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Main filter and sort function
   function filterAndSortRooms() {
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
     const gridRooms = gridView.querySelectorAll('.room-card');
     const listRooms = listView.querySelectorAll('.room-list-item');
     
@@ -786,13 +1142,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Filter grid view rooms
     gridRooms.forEach(room => {
-      const roomName = room.getAttribute('data-name');
       const roomCategory = room.getAttribute('data-category');
-      
-      const matchesSearch = !searchTerm || roomName.includes(searchTerm);
       const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
       
-      if (matchesSearch && matchesCategory) {
+      if (matchesCategory) {
         room.style.display = '';
         visibleCount++;
       } else {
@@ -802,13 +1155,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Filter list view rooms
     listRooms.forEach(room => {
-      const roomName = room.getAttribute('data-name');
       const roomCategory = room.getAttribute('data-category');
-      
-      const matchesSearch = !searchTerm || roomName.includes(searchTerm);
       const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
       
-      if (matchesSearch && matchesCategory) {
+      if (matchesCategory) {
         room.style.display = '';
       } else {
         room.style.display = 'none';
@@ -819,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', function() {
     sortRooms();
     
     // Update results display
-    updateResultsDisplay(visibleCount, searchTerm, currentCategory);
+    updateResultsDisplay(visibleCount, currentCategory);
   }
   
   function sortRooms() {
@@ -860,24 +1210,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  function updateResultsDisplay(count, searchTerm, category) {
+  function updateResultsDisplay(count, category) {
     if (resultsCount) {
       resultsCount.textContent = `${count} rooms found`;
     }
     
     if (activeFilter) {
-      let filterText = '';
-      
-      if (searchTerm && category !== 'all') {
-        filterText = `Searching "${searchTerm}" in ${category}`;
-      } else if (searchTerm) {
-        filterText = `Searching "${searchTerm}"`;
-      } else if (category !== 'all') {
-        filterText = `Showing ${category} rooms`;
-      } else {
-        filterText = 'Showing all rooms';
-      }
-      
+      const filterText = category === 'all' ? 'Showing all rooms' : `Showing ${category} rooms`;
       activeFilter.textContent = filterText;
     }
   }
