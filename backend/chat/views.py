@@ -27,109 +27,72 @@ def index(request):
     """
     Homepage view that shows room exploration interface
     """
-    # Get all rooms with related data for better performance
-    rooms = Room.objects.select_related('creator', 'creator__profile', 'category').annotate(
-        total_messages=Count('message'),
-        last_activity=Max('message__timestamp')
-    ).order_by('-last_activity', '-total_messages')
-    
-    # Get categories for the filter bar
-    categories = Category.objects.all().order_by('name')
-    
-    # Handle search if query parameter exists
-    search_query = request.GET.get('q', '').strip()
-    if search_query:
-        rooms = rooms.filter(
-            Q(name__icontains=search_query) |
-            Q(display_name__icontains=search_query) |
-            Q(description__icontains=search_query)
-        )
-    
-    # Handle category filter
-    category_filter = request.GET.get('category', '').strip()
-    if category_filter and category_filter != 'all':
-        rooms = rooms.filter(category__slug=category_filter)
-    
-    # Handle sorting
-    sort_option = request.GET.get('sort', 'activity')
-    if sort_option == 'newest':
-        rooms = rooms.order_by('-created_at')
-    elif sort_option == 'oldest':
-        rooms = rooms.order_by('created_at')
-    elif sort_option == 'name':
-        rooms = rooms.order_by('name')
-    else:  # 'activity' (default)
-        rooms = rooms.order_by('-total_messages', '-last_activity')
-    
-    # Limit results for performance (optional)
-    rooms = rooms[:50]
-    
-    context = {
-        'rooms': rooms,
-        'categories': categories,
-        'search_query': search_query,
-        'current_category': category_filter,
-        'current_sort': sort_option,
-        'total_rooms': Room.objects.count(),
-        'total_users': User.objects.count(),
-        'total_messages': Message.objects.count() if hasattr(Message, 'objects') else 0,
-    }
-    
-    return render(request, 'chat/room_list.html', context)
-
-def explore_rooms(request):
-    """
-    Dedicated room exploration page (if different from index)
-    """
-    # Get all rooms with related data
-    rooms = Room.objects.select_related('creator', 'creator__profile', 'category').annotate(
-        total_messages=Count('message'),
-        last_activity=Max('message__timestamp')
-    ).order_by('-last_activity', '-total_messages')
-    
-    # Get categories for the filter bar
-    categories = Category.objects.all().order_by('name')
-    
-    # Handle search
-    search_query = request.GET.get('q', '').strip()
-    if search_query:
-        rooms = rooms.filter(
-            Q(name__icontains=search_query) |
-            Q(display_name__icontains=search_query) |
-            Q(description__icontains=search_query)
-        )
-    
-    # Handle category filter
-    category_filter = request.GET.get('category', '').strip()
-    if category_filter and category_filter != 'all':
-        rooms = rooms.filter(category__slug=category_filter)
-    
-    # Handle sorting
-    sort_option = request.GET.get('sort', 'activity')
-    if sort_option == 'newest':
-        rooms = rooms.order_by('-created_at')
-    elif sort_option == 'oldest':
-        rooms = rooms.order_by('created_at')
-    elif sort_option == 'name':
-        rooms = rooms.order_by('name')
-    else:  # 'activity' (default)
-        rooms = rooms.order_by('-total_messages', '-last_activity')
-    
-    # Pagination (optional)
-    # from django.core.paginator import Paginator
-    # paginator = Paginator(rooms, 24)  # Show 24 rooms per page
-    # page_number = request.GET.get('page')
-    # rooms = paginator.get_page(page_number)
-    
-    context = {
-        'rooms': rooms,
-        'categories': categories,
-        'search_query': search_query,
-        'current_category': category_filter,
-        'current_sort': sort_option,
-    }
-    
-    return render(request, 'chat/explore.html', context)
+    try:
+        # Get all rooms with related data for better performance
+        # Based on your model fields: messages (not message), and you already have message_count
+        rooms = Room.objects.select_related('creator', 'category').annotate(
+            total_messages=F('message_count'),  # Use existing message_count field
+            last_message_time=Max('messages__timestamp')  # Use messages (plural)
+        ).order_by('-last_activity', '-message_count')
+        
+        # Get categories for the filter bar
+        categories = RoomCategory.objects.all().order_by('name')
+        
+        # Handle search if query parameter exists
+        search_query = request.GET.get('q', '').strip()
+        if search_query:
+            rooms = rooms.filter(
+                Q(name__icontains=search_query) |
+                Q(display_name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        # Handle category filter
+        category_filter = request.GET.get('category', '').strip()
+        if category_filter and category_filter != 'all':
+            rooms = rooms.filter(category__slug=category_filter)
+        
+        # Handle sorting
+        sort_option = request.GET.get('sort', 'activity')
+        if sort_option == 'newest':
+            rooms = rooms.order_by('-created_at')
+        elif sort_option == 'oldest':
+            rooms = rooms.order_by('created_at')
+        elif sort_option == 'name':
+            rooms = rooms.order_by('name')
+        else:  # 'activity' (default)
+            rooms = rooms.order_by('-message_count', '-last_activity')
+        
+        # Limit results for performance
+        rooms = rooms[:50]
+        
+        context = {
+            'rooms': rooms,
+            'categories': categories,
+            'search_query': search_query,
+            'current_category': category_filter,
+            'current_sort': sort_option,
+            'total_rooms': Room.objects.count(),
+            'total_users': User.objects.count(),
+            'total_messages': sum(room.message_count for room in Room.objects.all()),
+        }
+        
+        return render(request, 'chat/room_list.html', context)
+        
+    except Exception as e:
+        # Debug: Show the error
+        context = {
+            'rooms': [],
+            'categories': [],
+            'error': f"Database error: {str(e)}",
+            'search_query': '',
+            'current_category': '',
+            'current_sort': 'activity',
+            'total_rooms': 0,
+            'total_users': 0,
+            'total_messages': 0,
+        }
+        return render(request, 'chat/room_list.html', context)
 
 def room(request, room_name):
     """Individual room view"""
