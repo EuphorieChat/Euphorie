@@ -744,10 +744,10 @@
 {% endblock %}
 
 {% block content %}
-<!-- Compact Header with Categories and Controls - NO RESULTS INFO -->
+<!-- Compact Header with Categories and Controls -->
 <div class="compact-header">
   <div class="header-content">
-    <!-- Expandable Category Bar with Scroll Controls -->
+    <!-- Dynamic Category Bar with Scroll Controls -->
     <div class="category-section">
       <div class="category-wrapper">
         <button class="category-scroll-btn scroll-left" id="scroll-left">
@@ -757,35 +757,19 @@
         </button>
         
         <div class="category-bar" id="category-bar">
+          <!-- "All" button always first -->
           <button class="category-btn active" data-category="all">
             <span class="category-icon">🌟</span>
             All
           </button>
-          <button class="category-btn" data-category="general">
-            <span class="category-icon">💬</span>
-            General
-          </button>
-          <button class="category-btn" data-category="tech">
-            <span class="category-icon">💻</span>
-            Tech
-          </button>
-          <button class="category-btn" data-category="gaming">
-            <span class="category-icon">🎮</span>
-            Gaming
-          </button>
-          <button class="category-btn" data-category="music">
-            <span class="category-icon">🎵</span>
-            Music
-          </button>
-          <button class="category-btn" data-category="art">
-            <span class="category-icon">🎨</span>
-            Art
-          </button>
-          <button class="category-btn" data-category="sports">
-            <span class="category-icon">⚽</span>
-            Sports
-          </button>
-          <!-- Future categories can be added here -->
+          
+          <!-- Dynamic categories from database -->
+          {% for category in categories %}
+            <button class="category-btn" data-category="{{ category.slug }}">
+              <span class="category-icon">{{ category.icon|default:"💬" }}</span>
+              {{ category.name }}
+            </button>
+          {% endfor %}
         </div>
         
         <button class="category-scroll-btn scroll-right" id="scroll-right">
@@ -829,7 +813,7 @@
   </div>
 </div>
 
-<!-- Expandable Categories Modal (for overflow) -->
+<!-- Dynamic Categories Modal (for overflow) -->
 <div class="categories-modal hidden" id="categories-modal">
   <div class="categories-modal-content">
     <div class="categories-modal-header">
@@ -846,9 +830,9 @@
   </div>
 </div>
 
-<!-- Rooms Container - DIRECT, NO RESULTS INFO -->
+<!-- Rooms Container -->
 <div id="rooms-container">
-  <!-- Grid View (Default) - High Density -->
+  <!-- Grid View (Default) -->
   <div class="rooms-grid" id="grid-view">
     {% if rooms %}
       {% for room in rooms %}
@@ -1070,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Populate categories modal dynamically
+  // Populate categories modal dynamically from DOM
   function populateCategoriesModal() {
     const modalGrid = document.querySelector('.categories-grid-modal');
     if (!modalGrid) return;
@@ -1078,58 +1062,64 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear existing content
     modalGrid.innerHTML = '';
     
-    // Get all category buttons and create modal versions
-    const categories = [
-      { category: 'all', icon: '🌟', name: 'All Rooms' },
-      { category: 'general', icon: '💬', name: 'General' },
-      { category: 'tech', icon: '💻', name: 'Technology' },
-      { category: 'gaming', icon: '🎮', name: 'Gaming' },
-      { category: 'music', icon: '🎵', name: 'Music' },
-      { category: 'art', icon: '🎨', name: 'Art & Design' },
-      { category: 'sports', icon: '⚽', name: 'Sports' },
-      // Future categories can be added here
-      { category: 'food', icon: '🍕', name: 'Food & Cooking' },
-      { category: 'travel', icon: '✈️', name: 'Travel' },
-      { category: 'books', icon: '📚', name: 'Books & Reading' },
-      { category: 'movies', icon: '🎬', name: 'Movies & TV' },
-      { category: 'science', icon: '🔬', name: 'Science' },
-      { category: 'business', icon: '💼', name: 'Business' },
-      { category: 'health', icon: '💪', name: 'Health & Fitness' },
-      { category: 'education', icon: '🎓', name: 'Education' },
-      { category: 'photography', icon: '📸', name: 'Photography' }
-    ];
+    // Create "All" category first
+    const allBtn = document.createElement('button');
+    allBtn.className = `category-modal-btn ${currentCategory === 'all' ? 'active' : ''}`;
+    allBtn.setAttribute('data-category', 'all');
+    allBtn.innerHTML = `
+      <div class="category-modal-icon">🌟</div>
+      <div class="category-modal-name">All Rooms</div>
+    `;
     
-    categories.forEach(cat => {
-      const btn = document.createElement('button');
-      btn.className = `category-modal-btn ${cat.category === currentCategory ? 'active' : ''}`;
-      btn.setAttribute('data-category', cat.category);
-      btn.innerHTML = `
-        <div class="category-modal-icon">${cat.icon}</div>
-        <div class="category-modal-name">${cat.name}</div>
+    allBtn.addEventListener('click', () => {
+      handleCategoryModalClick('all', allBtn);
+    });
+    
+    modalGrid.appendChild(allBtn);
+    
+    // Get categories from the DOM (from the category bar)
+    const categoryButtons = document.querySelectorAll('.category-btn:not([data-category="all"])');
+    
+    categoryButtons.forEach(btn => {
+      const category = btn.getAttribute('data-category');
+      const icon = btn.querySelector('.category-icon').textContent;
+      const name = btn.textContent.trim();
+      
+      const modalBtn = document.createElement('button');
+      modalBtn.className = `category-modal-btn ${category === currentCategory ? 'active' : ''}`;
+      modalBtn.setAttribute('data-category', category);
+      modalBtn.innerHTML = `
+        <div class="category-modal-icon">${icon}</div>
+        <div class="category-modal-name">${name}</div>
       `;
       
-      btn.addEventListener('click', () => {
-        // Update active state in modal
-        document.querySelectorAll('.category-modal-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        // Update main category buttons
-        categoryBtns.forEach(b => b.classList.remove('active'));
-        const mainBtn = document.querySelector(`.category-btn[data-category="${cat.category}"]`);
-        if (mainBtn) {
-          mainBtn.classList.add('active');
-        }
-        
-        // Update current category and filter
-        currentCategory = cat.category;
-        filterAndSortRooms();
-        
-        // Close modal
-        closeModalBtn.click();
+      modalBtn.addEventListener('click', () => {
+        handleCategoryModalClick(category, modalBtn);
       });
       
-      modalGrid.appendChild(btn);
+      modalGrid.appendChild(modalBtn);
     });
+  }
+  
+  // Handle category modal button clicks
+  function handleCategoryModalClick(category, btn) {
+    // Update active state in modal
+    document.querySelectorAll('.category-modal-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Update main category buttons
+    categoryBtns.forEach(b => b.classList.remove('active'));
+    const mainBtn = document.querySelector(`.category-btn[data-category="${category}"]`);
+    if (mainBtn) {
+      mainBtn.classList.add('active');
+    }
+    
+    // Update current category and filter
+    currentCategory = category;
+    filterAndSortRooms();
+    
+    // Close modal
+    closeModalBtn.click();
   }
   
   // Sort functionality
@@ -1160,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Main filter and sort function - NO RESULTS DISPLAY UPDATE
+  // Main filter and sort function
   function filterAndSortRooms() {
     const gridRooms = gridView.querySelectorAll('.room-card');
     const listRooms = listView.querySelectorAll('.room-list-item');
