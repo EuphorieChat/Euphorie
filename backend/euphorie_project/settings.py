@@ -1,13 +1,17 @@
 # backend/euphorie_project/settings.py
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
-SECRET_KEY = 'django-insecure-your-secret-key-change-in-production'
-DEBUG = True
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-change-in-production')
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'euphorie.com', 'www.euphorie.com', '172.31.84.166', '0.0.0.0']
 
 # Applications
@@ -18,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Required for allauth
     'chat',
     'allauth',
     'allauth.account',
@@ -133,6 +138,62 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Allauth settings
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
+ACCOUNT_UNIQUE_EMAIL = True
+
+# Social account providers
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+            'secret': os.getenv('GOOGLE_SECRET'),
+            'key': ''
+        },
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    },
+    'microsoft': {
+        'APP': {
+            'client_id': os.getenv('MICROSOFT_CLIENT_ID'),
+            'secret': os.getenv('MICROSOFT_SECRET'),
+        },
+        'SCOPE': [
+            'User.Read',
+        ],
+    },
+    'apple': {
+        'APP': {
+            'client_id': os.getenv('APPLE_CLIENT_ID'),  # Service ID: com.euphorie.web
+            'secret': os.getenv('APPLE_SECRET'),        # Team ID: YBASLHXF5R
+            'key': os.getenv('APPLE_KEY_ID'),           # Key ID: LSGQ36SNK2
+            'certificate_key': os.getenv('APPLE_PRIVATE_KEY'),  # Private key content
+        },
+        'SCOPE': ['name', 'email'],
+    }
+}
+
+# Social account settings
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_AUTO_SIGNUP = True
 
 # Security settings for production
 if not DEBUG:
