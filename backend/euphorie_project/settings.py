@@ -194,12 +194,15 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 # Social account settings - streamlined for better UX
-SOCIALACCOUNT_LOGIN_ON_GET = True  # Skip intermediate confirmation page
+SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Skip email verification for social accounts
-SOCIALACCOUNT_AUTO_SIGNUP = True  # Automatically create accounts
-SOCIALACCOUNT_QUERY_EMAIL = True  # Always request email from providers
-SOCIALACCOUNT_STORE_TOKENS = False  # Don't store OAuth tokens (optional)
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_STORE_TOKENS = False
+
+SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
+
 
 # Security settings for production
 if not DEBUG:
