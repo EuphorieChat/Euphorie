@@ -17,6 +17,8 @@
   margin-bottom: 1rem; /* Reduced margin */
   border: 1px solid #f1f5f9;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  max-width: 100%; /* Prevent header overflow */
+  overflow: hidden; /* Critical: prevent any overflow */
 }
 
 .header-content {
@@ -25,6 +27,8 @@
   justify-content: space-between;
   gap: 1rem; /* Reduced gap */
   flex-wrap: wrap;
+  max-width: 100%; /* Prevent content overflow */
+  overflow: hidden; /* Critical: prevent content overflow */
 }
 
 .search-container {
@@ -76,6 +80,8 @@
   gap: 0.375rem; /* Reduced gap */
   flex: 1;
   min-width: 0;
+  max-width: 100%; /* Prevent overflow */
+  overflow: hidden; /* Critical: prevent section overflow */
 }
 
 .category-wrapper {
@@ -85,6 +91,8 @@
   flex: 1;
   min-width: 0;
   position: relative;
+  max-width: 100%; /* Prevent wrapper overflow */
+  overflow: hidden; /* Critical: prevent wrapper overflow */
 }
 
 .category-scroll-btn {
@@ -130,6 +138,7 @@
   -ms-overflow-style: none;
   flex: 1;
   min-width: 0;
+  max-width: 100%; /* Prevent overflow */
 }
 
 .category-bar::-webkit-scrollbar {
@@ -605,11 +614,14 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
+    overflow: hidden; /* Prevent mobile overflow */
   }
   
   .category-section {
     order: 1;
     position: relative;
+    overflow: hidden; /* Critical for mobile */
+    max-width: 100%;
   }
   
   .sort-controls {
@@ -630,6 +642,7 @@
     position: relative;
     overflow: hidden;
     padding: 0;
+    max-width: 100%; /* Critical: prevent wrapper overflow */
   }
   
   .category-wrapper::before {
@@ -667,6 +680,8 @@
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
     touch-action: pan-x; /* Only allow horizontal panning */
+    max-width: 100%; /* Critical: prevent bar overflow */
+    width: 100%; /* Ensure full width usage */
   }
   
   .category-bar::-webkit-scrollbar {
@@ -689,6 +704,7 @@
   .compact-header {
     padding: 0.625rem 0.875rem;
     margin-bottom: 0.75rem;
+    overflow: hidden; /* Ensure header doesn't overflow */
   }
 }
 
@@ -701,15 +717,19 @@
     margin: 0;
     padding: 0.125rem 0;
     gap: 0.25rem; /* Tighter spacing for small screens */
+    overflow-x: auto;
+    max-width: 100%; /* Critical for small screens */
   }
 
   .compact-header {
     padding: 0.5rem 0.75rem;
     border-radius: 0.75rem;
+    overflow: hidden;
   }
 
   .header-content {
     gap: 0.5rem;
+    overflow: hidden;
   }
   
   .category-btn {
@@ -728,12 +748,25 @@
     content: '👆';
     font-size: 0.7rem;
   }
+  
+  /* Ensure category section doesn't overflow */
+  .category-section {
+    overflow: hidden;
+    max-width: 100%;
+  }
+  
+  .category-wrapper {
+    overflow: hidden;
+    max-width: 100%;
+  }
 }
 
 /* Very small screens - minimal UI */
 @media (max-width: 480px) {
   .category-bar {
     gap: 0.2rem;
+    overflow-x: auto;
+    max-width: 100%;
   }
   
   .category-btn {
@@ -752,6 +785,23 @@
   
   .category-wrapper::before {
     width: 15px;
+  }
+  
+  /* Additional overflow protection for very small screens */
+  .compact-header {
+    overflow: hidden;
+  }
+  
+  .header-content {
+    overflow: hidden;
+  }
+  
+  .category-section {
+    overflow: hidden;
+  }
+  
+  .category-wrapper {
+    overflow: hidden;
   }
 }
 
@@ -830,7 +880,7 @@
 {% block content %}
 <!-- Compact Header with Categories and Controls -->
 <div class="compact-header">
-  <div class="header-content">
+  <div class="header-content" style="overflow: hidden;">
     <!-- Dynamic Category Bar with Scroll Controls -->
     <div class="category-section">
       <div class="category-wrapper">
