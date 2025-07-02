@@ -2,11 +2,85 @@
 
 from django.utils import timezone
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound
 from django.core.cache import cache
 from django.conf import settings
+from django.templatetags.static import static
 import time
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+class FaviconMiddleware:
+    """
+    Middleware to handle favicon requests automatically
+    Redirects favicon requests to the correct static file locations
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Configure favicon paths from settings or use defaults
+        self.favicon_paths = getattr(settings, 'FAVICON_CONFIG', {
+            'favicon.ico': 'css/favicon.ico',
+            'favicon-16x16.png': 'css/favicon-16x16.png',
+            'favicon-32x32.png': 'css/favicon-32x32.png',
+            'apple-touch-icon.png': 'css/apple-touch-icon-180x180.png',
+        })
+
+    def __call__(self, request):
+        # Handle various favicon requests
+        path = request.path.lstrip('/')
+        
+        # Direct favicon.ico requests
+        if path == 'favicon.ico':
+            favicon_url = static(self.favicon_paths.get('favicon.ico', 'css/favicon.ico'))
+            logger.debug(f"Redirecting favicon.ico to: {favicon_url}")
+            return HttpResponseRedirect(favicon_url)
+        
+        # Apple touch icon requests (with various names)
+        apple_touch_patterns = [
+            'apple-touch-icon.png',
+            'apple-touch-icon-precomposed.png',
+            'apple-touch-icon-120x120.png',
+            'apple-touch-icon-152x152.png',
+            'apple-touch-icon-180x180.png'
+        ]
+        
+        if path in apple_touch_patterns:
+            apple_icon_url = static(self.favicon_paths.get('apple-touch-icon.png', 'css/apple-touch-icon-180x180.png'))
+            logger.debug(f"Redirecting {path} to: {apple_icon_url}")
+            return HttpResponseRedirect(apple_icon_url)
+        
+        # Handle other common favicon size requests
+        favicon_patterns = {
+            'favicon-16x16.png': 'favicon-16x16.png',
+            'favicon-32x32.png': 'favicon-32x32.png',
+        }
+        
+        if path in favicon_patterns:
+            favicon_key = favicon_patterns[path]
+            if favicon_key in self.favicon_paths:
+                favicon_url = static(self.favicon_paths[favicon_key])
+                logger.debug(f"Redirecting {path} to: {favicon_url}")
+                return HttpResponseRedirect(favicon_url)
+        
+        # Handle manifest.json requests (for PWA)
+        if path == 'manifest.json':
+            # You can create a manifest.json file later if needed
+            logger.debug("Manifest.json requested but not implemented")
+            return HttpResponseNotFound("Manifest not found")
+        
+        # Handle robots.txt requests
+        if path == 'robots.txt':
+            # You can create a robots.txt file later if needed
+            logger.debug("Robots.txt requested but not implemented")
+            return HttpResponseNotFound("Robots.txt not found")
+            
+        # Continue with normal request processing
+        response = self.get_response(request)
+        return response
+
 
 class UserActivityMiddleware:
     """Middleware to track user activity and update last seen"""
@@ -134,6 +208,10 @@ class SecurityHeadersMiddleware:
             response['X-XSS-Protection'] = '1; mode=block'
             response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         
+        # Add cache headers for static files
+        if request.path.startswith('/static/'):
+            response['Cache-Control'] = 'public, max-age=31536000'  # 1 year
+        
         return response
 
 
@@ -234,8 +312,6 @@ class PerformanceMiddleware:
         
         # Log slow requests
         if response_time > 2.0:  # Log requests taking more than 2 seconds
-            import logging
-            logger = logging.getLogger('chat')
             logger.warning(f"Slow request: {request.path} took {response_time:.3f}s")
         
         return response
