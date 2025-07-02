@@ -870,5 +870,8 @@ def user_logout(request):
     messages.success(request, 'You have been logged out.')
     return redirect('index')
 
-
-
+def explore_rooms(request):
+    """
+    Room exploration page - uses same logic as index
+    """
+    return index(request)
