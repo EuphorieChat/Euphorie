@@ -22,7 +22,6 @@ from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
 # ==================== MAIN PAGES ====================
 
-@login_required
 def index(request):
     """
     Homepage view that shows room exploration interface
