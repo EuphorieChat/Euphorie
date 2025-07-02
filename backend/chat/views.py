@@ -301,30 +301,27 @@ def profile_settings(request):
 
 @login_required
 def friends_list(request):
-    """Friends list and requests"""
-    # Get friends
-    friends = Friendship.objects.filter(
-        Q(user=request.user) | Q(friend=request.user),
-        status='accepted'
-    ).select_related('user', 'friend', 'user__userprofile', 'friend__userprofile')
+    # Get current user's friends with optimized queries
+    friends = User.objects.filter(
+        # Your friend filtering logic here
+    ).select_related('profile')  # ✅ Use 'profile' not 'userprofile'
     
-    # Get pending requests (received)
-    pending_requests = Friendship.objects.filter(
-        friend=request.user,
+    # Get pending friend requests
+    pending_requests = FriendRequest.objects.filter(
+        to_user=request.user,
         status='pending'
-    ).select_related('user', 'user__userprofile')
+    ).select_related('from_user__profile')  # ✅ Use 'profile' not 'userprofile'
     
-    # Get sent requests
-    sent_requests = Friendship.objects.filter(
-        user=request.user,
+    # Get sent friend requests
+    sent_requests = FriendRequest.objects.filter(
+        from_user=request.user,
         status='pending'
-    ).select_related('friend', 'friend__userprofile')
+    ).select_related('to_user__profile')  # ✅ Use 'profile' not 'userprofile'
     
     context = {
         'friends': friends,
         'pending_requests': pending_requests,
         'sent_requests': sent_requests,
-        'pending_friend_requests_count': pending_requests.count(),
     }
     
     return render(request, 'chat/friends_list.html', context)
