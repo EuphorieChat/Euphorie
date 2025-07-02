@@ -40,7 +40,6 @@ SITE_ID = 1
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Added for static file serving
-    'chat.middleware.FaviconMiddleware',  # Custom favicon middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -66,7 +65,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'chat.context_processors.favicon_context',  # Add favicon context
                 # Temporarily disabled: 'chat.context_processors.global_context',
             ],
         },
@@ -128,21 +126,6 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 ]
-
-# WhiteNoise configuration
-WHITENOISE_USE_FINDERS = True
-WHITENOISE_AUTOREFRESH = True if DEBUG else False
-WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
-
-# ==================== FAVICON CONFIGURATION ====================
-
-# Custom favicon paths - tells Django where to find favicons in the CSS directory
-FAVICON_CONFIG = {
-    'favicon.ico': 'css/favicon.ico',
-    'favicon-16x16.png': 'css/favicon-16x16.png', 
-    'favicon-32x32.png': 'css/favicon-32x32.png',
-    'apple-touch-icon.png': 'css/apple-touch-icon-180x180.png',
-}
 
 # Media files
 MEDIA_URL = '/media/'
@@ -220,6 +203,7 @@ SOCIALACCOUNT_STORE_TOKENS = False
 
 SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
 
+
 # Security settings for production
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
@@ -253,11 +237,6 @@ LOGGING = {
             'propagate': True,
         },
         'allauth': {
-            'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
-            'propagate': False,
-        },
-        'chat.middleware': {
             'handlers': ['console'],
             'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False,
