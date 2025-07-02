@@ -5,7 +5,7 @@ from . import views
 
 urlpatterns = [
     # ==================== MAIN PAGES ====================
-    path('', views.explore_rooms, name='index'),  # Enhanced room discovery as homepage
+    path('', views.index, name='index'),  # Enhanced room discovery as homepage
     path('room/<str:room_name>/', views.room, name='room'),
     path('quickstart/', views.index, name='home'),  # Original homepage moved to quickstart
     path('create-room/', views.create_room, name='create_room'),
