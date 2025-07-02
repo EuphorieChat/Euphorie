@@ -6,14 +6,12 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, F
-from django.shortcuts import render
+from django.db.models import Q, Count, F, Max  # Added Max for last_activity
 from django.views.generic import TemplateView
 from django.utils import timezone
 from datetime import timedelta
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render
 import json
 
 from .models import (
@@ -24,106 +22,114 @@ from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
 # ==================== MAIN PAGES ====================
 
+@login_required
 def index(request):
-    """Enhanced homepage with categories and features"""
-    # Get active rooms with related data - Show more rooms on homepage
-    active_rooms = Room.objects.filter(is_public=True).select_related(
-        'category', 'creator'
-    ).annotate(
-        total_messages=Count('messages')
-    ).order_by('-last_activity')[:20]  # Increased from 12 to 20
+    """
+    Homepage view that shows room exploration interface
+    """
+    # Get all rooms with related data for better performance
+    rooms = Room.objects.select_related('creator', 'creator__profile', 'category').annotate(
+        total_messages=Count('message'),
+        last_activity=Max('message__timestamp')
+    ).order_by('-last_activity', '-total_messages')
     
-    # Get room categories
-    categories = RoomCategory.objects.all().order_by('name')
+    # Get categories for the filter bar
+    categories = Category.objects.all().order_by('name')
     
-    # Create category choices for form
-    category_choices = [(cat.slug, cat.name) for cat in categories]
-    
-    # Get user context if authenticated
-    pending_friend_requests_count = 0
-    user_created_rooms = False
-    
-    if request.user.is_authenticated:
-        pending_friend_requests_count = FriendRequest.objects.filter(
-            to_user=request.user,
-            status='pending'
-        ).count()
-        
-        user_created_rooms = Room.objects.filter(creator=request.user).exists()
-    
-    context = {
-        'active_rooms': active_rooms,
-        'categories': categories,
-        'category_choices': category_choices,
-        'pending_friend_requests_count': pending_friend_requests_count,
-        'user_created_rooms': user_created_rooms,
-    }
-    
-    return render(request, 'chat/room_list.html', context) 
-
-def explore_rooms(request):
-    """Enhanced room exploration page - Show ALL rooms"""
-    # Get all rooms with filtering
-    rooms = Room.objects.filter(is_public=True).select_related(
-        'category', 'creator'
-    ).annotate(
-        total_messages=Count('messages')
-    )
-    
-    # Apply filters
-    category = request.GET.get('category')
-    search = request.GET.get('q')  # Changed from 'search' to 'q' to match template
-    filter_type = request.GET.get('filter', 'all')
-    
-    if category and category != 'all':
-        rooms = rooms.filter(category__slug=category)
-    
-    if search:
+    # Handle search if query parameter exists
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
         rooms = rooms.filter(
-            Q(name__icontains=search) | 
-            Q(display_name__icontains=search) |
-            Q(description__icontains=search)
+            Q(name__icontains=search_query) |
+            Q(display_name__icontains=search_query) |
+            Q(description__icontains=search_query)
         )
     
-    # Apply filter types
-    if filter_type == 'trending':
-        rooms = rooms.filter(total_messages__gte=20)
-    elif filter_type == 'newest':
-        week_ago = timezone.now() - timedelta(days=7)
-        rooms = rooms.filter(created_at__gte=week_ago)
-    elif filter_type == 'popular':
-        rooms = rooms.filter(total_messages__gte=10)
+    # Handle category filter
+    category_filter = request.GET.get('category', '').strip()
+    if category_filter and category_filter != 'all':
+        rooms = rooms.filter(category__slug=category_filter)
     
-    # Order by activity
-    rooms = rooms.order_by('-last_activity', '-total_messages')
+    # Handle sorting
+    sort_option = request.GET.get('sort', 'activity')
+    if sort_option == 'newest':
+        rooms = rooms.order_by('-created_at')
+    elif sort_option == 'oldest':
+        rooms = rooms.order_by('created_at')
+    elif sort_option == 'name':
+        rooms = rooms.order_by('name')
+    else:  # 'activity' (default)
+        rooms = rooms.order_by('-total_messages', '-last_activity')
     
-    # Increased pagination to show more rooms per page
-    paginator = Paginator(rooms, 50)  # Increased from 24 to 50
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    # Get categories
-    categories = RoomCategory.objects.all().order_by('name')
-    
-    # Get user context
-    pending_friend_requests_count = 0
-    if request.user.is_authenticated:
-        pending_friend_requests_count = FriendRequest.objects.filter(
-            to_user=request.user,
-            status='pending'
-        ).count()
+    # Limit results for performance (optional)
+    rooms = rooms[:50]
     
     context = {
-        'rooms': page_obj,
+        'rooms': rooms,
         'categories': categories,
-        'current_category': category,
-        'current_filter': filter_type,
-        'search_query': search,
-        'pending_friend_requests_count': pending_friend_requests_count,
-        'total_rooms_count': Room.objects.filter(is_public=True).count(),  # Added total count
+        'search_query': search_query,
+        'current_category': category_filter,
+        'current_sort': sort_option,
+        'total_rooms': Room.objects.count(),
+        'total_users': User.objects.count(),
+        'total_messages': Message.objects.count() if hasattr(Message, 'objects') else 0,
     }
     
     return render(request, 'chat/room_list.html', context)
+
+def explore_rooms(request):
+    """
+    Dedicated room exploration page (if different from index)
+    """
+    # Get all rooms with related data
+    rooms = Room.objects.select_related('creator', 'creator__profile', 'category').annotate(
+        total_messages=Count('message'),
+        last_activity=Max('message__timestamp')
+    ).order_by('-last_activity', '-total_messages')
+    
+    # Get categories for the filter bar
+    categories = Category.objects.all().order_by('name')
+    
+    # Handle search
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        rooms = rooms.filter(
+            Q(name__icontains=search_query) |
+            Q(display_name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    # Handle category filter
+    category_filter = request.GET.get('category', '').strip()
+    if category_filter and category_filter != 'all':
+        rooms = rooms.filter(category__slug=category_filter)
+    
+    # Handle sorting
+    sort_option = request.GET.get('sort', 'activity')
+    if sort_option == 'newest':
+        rooms = rooms.order_by('-created_at')
+    elif sort_option == 'oldest':
+        rooms = rooms.order_by('created_at')
+    elif sort_option == 'name':
+        rooms = rooms.order_by('name')
+    else:  # 'activity' (default)
+        rooms = rooms.order_by('-total_messages', '-last_activity')
+    
+    # Pagination (optional)
+    # from django.core.paginator import Paginator
+    # paginator = Paginator(rooms, 24)  # Show 24 rooms per page
+    # page_number = request.GET.get('page')
+    # rooms = paginator.get_page(page_number)
+    
+    context = {
+        'rooms': rooms,
+        'categories': categories,
+        'search_query': search_query,
+        'current_category': category_filter,
+        'current_sort': sort_option,
+    }
+    
+    return render(request, 'chat/explore.html', context)
 
 def room(request, room_name):
     """Individual room view"""
