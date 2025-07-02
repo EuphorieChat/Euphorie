@@ -59,7 +59,7 @@ def index(request):
         'user_created_rooms': user_created_rooms,
     }
     
-    return render(request, 'chat/index.html', context)
+    return render(request, 'chat/room_list.html', context) 
 
 def explore_rooms(request):
     """Enhanced room exploration page - Show ALL rooms"""
