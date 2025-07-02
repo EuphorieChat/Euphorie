@@ -172,6 +172,7 @@ class Room(models.Model):
         return scene_presets.get(getattr(self, 'scene_preset', 'modern_office'), 'Modern Office')
 
 
+
 class Message(models.Model):
     """Enhanced message model"""
     
@@ -246,82 +247,6 @@ class MessageReport(models.Model):
         return f"Report: {self.message.content[:30]} by {self.reporter.username}"
 
 
-# FIXED: Friend Request System
-class FriendRequest(models.Model):
-    """Model to handle friend requests between users"""
-    
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('accepted', 'Accepted'),
-        ('declined', 'Declined'),
-        ('cancelled', 'Cancelled'),
-    ]
-    
-    from_user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='sent_friend_requests',
-        help_text="User who sent the friend request"
-    )
-    
-    to_user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='received_friend_requests',
-        help_text="User who received the friend request"
-    )
-    
-    status = models.CharField(
-        max_length=10, 
-        choices=STATUS_CHOICES, 
-        default='pending',
-        help_text="Current status of the friend request"
-    )
-    
-    created_at = models.DateTimeField(
-        default=timezone.now,
-        help_text="When the friend request was created"
-    )
-    
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        help_text="When the friend request was last updated"
-    )
-    
-    class Meta:
-        unique_together = ('from_user', 'to_user')
-        ordering = ['-created_at']
-        verbose_name = "Friend Request"
-        verbose_name_plural = "Friend Requests"
-        indexes = [
-            models.Index(fields=['from_user', 'status']),
-            models.Index(fields=['to_user', 'status']),
-            models.Index(fields=['created_at']),
-        ]
-    
-    def __str__(self):
-        return f"{self.from_user.username} → {self.to_user.username} ({self.status})"
-    
-    def accept(self):
-        """Accept the friend request and create friendship"""
-        self.status = 'accepted'
-        self.save()
-        
-        # Create friendship entries
-        Friendship.objects.get_or_create(user=self.from_user, friend=self.to_user)
-        Friendship.objects.get_or_create(user=self.to_user, friend=self.from_user)
-    
-    def decline(self):
-        """Decline the friend request"""
-        self.status = 'declined'
-        self.save()
-    
-    def cancel(self):
-        """Cancel the friend request (for sender only)"""
-        self.status = 'cancelled'
-        self.save()
-
-
 class Friendship(models.Model):
     """Enhanced friendship model with rich features"""
     
@@ -334,7 +259,7 @@ class Friendship(models.Model):
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships')
     friend = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friend_of')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='accepted')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # Enhanced features
     nickname = models.CharField(max_length=50, blank=True, help_text="Custom nickname for this friend")
@@ -360,21 +285,6 @@ class Friendship(models.Model):
     def display_name(self):
         """Return nickname if set, otherwise friend's display name"""
         return self.nickname or self.friend.profile.display_username
-    
-    @classmethod
-    def are_friends(cls, user1, user2):
-        """Check if two users are friends"""
-        return cls.objects.filter(
-            models.Q(user=user1, friend=user2) |
-            models.Q(user=user2, friend=user1),
-            status='accepted'
-        ).exists()
-    
-    @classmethod
-    def get_friends(cls, user):
-        """Get all friends of a user"""
-        friend_ids = list(cls.objects.filter(user=user, status='accepted').values_list('friend', flat=True))
-        return User.objects.filter(id__in=friend_ids).select_related('profile')
 
 
 class FriendSuggestion(models.Model):
@@ -528,3 +438,4 @@ class UserActivity(models.Model):
     
     def __str__(self):
         return f"{self.user.username}: {self.description}"
+    

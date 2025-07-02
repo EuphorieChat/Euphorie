@@ -872,11 +872,3 @@ def user_logout(request):
 
 
 
-# Add these missing functions to your chat/views.py file
-
-@login_required
-def explore_rooms(request):
-    """
-    Dedicated room exploration page - uses same logic as index
-    """
-    return index(request)  # Reuse the index logic for now
