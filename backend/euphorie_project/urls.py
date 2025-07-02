@@ -17,7 +17,8 @@ def redirect_to_app(request):
 urlpatterns = [
     # ==================== ADMIN ====================
     path('admin/', admin.site.urls),
-    path('auth/', include('allauth.urls')),
+    path('accounts/', include('allauth.urls')),  # This should handle /accounts/login/
+    path('', include('chat.urls')),
     
     # ==================== AUTHENTICATION URLS ====================
     # Django built-in auth views with custom templates
