@@ -820,57 +820,73 @@ def debug_rooms(request):
 # These are simplified examples
 
 def user_login(request):
-    """Login view - you might want to use Django's built-in LoginView"""
+    """
+    Custom login view - fixed to properly handle form
+    """
+    from django.contrib.auth import authenticate, login
+    from django.contrib.auth.forms import AuthenticationForm
+    
+    # Redirect if user is already logged in
     if request.user.is_authenticated:
         return redirect('index')
     
-    # Use Django's built-in authentication
-    from django.contrib.auth import authenticate, login
-    
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            next_url = request.GET.get('next', 'index')
-            return redirect(next_url)
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                
+                # Redirect to 'next' parameter or home
+                next_url = request.GET.get('next', '/')
+                return redirect(next_url)
+            else:
+                messages.error(request, 'Invalid username or password.')
         else:
-            messages.error(request, 'Invalid credentials.')
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = AuthenticationForm()  # Create empty form for GET requests
     
     return render(request, 'account/login.html', {'form': form})
 
+
 def user_signup(request):
-    """Signup view"""
-    if request.user.is_authenticated:
-        return redirect('index')
-    
+    """
+    Custom signup view - fixed to properly handle form
+    """
     from django.contrib.auth.forms import UserCreationForm
     from django.contrib.auth import login
+    
+    # Redirect if user is already logged in
+    if request.user.is_authenticated:
+        return redirect('index')
     
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            # Log the user in immediately after signup
             login(request, user)
             messages.success(request, 'Account created successfully!')
             return redirect('index')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
-        form = UserCreationForm()
+        form = UserCreationForm()  # Create empty form for GET requests
     
     return render(request, 'account/signup.html', {'form': form})
 
-@login_required
-def user_logout(request):
-    """Logout view"""
-    from django.contrib.auth import logout
-    logout(request)
-    messages.success(request, 'You have been logged out.')
-    return redirect('index')
 
-def explore_rooms(request):
+def user_logout(request):
     """
-    Room exploration page - uses same logic as index
+    Custom logout view
     """
-    return index(request)
+    from django.contrib.auth import logout
+    
+    if request.user.is_authenticated:
+        logout(request)
+        messages.success(request, 'You have been logged out successfully.')
+    
+    return redirect('index')
