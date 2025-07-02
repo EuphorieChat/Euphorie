@@ -599,16 +599,17 @@
   color: #10b981;
 }
 
-/* Mobile Optimizations - COMPACT with Overflow Fix */
+/* Mobile Optimizations - Swipe/Drag Scrolling */
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.75rem; /* Reduced gap */
+    gap: 0.75rem;
   }
   
   .category-section {
     order: 1;
+    position: relative;
   }
   
   .sort-controls {
@@ -621,16 +622,51 @@
   }
   
   .show-more-btn {
-    display: flex;
+    display: none; /* Hide the more button */
   }
   
-  /* Fix the overflow issue by removing negative margins */
+  /* Mobile category wrapper with swipe indicators */
+  .category-wrapper {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+  }
+  
+  .category-wrapper::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  .category-wrapper::after {
+    content: '👆 Swipe to browse';
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: #94a3b8;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+  
+  /* Enhanced mobile category bar */
   .category-bar {
-    margin: 0; /* Remove negative margins */
-    padding: 0.125rem 0; /* Keep vertical padding only */
+    margin: 0;
+    padding: 0.125rem 0;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+    touch-action: pan-x; /* Only allow horizontal panning */
   }
   
   .category-bar::-webkit-scrollbar {
@@ -638,24 +674,20 @@
   }
   
   .rooms-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Smaller on mobile */
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 0.5rem;
   }
   
   .room-header {
-    padding: 0.625rem; /* Further reduced padding */
+    padding: 0.625rem;
   }
   
   .room-title {
     font-size: 0.8rem;
   }
-  
-  .categories-grid-modal {
-    grid-template-columns: repeat(3, 1fr);
-  }
 
   .compact-header {
-    padding: 0.625rem 0.875rem; /* Further reduced padding for mobile */
+    padding: 0.625rem 0.875rem;
     margin-bottom: 0.75rem;
   }
 }
@@ -665,18 +697,14 @@
     grid-template-columns: repeat(2, 1fr);
   }
   
-  /* Ensure category bar doesn't overflow on small screens */
   .category-bar {
-    margin: 0; /* Keep margins at 0 */
-    padding: 0.125rem 0; /* Only vertical padding */
-  }
-  
-  .categories-grid-modal {
-    grid-template-columns: repeat(2, 1fr);
+    margin: 0;
+    padding: 0.125rem 0;
+    gap: 0.25rem; /* Tighter spacing for small screens */
   }
 
   .compact-header {
-    padding: 0.5rem 0.75rem; /* Even more reduced for small mobile */
+    padding: 0.5rem 0.75rem;
     border-radius: 0.75rem;
   }
 
@@ -684,31 +712,46 @@
     gap: 0.5rem;
   }
   
-  /* Additional fix: ensure category buttons don't cause horizontal scroll */
   .category-btn {
     flex-shrink: 0;
     min-width: fit-content;
-  }
-  
-  /* Add some padding to the category wrapper to prevent edge clipping */
-  .category-wrapper {
-    padding: 0 0.25rem;
-  }
-}
-
-/* Additional improvements for better mobile experience */
-@media (max-width: 480px) {
-  .category-bar {
-    gap: 0.25rem; /* Reduce gap between category buttons on very small screens */
-  }
-  
-  .category-btn {
-    padding: 0.25rem 0.5rem; /* Make buttons more compact */
-    font-size: 0.7rem; /* Smaller text */
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
   }
   
   .category-icon {
-    font-size: 0.75rem; /* Smaller icons */
+    font-size: 0.75rem;
+  }
+  
+  /* Adjust swipe hint for smaller screens */
+  .category-wrapper::after {
+    content: '👆';
+    font-size: 0.7rem;
+  }
+}
+
+/* Very small screens - minimal UI */
+@media (max-width: 480px) {
+  .category-bar {
+    gap: 0.2rem;
+  }
+  
+  .category-btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.65rem;
+  }
+  
+  .category-icon {
+    font-size: 0.7rem;
+  }
+  
+  /* Hide swipe hint on very small screens to save space */
+  .category-wrapper::after {
+    display: none;
+  }
+  
+  .category-wrapper::before {
+    width: 15px;
   }
 }
 
@@ -1262,8 +1305,99 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Initialize
-  filterAndSortRooms();
+  // Enhanced mobile touch/swipe functionality
+  function initializeMobileScrolling() {
+    if (!categoryBar) return;
+    
+    let isScrolling = false;
+    let startX = 0;
+    let scrollLeft = 0;
+    let velocity = 0;
+    let lastX = 0;
+    let lastTime = 0;
+    
+    // Touch start
+    categoryBar.addEventListener('touchstart', (e) => {
+      isScrolling = true;
+      startX = e.touches[0].pageX - categoryBar.offsetLeft;
+      scrollLeft = categoryBar.scrollLeft;
+      velocity = 0;
+      lastX = e.touches[0].pageX;
+      lastTime = Date.now();
+    }, { passive: true });
+    
+    // Touch move
+    categoryBar.addEventListener('touchmove', (e) => {
+      if (!isScrolling) return;
+      
+      e.preventDefault();
+      const x = e.touches[0].pageX - categoryBar.offsetLeft;
+      const walk = (x - startX) * 1.5; // Scroll speed multiplier
+      categoryBar.scrollLeft = scrollLeft - walk;
+      
+      // Calculate velocity for momentum
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastTime;
+      if (timeDiff > 0) {
+        velocity = (e.touches[0].pageX - lastX) / timeDiff;
+      }
+      lastX = e.touches[0].pageX;
+      lastTime = currentTime;
+    }, { passive: false });
+    
+    // Touch end with momentum scrolling
+    categoryBar.addEventListener('touchend', (e) => {
+      isScrolling = false;
+      
+      // Apply momentum scrolling
+      if (Math.abs(velocity) > 0.1) {
+        const momentum = velocity * 100; // Momentum multiplier
+        const targetScroll = categoryBar.scrollLeft - momentum;
+        
+        // Smooth momentum animation
+        categoryBar.style.scrollBehavior = 'smooth';
+        categoryBar.scrollLeft = Math.max(0, Math.min(targetScroll, categoryBar.scrollWidth - categoryBar.clientWidth));
+        
+        setTimeout(() => {
+          categoryBar.style.scrollBehavior = 'auto';
+        }, 300);
+      }
+    }, { passive: true });
+    
+    // Mouse events for desktop testing
+    categoryBar.addEventListener('mousedown', (e) => {
+      isScrolling = true;
+      categoryBar.style.cursor = 'grabbing';
+      startX = e.pageX - categoryBar.offsetLeft;
+      scrollLeft = categoryBar.scrollLeft;
+    });
+    
+    categoryBar.addEventListener('mouseleave', () => {
+      isScrolling = false;
+      categoryBar.style.cursor = 'grab';
+    });
+    
+    categoryBar.addEventListener('mouseup', () => {
+      isScrolling = false;
+      categoryBar.style.cursor = 'grab';
+    });
+    
+    categoryBar.addEventListener('mousemove', (e) => {
+      if (!isScrolling) return;
+      e.preventDefault();
+      const x = e.pageX - categoryBar.offsetLeft;
+      const walk = (x - startX) * 2;
+      categoryBar.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Set initial cursor style
+    if (window.innerWidth <= 768) {
+      categoryBar.style.cursor = 'grab';
+    }
+  }
+  
+  // Initialize mobile scrolling
+  initializeMobileScrolling();
 });
 </script>
 {% endblock %}
