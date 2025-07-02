@@ -147,10 +147,10 @@ AUTHENTICATION_BACKENDS = [
 
 # Allauth settings
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Changed from 'mandatory' to skip confirmation
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # Allow both username and email
+ACCOUNT_USERNAME_REQUIRED = True  # Keep usernames since your signup form uses them
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'  # Changed from None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
 ACCOUNT_UNIQUE_EMAIL = True
 
@@ -168,7 +168,8 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
-        }
+        },
+        'VERIFIED_EMAIL': True,  # Trust Google's email verification
     },
     'microsoft': {
         'APP': {
@@ -178,6 +179,7 @@ SOCIALACCOUNT_PROVIDERS = {
         'SCOPE': [
             'User.Read',
         ],
+        'VERIFIED_EMAIL': True,  # Trust Microsoft's email verification
     },
     'apple': {
         'APP': {
@@ -187,13 +189,17 @@ SOCIALACCOUNT_PROVIDERS = {
             'certificate_key': os.getenv('APPLE_PRIVATE_KEY'),  # Private key content
         },
         'SCOPE': ['name', 'email'],
+        'VERIFIED_EMAIL': True,  # Trust Apple's email verification
     }
 }
 
-# Social account settings
+# Social account settings - streamlined for better UX
+SOCIALACCOUNT_LOGIN_ON_GET = True  # Skip intermediate confirmation page
 SOCIALACCOUNT_EMAIL_REQUIRED = True
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
-SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Skip email verification for social accounts
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Automatically create accounts
+SOCIALACCOUNT_QUERY_EMAIL = True  # Always request email from providers
+SOCIALACCOUNT_STORE_TOKENS = False  # Don't store OAuth tokens (optional)
 
 # Security settings for production
 if not DEBUG:
@@ -226,6 +232,11 @@ LOGGING = {
             'handlers': ['file', 'console'],
             'level': 'INFO',
             'propagate': True,
+        },
+        'allauth': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
         },
     },
 }
