@@ -5,9 +5,9 @@ from . import views
 
 urlpatterns = [
     # ==================== MAIN PAGES ====================
-    path('', views.explore_rooms, name='index'),  # Enhanced room discovery as homepage
+    path('', views.index, name='index'),
+    path('explore/', views.explore_rooms, name='explore_rooms'),
     path('room/<str:room_name>/', views.room, name='room'),
-    path('quickstart/', views.index, name='home'),  # Original homepage moved to quickstart
     path('create-room/', views.create_room, name='create_room'),
     path('search/', views.search_rooms, name='search_rooms'),
     
@@ -18,9 +18,18 @@ urlpatterns = [
     
     # ==================== FRIEND URLS ====================
     path('friends/', views.friends_list, name='friends_list'),
-    path('friends/request/<str:username>/', views.send_friend_request, name='send_friend_request'),
+    
+    # Friend request URLs by ID (for friends list page)
+    path('friends/send/<int:user_id>/', views.send_friend_request, name='send_friend_request'),
+    path('friends/accept/<int:request_id>/', views.accept_friend_request, name='accept_friend_request'),
+    path('friends/decline/<int:request_id>/', views.decline_friend_request, name='decline_friend_request'),
+    path('friends/cancel/<int:request_id>/', views.cancel_friend_request, name='cancel_friend_request'),
+    path('friends/remove/<int:user_id>/', views.remove_friend, name='remove_friend'),
+    
+    # Friend request URLs by username (for profile pages)
+    path('friends/request/<str:username>/', views.send_friend_request_by_username, name='send_friend_request_by_username'),
     path('friends/respond/<int:friendship_id>/', views.respond_friend_request, name='respond_friend_request'),
-    path('friends/remove/<str:username>/', views.remove_friend, name='remove_friend'),
+    path('friends/remove/<str:username>/', views.remove_friend_by_username, name='remove_friend_by_username'),
     path('friends/suggestions/', views.friend_suggestions, name='friend_suggestions'),
     
     # ==================== MODERATION URLS ====================
@@ -39,8 +48,6 @@ urlpatterns = [
     path('admin/messages/', views.admin_messages, name='admin_messages'),
     path('admin/users/', views.admin_user_activity, name='admin_user_activity'),
     path('admin/settings/', views.admin_user_settings, name='admin_user_settings'),
-
-    path('explore-rooms/', views.explore_rooms, name='explore_rooms'),
     
     # ==================== API ENDPOINTS ====================
     path('api/profile/', views.api_user_profile, name='api_user_profile'),
@@ -57,4 +64,7 @@ urlpatterns = [
     path('auth/login/', views.user_login, name='login'),
     path('auth/signup/', views.user_signup, name='signup'),
     path('auth/logout/', views.user_logout, name='account_logout'),
+    
+    # ==================== DEBUG (REMOVE IN PRODUCTION) ====================
+    path('debug/rooms/', views.debug_rooms, name='debug_rooms'),
 ]

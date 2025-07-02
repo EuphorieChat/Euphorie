@@ -11,13 +11,13 @@ from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.utils import timezone
 from datetime import timedelta
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
 import json
 
 from .models import (
-    Room, Message, UserProfile, RoomCategory, Friendship, 
+    Room, Message, UserProfile, RoomCategory, Friendship, FriendRequest,
     RoomBookmark, MessageReport, UserActivity
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
@@ -44,8 +44,8 @@ def index(request):
     user_created_rooms = False
     
     if request.user.is_authenticated:
-        pending_friend_requests_count = Friendship.objects.filter(
-            friend=request.user,
+        pending_friend_requests_count = FriendRequest.objects.filter(
+            to_user=request.user,
             status='pending'
         ).count()
         
@@ -72,7 +72,7 @@ def explore_rooms(request):
     
     # Apply filters
     category = request.GET.get('category')
-    search = request.GET.get('search')
+    search = request.GET.get('q')  # Changed from 'search' to 'q' to match template
     filter_type = request.GET.get('filter', 'all')
     
     if category and category != 'all':
@@ -108,8 +108,8 @@ def explore_rooms(request):
     # Get user context
     pending_friend_requests_count = 0
     if request.user.is_authenticated:
-        pending_friend_requests_count = Friendship.objects.filter(
-            friend=request.user,
+        pending_friend_requests_count = FriendRequest.objects.filter(
+            to_user=request.user,
             status='pending'
         ).count()
     
@@ -136,7 +136,7 @@ def room(request, room_name):
     
     # Get messages
     messages_list = Message.objects.filter(room=room).select_related(
-        'user', 'user__userprofile'
+        'user', 'user__profile'
     ).order_by('timestamp')
     
     # Update last activity
@@ -234,22 +234,35 @@ def user_profile(request, username):
     )[:6]
     
     # Check friendship status
-    friendship_status = None
+    friendship_status = 'none'
+    can_send_request = True
+    
     if request.user.is_authenticated and request.user != profile_user:
-        try:
-            friendship = Friendship.objects.get(
-                Q(user=request.user, friend=profile_user) |
-                Q(user=profile_user, friend=request.user)
-            )
-            friendship_status = friendship.status
-        except Friendship.DoesNotExist:
-            friendship_status = 'none'
+        # Check if they are already friends
+        if Friendship.are_friends(request.user, profile_user):
+            friendship_status = 'friends'
+            can_send_request = False
+        else:
+            # Check for pending friend requests
+            pending_request = FriendRequest.objects.filter(
+                Q(from_user=request.user, to_user=profile_user) |
+                Q(from_user=profile_user, to_user=request.user),
+                status='pending'
+            ).first()
+            
+            if pending_request:
+                if pending_request.from_user == request.user:
+                    friendship_status = 'request_sent'
+                else:
+                    friendship_status = 'request_received'
+                can_send_request = False
     
     context = {
         'profile_user': profile_user,
         'user_profile': user_profile,
         'user_rooms': user_rooms,
         'friendship_status': friendship_status,
+        'can_send_request': can_send_request,
     }
     
     return render(request, 'chat/user_profile.html', context)
@@ -301,22 +314,22 @@ def profile_settings(request):
 
 @login_required
 def friends_list(request):
-    # Get current user's friends with optimized queries
-    friends = User.objects.filter(
-        # Your friend filtering logic here
-    ).select_related('profile')  # ✅ Use 'profile' not 'userprofile'
+    """Display user's friends and friend requests"""
     
-    # Get pending friend requests
+    # Get user's current friends
+    friends = Friendship.get_friends(request.user)
+    
+    # Get pending friend requests (received)
     pending_requests = FriendRequest.objects.filter(
         to_user=request.user,
         status='pending'
-    ).select_related('from_user__profile')  # ✅ Use 'profile' not 'userprofile'
+    ).select_related('from_user__profile')
     
     # Get sent friend requests
     sent_requests = FriendRequest.objects.filter(
         from_user=request.user,
         status='pending'
-    ).select_related('to_user__profile')  # ✅ Use 'profile' not 'userprofile'
+    ).select_related('to_user__profile')
     
     context = {
         'friends': friends,
@@ -327,9 +340,132 @@ def friends_list(request):
     return render(request, 'chat/friends_list.html', context)
 
 @login_required
+@require_POST
+def send_friend_request(request, user_id):
+    """Send a friend request to another user"""
+    try:
+        to_user = get_object_or_404(User, id=user_id)
+        
+        # Check if trying to send to self
+        if to_user == request.user:
+            messages.error(request, "You can't send a friend request to yourself!")
+            return redirect('friends_list')
+        
+        # Check if already friends
+        if Friendship.are_friends(request.user, to_user):
+            messages.info(request, f"You are already friends with {to_user.username}!")
+            return redirect('friends_list')
+        
+        # Check if request already exists
+        existing_request = FriendRequest.objects.filter(
+            Q(from_user=request.user, to_user=to_user) |
+            Q(from_user=to_user, to_user=request.user),
+            status='pending'
+        ).first()
+        
+        if existing_request:
+            messages.info(request, "A friend request already exists between you and this user.")
+            return redirect('friends_list')
+        
+        # Create friend request
+        friend_request = FriendRequest.objects.create(
+            from_user=request.user,
+            to_user=to_user
+        )
+        
+        messages.success(request, f"Friend request sent to {to_user.username}!")
+        return redirect('user_profile', username=to_user.username)
+        
+    except Exception as e:
+        messages.error(request, "An error occurred while sending the friend request.")
+        return redirect('friends_list')
+
+@login_required
+@require_POST
+def accept_friend_request(request, request_id):
+    """Accept a friend request"""
+    try:
+        friend_request = get_object_or_404(
+            FriendRequest, 
+            id=request_id, 
+            to_user=request.user,
+            status='pending'
+        )
+        
+        # Accept the request
+        friend_request.accept()
+        
+        messages.success(request, f"You are now friends with {friend_request.from_user.username}!")
+        return redirect('friends_list')
+        
+    except Exception as e:
+        messages.error(request, "An error occurred while accepting the friend request.")
+        return redirect('friends_list')
+
+@login_required
+@require_POST
+def decline_friend_request(request, request_id):
+    """Decline a friend request"""
+    try:
+        friend_request = get_object_or_404(
+            FriendRequest, 
+            id=request_id, 
+            to_user=request.user,
+            status='pending'
+        )
+        
+        friend_request.decline()
+        messages.info(request, f"Friend request from {friend_request.from_user.username} declined.")
+        return redirect('friends_list')
+        
+    except Exception as e:
+        messages.error(request, "An error occurred while declining the friend request.")
+        return redirect('friends_list')
+
+@login_required
+@require_POST
+def cancel_friend_request(request, request_id):
+    """Cancel a sent friend request"""
+    try:
+        friend_request = get_object_or_404(
+            FriendRequest, 
+            id=request_id, 
+            from_user=request.user,
+            status='pending'
+        )
+        
+        friend_request.cancel()
+        messages.info(request, f"Friend request to {friend_request.to_user.username} cancelled.")
+        return redirect('friends_list')
+        
+    except Exception as e:
+        messages.error(request, "An error occurred while cancelling the friend request.")
+        return redirect('friends_list')
+
+@login_required
+@require_POST
+def remove_friend(request, user_id):
+    """Remove a friend"""
+    try:
+        friend = get_object_or_404(User, id=user_id)
+        
+        # Remove friendship
+        Friendship.objects.filter(
+            Q(user=request.user, friend=friend) |
+            Q(user=friend, friend=request.user)
+        ).delete()
+        
+        messages.success(request, f"You are no longer friends with {friend.username}.")
+        return redirect('friends_list')
+        
+    except Exception as e:
+        messages.error(request, "An error occurred while removing the friend.")
+        return redirect('friends_list')
+
+@login_required
 @require_http_methods(["POST"])
-def send_friend_request(request, username):
-    """Send a friend request"""
+def send_friend_request_by_username(request, username):
+    """Send a friend request by username (for profile pages)"""
     friend_user = get_object_or_404(User, username=username)
     
     if friend_user == request.user:
@@ -337,30 +473,33 @@ def send_friend_request(request, username):
         return redirect('user_profile', username=username)
     
     # Check if friendship already exists
-    existing = Friendship.objects.filter(
-        Q(user=request.user, friend=friend_user) |
-        Q(user=friend_user, friend=request.user)
+    if Friendship.are_friends(request.user, friend_user):
+        messages.info(request, "You are already friends.")
+        return redirect('user_profile', username=username)
+    
+    # Check if request already exists
+    existing_request = FriendRequest.objects.filter(
+        Q(from_user=request.user, to_user=friend_user) |
+        Q(from_user=friend_user, to_user=request.user),
+        status='pending'
     ).first()
     
-    if existing:
-        if existing.status == 'pending':
-            messages.info(request, "Friend request already sent.")
-        else:
-            messages.info(request, "You are already friends.")
-    else:
-        Friendship.objects.create(
-            user=request.user,
-            friend=friend_user,
-            status='pending'
-        )
-        messages.success(request, f"Friend request sent to {username}.")
+    if existing_request:
+        messages.info(request, "Friend request already sent.")
+        return redirect('user_profile', username=username)
+    
+    FriendRequest.objects.create(
+        from_user=request.user,
+        to_user=friend_user
+    )
+    messages.success(request, f"Friend request sent to {username}.")
     
     return redirect('user_profile', username=username)
 
 @login_required
 @require_http_methods(["POST"])
 def respond_friend_request(request, friendship_id):
-    """Accept or decline a friend request"""
+    """Accept or decline a friend request (legacy method)"""
     friendship = get_object_or_404(Friendship, id=friendship_id, friend=request.user)
     action = request.POST.get('action')
     
@@ -376,8 +515,8 @@ def respond_friend_request(request, friendship_id):
 
 @login_required
 @require_http_methods(["POST"])
-def remove_friend(request, username):
-    """Remove a friend"""
+def remove_friend_by_username(request, username):
+    """Remove a friend by username"""
     friend_user = get_object_or_404(User, username=username)
     
     friendship = Friendship.objects.filter(
@@ -399,8 +538,8 @@ def friend_suggestions(request):
     suggestions = User.objects.exclude(
         id=request.user.id
     ).exclude(
-        Q(friendships_as_user__friend=request.user) |
-        Q(friendships_as_friend__user=request.user)
+        Q(friendships__friend=request.user) |
+        Q(friend_of__user=request.user)
     )[:10]
     
     return render(request, 'chat/friend_suggestions.html', {
@@ -421,6 +560,7 @@ def admin_dashboard(request):
         ).count(),
         'public_rooms': Room.objects.filter(is_public=True).count(),  # Added public rooms count
         'private_rooms': Room.objects.filter(is_public=False).count(),  # Added private rooms count
+        'pending_friend_requests': FriendRequest.objects.filter(status='pending').count(),
     }
     
     recent_rooms = Room.objects.select_related('creator').order_by('-created_at')[:5]
@@ -470,7 +610,7 @@ def admin_user_activity(request):
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_settings(request):
     """Admin user settings"""
-    users = User.objects.select_related('userprofile').annotate(
+    users = User.objects.select_related('profile').annotate(
         room_count=Count('created_rooms')
     ).order_by('-date_joined')
     
@@ -518,15 +658,14 @@ def api_friends_online(request):
     """Get online friends"""
     # Simplified - you can enhance with real online status
     friends = Friendship.objects.filter(
-        Q(user=request.user) | Q(friend=request.user),
+        user=request.user,
         status='accepted'
-    ).select_related('user', 'friend')[:10]
+    ).select_related('friend', 'friend__profile')[:10]
     
     friends_data = []
     for friendship in friends:
-        friend = friendship.friend if friendship.user == request.user else friendship.user
         friends_data.append({
-            'username': friend.username,
+            'username': friendship.friend.username,
             'status': 'online',  # You can implement real status tracking
         })
     
@@ -761,4 +900,3 @@ def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('index')
-
