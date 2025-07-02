@@ -26,12 +26,12 @@ from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
 def index(request):
     """Enhanced homepage with categories and features"""
-    # Get active rooms with related data
+    # Get active rooms with related data - Show more rooms on homepage
     active_rooms = Room.objects.filter(is_public=True).select_related(
         'category', 'creator'
     ).annotate(
         total_messages=Count('messages')
-    ).order_by('-last_activity')[:12]
+    ).order_by('-last_activity')[:20]  # Increased from 12 to 20
     
     # Get room categories
     categories = RoomCategory.objects.all().order_by('name')
@@ -62,7 +62,7 @@ def index(request):
     return render(request, 'chat/index.html', context)
 
 def explore_rooms(request):
-    """Enhanced room exploration page"""
+    """Enhanced room exploration page - Show ALL rooms"""
     # Get all rooms with filtering
     rooms = Room.objects.filter(is_public=True).select_related(
         'category', 'creator'
@@ -97,8 +97,8 @@ def explore_rooms(request):
     # Order by activity
     rooms = rooms.order_by('-last_activity', '-total_messages')
     
-    # Pagination
-    paginator = Paginator(rooms, 24)
+    # Increased pagination to show more rooms per page
+    paginator = Paginator(rooms, 50)  # Increased from 24 to 50
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -114,12 +114,13 @@ def explore_rooms(request):
         ).count()
     
     context = {
-        'rooms': page_obj,  # ✅ Change this to match template expectation
+        'rooms': page_obj,
         'categories': categories,
         'current_category': category,
         'current_filter': filter_type,
         'search_query': search,
         'pending_friend_requests_count': pending_friend_requests_count,
+        'total_rooms_count': Room.objects.filter(is_public=True).count(),  # Added total count
     }
     
     return render(request, 'chat/room_list.html', context)
@@ -200,7 +201,7 @@ def search_rooms(request):
         is_public=True
     ).select_related('category', 'creator').annotate(
         total_messages=Count('messages')
-    )[:10]
+    )[:20]  # Increased search results from 10 to 20
     
     rooms_data = [{
         'name': room.name,
@@ -421,6 +422,8 @@ def admin_dashboard(request):
         'active_users_today': User.objects.filter(
             last_login__gte=timezone.now() - timedelta(days=1)
         ).count(),
+        'public_rooms': Room.objects.filter(is_public=True).count(),  # Added public rooms count
+        'private_rooms': Room.objects.filter(is_public=False).count(),  # Added private rooms count
     }
     
     recent_rooms = Room.objects.select_related('creator').order_by('-created_at')[:5]
@@ -463,7 +466,7 @@ def admin_user_activity(request):
     """Admin user activity monitoring"""
     activities = UserActivity.objects.select_related(
         'user', 'room'
-    ).order_by('-timestamp')[:100]
+    ).order_by('-created_at')[:100]  # Fixed field name from timestamp to created_at
     
     return render(request, 'chat/admin/user_activity.html', {'activities': activities})
 
@@ -483,14 +486,14 @@ def api_user_profile(request):
     """Get user profile data"""
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     
+    # Fixed field names to match the model
     data = {
         'username': request.user.username,
         'bio': user_profile.bio,
         'location': user_profile.location,
         'website': user_profile.website,
-        'theme_preference': user_profile.theme_preference,
-        'avatar_hair_color': user_profile.avatar_hair_color,
-        'avatar_skin_color': user_profile.avatar_skin_color,
+        'theme': user_profile.theme,  # Fixed field name
+        'avatar_customization': user_profile.avatar_customization,  # Updated to use JSON field
     }
     
     return JsonResponse(data)
@@ -503,8 +506,10 @@ def api_update_avatar(request):
         data = json.loads(request.body)
         user_profile, created = UserProfile.objects.get_or_create(user=request.user)
         
-        user_profile.avatar_hair_color = data.get('hair_color', user_profile.avatar_hair_color)
-        user_profile.avatar_skin_color = data.get('skin_color', user_profile.avatar_skin_color)
+        # Update avatar customization JSON field
+        current_avatar = user_profile.avatar_customization or {}
+        current_avatar.update(data)
+        user_profile.avatar_customization = current_avatar
         user_profile.save()
         
         return JsonResponse({'success': True})
@@ -540,7 +545,7 @@ def api_load_more_rooms(request):
     if category != 'all':
         rooms = rooms.filter(category__slug=category)
     
-    paginator = Paginator(rooms, 12)
+    paginator = Paginator(rooms, 20)  # Increased from 12 to 20
     page_obj = paginator.get_page(page)
     
     rooms_data = [{
@@ -622,7 +627,7 @@ def moderation_dashboard(request):
     """Moderation dashboard for staff"""
     reports = MessageReport.objects.select_related(
         'reporter', 'message', 'message__user', 'message__room'
-    ).filter(is_resolved=False).order_by('-created_at')
+    ).filter(status='pending').order_by('-created_at')  # Fixed field name
     
     return render(request, 'chat/admin/moderation.html', {'reports': reports})
 
@@ -666,6 +671,45 @@ def trending_rooms(request):
     ).filter(total_messages__gte=20).order_by('-total_messages')[:10]
     
     return render(request, 'chat/trending_rooms.html', {'rooms': trending})
+
+# ==================== DEBUG VIEW (TEMPORARY) ====================
+
+def debug_rooms(request):
+    """Debug view to check room counts - REMOVE IN PRODUCTION"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden()
+    
+    stats = {
+        'total_rooms': Room.objects.count(),
+        'public_rooms': Room.objects.filter(is_public=True).count(),
+        'private_rooms': Room.objects.filter(is_public=False).count(),
+        'rooms_by_category': {},
+    }
+    
+    # Get rooms by category
+    for category in RoomCategory.objects.all():
+        stats['rooms_by_category'][category.name] = Room.objects.filter(
+            category=category, is_public=True
+        ).count()
+    
+    # Get rooms without category
+    stats['rooms_by_category']['No Category'] = Room.objects.filter(
+        category__isnull=True, is_public=True
+    ).count()
+    
+    # Get all rooms
+    all_rooms = Room.objects.all().order_by('name')
+    
+    return JsonResponse({
+        'stats': stats,
+        'rooms': [{
+            'name': room.name,
+            'display_name': room.display_name,
+            'is_public': room.is_public,
+            'category': room.category.name if room.category else None,
+            'creator': room.creator.username if room.creator else None,
+        } for room in all_rooms]
+    }, json_dumps_params={'indent': 2})
 
 # ==================== AUTHENTICATION VIEWS ====================
 # Note: You might want to use Django's built-in auth views or django-allauth
