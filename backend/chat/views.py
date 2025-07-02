@@ -839,7 +839,7 @@ def user_login(request):
         else:
             messages.error(request, 'Invalid credentials.')
     
-    return render(request, 'registration/login.html')
+    return render(request, 'account/login.html', {'form': form})
 
 def user_signup(request):
     """Signup view"""
@@ -859,7 +859,7 @@ def user_signup(request):
     else:
         form = UserCreationForm()
     
-    return render(request, 'registration/signup.html', {'form': form})
+    return render(request, 'account/signup.html', {'form': form})
 
 @login_required
 def user_logout(request):
