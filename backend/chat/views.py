@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 from .models import (
-    Room, Message, UserProfile, RoomCategory, Friendship, FriendRequest,
+    Room, Message, UserProfile, RoomCategory, Friendship, 
     RoomBookmark, MessageReport, UserActivity
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
