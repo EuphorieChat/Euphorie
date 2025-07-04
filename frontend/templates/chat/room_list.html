@@ -1,1376 +1,1453 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>{{ room.name }} - Euphorie 3D</title>
-    
-    <!-- DISABLED: Mobile CSS Integration -->
-    <!-- <link rel="stylesheet" href="/static/css/room/mobile.css"> -->
-    
-    <!-- Emotion System CSS -->
-    <link rel="stylesheet" href="/static/css/room/emotion-system.css">
-    
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #0a0a0a;
-            color: white;
-            overflow: hidden;
-        }
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Explore Rooms - Euphorie{% endblock %}
+
+{% block description %}Discover amazing chat rooms and join conversations on topics you love{% endblock %}
+
+{% block body_class %}page-explore{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Compact Explore Page Styles */
+.compact-header {
+  background: white;
+  border-radius: 0.875rem; /* Slightly smaller border radius */
+  padding: 0.75rem 1rem; /* Reduced padding */
+  margin-bottom: 1rem; /* Reduced margin */
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  max-width: 100%; /* Prevent header overflow */
+  overflow: hidden; /* Critical: prevent any overflow */
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem; /* Reduced gap */
+  flex-wrap: wrap;
+  max-width: 100%; /* Prevent content overflow */
+  overflow: hidden; /* Critical: prevent content overflow */
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  min-width: 200px; /* Reduced min-width */
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem 0.625rem 2.25rem; /* Reduced padding */
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #fafbfc;
+  font-size: 0.8rem; /* Smaller font */
+  transition: all 0.3s ease;
+  color: #374151;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #f472b6;
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+  background: white;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.625rem; /* Reduced position */
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  transition: color 0.3s ease;
+}
+
+.search-icon svg {
+  width: 0.875rem; /* Smaller icon */
+  height: 0.875rem;
+}
+
+.search-input:focus + .search-icon {
+  color: #f472b6;
+}
+
+/* Enhanced Category Section with Future-Proofing - COMPACT */
+.category-section {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  flex: 1;
+  min-width: 0;
+  max-width: 100%; /* Prevent overflow */
+  overflow: hidden; /* Critical: prevent section overflow */
+}
+
+.category-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  max-width: 100%; /* Prevent wrapper overflow */
+  overflow: hidden; /* Critical: prevent wrapper overflow */
+}
+
+.category-scroll-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem; /* Reduced size */
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.category-scroll-btn:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+  opacity: 1;
+}
+
+.category-scroll-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.category-scroll-btn svg {
+  width: 0.75rem; /* Smaller icons */
+  height: 0.75rem;
+}
+
+/* Enhanced Category Bar - COMPACT */
+.category-bar {
+  display: flex;
+  gap: 0.375rem; /* Reduced gap */
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 0.125rem 0; /* Reduced padding */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%; /* Prevent overflow */
+}
+
+.category-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.show-more-btn {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem; /* Reduced padding */
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem; /* Smaller font */
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.show-more-btn:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+  border-color: #f472b6;
+}
+
+.show-more-btn svg {
+  width: 0.75rem; /* Smaller icon */
+  height: 0.75rem;
+}
+
+/* Categories Modal for Overflow - COMPACT */
+.categories-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.categories-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.categories-modal-content {
+  background: white;
+  border-radius: 0.875rem; /* Smaller border radius */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 500px; /* Reduced max-width */
+  width: 100%;
+  max-height: 75vh; /* Reduced max-height */
+  overflow-y: auto;
+}
+
+.categories-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem; /* Reduced padding */
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.categories-modal-header h3 {
+  margin: 0;
+  font-size: 1rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.close-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem; /* Reduced size */
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-modal:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+}
+
+.close-modal svg {
+  width: 0.875rem; /* Smaller icon */
+  height: 0.875rem;
+}
+
+.categories-grid-modal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Smaller grid items */
+  gap: 0.625rem; /* Reduced gap */
+  padding: 1.25rem; /* Reduced padding */
+}
+
+.category-modal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  padding: 0.75rem; /* Reduced padding */
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #fafbfc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.category-modal-btn:hover {
+  background: #f1f5f9;
+  border-color: #f472b6;
+  transform: translateY(-1px); /* Reduced transform */
+}
+
+.category-modal-btn.active {
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-1px); /* Reduced transform */
+}
+
+.category-modal-icon {
+  font-size: 1.25rem; /* Smaller icon */
+}
+
+.category-modal-name {
+  font-size: 0.75rem; /* Smaller font */
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
+}
+
+.category-modal-btn.active .category-modal-name {
+  color: white;
+}
+
+.category-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* Reduced gap */
+  padding: 0.375rem 0.625rem; /* Reduced padding */
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem; /* Smaller font */
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.category-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.category-btn.active {
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.25);
+}
+
+.category-icon {
+  font-size: 0.8rem; /* Smaller icon */
+}
+
+/* Sort Controls - COMPACT */
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Reduced gap */
+}
+
+.sort-select {
+  padding: 0.375rem 0.625rem; /* Reduced padding */
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem; /* Smaller border radius */
+  background: white;
+  font-size: 0.75rem; /* Smaller font */
+  color: #374151;
+  min-width: 100px; /* Reduced min-width */
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #f472b6;
+  box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.1);
+}
+
+.view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 0.375rem; /* Smaller border radius */
+  padding: 0.125rem;
+}
+
+.view-btn {
+  padding: 0.25rem; /* Reduced padding */
+  border-radius: 0.25rem; /* Smaller border radius */
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-btn.active {
+  background: white;
+  color: #f472b6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.view-btn svg {
+  width: 0.875rem; /* Smaller icons */
+  height: 0.875rem;
+}
+
+/* Compact Room Grid - Higher Density */
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Smaller cards */
+  gap: 0.625rem; /* Reduced gap */
+}
+
+.room-card {
+  background: white;
+  border-radius: 0.625rem; /* Smaller border radius */
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.room-card:hover {
+  transform: translateY(-1px); /* Reduced transform */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #f472b6;
+}
+
+.room-header {
+  padding: 0.75rem; /* Reduced padding */
+  border-bottom: 1px solid #f8fafc;
+}
+
+.room-title {
+  font-size: 0.85rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0; /* Reduced margin */
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.room-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem; /* Smaller font */
+  color: #64748b;
+  margin-bottom: 0.375rem; /* Reduced margin */
+}
+
+.room-category {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem; /* Reduced gap */
+  padding: 0.125rem 0.375rem; /* Reduced padding */
+  background: #f0f9ff;
+  color: #0369a1;
+  border-radius: 0.25rem; /* Smaller border radius */
+  font-weight: 500;
+  font-size: 0.65rem; /* Even smaller font */
+}
+
+.room-status {
+  font-weight: 500;
+  font-size: 0.65rem; /* Smaller font */
+}
+
+.room-status.active {
+  color: #10b981;
+}
+
+.room-status.trending {
+  color: #f59e0b;
+}
+
+.room-activity {
+  margin-top: 0.375rem; /* Reduced margin */
+}
+
+.activity-bar {
+  height: 2px; /* Smaller height */
+  background: #f1f5f9;
+  border-radius: 1px;
+  overflow: hidden;
+  margin-bottom: 0.125rem; /* Reduced margin */
+}
+
+.activity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f472b6, #3b82f6);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+.activity-text {
+  font-size: 0.65rem; /* Smaller font */
+  color: #94a3b8;
+}
+
+.room-footer {
+  padding: 0.375rem 0.75rem; /* Reduced padding */
+  background: #fafbfc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.room-creator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* Reduced gap */
+  font-size: 0.7rem; /* Smaller font */
+  color: #64748b;
+}
+
+.creator-avatar {
+  width: 1rem; /* Smaller avatar */
+  height: 1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.5rem; /* Smaller font */
+  font-weight: 600;
+}
+
+.join-btn {
+  font-size: 0.7rem; /* Smaller font */
+  font-weight: 500;
+  color: #f472b6;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem; /* Reduced gap */
+  transition: all 0.2s ease;
+}
+
+.room-card:hover .join-btn {
+  color: #ec4899;
+  transform: translateX(1px); /* Reduced transform */
+}
+
+.join-btn svg {
+  width: 0.625rem; /* Smaller icon */
+  height: 0.625rem;
+}
+
+/* List View - Ultra Compact */
+.rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem; /* Reduced gap */
+}
+
+.room-list-item {
+  background: white;
+  border-radius: 0.375rem; /* Smaller border radius */
+  border: 1px solid #f1f5f9;
+  padding: 0.625rem 0.875rem; /* Reduced padding */
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem; /* Reduced gap */
+}
+
+.room-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  border-color: #f472b6;
+}
+
+.list-avatar {
+  width: 1.75rem; /* Smaller avatar */
+  height: 1.75rem;
+  border-radius: 0.375rem; /* Smaller border radius */
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.7rem; /* Smaller font */
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.list-content {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.list-title {
+  font-size: 0.8rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.125rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-meta {
+  font-size: 0.65rem; /* Smaller font */
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+}
+
+.list-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* Reduced gap */
+  flex-shrink: 0;
+  font-size: 0.7rem; /* Smaller font */
+  color: #64748b;
+}
+
+.list-activity {
+  text-align: right;
+}
+
+.activity-count {
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* Mobile Optimizations - Swipe/Drag Scrolling */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    overflow: hidden; /* Prevent mobile overflow */
+  }
+  
+  .category-section {
+    order: 1;
+    position: relative;
+    overflow: hidden; /* Critical for mobile */
+    max-width: 100%;
+  }
+  
+  .sort-controls {
+    order: 2;
+    justify-content: space-between;
+  }
+  
+  .category-scroll-btn {
+    display: none;
+  }
+  
+  .show-more-btn {
+    display: none; /* Hide the more button */
+  }
+  
+  /* Mobile category wrapper with swipe indicators */
+  .category-wrapper {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    max-width: 100%; /* Critical: prevent wrapper overflow */
+  }
+  
+  .category-wrapper::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  .category-wrapper::after {
+    content: '👆 Swipe to browse';
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: #94a3b8;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+  
+  /* Enhanced mobile category bar */
+  .category-bar {
+    margin: 0;
+    padding: 0.125rem 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+    touch-action: pan-x; /* Only allow horizontal panning */
+    max-width: 100%; /* Critical: prevent bar overflow */
+    width: 100%; /* Ensure full width usage */
+  }
+  
+  .category-bar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .rooms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .room-header {
+    padding: 0.625rem;
+  }
+  
+  .room-title {
+    font-size: 0.8rem;
+  }
+
+  .compact-header {
+    padding: 0.625rem 0.875rem;
+    margin-bottom: 0.75rem;
+    overflow: hidden; /* Ensure header doesn't overflow */
+  }
+}
+
+@media (max-width: 640px) {
+  .rooms-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .category-bar {
+    margin: 0;
+    padding: 0.125rem 0;
+    gap: 0.25rem; /* Tighter spacing for small screens */
+    overflow-x: auto;
+    max-width: 100%; /* Critical for small screens */
+  }
+
+  .compact-header {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .header-content {
+    gap: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .category-btn {
+    flex-shrink: 0;
+    min-width: fit-content;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .category-icon {
+    font-size: 0.75rem;
+  }
+  
+  /* Adjust swipe hint for smaller screens */
+  .category-wrapper::after {
+    content: '👆';
+    font-size: 0.7rem;
+  }
+  
+  /* Ensure category section doesn't overflow */
+  .category-section {
+    overflow: hidden;
+    max-width: 100%;
+  }
+  
+  .category-wrapper {
+    overflow: hidden;
+    max-width: 100%;
+  }
+}
+
+/* Very small screens - minimal UI */
+@media (max-width: 480px) {
+  .category-bar {
+    gap: 0.2rem;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  
+  .category-btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.65rem;
+  }
+  
+  .category-icon {
+    font-size: 0.7rem;
+  }
+  
+  /* Hide swipe hint on very small screens to save space */
+  .category-wrapper::after {
+    display: none;
+  }
+  
+  .category-wrapper::before {
+    width: 15px;
+  }
+  
+  /* Additional overflow protection for very small screens */
+  .compact-header {
+    overflow: hidden;
+  }
+  
+  .header-content {
+    overflow: hidden;
+  }
+  
+  .category-section {
+    overflow: hidden;
+  }
+  
+  .category-wrapper {
+    overflow: hidden;
+  }
+}
+
+/* Animation for room cards */
+.room-card,
+.room-list-item {
+  opacity: 0;
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px); /* Reduced transform */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger animation delays */
+.room-card:nth-child(1) { animation-delay: 0.02s; }
+.room-card:nth-child(2) { animation-delay: 0.04s; }
+.room-card:nth-child(3) { animation-delay: 0.06s; }
+.room-card:nth-child(4) { animation-delay: 0.08s; }
+.room-card:nth-child(5) { animation-delay: 0.10s; }
+.room-card:nth-child(6) { animation-delay: 0.12s; }
+.room-card:nth-child(7) { animation-delay: 0.14s; }
+.room-card:nth-child(8) { animation-delay: 0.16s; }
+.room-card:nth-child(9) { animation-delay: 0.18s; }
+.room-card:nth-child(10) { animation-delay: 0.20s; }
+
+/* Empty State - Compact */
+.empty-state {
+  text-align: center;
+  padding: 1.5rem; /* Reduced padding */
+  background: white;
+  border-radius: 0.875rem; /* Smaller border radius */
+  border: 1px solid #f1f5f9;
+  margin-top: 0.75rem; /* Reduced margin */
+}
+
+.empty-icon {
+  width: 2.5rem; /* Smaller icon */
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem; /* Reduced margin */
+  color: white;
+}
+
+.empty-icon svg {
+  width: 1.25rem; /* Smaller icon */
+  height: 1.25rem;
+}
+
+.empty-state h3 {
+  font-size: 1rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.375rem; /* Reduced margin */
+}
+
+.empty-state p {
+  color: #64748b;
+  font-size: 0.8rem; /* Smaller font */
+  margin-bottom: 1rem; /* Reduced margin */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Compact Header with Categories and Controls -->
+<div class="compact-header">
+  <div class="header-content" style="overflow: hidden;">
+    <!-- Dynamic Category Bar with Scroll Controls -->
+    <div class="category-section">
+      <div class="category-wrapper">
+        <button class="category-scroll-btn scroll-left" id="scroll-left">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
         
-        #room-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-        
-        #loading-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            color: white;
-            transition: opacity 0.5s ease;
-        }
-        
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        #three-container {
-            width: 100%;
-            height: 100%;
-            background: #1a1a1a;
-            cursor: grab;
-        }
-        
-        #three-container:active {
-            cursor: grabbing;
-        }
-        
-        /* Enhanced Chat Panel Styles with 3D Integration */
-        #chat-panel {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 340px;
-            height: 280px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            z-index: 100;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .chat-header h3 {
-            margin: 0;
-            color: #4CAF50;
-            font-size: 14px;
-            flex: 1;
-        }
-        
-        .connection-indicator {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-            border: 1px solid;
-        }
-        
-        .connection-indicator.connected {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-            border-color: #4CAF50;
-        }
-        
-        .connection-indicator.connecting {
-            background: rgba(255, 167, 38, 0.2);
-            color: #FFA726;
-            border-color: #FFA726;
-        }
-        
-        .connection-indicator.disconnected {
-            background: rgba(244, 67, 54, 0.2);
-            color: #F44336;
-            border-color: #F44336;
-        }
-        
-        .bubble-mode-toggle {
-            background: rgba(255, 107, 53, 0.2);
-            border: 1px solid rgba(255, 107, 53, 0.4);
-            border-radius: 6px;
-            padding: 4px 8px;
-            color: white;
-            font-size: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-left: 8px;
-        }
-        
-        .bubble-mode-toggle:hover {
-            background: rgba(255, 107, 53, 0.3);
-        }
-        
-        .bubble-mode-toggle.active {
-            background: rgba(255, 107, 53, 0.8);
-            border-color: #FF6B35;
-        }
-        
-        #chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            margin-bottom: 12px;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-        
-        .chat-message {
-            margin-bottom: 8px;
-            padding: 6px 10px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
-            border-left: 3px solid #667eea;
-        }
-        
-        .chat-message.own {
-            background: rgba(102, 126, 234, 0.2);
-            border-left-color: #4CAF50;
-            margin-left: 20px;
-        }
-        
-        .chat-message.system {
-            background: rgba(255, 167, 38, 0.1);
-            border-left-color: #FFA726;
-            font-style: italic;
-        }
-        
-        .chat-message .username {
-            font-weight: bold;
-            font-size: 11px;
-            color: #667eea;
-            margin-bottom: 2px;
-        }
-        
-        .chat-message.own .username {
-            color: #4CAF50;
-        }
-        
-        .chat-message.system .username {
-            color: #FFA726;
-        }
-        
-        .chat-message .timestamp {
-            font-size: 10px;
-            opacity: 0.6;
-            float: right;
-        }
-        
-        .chat-message .text {
-            font-size: 12px;
-            line-height: 1.3;
-        }
-        
-        .typing-indicator {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            font-size: 10px;
-            margin-bottom: 8px;
-            opacity: 0.8;
-        }
-        
-        .typing-dots {
-            display: flex;
-            gap: 2px;
-        }
-        
-        .typing-dot {
-            width: 4px;
-            height: 4px;
-            background: #667eea;
-            border-radius: 50%;
-            animation: typing 1.5s infinite;
-        }
-        
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes typing {
-            0%, 60%, 100% { opacity: 0.3; }
-            30% { opacity: 1; }
-        }
-        
-        #chat-messages::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        #chat-messages::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
-        }
-        
-        #chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 3px;
-        }
-        
-        #chat-input-container {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        #chat-input {
-            flex: 1;
-            padding: 10px 12px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 6px;
-            color: white;
-            font-size: 13px;
-            transition: all 0.3s ease;
-        }
-        
-        #chat-input:focus {
-            outline: none;
-            border-color: #4CAF50;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
-        }
-        
-        #chat-input::placeholder {
-            color: rgba(255,255,255,0.5);
-        }
-        
-        #send-btn {
-            padding: 10px 16px;
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        
-        #send-btn:hover {
-            background: linear-gradient(135deg, #45a049, #4CAF50);
-            transform: translateY(-1px);
-        }
-        
-        #send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* Controls Panel Styles */
-        #controls-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 100;
-        }
-        
-        .control-btn {
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 10px;
-            color: white;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            min-width: 160px;
-            text-align: left;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        .control-btn:hover {
-            background: rgba(255,255,255,0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
-        
-        .control-btn:active {
-            transform: translateY(0);
-        }
-        
-        /* Pet Panel Styles */
-        #pet-panel {
-            position: absolute;
-            bottom: 320px;
-            left: 20px;
-            width: 340px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            z-index: 100;
-            max-height: 200px;
-            overflow-y: auto;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-        
-        .pet-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px;
-            margin: 4px 0;
-            background: rgba(255,255,255,0.05);
-            border-radius: 6px;
-            font-size: 12px;
-        }
-        
-        .pet-status {
-            flex: 1;
-        }
-        
-        .pet-stats {
-            display: flex;
-            gap: 8px;
-            font-size: 10px;
-            opacity: 0.8;
-        }
-        
-        /* Status Panel */
-        #status-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            padding: 12px 16px;
-            color: white;
-            font-size: 12px;
-            z-index: 100;
-        }
-        
-        .status-item {
-            margin-bottom: 4px;
-        }
-        
-        .status-value {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        /* Quick Actions */
-        #quick-actions {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            gap: 8px;
-            z-index: 100;
-        }
-        
-        .quick-btn {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            color: white;
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .quick-btn:hover {
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.1);
-        }
-        
-        /* Group Activity Indicator */
-        .group-active {
-            border: 2px solid #ff6b35 !important;
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.5) !important;
-        }
-        
-        /* Animation keyframes */
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        
-        @keyframes slideOutRight {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(20px); }
-        }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        /* Enhanced visual effects */
-        .ui-panel {
-            animation: fadeInUp 0.5s ease-out;
-        }
-        
-        .notification-new {
-            animation: pulse 0.5s ease-in-out;
-        }
-    </style>
-</head>
-<body>
-    <div id="room-container">
-        <!-- Loading Screen -->
-        <div id="loading-screen">
-            <div class="loading-spinner"></div>
-            <h2 style="margin: 0 0 10px 0;">Loading {{ room.name }}...</h2>
-            <p style="margin: 0; opacity: 0.8;">Initializing advanced 3D social platform...</p>
-            <div style="margin-top: 20px; font-size: 12px; opacity: 0.6;">
-                <div>• Loading Three.js renderer</div>
-                <div>• Initializing avatar & interaction systems</div>
-                <div>• Setting up 3D chat bubbles</div>
-                <div>• Connecting to Rust WebSocket server</div>
-            </div>
+        <div class="category-bar" id="category-bar">
+          <!-- "All" button always first -->
+          <button class="category-btn active" data-category="all">
+            <span class="category-icon">🌟</span>
+            All
+          </button>
+          
+          <!-- Dynamic categories from database -->
+          {% for category in categories %}
+            <button class="category-btn" data-category="{{ category.slug }}">
+              <span class="category-icon">{{ category.icon|default:"💬" }}</span>
+              {{ category.name }}
+            </button>
+          {% endfor %}
         </div>
         
-        <!-- Status Panel -->
-        <div id="status-panel" class="ui-panel">
-            <div style="font-weight: bold; margin-bottom: 8px; color: #4CAF50;">🌟 Euphorie 3D v2.0</div>
-            <div class="status-item">Room: <span class="status-value">{{ room.name }}</span></div>
-            <div class="status-item">Scene: <span class="status-value">{{ room.get_scene_preset_display }}</span></div>
-            <div class="status-item">Users: <span class="status-value" id="user-count">{{ room.active_users_count }}/{{ room.max_users }}</span></div>
-            <div class="status-item">Bubbles: <span class="status-value" id="bubble-count">0</span></div>
-            <div class="status-item">Pets: <span class="status-value" id="pet-count">0</span></div>
-            <div class="status-item">Groups: <span class="status-value" id="group-count">0</span></div>
-        </div>
-        
-        <!-- 3D Container -->
-        <div id="three-container"></div>
-        
-        <!-- Pet Panel -->
-        <div id="pet-panel" class="ui-panel" style="display: none;">
-            <div style="font-weight: bold; margin-bottom: 8px; color: #FF6B35; display: flex; justify-content: space-between; align-items: center;">
-                🐾 Active Pets
-                <button onclick="window.PetSystem && window.PetSystem.assignRandomPet('default')" style="padding: 4px 8px; background: #FF6B35; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">+ Add Pet</button>
-            </div>
-            <div id="pet-list">
-                <div style="text-align: center; opacity: 0.7; font-size: 11px; padding: 20px;">
-                    No pets active. Click "Add Pet" to get a companion!
-                </div>
-            </div>
-        </div>
-        
-        <!-- Enhanced Chat Panel with 3D Integration -->
-        <div id="chat-panel" class="ui-panel">
-            <div class="chat-header">
-                <h3>💬 Room Chat</h3>
-                <div class="chat-controls">
-                    <span id="connection-indicator" class="connection-indicator connecting">🔄 Connecting</span>
-                    <button id="bubble-mode-toggle" class="bubble-mode-toggle active">3D Bubbles</button>
-                </div>
-            </div>
-            
-            <!-- Typing Indicators -->
-            <div id="typing-indicators"></div>
-            
-            <div id="chat-messages">
-                <div class="chat-message system">
-                    <div class="username">System</div>
-                    <div class="text">
-                        <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
-                        <strong>🎮 3D Chat Bubbles:</strong><br>
-                        • Messages appear floating above avatars in 3D space<br>
-                        • Real-time synchronization with Rust WebSocket server<br>
-                        • Click the "3D Bubbles" toggle to enable/disable<br><br>
-                        <strong>🎮 Controls:</strong><br>
-                        • Mouse: Rotate camera, scroll to zoom<br>
-                        • Click avatars to interact<br>
-                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">1</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">W</kbd> Wave, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">2</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">D</kbd> Dance<br>
-                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities
-                    </div>
-                </div>
-            </div>
-            <div id="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200" disabled>
-                <button id="send-btn" disabled>Send</button>
-            </div>
-        </div>
-        
-        <!-- Controls Panel -->
-        <div id="controls-panel" class="ui-panel">
-            <button id="toggle-magic" class="control-btn">✨ Magic Effects</button>
-            <button id="avatar-customize" class="control-btn">👤 Customize Avatar</button>
-            <button id="emotions-control" class="control-btn emotion-control-btn">🎭 Emotions</button>
-            <button id="add-friends" class="control-btn">👥 Add Friends</button>
-            <button id="pet-toggle" class="control-btn">🐾 Pet Panel</button>
-            <button id="group-activities" class="control-btn">👫 Group Activities</button>
-            <button id="change-scene" class="control-btn">🏠 Environment</button>
-            <button id="weather-control" class="control-btn">🌦️ Weather</button>
-            <button id="time-control" class="control-btn">🌅 Time of Day</button>
-        </div>
-        
-        <!-- Quick Actions -->
-        <div id="quick-actions">
-            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave')" title="Wave (1/W)">👋</button>
-            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance')" title="Dance (2/D)">💃</button>
-            <button class="quick-btn" onclick="window.EmotionSystem && window.EmotionSystem.showEmotionPanel()" title="Show Emotions (E)">🎭</button>
-            <button class="quick-btn" onclick="window.GroupInteractionSystem && window.GroupInteractionSystem.showGroupActivityMenu()" title="Group Activities (G)">👥</button>
-            <button class="quick-btn" onclick="window.PetSystem && window.PetSystem.assignRandomPet('default')" title="Get Pet">🐾</button>
-        </div>
+        <button class="category-scroll-btn scroll-right" id="scroll-right">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Show More Categories Button (for mobile/overflow) -->
+      <button class="show-more-btn" id="show-more-categories">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01" />
+        </svg>
+        More
+      </button>
     </div>
+    
+    <!-- Sort and View Controls -->
+    <div class="sort-controls">
+      <select class="sort-select" id="sort-rooms">
+        <option value="activity">Most Active</option>
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="name">A-Z</option>
+      </select>
+      
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="grid">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+        </button>
+        <button class="view-btn" data-view="list">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <!-- Three.js from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Dynamic Categories Modal (for overflow) -->
+<div class="categories-modal hidden" id="categories-modal">
+  <div class="categories-modal-content">
+    <div class="categories-modal-header">
+      <h3>Browse Categories</h3>
+      <button class="close-modal" id="close-categories-modal">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="categories-grid-modal">
+      <!-- Categories will be populated here dynamically -->
+    </div>
+  </div>
+</div>
 
-    <!-- Pass Django context to JavaScript -->
-    <script>
-        window.ROOM_CONFIG = {
-            roomId: '{{ room.id }}',
-            roomName: '{{ room.name }}',
-            scenePreset: '{{ room.scene_preset }}',
-            websocketUrl: '{{ websocket_url }}',
-            userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
-            username: {% if request.user.is_authenticated %}'{{ request.user.username }}'{% else %}'Guest'{% endif %},
-            maxUsers: {{ room.max_users }},
-            currentUsers: {{ room.active_users_count }},
-            // Rust WebSocket Server Configuration
-            rustWebSocketUrl: 'wss://euphorie.com/ws/rust/',
-            chatBubblesEnabled: true,
-            bubbleConfig: {
-                maxBubbles: 20,
-                fadeTime: 5000,
-                maxDistance: 50,
-                fontSize: 16,
-                maxWidth: 300
-            }
-        };
+<!-- Rooms Container -->
+<div id="rooms-container">
+  <!-- Grid View (Default) -->
+  <div class="rooms-grid" id="grid-view">
+    {% if rooms %}
+      {% for room in rooms %}
+      <a href="{% url 'room' room.name %}" class="room-card" 
+         data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
+         data-name="{{ room.display_name|default:room.name|lower }}"
+         data-activity="{{ room.total_messages|default:0 }}"
+         data-created="{{ room.created_at|date:'c' }}">
         
-        // DISABLED: Mobile detection - force desktop mode
-        const isMobile = false;
+        <div class="room-header">
+          <h3 class="room-title">{{ room.display_name|default:room.name }}</h3>
+          
+          <div class="room-meta">
+            <span class="room-category">
+              {% if room.category %}
+                {{ room.category.icon|default:"💬" }} {{ room.category.name }}
+              {% else %}
+                💬 General
+              {% endif %}
+            </span>
+            
+            <span class="room-status {% if room.total_messages > 20 %}trending{% else %}active{% endif %}">
+              {% if room.total_messages > 20 %}🔥 Hot{% else %}✨ Active{% endif %}
+            </span>
+          </div>
+          
+          <div class="room-activity">
+            <div class="activity-bar">
+              {% if room.total_messages > 50 %}
+                <div class="activity-fill" style="width: 90%"></div>
+              {% elif room.total_messages > 25 %}
+                <div class="activity-fill" style="width: 70%"></div>
+              {% elif room.total_messages > 10 %}
+                <div class="activity-fill" style="width: 50%"></div>
+              {% elif room.total_messages > 5 %}
+                <div class="activity-fill" style="width: 30%"></div>
+              {% else %}
+                <div class="activity-fill" style="width: 15%"></div>
+              {% endif %}
+            </div>
+            <div class="activity-text">{{ room.total_messages|default:0 }} messages</div>
+          </div>
+        </div>
         
-        // Always hide mobile elements and show desktop elements
-        const mobileElements = document.querySelectorAll('.mobile-only');
-        mobileElements.forEach(el => el.style.display = 'none');
+        <div class="room-footer">
+          <div class="room-creator">
+            <div class="creator-avatar">
+              {{ room.creator.username|slice:":1"|upper }}
+            </div>
+            <span>{{ room.creator.username }}</span>
+          </div>
+          <div class="join-btn">
+            Join
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+  
+  <!-- List View (Hidden by default) -->
+  <div class="rooms-list hidden" id="list-view">
+    {% if rooms %}
+      {% for room in rooms %}
+      <a href="{% url 'room' room.name %}" class="room-list-item"
+         data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
+         data-name="{{ room.display_name|default:room.name|lower }}"
+         data-activity="{{ room.total_messages|default:0 }}"
+         data-created="{{ room.created_at|date:'c' }}">
         
-        const desktopElements = document.querySelectorAll('.desktop-only');
-        desktopElements.forEach(el => el.style.display = 'block');
-    </script>
+        <div class="list-avatar">
+          {{ room.display_name|default:room.name|slice:":1"|upper }}
+        </div>
+        
+        <div class="list-content">
+          <h3 class="list-title">{{ room.display_name|default:room.name }}</h3>
+          <div class="list-meta">
+            <span>
+              {% if room.category %}
+                {{ room.category.icon|default:"💬" }} {{ room.category.name }}
+              {% else %}
+                💬 General
+              {% endif %}
+            </span>
+            <span>by {{ room.creator.username }}</span>
+            <span>{{ room.created_at|timesince }} ago</span>
+          </div>
+        </div>
+        
+        <div class="list-stats">
+          <div class="list-activity">
+            <div class="activity-count">{{ room.total_messages|default:0 }}</div>
+            <div>messages</div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
 
-    <!-- Rust WebSocket Manager -->
-    <script>
-        // Enhanced WebSocket Manager for Rust Server Integration
-        class EuphorieWebSocketManager {
-            constructor() {
-                this.socket = null;
-                this.connected = false;
-                this.authenticated = false;
-                this.reconnectAttempts = 0;
-                this.maxReconnectAttempts = 5;
-                this.reconnectDelay = 1000;
-                this.messageQueue = [];
-                this.typingTimer = null;
-                this.isTyping = false;
-                this.lastPingTime = 0;
-                
-                // Generate user ID if not provided
-                this.userId = window.ROOM_CONFIG.userId || 'guest_' + Math.random().toString(36).substr(2, 9);
-                this.username = window.ROOM_CONFIG.username || 'Guest';
-                this.roomId = window.ROOM_CONFIG.roomId;
-                
-                // Bind methods
-                this.connect = this.connect.bind(this);
-                this.send = this.send.bind(this);
-                this.handleMessage = this.handleMessage.bind(this);
-                this.handleOpen = this.handleOpen.bind(this);
-                this.handleClose = this.handleClose.bind(this);
-                this.handleError = this.handleError.bind(this);
-                
-                // Auto-connect
-                this.connect();
-            }
-            
-            connect() {
-                if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
-                    return;
-                }
-                
-                try {
-                    const url = window.ROOM_CONFIG.rustWebSocketUrl;
-                    console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
-                    this.updateConnectionStatus('connecting');
-                    
-                    this.socket = new WebSocket(url);
-                    this.socket.onopen = this.handleOpen;
-                    this.socket.onmessage = this.handleMessage;
-                    this.socket.onclose = this.handleClose;
-                    this.socket.onerror = this.handleError;
-                    
-                } catch (error) {
-                    console.error('❌ WebSocket connection failed:', error);
-                    this.scheduleReconnect();
-                }
-            }
-            
-            handleOpen(event) {
-                console.log('✅ Connected to Rust WebSocket server');
-                this.connected = true;
-                this.reconnectAttempts = 0;
-                this.updateConnectionStatus('connected');
-                
-                // Send authentication message
-                this.send({
-                    type: 'auth',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    username: this.username,
-                    timestamp: Date.now()
-                });
-                
-                // Send queued messages
-                while (this.messageQueue.length > 0) {
-                    const message = this.messageQueue.shift();
-                    this.send(message);
-                }
-                
-                // Start ping interval
-                this.startPingInterval();
-            }
-            
-            handleMessage(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    console.log('📨 Received message:', data);
-                    
-                    switch (data.type) {
-                        case 'auth_success':
-                            this.authenticated = true;
-                            console.log(`✅ Authentication successful for room: ${data.room_id}`);
-                            this.addSystemMessage(`Connected to ${data.room_info.name}`);
-                            this.enableChatInput();
-                            break;
-                            
-                        case 'auth_error':
-                            console.error(`❌ Authentication failed: ${data.error}`);
-                            this.addSystemMessage(`Authentication failed: ${data.error}`);
-                            break;
-                            
-                        case 'chat_message':
-                            this.handleChatMessage(data);
-                            break;
-                            
-                        case 'user_joined':
-                            console.log(`👋 ${data.username} joined the room`);
-                            this.addSystemMessage(`${data.username} joined the room`);
-                            break;
-                            
-                        case 'user_left':
-                            console.log(`👋 ${data.username} left the room`);
-                            this.addSystemMessage(`${data.username} left the room`);
-                            break;
-                            
-                        case 'emotion':
-                            this.handleEmotion(data);
-                            break;
-                            
-                        case 'interaction':
-                            this.handleInteraction(data);
-                            break;
-                            
-                        case 'typing':
-                            this.handleTyping(data);
-                            break;
-                            
-                        case 'pong':
-                            const latency = Date.now() - this.lastPingTime;
-                            console.log(`🏓 Pong received (${latency}ms)`);
-                            break;
-                            
-                        case 'system':
-                            this.addSystemMessage(data.message);
-                            break;
-                            
-                        case 'error':
-                            console.error(`❌ Server error: ${data.error}`);
-                            this.addSystemMessage(`Error: ${data.error}`);
-                            break;
-                            
-                        default:
-                            console.log(`🔍 Unknown message type: ${data.type}`);
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Error parsing WebSocket message:', error);
-                }
-            }
-            
-            handleChatMessage(data) {
-                const isOwn = data.user_id === this.userId;
-                this.addMessageToChat(data.username, data.message, isOwn);
-                
-                // Create 3D chat bubble if enabled and ChatBubbleSystem is available
-                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                    window.ChatBubbleSystem.createBubbleFromMessage(data);
-                }
-            }
-            
-            handleEmotion(data) {
-                console.log(`🎭 ${data.user_id} is feeling ${data.emotion}`);
-                
-                // Show emotion in chat
-                this.addSystemMessage(`${data.user_id} is feeling ${data.emotion} 🎭`);
-                
-                // Trigger 3D emotion if EmotionSystem is available
-                if (window.EmotionSystem) {
-                    window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
-                }
-            }
-            
-            handleInteraction(data) {
-                console.log(`🤝 Interaction: ${data.user_id} -> ${data.interaction_type}`);
-                
-                // Show interaction in chat
-                this.addSystemMessage(`${data.user_id} ${data.interaction_type} 🤝`);
-                
-                // Trigger 3D interaction if InteractionSystem is available
-                if (window.InteractionSystem) {
-                    window.InteractionSystem.handleRemoteInteraction(data);
-                }
-            }
-            
-            handleTyping(data) {
-                this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
-            }
-            
-            handleClose(event) {
-                console.log('🔌 WebSocket connection closed:', event);
-                this.connected = false;
-                this.authenticated = false;
-                this.updateConnectionStatus('disconnected');
-                this.disableChatInput();
-                
-                if (!event.wasClean) {
-                    this.scheduleReconnect();
-                }
-            }
-            
-            handleError(error) {
-                console.error('❌ WebSocket error:', error);
-                this.updateConnectionStatus('disconnected');
-            }
-            
-            scheduleReconnect() {
-                if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.reconnectAttempts++;
-                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-                    
-                    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    
-                    setTimeout(() => {
-                        this.connect();
-                    }, delay);
-                } else {
-                    console.error('❌ Max reconnection attempts reached');
-                    this.updateConnectionStatus('disconnected');
-                    this.addSystemMessage('Connection failed. Please refresh the page.');
-                }
-            }
-            
-            send(data) {
-                if (this.connected && this.socket.readyState === WebSocket.OPEN) {
-                    try {
-                        this.socket.send(JSON.stringify(data));
-                        console.log('📤 Sent message:', data.type);
-                    } catch (error) {
-                        console.error('❌ Error sending message:', error);
-                    }
-                } else {
-                    console.log('📦 Queuing message (not connected):', data.type);
-                    this.messageQueue.push(data);
-                }
-            }
-            
-            sendChatMessage(message) {
-                if (!this.authenticated) {
-                    console.warn('❌ Not authenticated');
-                    return;
-                }
-                
-                this.send({
-                    type: 'chat_message',
-                    message: message,
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendEmotion(emotion) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'emotion',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    emotion: emotion,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendInteraction(interactionType, targetUserId = null, data = null) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'interaction',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    target_user_id: targetUserId,
-                    interaction_type: interactionType,
-                    data: data,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendTyping(isTyping) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'typing',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    is_typing: isTyping
-                });
-            }
-            
-            startPingInterval() {
-                setInterval(() => {
-                    if (this.connected) {
-                        this.lastPingTime = Date.now();
-                        this.send({
-                            type: 'ping',
-                            timestamp: this.lastPingTime
-                        });
-                    }
-                }, 30000); // Ping every 30 seconds
-            }
-            
-            updateConnectionStatus(status) {
-                const indicator = document.getElementById('connection-indicator');
-                if (indicator) {
-                    indicator.className = `connection-indicator ${status}`;
-                    
-                    switch (status) {
-                        case 'connected':
-                            indicator.textContent = '✅ Connected';
-                            break;
-                        case 'connecting':
-                            indicator.textContent = '🔄 Connecting';
-                            break;
-                        case 'disconnected':
-                            indicator.textContent = '❌ Disconnected';
-                            break;
-                    }
-                }
-            }
-            
-            enableChatInput() {
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
-                
-                if (chatInput) {
-                    chatInput.disabled = false;
-                    chatInput.placeholder = 'Type a message...';
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                }
-            }
-            
-            disableChatInput() {
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
-                
-                if (chatInput) {
-                    chatInput.disabled = true;
-                    chatInput.placeholder = 'Connecting...';
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = true;
-                }
-            }
-            
-            addMessageToChat(username, message, isOwn = false) {
-                const chatMessages = document.getElementById('chat-messages');
-                if (!chatMessages) return;
-                
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
-                
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                messageDiv.innerHTML = `
-                    <div class="username">${this.escapeHtml(username)}</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
-                `;
-                
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                
-                // Keep only last 50 messages for performance
-                while (chatMessages.children.length > 50) {
-                    chatMessages.removeChild(chatMessages.firstChild);
-                }
-            }
-            
-            addSystemMessage(message) {
-                const chatMessages = document.getElementById('chat-messages');
-                if (!chatMessages) return;
-                
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message system';
-                
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                messageDiv.innerHTML = `
-                    <div class="username">System</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
-                `;
-                
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-            
-            updateTypingIndicator(userId, username, isTyping) {
-                const container = document.getElementById('typing-indicators');
-                if (!container) return;
-                
-                const indicatorId = `typing-${userId}`;
-                let indicator = document.getElementById(indicatorId);
-                
-                if (isTyping && userId !== this.userId) {
-                    if (!indicator) {
-                        indicator = document.createElement('div');
-                        indicator.id = indicatorId;
-                        indicator.className = 'typing-indicator';
-                        indicator.innerHTML = `
-                            <span>${this.escapeHtml(username)} is typing</span>
-                            <div class="typing-dots">
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                            </div>
-                        `;
-                        container.appendChild(indicator);
-                    }
-                } else {
-                    if (indicator) {
-                        indicator.remove();
-                    }
-                }
-            }
-            
-            escapeHtml(text) {
-                const map = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                };
-                return text.replace(/[&<>"']/g, m => map[m]);
-            }
-        }
-        
-        // Initialize WebSocket Manager
-        window.WebSocketManager = null;
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize WebSocket connection
-            window.WebSocketManager = new EuphorieWebSocketManager();
-            
-            // Setup chat input handlers
-            const chatInput = document.getElementById('chat-input');
-            const sendBtn = document.getElementById('send-btn');
-            
-            if (chatInput && sendBtn) {
-                let typingTimer;
-                let isTyping = false;
-                
-                // Send message function
-                const sendMessage = () => {
-                    const message = chatInput.value.trim();
-                    if (!message || !window.WebSocketManager.authenticated) return;
-                    
-                    window.WebSocketManager.sendChatMessage(message);
-                    chatInput.value = '';
-                    
-                    // Stop typing indicator
-                    if (isTyping) {
-                        window.WebSocketManager.sendTyping(false);
-                        isTyping = false;
-                    }
-                };
-                
-                // Typing indicator logic
-                chatInput.addEventListener('input', () => {
-                    if (!isTyping && window.WebSocketManager.authenticated) {
-                        window.WebSocketManager.sendTyping(true);
-                        isTyping = true;
-                    }
-                    
-                    clearTimeout(typingTimer);
-                    typingTimer = setTimeout(() => {
-                        if (isTyping) {
-                            window.WebSocketManager.sendTyping(false);
-                            isTyping = false;
-                        }
-                    }, 2000);
-                });
-                
-                // Send on Enter
-                chatInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        sendMessage();
-                    }
-                });
-                
-                // Send on button click
-                sendBtn.addEventListener('click', sendMessage);
-            }
-            
-            // Setup bubble mode toggle
-            const bubbleModeToggle = document.getElementById('bubble-mode-toggle');
-            if (bubbleModeToggle) {
-                bubbleModeToggle.addEventListener('click', () => {
-                    window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
-                    bubbleModeToggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
-                    bubbleModeToggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
-                    
-                    if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                        window.ChatBubbleSystem.clearAllBubbles();
-                    }
-                });
-            }
-            
-            console.log('🚀 Euphorie WebSocket integration initialized');
-        });
-        
-        // Make WebSocket manager available for other systems
-        window.sendEmotion = function(emotion) {
-            if (window.WebSocketManager) {
-                window.WebSocketManager.sendEmotion(emotion);
-            }
-        };
-        
-        window.sendInteraction = function(type, targetId = null, data = null) {
-            if (window.WebSocketManager) {
-                window.WebSocketManager.sendInteraction(type, targetId, data);
-            }
-        };
-    </script>
+<!-- Empty State -->
+{% if not rooms %}
+<div class="empty-state">
+  <div class="empty-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  </div>
+  <h3>No rooms found</h3>
+  <p>Try adjusting your search or create a new room!</p>
+  {% if user.is_authenticated %}
+  <a href="{% url 'create_room' %}" class="btn btn-primary">Create Room</a>
+  {% else %}
+  <a href="{% url 'signup' %}" class="btn btn-primary">Sign Up</a>
+  {% endif %}
+</div>
+{% endif %}
 
-    <!-- Load JavaScript modules in order -->
-    <script>
-        // Enhanced error handling for script loading
-        function loadScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = callback;
-            script.onerror = () => {
-                console.error(`Failed to load script: ${src}`);
-                callback();
-            };
-            document.head.appendChild(script);
-        }
+{% endblock %}
+
+{% block javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Get DOM elements
+  const categoryBtns = document.querySelectorAll('.category-btn');
+  const sortSelect = document.getElementById('sort-rooms');
+  const viewBtns = document.querySelectorAll('.view-btn');
+  const gridView = document.getElementById('grid-view');
+  const listView = document.getElementById('list-view');
+  
+  // Category scroll elements
+  const categoryBar = document.getElementById('category-bar');
+  const scrollLeftBtn = document.getElementById('scroll-left');
+  const scrollRightBtn = document.getElementById('scroll-right');
+  const showMoreBtn = document.getElementById('show-more-categories');
+  const categoriesModal = document.getElementById('categories-modal');
+  const closeModalBtn = document.getElementById('close-categories-modal');
+  
+  let currentCategory = 'all';
+  let currentSort = 'activity';
+  
+  // Category filtering
+  categoryBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Update active state
+      categoryBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Update current category
+      currentCategory = this.getAttribute('data-category');
+      
+      // Filter rooms
+      filterAndSortRooms();
+    });
+  });
+  
+  // Category scroll functionality
+  if (scrollLeftBtn && scrollRightBtn && categoryBar) {
+    scrollLeftBtn.addEventListener('click', () => {
+      categoryBar.scrollBy({ left: -200, behavior: 'smooth' });
+    });
+    
+    scrollRightBtn.addEventListener('click', () => {
+      categoryBar.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+    
+    // Update scroll button states
+    function updateScrollButtons() {
+      if (!categoryBar) return;
+      
+      const canScrollLeft = categoryBar.scrollLeft > 0;
+      const canScrollRight = categoryBar.scrollLeft < 
+        (categoryBar.scrollWidth - categoryBar.clientWidth - 10);
+      
+      scrollLeftBtn.disabled = !canScrollLeft;
+      scrollRightBtn.disabled = !canScrollRight;
+      
+      scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.4';
+      scrollRightBtn.style.opacity = canScrollRight ? '1' : '0.4';
+    }
+    
+    // Initial update and listen for scroll
+    updateScrollButtons();
+    categoryBar.addEventListener('scroll', updateScrollButtons);
+    window.addEventListener('resize', updateScrollButtons);
+  }
+  
+  // Show more categories modal
+  if (showMoreBtn && categoriesModal && closeModalBtn) {
+    showMoreBtn.addEventListener('click', () => {
+      populateCategoriesModal();
+      categoriesModal.classList.remove('hidden');
+      categoriesModal.classList.add('show');
+    });
+    
+    closeModalBtn.addEventListener('click', () => {
+      categoriesModal.classList.remove('show');
+      setTimeout(() => {
+        categoriesModal.classList.add('hidden');
+      }, 300);
+    });
+    
+    // Close modal on backdrop click
+    categoriesModal.addEventListener('click', (e) => {
+      if (e.target === categoriesModal) {
+        closeModalBtn.click();
+      }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && categoriesModal.classList.contains('show')) {
+        closeModalBtn.click();
+      }
+    });
+  }
+  
+  // Populate categories modal dynamically from DOM
+  function populateCategoriesModal() {
+    const modalGrid = document.querySelector('.categories-grid-modal');
+    if (!modalGrid) return;
+    
+    // Clear existing content
+    modalGrid.innerHTML = '';
+    
+    // Create "All" category first
+    const allBtn = document.createElement('button');
+    allBtn.className = `category-modal-btn ${currentCategory === 'all' ? 'active' : ''}`;
+    allBtn.setAttribute('data-category', 'all');
+    allBtn.innerHTML = `
+      <div class="category-modal-icon">🌟</div>
+      <div class="category-modal-name">All Rooms</div>
+    `;
+    
+    allBtn.addEventListener('click', () => {
+      handleCategoryModalClick('all', allBtn);
+    });
+    
+    modalGrid.appendChild(allBtn);
+    
+    // Get categories from the DOM (from the category bar)
+    const categoryButtons = document.querySelectorAll('.category-btn:not([data-category="all"])');
+    
+    categoryButtons.forEach(btn => {
+      const category = btn.getAttribute('data-category');
+      const icon = btn.querySelector('.category-icon').textContent;
+      const name = btn.textContent.trim();
+      
+      const modalBtn = document.createElement('button');
+      modalBtn.className = `category-modal-btn ${category === currentCategory ? 'active' : ''}`;
+      modalBtn.setAttribute('data-category', category);
+      modalBtn.innerHTML = `
+        <div class="category-modal-icon">${icon}</div>
+        <div class="category-modal-name">${name}</div>
+      `;
+      
+      modalBtn.addEventListener('click', () => {
+        handleCategoryModalClick(category, modalBtn);
+      });
+      
+      modalGrid.appendChild(modalBtn);
+    });
+  }
+  
+  // Handle category modal button clicks
+  function handleCategoryModalClick(category, btn) {
+    // Update active state in modal
+    document.querySelectorAll('.category-modal-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Update main category buttons
+    categoryBtns.forEach(b => b.classList.remove('active'));
+    const mainBtn = document.querySelector(`.category-btn[data-category="${category}"]`);
+    if (mainBtn) {
+      mainBtn.classList.add('active');
+    }
+    
+    // Update current category and filter
+    currentCategory = category;
+    filterAndSortRooms();
+    
+    // Close modal
+    closeModalBtn.click();
+  }
+  
+  // Sort functionality
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      currentSort = this.value;
+      filterAndSortRooms();
+    });
+  }
+  
+  // View toggle
+  viewBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const view = this.getAttribute('data-view');
+      
+      // Update button states
+      viewBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Toggle views
+      if (view === 'grid') {
+        gridView.classList.remove('hidden');
+        listView.classList.add('hidden');
+      } else {
+        gridView.classList.add('hidden');
+        listView.classList.remove('hidden');
+      }
+    });
+  });
+  
+  // Main filter and sort function
+  function filterAndSortRooms() {
+    const gridRooms = gridView.querySelectorAll('.room-card');
+    const listRooms = listView.querySelectorAll('.room-list-item');
+    
+    // Filter grid view rooms
+    gridRooms.forEach(room => {
+      const roomCategory = room.getAttribute('data-category');
+      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+      
+      if (matchesCategory) {
+        room.style.display = '';
+      } else {
+        room.style.display = 'none';
+      }
+    });
+    
+    // Filter list view rooms
+    listRooms.forEach(room => {
+      const roomCategory = room.getAttribute('data-category');
+      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+      
+      if (matchesCategory) {
+        room.style.display = '';
+      } else {
+        room.style.display = 'none';
+      }
+    });
+    
+    // Sort visible rooms
+    sortRooms();
+  }
+  
+  function sortRooms() {
+    const gridContainer = gridView;
+    const listContainer = listView;
+    
+    // Sort grid view
+    const gridRooms = Array.from(gridContainer.querySelectorAll('.room-card')).filter(room => 
+      room.style.display !== 'none'
+    );
+    
+    // Sort list view
+    const listRooms = Array.from(listContainer.querySelectorAll('.room-list-item')).filter(room => 
+      room.style.display !== 'none'
+    );
+    
+    const sortFunction = getSortFunction();
+    
+    gridRooms.sort(sortFunction);
+    listRooms.sort(sortFunction);
+    
+    // Re-append sorted rooms
+    gridRooms.forEach(room => gridContainer.appendChild(room));
+    listRooms.forEach(room => listContainer.appendChild(room));
+  }
+  
+  function getSortFunction() {
+    switch (currentSort) {
+      case 'newest':
+        return (a, b) => new Date(b.getAttribute('data-created')) - new Date(a.getAttribute('data-created'));
+      case 'oldest':
+        return (a, b) => new Date(a.getAttribute('data-created')) - new Date(b.getAttribute('data-created'));
+      case 'name':
+        return (a, b) => a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+      case 'activity':
+      default:
+        return (a, b) => parseInt(b.getAttribute('data-activity')) - parseInt(a.getAttribute('data-activity'));
+    }
+  }
+  
+  // Enhanced mobile touch/swipe functionality
+  function initializeMobileScrolling() {
+    if (!categoryBar) return;
+    
+    let isScrolling = false;
+    let startX = 0;
+    let scrollLeft = 0;
+    let velocity = 0;
+    let lastX = 0;
+    let lastTime = 0;
+    
+    // Touch start
+    categoryBar.addEventListener('touchstart', (e) => {
+      isScrolling = true;
+      startX = e.touches[0].pageX - categoryBar.offsetLeft;
+      scrollLeft = categoryBar.scrollLeft;
+      velocity = 0;
+      lastX = e.touches[0].pageX;
+      lastTime = Date.now();
+    }, { passive: true });
+    
+    // Touch move
+    categoryBar.addEventListener('touchmove', (e) => {
+      if (!isScrolling) return;
+      
+      e.preventDefault();
+      const x = e.touches[0].pageX - categoryBar.offsetLeft;
+      const walk = (x - startX) * 1.5; // Scroll speed multiplier
+      categoryBar.scrollLeft = scrollLeft - walk;
+      
+      // Calculate velocity for momentum
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastTime;
+      if (timeDiff > 0) {
+        velocity = (e.touches[0].pageX - lastX) / timeDiff;
+      }
+      lastX = e.touches[0].pageX;
+      lastTime = currentTime;
+    }, { passive: false });
+    
+    // Touch end with momentum scrolling
+    categoryBar.addEventListener('touchend', (e) => {
+      isScrolling = false;
+      
+      // Apply momentum scrolling
+      if (Math.abs(velocity) > 0.1) {
+        const momentum = velocity * 100; // Momentum multiplier
+        const targetScroll = categoryBar.scrollLeft - momentum;
         
-        // Load scripts sequentially - MOBILE UI REMOVED
-        const scripts = [
-            '/static/js/core/globals.js',
-            '/static/js/core/event-bus.js',
-            '/static/js/systems/scene-manager.js',
-            '/static/js/systems/avatar-system.js',
-            '/static/js/systems/chat-bubble-system.js',
-            '/static/js/systems/interaction-system.js',
-            '/static/js/systems/emotion-system.js',
-            '/static/js/systems/pet-system.js',
-            '/static/js/systems/group-interaction-system.js',
-            '/static/js/systems/advanced-scene-system.js',
-            '/static/js/room-core.js'
-        ];
+        // Smooth momentum animation
+        categoryBar.style.scrollBehavior = 'smooth';
+        categoryBar.scrollLeft = Math.max(0, Math.min(targetScroll, categoryBar.scrollWidth - categoryBar.clientWidth));
         
-        let scriptIndex = 0;
-        function loadNextScript() {
-            if (scriptIndex < scripts.length) {
-                loadScript(scripts[scriptIndex], () => {
-                    console.log(`✅ Loaded: ${scripts[scriptIndex]}`);
-                    scriptIndex++;
-                    loadNextScript();
-                });
-            } else {
-                console.log('🚀 All systems loaded successfully!');
-                
-                // MOBILE UI INITIALIZATION REMOVED
-                
-                // Initialize chat bubble system
-                if (window.ChatBubbleSystem) {
-                    window.ChatBubbleSystem.init();
-                    console.log('💬 Chat Bubble System initialized');
-                }
-                
-                // Initialize control panels
-                initializeControlPanels();
-                
-                // Hide loading screen
-                setTimeout(() => {
-                    const loadingScreen = document.getElementById('loading-screen');
-                    if (loadingScreen) {
-                        loadingScreen.style.opacity = '0';
-                        setTimeout(() => {
-                            loadingScreen.style.display = 'none';
-                        }, 500);
-                    }
-                }, 2000);
-            }
-        }
-        
-        function initializeControlPanels() {
-            // Initialize pet panel toggle
-            const petToggle = document.getElementById('pet-toggle');
-            const petPanel = document.getElementById('pet-panel');
-            const groupActivities = document.getElementById('group-activities');
-            const emotionsControl = document.getElementById('emotions-control');
-            
-            if (petToggle && petPanel) {
-                petToggle.addEventListener('click', () => {
-                    const isVisible = petPanel.style.display !== 'none';
-                    petPanel.style.display = isVisible ? 'none' : 'block';
-                    petToggle.style.background = isVisible ? 'rgba(255,255,255,0.1)' : 'rgba(255, 107, 53, 0.3)';
-                });
-            }
-            
-            if (groupActivities) {
-                groupActivities.addEventListener('click', () => {
-                    if (window.GroupInteractionSystem) {
-                        window.GroupInteractionSystem.showGroupActivityMenu();
-                    }
-                });
-            }
-            
-            // Initialize emotion control button with WebSocket integration
-            if (emotionsControl) {
-                emotionsControl.addEventListener('click', () => {
-                    console.log('🎭 Emotion button clicked');
-                    
-                    if (window.EmotionSystem && window.EmotionSystem.showEmotionPanel) {
-                        window.EmotionSystem.showEmotionPanel();
-                    } else {
-                        createInlineEmotionPanel();
-                    }
-                });
-            }
-            
-            // Counter update interval
-            setInterval(() => {
-                updateCounters();
-            }, 2000);
-        }
-        
-        function createInlineEmotionPanel() {
-            const existing = document.querySelectorAll('#emotion-panel');
-            existing.forEach(el => el.remove());
-            
-            const panel = document.createElement('div');
-            panel.id = 'emotion-panel';
-            panel.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(20, 20, 30, 0.95);
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 15px;
-                padding: 25px;
-                z-index: 1500;
-                color: white;
-                min-width: 350px;
-                text-align: center;
-                backdrop-filter: blur(20px);
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            `;
-            
-            panel.innerHTML = `
-                <h3 style="margin: 0 0 20px 0; color: #667eea;">🎭 Express Your Emotion</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-                    <button onclick="triggerEmotion('happy')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😊<br>Happy</button>
-                    <button onclick="triggerEmotion('love')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😍<br>Love</button>
-                    <button onclick="triggerEmotion('excited')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">🤩<br>Excited</button>
-                    <button onclick="triggerEmotion('sad')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😢<br>Sad</button>
-                    <button onclick="triggerEmotion('angry')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😠<br>Angry</button>
-                    <button onclick="triggerEmotion('laughing')" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">😂<br>Laughing</button>
-                </div>
-                <button onclick="this.parentElement.remove()" style="padding: 10px 20px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white; cursor: pointer;">Close</button>
-            `;
-            
-            document.body.appendChild(panel);
-            
-            // Add hover effects
-            panel.querySelectorAll('button').forEach(btn => {
-                if (btn.onclick && btn.onclick.toString().includes('triggerEmotion')) {
-                    btn.addEventListener('mouseenter', () => {
-                        btn.style.background = 'rgba(255,255,255,0.2)';
-                        btn.style.transform = 'translateY(-2px)';
-                    });
-                    btn.addEventListener('mouseleave', () => {
-                        btn.style.background = 'rgba(255,255,255,0.1)';
-                        btn.style.transform = 'translateY(0)';
-                    });
-                }
-            });
-            
-            // Click outside to close
-            setTimeout(() => {
-                const closeHandler = (e) => {
-                    if (!panel.contains(e.target)) {
-                        panel.remove();
-                        document.removeEventListener('click', closeHandler);
-                    }
-                };
-                document.addEventListener('click', closeHandler);
-            }, 100);
-        }
-        
-        // Global emotion trigger function with WebSocket integration
-        window.triggerEmotion = function(emotion) {
-            console.log(`🎭 Triggering emotion: ${emotion}`);
-            
-            // Send emotion via WebSocket
-            if (window.sendEmotion) {
-                window.sendEmotion(emotion);
-            }
-            
-            // Show local visual feedback
-            const emotionIcons = {
-                happy: '😊', love: '😍', excited: '🤩',
-                sad: '😢', angry: '😠', laughing: '😂'
-            };
-            
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 80px;
-                right: 20px;
-                background: rgba(102, 126, 234, 0.95);
-                color: white;
-                padding: 15px 20px;
-                border-radius: 10px;
-                z-index: 2000;
-                backdrop-filter: blur(10px);
-                font-weight: 600;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-            `;
-            notification.textContent = `You're feeling ${emotion}! ${emotionIcons[emotion]}`;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => notification.style.transform = 'translateX(0)', 10);
-            setTimeout(() => {
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-            
-            // Close panel
-            const panel = document.getElementById('emotion-panel');
-            if (panel) panel.remove();
-        };
-        
-        function updateCounters() {
-            // Update bubble count
-            if (window.ChatBubbleSystem) {
-                const bubbleCount = window.ChatBubbleSystem.getActiveBubbleCount();
-                const bubbleCountElement = document.getElementById('bubble-count');
-                if (bubbleCountElement) bubbleCountElement.textContent = bubbleCount;
-            }
-            
-            // Update other counters
-            if (window.PetSystem) {
-                const petCount = window.PetSystem.getAllPets().length;
-                const petCountElement = document.getElementById('pet-count');
-                if (petCountElement) petCountElement.textContent = petCount;
-            }
-            
-            if (window.GroupInteractionSystem) {
-                const groupCount = window.GroupInteractionSystem.getActiveGroups().length;
-                const groupCountElement = document.getElementById('group-count');
-                if (groupCountElement) groupCountElement.textContent = groupCount;
-            }
-        }
-        
-        // Start loading when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadNextScript);
-        } else {
-            loadNextScript();
-        }
-    </script>
-</body>
-</html>
+        setTimeout(() => {
+          categoryBar.style.scrollBehavior = 'auto';
+        }, 300);
+      }
+    }, { passive: true });
+    
+    // Mouse events for desktop testing
+    categoryBar.addEventListener('mousedown', (e) => {
+      isScrolling = true;
+      categoryBar.style.cursor = 'grabbing';
+      startX = e.pageX - categoryBar.offsetLeft;
+      scrollLeft = categoryBar.scrollLeft;
+    });
+    
+    categoryBar.addEventListener('mouseleave', () => {
+      isScrolling = false;
+      categoryBar.style.cursor = 'grab';
+    });
+    
+    categoryBar.addEventListener('mouseup', () => {
+      isScrolling = false;
+      categoryBar.style.cursor = 'grab';
+    });
+    
+    categoryBar.addEventListener('mousemove', (e) => {
+      if (!isScrolling) return;
+      e.preventDefault();
+      const x = e.pageX - categoryBar.offsetLeft;
+      const walk = (x - startX) * 2;
+      categoryBar.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Set initial cursor style
+    if (window.innerWidth <= 768) {
+      categoryBar.style.cursor = 'grab';
+    }
+  }
+  
+  // Initialize mobile scrolling
+  initializeMobileScrolling();
+});
+</script>
+{% endblock %}

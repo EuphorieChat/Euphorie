@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>{{ room.name }} - Euphorie 3D</title>
     
-    <!-- Mobile CSS Integration -->
-    <link rel="stylesheet" href="/static/css/room/mobile.css">
+    <!-- DISABLED: Mobile CSS Integration -->
+    <!-- <link rel="stylesheet" href="/static/css/room/mobile.css"> -->
+    
     <!-- Emotion System CSS -->
     <link rel="stylesheet" href="/static/css/room/emotion-system.css">
     
@@ -74,7 +75,7 @@
             bottom: 20px;
             left: 20px;
             width: 340px;
-            height: 280px; /* Increased height for better chat experience */
+            height: 280px;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.2);
@@ -305,7 +306,7 @@
             transform: none;
         }
         
-        /* Controls Panel Styles - Enhanced for Mobile */
+        /* Controls Panel Styles */
         #controls-panel {
             position: absolute;
             top: 20px;
@@ -443,60 +444,6 @@
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.5) !important;
         }
         
-        /* Hide desktop controls on mobile */
-        @media (max-width: 768px) {
-            .desktop-only {
-                display: none !important;
-            }
-            
-            #chat-panel {
-                width: calc(100vw - 40px);
-                height: 200px;
-                left: 20px;
-                right: 20px;
-                bottom: 20px;
-            }
-            
-            #pet-panel {
-                width: calc(100vw - 40px);
-                left: 20px;
-                right: 20px;
-                bottom: 240px;
-                max-height: 120px;
-            }
-            
-            #controls-panel {
-                top: 20px;
-                right: 20px;
-                gap: 6px;
-            }
-            
-            .control-btn {
-                padding: 10px 12px;
-                font-size: 11px;
-                min-width: 120px;
-            }
-            
-            #status-panel {
-                top: 10px;
-                left: 10px;
-                font-size: 11px;
-                padding: 8px 12px;
-            }
-            
-            #quick-actions {
-                bottom: 240px;
-                right: 20px;
-                flex-direction: column;
-            }
-            
-            .quick-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-            }
-        }
-        
         /* Animation keyframes */
         @keyframes slideInRight {
             from { opacity: 0; transform: translateX(20px); }
@@ -540,7 +487,6 @@
                 <div>• Initializing avatar & interaction systems</div>
                 <div>• Setting up 3D chat bubbles</div>
                 <div>• Connecting to Rust WebSocket server</div>
-                <div>• Optimizing for mobile devices</div>
             </div>
         </div>
         
@@ -594,16 +540,10 @@
                         • Real-time synchronization with Rust WebSocket server<br>
                         • Click the "3D Bubbles" toggle to enable/disable<br><br>
                         <strong>🎮 Controls:</strong><br>
-                        • <span class="desktop-only">Mouse: Rotate camera, scroll to zoom<br>
-                        • Click avatars to interact<br></span>
-                        <span class="mobile-only">• Touch: Drag to rotate, pinch to zoom<br>
-                        • Tap avatars to interact<br></span>
+                        • Mouse: Rotate camera, scroll to zoom<br>
+                        • Click avatars to interact<br>
                         • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">1</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">W</kbd> Wave, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">2</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">D</kbd> Dance<br>
-                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities<br>
-                        <span class="mobile-only"><br><strong>📱 Mobile:</strong><br>
-                        • Use virtual joystick to move<br>
-                        • Swipe left/right to change scenes<br>
-                        • Long press for context menu</span>
+                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities
                     </div>
                 </div>
             </div>
@@ -613,8 +553,8 @@
             </div>
         </div>
         
-        <!-- Controls Panel - Desktop Only -->
-        <div id="controls-panel" class="ui-panel desktop-only">
+        <!-- Controls Panel -->
+        <div id="controls-panel" class="ui-panel">
             <button id="toggle-magic" class="control-btn">✨ Magic Effects</button>
             <button id="avatar-customize" class="control-btn">👤 Customize Avatar</button>
             <button id="emotions-control" class="control-btn emotion-control-btn">🎭 Emotions</button>
@@ -626,8 +566,8 @@
             <button id="time-control" class="control-btn">🌅 Time of Day</button>
         </div>
         
-        <!-- Quick Actions - Desktop Only -->
-        <div id="quick-actions" class="desktop-only">
+        <!-- Quick Actions -->
+        <div id="quick-actions">
             <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave')" title="Wave (1/W)">👋</button>
             <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance')" title="Dance (2/D)">💃</button>
             <button class="quick-btn" onclick="window.EmotionSystem && window.EmotionSystem.showEmotionPanel()" title="Show Emotions (E)">🎭</button>
@@ -662,25 +602,15 @@
             }
         };
         
-        // Enhanced mobile detection
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                         ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+        // DISABLED: Mobile detection - force desktop mode
+        const isMobile = false;
         
-        if (isMobile) {
-            document.body.classList.add('mobile-device');
-            
-            // Show mobile controls message
-            const mobileElements = document.querySelectorAll('.mobile-only');
-            mobileElements.forEach(el => el.style.display = 'inline');
-            
-            // Hide desktop elements
-            const desktopElements = document.querySelectorAll('.desktop-only');
-            desktopElements.forEach(el => el.style.display = 'none');
-        } else {
-            // Hide mobile elements
-            const mobileElements = document.querySelectorAll('.mobile-only');
-            mobileElements.forEach(el => el.style.display = 'none');
-        }
+        // Always hide mobile elements and show desktop elements
+        const mobileElements = document.querySelectorAll('.mobile-only');
+        mobileElements.forEach(el => el.style.display = 'none');
+        
+        const desktopElements = document.querySelectorAll('.desktop-only');
+        desktopElements.forEach(el => el.style.display = 'block');
     </script>
 
     <!-- Rust WebSocket Manager -->
@@ -1213,19 +1143,18 @@
             document.head.appendChild(script);
         }
         
-        // Load scripts sequentially with 3D chat bubble system
+        // Load scripts sequentially - MOBILE UI REMOVED
         const scripts = [
             '/static/js/core/globals.js',
             '/static/js/core/event-bus.js',
             '/static/js/systems/scene-manager.js',
             '/static/js/systems/avatar-system.js',
-            '/static/js/systems/chat-bubble-system.js', // 3D chat bubbles
+            '/static/js/systems/chat-bubble-system.js',
             '/static/js/systems/interaction-system.js',
             '/static/js/systems/emotion-system.js',
             '/static/js/systems/pet-system.js',
             '/static/js/systems/group-interaction-system.js',
             '/static/js/systems/advanced-scene-system.js',
-            '/static/js/ui/mobile-ui.js',
             '/static/js/room-core.js'
         ];
         
@@ -1240,11 +1169,7 @@
             } else {
                 console.log('🚀 All systems loaded successfully!');
                 
-                // Initialize mobile UI if on mobile device
-                if (isMobile && window.MobileUI) {
-                    window.MobileUI.init();
-                    console.log('📱 Mobile UI initialized');
-                }
+                // MOBILE UI INITIALIZATION REMOVED
                 
                 // Initialize chat bubble system
                 if (window.ChatBubbleSystem) {
