@@ -1,5 +1,4 @@
-// Fixed Mobile UI System - Resolves navbar blocking and touch issues
-// Key fixes: Proper z-index management, non-blocking overlay, improved positioning
+// Mobile UI System - Without Hamburger Menu (temporarily disabled)
 
 window.MobileUI = {
     isInitialized: false,
@@ -32,7 +31,7 @@ window.MobileUI = {
     
     // UI Components
     components: {
-        hamburgerMenu: null,
+        // hamburgerMenu: null, // DISABLED
         virtualJoystick: null,
         quickActions: null,
         gestureOverlay: null,
@@ -55,7 +54,7 @@ window.MobileUI = {
     init: async function() {
         if (this.isInitialized) return Promise.resolve();
         
-        console.log('📱 Initializing Fixed Mobile UI System...');
+        console.log('📱 Initializing Mobile UI System (no hamburger menu)...');
         
         // Device detection
         this.detectDevice();
@@ -73,15 +72,15 @@ window.MobileUI = {
             // Add mobile CSS styles first
             this.addMobileStyles();
             
-            // Initialize core components
+            // Initialize core components (WITHOUT hamburger menu)
             await this.setupTouchHandling();
             await this.createMobileInterface();
             
             this.isInitialized = true;
-            console.log('✅ Fixed Mobile UI System initialized successfully');
+            console.log('✅ Mobile UI System initialized successfully (no menu)');
             
             // Show welcome message
-            this.showMobileNotification('📱 Mobile interface ready! Tap hamburger menu to get started.', 3000);
+            this.showMobileNotification('📱 Mobile interface ready! Use joystick and quick actions.', 3000);
             
         } catch (error) {
             console.error('❌ Mobile UI initialization failed:', error);
@@ -92,368 +91,175 @@ window.MobileUI = {
     },
 
     addMobileStyles: function() {
-        // Add critical mobile styles to fix positioning and z-index issues
+        // Add only essential mobile styles (no hamburger menu styles)
         const style = document.createElement('style');
         style.id = 'mobile-ui-styles';
         style.textContent = `
-            /* Mobile UI Base Styles */
+            /* Mobile UI Base Styles - No Hamburger Menu */
             .mobile-ui {
                 touch-action: none;
                 user-select: none;
                 -webkit-user-select: none;
             }
             
-            /* Hamburger Button - Fixed positioning */
-            .mobile-hamburger-btn {
-                position: fixed;
-                top: 20px;
-                left: 20px;
-                width: 50px;
-                height: 50px;
-                background: rgba(0, 0, 0, 0.8);
-                backdrop-filter: blur(10px);
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                z-index: 1100;
-                transition: all 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            }
-            
-            .mobile-hamburger-btn:hover {
-                background: rgba(0, 0, 0, 0.9);
-                transform: scale(1.05);
-            }
-            
-            .mobile-hamburger-btn.active {
-                background: rgba(255, 107, 53, 0.9);
-                border-color: #FF6B35;
-            }
-            
-            /* Hamburger Icon */
-            .hamburger-icon {
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                width: 24px;
-                height: 18px;
-            }
-            
-            .hamburger-icon span {
-                display: block;
-                height: 3px;
-                background: white;
-                border-radius: 1px;
-                transition: all 0.3s ease;
-            }
-            
-            .mobile-hamburger-btn.active .hamburger-icon span:nth-child(1) {
-                transform: rotate(45deg) translate(6px, 6px);
-            }
-            
-            .mobile-hamburger-btn.active .hamburger-icon span:nth-child(2) {
-                opacity: 0;
-            }
-            
-            .mobile-hamburger-btn.active .hamburger-icon span:nth-child(3) {
-                transform: rotate(-45deg) translate(6px, -6px);
-            }
-            
-            /* Mobile Overlay - Non-blocking when inactive */
-            .mobile-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 999;
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.3s ease;
-                pointer-events: none;
-            }
-            
-            .mobile-overlay.active {
-                opacity: 1;
-                visibility: visible;
-                pointer-events: auto;
-            }
-            
-            /* Mobile Menu - Slide in from left */
-            .mobile-menu {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 320px;
-                max-width: 85vw;
-                height: 100vh;
-                background: rgba(20, 20, 30, 0.95);
-                backdrop-filter: blur(20px);
-                border-right: 1px solid rgba(255, 255, 255, 0.2);
-                z-index: 1000;
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-                overflow-y: auto;
-                box-shadow: 5px 0 20px rgba(0, 0, 0, 0.3);
-            }
-            
-            .mobile-menu.active {
-                transform: translateX(0);
-            }
-            
-            /* Menu Header */
-            .mobile-menu-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 20px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                background: rgba(255, 107, 53, 0.1);
-            }
-            
-            .mobile-menu-header h2 {
-                margin: 0;
-                color: #FF6B35;
-                font-size: 18px;
-                font-weight: bold;
-            }
-            
-            .menu-close-btn {
-                background: none;
-                border: none;
-                color: white;
-                font-size: 24px;
-                cursor: pointer;
-                padding: 5px;
-                border-radius: 4px;
-                transition: background 0.2s ease;
-            }
-            
-            .menu-close-btn:hover {
-                background: rgba(255, 255, 255, 0.1);
-            }
-            
-            /* Menu Content */
-            .mobile-menu-content {
-                padding: 20px;
-                color: white;
-            }
-            
-            .menu-section {
-                margin-bottom: 25px;
-            }
-            
-            .menu-section h3 {
-                margin: 0 0 12px 0;
-                color: #4CAF50;
-                font-size: 16px;
-                border-bottom: 1px solid rgba(76, 175, 80, 0.3);
-                padding-bottom: 8px;
-            }
-            
-            .menu-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .menu-item {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 8px;
-                padding: 16px 12px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                color: white;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                text-align: center;
-                font-size: 12px;
-            }
-            
-            .menu-item:hover {
-                background: rgba(255, 255, 255, 0.1);
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            }
-            
-            .menu-icon {
-                font-size: 24px;
-            }
-            
-            .menu-label {
-                font-weight: 600;
-                font-size: 11px;
-            }
-            
-            /* Virtual Joystick - Better positioning */
+            /* Virtual Joystick */
             .virtual-joystick {
                 position: fixed;
                 bottom: 30px;
                 left: 30px;
                 width: 120px;
-                height: 120px;
+                height: 140px;
                 z-index: 200;
                 pointer-events: auto;
+                opacity: 0.9;
+                transition: all 0.3s ease;
+                transform: translateZ(0);
+            }
+            
+            .virtual-joystick.active {
+                opacity: 1;
+                transform: scale(1.1) translateZ(0);
             }
             
             .joystick-base {
-                position: relative;
-                width: 100%;
-                height: 100%;
-                background: rgba(255, 255, 255, 0.1);
-                border: 2px solid rgba(255, 255, 255, 0.3);
+                width: 90px;
+                height: 90px;
                 border-radius: 50%;
-                backdrop-filter: blur(10px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                background: radial-gradient(circle at 30% 30%, 
+                    rgba(255, 255, 255, 0.2), 
+                    rgba(0, 0, 0, 0.9));
+                backdrop-filter: blur(20px);
+                border: 3px solid rgba(255, 255, 255, 0.4);
+                position: relative;
+                cursor: pointer;
+                box-shadow: 
+                    0 10px 40px rgba(0, 0, 0, 0.7),
+                    inset 0 2px 8px rgba(255, 255, 255, 0.1);
+                transition: all 0.3s ease;
+                overflow: hidden;
+            }
+            
+            .joystick-base:active {
+                background: radial-gradient(circle at 30% 30%, 
+                    rgba(102, 126, 234, 0.3), 
+                    rgba(0, 0, 0, 0.95));
+                border-color: rgba(102, 126, 234, 0.7);
+                transform: scale(1.05);
+                box-shadow: 
+                    0 12px 50px rgba(102, 126, 234, 0.4),
+                    inset 0 2px 8px rgba(102, 126, 234, 0.2);
             }
             
             .joystick-knob {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 position: absolute;
                 top: 50%;
                 left: 50%;
-                width: 40px;
-                height: 40px;
-                background: linear-gradient(135deg, #4CAF50, #45a049);
-                border: 2px solid rgba(255, 255, 255, 0.5);
-                border-radius: 50%;
                 transform: translate(-50%, -50%);
-                transition: all 0.1s ease;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                transition: transform 0.1s ease-out;
+                box-shadow: 
+                    0 6px 20px rgba(0, 0, 0, 0.6),
+                    0 2px 8px rgba(102, 126, 234, 0.3);
+                border: 3px solid rgba(255, 255, 255, 0.9);
+                z-index: 3;
+            }
+            
+            .virtual-joystick.active .joystick-knob {
+                background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+                box-shadow: 
+                    0 8px 25px rgba(102, 126, 234, 0.8),
+                    0 3px 12px rgba(102, 126, 234, 0.5);
+                transform: translate(-50%, -50%) scale(1.1);
             }
             
             .joystick-ring {
                 position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 80px;
-                height: 80px;
-                border: 2px solid rgba(76, 175, 80, 0.6);
+                top: -5px;
+                left: -5px;
+                right: -5px;
+                bottom: -5px;
                 border-radius: 50%;
-                transform: translate(-50%, -50%);
+                border: 2px solid rgba(102, 126, 234, 0.6);
                 opacity: 0;
                 transition: opacity 0.2s ease;
-            }
-            
-            .virtual-joystick.active .joystick-knob {
-                background: linear-gradient(135deg, #66BB6A, #4CAF50);
-                box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+                pointer-events: none;
+                z-index: 1;
             }
             
             .joystick-label {
-                position: absolute;
-                bottom: -30px;
-                left: 50%;
-                transform: translateX(-50%);
-                color: rgba(255, 255, 255, 0.8);
-                font-size: 12px;
-                font-weight: bold;
                 text-align: center;
-                pointer-events: none;
+                color: rgba(255, 255, 255, 0.95);
+                font-size: 14px;
+                margin-top: 12px;
+                font-weight: 600;
+                text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+                letter-spacing: 0.5px;
             }
             
-            /* Quick Actions - Right side */
+            /* Quick Actions */
             .quick-actions {
                 position: fixed;
                 bottom: 30px;
                 right: 30px;
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+                gap: 15px;
                 z-index: 200;
+                transform: translateZ(0);
             }
             
             .quick-action-btn {
                 width: 60px;
                 height: 60px;
-                background: rgba(0, 0, 0, 0.8);
-                backdrop-filter: blur(10px);
-                border: 2px solid rgba(255, 255, 255, 0.3);
                 border-radius: 50%;
+                background: radial-gradient(circle at 30% 30%, 
+                    rgba(255, 255, 255, 0.2), 
+                    rgba(0, 0, 0, 0.9));
+                backdrop-filter: blur(20px);
+                border: 3px solid rgba(255, 255, 255, 0.4);
                 color: white;
-                cursor: pointer;
+                font-size: 24px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 24px;
-                transition: all 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            }
-            
-            .quick-action-btn:hover {
-                transform: scale(1.1);
-                background: rgba(0, 0, 0, 0.9);
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+                user-select: none;
+                text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+                position: relative;
+                overflow: hidden;
             }
             
             .quick-action-btn.primary {
-                background: rgba(76, 175, 80, 0.8);
-                border-color: #4CAF50;
+                background: radial-gradient(circle at 30% 30%, 
+                    rgba(102, 126, 234, 0.4), 
+                    rgba(102, 126, 234, 0.8));
+                border-color: rgba(102, 126, 234, 0.8);
+                box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
             }
             
             .quick-action-btn.secondary {
-                background: rgba(103, 58, 183, 0.8);
-                border-color: #673AB7;
+                background: radial-gradient(circle at 30% 30%, 
+                    rgba(255, 255, 255, 0.15), 
+                    rgba(0, 0, 0, 0.85));
             }
             
-            .quick-action-btn.expand {
-                background: rgba(255, 107, 53, 0.8);
-                border-color: #FF6B35;
+            .quick-action-btn:active {
+                transform: scale(0.88);
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
             }
             
-            /* Expanded Actions */
-            .quick-actions-expanded {
-                position: fixed;
-                bottom: 30px;
-                right: 110px;
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                z-index: 190;
-                transition: all 0.3s ease;
-            }
-            
-            .quick-actions-expanded.hidden {
-                opacity: 0;
-                visibility: hidden;
-                transform: translateX(20px);
-                pointer-events: none;
-            }
-            
-            .expanded-action-btn {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 12px 16px;
-                background: rgba(0, 0, 0, 0.8);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 25px;
-                color: white;
-                cursor: pointer;
-                font-size: 14px;
-                transition: all 0.3s ease;
-                white-space: nowrap;
-                min-width: 120px;
-            }
-            
-            .expanded-action-btn:hover {
-                background: rgba(0, 0, 0, 0.9);
-                transform: translateX(-5px);
+            .quick-action-btn:hover {
+                transform: scale(1.08);
+                box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
             }
             
             .action-icon {
-                font-size: 18px;
-            }
-            
-            .action-label {
-                font-weight: 600;
-                font-size: 12px;
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
             }
             
             /* Mobile Notifications */
@@ -483,77 +289,6 @@ window.MobileUI = {
                 transform: translateX(-50%) translateY(0);
             }
             
-            /* Context Menu */
-            .context-menu {
-                position: fixed;
-                z-index: 1300;
-                pointer-events: auto;
-            }
-            
-            .context-menu-container {
-                background: rgba(20, 20, 30, 0.95);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 12px;
-                padding: 8px;
-                min-width: 180px;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            }
-            
-            .context-menu-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 12px 16px;
-                background: transparent;
-                border: none;
-                color: white;
-                cursor: pointer;
-                font-size: 14px;
-                border-radius: 8px;
-                transition: background 0.2s ease;
-                width: 100%;
-                text-align: left;
-            }
-            
-            .context-menu-item:hover {
-                background: rgba(255, 255, 255, 0.1);
-            }
-            
-            .context-icon {
-                font-size: 18px;
-            }
-            
-            .context-label {
-                font-weight: 600;
-            }
-            
-            /* Responsive adjustments */
-            @media (max-width: 480px) {
-                .mobile-menu {
-                    width: 100vw;
-                    max-width: 100vw;
-                }
-                
-                .virtual-joystick {
-                    width: 100px;
-                    height: 100px;
-                    bottom: 20px;
-                    left: 20px;
-                }
-                
-                .quick-actions {
-                    bottom: 20px;
-                    right: 20px;
-                }
-                
-                .quick-action-btn {
-                    width: 50px;
-                    height: 50px;
-                    font-size: 20px;
-                }
-            }
-            
             /* Hide desktop elements on mobile */
             @media (max-width: 768px) {
                 .desktop-only {
@@ -581,10 +316,41 @@ window.MobileUI = {
                     max-height: 100px !important;
                 }
             }
+            
+            /* Responsive adjustments */
+            @media (max-width: 480px) {
+                .virtual-joystick {
+                    width: 100px;
+                    height: 120px;
+                    bottom: 20px;
+                    left: 20px;
+                }
+                
+                .joystick-base {
+                    width: 80px;
+                    height: 80px;
+                }
+                
+                .joystick-knob {
+                    width: 32px;
+                    height: 32px;
+                }
+                
+                .quick-actions {
+                    bottom: 20px;
+                    right: 20px;
+                }
+                
+                .quick-action-btn {
+                    width: 50px;
+                    height: 50px;
+                    font-size: 20px;
+                }
+            }
         `;
         
         document.head.appendChild(style);
-        console.log('🎨 Mobile CSS styles added');
+        console.log('🎨 Mobile CSS styles added (no hamburger menu)');
     },
 
     detectDevice: function() {
@@ -612,29 +378,16 @@ window.MobileUI = {
             navigator.msMaxTouchPoints > 0
         );
         
-        // Performance detection
-        const isLowEnd = (
-            navigator.hardwareConcurrency <= 2 ||
-            navigator.deviceMemory <= 2 ||
-            /low|lite/i.test(userAgent)
-        );
-        
-        if (isLowEnd) {
-            this.settings.lowPowerMode = true;
-        }
-        
         console.log('📱 Device Detection:', {
             isMobile: this.isMobile,
             isTablet: this.isTablet,
             touchEnabled: this.touchEnabled,
-            lowPowerMode: this.settings.lowPowerMode,
-            screenSize: `${window.innerWidth}x${window.innerHeight}`,
-            pixelRatio: window.devicePixelRatio
+            screenSize: `${window.innerWidth}x${window.innerHeight}`
         });
     },
 
     cleanup: function() {
-        // Remove any existing mobile UI elements
+        // Remove any existing mobile UI elements (including old hamburger menu)
         const elementsToRemove = [
             'mobile-hamburger-btn',
             'mobile-menu',
@@ -643,9 +396,6 @@ window.MobileUI = {
             'quick-actions',
             'gesture-overlay',
             'context-menu',
-            'mobile-chat-overlay',
-            'mobile-help-overlay',
-            'quick-actions-expanded',
             'mobile-ui-styles'
         ];
         
@@ -691,113 +441,9 @@ window.MobileUI = {
             touchCancelHandler
         };
         
-        // Prevent context menu on long press (only on 3D container)
-        container.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            return false;
-        });
-        
         console.log('👆 Touch handling configured');
         return Promise.resolve();
     },
-
-    // ... (keeping all the existing touch handling methods unchanged) ...
-    handleTouchStart: function(event) {
-        // Only handle if not touching UI elements
-        if (this.isTouchingUI(event.target)) return;
-        
-        this.touchState.isActive = true;
-        this.touchState.startTime = Date.now();
-        this.touchState.touches = Array.from(event.touches);
-        
-        if (event.touches.length === 1) {
-            const touch = event.touches[0];
-            this.touchState.startPos = { x: touch.clientX, y: touch.clientY };
-            this.touchState.currentPos = { x: touch.clientX, y: touch.clientY };
-            this.touchState.lastPos = { x: touch.clientX, y: touch.clientY };
-            
-            this.startLongPressDetection();
-        } else if (event.touches.length === 2) {
-            this.touchState.isPinching = true;
-            const touch1 = event.touches[0];
-            const touch2 = event.touches[1];
-            this.touchState.initialPinchDistance = this.calculateDistance(touch1, touch2);
-            this.touchState.pinchDistance = this.touchState.initialPinchDistance;
-        }
-        
-        this.updateVelocity();
-    },
-
-    isTouchingUI: function(target) {
-        // Check if touch target is a UI element
-        return target.closest('.mobile-hamburger-btn') ||
-               target.closest('.mobile-menu') ||
-               target.closest('.virtual-joystick') ||
-               target.closest('.quick-actions') ||
-               target.closest('.quick-actions-expanded') ||
-               target.closest('.context-menu') ||
-               target.closest('#chat-panel') ||
-               target.closest('#pet-panel');
-    },
-
-    handleTouchMove: function(event) {
-        if (!this.touchState.isActive || this.isTouchingUI(event.target)) return;
-        
-        event.preventDefault();
-        
-        if (event.touches.length === 1) {
-            const touch = event.touches[0];
-            
-            this.touchState.lastPos = { ...this.touchState.currentPos };
-            this.touchState.currentPos = { x: touch.clientX, y: touch.clientY };
-            
-            this.updateVelocity();
-            this.handleCameraRotation();
-            
-            const distance = this.calculateDistance(this.touchState.startPos, this.touchState.currentPos);
-            if (distance > this.gestures.longPress.maxDistance) {
-                this.cancelLongPress();
-            }
-            
-        } else if (event.touches.length === 2 && this.touchState.isPinching) {
-            const touch1 = event.touches[0];
-            const touch2 = event.touches[1];
-            const currentDistance = this.calculateDistance(touch1, touch2);
-            
-            this.handlePinchZoom(currentDistance / this.touchState.pinchDistance);
-            this.touchState.pinchDistance = currentDistance;
-        }
-    },
-
-    handleTouchEnd: function(event) {
-        if (!this.touchState.isActive) return;
-        
-        const duration = Date.now() - this.touchState.startTime;
-        const distance = this.calculateDistance(this.touchState.startPos, this.touchState.currentPos);
-        
-        if (event.touches.length === 0) {
-            if (duration < this.gestures.tap.maxDuration && distance < this.gestures.tap.maxDistance) {
-                this.handleTap(this.touchState.currentPos);
-            } else if (distance > this.gestures.swipe.minDistance && duration < this.gestures.swipe.maxDuration) {
-                this.handleSwipe();
-            }
-            
-            this.resetTouchState();
-        }
-        
-        if (event.touches.length < 2) {
-            this.touchState.isPinching = false;
-        }
-        
-        this.cancelLongPress();
-    },
-
-    handleTouchCancel: function(event) {
-        this.resetTouchState();
-        this.cancelLongPress();
-    },
-
-    // ... (keeping all other touch handling methods the same) ...
 
     createMobileInterface: function() {
         // Add mobile UI class to body
@@ -805,201 +451,14 @@ window.MobileUI = {
         if (this.isMobile) document.body.classList.add('mobile-device');
         if (this.isTablet) document.body.classList.add('tablet-device');
         
-        // Create mobile components in correct order
-        this.createHamburgerMenu();
+        // Create mobile components (WITHOUT hamburger menu)
+        // this.createHamburgerMenu(); // DISABLED
         this.createVirtualJoystick();
         this.createQuickActions();
         
-        console.log('🎨 Mobile interface created');
+        console.log('🎨 Mobile interface created (no hamburger menu)');
         return Promise.resolve();
     },
-
-    createHamburgerMenu: function() {
-        const hamburgerHTML = `
-            <div id="mobile-hamburger-btn" class="mobile-hamburger-btn">
-                <div class="hamburger-icon">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-            
-            <div id="mobile-overlay" class="mobile-overlay"></div>
-            
-            <div id="mobile-menu" class="mobile-menu">
-                <div class="mobile-menu-header">
-                    <h2>🎮 Euphorie Menu</h2>
-                    <button id="menu-close" class="menu-close-btn">✕</button>
-                </div>
-                
-                <div class="mobile-menu-content">
-                    <div class="menu-section">
-                        <h3>👤 Avatar</h3>
-                        <div class="menu-grid">
-                            <button class="menu-item" data-action="customize-avatar">
-                                <span class="menu-icon">🎨</span>
-                                <span class="menu-label">Customize</span>
-                            </button>
-                            <button class="menu-item" data-action="avatar-emotions">
-                                <span class="menu-icon">🎭</span>
-                                <span class="menu-label">Emotions</span>
-                            </button>
-                            <button class="menu-item" data-action="avatar-wave">
-                                <span class="menu-icon">👋</span>
-                                <span class="menu-label">Wave</span>
-                            </button>
-                            <button class="menu-item" data-action="avatar-dance">
-                                <span class="menu-icon">💃</span>
-                                <span class="menu-label">Dance</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="menu-section">
-                        <h3>🐾 Pets & Friends</h3>
-                        <div class="menu-grid">
-                            <button class="menu-item" data-action="get-pet">
-                                <span class="menu-icon">🐱</span>
-                                <span class="menu-label">Get Pet</span>
-                            </button>
-                            <button class="menu-item" data-action="manage-pets">
-                                <span class="menu-icon">🎾</span>
-                                <span class="menu-label">Pet Care</span>
-                            </button>
-                            <button class="menu-item" data-action="add-friends">
-                                <span class="menu-icon">👥</span>
-                                <span class="menu-label">Add Friends</span>
-                            </button>
-                            <button class="menu-item" data-action="group-activities">
-                                <span class="menu-icon">🎉</span>
-                                <span class="menu-label">Group Fun</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="menu-section">
-                        <h3>🌍 Environment</h3>
-                        <div class="menu-grid">
-                            <button class="menu-item" data-action="change-scene">
-                                <span class="menu-icon">🏠</span>
-                                <span class="menu-label">Scenes</span>
-                            </button>
-                            <button class="menu-item" data-action="weather">
-                                <span class="menu-icon">🌦️</span>
-                                <span class="menu-label">Weather</span>
-                            </button>
-                            <button class="menu-item" data-action="magic">
-                                <span class="menu-icon">✨</span>
-                                <span class="menu-label">Magic</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="menu-section">
-                        <h3>⚙️ Settings</h3>
-                        <div class="menu-grid">
-                            <button class="menu-item" data-action="graphics">
-                                <span class="menu-icon">🎮</span>
-                                <span class="menu-label">Graphics</span>
-                            </button>
-                            <button class="menu-item" data-action="help">
-                                <span class="menu-icon">❓</span>
-                                <span class="menu-label">Help</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', hamburgerHTML);
-        
-        this.components.hamburgerMenu = {
-            button: document.getElementById('mobile-hamburger-btn'),
-            menu: document.getElementById('mobile-menu'),
-            overlay: document.getElementById('mobile-overlay'),
-            closeBtn: document.getElementById('menu-close')
-        };
-        
-        // Ensure menu starts closed
-        const { button, menu, overlay } = this.components.hamburgerMenu;
-        if (menu) menu.classList.remove('active');
-        if (overlay) overlay.classList.remove('active');
-        if (button) button.classList.remove('active');
-        
-        this.setupHamburgerEvents();
-    },
-
-    setupHamburgerEvents: function() {
-        const { button, menu, overlay, closeBtn } = this.components.hamburgerMenu;
-        
-        // Toggle menu
-        if (button) {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleHamburgerMenu();
-            });
-        }
-        
-        if (closeBtn) {
-            closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.closeHamburgerMenu();
-            });
-        }
-        
-        if (overlay) {
-            overlay.addEventListener('click', () => this.closeHamburgerMenu());
-        }
-        
-        // Menu item handlers
-        document.addEventListener('click', (e) => {
-            const menuItem = e.target.closest('.menu-item[data-action]');
-            if (menuItem && menu && menu.classList.contains('active')) {
-                const action = menuItem.dataset.action;
-                e.stopPropagation();
-                this.handleMenuAction(action);
-                this.closeHamburgerMenu();
-                this.hapticFeedback('medium');
-            }
-        });
-        
-        console.log('🍔 Hamburger menu events configured');
-    },
-
-    toggleHamburgerMenu: function() {
-        const { menu } = this.components.hamburgerMenu;
-        
-        if (menu && menu.classList.contains('active')) {
-            this.closeHamburgerMenu();
-        } else {
-            this.openHamburgerMenu();
-        }
-    },
-
-    openHamburgerMenu: function() {
-        const { button, menu, overlay } = this.components.hamburgerMenu;
-        
-        if (button) button.classList.add('active');
-        if (menu) menu.classList.add('active');
-        if (overlay) overlay.classList.add('active');
-        
-        this.hapticFeedback('light');
-        
-        console.log('🟢 Hamburger menu opened');
-    },
-
-    closeHamburgerMenu: function() {
-        const { button, menu, overlay } = this.components.hamburgerMenu;
-        
-        if (button) button.classList.remove('active');
-        if (menu) menu.classList.remove('active');
-        if (overlay) overlay.classList.remove('active');
-        
-        console.log('🔴 Hamburger menu closed');
-    },
-
-    // ... (keeping all other methods the same with minor adjustments for proper positioning) ...
 
     createVirtualJoystick: function() {
         const joystickHTML = `
@@ -1041,42 +500,163 @@ window.MobileUI = {
                 <button class="quick-action-btn secondary" data-action="chat" title="Chat">
                     <span class="action-icon">💬</span>
                 </button>
-                <button class="quick-action-btn expand" data-action="expand" title="More Actions">
-                    <span class="action-icon">⚡</span>
-                </button>
-            </div>
-            
-            <div id="quick-actions-expanded" class="quick-actions-expanded hidden">
-                <button class="expanded-action-btn" data-action="emotions">
-                    <span class="action-icon">🎭</span>
-                    <span class="action-label">Emotions</span>
-                </button>
-                <button class="expanded-action-btn" data-action="pets">
-                    <span class="action-icon">🐾</span>
-                    <span class="action-label">Pets</span>
-                </button>
-                <button class="expanded-action-btn" data-action="magic">
-                    <span class="action-icon">✨</span>
-                    <span class="action-label">Magic</span>
-                </button>
-                <button class="expanded-action-btn" data-action="settings">
-                    <span class="action-icon">⚙️</span>
-                    <span class="action-label">Settings</span>
-                </button>
             </div>
         `;
         
         document.body.insertAdjacentHTML('beforeend', quickActionsHTML);
         
         this.components.quickActions = {
-            container: document.getElementById('quick-actions'),
-            expanded: document.getElementById('quick-actions-expanded')
+            container: document.getElementById('quick-actions')
         };
         
         this.setupQuickActionEvents();
     },
 
-    // ... (keeping all other methods the same) ...
+    setupJoystickEvents: function() {
+        const joystick = this.components.virtualJoystick;
+        
+        const handleStart = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            joystick.isActive = true;
+            joystick.element.classList.add('active');
+            
+            const rect = joystick.base.getBoundingClientRect();
+            joystick.center.x = rect.left + rect.width / 2;
+            joystick.center.y = rect.top + rect.height / 2;
+            
+            this.hapticFeedback('light');
+        };
+        
+        const handleMove = (e) => {
+            if (!joystick.isActive) return;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const deltaX = touch.clientX - joystick.center.x;
+            const deltaY = touch.clientY - joystick.center.y;
+            const distance = Math.min(Math.sqrt(deltaX ** 2 + deltaY ** 2), joystick.maxDistance);
+            const angle = Math.atan2(deltaY, deltaX);
+            
+            joystick.position.x = Math.cos(angle) * distance;
+            joystick.position.y = Math.sin(angle) * distance;
+            
+            // Update knob position
+            joystick.knob.style.transform = 
+                `translate(${joystick.position.x}px, ${joystick.position.y}px)`;
+            
+            // Update ring opacity based on distance
+            const intensity = distance / joystick.maxDistance;
+            joystick.ring.style.opacity = intensity * 0.3;
+            
+            // Send movement to avatar system
+            const normalizedX = joystick.position.x / joystick.maxDistance;
+            const normalizedY = joystick.position.y / joystick.maxDistance;
+            this.handleJoystickMovement(normalizedX, normalizedY);
+        };
+        
+        const handleEnd = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            joystick.isActive = false;
+            joystick.element.classList.remove('active');
+            joystick.position = { x: 0, y: 0 };
+            
+            // Reset visuals
+            joystick.knob.style.transform = 'translate(0px, 0px)';
+            joystick.ring.style.opacity = '0';
+            
+            // Stop movement
+            this.handleJoystickMovement(0, 0);
+        };
+        
+        // Touch events
+        joystick.base.addEventListener('touchstart', handleStart, { passive: false });
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', handleEnd, { passive: false });
+        
+        // Mouse events for testing
+        joystick.base.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleEnd);
+        
+        console.log('🕹️ Virtual joystick configured');
+    },
+
+    setupQuickActionEvents: function() {
+        // Quick action handlers
+        document.addEventListener('click', (e) => {
+            const actionBtn = e.target.closest('[data-action]');
+            if (!actionBtn) return;
+            
+            const action = actionBtn.dataset.action;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Visual feedback
+            actionBtn.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                actionBtn.style.transform = '';
+            }, 150);
+            
+            this.handleQuickAction(action);
+            this.hapticFeedback('medium');
+        });
+        
+        console.log('⚡ Quick actions configured');
+    },
+
+    handleQuickAction: function(action) {
+        switch (action) {
+            case 'wave':
+                this.triggerInteraction('wave');
+                break;
+            case 'dance':
+                this.triggerInteraction('dance');
+                break;
+            case 'chat':
+                this.showMobileNotification('💬 Chat functionality coming soon!');
+                break;
+        }
+    },
+
+    handleJoystickMovement: function(x, y) {
+        // Apply sensitivity
+        const sensitiveX = x * this.settings.sensitivity.joystick;
+        const sensitiveY = y * this.settings.sensitivity.joystick;
+        
+        // Send to avatar system
+        if (window.AvatarSystem) {
+            if (window.AvatarSystem.handleMovement) {
+                window.AvatarSystem.handleMovement(sensitiveX, sensitiveY);
+            } else if (window.AvatarSystem.moveAvatar) {
+                window.AvatarSystem.moveAvatar('default', sensitiveX * 0.1, sensitiveY * 0.1);
+            }
+        }
+        
+        // Debug output
+        if (Math.abs(x) > 0.1 || Math.abs(y) > 0.1) {
+            console.log('🕹️ Joystick:', x.toFixed(2), y.toFixed(2));
+        }
+    },
+
+    triggerInteraction: function(type) {
+        console.log('🎯 Triggering interaction:', type);
+        
+        // Try different interaction systems
+        if (window.InteractionSystem) {
+            if (window.InteractionSystem.triggerInteraction) {
+                window.InteractionSystem.triggerInteraction(type);
+            } else if (window.InteractionSystem.triggerGesture) {
+                window.InteractionSystem.triggerGesture(type);
+            }
+        }
+        
+        this.showMobileNotification(`${type === 'wave' ? '👋' : '💃'} ${type}!`);
+    },
 
     showMobileNotification: function(message, duration = 2500) {
         // Remove existing notifications
@@ -1115,42 +695,57 @@ window.MobileUI = {
         navigator.vibrate(patterns[intensity] || 25);
     },
 
-    // Add all the missing methods with proper implementations...
-    calculateDistance: function(point1, point2) {
-        return Math.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2);
-    },
-
-    updateVelocity: function() {
-        const deltaTime = 16;
-        this.touchState.velocity.x = (this.touchState.currentPos.x - this.touchState.lastPos.x) / deltaTime;
-        this.touchState.velocity.y = (this.touchState.currentPos.y - this.touchState.lastPos.y) / deltaTime;
-    },
-
-    resetTouchState: function() {
-        this.touchState.isActive = false;
-        this.touchState.gestureType = null;
-        this.touchState.touches = [];
-    },
-
-    startLongPressDetection: function() {
-        this.longPressTimer = setTimeout(() => {
-            if (this.touchState.isActive) {
-                this.handleLongPress();
-            }
-        }, this.gestures.longPress.minDuration);
-    },
-
-    cancelLongPress: function() {
-        if (this.longPressTimer) {
-            clearTimeout(this.longPressTimer);
-            this.longPressTimer = null;
+    // Touch handling methods (simplified without hamburger menu conflicts)
+    handleTouchStart: function(event) {
+        if (this.isTouchingUI(event.target)) return;
+        
+        this.touchState.isActive = true;
+        this.touchState.startTime = Date.now();
+        
+        if (event.touches.length === 1) {
+            const touch = event.touches[0];
+            this.touchState.startPos = { x: touch.clientX, y: touch.clientY };
+            this.touchState.currentPos = { x: touch.clientX, y: touch.clientY };
         }
     },
 
-    handleLongPress: function() {
-        console.log('👆 Long press detected');
-        this.hapticFeedback('heavy');
-        this.showMobileNotification('Long press detected!');
+    handleTouchMove: function(event) {
+        if (!this.touchState.isActive || this.isTouchingUI(event.target)) return;
+        
+        event.preventDefault();
+        
+        if (event.touches.length === 1) {
+            const touch = event.touches[0];
+            this.touchState.currentPos = { x: touch.clientX, y: touch.clientY };
+            
+            // Handle camera rotation if needed
+            this.handleCameraRotation();
+        }
+    },
+
+    handleTouchEnd: function(event) {
+        if (!this.touchState.isActive) return;
+        
+        const duration = Date.now() - this.touchState.startTime;
+        const distance = this.calculateDistance(this.touchState.startPos, this.touchState.currentPos);
+        
+        if (duration < this.gestures.tap.maxDuration && distance < this.gestures.tap.maxDistance) {
+            this.handleTap(this.touchState.currentPos);
+        }
+        
+        this.resetTouchState();
+    },
+
+    handleTouchCancel: function(event) {
+        this.resetTouchState();
+    },
+
+    isTouchingUI: function(target) {
+        // Check if touch target is a UI element
+        return target.closest('.virtual-joystick') ||
+               target.closest('.quick-actions') ||
+               target.closest('#chat-panel') ||
+               target.closest('#pet-panel');
     },
 
     handleTap: function(position) {
@@ -1158,44 +753,19 @@ window.MobileUI = {
         this.hapticFeedback('light');
     },
 
-    handleSwipe: function() {
-        const deltaX = this.touchState.currentPos.x - this.touchState.startPos.x;
-        const deltaY = this.touchState.currentPos.y - this.touchState.startPos.y;
-        
-        let direction = '';
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            direction = deltaX > 0 ? 'right' : 'left';
-        } else {
-            direction = deltaY > 0 ? 'down' : 'up';
-        }
-        
-        console.log('👆 Swipe detected:', direction);
-        this.hapticFeedback('medium');
-        this.showMobileNotification(`Swiped ${direction}!`);
-    },
-
     handleCameraRotation: function() {
         // Placeholder for camera rotation
         console.log('📹 Camera rotation');
     },
 
-    handlePinchZoom: function(scaleFactor) {
-        console.log('🤏 Pinch zoom:', scaleFactor.toFixed(2));
+    calculateDistance: function(point1, point2) {
+        return Math.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2);
     },
 
-    setupJoystickEvents: function() {
-        // Basic joystick setup - implement based on your needs
-        console.log('🕹️ Virtual joystick configured');
-    },
-
-    setupQuickActionEvents: function() {
-        // Basic quick action setup - implement based on your needs
-        console.log('⚡ Quick actions configured');
-    },
-
-    handleMenuAction: function(action) {
-        console.log('🎯 Menu action:', action);
-        this.showMobileNotification(`Action: ${action}`);
+    resetTouchState: function() {
+        this.touchState.isActive = false;
+        this.touchState.gestureType = null;
+        this.touchState.touches = [];
     },
 
     destroy: function() {
@@ -1210,7 +780,6 @@ window.MobileUI = {
         
         this.cleanup();
         this.resetTouchState();
-        this.cancelLongPress();
         
         this.isInitialized = false;
         console.log('🗑️ Mobile UI destroyed');
@@ -1226,11 +795,11 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     
     if (shouldInitializeMobile && !window.MobileUI.isInitialized) {
-        console.log('📱 Auto-initializing Fixed Mobile UI...');
+        console.log('📱 Auto-initializing Mobile UI (no hamburger menu)...');
         setTimeout(() => {
             window.MobileUI.init().catch(console.error);
         }, 1000);
     }
 });
 
-console.log('📱 Fixed Mobile UI System loaded');
+console.log('📱 Mobile UI System loaded (no hamburger menu)');
