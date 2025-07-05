@@ -720,7 +720,7 @@
             /* Ensure chat is visible and properly positioned on desktop */
             #chat-panel {
                 position: absolute !important;
-                bottom: 20px !important;
+                bottom: 320px !important;
                 left: 20px !important;
                 transform: none !important;
                 width: 340px !important;
@@ -728,6 +728,7 @@
                 border: 1px solid rgba(255,255,255,0.2) !important;
                 border-radius: 12px !important;
                 z-index: 100 !important;
+                display: flex !important;
             }
             
             #chat-panel.minimized {
@@ -737,6 +738,11 @@
             
             .chat-minimize-btn {
                 display: inline-block !important;
+            }
+            
+            /* Make sure restore hint is positioned correctly */
+            #chat-restore-hint {
+                bottom: 320px !important;
             }
         }
         
@@ -979,9 +985,9 @@
         
         // Mobile-specific functions
         function toggleMobileChat() {
-            const chatPanel = document.getElementById('chat-panel');
-            if (chatPanel) {
-                chatPanel.classList.toggle('expanded');
+            const mobileChatPanel = document.getElementById('mobile-chat-panel');
+            if (mobileChatPanel) {
+                mobileChatPanel.classList.toggle('expanded');
             }
         }
         
@@ -1015,31 +1021,49 @@
         // Setup responsive layout based on screen size
         function setupResponsiveLayout() {
             const chatPanel = document.getElementById('chat-panel');
+            const mobileChatPanel = document.getElementById('mobile-chat-panel');
             const controlsPanel = document.getElementById('controls-panel');
             const controlsToggle = document.querySelector('.controls-toggle');
-            const chatToggle = document.querySelector('.chat-toggle');
             const chatMinimizeBtn = document.querySelector('.chat-minimize-btn');
             const restoreHint = document.getElementById('chat-restore-hint');
             
             if (isMobile) {
-                // Show mobile toggles
-                if (controlsToggle) controlsToggle.style.display = 'block';
-                if (chatToggle) chatToggle.style.display = 'block';
+                // Show mobile chat panel
+                if (mobileChatPanel) {
+                    mobileChatPanel.style.display = 'flex';
+                }
                 
-                // Hide desktop minimize button on mobile
+                // Hide desktop chat
+                if (chatPanel) {
+                    chatPanel.style.display = 'none';
+                }
+                
+                // Show mobile controls toggle
+                if (controlsToggle) controlsToggle.style.display = 'block';
+                
+                // Hide desktop elements
                 if (chatMinimizeBtn) chatMinimizeBtn.style.display = 'none';
                 if (restoreHint) restoreHint.style.display = 'none';
                 
                 // Ensure panels start collapsed on mobile
-                if (chatPanel) {
-                    chatPanel.classList.remove('expanded', 'minimized');
+                if (mobileChatPanel) {
+                    mobileChatPanel.classList.remove('expanded');
                 }
                 if (controlsPanel) controlsPanel.classList.remove('expanded');
                 
             } else {
-                // Hide mobile toggles on desktop
+                // Show desktop chat panel
+                if (chatPanel) {
+                    chatPanel.style.display = 'flex';
+                }
+                
+                // Hide mobile chat panel
+                if (mobileChatPanel) {
+                    mobileChatPanel.style.display = 'none';
+                }
+                
+                // Hide mobile controls toggle
                 if (controlsToggle) controlsToggle.style.display = 'none';
-                if (chatToggle) chatToggle.style.display = 'none';
                 
                 // Show desktop minimize button
                 if (chatMinimizeBtn) chatMinimizeBtn.style.display = 'inline-block';
@@ -1370,120 +1394,166 @@
             }
             
             updateConnectionStatus(status) {
-                const indicator = document.getElementById('connection-indicator');
-                if (indicator) {
-                    indicator.className = `connection-indicator ${status}`;
-                    
-                    switch (status) {
-                        case 'connected':
-                            indicator.textContent = '✅ Connected';
-                            break;
-                        case 'connecting':
-                            indicator.textContent = '🔄 Connecting';
-                            break;
-                        case 'disconnected':
-                            indicator.textContent = '❌ Disconnected';
-                            break;
+                const indicators = [
+                    document.getElementById('connection-indicator'),
+                    document.getElementById('connection-indicator-mobile')
+                ];
+                
+                indicators.forEach(indicator => {
+                    if (indicator) {
+                        indicator.className = `connection-indicator ${status}`;
+                        
+                        switch (status) {
+                            case 'connected':
+                                indicator.textContent = '✅ Connected';
+                                break;
+                            case 'connecting':
+                                indicator.textContent = '🔄 Connecting';
+                                break;
+                            case 'disconnected':
+                                indicator.textContent = '❌ Disconnected';
+                                break;
+                        }
                     }
-                }
+                });
             }
             
             enableChatInput() {
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
+                const inputs = [
+                    document.getElementById('chat-input'),
+                    document.getElementById('chat-input-mobile')
+                ];
+                const buttons = [
+                    document.getElementById('send-btn'),
+                    document.getElementById('send-btn-mobile')
+                ];
                 
-                if (chatInput) {
-                    chatInput.disabled = false;
-                    chatInput.placeholder = 'Type a message...';
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                }
+                inputs.forEach(input => {
+                    if (input) {
+                        input.disabled = false;
+                        input.placeholder = 'Type a message...';
+                    }
+                });
+                
+                buttons.forEach(btn => {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                });
             }
             
             disableChatInput() {
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
+                const inputs = [
+                    document.getElementById('chat-input'),
+                    document.getElementById('chat-input-mobile')
+                ];
+                const buttons = [
+                    document.getElementById('send-btn'),
+                    document.getElementById('send-btn-mobile')
+                ];
                 
-                if (chatInput) {
-                    chatInput.disabled = true;
-                    chatInput.placeholder = 'Connecting...';
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = true;
-                }
+                inputs.forEach(input => {
+                    if (input) {
+                        input.disabled = true;
+                        input.placeholder = 'Connecting...';
+                    }
+                });
+                
+                buttons.forEach(btn => {
+                    if (btn) {
+                        btn.disabled = true;
+                    }
+                });
             }
             
             addMessageToChat(username, message, isOwn = false) {
-                const chatMessages = document.getElementById('chat-messages');
-                if (!chatMessages) return;
+                const chatContainers = [
+                    document.getElementById('chat-messages'),
+                    document.getElementById('chat-messages-mobile')
+                ];
                 
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
-                
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                messageDiv.innerHTML = `
-                    <div class="username">${this.escapeHtml(username)}</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
-                `;
-                
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                
-                // Keep only last 50 messages for performance
-                while (chatMessages.children.length > 50) {
-                    chatMessages.removeChild(chatMessages.firstChild);
-                }
+                chatContainers.forEach(chatMessages => {
+                    if (!chatMessages) return;
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+                    
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    messageDiv.innerHTML = `
+                        <div class="username">${this.escapeHtml(username)}</div>
+                        <div class="timestamp">${timestamp}</div>
+                        <div class="text">${this.escapeHtml(message)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    // Keep only last 50 messages for performance
+                    while (chatMessages.children.length > 50) {
+                        chatMessages.removeChild(chatMessages.firstChild);
+                    }
+                });
             }
             
             addSystemMessage(message) {
-                const chatMessages = document.getElementById('chat-messages');
-                if (!chatMessages) return;
+                const chatContainers = [
+                    document.getElementById('chat-messages'),
+                    document.getElementById('chat-messages-mobile')
+                ];
                 
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message system';
-                
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                messageDiv.innerHTML = `
-                    <div class="username">System</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
-                `;
-                
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                chatContainers.forEach(chatMessages => {
+                    if (!chatMessages) return;
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message system';
+                    
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    messageDiv.innerHTML = `
+                        <div class="username">System</div>
+                        <div class="timestamp">${timestamp}</div>
+                        <div class="text">${this.escapeHtml(message)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
             }
             
             updateTypingIndicator(userId, username, isTyping) {
-                const container = document.getElementById('typing-indicators');
-                if (!container) return;
+                const containers = [
+                    document.getElementById('typing-indicators'),
+                    document.getElementById('typing-indicators-mobile')
+                ];
                 
-                const indicatorId = `typing-${userId}`;
-                let indicator = document.getElementById(indicatorId);
-                
-                if (isTyping && userId !== this.userId) {
-                    if (!indicator) {
-                        indicator = document.createElement('div');
-                        indicator.id = indicatorId;
-                        indicator.className = 'typing-indicator';
-                        indicator.innerHTML = `
-                            <span>${this.escapeHtml(username)} is typing</span>
-                            <div class="typing-dots">
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                            </div>
-                        `;
-                        container.appendChild(indicator);
+                containers.forEach(container => {
+                    if (!container) return;
+                    
+                    const indicatorId = `typing-${userId}`;
+                    let indicator = document.getElementById(indicatorId);
+                    
+                    if (isTyping && userId !== this.userId) {
+                        if (!indicator) {
+                            indicator = document.createElement('div');
+                            indicator.id = indicatorId;
+                            indicator.className = 'typing-indicator';
+                            indicator.innerHTML = `
+                                <span>${this.escapeHtml(username)} is typing</span>
+                                <div class="typing-dots">
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                </div>
+                            `;
+                            container.appendChild(indicator);
+                        }
+                    } else {
+                        if (indicator) {
+                            indicator.remove();
+                        }
                     }
-                } else {
-                    if (indicator) {
-                        indicator.remove();
-                    }
-                }
+                });
             }
             
             escapeHtml(text) {
@@ -1505,10 +1575,10 @@
             // Initialize WebSocket connection
             window.WebSocketManager = new EuphorieWebSocketManager();
             
-            // Setup chat input handlers for the single chat panel
-            const setupChatHandlers = () => {
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
+            // Setup chat input handlers for both desktop and mobile
+            const setupChatHandlers = (inputId, btnId) => {
+                const chatInput = document.getElementById(inputId);
+                const sendBtn = document.getElementById(btnId);
                 
                 if (chatInput && sendBtn) {
                     let typingTimer;
@@ -1558,22 +1628,32 @@
                 }
             };
             
-            // Setup handlers for the single chat panel
-            setupChatHandlers();
+            // Setup handlers for both desktop and mobile chat
+            setupChatHandlers('chat-input', 'send-btn');
+            setupChatHandlers('chat-input-mobile', 'send-btn-mobile');
             
-            // Setup bubble mode toggle
-            const bubbleModeToggle = document.getElementById('bubble-mode-toggle');
-            if (bubbleModeToggle) {
-                bubbleModeToggle.addEventListener('click', () => {
-                    window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
-                    bubbleModeToggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
-                    bubbleModeToggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
-                    
-                    if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                        window.ChatBubbleSystem.clearAllBubbles();
-                    }
-                });
-            }
+            // Setup bubble mode toggles for both desktop and mobile
+            const setupBubbleToggle = (toggleId) => {
+                const bubbleModeToggle = document.getElementById(toggleId);
+                if (bubbleModeToggle) {
+                    bubbleModeToggle.addEventListener('click', () => {
+                        window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
+                        
+                        // Update both toggles
+                        document.querySelectorAll('.bubble-mode-toggle').forEach(toggle => {
+                            toggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
+                            toggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
+                        });
+                        
+                        if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                            window.ChatBubbleSystem.clearAllBubbles();
+                        }
+                    });
+                }
+            };
+            
+            setupBubbleToggle('bubble-mode-toggle');
+            setupBubbleToggle('bubble-mode-toggle-mobile');
             
             console.log('🚀 Euphorie WebSocket integration initialized');
         });
