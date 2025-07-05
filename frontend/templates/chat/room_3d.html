@@ -99,7 +99,7 @@
             bottom: 20px;
             left: 20px;
             width: 360px;
-            height: 320px;
+            height: 340px;
             background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
             backdrop-filter: blur(15px);
             border: 2px solid rgba(102, 126, 234, 0.3);
@@ -150,7 +150,7 @@
             font-size: 14px;
             font-weight: 600;
             text-align: center;
-            width: 100%;
+            width: calc(100% + 32px);
             margin: -16px -16px 16px -16px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
@@ -256,6 +256,14 @@
             transform: translateY(-1px);
         }
         
+        .chat-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
         #chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -265,12 +273,13 @@
             background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 50, 0.8));
             border: 1px solid rgba(102, 126, 234, 0.2);
             border-radius: 12px;
-            font-size: 13px;
-            line-height: 1.5;
-            min-height: 140px;
+            font-size: 12px;
+            line-height: 1.4;
             box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
             word-wrap: break-word;
             overflow-wrap: break-word;
+            hyphens: auto;
+            max-height: 200px;
         }
         
         #chat-messages-mobile {
@@ -282,23 +291,26 @@
             background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 50, 0.8));
             border: 1px solid rgba(102, 126, 234, 0.2);
             border-radius: 12px;
-            font-size: 13px;
-            line-height: 1.5;
-            min-height: 120px;
+            font-size: 12px;
+            line-height: 1.4;
             box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
             word-wrap: break-word;
             overflow-wrap: break-word;
+            hyphens: auto;
+            max-height: 180px;
         }
         
         .chat-message {
-            margin-bottom: 12px;
-            padding: 10px 14px;
-            border-radius: 12px;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
             background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-            border-left: 4px solid #667eea;
+            border-left: 3px solid #667eea;
             backdrop-filter: blur(5px);
             transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
         
         .chat-message:hover {
@@ -309,7 +321,7 @@
         .chat-message.own {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
             border-left-color: #4CAF50;
-            margin-left: 20px;
+            margin-left: 15px;
             box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3);
         }
         
@@ -322,9 +334,9 @@
         
         .chat-message .username {
             font-weight: 700;
-            font-size: 11px;
+            font-size: 10px;
             color: #667eea;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
         
@@ -337,20 +349,21 @@
         }
         
         .chat-message .timestamp {
-            font-size: 9px;
+            font-size: 8px;
             opacity: 0.7;
             float: right;
             margin-top: -2px;
         }
         
         .chat-message .text {
-            font-size: 12px;
-            line-height: 1.4;
+            font-size: 11px;
+            line-height: 1.3;
             color: rgba(255, 255, 255, 0.95);
             word-wrap: break-word;
             overflow-wrap: break-word;
             max-width: 100%;
             white-space: pre-wrap;
+            hyphens: auto;
         }
         
         .typing-indicator {
@@ -402,20 +415,23 @@
         
         #chat-input-container, #chat-input-container-mobile {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
+            flex-shrink: 0;
+            margin-top: auto;
         }
         
         #chat-input, #chat-input-mobile {
             flex: 1;
-            padding: 12px 16px;
+            padding: 10px 14px;
             background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));
             border: 2px solid rgba(102, 126, 234, 0.3);
-            border-radius: 10px;
+            border-radius: 8px;
             color: white;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.3s ease;
             backdrop-filter: blur(5px);
+            min-width: 0;
         }
         
         #chat-input:focus, #chat-input-mobile:focus {
@@ -431,17 +447,18 @@
         }
         
         #send-btn, #send-btn-mobile {
-            padding: 12px 20px;
+            padding: 10px 16px;
             background: linear-gradient(135deg, #4CAF50, #45a049);
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             color: white;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
         }
         
         #send-btn:hover, #send-btn-mobile:hover {
@@ -632,6 +649,67 @@
             opacity: 0.8;
         }
         
+        /* Desktop Hamburger Menu System */
+        .desktop-hamburger {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 200;
+            backdrop-filter: blur(10px);
+        }
+        
+        .desktop-hamburger:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .desktop-hamburger.active {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.9), rgba(255, 152, 0, 0.9));
+            transform: rotate(90deg);
+        }
+        
+        /* Desktop Menu */
+        .desktop-actions-menu {
+            position: absolute;
+            top: 80px;
+            right: 15px;
+            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 300px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            transform: translateY(-20px) scale(0.9);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .desktop-actions-menu.active {
+            display: flex;
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        
         /* Mobile Hamburger Menu System */
         .mobile-hamburger {
             position: fixed;
@@ -689,6 +767,7 @@
             position: fixed;
             top: 80px;
             right: 15px;
+            left: 15px;
             background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
             backdrop-filter: blur(20px);
             border: 2px solid rgba(102, 126, 234, 0.3);
@@ -698,14 +777,15 @@
             display: none;
             flex-direction: column;
             gap: 12px;
-            min-width: 280px;
-            max-width: calc(100vw - 30px);
             max-height: calc(100vh - 120px);
             overflow-y: auto;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             transform: translateY(-20px) scale(0.9);
             opacity: 0;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Improve scrolling */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
         
         .mobile-actions-menu.active {
@@ -961,9 +1041,20 @@
                 display: flex;
             }
             
+            .desktop-hamburger, .desktop-actions-menu {
+                display: none !important;
+            }
+            
             /* Hide desktop controls on mobile */
             #controls-panel {
                 display: none !important;
+            }
+            
+            /* Prevent body scroll when menu is open */
+            body.menu-open {
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
             }
         }
         
@@ -973,18 +1064,17 @@
                 display: none !important;
             }
             
-            #pet-panel {
-                bottom: 360px;
+            .desktop-hamburger {
+                display: flex;
             }
             
+            #pet-panel {
+                bottom: 380px;
+            }
+            
+            /* Hide old desktop controls panel */
             #controls-panel {
-                display: flex !important;
-                transform: none !important;
-                background: transparent !important;
-                border: none !important;
-                border-radius: 0 !important;
-                padding: 0 !important;
-                position: absolute !important;
+                display: none !important;
             }
             
             /* Ensure chat is visible and properly positioned on desktop */
@@ -1183,31 +1273,77 @@
             </div>
         </div>
         
-        <!-- Controls Panel -->
-        <div id="controls-panel" class="ui-panel">
-            <button class="controls-toggle" onclick="toggleMobileControls()" style="display: none;">⚙️ Controls & Settings</button>
+        <!-- Desktop Hamburger Menu System -->
+        <button class="desktop-hamburger" onclick="toggleDesktopMenu()">☰</button>
+        
+        <div class="desktop-actions-menu">
+            <div class="mobile-menu-header">🎮 Controls & Actions</div>
             
-            <div class="control-group">
-                <button id="toggle-magic" class="control-btn">✨ Magic Effects</button>
-                <button id="emotions-control" class="control-btn emotion-control-btn">🎭 Emotions</button>
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Quick Actions</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave'); closeDesktopMenu();">
+                        <div class="icon">👋</div>
+                        <div>Wave</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance'); closeDesktopMenu();">
+                        <div class="icon">💃</div>
+                        <div>Dance</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="showMobileEmotions(); closeDesktopMenu();">
+                        <div class="icon">🎭</div>
+                        <div>Emotions</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="window.GroupInteractionSystem && window.GroupInteractionSystem.showGroupActivityMenu(); closeDesktopMenu();">
+                        <div class="icon">👥</div>
+                        <div>Groups</div>
+                    </button>
+                </div>
             </div>
             
-            <div class="control-group">
-                <button id="avatar-customize" class="control-btn">👤 Customize Avatar</button>
-                <button id="add-friends" class="control-btn">👥 Add Friends</button>
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Customization</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" onclick="customizeAvatar(); closeDesktopMenu();">
+                        <div class="icon">👤</div>
+                        <div>Avatar</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="window.PetSystem && window.PetSystem.assignRandomPet('default'); closeDesktopMenu();">
+                        <div class="icon">🐾</div>
+                        <div>Get Pet</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="togglePetPanel(); closeDesktopMenu();">
+                        <div class="icon">🎪</div>
+                        <div>Pet Panel</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="addFriends(); closeDesktopMenu();">
+                        <div class="icon">👥</div>
+                        <div>Friends</div>
+                    </button>
+                </div>
             </div>
             
-            <div class="control-group">
-                <button id="pet-toggle" class="control-btn">🐾 Pet Panel</button>
-                <button id="group-activities" class="control-btn">👫 Group Activities</button>
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Environment</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" onclick="changeScene(); closeDesktopMenu();">
+                        <div class="icon">🏠</div>
+                        <div>Scene</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="controlWeather(); closeDesktopMenu();">
+                        <div class="icon">🌦️</div>
+                        <div>Weather</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="controlTime(); closeDesktopMenu();">
+                        <div class="icon">🌅</div>
+                        <div>Time</div>
+                    </button>
+                    <button class="mobile-action-btn" onclick="toggleMagic(); closeDesktopMenu();">
+                        <div class="icon">✨</div>
+                        <div>Magic</div>
+                    </button>
+                </div>
             </div>
-            
-            <div class="control-group">
-                <button id="change-scene" class="control-btn">🏠 Environment</button>
-                <button id="weather-control" class="control-btn">🌦️ Weather</button>
-            </div>
-            
-            <button id="time-control" class="control-btn">🌅 Time of Day</button>
         </div>
         
         <!-- Mobile Hamburger Menu System -->
@@ -1341,9 +1477,35 @@
         // Mobile detection and layout setup
         const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-            // Mobile menu functions
+            // Menu state management
             let mobileMenuOpen = false;
+            let desktopMenuOpen = false;
             
+            // Desktop menu functions
+            function toggleDesktopMenu() {
+                const hamburger = document.querySelector('.desktop-hamburger');
+                const menu = document.querySelector('.desktop-actions-menu');
+                
+                desktopMenuOpen = !desktopMenuOpen;
+                
+                if (desktopMenuOpen) {
+                    hamburger.classList.add('active');
+                    menu.classList.add('active');
+                } else {
+                    closeDesktopMenu();
+                }
+            }
+            
+            function closeDesktopMenu() {
+                const hamburger = document.querySelector('.desktop-hamburger');
+                const menu = document.querySelector('.desktop-actions-menu');
+                
+                desktopMenuOpen = false;
+                hamburger.classList.remove('active');
+                menu.classList.remove('active');
+            }
+            
+            // Mobile menu functions
             function toggleMobileMenu() {
                 const hamburger = document.querySelector('.mobile-hamburger');
                 const overlay = document.querySelector('.mobile-menu-overlay');
@@ -1355,6 +1517,8 @@
                     hamburger.classList.add('active');
                     overlay.classList.add('active');
                     menu.classList.add('active');
+                    // Prevent body scroll
+                    document.body.classList.add('menu-open');
                 } else {
                     closeMobileMenu();
                 }
@@ -1369,6 +1533,8 @@
                 hamburger.classList.remove('active');
                 overlay.classList.remove('active');
                 menu.classList.remove('active');
+                // Restore body scroll
+                document.body.classList.remove('menu-open');
             }
             
             // Mobile action functions
@@ -1430,6 +1596,9 @@
                     if (mobileChatPanel) mobileChatPanel.style.display = 'flex';
                     if (quickActions) quickActions.className = 'mobile';
                     
+                    // Close desktop menu on mobile
+                    closeDesktopMenu();
+                    
                 } else {
                     // Desktop layout
                     if (desktopChatPanel) desktopChatPanel.style.display = 'flex';
@@ -1441,9 +1610,23 @@
                 }
             }
             
+            // Close menus when clicking outside (desktop only)
+            document.addEventListener('click', (e) => {
+                const desktopHamburger = document.querySelector('.desktop-hamburger');
+                const desktopMenu = document.querySelector('.desktop-actions-menu');
+                
+                if (desktopMenuOpen && 
+                    !desktopHamburger.contains(e.target) && 
+                    !desktopMenu.contains(e.target)) {
+                    closeDesktopMenu();
+                }
+            });
+            
             // Make functions globally available
             window.toggleMobileMenu = toggleMobileMenu;
             window.closeMobileMenu = closeMobileMenu;
+            window.toggleDesktopMenu = toggleDesktopMenu;
+            window.closeDesktopMenu = closeDesktopMenu;
             window.showMobileEmotions = showMobileEmotions;
         
         // Mobile chat toggle function
