@@ -124,9 +124,11 @@ urlpatterns = [
     path('rooms/', redirect_to_app, name='legacy_rooms'),
     path('explore/', redirect_to_app, name='legacy_explore'),
     path('chat/', redirect_to_app, name='legacy_chat'),
-    path('login/', lambda request: redirect('/accounts/login/'), name='legacy_login'),
-    path('signup/', lambda request: redirect('/accounts/signup/'), name='legacy_signup'),
-    path('register/', lambda request: redirect('/accounts/signup/'), name='legacy_register'),
+    
+    # Add these URL aliases for template compatibility
+    path('login/', lambda request: redirect('/accounts/login/'), name='login'),
+    path('signup/', lambda request: redirect('/accounts/signup/'), name='signup'),
+    path('register/', lambda request: redirect('/accounts/signup/'), name='register'),
     
     # ==================== SOCIAL MEDIA REDIRECTS ====================
     path('twitter/', lambda request: redirect('https://twitter.com/euphorieinc'), name='social_twitter'),
