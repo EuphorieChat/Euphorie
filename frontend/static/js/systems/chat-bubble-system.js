@@ -1,5 +1,5 @@
 // /static/js/systems/chat-bubble-system.js
-// COMPLETELY FIXED ChatBubbleSystem v4.0 - All Issues Resolved
+// COMPLETELY FIXED ChatBubbleSystem v4.1 - All Assignment Errors Fixed
 // Fixes: positioning, binding, integration, performance, WebSocket compatibility
 
 class ChatBubbleSystem {
@@ -19,6 +19,9 @@ class ChatBubbleSystem {
         this.renderer = null;
         this.isInitialized = false;
         this.initializationPromise = null;
+        
+        // NEW: Stack positioning tracking
+        this.stackPositions = new Map(); // Track vertical stacking per user
         
         // Message queue and state management
         this._messageQueue = [];
@@ -44,7 +47,7 @@ class ChatBubbleSystem {
         // Set as singleton instance
         ChatBubbleSystem._instance = this;
         
-        console.log('💬✨ ChatBubbleSystem v4.0 created with complete fixes');
+        console.log('💬✨ ChatBubbleSystem v4.1 created with assignment fixes');
     }
     
     // CRITICAL FIX: Comprehensive method binding
@@ -53,6 +56,9 @@ class ChatBubbleSystem {
             // Core methods
             'init', 'createBubble', 'createBubbleFromMessage', 'update',
             'getAvatarPosition', 'removeBubble', 'updateBubblePositions',
+            
+            // NEW: Position calculation methods
+            '_calculateOptimalPosition', 'avoidOverlapAtPosition', 'positionBubbleAboveAvatar',
             
             // Drawing and animation methods
             'drawBubbleBackground', 'roundRect', 'calculateTextDimensions',
@@ -246,7 +252,7 @@ class ChatBubbleSystem {
     
     async _performInitialization() {
         try {
-            console.log('🚀 Initializing ChatBubbleSystem v4.0...');
+            console.log('🚀 Initializing ChatBubbleSystem v4.1...');
             
             // Wait for required systems with timeout
             await this._waitForRequiredSystems();
@@ -273,7 +279,7 @@ class ChatBubbleSystem {
             this._processQueuedMessages();
             
             this.isInitialized = true;
-            console.log('✅ ChatBubbleSystem v4.0 initialized successfully');
+            console.log('✅ ChatBubbleSystem v4.1 initialized successfully');
             
             // Emit initialization event
             if (window.EventBus) {
@@ -427,7 +433,27 @@ class ChatBubbleSystem {
                 }
             }
             
-            // Method 4: Use cached position if recent
+            // Method 4: Search in scene groups
+            if (this.scene) {
+                for (const child of this.scene.children) {
+                    if (child.isGroup || child.children.length > 0) {
+                        const avatar = child.children.find(subChild =>
+                            subChild.userData?.userId === userId
+                        );
+                        if (avatar?.position) {
+                            const worldPosition = new THREE.Vector3();
+                            avatar.getWorldPosition(worldPosition);
+                            if (this._isValidAvatarPosition(worldPosition)) {
+                                this._avatarPositions.set(userId, worldPosition);
+                                this._lastAvatarUpdate.set(userId, Date.now());
+                                return worldPosition;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Method 5: Use cached position if recent
             if (this._avatarPositions.has(userId)) {
                 const lastUpdate = this._lastAvatarUpdate.get(userId) || 0;
                 if (Date.now() - lastUpdate < 30000) { // 30 second cache
@@ -435,7 +461,7 @@ class ChatBubbleSystem {
                 }
             }
             
-            // Method 5: Default position for current user
+            // Method 6: Default position for current user
             if (userId === window.ROOM_CONFIG?.userId) {
                 return new THREE.Vector3(0, 0, 0);
             }
@@ -506,6 +532,127 @@ class ChatBubbleSystem {
         this.updateBubblePositions(userId, position);
     }
     
+    // CRITICAL FIX: Add the missing _calculateOptimalPosition method
+    _calculateOptimalPosition(basePosition, userId, bubbleIndex = 0) {
+        try {
+            // CRITICAL FIX: Use let instead of const for reassignable variables
+            let optimalPosition = basePosition ? basePosition.clone() : this._generateFallbackPosition(userId);
+            
+            // Calculate stacking offset
+            const stackSpacing = this.config.stackSpacing || 0.6;
+            const yOffset = this.config.yOffset + (bubbleIndex * stackSpacing);
+            
+            // Apply vertical offset
+            optimalPosition.y += yOffset;
+            
+            // Overlap avoidance
+            if (this.config.avoidOverlap) {
+                optimalPosition = this.avoidOverlapAtPosition(optimalPosition, userId);
+            }
+            
+            return optimalPosition;
+            
+        } catch (error) {
+            console.warn('Error calculating optimal position:', error);
+            return new THREE.Vector3(0, this.config.yOffset || 3.0, 0);
+        }
+    }
+    
+    // CRITICAL FIX: Add the missing avoidOverlapAtPosition method
+    avoidOverlapAtPosition(position, userId) {
+        try {
+            // CRITICAL FIX: Use let for reassignable variable
+            let adjustedPosition = position.clone();
+            const minDistance = 1.5;
+            let attempts = 0;
+            const maxAttempts = 5;
+            
+            while (attempts < maxAttempts) {
+                let hasCollision = false;
+                
+                for (const [id, existingBubble] of this.bubbles) {
+                    if (existingBubble.userData?.userId === userId) continue;
+                    
+                    if (existingBubble.position) {
+                        const distance = adjustedPosition.distanceTo(existingBubble.position);
+                        
+                        if (distance < minDistance) {
+                            // Move bubble to avoid overlap
+                            const direction = adjustedPosition.clone().sub(existingBubble.position).normalize();
+                            adjustedPosition = existingBubble.position.clone().add(direction.multiplyScalar(minDistance));
+                            hasCollision = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Also check against active bubbles
+                for (const bubble of this.activeBubbles) {
+                    if (bubble.userData?.userId === userId) continue;
+                    
+                    if (bubble.position) {
+                        const distance = adjustedPosition.distanceTo(bubble.position);
+                        
+                        if (distance < minDistance) {
+                            const direction = adjustedPosition.clone().sub(bubble.position).normalize();
+                            adjustedPosition = bubble.position.clone().add(direction.multiplyScalar(minDistance));
+                            hasCollision = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!hasCollision) break;
+                attempts++;
+            }
+            
+            return adjustedPosition;
+            
+        } catch (error) {
+            console.warn('Error in overlap avoidance:', error);
+            return position;
+        }
+    }
+    
+    // CRITICAL FIX: Enhanced positionBubbleAboveAvatar method
+    positionBubbleAboveAvatar(bubble, userId, avatarPosition) {
+        try {
+            // CRITICAL FIX: Use let instead of const for reassignable variables
+            let basePosition = avatarPosition || this._generateFallbackPosition(userId);
+            
+            // Calculate stacking offset
+            const userStack = this.stackPositions.get(userId) || 0;
+            const yOffset = this.config.yOffset + (userStack * this.config.stackSpacing);
+            
+            // Set position
+            bubble.position.copy(basePosition);
+            bubble.position.y += yOffset;
+            
+            // Update stack tracking
+            this.stackPositions.set(userId, userStack + 1);
+            
+            // Overlap avoidance
+            if (this.config.avoidOverlap) {
+                const adjustedPosition = this.avoidOverlapAtPosition(bubble.position, userId);
+                bubble.position.copy(adjustedPosition);
+            }
+            
+            // Make bubble face camera
+            if (this.camera) {
+                bubble.lookAt(this.camera.position);
+            }
+            
+            if (this.config.enableDebug) {
+                console.log(`📍 Bubble positioned for ${userId} at:`, bubble.position);
+            }
+            
+        } catch (error) {
+            console.warn('Error positioning bubble:', error);
+            // Fallback to basic positioning
+            bubble.position.set(0, this.config.yOffset, 0);
+        }
+    }
+    
     // FIXED: Enhanced bubble creation with proper positioning and stacking
     createBubble(message, username, position, userId = null) {
         if (!this.isInitialized || !window.THREE) {
@@ -545,8 +692,8 @@ class ChatBubbleSystem {
             const sprite = this._createBubbleSprite(canvas, bubbleData);
             bubbleGroup.add(sprite);
             
-            // Position bubble
-            bubbleGroup.position.copy(bubblePosition);
+            // Position bubble using new positioning system
+            this.positionBubbleAboveAvatar(bubbleGroup, userId, position);
             
             // Set bubble metadata
             bubbleGroup.userData = {
@@ -557,7 +704,7 @@ class ChatBubbleSystem {
                 createdAt: Date.now(),
                 opacity: 1,
                 isVisible: true,
-                originalPosition: bubblePosition.clone(),
+                originalPosition: bubbleGroup.position.clone(),
                 priority: 50,
                 bubbleIndex: bubbleData.index
             };
@@ -617,54 +764,6 @@ class ChatBubbleSystem {
         }
         
         return { width, height, lines, lineHeight, usernameWidth, index };
-    }
-    
-    _calculateOptimalPosition(basePosition, userId, bubbleIndex = 0) {
-        const position = basePosition.clone();
-        
-        // Apply base offset
-        position.y += this.config.yOffset;
-        
-        // Apply stacking for multiple bubbles
-        if (bubbleIndex > 0) {
-            position.x += bubbleIndex * this.config.stackSpacing;
-            position.y += bubbleIndex * 0.4;
-            position.z += bubbleIndex * this.config.depthVariation;
-        }
-        
-        // Collision avoidance if enabled
-        if (this.config.avoidOverlap) {
-            position = this._avoidCollisions(position, userId);
-        }
-        
-        return position;
-    }
-    
-    _avoidCollisions(position, userId) {
-        const minDistance = 1.2;
-        let adjustedPosition = position.clone();
-        let attempts = 0;
-        
-        while (attempts < 5) {
-            let collision = false;
-            
-            for (const bubble of this.activeBubbles) {
-                if (bubble.userData.userId !== userId && 
-                    bubble.position.distanceTo(adjustedPosition) < minDistance) {
-                    
-                    // Move away from collision
-                    const direction = adjustedPosition.clone().sub(bubble.position).normalize();
-                    adjustedPosition.add(direction.multiplyScalar(0.3));
-                    collision = true;
-                    break;
-                }
-            }
-            
-            if (!collision) break;
-            attempts++;
-        }
-        
-        return adjustedPosition;
     }
     
     _drawBubbleContent(context, message, username, bubbleData) {
@@ -1039,6 +1138,8 @@ class ChatBubbleSystem {
         if (!bubble) return;
         
         try {
+            const userId = bubble.userData?.userId;
+            
             // Remove from scene
             if (bubble.parent) {
                 bubble.parent.remove(bubble);
@@ -1069,16 +1170,20 @@ class ChatBubbleSystem {
                 this.activeBubbles.splice(activeIndex, 1);
             }
             
-            if (bubble.userData.userId && this.bubbles.has(bubble.userData.userId)) {
-                const userBubbles = this.bubbles.get(bubble.userData.userId);
+            if (userId && this.bubbles.has(userId)) {
+                const userBubbles = this.bubbles.get(userId);
                 const userIndex = userBubbles.indexOf(bubble);
                 if (userIndex > -1) {
                     userBubbles.splice(userIndex, 1);
                 }
                 
                 if (userBubbles.length === 0) {
-                    this.bubbles.delete(bubble.userData.userId);
+                    this.bubbles.delete(userId);
                 }
+                
+                // Update stack tracking
+                const userStack = this.stackPositions.get(userId) || 0;
+                this.stackPositions.set(userId, Math.max(0, userStack - 1));
             }
             
         } catch (error) {
@@ -1120,6 +1225,7 @@ class ChatBubbleSystem {
             this.bubbles.delete(userId);
             this._avatarPositions.delete(userId);
             this._lastAvatarUpdate.delete(userId);
+            this.stackPositions.delete(userId);
         } catch (error) {
             console.error('Error removing user bubbles:', error);
         }
@@ -1136,6 +1242,7 @@ class ChatBubbleSystem {
             this.bubbles.clear();
             this._avatarPositions.clear();
             this._lastAvatarUpdate.clear();
+            this.stackPositions.clear();
             
             console.log('💬✨ All bubbles cleared');
         } catch (error) {
@@ -1343,6 +1450,7 @@ class ChatBubbleSystem {
             this._avatarPositions.clear();
             this._lastAvatarUpdate.clear();
             this._messageQueue = [];
+            this.stackPositions.clear();
             
             this.isInitialized = false;
             
@@ -1396,4 +1504,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3000);
 });
 
-console.log('💬✨ ChatBubbleSystem v4.0 - Complete Fixed Version Loaded!');
+console.log('💬✨ ChatBubbleSystem v4.1 - Complete Fixed Version Loaded! Assignment errors resolved.');
