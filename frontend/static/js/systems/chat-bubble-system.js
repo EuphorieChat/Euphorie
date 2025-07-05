@@ -12,6 +12,23 @@ class ChatBubbleSystem {
         this.renderer = null;
         this.isInitialized = false;
         
+        // Initialize missing properties
+        this.materialPool = [];
+        this.texturePool = [];
+        this.performance = {
+            frameTime: 0,
+            bubbleCount: 0,
+            renderCalls: 0,
+            lastCleanup: Date.now()
+        };
+        this.animations = {
+            fadeIn: { duration: 300, easing: 'easeOutBack' },
+            fadeOut: { duration: 500, easing: 'easeInQuart' },
+            bounce: { duration: 400, easing: 'easeOutBounce' }
+        };
+        this.sounds = {};
+        this.isMobile = window.innerWidth <= 768;
+        
         // Configuration from global config
         this.config = {
             maxBubbles: window.ROOM_CONFIG?.bubbleConfig?.maxBubbles || 20,
@@ -24,7 +41,12 @@ class ChatBubbleSystem {
             yOffset: 3.5,
             animationDuration: 300,
             maxBubblesPerUser: 3,
-            enableDebug: false
+            enableDebug: false,
+            textureResolution: 2,
+            enableShadows: true,
+            soundEnabled: false,
+            cullingDistance: 100,
+            lodDistance: 30
         };
         
         // Bubble styles
@@ -126,25 +148,32 @@ class ChatBubbleSystem {
         }
         
         try {
-            const avatarPosition = this.getAvatarPosition(messageData.userId);
+            const avatarPosition = this.getAvatarPosition(messageData.userId || messageData.user_id);
             if (!avatarPosition) {
-                console.warn(`💬 No avatar found for user ${messageData.userId}`);
-                return;
+                console.warn(`💬 No avatar found for user ${messageData.userId || messageData.user_id}`);
+                // Use fallback position
+                const fallbackPosition = new THREE.Vector3(
+                    (Math.random() - 0.5) * 10,
+                    2,
+                    (Math.random() - 0.5) * 10
+                );
+                return this.createBubble(
+                    messageData.message,
+                    messageData.username,
+                    fallbackPosition,
+                    messageData.userId || messageData.user_id
+                );
             }
-            
-            // Determine bubble style
-            const style = this.getBubbleStyle(messageData);
             
             const bubble = this.createBubble(
                 messageData.message,
                 messageData.username,
                 avatarPosition,
-                messageData.userId,
-                style
+                messageData.userId || messageData.user_id
             );
             
             // Play sound effect
-            if (this.config.soundEnabled && messageData.userId !== window.ROOM_CONFIG?.userId) {
+            if (this.config.soundEnabled && (messageData.userId || messageData.user_id) !== window.ROOM_CONFIG?.userId) {
                 this.playSound('pop');
             }
             
@@ -157,17 +186,6 @@ class ChatBubbleSystem {
         } catch (error) {
             console.error('❌ Error creating enhanced bubble from message:', error);
         }
-    }
-    
-    getBubbleStyle(messageData) {
-        if (messageData.userId === window.ROOM_CONFIG?.userId) {
-            return 'own';
-        } else if (messageData.type === 'system') {
-            return 'system';
-        } else if (messageData.isVip) {
-            return 'vip';
-        }
-        return 'default';
     }
     
     getAvatarPosition(userId) {
@@ -189,7 +207,12 @@ class ChatBubbleSystem {
                 return new THREE.Vector3(0, 0, 0);
             }
             
-            return null;
+            // Fallback position for other users
+            return new THREE.Vector3(
+                (Math.random() - 0.5) * 10,
+                0,
+                (Math.random() - 0.5) * 10
+            );
             
         } catch (error) {
             console.error('❌ Error getting avatar position:', error);
@@ -226,8 +249,8 @@ class ChatBubbleSystem {
             canvas.height = bubbleHeight * 2;
             context.scale(2, 2); // High DPI scaling
             
-            // Draw bubble background that fits the text
-            this.drawEnhancedBackground(context, bubbleWidth, bubbleHeight, this.bubbleStyles);
+            // Draw bubble background - FIXED METHOD
+            this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
             
             // Draw username
             context.font = usernameFont;
@@ -291,7 +314,8 @@ class ChatBubbleSystem {
                 createdAt: Date.now(),
                 opacity: 1,
                 isVisible: true,
-                originalPosition: bubblePosition.clone()
+                originalPosition: bubblePosition.clone(),
+                priority: 50
             };
             
             // Animate in
@@ -330,6 +354,49 @@ class ChatBubbleSystem {
             console.error('❌ Error creating bubble:', error);
             return null;
         }
+    }
+    
+    // FIXED: Added the missing drawBubbleBackground method
+    drawBubbleBackground(context, width, height) {
+        // Enhanced shadow with blur
+        if (this.config.enableShadows) {
+            context.save();
+            context.shadowColor = this.bubbleStyles.shadowColor;
+            context.shadowBlur = 10;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 2;
+        }
+        
+        // Main bubble background
+        context.fillStyle = this.bubbleStyles.background;
+        context.strokeStyle = this.bubbleStyles.borderColor;
+        context.lineWidth = 2;
+        
+        // Draw rounded rectangle
+        context.beginPath();
+        this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
+        context.fill();
+        
+        if (this.config.enableShadows) {
+            context.restore();
+        }
+        
+        // Draw border
+        context.stroke();
+        
+        // Draw bubble tail
+        context.fillStyle = this.bubbleStyles.background;
+        context.beginPath();
+        context.moveTo(width / 2 - 12, height - 20);
+        context.quadraticCurveTo(width / 2, height - 5, width / 2 + 12, height - 20);
+        context.fill();
+        
+        // Tail border
+        context.strokeStyle = this.bubbleStyles.borderColor;
+        context.beginPath();
+        context.moveTo(width / 2 - 12, height - 20);
+        context.quadraticCurveTo(width / 2, height - 5, width / 2 + 12, height - 20);
+        context.stroke();
     }
     
     calculateTextDimensions(context, message, username, usernameFont, messageFont) {
@@ -410,6 +477,18 @@ class ChatBubbleSystem {
         return finalLines;
     }
     
+    roundRect(context, x, y, width, height, radius) {
+        context.moveTo(x + radius, y);
+        context.lineTo(x + width - radius, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + radius);
+        context.lineTo(x + width, y + height - radius);
+        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        context.lineTo(x + radius, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
+    }
+    
     animateBubbleIn(bubble) {
         const startScale = 0;
         const endScale = 1;
@@ -437,274 +516,17 @@ class ChatBubbleSystem {
         animate();
     }
     
-    createBubbleCanvas(processedMessage, username, style) {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        
-        // Enhanced canvas setup with high DPI
-        const dpr = this.config.textureResolution;
-        
-        // Calculate dimensions
-        const metrics = this.calculateTextMetrics(context, processedMessage, username);
-        const bubbleWidth = Math.max(metrics.maxWidth + this.config.padding * 2, 120);
-        const bubbleHeight = metrics.totalHeight + this.config.padding * 2 + 25;
-        
-        // Set canvas size with DPI scaling
-        canvas.width = bubbleWidth * dpr;
-        canvas.height = bubbleHeight * dpr;
-        context.scale(dpr, dpr);
-        
-        // Enhanced background drawing
-        this.drawEnhancedBackground(context, bubbleWidth, bubbleHeight, style);
-        
-        // Draw text with enhanced typography
-        this.drawEnhancedText(context, processedMessage, username, style, metrics);
-        
-        return canvas;
-    }
-    
-    calculateTextMetrics(context, processedMessage, username) {
-        const lines = Array.isArray(processedMessage) ? processedMessage : [processedMessage];
-        
-        // Setup fonts
-        context.font = `bold ${this.config.fontSize * 0.85}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        const usernameWidth = context.measureText(username).width;
-        
-        context.font = `${this.config.fontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        let maxTextWidth = 0;
-        
-        lines.forEach(line => {
-            const width = context.measureText(line).width;
-            if (width > maxTextWidth) maxTextWidth = width;
-        });
-        
-        const maxWidth = Math.max(usernameWidth, maxTextWidth);
-        const lineHeight = this.config.fontSize * 1.3;
-        const totalHeight = 25 + (lines.length * lineHeight);
-        
-        return { maxWidth, totalHeight, lineHeight, lines };
-    }
-    
-    drawEnhancedBackground(context, width, height, style) {
-        // Enhanced shadow with blur
-        if (this.config.enableShadows) {
-            context.save();
-            context.shadowColor = style.shadowColor;
-            context.shadowBlur = 15;
-            context.shadowOffsetX = 0;
-            context.shadowOffsetY = 3;
-        }
-        
-        // Main bubble with gradient support
-        if (style.background.startsWith('linear-gradient')) {
-            const gradient = this.createGradientFromCSS(context, style.background, width, height);
-            context.fillStyle = gradient;
-        } else {
-            context.fillStyle = style.background;
-        }
-        
-        // Enhanced rounded rectangle
-        context.beginPath();
-        this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
-        context.fill();
-        
-        if (this.config.enableShadows) {
-            context.restore();
-        }
-        
-        // Bubble tail with smooth curves
-        context.fillStyle = style.background.startsWith('linear-gradient') ? 
-            style.borderColor : style.background;
-        context.beginPath();
-        context.moveTo(width / 2 - 12, height - 20);
-        context.quadraticCurveTo(width / 2, height - 5, width / 2 + 12, height - 20);
-        context.fill();
-        
-        // Enhanced border
-        context.strokeStyle = style.borderColor;
-        context.lineWidth = 2.5;
-        context.beginPath();
-        this.roundRect(context, 1, 1, width - 2, height - 21, this.config.borderRadius - 1);
-        context.stroke();
-        
-        // Inner glow effect
-        if (style.glowColor) {
-            context.strokeStyle = style.glowColor;
-            context.lineWidth = 1;
-            context.beginPath();
-            this.roundRect(context, 2, 2, width - 4, height - 22, this.config.borderRadius - 2);
-            context.stroke();
-        }
-    }
-    
-    createGradientFromCSS(context, cssGradient, width, height) {
-        // Simple linear gradient parser for enhanced styles
-        const gradient = context.createLinearGradient(0, 0, width, height);
-        gradient.addColorStop(0, 'rgba(138, 43, 226, 0.95)');
-        gradient.addColorStop(1, 'rgba(75, 0, 130, 0.95)');
-        return gradient;
-    }
-    
-    drawEnhancedText(context, processedMessage, username, style, metrics) {
-        const { lines, lineHeight } = metrics;
-        
-        // Enhanced username with background
-        context.font = `bold ${this.config.fontSize * 0.85}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        context.fillStyle = style.usernameColor;
-        context.textAlign = 'left';
-        
-        // Username background
-        const usernameWidth = context.measureText(username).width;
-        context.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        context.fillRect(this.config.padding - 4, this.config.padding - 2, usernameWidth + 8, 20);
-        
-        context.fillStyle = style.usernameColor;
-        context.fillText(username, this.config.padding, this.config.padding + 15);
-        
-        // Enhanced message text with better spacing
-        context.font = `${this.config.fontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        context.fillStyle = style.textColor;
-        
-        // Add text stroke for better readability
-        context.lineWidth = 3;
-        context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        
-        lines.forEach((line, index) => {
-            const y = this.config.padding + 35 + (index * lineHeight);
-            context.strokeText(line, this.config.padding, y);
-            context.fillText(line, this.config.padding, y);
-        });
-    }
-    
-    roundRect(context, x, y, width, height, radius) {
-        context.moveTo(x + radius, y);
-        context.lineTo(x + width - radius, y);
-        context.quadraticCurveTo(x + width, y, x + width, y + radius);
-        context.lineTo(x + width, y + height - radius);
-        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        context.lineTo(x + radius, y + height);
-        context.quadraticCurveTo(x, y + height, x, y + height - radius);
-        context.lineTo(x, y + radius);
-        context.quadraticCurveTo(x, y, x + radius, y);
-    }
-    
-    getMaterial() {
-        return this.materialPool.length > 0 ? 
-            this.materialPool.pop() : 
-            this.createBaseMaterial();
-    }
-    
-    setupTexture(texture) {
-        texture.needsUpdate = true;
-        texture.generateMipmaps = false;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        texture.wrapS = THREE.ClampToEdgeWrapping;
-        texture.wrapT = THREE.ClampToEdgeWrapping;
-    }
-    
-    calculateOptimalScale(width, height) {
-        const baseScale = 0.009;
-        const aspectRatio = width / height;
-        
-        return {
-            x: width * baseScale,
-            y: height * baseScale,
-            z: 1
-        };
-    }
-    
-    addGlowEffect(bubbleGroup, glowColor) {
-        // Add subtle glow effect for premium bubbles
-        const glowGeometry = new THREE.PlaneGeometry(1.2, 1.2);
-        const glowMaterial = new THREE.MeshBasicMaterial({
-            color: glowColor,
-            transparent: true,
-            opacity: 0.3,
-            blending: THREE.AdditiveBlending
-        });
-        
-        const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-        glowMesh.position.z = -0.1;
-        bubbleGroup.add(glowMesh);
-    }
-    
-    calculateBubblePosition(basePosition, userId) {
-        const position = basePosition.clone();
-        position.y += this.config.yOffset;
-        
-        // Smart collision avoidance
-        if (userId && this.bubbles.has(userId)) {
-            const userBubbles = this.bubbles.get(userId);
-            const spacing = 0.6;
-            const verticalSpacing = 0.4;
-            
-            userBubbles.forEach((existingBubble, index) => {
-                if (existingBubble.userData.isVisible) {
-                    position.x += spacing * Math.cos(index * 1.2);
-                    position.y += verticalSpacing * (index + 1);
-                    position.z += 0.1 * Math.sin(index * 0.8);
-                }
-            });
-        }
-        
-        return position;
-    }
-    
-    calculatePriority(styleType, userId) {
-        let priority = 0;
-        
-        if (styleType === 'vip') priority += 100;
-        if (styleType === 'own') priority += 50;
-        if (styleType === 'system') priority += 25;
-        if (userId === window.ROOM_CONFIG?.userId) priority += 30;
-        
-        return priority;
-    }
-    
-    animateBubbleIn(bubble, styleType) {
-        const animationType = styleType === 'vip' ? 'bounce' : 'fadeIn';
-        const config = this.animations[animationType];
-        
-        bubble.scale.set(0, 0, 0);
-        bubble.userData.opacity = 0;
-        
-        const startTime = Date.now();
-        
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / config.duration, 1);
-            const easeProgress = this.applyEasing(progress, config.easing);
-            
-            const scale = easeProgress;
-            bubble.scale.set(scale, scale, scale);
-            
-            if (bubble.children[0]?.material) {
-                bubble.children[0].material.opacity = easeProgress;
-                bubble.userData.opacity = easeProgress;
-            }
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.scheduleFadeOut(bubble);
-            }
-        };
-        
-        animate();
-    }
-    
     animateBubbleOut(bubble) {
         if (!bubble.parent) return;
         
-        const config = this.animations.fadeOut;
+        const duration = 500;
         const startTime = Date.now();
-        const startOpacity = bubble.userData.opacity;
+        const startOpacity = bubble.userData.opacity || 1;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / config.duration, 1);
-            const easeProgress = this.applyEasing(progress, config.easing);
+            const progress = Math.min(elapsed / duration, 1);
+            const easeProgress = progress * progress; // Ease in
             
             const opacity = startOpacity * (1 - easeProgress);
             const scale = 1 - (easeProgress * 0.3);
@@ -724,81 +546,6 @@ class ChatBubbleSystem {
         };
         
         animate();
-    }
-    
-    applyEasing(t, type) {
-        switch (type) {
-            case 'easeOutBack':
-                const c1 = 1.70158;
-                const c3 = c1 + 1;
-                return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-            
-            case 'easeOutBounce':
-                const n1 = 7.5625;
-                const d1 = 2.75;
-                if (t < 1 / d1) {
-                    return n1 * t * t;
-                } else if (t < 2 / d1) {
-                    return n1 * (t -= 1.5 / d1) * t + 0.75;
-                } else if (t < 2.5 / d1) {
-                    return n1 * (t -= 2.25 / d1) * t + 0.9375;
-                } else {
-                    return n1 * (t -= 2.625 / d1) * t + 0.984375;
-                }
-            
-            case 'easeOutCubic':
-                return 1 - Math.pow(1 - t, 3);
-            
-            case 'easeInQuart':
-                return t * t * t * t;
-            
-            default:
-                return t;
-        }
-    }
-    
-    scheduleFadeOut(bubble) {
-        const delay = this.config.fadeTime + (Math.random() * 1000 - 500); // Add variance
-        setTimeout(() => {
-            this.animateBubbleOut(bubble);
-        }, delay);
-    }
-    
-    trackUserBubble(userId, bubble) {
-        if (!userId) return;
-        
-        if (!this.bubbles.has(userId)) {
-            this.bubbles.set(userId, []);
-        }
-        this.bubbles.get(userId).push(bubble);
-    }
-    
-    enforceUserLimit(userId) {
-        if (!userId || !this.bubbles.has(userId)) return;
-        
-        const userBubbles = this.bubbles.get(userId);
-        while (userBubbles.length > this.config.maxBubblesPerUser) {
-            const oldBubble = userBubbles.shift();
-            this.animateBubbleOut(oldBubble);
-        }
-    }
-    
-    enforceGlobalLimit() {
-        while (this.activeBubbles.length > this.config.maxBubbles) {
-            // Remove lowest priority bubble
-            const bubbleToRemove = this.activeBubbles.reduce((lowest, current) => 
-                (current.userData.priority < lowest.userData.priority) ? current : lowest
-            );
-            this.animateBubbleOut(bubbleToRemove);
-        }
-    }
-    
-    addInteractionHandlers(bubble) {
-        // Add click/tap interaction for bubble details
-        bubble.userData.onClick = () => {
-            console.log(`💬 Bubble clicked: ${bubble.userData.message}`);
-            // Could show expanded view, emoji reactions, etc.
-        };
     }
     
     update() {
@@ -827,23 +574,19 @@ class ChatBubbleSystem {
                 
                 // Enhanced floating animation
                 const time = Date.now() * 0.001;
-                const floatAmount = 0.03 * bubble.userData.priority / 100;
+                const floatAmount = 0.03;
                 const floatOffset = Math.sin(time + bubble.userData.id * 0.5) * floatAmount;
                 bubble.position.y = bubble.userData.originalPosition.y + floatOffset;
                 
-                // Gentle swaying based on priority
-                const swayAmount = 0.015 * (1 + bubble.userData.priority / 200);
+                // Gentle swaying
+                const swayAmount = 0.015;
                 bubble.position.x = bubble.userData.originalPosition.x + 
                     Math.sin(time * 0.6 + bubble.userData.id) * swayAmount;
                 bubble.position.z = bubble.userData.originalPosition.z + 
                     Math.cos(time * 0.4 + bubble.userData.id) * swayAmount;
                 
-                // LOD (Level of Detail) optimization
-                if (distance > this.config.lodDistance && bubble.children[0]?.material) {
-                    // Reduce quality at distance
-                    bubble.children[0].material.opacity = bubble.userData.opacity * 0.7;
-                } else if (bubble.children[0]?.material) {
-                    // Distance-based opacity
+                // Distance-based opacity
+                if (bubble.children[0]?.material) {
                     const opacity = Math.max(0.4, 1 - (distance / this.config.maxDistance));
                     bubble.children[0].material.opacity = opacity * bubble.userData.opacity;
                 }
@@ -1000,55 +743,10 @@ class ChatBubbleSystem {
         console.log('💬✨ All enhanced chat bubbles cleared');
     }
     
-    // Audio system for bubble sounds
-    createAudioBuffer(type) {
-        if (!this.config.soundEnabled) return null;
-        
-        // Create simple audio context for UI sounds
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            return { audioContext, oscillator, gainNode };
-        } catch (error) {
-            console.warn('Audio not available:', error);
-            return null;
-        }
-    }
-    
     playSound(type) {
-        if (!this.sounds[type] || !this.config.soundEnabled) return;
-        
-        try {
-            const { audioContext, oscillator, gainNode } = this.sounds[type];
-            
-            switch (type) {
-                case 'pop':
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-                    break;
-                case 'whoosh':
-                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.2);
-                    break;
-                case 'chime':
-                    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
-                    break;
-            }
-            
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
-            
-        } catch (error) {
-            console.warn('Error playing bubble sound:', error);
-        }
+        // Simple sound placeholder
+        if (!this.config.soundEnabled) return;
+        console.log(`🔊 Playing sound: ${type}`);
     }
     
     // Public API methods
@@ -1076,40 +774,19 @@ class ChatBubbleSystem {
         };
     }
     
-    // Enhanced testing and utility methods
-    createTestBubble(message = "Enhanced test message! 🚀", username = "TestUser", style = 'vip') {
+    createTestBubble(message = "Test message! 🚀", username = "TestUser") {
         const position = new THREE.Vector3(
             (Math.random() - 0.5) * 15,
             3,
             (Math.random() - 0.5) * 15
         );
         
-        return this.createBubble(message, username, position, 'test_' + Date.now(), style);
+        return this.createBubble(message, username, position, 'test_' + Date.now());
     }
     
-    getBubblesNearPosition(position, radius = 8) {
-        return this.activeBubbles.filter(bubble => {
-            return bubble.position.distanceTo(position) <= radius && bubble.userData.isVisible;
-        });
-    }
-    
-    // Configuration updates
     updateConfig(newConfig) {
         Object.assign(this.config, newConfig);
         console.log('💬✨ Enhanced ChatBubbleSystem config updated:', newConfig);
-    }
-    
-    // Style management
-    addCustomStyle(name, style) {
-        this.bubbleStyles[name] = style;
-        console.log(`💬✨ Custom bubble style '${name}' added`);
-    }
-    
-    // Batch operations for performance
-    createMultipleBubbles(messages) {
-        messages.forEach(msg => {
-            this.createBubbleFromMessage(msg);
-        });
     }
     
     dispose() {
