@@ -1863,133 +1863,158 @@
                 const isOwn = data.user_id === this.userId;
                 this.addMessageToChat(data.username, data.message, isOwn);
                 
-                // Create 3D chat bubble if enabled
+                // Create 3D chat bubble if enabled - FORCE CREATE FOR BOTH PLATFORMS
                 if (window.ROOM_CONFIG.chatBubblesEnabled) {
-                    console.log('💬 Creating 3D chat bubble:', data.message, 'Platform:', isMobile ? 'Mobile' : 'Desktop');
+                    console.log('💬 FORCE Creating bubble:', data.message, 'Platform:', isMobile ? 'Mobile' : 'Desktop');
                     
-                    // Simple direct approach - force bubble creation for both platforms
-                    setTimeout(() => {
-                        this.createDirectBubble(data);
-                    }, 50); // Small delay to ensure scene is ready
+                    // Try multiple times to ensure it works on desktop
+                    this.createBubbleNow(data);
+                    
+                    // Desktop backup - try again after 100ms
+                    if (!isMobile) {
+                        setTimeout(() => this.createBubbleNow(data), 100);
+                        setTimeout(() => this.createBubbleNow(data), 300);
+                    }
                 }
             }
             
-            createDirectBubble(data) {
-                if (!window.THREE || !window.scene) {
-                    console.error('❌ THREE.js or scene not available');
+            createBubbleNow(data) {
+                if (!window.THREE) {
+                    console.error('❌ THREE.js not loaded');
+                    return;
+                }
+                
+                if (!window.scene) {
+                    console.error('❌ Scene not available');
                     return;
                 }
                 
                 try {
                     const message = data.message || '';
+                    console.log(`🎯 Creating bubble for: "${message}"`);
                     
-                    // Auto-sizing based on text length
-                    const baseWidth = 200;
-                    const charWidth = 8; // Average character width
-                    const maxWidth = isMobile ? 300 : 400;
-                    const minWidth = 100;
+                    // Calculate proper text dimensions
+                    const fontSize = 16;
+                    const padding = 20;
+                    const lineHeight = 24; // Increased for better spacing
+                    const maxLineWidth = isMobile ? 250 : 300;
                     
-                    // Calculate width based on message length
-                    let bubbleWidth = Math.max(minWidth, Math.min(maxWidth, message.length * charWidth + 40));
+                    // Create temporary canvas to measure text
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.font = `${fontSize}px Arial`;
                     
-                    // Calculate height based on text wrapping
-                    const wordsPerLine = Math.floor((bubbleWidth - 40) / (charWidth * 6)); // Rough words per line
+                    // Word wrap the text properly
                     const words = message.split(' ');
-                    const numberOfLines = Math.ceil(words.length / wordsPerLine);
-                    const bubbleHeight = Math.max(60, numberOfLines * 25 + 40);
+                    const lines = [];
+                    let currentLine = '';
                     
-                    console.log(`📏 Auto-sizing: Width: ${bubbleWidth}px, Height: ${bubbleHeight}px, Lines: ${numberOfLines}`);
+                    for (const word of words) {
+                        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                        const width = tempCtx.measureText(testLine).width;
+                        
+                        if (width > maxLineWidth - padding * 2 && currentLine) {
+                            lines.push(currentLine);
+                            currentLine = word;
+                        } else {
+                            currentLine = testLine;
+                        }
+                    }
+                    if (currentLine) {
+                        lines.push(currentLine);
+                    }
                     
-                    // Create canvas
+                    // If no lines, use original message
+                    if (lines.length === 0) {
+                        lines.push(message);
+                    }
+                    
+                    // Calculate bubble dimensions based on content
+                    let maxWidth = 0;
+                    for (const line of lines) {
+                        const width = tempCtx.measureText(line).width;
+                        maxWidth = Math.max(maxWidth, width);
+                    }
+                    
+                    const bubbleWidth = Math.max(120, maxWidth + padding * 2);
+                    const bubbleHeight = lines.length * lineHeight + padding * 2;
+                    
+                    console.log(`📏 Bubble size: ${bubbleWidth}x${bubbleHeight}, Lines: ${lines.length}`);
+                    
+                    // Create the actual bubble canvas
                     const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
+                    const ctx = canvas.getContext('2d');
                     canvas.width = bubbleWidth;
                     canvas.height = bubbleHeight;
                     
                     // Draw bubble background
-                    context.fillStyle = isOwn ? 'rgba(76, 175, 80, 0.9)' : 'rgba(102, 126, 234, 0.9)';
-                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    const isOwn = data.user_id === this.userId;
+                    ctx.fillStyle = isOwn ? 'rgba(76, 175, 80, 0.9)' : 'rgba(102, 126, 234, 0.9)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                     
-                    // Draw text with word wrapping
-                    context.fillStyle = 'white';
-                    context.font = `${isMobile ? '14px' : '16px'} Arial`;
-                    context.textAlign = 'left';
+                    // Draw border
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(0, 0, canvas.width, canvas.height);
                     
-                    // Simple word wrapping
-                    const maxLineWidth = canvas.width - 20;
-                    const lines = this.wrapText(context, message, maxLineWidth);
+                    // Draw text lines
+                    ctx.fillStyle = 'white';
+                    ctx.font = `${fontSize}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
                     
-                    // Draw each line
-                    lines.forEach((line, index) => {
-                        context.fillText(line, 10, 25 + (index * 20));
-                    });
+                    // Draw each line with proper spacing
+                    for (let i = 0; i < lines.length; i++) {
+                        const x = canvas.width / 2;
+                        const y = padding + (i * lineHeight) + (lineHeight / 2);
+                        ctx.fillText(lines[i], x, y);
+                    }
                     
                     // Create THREE.js sprite
                     const texture = new THREE.CanvasTexture(canvas);
-                    const material = new THREE.SpriteMaterial({ map: texture });
+                    const material = new THREE.SpriteMaterial({ 
+                        map: texture,
+                        transparent: true
+                    });
                     const sprite = new THREE.Sprite(material);
                     
-                    // Position above avatar - FIXED for desktop
-                    const avatarY = 1.5; // Standard avatar height
-                    const bubbleY = avatarY + 2; // Position above avatar
-                    
-                    // Use user-specific positioning
-                    const userHash = this.hashString(data.user_id);
-                    const angle = (userHash % 8) * (Math.PI * 2 / 8);
-                    const radius = 2;
+                    // FIXED POSITIONING - Force position for desktop
+                    const userNum = this.hashString(data.user_id || 'default') % 6;
+                    const angle = (userNum * Math.PI * 2) / 6;
+                    const radius = 3;
                     
                     sprite.position.set(
                         Math.cos(angle) * radius,
-                        bubbleY,
+                        2.5, // Fixed height above ground
                         Math.sin(angle) * radius
                     );
                     
-                    // Scale based on platform and content
-                    const scale = isMobile ? 1.0 : 1.5;
-                    sprite.scale.set(scale, scale * 0.6, 1);
+                    // Scale appropriately
+                    const scale = isMobile ? 0.8 : 1.2;
+                    sprite.scale.set(scale, scale, 1);
                     
-                    // Add to scene
+                    // ADD TO SCENE - This is critical
                     window.scene.add(sprite);
                     
-                    console.log(`✅ Direct bubble created at position: ${sprite.position.x.toFixed(2)}, ${sprite.position.y.toFixed(2)}, ${sprite.position.z.toFixed(2)}`);
+                    console.log(`✅ Bubble added to scene at: (${sprite.position.x.toFixed(1)}, ${sprite.position.y.toFixed(1)}, ${sprite.position.z.toFixed(1)})`);
+                    console.log(`Scene children count: ${window.scene.children.length}`);
                     
                     // Auto-remove after 5 seconds
                     setTimeout(() => {
-                        if (sprite.parent) {
+                        if (sprite.parent === window.scene) {
                             window.scene.remove(sprite);
                             texture.dispose();
                             material.dispose();
-                            console.log('🗑️ Bubble cleaned up');
+                            console.log('🗑️ Bubble removed from scene');
                         }
                     }, 5000);
                     
-                } catch (error) {
-                    console.error('❌ Direct bubble creation failed:', error);
-                }
-            }
-            
-            wrapText(context, text, maxWidth) {
-                const words = text.split(' ');
-                const lines = [];
-                let currentLine = '';
-                
-                for (let i = 0; i < words.length; i++) {
-                    const testLine = currentLine + words[i] + ' ';
-                    const metrics = context.measureText(testLine);
+                    return true;
                     
-                    if (metrics.width > maxWidth && currentLine !== '') {
-                        lines.push(currentLine.trim());
-                        currentLine = words[i] + ' ';
-                    } else {
-                        currentLine = testLine;
-                    }
+                } catch (error) {
+                    console.error('❌ Bubble creation error:', error);
+                    return false;
                 }
-                
-                if (currentLine.trim() !== '') {
-                    lines.push(currentLine.trim());
-                }
-                
-                return lines.length > 0 ? lines : [text];
             }
             
             hashString(str) {
@@ -1997,7 +2022,7 @@
                 for (let i = 0; i < str.length; i++) {
                     const char = str.charCodeAt(i);
                     hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash; // Convert to 32-bit integer
+                    hash = hash & hash;
                 }
                 return Math.abs(hash);
             }
