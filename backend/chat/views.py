@@ -644,36 +644,28 @@ def friend_suggestions(request):
 def dashboard(request):
     user = request.user
     
-    # Get user's rooms (rooms they created)
-    user_created_rooms = Room.objects.filter(creator=user)
-    
-    # Get rooms where user might be active (you may need to adjust this based on your model)
-    # Since there's no direct users field, we'll look at rooms where user has sent messages
-    rooms_with_messages = Room.objects.filter(
-        messages__user=user
+    # Get user's rooms using a single query with OR condition
+    user_rooms = Room.objects.filter(
+        Q(creator=user) | Q(messages__user=user)
     ).distinct()
     
-    # Combine both querysets for "user's rooms"
-    user_rooms = (user_created_rooms | rooms_with_messages).distinct()
-    
-    # Get user's messages count
+    # Get user's message count
     user_messages_count = Message.objects.filter(user=user).count()
     
-    # Get recent messages from rooms where user is active
-    recent_messages = Message.objects.filter(
-        Q(room__creator=user) | Q(room__messages__user=user)
-    ).select_related('user', 'room').order_by('-timestamp').distinct()[:10]
+    # Get recent messages from all rooms (limit to recent activity)
+    recent_messages = Message.objects.select_related(
+        'user', 'room'
+    ).order_by('-timestamp')[:10]
     
-    # Get today's message count
+    # Get today's messages by this user
     today = datetime.now().date()
     messages_today = Message.objects.filter(
         user=user,
         timestamp__date=today
     ).count()
     
-    # Get online users count - this might need to be implemented based on your user tracking
-    # For now, let's use a simple approach or set to 0
-    online_users_count = 0  # You can implement online user tracking later
+    # Simple online count (you can enhance this later)
+    online_users_count = 0
     
     context = {
         'user_rooms': user_rooms,
