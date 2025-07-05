@@ -12,7 +12,7 @@ class ChatBubbleSystem {
         this.renderer = null;
         this.isInitialized = false;
         
-        // Initialize missing properties
+        // Initialize missing properties to fix errors
         this.materialPool = [];
         this.texturePool = [];
         this.performance = {
@@ -620,7 +620,7 @@ class ChatBubbleSystem {
     update() {
         if (!this.camera || !this.isInitialized) return;
         
-        const startTime = performance.now();
+        const startTime = performance ? performance.now() : Date.now();
         
         try {
             this.activeBubbles.forEach(bubble => {
@@ -666,7 +666,9 @@ class ChatBubbleSystem {
         }
         
         // Performance tracking
-        this.performance.frameTime = performance.now() - startTime;
+        if (performance) {
+            this.performance.frameTime = performance.now() - startTime;
+        }
         this.performance.bubbleCount = this.activeBubbles.length;
         this.performance.renderCalls++;
     }
