@@ -620,7 +620,7 @@ class ChatBubbleSystem {
     update() {
         if (!this.camera || !this.isInitialized) return;
         
-        const startTime = performance ? performance.now() : Date.now();
+        const startTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
         
         try {
             this.activeBubbles.forEach(bubble => {
@@ -666,7 +666,7 @@ class ChatBubbleSystem {
         }
         
         // Performance tracking
-        if (performance) {
+        if (typeof performance !== 'undefined' && performance.now) {
             this.performance.frameTime = performance.now() - startTime;
         }
         this.performance.bubbleCount = this.activeBubbles.length;
