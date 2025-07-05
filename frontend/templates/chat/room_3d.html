@@ -1863,143 +1863,83 @@
                 const isOwn = data.user_id === this.userId;
                 this.addMessageToChat(data.username, data.message, isOwn);
                 
-                // Create 3D chat bubble if enabled
+                // Create 3D chat bubble if enabled and ChatBubbleSystem is available
                 if (window.ROOM_CONFIG.chatBubblesEnabled) {
-                    console.log('💬 Creating 3D chat bubble:', data.message, 'Platform:', isMobile ? 'Mobile' : 'Desktop');
+                    console.log('💬 Creating 3D chat bubble for message:', data.message);
                     
-                    // Simple direct approach - force bubble creation for both platforms
-                    setTimeout(() => {
-                        this.createDirectBubble(data);
-                    }, 50); // Small delay to ensure scene is ready
+                    // Enhanced chat bubble creation with better error handling
+                    if (window.ChatBubbleSystem && window.ChatBubbleSystem.createBubbleFromMessage) {
+                        try {
+                            window.ChatBubbleSystem.createBubbleFromMessage(data);
+                            console.log('✅ 3D chat bubble created successfully');
+                        } catch (error) {
+                            console.error('❌ Error creating 3D chat bubble:', error);
+                            // Fallback: try alternative method
+                            this.createFallbackBubble(data);
+                        }
+                    } else if (window.ChatBubbleSystem && window.ChatBubbleSystem.createBubble) {
+                        try {
+                            // Alternative method
+                            window.ChatBubbleSystem.createBubble(data.message, data.username, data.user_id);
+                            console.log('✅ 3D chat bubble created via alternative method');
+                        } catch (error) {
+                            console.error('❌ Error creating alternative 3D chat bubble:', error);
+                            this.createFallbackBubble(data);
+                        }
+                    } else {
+                        console.warn('⚠️ ChatBubbleSystem not available, will retry when loaded');
+                        // Store message for later bubble creation
+                        if (!window.pendingChatBubbles) {
+                            window.pendingChatBubbles = [];
+                        }
+                        window.pendingChatBubbles.push(data);
+                    }
+                } else {
+                    console.log('💬 3D bubbles disabled');
                 }
             }
             
-            createDirectBubble(data) {
-                if (!window.THREE || !window.scene) {
-                    console.error('❌ THREE.js or scene not available');
-                    return;
-                }
+            createFallbackBubble(data) {
+                console.log('🔄 Creating fallback 3D chat bubble');
                 
-                try {
-                    const message = data.message || '';
-                    
-                    // Auto-sizing based on text length
-                    const baseWidth = 200;
-                    const charWidth = 8; // Average character width
-                    const maxWidth = isMobile ? 300 : 400;
-                    const minWidth = 100;
-                    
-                    // Calculate width based on message length
-                    let bubbleWidth = Math.max(minWidth, Math.min(maxWidth, message.length * charWidth + 40));
-                    
-                    // Calculate height based on text wrapping
-                    const wordsPerLine = Math.floor((bubbleWidth - 40) / (charWidth * 6)); // Rough words per line
-                    const words = message.split(' ');
-                    const numberOfLines = Math.ceil(words.length / wordsPerLine);
-                    const bubbleHeight = Math.max(60, numberOfLines * 25 + 40);
-                    
-                    console.log(`📏 Auto-sizing: Width: ${bubbleWidth}px, Height: ${bubbleHeight}px, Lines: ${numberOfLines}`);
-                    
-                    // Create canvas
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.width = bubbleWidth;
-                    canvas.height = bubbleHeight;
-                    
-                    // Draw bubble background
-                    context.fillStyle = isOwn ? 'rgba(76, 175, 80, 0.9)' : 'rgba(102, 126, 234, 0.9)';
-                    context.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Draw text with word wrapping
-                    context.fillStyle = 'white';
-                    context.font = `${isMobile ? '14px' : '16px'} Arial`;
-                    context.textAlign = 'left';
-                    
-                    // Simple word wrapping
-                    const maxLineWidth = canvas.width - 20;
-                    const lines = this.wrapText(context, message, maxLineWidth);
-                    
-                    // Draw each line
-                    lines.forEach((line, index) => {
-                        context.fillText(line, 10, 25 + (index * 20));
-                    });
-                    
-                    // Create THREE.js sprite
-                    const texture = new THREE.CanvasTexture(canvas);
-                    const material = new THREE.SpriteMaterial({ map: texture });
-                    const sprite = new THREE.Sprite(material);
-                    
-                    // Position above avatar - FIXED for desktop
-                    const avatarY = 1.5; // Standard avatar height
-                    const bubbleY = avatarY + 2; // Position above avatar
-                    
-                    // Use user-specific positioning
-                    const userHash = this.hashString(data.user_id);
-                    const angle = (userHash % 8) * (Math.PI * 2 / 8);
-                    const radius = 2;
-                    
-                    sprite.position.set(
-                        Math.cos(angle) * radius,
-                        bubbleY,
-                        Math.sin(angle) * radius
-                    );
-                    
-                    // Scale based on platform and content
-                    const scale = isMobile ? 1.0 : 1.5;
-                    sprite.scale.set(scale, scale * 0.6, 1);
-                    
-                    // Add to scene
-                    window.scene.add(sprite);
-                    
-                    console.log(`✅ Direct bubble created at position: ${sprite.position.x.toFixed(2)}, ${sprite.position.y.toFixed(2)}, ${sprite.position.z.toFixed(2)}`);
-                    
-                    // Auto-remove after 5 seconds
-                    setTimeout(() => {
-                        if (sprite.parent) {
+                // Simple fallback bubble creation
+                if (window.scene && window.THREE) {
+                    try {
+                        // Create a basic text sprite as fallback
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 512;
+                        canvas.height = 128;
+                        
+                        context.fillStyle = 'rgba(102, 126, 234, 0.9)';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+                        context.fillStyle = 'white';
+                        context.font = '24px Arial';
+                        context.textAlign = 'center';
+                        context.fillText(data.message, canvas.width / 2, canvas.height / 2);
+                        
+                        const texture = new THREE.CanvasTexture(canvas);
+                        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+                        const sprite = new THREE.Sprite(spriteMaterial);
+                        
+                        // Position above avatar (fallback position)
+                        sprite.position.set(0, 2, 0);
+                        sprite.scale.set(2, 0.5, 1);
+                        
+                        window.scene.add(sprite);
+                        
+                        // Remove after 5 seconds
+                        setTimeout(() => {
                             window.scene.remove(sprite);
                             texture.dispose();
-                            material.dispose();
-                            console.log('🗑️ Bubble cleaned up');
-                        }
-                    }, 5000);
-                    
-                } catch (error) {
-                    console.error('❌ Direct bubble creation failed:', error);
-                }
-            }
-            
-            wrapText(context, text, maxWidth) {
-                const words = text.split(' ');
-                const lines = [];
-                let currentLine = '';
-                
-                for (let i = 0; i < words.length; i++) {
-                    const testLine = currentLine + words[i] + ' ';
-                    const metrics = context.measureText(testLine);
-                    
-                    if (metrics.width > maxWidth && currentLine !== '') {
-                        lines.push(currentLine.trim());
-                        currentLine = words[i] + ' ';
-                    } else {
-                        currentLine = testLine;
+                            spriteMaterial.dispose();
+                        }, 5000);
+                        
+                        console.log('✅ Fallback 3D chat bubble created');
+                    } catch (error) {
+                        console.error('❌ Fallback bubble creation failed:', error);
                     }
                 }
-                
-                if (currentLine.trim() !== '') {
-                    lines.push(currentLine.trim());
-                }
-                
-                return lines.length > 0 ? lines : [text];
-            }
-            
-            hashString(str) {
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                    const char = str.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash; // Convert to 32-bit integer
-                }
-                return Math.abs(hash);
             }
             
             handleEmotion(data) {
@@ -2464,18 +2404,31 @@
             } else {
                 console.log('🚀 All systems loaded successfully!');
                 
-                // Initialize chat bubble system with simple direct approach
+                // Initialize chat bubble system with enhanced error handling
                 if (window.ChatBubbleSystem) {
                     try {
                         window.ChatBubbleSystem.init();
                         console.log('💬 Chat Bubble System initialized');
+                        
+                        // Process any pending chat bubbles
+                        if (window.pendingChatBubbles && window.pendingChatBubbles.length > 0) {
+                            console.log(`🔄 Processing ${window.pendingChatBubbles.length} pending chat bubbles`);
+                            window.pendingChatBubbles.forEach(data => {
+                                try {
+                                    window.ChatBubbleSystem.createBubbleFromMessage(data);
+                                } catch (error) {
+                                    console.error('❌ Error processing pending bubble:', error);
+                                }
+                            });
+                            window.pendingChatBubbles = [];
+                        }
+                        
                     } catch (error) {
                         console.error('❌ Error initializing ChatBubbleSystem:', error);
                     }
+                } else {
+                    console.warn('⚠️ ChatBubbleSystem not available');
                 }
-                
-                // Always use our direct bubble system to ensure it works on both platforms
-                console.log('🎯 Direct bubble system ready for both mobile and desktop');
                 
                 // Initialize control panels
                 initializeControlPanels();
