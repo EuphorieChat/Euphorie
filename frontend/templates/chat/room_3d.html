@@ -716,6 +716,28 @@
                 padding: 0 !important;
                 position: absolute !important;
             }
+            
+            /* Ensure chat is visible and properly positioned on desktop */
+            #chat-panel {
+                position: absolute !important;
+                bottom: 20px !important;
+                left: 20px !important;
+                transform: none !important;
+                width: 340px !important;
+                height: 280px !important;
+                border: 1px solid rgba(255,255,255,0.2) !important;
+                border-radius: 12px !important;
+                z-index: 100 !important;
+            }
+            
+            #chat-panel.minimized {
+                height: 60px !important;
+                width: 300px !important;
+            }
+            
+            .chat-minimize-btn {
+                display: inline-block !important;
+            }
         }
         
         /* Animation keyframes */
@@ -822,44 +844,47 @@
                 <div class="chat-controls">
                     <span id="connection-indicator" class="connection-indicator connecting">🔄 Connecting</span>
                     <button id="bubble-mode-toggle" class="bubble-mode-toggle active">3D Bubbles</button>
+                    <button class="chat-minimize-btn" onclick="toggleChatMinimize()">−</button>
                 </div>
             </div>
             
             <!-- Mobile Chat Toggle (only visible on mobile) -->
-            <button class="chat-toggle" onclick="toggleMobileChat()" style="display: none;">💬 Tap to expand chat</button>
+            <button class="chat-toggle" onclick="toggleMobileChat()">💬 Tap to expand chat</button>
             
-            <!-- Typing Indicators -->
-            <div id="typing-indicators"></div>
-            
-            <div id="chat-messages">
-                <div class="chat-message system">
-                    <div class="username">System</div>
-                    <div class="text">
-                        <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
-                        <strong id="controls-text-desktop">🎮 3D Chat Bubbles:</strong><br>
-                        <span id="controls-content-desktop">
-                        • Messages appear floating above avatars in 3D space<br>
-                        • Real-time synchronization with Rust WebSocket server<br>
-                        • Click the "3D Bubbles" toggle to enable/disable<br><br>
-                        <strong>🎮 Controls:</strong><br>
-                        • Mouse: Rotate camera, scroll to zoom<br>
-                        • Click avatars to interact<br>
-                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">1</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">W</kbd> Wave, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">2</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">D</kbd> Dance<br>
-                        • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities
-                        </span>
-                        <span id="controls-content-mobile" style="display: none;">
-                        <strong>📱 Mobile Controls:</strong><br>
-                        • Touch & drag to rotate camera<br>
-                        • Pinch to zoom<br>
-                        • Tap avatars to interact<br>
-                        • Use floating buttons for quick actions
-                        </span>
+            <div class="chat-content">
+                <!-- Typing Indicators -->
+                <div id="typing-indicators"></div>
+                
+                <div id="chat-messages">
+                    <div class="chat-message system">
+                        <div class="username">System</div>
+                        <div class="text">
+                            <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
+                            <strong id="controls-text-desktop">🎮 3D Chat Bubbles:</strong><br>
+                            <span id="controls-content-desktop">
+                            • Messages appear floating above avatars in 3D space<br>
+                            • Real-time synchronization with Rust WebSocket server<br>
+                            • Click the "3D Bubbles" toggle to enable/disable<br><br>
+                            <strong>🎮 Controls:</strong><br>
+                            • Mouse: Rotate camera, scroll to zoom<br>
+                            • Click avatars to interact<br>
+                            • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">1</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">W</kbd> Wave, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">2</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">D</kbd> Dance<br>
+                            • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities
+                            </span>
+                            <span id="controls-content-mobile" style="display: none;">
+                            <strong>📱 Mobile Controls:</strong><br>
+                            • Touch & drag to rotate camera<br>
+                            • Pinch to zoom<br>
+                            • Tap avatars to interact<br>
+                            • Use floating buttons for quick actions
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div id="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200" disabled>
-                <button id="send-btn" disabled>Send</button>
+                <div id="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200" disabled>
+                    <button id="send-btn" disabled>Send</button>
+                </div>
             </div>
         </div>
         
@@ -893,6 +918,25 @@
         <!-- Mobile Toggle Buttons -->
         <button class="mobile-panel-toggle" onclick="toggleMobileChat()">💬</button>
         <button class="mobile-panel-toggle controls" onclick="toggleMobileControls()">⚙️</button>
+        
+        <!-- Desktop Chat Quick Restore (only shows when chat is minimized) -->
+        <div id="chat-restore-hint" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 105;">
+            <button onclick="toggleChatMinimize()" style="
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+                border: none;
+                color: white;
+                padding: 8px 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 600;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                transition: all 0.3s ease;
+            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                💬 Restore Chat
+            </button>
+        </div>
         
         <!-- Quick Actions - Responsive -->
         <div id="quick-actions">
@@ -948,20 +992,48 @@
             }
         }
         
+        // Desktop chat minimize/restore function
+        function toggleChatMinimize() {
+            const chatPanel = document.getElementById('chat-panel');
+            const restoreHint = document.getElementById('chat-restore-hint');
+            
+            if (chatPanel) {
+                const isMinimized = chatPanel.classList.contains('minimized');
+                
+                if (isMinimized) {
+                    // Restore chat
+                    chatPanel.classList.remove('minimized');
+                    if (restoreHint) restoreHint.style.display = 'none';
+                } else {
+                    // Minimize chat
+                    chatPanel.classList.add('minimized');
+                    if (restoreHint) restoreHint.style.display = 'block';
+                }
+            }
+        }
+        
         // Setup responsive layout based on screen size
         function setupResponsiveLayout() {
             const chatPanel = document.getElementById('chat-panel');
             const controlsPanel = document.getElementById('controls-panel');
             const controlsToggle = document.querySelector('.controls-toggle');
             const chatToggle = document.querySelector('.chat-toggle');
+            const chatMinimizeBtn = document.querySelector('.chat-minimize-btn');
+            const restoreHint = document.getElementById('chat-restore-hint');
             
             if (isMobile) {
                 // Show mobile toggles
                 if (controlsToggle) controlsToggle.style.display = 'block';
                 if (chatToggle) chatToggle.style.display = 'block';
                 
+                // Hide desktop minimize button on mobile
+                if (chatMinimizeBtn) chatMinimizeBtn.style.display = 'none';
+                if (restoreHint) restoreHint.style.display = 'none';
+                
                 // Ensure panels start collapsed on mobile
-                if (chatPanel) chatPanel.classList.remove('expanded');
+                if (chatPanel) {
+                    chatPanel.classList.remove('expanded', 'minimized');
+                }
                 if (controlsPanel) controlsPanel.classList.remove('expanded');
                 
             } else {
@@ -969,10 +1041,18 @@
                 if (controlsToggle) controlsToggle.style.display = 'none';
                 if (chatToggle) chatToggle.style.display = 'none';
                 
+                // Show desktop minimize button
+                if (chatMinimizeBtn) chatMinimizeBtn.style.display = 'inline-block';
+                
                 // Ensure panels are properly positioned on desktop
                 if (chatPanel) {
                     chatPanel.classList.remove('expanded');
                     chatPanel.style.transform = 'none';
+                    
+                    // If chat was minimized, show restore hint
+                    if (chatPanel.classList.contains('minimized')) {
+                        if (restoreHint) restoreHint.style.display = 'block';
+                    }
                 }
                 if (controlsPanel) {
                     controlsPanel.classList.remove('expanded');
