@@ -227,7 +227,7 @@ class ChatBubbleSystem {
             context.scale(2, 2); // High DPI scaling
             
             // Draw bubble background that fits the text
-            this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
+            this.drawEnhancedBackground(context, bubbleWidth, bubbleHeight, this.bubbleStyles);
             
             // Draw username
             context.font = usernameFont;
