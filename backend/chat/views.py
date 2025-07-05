@@ -678,6 +678,22 @@ def dashboard(request):
     
     return render(request, 'chat/dashboard.html', context)
 
+@login_required
+def user_settings(request):
+    user = request.user
+    
+    # You can add logic here to handle form submissions
+    if request.method == 'POST':
+        # Handle settings updates
+        pass
+    
+    context = {
+        'user': user,
+        # Add any other context you need
+    }
+    
+    return render(request, 'chat/settings.html', context)
+
 # ==================== ADMIN VIEWS ====================
 
 @user_passes_test(lambda u: u.is_staff)
