@@ -44,7 +44,7 @@ urlpatterns = [
     path('manage/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('manage/rooms/', views.admin_rooms, name='admin_rooms'),
     path('manage/messages/', views.admin_messages, name='admin_messages'),
-    path('manage/users/', views.admin_user_activity, name='admin_user_activity'),
+    path('manage/users/', views.admin_users, name='admin_users'),
     path('manage/settings/', views.admin_user_settings, name='admin_user_settings'),
     
     # ==================== API ENDPOINTS ====================

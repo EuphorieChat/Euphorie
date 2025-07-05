@@ -1093,30 +1093,138 @@ def admin_messages(request):
     return render(request, 'chat/admin_messages.html', context)
 
 @user_passes_test(lambda u: u.is_staff)
-def admin_user_activity(request):
-    """Enhanced admin user activity monitoring"""
-    activities = UserActivity.objects.select_related(
-        'user', 'room'
-    ).order_by('-created_at')
+def admin_users(request):
+    """
+    Unified admin users view that handles user management and activity
+    """
     
-    # Filter by activity type
-    activity_type = request.GET.get('type', '')
-    if activity_type:
-        activities = activities.filter(activity_type=activity_type)
+    # Handle POST actions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        user_id = request.POST.get('user_id')
+        
+        if action == 'toggle_active' and user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                user.is_active = not user.is_active
+                user.save()
+                status = "activated" if user.is_active else "deactivated"
+                messages.success(request, f'User {user.username} has been {status}.')
+            except User.DoesNotExist:
+                messages.error(request, 'User not found.')
+        
+        elif action == 'toggle_staff' and user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                if user != request.user:  # Prevent self-demotion
+                    user.is_staff = not user.is_staff
+                    user.save()
+                    status = "promoted to staff" if user.is_staff else "removed from staff"
+                    messages.success(request, f'User {user.username} has been {status}.')
+                else:
+                    messages.error(request, 'You cannot change your own staff status.')
+            except User.DoesNotExist:
+                messages.error(request, 'User not found.')
+        
+        elif action == 'delete_user' and user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                if user != request.user:  # Prevent self-deletion
+                    username = user.username
+                    user.delete()
+                    messages.success(request, f'User {username} has been deleted.')
+                else:
+                    messages.error(request, 'You cannot delete your own account.')
+            except User.DoesNotExist:
+                messages.error(request, 'User not found.')
+        
+        # Redirect to avoid resubmission
+        redirect_url = request.get_full_path().split('?')[0]
+        if request.GET.urlencode():
+            redirect_url += '?' + request.GET.urlencode()
+        return redirect(redirect_url)
+    
+    # Get filter parameters
+    search_query = request.GET.get('search', '').strip()
+    user_type = request.GET.get('type', '')  # all, staff, active, inactive
+    sort_by = request.GET.get('sort', 'newest')  # newest, oldest, username, messages
+    
+    # Start with all users
+    users_qs = User.objects.select_related('profile').annotate(
+        message_count=Count('message'),
+        room_count=Count('created_rooms', distinct=True)
+    )
+    
+    # Apply search filter
+    if search_query:
+        users_qs = users_qs.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+    
+    # Apply user type filter
+    if user_type == 'staff':
+        users_qs = users_qs.filter(is_staff=True)
+    elif user_type == 'active':
+        users_qs = users_qs.filter(is_active=True)
+    elif user_type == 'inactive':
+        users_qs = users_qs.filter(is_active=False)
+    
+    # Apply sorting
+    if sort_by == 'oldest':
+        users_qs = users_qs.order_by('date_joined')
+    elif sort_by == 'username':
+        users_qs = users_qs.order_by('username')
+    elif sort_by == 'messages':
+        users_qs = users_qs.order_by('-message_count')
+    else:  # newest (default)
+        users_qs = users_qs.order_by('-date_joined')
     
     # Pagination
-    paginator = Paginator(activities, 100)
+    paginator = Paginator(users_qs, 25)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Get activity types for filter
-    activity_types = UserActivity.ACTIVITY_TYPES
+    # Get stats
+    total_users = User.objects.count()
+    active_users = User.objects.filter(is_active=True).count()
+    staff_users = User.objects.filter(is_staff=True).count()
     
-    return render(request, 'chat/admin/user_activity.html', {
-        'activities': page_obj,
-        'activity_types': activity_types,
-        'current_type': activity_type
-    })
+    # Recent activity (if UserActivity model exists)
+    recent_activities = []
+    try:
+        recent_activities = UserActivity.objects.select_related(
+            'user', 'room'
+        ).order_by('-created_at')[:10]
+    except:
+        # If UserActivity model doesn't exist, skip
+        pass
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'user_type': user_type,
+        'sort_by': sort_by,
+        'total_users': total_users,
+        'active_users': active_users,
+        'staff_users': staff_users,
+        'recent_activities': recent_activities,
+    }
+    
+    return render(request, 'chat/admin_users.html', context)
+
+# Update this view to fix the template path
+@user_passes_test(lambda u: u.is_staff)
+def admin_user_activity(request):
+    """Redirect to unified admin users view"""
+    return redirect('admin_users')
+
+@user_passes_test(lambda u: u.is_staff)
+def admin_user_settings(request):
+    """Redirect to unified admin users view"""
+    return redirect('admin_users')
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_settings(request):
