@@ -1933,125 +1933,206 @@
         window.WebSocketManager = null;
     </script>
 
-    <!-- Enhanced 3D Chat Bubble System (Simplified for Compatibility) -->
+    <!-- Chat Bubble System Integration -->
     <script>
-        class Enhanced3DChatBubbles {
-            constructor() {
-                this.bubbles = new Map();
-                this.maxBubbles = window.ROOM_CONFIG?.bubbleConfig?.maxBubbles || 25;
-                this.fadeTime = window.ROOM_CONFIG?.bubbleConfig?.fadeTime || 6000;
-                this.initialized = false;
+        // Initialize chat bubble integration after external system loads
+        function initializeChatBubbleIntegration() {
+            // Check if external ChatBubbleSystem is available
+            if (window.ChatBubbleSystem) {
+                console.log('💬 External ChatBubbleSystem detected - integrating...');
                 
-                console.log('💬✨ Enhanced ChatBubbleSystem created');
-            }
-            
-            init() {
-                if (this.initialized) return;
-                
-                // Ensure Three.js is available
-                if (!window.THREE) {
-                    console.warn('Three.js not available for chat bubbles');
-                    return;
+                // Initialize missing properties for your external system
+                if (!window.ChatBubbleSystem.materialPool) {
+                    window.ChatBubbleSystem.materialPool = [];
                 }
                 
-                this.initialized = true;
-                console.log('✅ Enhanced 3D Chat Bubbles initialized');
+                if (!window.ChatBubbleSystem.texturePool) {
+                    window.ChatBubbleSystem.texturePool = [];
+                }
+                
+                if (!window.ChatBubbleSystem.performance) {
+                    window.ChatBubbleSystem.performance = {
+                        frameTime: 0,
+                        bubbleCount: 0,
+                        renderCalls: 0,
+                        lastCleanup: Date.now()
+                    };
+                }
+                
+                if (!window.ChatBubbleSystem.animations) {
+                    window.ChatBubbleSystem.animations = {
+                        fadeIn: { duration: 300, easing: 'easeOutBack' },
+                        fadeOut: { duration: 500, easing: 'easeInQuart' },
+                        bounce: { duration: 400, easing: 'easeOutBounce' }
+                    };
+                }
+                
+                if (!window.ChatBubbleSystem.sounds) {
+                    window.ChatBubbleSystem.sounds = {};
+                }
+                
+                if (!window.ChatBubbleSystem.isMobile) {
+                    window.ChatBubbleSystem.isMobile = window.innerWidth <= 768;
+                }
+                
+                // Initialize the external system
+                if (typeof window.ChatBubbleSystem.init === 'function') {
+                    window.ChatBubbleSystem.init();
+                }
+                
+                // Set up WebSocket integration
+                setupChatBubbleWebSocketIntegration();
+                
+                console.log('✅ External ChatBubbleSystem integrated successfully');
+                return true;
             }
             
-            createBubbleFromMessage(messageData) {
-                const { user_id, username, message } = messageData;
+            // Fallback: Create simple chat bubble system
+            console.log('💬 Creating fallback chat bubble system...');
+            createFallbackChatBubbleSystem();
+            return false;
+        }
+        
+        function setupChatBubbleWebSocketIntegration() {
+            // Override the WebSocket chat message handler to integrate with external bubble system
+            if (window.WebSocketManager && window.ChatBubbleSystem) {
+                const originalHandleChatMessage = window.WebSocketManager.handleChatMessage;
                 
-                // Create a simple bubble visualization
-                const bubble = this.createSimpleBubble(message, username);
-                if (bubble) {
-                    this.bubbles.set(bubble.id, bubble);
+                window.WebSocketManager.handleChatMessage = function(data) {
+                    // Call original handler for chat display
+                    originalHandleChatMessage.call(this, data);
                     
-                    // Add to scene if available
-                    if (window.scene) {
-                        window.scene.add(bubble.mesh);
+                    // Create 3D chat bubble if enabled
+                    if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                        try {
+                            // Convert data format for external system
+                            const bubbleData = {
+                                message: data.message,
+                                username: data.username,
+                                userId: data.user_id,
+                                type: data.type || 'user'
+                            };
+                            
+                            window.ChatBubbleSystem.createBubbleFromMessage(bubbleData);
+                        } catch (error) {
+                            console.warn('Error creating chat bubble:', error);
+                        }
                     }
                     
-                    // Schedule removal
-                    setTimeout(() => {
-                        this.removeBubble(bubble.id);
-                    }, this.fadeTime);
-                    
-                    console.log(`💬 Created chat bubble for ${username}: "${message}"`);
-                }
-            }
-            
-            createSimpleBubble(text, username) {
-                if (!window.THREE || !window.scene) return null;
-                
-                const bubbleId = `bubble_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                
-                // Create a simple text sprite
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                canvas.width = 300;
-                canvas.height = 100;
-                
-                // Draw background
-                ctx.fillStyle = 'rgba(102, 126, 234, 0.9)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw text
-                ctx.fillStyle = 'white';
-                ctx.font = '14px Arial';
-                ctx.fillText(username + ':', 10, 25);
-                ctx.fillText(text, 10, 50);
-                
-                const texture = new THREE.CanvasTexture(canvas);
-                const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-                const sprite = new THREE.Sprite(material);
-                
-                // Position randomly above ground
-                sprite.position.set(
-                    (Math.random() - 0.5) * 10,
-                    2 + Math.random() * 3,
-                    (Math.random() - 0.5) * 10
-                );
-                sprite.scale.set(2, 1, 1);
-                
-                return {
-                    id: bubbleId,
-                    mesh: sprite,
-                    material: material,
-                    texture: texture,
-                    startTime: Date.now()
+                    // Update bubble count
+                    this.updateBubbleCount();
                 };
-            }
-            
-            removeBubble(bubbleId) {
-                const bubble = this.bubbles.get(bubbleId);
-                if (!bubble) return;
                 
-                // Remove from scene
-                if (window.scene && bubble.mesh) {
-                    window.scene.remove(bubble.mesh);
-                }
-                
-                // Dispose resources
-                if (bubble.texture) bubble.texture.dispose();
-                if (bubble.material) bubble.material.dispose();
-                
-                this.bubbles.delete(bubbleId);
-            }
-            
-            getActiveBubbleCount() {
-                return this.bubbles.size;
-            }
-            
-            clearAllBubbles() {
-                for (const bubbleId of this.bubbles.keys()) {
-                    this.removeBubble(bubbleId);
-                }
+                console.log('🔗 WebSocket integrated with ChatBubbleSystem');
             }
         }
         
-        // Initialize Enhanced 3D Chat Bubbles
-        window.Enhanced3DChatBubbles = new Enhanced3DChatBubbles();
+        function createFallbackChatBubbleSystem() {
+            window.ChatBubbleSystem = {
+                bubbles: new Map(),
+                initialized: false,
+                
+                init() {
+                    if (!window.THREE) {
+                        console.warn('Three.js not available for chat bubbles');
+                        return;
+                    }
+                    this.initialized = true;
+                    console.log('✅ Fallback chat bubble system initialized');
+                },
+                
+                createBubbleFromMessage(data) {
+                    if (!this.initialized || !window.scene) return;
+                    
+                    try {
+                        const bubble = this.createSimpleBubble(data.message, data.username);
+                        if (bubble) {
+                            this.bubbles.set(bubble.id, bubble);
+                            window.scene.add(bubble.sprite);
+                            
+                            setTimeout(() => this.removeBubble(bubble.id), 5000);
+                            console.log(`💬 Created fallback bubble for ${data.username}`);
+                        }
+                    } catch (error) {
+                        console.warn('Error creating fallback bubble:', error);
+                    }
+                },
+                
+                createSimpleBubble(text, username) {
+                    if (!window.THREE) return null;
+                    
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = 300;
+                    canvas.height = 80;
+                    
+                    // Background
+                    ctx.fillStyle = 'rgba(102, 126, 234, 0.9)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Text
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText(username, 10, 20);
+                    ctx.font = '11px Arial';
+                    ctx.fillText(text, 10, 40);
+                    
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+                    const sprite = new THREE.Sprite(material);
+                    
+                    sprite.position.set(
+                        (Math.random() - 0.5) * 10,
+                        2 + Math.random() * 2,
+                        (Math.random() - 0.5) * 10
+                    );
+                    sprite.scale.set(1.5, 0.6, 1);
+                    
+                    return {
+                        id: 'fallback_' + Date.now(),
+                        sprite,
+                        material,
+                        texture
+                    };
+                },
+                
+                removeBubble(bubbleId) {
+                    const bubble = this.bubbles.get(bubbleId);
+                    if (!bubble) return;
+                    
+                    if (window.scene && bubble.sprite) {
+                        window.scene.remove(bubble.sprite);
+                    }
+                    
+                    if (bubble.texture) bubble.texture.dispose();
+                    if (bubble.material) bubble.material.dispose();
+                    
+                    this.bubbles.delete(bubbleId);
+                },
+                
+                getActiveBubbleCount() {
+                    return this.bubbles.size;
+                },
+                
+                clearAllBubbles() {
+                    for (const bubbleId of this.bubbles.keys()) {
+                        this.removeBubble(bubbleId);
+                    }
+                }
+            };
+            
+            // Initialize fallback system
+            window.ChatBubbleSystem.init();
+            
+            // Set up WebSocket integration with fallback
+            setupChatBubbleWebSocketIntegration();
+        }
+        
+        // Try to initialize chat bubble integration after a delay
+        setTimeout(() => {
+            initializeChatBubbleIntegration();
+        }, 1000);
     </script>
 
     <!-- Initialize Everything -->
