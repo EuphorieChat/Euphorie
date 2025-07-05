@@ -903,36 +903,194 @@ def admin_rooms(request):
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_messages(request):
-    """Enhanced admin message management"""
-    messages_list = Message.objects.select_related(
-        'user', 'room'
-    ).annotate(
-        report_count=Count('reports')
-    ).order_by('-timestamp')
+    """
+    Unified admin messages view that handles all message operations:
+    - View/List messages (GET)
+    - Delete messages (POST with action=delete)
+    - Edit messages (POST with action=edit)
+    - Add messages (POST with action=add)
+    - Bulk operations (POST with action=bulk_delete)
+    """
     
-    # Filter by reported messages
-    show_reported = request.GET.get('reported') == 'true'
-    if show_reported:
-        messages_list = messages_list.filter(report_count__gt=0)
+    # Handle POST actions first
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'delete':
+            # Single message delete
+            message_id = request.POST.get('message_id')
+            if message_id:
+                try:
+                    message = Message.objects.get(id=message_id)
+                    message_content = message.content[:50] + "..." if len(message.content) > 50 else message.content
+                    message.delete()
+                    messages.success(request, f'Message "{message_content}" deleted successfully.')
+                except Message.DoesNotExist:
+                    messages.error(request, 'Message not found.')
+                except Exception as e:
+                    messages.error(request, f'Error deleting message: {str(e)}')
+        
+        elif action == 'bulk_delete':
+            # Bulk message delete
+            message_ids = request.POST.getlist('message_ids')
+            if message_ids:
+                try:
+                    deleted_count = Message.objects.filter(id__in=message_ids).delete()[0]
+                    messages.success(request, f'Successfully deleted {deleted_count} message(s).')
+                except Exception as e:
+                    messages.error(request, f'Error deleting messages: {str(e)}')
+            else:
+                messages.warning(request, 'No messages selected for deletion.')
+        
+        elif action == 'edit':
+            # Edit message
+            message_id = request.POST.get('message_id')
+            new_content = request.POST.get('content', '').strip()
+            if message_id and new_content:
+                try:
+                    message = Message.objects.get(id=message_id)
+                    message.content = new_content
+                    message.save()
+                    messages.success(request, 'Message updated successfully.')
+                except Message.DoesNotExist:
+                    messages.error(request, 'Message not found.')
+                except Exception as e:
+                    messages.error(request, f'Error updating message: {str(e)}')
+        
+        elif action == 'add':
+            # Add new message
+            content = request.POST.get('content', '').strip()
+            room_id = request.POST.get('room_id')
+            user_id = request.POST.get('user_id', request.user.id)
+            
+            if content and room_id:
+                try:
+                    room = Room.objects.get(id=room_id)
+                    user = User.objects.get(id=user_id)
+                    Message.objects.create(
+                        content=content,
+                        room=room,
+                        user=user,
+                        timestamp=timezone.now()
+                    )
+                    messages.success(request, 'Message added successfully.')
+                except (Room.DoesNotExist, User.DoesNotExist):
+                    messages.error(request, 'Invalid room or user selected.')
+                except Exception as e:
+                    messages.error(request, f'Error adding message: {str(e)}')
+        
+        elif action == 'ajax_delete':
+            # AJAX delete for dynamic UI
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                message_ids = request.POST.getlist('message_ids')
+                try:
+                    if message_ids:
+                        deleted_count = Message.objects.filter(id__in=message_ids).delete()[0]
+                        return JsonResponse({
+                            'success': True,
+                            'message': f'Successfully deleted {deleted_count} message(s)',
+                            'deleted_count': deleted_count
+                        })
+                    else:
+                        return JsonResponse({'success': False, 'message': 'No messages selected'})
+                except Exception as e:
+                    return JsonResponse({'success': False, 'message': str(e)})
+        
+        # Redirect to avoid form resubmission
+        redirect_url = request.get_full_path().split('?')[0]
+        if request.GET.urlencode():
+            redirect_url += '?' + request.GET.urlencode()
+        return redirect(redirect_url)
     
-    # Add search
-    search_query = request.GET.get('q', '').strip()
+    # Handle GET request - Display messages with filters
+    
+    # Get filter parameters
+    search_query = request.GET.get('search', '').strip()
+    time_filter = request.GET.get('timeframe', '')
+    keywords = request.GET.get('keywords', '').strip()
+    room_filter = request.GET.get('room', '')
+    user_filter = request.GET.get('user', '')
+    
+    # Start with all messages
+    messages_qs = Message.objects.select_related('user', 'room').order_by('-timestamp')
+    
+    # Apply search filter
     if search_query:
-        messages_list = messages_list.filter(
+        messages_qs = messages_qs.filter(
             Q(content__icontains=search_query) |
             Q(user__username__icontains=search_query) |
-            Q(room__name__icontains=search_query)
+            Q(room__name__icontains=search_query) |
+            Q(room__display_name__icontains=search_query)
         )
     
-    paginator = Paginator(messages_list, 50)
+    # Apply time filter
+    if time_filter:
+        now = timezone.now()
+        if time_filter == 'day':
+            start_time = now - timedelta(days=1)
+        elif time_filter == 'week':
+            start_time = now - timedelta(weeks=1)
+        elif time_filter == 'month':
+            start_time = now - timedelta(days=30)
+        else:
+            start_time = None
+        
+        if start_time:
+            messages_qs = messages_qs.filter(timestamp__gte=start_time)
+    
+    # Apply keywords filter
+    if keywords:
+        keyword_terms = [term.strip() for term in keywords.split(',') if term.strip()]
+        for term in keyword_terms:
+            messages_qs = messages_qs.filter(content__icontains=term)
+    
+    # Apply room filter
+    if room_filter:
+        messages_qs = messages_qs.filter(room__id=room_filter)
+    
+    # Apply user filter
+    if user_filter:
+        messages_qs = messages_qs.filter(user__id=user_filter)
+    
+    # Get total message count for stats
+    message_count = Message.objects.count()
+    
+    # Pagination
+    paginator = Paginator(messages_qs, 25)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'chat/admin_messages.html', {
-        'messages': page_obj,
+    # Check if any filters are active
+    filter_active = bool(search_query or time_filter or keywords or room_filter or user_filter)
+    
+    # Get data for dropdowns
+    all_rooms = Room.objects.all().order_by('name')[:100]  # Limit for performance
+    all_users = User.objects.all().order_by('username')[:100]  # Limit for performance
+    
+    # Get editing message if specified
+    edit_message_id = request.GET.get('edit')
+    edit_message = None
+    if edit_message_id:
+        try:
+            edit_message = Message.objects.get(id=edit_message_id)
+        except Message.DoesNotExist:
+            pass
+    
+    context = {
+        'page_obj': page_obj,
+        'message_count': message_count,
         'search_query': search_query,
-        'show_reported': show_reported
-    })
+        'time_filter': time_filter,
+        'keywords': keywords,
+        'room_filter': room_filter,
+        'user_filter': user_filter,
+        'filter_active': filter_active,
+        'all_rooms': all_rooms,
+        'all_users': all_users,
+        'edit_message': edit_message,
+    }
+    
+    return render(request, 'chat/admin_messages.html', context)
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_activity(request):
