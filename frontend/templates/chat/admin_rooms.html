@@ -5,410 +5,363 @@
 
 {% block extra_css %}
 <style>
-  /* Enhanced Room Management with modern improvements */
-  .rooms-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 1.5rem;
+  :root {
+    --primary: #667eea;
+    --primary-light: #764ba2;
+    --secondary: #f093fb;
+    --accent: #4facfe;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --surface: #ffffff;
+    --surface-dark: #f8fafc;
+    --surface-darker: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --radius: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
   }
 
-  /* Improved Header Section */
-  .page-header {
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
-    border-radius: 1.5rem;
-    padding: 2.5rem;
+  * {
+    box-sizing: border-box;
+  }
+
+  .admin-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem 1rem;
+  }
+
+  .admin-content {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Hero Header */
+  .hero-header {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    padding: 3rem;
     margin-bottom: 2rem;
-    border: 1px solid var(--border);
+    box-shadow: var(--shadow-xl);
     position: relative;
     overflow: hidden;
   }
 
-  .page-header::before {
+  .hero-header::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -20%;
+    top: 0;
+    right: 0;
     width: 300px;
     height: 300px;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     border-radius: 50%;
     opacity: 0.1;
-    animation: float 6s ease-in-out infinite;
+    transform: translate(100px, -100px);
   }
 
-  @keyframes float {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-20px, -20px) rotate(180deg); }
-  }
-
-  .header-content {
+  .hero-content {
     position: relative;
     z-index: 1;
   }
 
-  .page-title {
-    font-size: 2.5rem;
-    font-weight: 800;
+  .hero-title {
+    font-size: 3rem;
+    font-weight: 900;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 0.5rem;
+    margin: 0 0 1rem 0;
     letter-spacing: -0.025em;
   }
 
-  .page-subtitle {
+  .hero-subtitle {
+    font-size: 1.25rem;
     color: var(--text-secondary);
-    font-size: 1.125rem;
-    font-weight: 400;
+    margin: 0 0 2rem 0;
+    max-width: 600px;
   }
 
-  /* Ultra-Compact Stats Bar */
-  .stats-bar {
-    background: linear-gradient(135deg, var(--surface) 0%, #f8fafc 100%);
-    border-radius: 0.75rem;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  }
-
-  .stats-row {
+  .hero-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
-  .stat-mini {
-    display: flex;
+  .btn {
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 600;
     font-size: 0.875rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
   }
 
-  .stat-mini-icon {
-    width: 1.5rem;
-    height: 1.5rem;
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .btn:hover::before {
+    left: 100%;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    box-shadow: var(--shadow);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: white;
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    background: var(--surface-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-darker);
+    transform: translateY(-1px);
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 0.375rem;
+  }
+
+  .stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--radius);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    flex-shrink: 0;
   }
 
-  .stat-mini-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-  }
-
-  .stat-mini-value {
-    font-weight: 700;
-    font-size: 1.125rem;
+  .stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
     color: var(--text-primary);
+    margin: 0;
     line-height: 1;
   }
 
-  .stat-mini-label {
-    font-size: 0.625rem;
+  .stat-label {
+    font-size: 0.875rem;
     color: var(--text-secondary);
+    margin: 0.5rem 0 0 0;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-weight: 500;
+    font-weight: 600;
   }
 
-  .quick-actions {
+  /* Search Panel */
+  .search-panel {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+  }
+
+  .search-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .form-input {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background: var(--surface);
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .search-btn {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Data Table */
+  .table-panel {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .table-header {
+    padding: 1.5rem 2rem;
+    background: var(--surface-dark);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .table-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .table-meta {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th {
+    padding: 1rem 2rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    background: var(--surface-dark);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+
+  .data-table tbody tr {
+    transition: all 0.2s ease;
+  }
+
+  .data-table tbody tr:hover {
+    background: var(--surface-dark);
+  }
+
+  .room-name {
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .room-name:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .user-info {
     display: flex;
     align-items: center;
     gap: 0.75rem;
   }
 
-  .quick-btn {
-    padding: 0.5rem 0.875rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--duration-normal) var(--ease);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
-
-  .quick-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(244, 114, 182, 0.3);
-    color: white;
-    text-decoration: none;
-  }
-
-  .quick-btn.secondary {
-    background: var(--surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-  }
-
-  .quick-btn.secondary:hover {
-    background: var(--surface-hover);
-    border-color: var(--primary);
-    color: var(--primary);
-  }
-
-  /* Enhanced Search Section - More Compact */
-  .search-section {
-    background: var(--surface);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  .search-form {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .search-group {
-    position: relative;
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 0.875rem 1rem 0.875rem 2.75rem;
-    border: 2px solid var(--border);
-    border-radius: 0.75rem;
-    background: var(--surface);
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    transition: all var(--duration-normal) var(--ease);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  }
-
-  .search-input:hover {
-    border-color: var(--border-focus);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
-    transform: translateY(-1px);
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 0.875rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-secondary);
-    pointer-events: none;
-    transition: color var(--duration-normal) var(--ease);
-    z-index: 1;
-  }
-
-  .search-input:focus ~ .search-icon {
-    color: var(--primary);
-  }
-
-  .category-select {
-    padding: 0.875rem 1rem;
-    border: 2px solid var(--border);
-    border-radius: 0.75rem;
-    background: var(--surface);
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    min-width: 160px;
-    transition: all var(--duration-normal) var(--ease);
-  }
-
-  .category-select:hover {
-    border-color: var(--border-focus);
-  }
-
-  .category-select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
-  }
-
-  .search-btn {
-    padding: 0.875rem 1.5rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    border: none;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--duration-normal) var(--ease);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    white-space: nowrap;
-    font-size: 0.875rem;
-  }
-
-  .search-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.4);
-  }
-
-  /* Enhanced Table Container - More Compact */
-  .table-container {
-    background: var(--surface);
-    border-radius: 1rem;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-bottom: 1.5rem;
-  }
-
-  .table-header {
-    padding: 1rem 1.5rem;
-    background: linear-gradient(135deg, var(--surface-hover) 0%, #f1f5f9 100%);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .table-title {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .table-meta {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .view-toggle {
-    display: flex;
-    background: var(--border);
-    border-radius: 0.5rem;
-    padding: 0.125rem;
-  }
-
-  .toggle-btn {
-    padding: 0.375rem 0.75rem;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: all var(--duration-normal) var(--ease);
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
-  .toggle-btn.active {
-    background: var(--surface);
-    color: var(--primary);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Enhanced Data Table */
-  .data-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-
-  .data-table th {
-    font-weight: 700;
-    text-align: left;
-    padding: 1.5rem 2rem;
-    background: linear-gradient(135deg, var(--surface-hover) 0%, #f1f5f9 100%);
-    color: var(--text-primary);
-    white-space: nowrap;
-    position: relative;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .data-table th::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    transform: scaleX(0);
-    transition: transform var(--duration-normal) var(--ease);
-  }
-
-  .data-table:hover th::after {
-    transform: scaleX(1);
-  }
-
-  .data-table td {
-    padding: 1.5rem 2rem;
-    vertical-align: middle;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-    transition: all var(--duration-normal) var(--ease);
-  }
-
-  .data-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .data-table tbody tr {
-    transition: all var(--duration-normal) var(--ease);
-  }
-
-  .data-table tbody tr:hover {
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
-    transform: scale(1.005);
-  }
-
-  .data-table tbody tr:hover td {
-    border-color: transparent;
-  }
-
-  /* Enhanced Room Name Links */
-  .room-name-link {
-    font-weight: 600;
-    color: var(--primary);
-    text-decoration: none;
-    transition: all var(--duration-normal) var(--ease);
-    display: flex;
-    align-items: center;
-    font-size: 1rem;
-  }
-
-  .room-name-link:hover {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    transform: translateX(6px);
-    text-decoration: none;
-  }
-
-  .room-name-link svg {
-    margin-right: 0.5rem;
-    flex-shrink: 0;
-  }
-
-  /* Enhanced User Avatars */
   .user-avatar {
     width: 2.5rem;
     height: 2.5rem;
@@ -420,117 +373,132 @@
     justify-content: center;
     font-weight: 700;
     font-size: 1rem;
-    transition: all var(--duration-normal) var(--ease);
-    box-shadow: 0 4px 8px rgba(244, 114, 182, 0.2);
   }
 
-  .data-table tr:hover .user-avatar {
-    transform: scale(1.15);
-    box-shadow: 0 6px 16px rgba(244, 114, 182, 0.4);
+  .user-details h4 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
   }
 
-  /* Enhanced Action Buttons */
-  .action-buttons {
+  .user-details p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+  }
+
+  .badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+  }
+
+  .badge-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+  }
+
+  .actions {
     display: flex;
     gap: 0.5rem;
-    justify-content: center;
   }
 
   .action-btn {
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
     border: none;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all var(--duration-normal) var(--ease-spring);
-    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
     text-decoration: none;
   }
 
   .action-btn:hover {
-    transform: translateY(-3px) scale(1.1);
-  }
-
-  .action-btn:active {
-    transform: translateY(-1px) scale(1.05);
+    transform: translateY(-2px) scale(1.1);
   }
 
   .action-btn.view {
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-    color: #2563eb;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
   }
 
   .action-btn.view:hover {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: #3b82f6;
     color: white;
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
   }
 
   .action-btn.clear {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    color: #d97706;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
   }
 
   .action-btn.clear:hover {
-    background: linear-gradient(135deg, #d97706, #b45309);
+    background: var(--warning);
     color: white;
-    box-shadow: 0 12px 24px rgba(217, 119, 6, 0.4);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
   }
 
   .action-btn.delete {
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: #dc2626;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
   }
 
   .action-btn.delete:hover {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: var(--danger);
     color: white;
-    box-shadow: 0 12px 24px rgba(220, 38, 38, 0.4);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
   }
 
   .action-btn.export {
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    color: #059669;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
   }
 
   .action-btn.export:hover {
-    background: linear-gradient(135deg, #059669, #047857);
+    background: var(--success);
     color: white;
-    box-shadow: 0 12px 24px rgba(5, 150, 105, 0.4);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
   }
 
-  /* Enhanced Tooltips */
-  .action-btn .tooltip {
+  /* Tooltip */
+  .tooltip {
     position: absolute;
-    bottom: 120%;
+    bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: linear-gradient(135deg, #1f2937, #111827);
+    background: rgba(0, 0, 0, 0.9);
     color: white;
     padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius);
     font-size: 0.75rem;
-    font-weight: 500;
     white-space: nowrap;
     opacity: 0;
     visibility: hidden;
-    transition: all var(--duration-normal) var(--ease);
-    z-index: 10;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-
-  .action-btn .tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 6px;
-    border-style: solid;
-    border-color: #1f2937 transparent transparent transparent;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 1000;
+    margin-bottom: 0.5rem;
   }
 
   .action-btn:hover .tooltip {
@@ -539,111 +507,41 @@
     transform: translateX(-50%) translateY(-4px);
   }
 
-  /* Enhanced Badges */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 9999px;
-    line-height: 1;
-    transition: all var(--duration-normal) var(--ease);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
   }
 
-  .badge-primary {
-    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
-    color: var(--primary);
-    border: 1px solid var(--primary);
+  .empty-icon {
+    width: 4rem;
+    height: 4rem;
+    margin: 0 auto 1.5rem;
+    color: var(--text-muted);
   }
 
-  .badge-success {
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    color: #059669;
-    border: 1px solid #059669;
+  .empty-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
   }
 
-  .badge-inactive {
-    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-    color: #6b7280;
-    border: 1px solid #6b7280;
+  .empty-description {
+    color: var(--text-secondary);
+    margin: 0 0 2rem 0;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
-  .data-table tr:hover .badge {
-    transform: scale(1.1);
-  }
-
-  /* Enhanced Mobile Cards */
-  .mobile-cards {
-    display: none;
-  }
-
-  .room-card {
-    background: linear-gradient(135deg, var(--surface) 0%, #f8fafc 100%);
-    border-radius: 1.5rem;
-    border: 1px solid var(--border);
-    margin-bottom: 1.5rem;
-    overflow: hidden;
-    transition: all var(--duration-normal) var(--ease);
-    position: relative;
-  }
-
-  .room-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
-    opacity: 0;
-    transition: opacity var(--duration-normal) var(--ease);
-  }
-
-  .room-card:hover::before {
-    opacity: 0.3;
-  }
-
-  .room-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 20px 40px rgba(244, 114, 182, 0.2);
-    border-color: var(--primary);
-  }
-
-  .room-card__header {
-    padding: 1.5rem;
-    background: linear-gradient(135deg, var(--surface-hover) 0%, #f1f5f9 100%);
-    position: relative;
-    z-index: 1;
-  }
-
-  .room-card__content {
-    padding: 1.5rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  .room-card__footer {
-    padding: 1.5rem;
-    border-top: 1px solid var(--border);
-    background: linear-gradient(135deg, var(--surface-hover) 0%, #f8fafc 100%);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Enhanced Pagination */
+  /* Pagination */
   .pagination-container {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: var(--surface-dark);
     padding: 1.5rem 2rem;
     border-top: 1px solid var(--border);
     display: flex;
-    justify-content: space-between;
+    justify-content: between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
@@ -652,435 +550,106 @@
   .pagination-info {
     color: var(--text-secondary);
     font-size: 0.875rem;
-    font-weight: 500;
   }
 
   .pagination {
     display: flex;
-    align-items: center;
     gap: 0.5rem;
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
+  .pagination-item {
+    list-style: none;
+  }
+
   .pagination-link {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.75rem;
-    height: 2.75rem;
+    min-width: 2.5rem;
+    height: 2.5rem;
     padding: 0 0.75rem;
-    border-radius: 0.75rem;
-    background: var(--surface);
     border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
     color: var(--text-primary);
     text-decoration: none;
     font-weight: 500;
-    transition: all var(--duration-normal) var(--ease);
+    transition: all 0.2s ease;
   }
 
   .pagination-link:hover {
-    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+    background: var(--primary);
     border-color: var(--primary);
-    transform: translateY(-2px);
+    color: white;
     text-decoration: none;
-    color: var(--primary);
-    box-shadow: 0 4px 8px rgba(244, 114, 182, 0.2);
+    transform: translateY(-1px);
   }
 
   .pagination-item.active .pagination-link {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
+    background: var(--primary);
     border-color: var(--primary);
+    color: white;
   }
 
   .pagination-item.disabled .pagination-link {
-    color: var(--text-tertiary);
-    cursor: not-allowed;
     opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
-  .pagination-item.disabled .pagination-link:hover {
-    background: var(--surface);
-    transform: none;
-    box-shadow: none;
-  }
-
-  /* Enhanced Empty State */
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
-    text-align: center;
-  }
-
-  .empty-state-icon {
-    width: 5rem;
-    height: 5rem;
-    color: var(--text-tertiary);
-    margin-bottom: 1.5rem;
-    transition: all var(--duration-normal) var(--ease);
-  }
-
-  .empty-state:hover .empty-state-icon {
-    color: var(--primary);
-    transform: scale(1.1);
-  }
-
-  .empty-state-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.75rem;
-  }
-
-  .empty-state-description {
-    color: var(--text-secondary);
-    max-width: 28rem;
-    margin-bottom: 2rem;
-    line-height: 1.6;
-  }
-
-  /* Enhanced Create Button */
-  .create-room-btn {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    width: 4rem;
-    height: 4rem;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
-    transition: all var(--duration-normal) var(--ease-spring);
-    z-index: 100;
-    text-decoration: none;
-  }
-
-  .create-room-btn:hover {
-    transform: translateY(-4px) scale(1.1);
-    box-shadow: 0 12px 30px rgba(244, 114, 182, 0.5);
-    color: white;
-    text-decoration: none;
-  }
-
-  /* CSS Variables for theming - add these if not already defined */
-  :root {
-    --primary: #f472b6;
-    --primary-light: #fce7f3;
-    --secondary: #ec4899;
-    --secondary-light: #fdf2f8;
-    --surface: #ffffff;
-    --surface-hover: #f8fafc;
-    --border: #e2e8f0;
-    --border-focus: #cbd5e1;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-tertiary: #94a3b8;
-    --duration-normal: 0.2s;
-    --ease: ease-out;
-    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  /* Responsive Design - Ultra Compact Mobile */
-  @media (max-width: 1024px) {
-    .search-form {
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
+  /* Mobile Responsiveness */
+  @media (max-width: 768px) {
+    .admin-container {
+      padding: 1rem;
     }
 
-    .search-btn {
-      justify-content: center;
+    .hero-header {
+      padding: 2rem;
+    }
+
+    .hero-title {
+      font-size: 2rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .search-form {
+      grid-template-columns: 1fr;
+    }
+
+    .table-panel {
+      overflow-x: auto;
+    }
+
+    .data-table {
+      min-width: 800px;
     }
 
     .table-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.75rem;
     }
 
-    .table-meta {
-      order: -1;
-    }
-
-    .stats-row {
+    .pagination-container {
       flex-direction: column;
-      gap: 1rem;
-    }
-
-    .quick-actions {
-      width: 100%;
-      justify-content: center;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .rooms-container {
-      padding: 1rem;
-    }
-
-    .page-header {
-      padding: 1.5rem;
-    }
-
-    .page-title {
-      font-size: 2rem;
-    }
-
-    .stats-row > .flex {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-      width: 100%;
-    }
-
-    .stat-mini {
-      justify-content: center;
       text-align: center;
     }
 
-    .stat-mini-content {
-      align-items: center;
+    .hero-actions {
+      justify-content: center;
     }
-
-    .table-container .desktop-table {
-      display: none;
-    }
-
-    .mobile-cards {
-      display: block;
-    }
-
-    .create-room-btn {
-      bottom: 1.5rem;
-      right: 1.5rem;
-      width: 3.5rem;
-      height: 3.5rem;
-    }
-
-    .search-section {
-      padding: 1rem;
-    }
-
-    .table-header {
-      padding: 1rem;
-    }
-
-    .stats-bar {
-      padding: 1rem;
-    }
-  }
-
-  /* Utility classes */
-  .flex {
-    display: flex;
-  }
-
-  .flex-col {
-    flex-direction: column;
-  }
-
-  .items-center {
-    align-items: center;
-  }
-
-  .justify-between {
-    justify-content: space-between;
-  }
-
-  .justify-center {
-    justify-content: center;
-  }
-
-  .gap-4 {
-    gap: 1rem;
-  }
-
-  .gap-6 {
-    gap: 1.5rem;
-  }
-
-  .text-center {
-    text-align: center;
-  }
-
-  .text-sm {
-    font-size: 0.875rem;
-  }
-
-  .text-xs {
-    font-size: 0.75rem;
-  }
-
-  .text-lg {
-    font-size: 1.125rem;
-  }
-
-  .font-medium {
-    font-weight: 500;
-  }
-
-  .font-bold {
-    font-weight: 700;
-  }
-
-  .w-3 {
-    width: 0.75rem;
-  }
-
-  .w-4 {
-    width: 1rem;
-  }
-
-  .w-5 {
-    width: 1.25rem;
-  }
-
-  .w-6 {
-    width: 1.5rem;
-  }
-
-  .w-8 {
-    width: 2rem;
-  }
-
-  .h-3 {
-    height: 0.75rem;
-  }
-
-  .h-4 {
-    height: 1rem;
-  }
-
-  .h-5 {
-    height: 1.25rem;
-  }
-
-  .h-6 {
-    height: 1.5rem;
-  }
-
-  .h-8 {
-    height: 2rem;
-  }
-
-  .mr-2 {
-    margin-right: 0.5rem;
-  }
-
-  .mr-3 {
-    margin-right: 0.75rem;
-  }
-
-  .ml-1 {
-    margin-left: 0.25rem;
-  }
-
-  .mb-3 {
-    margin-bottom: 0.75rem;
-  }
-
-  .grid {
-    display: grid;
-  }
-
-  .grid-cols-2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .hidden {
-    display: none;
-  }
-
-  @media (min-width: 1024px) {
-    .lg\\:flex-row {
-      flex-direction: row;
-    }
-
-    .lg\\:items-center {
-      align-items: center;
-    }
-
-    .lg\\:justify-between {
-      justify-content: space-between;
-    }
-
-    .lg\\:block {
-      display: block;
-    }
-
-    .lg\\:hidden {
-      display: none;
-    }
-  }
-
-  /* Button styles */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all var(--duration-normal) var(--ease);
-    cursor: pointer;
-    border: none;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.4);
-    color: white;
-    text-decoration: none;
-  }
-
-  /* Color utilities */
-  .text-gray-400 {
-    color: #9ca3af;
-  }
-
-  .text-gray-500 {
-    color: #6b7280;
-  }
-
-  .text-gray-600 {
-    color: #4b5563;
-  }
-
-  .text-gray-700 {
-    color: #374151;
-  }
-
-  .text-pink-400 {
-    color: #f472b6;
-  }
-
-  .text-pink-600 {
-    color: #db2777;
-  }
-
-  .hover\\:text-pink-800:hover {
-    color: #9d174d;
   }
 
   /* Animations */
   @keyframes fadeInUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(30px);
     }
     to {
       opacity: 1;
@@ -1088,353 +657,337 @@
     }
   }
 
-  .fade-in {
-    opacity: 0;
-    animation: fadeInUp 0.6s var(--ease) forwards;
+  .animate-in {
+    animation: fadeInUp 0.6s ease-out;
   }
 
-  .fade-in:nth-child(1) { animation-delay: 0.1s; }
-  .fade-in:nth-child(2) { animation-delay: 0.2s; }
-  .fade-in:nth-child(3) { animation-delay: 0.3s; }
-  .fade-in:nth-child(4) { animation-delay: 0.4s; }
+  .animate-in:nth-child(1) { animation-delay: 0.1s; }
+  .animate-in:nth-child(2) { animation-delay: 0.2s; }
+  .animate-in:nth-child(3) { animation-delay: 0.3s; }
+  .animate-in:nth-child(4) { animation-delay: 0.4s; }
+
+  /* Loading States */
+  .loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 {% csrf_token %}
-<div class="rooms-container">
-  <!-- Enhanced Header -->
-  <header class="page-header fade-in">
-    <div class="header-content">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 class="page-title">Rooms Management</h1>
-          <p class="page-subtitle">Manage and monitor all chat rooms on the platform</p>
-        </div>
-        <div class="hidden lg:block">
-          <a href="{% url 'create_room' %}" class="btn btn-primary inline-flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+<div class="admin-container">
+  <div class="admin-content">
+    <!-- Hero Header -->
+    <header class="hero-header animate-in">
+      <div class="hero-content">
+        <h1 class="hero-title">Rooms Management</h1>
+        <p class="hero-subtitle">
+          Manage and monitor all chat rooms across your platform. View analytics, moderate content, and maintain community standards.
+        </p>
+        <div class="hero-actions">
+          <a href="{% url 'create_room' %}" class="btn btn-primary">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
             </svg>
             Create New Room
           </a>
+          <button onclick="window.location.reload()" class="btn btn-secondary">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+            </svg>
+            Refresh Data
+          </button>
         </div>
+      </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid animate-in">
+      <div class="stat-card">
+        <div class="stat-icon">🏠</div>
+        <h3 class="stat-value">{{ total_rooms|default:"0" }}</h3>
+        <p class="stat-label">Total Rooms</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <h3 class="stat-value">{{ active_rooms|default:"0" }}</h3>
+        <p class="stat-label">Active Rooms</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <h3 class="stat-value">{{ most_popular_room|default:"None"|truncatechars:12 }}</h3>
+        <p class="stat-label">Most Popular</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💬</div>
+        <h3 class="stat-value">{{ total_messages|default:"0" }}</h3>
+        <p class="stat-label">Total Messages</p>
       </div>
     </div>
-  </header>
 
-  <!-- Ultra-Compact Stats Bar -->
-  <div class="stats-bar fade-in">
-    <div class="stats-row">
-      <div class="flex items-center gap-6">
-        <div class="stat-mini">
-          <div class="stat-mini-icon">🏠</div>
-          <div class="stat-mini-content">
-            <div class="stat-mini-value">{{ total_rooms|default:"0" }}</div>
-            <div class="stat-mini-label">Total Rooms</div>
-          </div>
-        </div>
-        
-        <div class="stat-mini">
-          <div class="stat-mini-icon">✅</div>
-          <div class="stat-mini-content">
-            <div class="stat-mini-value">{{ active_rooms|default:"0" }}</div>
-            <div class="stat-mini-label">Active</div>
-          </div>
-        </div>
-        
-        <div class="stat-mini">
-          <div class="stat-mini-icon">⭐</div>
-          <div class="stat-mini-content">
-            <div class="stat-mini-value">{{ most_popular_room|default:"None"|truncatechars:8 }}</div>
-            <div class="stat-mini-label">Most Popular</div>
-          </div>
-        </div>
-        
-        <div class="stat-mini">
-          <div class="stat-mini-icon">💬</div>
-          <div class="stat-mini-content">
-            <div class="stat-mini-value">{{ total_messages|default:"0" }}</div>
-            <div class="stat-mini-label">Messages</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="quick-actions">
-        <a href="{% url 'create_room' %}" class="quick-btn">
-          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
-          </svg>
-          New Room
-        </a>
-        <button class="quick-btn secondary" onclick="window.location.reload()">
-          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
-          </svg>
-          Refresh
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Compact Search Section -->
-  <div class="search-section fade-in">
-    <form method="get" action="{% url 'admin_rooms' %}" class="search-form">
-      <div class="search-group">
-        <div class="relative">
+    <!-- Search Panel -->
+    <div class="search-panel animate-in">
+      <form method="get" action="{% url 'admin_rooms' %}" class="search-form">
+        <div class="form-group">
+          <label for="search" class="form-label">Search Rooms</label>
           <input
             type="search"
             id="search"
             name="search"
             value="{{ search_query }}"
-            placeholder="Search rooms, creators, descriptions..."
-            class="search-input"
+            placeholder="Search by name, creator, description..."
+            class="form-input"
           >
-          <div class="search-icon">
-            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        </div>
+        <div class="form-group">
+          <label for="category" class="form-label">Category</label>
+          <select name="category" id="category" class="form-input">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+              {{ category.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="search-btn">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+          </svg>
+          Search
+        </button>
+      </form>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-panel animate-in">
+      <div class="table-header">
+        <div>
+          <h2 class="table-title">Rooms Directory</h2>
+          <div class="table-meta">
+            {% if page_obj %}
+              {{ page_obj.paginator.count }} total rooms
+              {% if search_query %} • Filtered results{% endif %}
+            {% else %}
+              0 total rooms
+            {% endif %}
           </div>
         </div>
       </div>
 
-      <select name="category" id="category" class="category-select">
-        <option value="">All Categories</option>
-        {% for category in categories %}
-        <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>
-          {{ category.name }}
-        </option>
-        {% endfor %}
-      </select>
-
-      <button type="submit" class="search-btn">
-        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        Search
-      </button>
-    </form>
-  </div>
-
-  <!-- Enhanced Table Container -->
-  <div class="table-container fade-in">
-    <div class="table-header">
-      <div>
-        <h2 class="table-title">Rooms Directory</h2>
-        <div class="table-meta">
-          <span>{{ page_obj.paginator.count|default:"0" }} total rooms</span>
-          {% if search_query %}<span>• Filtered results</span>{% endif %}
-        </div>
-      </div>
-      <div class="view-toggle">
-        <button class="toggle-btn active" id="table-view">📊 Table</button>
-        <button class="toggle-btn" id="card-view">📱 Cards</button>
-      </div>
-    </div>
-
-    <!-- Desktop Table View -->
-    <div class="desktop-table">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Room Details</th>
-            <th>Creator</th>
-            <th class="text-center">Category</th>
-            <th class="text-center">Created</th>
-            <th class="text-center">Messages</th>
-            <th class="text-center">Status</th>
-            <th class="text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for room in page_obj %}
-          <tr>
-            <td>
-              <a href="{% url 'admin_room_detail' room_name=room.name %}" class="room-name-link">
-                {% if room.is_private %}
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                {% endif %}
-                <span>{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}</span>
-              </a>
-            </td>
-            <td>
-              <div class="flex items-center">
-                <div class="user-avatar mr-3">
-                  {{ room.creator.username|slice:":1"|upper }}
-                </div>
-                <div>
-                  <div class="font-medium">{{ room.creator.username }}</div>
-                  <div class="text-sm text-gray-500">{{ room.creator.get_full_name|default:"" }}</div>
-                </div>
-              </div>
-            </td>
-            <td class="text-center">
-              {% if room.category %}
-              <span class="badge badge-primary">
-                {{ room.category.name }}
-              </span>
-              {% else %}
-              <span class="text-gray-400 text-xs">—</span>
-              {% endif %}
-            </td>
-            <td class="text-center">
-              <div class="text-sm font-medium">{{ room.created_at|date:"M d, Y" }}</div>
-              <div class="text-xs text-gray-500">{{ room.created_at|date:"g:i A" }}</div>
-            </td>
-            <td class="text-center">
-              <span class="font-bold text-lg">{% if room.message_count %}{{ room.message_count }}{% elif room.messages_count %}{{ room.messages_count }}{% else %}0{% endif %}</span>
-            </td>
-            <td class="text-center">
-              <span class="badge {% if room.is_public %}badge-success{% else %}badge-inactive{% endif %}">
-                {% if room.is_public %}Public{% else %}Private{% endif %}
-              </span>
-            </td>
-            <td>
-              <div class="action-buttons">
-                <a href="{% url 'room' room_name=room.name %}" class="action-btn view">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  <span class="tooltip">View Room</span>
-                </a>
-                <button class="action-btn clear clear-room-btn" data-room-name="{{ room.name }}" data-room-display="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  <span class="tooltip">Clear Messages</span>
-                </button>
-                <button class="action-btn delete delete-room-btn" data-room-name="{{ room.name }}" data-room-display="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  <span class="tooltip">Delete Room</span>
-                </button>
-                <a href="?export=1&room_name={{ room.name }}" class="action-btn export">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span class="tooltip">Export Chat</span>
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="7">
-              <div class="empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <h3 class="empty-state-title">No rooms found</h3>
-                <p class="empty-state-description">
-                  {% if search_query %}
-                    No rooms match your search criteria. Try adjusting your search terms or clearing the filters.
-                  {% else %}
-                    There are no rooms created yet. Be the first to create a room and start conversations!
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Room Details</th>
+              <th>Creator</th>
+              <th>Category</th>
+              <th>Created</th>
+              <th>Messages</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for room in page_obj %}
+            <tr>
+              <td>
+                <a href="{% url 'room' room_name=room.name %}" class="room-name">
+                  {% if not room.is_public %}
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                    </svg>
                   {% endif %}
-                </p>
-                {% if search_query %}
-                <a href="{% url 'admin_rooms' %}" class="btn btn-primary">Clear Search</a>
+                  {{ room.display_name|default:room.name }}
+                </a>
+              </td>
+              <td>
+                <div class="user-info">
+                  <div class="user-avatar">
+                    {{ room.creator.username|slice:":1"|upper }}
+                  </div>
+                  <div class="user-details">
+                    <h4>{{ room.creator.username }}</h4>
+                    {% if room.creator.get_full_name %}
+                      <p>{{ room.creator.get_full_name }}</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if room.category %}
+                  <span class="badge badge-success">{{ room.category.name }}</span>
                 {% else %}
-                <a href="{% url 'create_room' %}" class="btn btn-primary">Create First Room</a>
+                  <span class="badge badge-warning">Uncategorized</span>
                 {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+              </td>
+              <td>
+                <div>
+                  <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ room.created_at|date:"M d, Y" }}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ room.created_at|date:"g:i A" }}</div>
+                </div>
+              </td>
+              <td>
+                <div style="font-weight: 700; font-size: 1.125rem;">
+                  {% if room.message_count %}{{ room.message_count }}{% elif room.messages_count %}{{ room.messages_count }}{% else %}0{% endif %}
+                </div>
+              </td>
+              <td>
+                {% if room.is_public %}
+                  <span class="badge badge-success">Public</span>
+                {% else %}
+                  <span class="badge badge-warning">Private</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="actions">
+                  <a href="{% url 'room' room_name=room.name %}" class="action-btn view">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                      <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="tooltip">View Room</span>
+                  </a>
+                  <button class="action-btn clear clear-room-btn" data-room-name="{{ room.name }}" data-room-display="{{ room.display_name|default:room.name }}">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="tooltip">Clear Messages</span>
+                  </button>
+                  <button class="action-btn delete delete-room-btn" data-room-name="{{ room.name }}" data-room-display="{{ room.display_name|default:room.name }}">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="tooltip">Delete Room</span>
+                  </button>
+                  <a href="?export=1&room_name={{ room.name }}" class="action-btn export">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="tooltip">Export Chat</span>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"></path>
+                  </svg>
+                  <h3 class="empty-title">No rooms found</h3>
+                  <p class="empty-description">
+                    {% if search_query %}
+                      No rooms match your search criteria. Try adjusting your search terms or clearing the filters.
+                    {% else %}
+                      There are no rooms created yet. Be the first to create a room and start conversations!
+                    {% endif %}
+                  </p>
+                  {% if search_query %}
+                    <a href="{% url 'admin_rooms' %}" class="btn btn-primary">Clear Search</a>
+                  {% else %}
+                    <a href="{% url 'create_room' %}" class="btn btn-primary">Create First Room</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-    <!-- Mobile Card View -->
-    <div class="mobile-cards">
-      {% for room in page_obj %}
-      <div class="room-card">
-        <div class="room-card__header">
-          <div class="flex justify-between items-start mb-3">
-            <a href="{% url 'room' room_name=room.name %}" class="room-name-link text-lg">
-              {% if room.is_private %}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              {% endif %}
-              <span>{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}</span>
-            </a>
-            <span class="badge {% if room.is_public %}badge-success{% else %}badge-inactive{% endif %}">
-              {% if room.is_public %}Public{% else %}Private{% endif %}
-            </span>
-          </div>
-          <div class="flex justify-between items-center">
-            <div class="flex items-center">
-              <div class="user-avatar mr-2 w-8 h-8 text-sm">
-                {{ room.creator.username|slice:":1"|upper }}
-              </div>
-              <span class="text-sm text-gray-600">{{ room.creator.username }}</span>
-            </div>
-            <div class="text-xs text-gray-500">
-              {{ room.created_at|date:"M d, Y" }}
-            </div>
-          </div>
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+      <div class="pagination-container">
+        <div class="pagination-info">
+          Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} rooms
         </div>
+        <nav>
+          <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="pagination-item">
+              <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ page_obj.previous_page_number }}" class="pagination-link">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </a>
+            </li>
+            {% else %}
+            <li class="pagination-item disabled">
+              <span class="pagination-link">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </span>
+            </li>
+            {% endif %}
 
-        <div class="room-card__content">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-              </svg>
-              <span class="text-gray-700 font-medium">{% if room.message_count %}{{ room.message_count }}{% elif room.messages_count %}{{ room.messages_count }}{% else %}0{% endif %}</span>
-              <span class="text-gray-500 ml-1 text-sm">messages</span>
-            </div>
-            <div class="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              {% if room.category %}
-              <span class="badge badge-primary text-xs">{{ room.category.name }}</span>
-              {% else %}
-              <span class="text-gray-400 text-sm">No category</span>
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+              <li class="pagination-item active">
+                <span class="pagination-link">{{ num }}</span>
+              </li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li class="pagination-item">
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ num }}" class="pagination-link">
+                  {{ num }}
+                </a>
+              </li>
+              {% elif num == 1 or num == page_obj.paginator.num_pages %}
+              <li class="pagination-item">
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ num }}" class="pagination-link">
+                  {{ num }}
+                </a>
+              </li>
+              {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+              <li class="pagination-item">
+                <span class="pagination-link">…</span>
+              </li>
               {% endif %}
-            </div>
-          </div>
-        </div>
+            {% endfor %}
 
-        <div class="room-card__footer">
-          <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-pink-600 hover:text-pink-800 font-medium text-sm">
-            View Details →
-          </a>
-          <div class="action-buttons">
-            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="action-btn view">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </li>
-          {% else %}
-          <li class="pagination-item disabled">
-            <span class="pagination-link" aria-disabled="true">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
-          </li>
-          {% endif %}
-        </ul>
-      </nav>
+            {% if page_obj.has_next %}
+            <li class="pagination-item">
+              <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ page_obj.next_page_number }}" class="pagination-link">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </a>
+            </li>
+            {% else %}
+            <li class="pagination-item disabled">
+              <span class="pagination-link">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </span>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
 </div>
-
-<!-- Floating Create Button (Mobile) -->
-<a href="{% url 'create_room' %}" class="create-room-btn lg:hidden">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-  </svg>
-</a>
 {% endblock %}
 
 {% block extra_js %}
@@ -1450,52 +1003,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const roomName = this.getAttribute('data-room-name');
             const roomDisplay = this.getAttribute('data-room-display');
             
-            // Create custom confirmation dialog
-            const confirmed = confirm(
-                `⚠️ Clear Messages from "${roomDisplay}"?\n\n` +
-                `This will permanently delete ALL messages in this room.\n` +
-                `This action cannot be undone.\n\n` +
-                `Are you absolutely sure?`
-            );
-            
-            if (confirmed) {
-                // Create and submit form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = window.location.href;
-                
-                // Add CSRF token
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-                if (csrfToken) {
-                    form.appendChild(csrfToken.cloneNode());
-                } else {
-                    const csrfInput = document.createElement('input');
-                    csrfInput.type = 'hidden';
-                    csrfInput.name = 'csrfmiddlewaretoken';
-                    csrfInput.value = '{{ csrf_token }}';
-                    form.appendChild(csrfInput);
-                }
-                
-                // Add action
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'clear';
-                form.appendChild(actionInput);
-                
-                // Add room name
-                const roomInput = document.createElement('input');
-                roomInput.type = 'hidden';
-                roomInput.name = 'room_name';
-                roomInput.value = roomName;
-                form.appendChild(roomInput);
-                
-                // Add loading state
-                this.style.opacity = '0.5';
-                this.style.pointerEvents = 'none';
-                
-                document.body.appendChild(form);
-                form.submit();
+            if (confirm(`⚠️ Clear all messages from "${roomDisplay}"?\n\nThis will permanently delete ALL messages in this room and cannot be undone.`)) {
+                submitAction('clear', roomName, this);
             }
         });
     });
@@ -1506,56 +1015,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const roomName = this.getAttribute('data-room-name');
             const roomDisplay = this.getAttribute('data-room-display');
             
-            const confirmed = confirm(
-                `🗑️ Delete Room "${roomDisplay}"?\n\n` +
-                `This will permanently delete:\n` +
-                `• The entire room\n` +
-                `• All messages and chat history\n` +
-                `• All room settings and data\n\n` +
-                `⚠️ THIS CANNOT BE UNDONE!\n\n` +
-                `Type "DELETE" to confirm deletion.`
-            );
-            
-            if (confirmed) {
-                const verification = prompt(`To confirm deletion, type "DELETE" (all caps):`);
+            if (confirm(`🗑️ Delete room "${roomDisplay}"?\n\nThis will permanently delete:\n• The entire room\n• All messages and chat history\n• All room settings and data\n\n⚠️ THIS CANNOT BE UNDONE!`)) {
+                const verification = prompt('Type "DELETE" to confirm:');
                 if (verification === 'DELETE') {
-                    // Create and submit form
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = window.location.href;
-                    
-                    // Add CSRF token
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-                    if (csrfToken) {
-                        form.appendChild(csrfToken.cloneNode());
-                    } else {
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = 'csrfmiddlewaretoken';
-                        csrfInput.value = '{{ csrf_token }}';
-                        form.appendChild(csrfInput);
-                    }
-                    
-                    // Add action
-                    const actionInput = document.createElement('input');
-                    actionInput.type = 'hidden';
-                    actionInput.name = 'action';
-                    actionInput.value = 'delete';
-                    form.appendChild(actionInput);
-                    
-                    // Add room name
-                    const roomInput = document.createElement('input');
-                    roomInput.type = 'hidden';
-                    roomInput.name = 'room_name';
-                    roomInput.value = roomName;
-                    form.appendChild(roomInput);
-                    
-                    // Add loading state
-                    this.style.opacity = '0.5';
-                    this.style.pointerEvents = 'none';
-                    
-                    document.body.appendChild(form);
-                    form.submit();
+                    submitAction('delete', roomName, this);
                 } else {
                     alert('Deletion cancelled - verification text did not match.');
                 }
@@ -1563,116 +1026,88 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Enhanced search functionality
-    const searchInput = document.getElementById('search');
+    function submitAction(action, roomName, button) {
+        // Add loading state
+        button.classList.add('loading');
+        button.innerHTML = '<div class="spinner"></div>';
+        
+        // Create and submit form
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.location.href;
+        
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        form.appendChild(csrfInput);
+        
+        // Add action
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = action;
+        form.appendChild(actionInput);
+        
+        // Add room name
+        const roomInput = document.createElement('input');
+        roomInput.type = 'hidden';
+        roomInput.name = 'room_name';
+        roomInput.value = roomName;
+        form.appendChild(roomInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Auto-submit category filter
     const categorySelect = document.getElementById('category');
-    
-    // Auto-submit on category change
     if (categorySelect) {
         categorySelect.addEventListener('change', function() {
             this.closest('form').submit();
         });
     }
 
-    // Search suggestions (could be enhanced with AJAX)
-    if (searchInput) {
-        let searchTimeout;
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            // Could add live search suggestions here
-        });
-    }
-
-    // View toggle functionality
-    const tableViewBtn = document.getElementById('table-view');
-    const cardViewBtn = document.getElementById('card-view');
-    const desktopTable = document.querySelector('.desktop-table');
-    const mobileCards = document.querySelector('.mobile-cards');
-
-    if (tableViewBtn && cardViewBtn) {
-        tableViewBtn.addEventListener('click', function() {
-            this.classList.add('active');
-            cardViewBtn.classList.remove('active');
-            desktopTable.style.display = 'block';
-            mobileCards.style.display = 'none';
-            localStorage.setItem('roomsView', 'table');
-        });
-
-        cardViewBtn.addEventListener('click', function() {
-            this.classList.add('active');
-            tableViewBtn.classList.remove('active');
-            desktopTable.style.display = 'none';
-            mobileCards.style.display = 'block';
-            localStorage.setItem('roomsView', 'cards');
-        });
-
-        // Restore saved view preference
-        const savedView = localStorage.getItem('roomsView');
-        if (savedView === 'cards') {
-            cardViewBtn.click();
-        }
-    }
-
-    // Enhanced animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-
-    // Observe all fade-in elements
-    document.querySelectorAll('.fade-in').forEach(el => {
-        observer.observe(el);
-    });
-
-    // Smooth scrolling for pagination
-    document.querySelectorAll('.pagination-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            if (this.href && !this.href.includes('#')) {
-                // Add loading state for pagination
-                this.style.opacity = '0.7';
-                this.innerHTML = '<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-            }
-        });
-    });
-
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
-        // Ctrl/Cmd + K for search focus
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
-            searchInput?.focus();
+            document.getElementById('search')?.focus();
         }
         
-        // Ctrl/Cmd + N for new room
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
             window.location.href = "{% url 'create_room' %}";
         }
     });
 
-    // Enhanced table row interactions
+    // Enhanced table interactions
     document.querySelectorAll('.data-table tbody tr').forEach(row => {
         row.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.005)';
-            this.style.zIndex = '1';
+            this.style.transform = 'scale(1.002)';
         });
 
         row.addEventListener('mouseleave', function() {
             this.style.transform = '';
-            this.style.zIndex = '';
         });
     });
 
-    console.log('🚀 Enhanced Euphorie Rooms Management initialized');
+    // Animate elements on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.animate-in').forEach(el => {
+        observer.observe(el);
+    });
+
+    console.log('🚀 Euphorie Admin Rooms Management loaded');
 });
 </script>
 {% endblock %}
