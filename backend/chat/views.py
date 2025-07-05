@@ -899,7 +899,7 @@ def admin_rooms(request):
         'total_messages': total_messages,
     }
     
-    return render(request, 'chat/admin/rooms.html', context)
+    return render(request, 'chat/admin_rooms.html', context)
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_messages(request):
