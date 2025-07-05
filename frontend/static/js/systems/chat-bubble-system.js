@@ -207,17 +207,99 @@ class ChatBubbleSystem {
                 return new THREE.Vector3(0, 0, 0);
             }
             
-            // Fallback position for other users
+            // Create consistent positions for users based on their ID
+            const hash = userId.split('').reduce((a, b) => {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a;
+            }, 0);
+            
+            const angle = (hash % 360) * (Math.PI / 180);
+            const radius = 5 + (Math.abs(hash) % 5);
+            
             return new THREE.Vector3(
-                (Math.random() - 0.5) * 10,
+                Math.cos(angle) * radius,
                 0,
-                (Math.random() - 0.5) * 10
+                Math.sin(angle) * radius
             );
             
         } catch (error) {
             console.error('❌ Error getting avatar position:', error);
             return new THREE.Vector3(0, 0, 0);
         }
+    }
+    
+    // FIXED: Added the missing drawBubbleBackground method
+    drawBubbleBackground(context, width, height) {
+        // Create beautiful gradient background
+        const gradient = context.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+        gradient.addColorStop(0.5, 'rgba(248, 250, 252, 0.95)');
+        gradient.addColorStop(1, 'rgba(241, 245, 249, 0.92)');
+        
+        // Enhanced shadow for depth
+        if (this.config.enableShadows) {
+            context.save();
+            context.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            context.shadowBlur = 20;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 8;
+        }
+        
+        // Main bubble with gradient
+        context.fillStyle = gradient;
+        context.beginPath();
+        this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
+        context.fill();
+        
+        if (this.config.enableShadows) {
+            context.restore();
+        }
+        
+        // Subtle border with gradient
+        const borderGradient = context.createLinearGradient(0, 0, 0, height);
+        borderGradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
+        borderGradient.addColorStop(1, 'rgba(168, 85, 247, 0.2)');
+        
+        context.strokeStyle = borderGradient;
+        context.lineWidth = 2;
+        context.beginPath();
+        this.roundRect(context, 1, 1, width - 2, height - 21, this.config.borderRadius - 1);
+        context.stroke();
+        
+        // Pretty bubble tail with gradient
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.moveTo(width / 2 - 15, height - 20);
+        context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
+        context.fill();
+        
+        // Tail border
+        context.strokeStyle = borderGradient;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(width / 2 - 15, height - 20);
+        context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
+        context.stroke();
+        
+        // Add inner glow for extra prettiness
+        context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        context.lineWidth = 1;
+        context.beginPath();
+        this.roundRect(context, 3, 3, width - 6, height - 23, this.config.borderRadius - 3);
+        context.stroke();
+    }
+    
+    // FIXED: Added the missing roundRect method
+    roundRect(context, x, y, width, height, radius) {
+        context.moveTo(x + radius, y);
+        context.lineTo(x + width - radius, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + radius);
+        context.lineTo(x + width, y + height - radius);
+        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        context.lineTo(x + radius, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
     }
     
     createBubble(message, username, position, userId = null) {
@@ -234,9 +316,9 @@ class ChatBubbleSystem {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             
-            // Set up fonts for accurate measurement
-            const usernameFont = `bold ${this.config.fontSize * 0.8}px Inter, Arial, sans-serif`;
-            const messageFont = `${this.config.fontSize}px Inter, Arial, sans-serif`;
+            // Enhanced fonts for prettier text
+            const usernameFont = `bold ${this.config.fontSize * 0.8}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif`;
+            const messageFont = `${this.config.fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif`;
             
             // Calculate text dimensions with proper wrapping
             const textMetrics = this.calculateTextDimensions(context, message, username, usernameFont, messageFont);
@@ -249,26 +331,55 @@ class ChatBubbleSystem {
             canvas.height = bubbleHeight * 2;
             context.scale(2, 2); // High DPI scaling
             
-            // Draw bubble background - FIXED METHOD
+            // Draw pretty background
             this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
             
-            // Draw username
+            // Draw username with enhanced styling
             context.font = usernameFont;
             context.fillStyle = this.bubbleStyles.usernameColor;
             context.textAlign = 'left';
-            context.fillText(username, this.config.padding, this.config.padding + this.config.fontSize * 0.8);
             
-            // Draw message text with proper wrapping
+            // Username background pill
+            const usernameWidth = context.measureText(username).width;
+            const pillGradient = context.createLinearGradient(0, this.config.padding - 2, usernameWidth + 16, this.config.padding + 18);
+            pillGradient.addColorStop(0, 'rgba(102, 126, 234, 0.1)');
+            pillGradient.addColorStop(1, 'rgba(168, 85, 247, 0.1)');
+            
+            context.fillStyle = pillGradient;
+            context.beginPath();
+            this.roundRect(context, this.config.padding - 4, this.config.padding - 2, usernameWidth + 8, 20, 10);
+            context.fill();
+            
+            // Username border
+            context.strokeStyle = 'rgba(102, 126, 234, 0.3)';
+            context.lineWidth = 1;
+            context.stroke();
+            
+            // Username text
+            context.fillStyle = this.bubbleStyles.usernameColor;
+            context.fillText(username, this.config.padding, this.config.padding + 15);
+            
+            // Draw message text with enhanced styling
             context.font = messageFont;
             context.fillStyle = this.bubbleStyles.textColor;
+            
+            // Add text shadow for better readability
+            context.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            context.shadowBlur = 1;
+            context.shadowOffsetY = 1;
             
             textMetrics.lines.forEach((line, index) => {
                 context.fillText(
                     line,
                     this.config.padding,
-                    this.config.padding + this.config.fontSize * 0.8 + 15 + (index * textMetrics.lineHeight)
+                    this.config.padding + this.config.fontSize * 0.8 + 25 + (index * textMetrics.lineHeight)
                 );
             });
+            
+            // Reset shadow
+            context.shadowColor = 'transparent';
+            context.shadowBlur = 0;
+            context.shadowOffsetY = 0;
             
             // Create sprite
             const texture = new THREE.CanvasTexture(canvas);
@@ -292,15 +403,16 @@ class ChatBubbleSystem {
             
             bubbleGroup.add(sprite);
             
-            // Position bubble above avatar
+            // Position bubble above avatar with better spacing
             const bubblePosition = position.clone();
             bubblePosition.y += this.config.yOffset;
             
-            // Add some randomization to prevent overlap
+            // Improved overlap prevention
             if (userId && this.bubbles.has(userId)) {
                 const userBubbles = this.bubbles.get(userId);
-                bubblePosition.x += (userBubbles.length - 1) * 0.5;
-                bubblePosition.y += userBubbles.length * 0.3;
+                bubblePosition.x += (userBubbles.length - 1) * 0.8;
+                bubblePosition.y += userBubbles.length * 0.5;
+                bubblePosition.z += userBubbles.length * 0.1;
             }
             
             bubbleGroup.position.copy(bubblePosition);
@@ -315,10 +427,11 @@ class ChatBubbleSystem {
                 opacity: 1,
                 isVisible: true,
                 originalPosition: bubblePosition.clone(),
-                priority: 50
+                priority: 50,
+                isPretty: true
             };
             
-            // Animate in
+            // Enhanced animation
             bubbleGroup.scale.set(0, 0, 0);
             this.animateBubbleIn(bubbleGroup);
             
@@ -356,49 +469,6 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Added the missing drawBubbleBackground method
-    drawBubbleBackground(context, width, height) {
-        // Enhanced shadow with blur
-        if (this.config.enableShadows) {
-            context.save();
-            context.shadowColor = this.bubbleStyles.shadowColor;
-            context.shadowBlur = 10;
-            context.shadowOffsetX = 0;
-            context.shadowOffsetY = 2;
-        }
-        
-        // Main bubble background
-        context.fillStyle = this.bubbleStyles.background;
-        context.strokeStyle = this.bubbleStyles.borderColor;
-        context.lineWidth = 2;
-        
-        // Draw rounded rectangle
-        context.beginPath();
-        this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
-        context.fill();
-        
-        if (this.config.enableShadows) {
-            context.restore();
-        }
-        
-        // Draw border
-        context.stroke();
-        
-        // Draw bubble tail
-        context.fillStyle = this.bubbleStyles.background;
-        context.beginPath();
-        context.moveTo(width / 2 - 12, height - 20);
-        context.quadraticCurveTo(width / 2, height - 5, width / 2 + 12, height - 20);
-        context.fill();
-        
-        // Tail border
-        context.strokeStyle = this.bubbleStyles.borderColor;
-        context.beginPath();
-        context.moveTo(width / 2 - 12, height - 20);
-        context.quadraticCurveTo(width / 2, height - 5, width / 2 + 12, height - 20);
-        context.stroke();
-    }
-    
     calculateTextDimensions(context, message, username, usernameFont, messageFont) {
         // Measure username
         context.font = usernameFont;
@@ -422,7 +492,7 @@ class ChatBubbleSystem {
         const bubbleWidth = Math.max(maxTextWidth + this.config.padding * 2, 120);
         const bubbleHeight = this.config.padding * 2 + // top and bottom padding
                             this.config.fontSize * 0.8 + // username height
-                            15 + // spacing between username and message
+                            25 + // spacing between username and message + username pill
                             (lines.length * lineHeight) + // message text height
                             25; // tail height
         
@@ -477,35 +547,34 @@ class ChatBubbleSystem {
         return finalLines;
     }
     
-    roundRect(context, x, y, width, height, radius) {
-        context.moveTo(x + radius, y);
-        context.lineTo(x + width - radius, y);
-        context.quadraticCurveTo(x + width, y, x + width, y + radius);
-        context.lineTo(x + width, y + height - radius);
-        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        context.lineTo(x + radius, y + height);
-        context.quadraticCurveTo(x, y + height, x, y + height - radius);
-        context.lineTo(x, y + radius);
-        context.quadraticCurveTo(x, y, x + radius, y);
-    }
-    
     animateBubbleIn(bubble) {
         const startScale = 0;
         const endScale = 1;
-        const duration = this.config.animationDuration;
+        const duration = 400; // Slightly longer for smoother effect
         const startTime = Date.now();
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+            
+            // Enhanced easing with bounce
+            let easeProgress;
+            if (progress < 0.5) {
+                easeProgress = 2 * progress * progress;
+            } else {
+                easeProgress = 1 - 2 * Math.pow(1 - progress, 2);
+            }
             
             const scale = startScale + (endScale - startScale) * easeProgress;
             bubble.scale.set(scale, scale, scale);
             
+            // Add slight rotation for charm
+            bubble.rotation.z = Math.sin(progress * Math.PI * 2) * 0.05;
+            
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
+                bubble.rotation.z = 0; // Reset rotation
                 // Schedule fade out
                 setTimeout(() => {
                     this.animateBubbleOut(bubble);
