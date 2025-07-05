@@ -762,12 +762,13 @@
             opacity: 1;
         }
         
-        /* Mobile Actions Menu */
+        /* Mobile Actions Menu - Enhanced Scrolling */
         .mobile-actions-menu {
             position: fixed;
             top: 80px;
             right: 15px;
             left: 15px;
+            bottom: 20px;
             background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
             backdrop-filter: blur(20px);
             border: 2px solid rgba(102, 126, 234, 0.3);
@@ -777,7 +778,6 @@
             display: none;
             flex-direction: column;
             gap: 12px;
-            max-height: calc(100vh - 120px);
             overflow-y: auto;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             transform: translateY(-20px) scale(0.9);
@@ -792,6 +792,12 @@
             display: flex;
             transform: translateY(0) scale(1);
             opacity: 1;
+        }
+        
+        /* Ensure content is not cut off */
+        .mobile-actions-menu .mobile-action-group:last-child {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
         }
         
         .mobile-menu-header {
@@ -842,7 +848,7 @@
             justify-content: center;
         }
         
-        .mobile-action-btn:hover {
+        .mobile-action-btn:hover, .mobile-action-btn:active {
             background: linear-gradient(145deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
             border-color: rgba(102, 126, 234, 0.4);
             transform: translateY(-2px);
@@ -856,6 +862,17 @@
         
         .mobile-action-btn.full-width {
             grid-column: 1 / -1;
+        }
+        
+        /* Add chat toggle button to mobile menu */
+        .mobile-chat-btn {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+            border: 2px solid rgba(102, 126, 234, 0.5);
+        }
+        
+        .mobile-chat-btn:hover, .mobile-chat-btn:active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+            border-color: rgba(102, 126, 234, 0.7);
         }
         
         /* Quick Actions for Mobile - Simplified */
@@ -1280,21 +1297,31 @@
             <div class="mobile-menu-header">🎮 Controls & Actions</div>
             
             <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Chat</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn mobile-chat-btn full-width" onclick="toggleChatMinimize(); closeDesktopMenu();">
+                        <div class="icon">💬</div>
+                        <div>Toggle Chat</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
                 <div class="mobile-action-group-title">Quick Actions</div>
                 <div class="mobile-action-grid">
-                    <button class="mobile-action-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave'); closeDesktopMenu();">
+                    <button class="mobile-action-btn" onclick="triggerWave(); closeDesktopMenu();">
                         <div class="icon">👋</div>
                         <div>Wave</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance'); closeDesktopMenu();">
+                    <button class="mobile-action-btn" onclick="triggerDance(); closeDesktopMenu();">
                         <div class="icon">💃</div>
                         <div>Dance</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="showMobileEmotions(); closeDesktopMenu();">
+                    <button class="mobile-action-btn" onclick="showEmotionPanel(); closeDesktopMenu();">
                         <div class="icon">🎭</div>
                         <div>Emotions</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="window.GroupInteractionSystem && window.GroupInteractionSystem.showGroupActivityMenu(); closeDesktopMenu();">
+                    <button class="mobile-action-btn" onclick="showGroupMenu(); closeDesktopMenu();">
                         <div class="icon">👥</div>
                         <div>Groups</div>
                     </button>
@@ -1308,7 +1335,7 @@
                         <div class="icon">👤</div>
                         <div>Avatar</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="window.PetSystem && window.PetSystem.assignRandomPet('default'); closeDesktopMenu();">
+                    <button class="mobile-action-btn" onclick="addRandomPet(); closeDesktopMenu();">
                         <div class="icon">🐾</div>
                         <div>Get Pet</div>
                     </button>
@@ -1355,21 +1382,31 @@
             <div class="mobile-menu-header">🎮 Controls & Actions</div>
             
             <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Chat</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn mobile-chat-btn full-width" onclick="toggleMobileChat(); closeMobileMenu();">
+                        <div class="icon">💬</div>
+                        <div>Toggle Chat</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
                 <div class="mobile-action-group-title">Quick Actions</div>
                 <div class="mobile-action-grid">
-                    <button class="mobile-action-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave'); closeMobileMenu();">
+                    <button class="mobile-action-btn" onclick="triggerWave(); closeMobileMenu();">
                         <div class="icon">👋</div>
                         <div>Wave</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance'); closeMobileMenu();">
+                    <button class="mobile-action-btn" onclick="triggerDance(); closeMobileMenu();">
                         <div class="icon">💃</div>
                         <div>Dance</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="showMobileEmotions(); closeMobileMenu();">
+                    <button class="mobile-action-btn" onclick="showEmotionPanel(); closeMobileMenu();">
                         <div class="icon">🎭</div>
                         <div>Emotions</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="window.GroupInteractionSystem && window.GroupInteractionSystem.showGroupActivityMenu(); closeMobileMenu();">
+                    <button class="mobile-action-btn" onclick="showGroupMenu(); closeMobileMenu();">
                         <div class="icon">👥</div>
                         <div>Groups</div>
                     </button>
@@ -1383,7 +1420,7 @@
                         <div class="icon">👤</div>
                         <div>Avatar</div>
                     </button>
-                    <button class="mobile-action-btn" onclick="window.PetSystem && window.PetSystem.assignRandomPet('default'); closeMobileMenu();">
+                    <button class="mobile-action-btn" onclick="addRandomPet(); closeMobileMenu();">
                         <div class="icon">🐾</div>
                         <div>Get Pet</div>
                     </button>
@@ -1440,12 +1477,8 @@
             </button>
         </div>
         
-        <!-- Quick Actions - Only Most Important Ones for Mobile -->
-        <div id="quick-actions">
-            <button class="quick-btn" onclick="toggleMobileChat()" title="Toggle Chat">💬</button>
-            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave')" title="Wave (1/W)">👋</button>
-            <button class="quick-btn" onclick="showMobileEmotions()" title="Show Emotions (E)">🎭</button>
-        </div>
+        <!-- Quick Actions - Removed since they're in hamburger menu -->
+        <!-- Bottom buttons removed to avoid redundancy -->
     </div>
 
     <!-- Three.js from CDN -->
@@ -1831,11 +1864,81 @@
                 this.addMessageToChat(data.username, data.message, isOwn);
                 
                 // Create 3D chat bubble if enabled and ChatBubbleSystem is available
-                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                if (window.ROOM_CONFIG.chatBubblesEnabled) {
                     console.log('💬 Creating 3D chat bubble for message:', data.message);
-                    window.ChatBubbleSystem.createBubbleFromMessage(data);
+                    
+                    // Enhanced chat bubble creation with better error handling
+                    if (window.ChatBubbleSystem && window.ChatBubbleSystem.createBubbleFromMessage) {
+                        try {
+                            window.ChatBubbleSystem.createBubbleFromMessage(data);
+                            console.log('✅ 3D chat bubble created successfully');
+                        } catch (error) {
+                            console.error('❌ Error creating 3D chat bubble:', error);
+                            // Fallback: try alternative method
+                            this.createFallbackBubble(data);
+                        }
+                    } else if (window.ChatBubbleSystem && window.ChatBubbleSystem.createBubble) {
+                        try {
+                            // Alternative method
+                            window.ChatBubbleSystem.createBubble(data.message, data.username, data.user_id);
+                            console.log('✅ 3D chat bubble created via alternative method');
+                        } catch (error) {
+                            console.error('❌ Error creating alternative 3D chat bubble:', error);
+                            this.createFallbackBubble(data);
+                        }
+                    } else {
+                        console.warn('⚠️ ChatBubbleSystem not available, will retry when loaded');
+                        // Store message for later bubble creation
+                        if (!window.pendingChatBubbles) {
+                            window.pendingChatBubbles = [];
+                        }
+                        window.pendingChatBubbles.push(data);
+                    }
                 } else {
-                    console.log('💬 3D bubbles disabled or ChatBubbleSystem not available');
+                    console.log('💬 3D bubbles disabled');
+                }
+            }
+            
+            createFallbackBubble(data) {
+                console.log('🔄 Creating fallback 3D chat bubble');
+                
+                // Simple fallback bubble creation
+                if (window.scene && window.THREE) {
+                    try {
+                        // Create a basic text sprite as fallback
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 512;
+                        canvas.height = 128;
+                        
+                        context.fillStyle = 'rgba(102, 126, 234, 0.9)';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+                        context.fillStyle = 'white';
+                        context.font = '24px Arial';
+                        context.textAlign = 'center';
+                        context.fillText(data.message, canvas.width / 2, canvas.height / 2);
+                        
+                        const texture = new THREE.CanvasTexture(canvas);
+                        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+                        const sprite = new THREE.Sprite(spriteMaterial);
+                        
+                        // Position above avatar (fallback position)
+                        sprite.position.set(0, 2, 0);
+                        sprite.scale.set(2, 0.5, 1);
+                        
+                        window.scene.add(sprite);
+                        
+                        // Remove after 5 seconds
+                        setTimeout(() => {
+                            window.scene.remove(sprite);
+                            texture.dispose();
+                            spriteMaterial.dispose();
+                        }, 5000);
+                        
+                        console.log('✅ Fallback 3D chat bubble created');
+                    } catch (error) {
+                        console.error('❌ Fallback bubble creation failed:', error);
+                    }
                 }
             }
             
@@ -2301,10 +2404,28 @@
             } else {
                 console.log('🚀 All systems loaded successfully!');
                 
-                // Initialize chat bubble system
+                // Initialize chat bubble system with enhanced error handling
                 if (window.ChatBubbleSystem) {
-                    window.ChatBubbleSystem.init();
-                    console.log('💬 Chat Bubble System initialized');
+                    try {
+                        window.ChatBubbleSystem.init();
+                        console.log('💬 Chat Bubble System initialized');
+                        
+                        // Process any pending chat bubbles
+                        if (window.pendingChatBubbles && window.pendingChatBubbles.length > 0) {
+                            console.log(`🔄 Processing ${window.pendingChatBubbles.length} pending chat bubbles`);
+                            window.pendingChatBubbles.forEach(data => {
+                                try {
+                                    window.ChatBubbleSystem.createBubbleFromMessage(data);
+                                } catch (error) {
+                                    console.error('❌ Error processing pending bubble:', error);
+                                }
+                            });
+                            window.pendingChatBubbles = [];
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Error initializing ChatBubbleSystem:', error);
+                    }
                 } else {
                     console.warn('⚠️ ChatBubbleSystem not available');
                 }
