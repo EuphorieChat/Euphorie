@@ -41,11 +41,11 @@ urlpatterns = [
     path('rooms/trending/', views.trending_rooms, name='trending_rooms'),
     
     # ==================== ADMIN URLS ====================
-    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
-    path('admin/rooms/', views.admin_rooms, name='admin_rooms'),
-    path('admin/messages/', views.admin_messages, name='admin_messages'),
-    path('admin/users/', views.admin_user_activity, name='admin_user_activity'),
-    path('admin/settings/', views.admin_user_settings, name='admin_user_settings'),
+    path('manage/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('manage/rooms/', views.admin_rooms, name='admin_rooms'),
+    path('manage/messages/', views.admin_messages, name='admin_messages'),
+    path('manage/users/', views.admin_user_activity, name='admin_user_activity'),
+    path('manage/settings/', views.admin_user_settings, name='admin_user_settings'),
     
     # ==================== API ENDPOINTS ====================
     path('api/profile/', views.api_user_profile, name='api_user_profile'),
