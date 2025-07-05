@@ -1,4 +1,4 @@
-{% extends "chat/base/base.html" %}
+{% extends "base/base.html" %}
 {% load static %}
 
 {% block title %}Rooms Management - Euphorie{% endblock %}
@@ -1292,26 +1292,26 @@
             </td>
             <td>
               <div class="action-buttons">
-                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="action-btn view">
+                <a href="{% url 'room' room_name=room.name %}" class="action-btn view">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                   <span class="tooltip">View Room</span>
                 </a>
-                <a href="{% url 'admin_clear_room' room_name=room.name %}" class="action-btn clear clear-room-btn" data-room-name="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
+                <button class="action-btn clear clear-room-btn" data-room-name="{{ room.name }}" data-room-display="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                   <span class="tooltip">Clear Messages</span>
-                </a>
-                <a href="{% url 'admin_delete_room' room_name=room.name %}" class="action-btn delete delete-room-btn" data-room-name="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
+                </button>
+                <button class="action-btn delete delete-room-btn" data-room-name="{{ room.name }}" data-room-display="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                   <span class="tooltip">Delete Room</span>
-                </a>
-                <a href="{% url 'admin_export_chat' room_name=room.name %}" class="action-btn export">
+                </button>
+                <a href="?export=1&room_name={{ room.name }}" class="action-btn export">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
@@ -1354,7 +1354,7 @@
       <div class="room-card">
         <div class="room-card__header">
           <div class="flex justify-between items-start mb-3">
-            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="room-name-link text-lg">
+            <a href="{% url 'room' room_name=room.name %}" class="room-name-link text-lg">
               {% if room.is_private %}
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -1447,20 +1447,54 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const roomName = this.getAttribute('data-room-name');
+            const roomDisplay = this.getAttribute('data-room-display');
             
             // Create custom confirmation dialog
             const confirmed = confirm(
-                `⚠️ Clear Messages from "${roomName}"?\n\n` +
+                `⚠️ Clear Messages from "${roomDisplay}"?\n\n` +
                 `This will permanently delete ALL messages in this room.\n` +
                 `This action cannot be undone.\n\n` +
                 `Are you absolutely sure?`
             );
             
             if (confirmed) {
+                // Create and submit form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = window.location.href;
+                
+                // Add CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfToken) {
+                    form.appendChild(csrfToken.cloneNode());
+                } else {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = '{{ csrf_token }}';
+                    form.appendChild(csrfInput);
+                }
+                
+                // Add action
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'clear';
+                form.appendChild(actionInput);
+                
+                // Add room name
+                const roomInput = document.createElement('input');
+                roomInput.type = 'hidden';
+                roomInput.name = 'room_name';
+                roomInput.value = roomName;
+                form.appendChild(roomInput);
+                
                 // Add loading state
                 this.style.opacity = '0.5';
                 this.style.pointerEvents = 'none';
-                window.location.href = this.href;
+                
+                document.body.appendChild(form);
+                form.submit();
             }
         });
     });
@@ -1469,9 +1503,10 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const roomName = this.getAttribute('data-room-name');
+            const roomDisplay = this.getAttribute('data-room-display');
             
             const confirmed = confirm(
-                `🗑️ Delete Room "${roomName}"?\n\n` +
+                `🗑️ Delete Room "${roomDisplay}"?\n\n` +
                 `This will permanently delete:\n` +
                 `• The entire room\n` +
                 `• All messages and chat history\n` +
@@ -1483,9 +1518,43 @@ document.addEventListener('DOMContentLoaded', function() {
             if (confirmed) {
                 const verification = prompt(`To confirm deletion, type "DELETE" (all caps):`);
                 if (verification === 'DELETE') {
+                    // Create and submit form
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = window.location.href;
+                    
+                    // Add CSRF token
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                    if (csrfToken) {
+                        form.appendChild(csrfToken.cloneNode());
+                    } else {
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = '{{ csrf_token }}';
+                        form.appendChild(csrfInput);
+                    }
+                    
+                    // Add action
+                    const actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action';
+                    actionInput.value = 'delete';
+                    form.appendChild(actionInput);
+                    
+                    // Add room name
+                    const roomInput = document.createElement('input');
+                    roomInput.type = 'hidden';
+                    roomInput.name = 'room_name';
+                    roomInput.value = roomName;
+                    form.appendChild(roomInput);
+                    
+                    // Add loading state
                     this.style.opacity = '0.5';
                     this.style.pointerEvents = 'none';
-                    window.location.href = this.href;
+                    
+                    document.body.appendChild(form);
+                    form.submit();
                 } else {
                     alert('Deletion cancelled - verification text did not match.');
                 }

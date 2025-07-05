@@ -739,32 +739,141 @@ def admin_dashboard(request):
     
     return render(request, 'chat/admin/dashboard.html', context)
 
-@user_passes_test(lambda u: u.is_staff)
+@staff_member_required
 def admin_rooms(request):
-    """Enhanced admin room management"""
-    rooms = Room.objects.select_related('creator', 'category').annotate(
-        total_messages=Count('messages'),
-        report_count=Count('messages__reports')
+    """
+    Combined admin view for managing all rooms with search, filter, pagination,
+    and handling room actions (clear, delete, export)
+    """
+    
+    # Handle POST actions (clear, delete)
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        room_name = request.POST.get('room_name')
+        
+        if room_name:
+            room = get_object_or_404(Room, name=room_name)
+            
+            if action == 'clear':
+                message_count = Message.objects.filter(room=room).count()
+                Message.objects.filter(room=room).delete()
+                messages.success(
+                    request, 
+                    f'Successfully cleared {message_count} messages from room "{room.display_name or room.name}"'
+                )
+                
+            elif action == 'delete':
+                room_display_name = room.display_name or room.name
+                room.delete()  # This should cascade delete messages
+                messages.success(
+                    request,
+                    f'Room "{room_display_name}" has been permanently deleted.'
+                )
+        
+        return redirect('admin_rooms')
+    
+    # Handle CSV export
+    if request.GET.get('export') and request.GET.get('room_name'):
+        room_name = request.GET.get('room_name')
+        room = get_object_or_404(Room, name=room_name)
+        
+        # Create the HttpResponse object with CSV header
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="chat_export_{room.name}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+        
+        writer = csv.writer(response)
+        
+        # Write header
+        writer.writerow([
+            'Timestamp',
+            'Username',
+            'User Full Name',
+            'Message',
+        ])
+        
+        # Write messages
+        room_messages = Message.objects.filter(room=room).select_related('user').order_by('timestamp')
+        
+        for message in room_messages:
+            writer.writerow([
+                message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                message.user.username if message.user else 'System',
+                message.user.get_full_name() if message.user else 'System',
+                message.content,
+            ])
+        
+        return response
+    
+    # Regular GET request - show rooms list
+    
+    # Get search and filter parameters
+    search_query = request.GET.get('search', '').strip()
+    selected_category = request.GET.get('category', '')
+    
+    # Start with all rooms and add message counts
+    rooms = Room.objects.select_related('creator').annotate(
+        messages_count=Count('message', distinct=True)
     ).order_by('-created_at')
     
-    # Add search functionality
-    search_query = request.GET.get('q', '').strip()
+    # Apply search filter
     if search_query:
         rooms = rooms.filter(
             Q(name__icontains=search_query) |
             Q(display_name__icontains=search_query) |
-            Q(creator__username__icontains=search_query)
+            Q(description__icontains=search_query) |
+            Q(creator__username__icontains=search_query) |
+            Q(creator__first_name__icontains=search_query) |
+            Q(creator__last_name__icontains=search_query)
         )
     
-    # Add pagination
-    paginator = Paginator(rooms, 25)
+    # Apply category filter (if you have categories)
+    # Uncomment and adjust this if you have a Category model
+    # if selected_category:
+    #     rooms = rooms.filter(category_id=selected_category)
+    
+    # Pagination
+    paginator = Paginator(rooms, 25)  # Show 25 rooms per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'chat/admin/rooms.html', {
-        'rooms': page_obj,
-        'search_query': search_query
-    })
+    # Get statistics
+    total_rooms = Room.objects.count()
+    
+    # Count active rooms (assuming you have an is_active field)
+    try:
+        active_rooms = Room.objects.filter(is_active=True).count()
+    except:
+        # If no is_active field, just use total rooms
+        active_rooms = total_rooms
+    
+    # Get most popular room (by message count)
+    most_popular_room = Room.objects.annotate(
+        msg_count=Count('message')
+    ).order_by('-msg_count').first()
+    
+    total_messages = Message.objects.count()
+    
+    # Get all categories for the filter dropdown (if you have categories)
+    categories = []
+    # Uncomment this if you have a Category model:
+    # try:
+    #     from .models import Category
+    #     categories = Category.objects.all()
+    # except:
+    #     categories = []
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'selected_category': selected_category,
+        'categories': categories,
+        'total_rooms': total_rooms,
+        'active_rooms': active_rooms,
+        'most_popular_room': most_popular_room.display_name or most_popular_room.name if most_popular_room else 'None',
+        'total_messages': total_messages,
+    }
+    
+    return render(request, 'chat/admin/rooms.html', context)
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_messages(request):
