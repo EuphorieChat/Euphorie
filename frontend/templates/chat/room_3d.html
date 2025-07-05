@@ -1994,37 +1994,54 @@
         }
         
         function setupChatBubbleWebSocketIntegration() {
-            // Override the WebSocket chat message handler to integrate with external bubble system
-            if (window.WebSocketManager && window.ChatBubbleSystem) {
-                const originalHandleChatMessage = window.WebSocketManager.handleChatMessage;
-                
-                window.WebSocketManager.handleChatMessage = function(data) {
-                    // Call original handler for chat display
-                    originalHandleChatMessage.call(this, data);
-                    
-                    // Create 3D chat bubble if enabled
-                    if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                        try {
-                            // Convert data format for external system
-                            const bubbleData = {
-                                message: data.message,
-                                username: data.username,
-                                userId: data.user_id,
-                                type: data.type || 'user'
-                            };
-                            
-                            window.ChatBubbleSystem.createBubbleFromMessage(bubbleData);
-                        } catch (error) {
-                            console.warn('Error creating chat bubble:', error);
-                        }
-                    }
-                    
-                    // Update bubble count
-                    this.updateBubbleCount();
-                };
-                
-                console.log('🔗 WebSocket integrated with ChatBubbleSystem');
+            // Check if WebSocketManager and ChatBubbleSystem are ready
+            if (!window.WebSocketManager || !window.ChatBubbleSystem) {
+                console.log('⏳ Waiting for WebSocketManager and ChatBubbleSystem...');
+                setTimeout(setupChatBubbleWebSocketIntegration, 500);
+                return;
             }
+            
+            if (!window.ChatBubbleSystem.isInitialized) {
+                console.log('⏳ ChatBubbleSystem not initialized yet, retrying in 500ms...');
+                setTimeout(setupChatBubbleWebSocketIntegration, 500);
+                return;
+            }
+            
+            // Store original handler
+            const originalHandleChatMessage = window.WebSocketManager.handleChatMessage;
+            
+            // Override with integrated handler
+            window.WebSocketManager.handleChatMessage = function(data) {
+                // Call original handler for chat display
+                if (originalHandleChatMessage) {
+                    originalHandleChatMessage.call(this, data);
+                }
+                
+                // Create 3D chat bubble if enabled
+                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem.isInitialized) {
+                    try {
+                        // Convert data format for external system
+                        const bubbleData = {
+                            message: data.message,
+                            username: data.username,
+                            userId: data.user_id,
+                            type: data.type || 'user'
+                        };
+                        
+                        // Use direct method call (now properly bound)
+                        window.ChatBubbleSystem.createBubbleFromMessage(bubbleData);
+                    } catch (error) {
+                        console.warn('Error creating chat bubble:', error);
+                    }
+                }
+                
+                // Update bubble count
+                if (this.updateBubbleCount) {
+                    this.updateBubbleCount();
+                }
+            };
+            
+            console.log('🔗 WebSocket integrated with ChatBubbleSystem');
         }
         
         function createFallbackChatBubbleSystem() {

@@ -1,5 +1,5 @@
 // /static/js/systems/chat-bubble-system.js
-// 3D Chat Bubble System for Euphorie - WORKING VERSION
+// 3D Chat Bubble System for Euphorie - FIXED VERSION
 // Integrates with existing AvatarSystem and WebSocketManager
 
 class ChatBubbleSystem {
@@ -12,15 +12,18 @@ class ChatBubbleSystem {
         this.renderer = null;
         this.isInitialized = false;
         
-        // Initialize missing properties to fix errors
+        // FIXED: Properly initialize all required properties
         this.materialPool = [];
         this.texturePool = [];
+        
+        // FIXED: Ensure performance object is always properly initialized
         this.performance = {
             frameTime: 0,
             bubbleCount: 0,
             renderCalls: 0,
             lastCleanup: Date.now()
         };
+        
         this.animations = {
             fadeIn: { duration: 300, easing: 'easeOutBack' },
             fadeOut: { duration: 500, easing: 'easeInQuart' },
@@ -60,12 +63,22 @@ class ChatBubbleSystem {
             shadowColor: 'rgba(0, 0, 0, 0.3)'
         };
         
-        // Bind methods
+        // FIXED: Properly bind ALL methods to this instance
         this.init = this.init.bind(this);
         this.createBubble = this.createBubble.bind(this);
+        this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
         this.update = this.update.bind(this);
         this.handleResize = this.handleResize.bind(this);
-        this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
+        this.drawBubbleBackground = this.drawBubbleBackground.bind(this);
+        this.roundRect = this.roundRect.bind(this);
+        this.calculateTextDimensions = this.calculateTextDimensions.bind(this);
+        this.wrapText = this.wrapText.bind(this);
+        this.animateBubbleIn = this.animateBubbleIn.bind(this);
+        this.animateBubbleOut = this.animateBubbleOut.bind(this);
+        this.removeBubble = this.removeBubble.bind(this);
+        this.getAvatarPosition = this.getAvatarPosition.bind(this);
+        this.performanceCleanup = this.performanceCleanup.bind(this);
+        this.startUpdateLoop = this.startUpdateLoop.bind(this);
         
         // Setup resize handler
         window.addEventListener('resize', this.handleResize);
@@ -88,6 +101,16 @@ class ChatBubbleSystem {
             if (!this.scene || !this.camera) {
                 console.error('❌ Enhanced ChatBubbleSystem: Scene or camera not available');
                 return;
+            }
+            
+            // FIXED: Ensure performance object is still intact after init
+            if (!this.performance) {
+                this.performance = {
+                    frameTime: 0,
+                    bubbleCount: 0,
+                    renderCalls: 0,
+                    lastCleanup: Date.now()
+                };
             }
             
             this.isInitialized = true;
@@ -229,7 +252,7 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Added the missing drawBubbleBackground method
+    // FIXED: Properly bound drawBubbleBackground method
     drawBubbleBackground(context, width, height) {
         // Create beautiful gradient background
         const gradient = context.createLinearGradient(0, 0, 0, height);
@@ -290,7 +313,7 @@ class ChatBubbleSystem {
         context.stroke();
     }
     
-    // FIXED: Added the missing roundRect method
+    // FIXED: Properly bound roundRect method
     roundRect(context, x, y, width, height, radius) {
         context.moveTo(x + radius, y);
         context.lineTo(x + width - radius, y);
@@ -332,7 +355,7 @@ class ChatBubbleSystem {
             canvas.height = bubbleHeight * 2;
             context.scale(2, 2); // High DPI scaling
             
-            // Draw pretty background
+            // FIXED: Call with proper context binding
             this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
             
             // Draw username with enhanced styling
@@ -621,7 +644,17 @@ class ChatBubbleSystem {
     update() {
         if (!this.camera || !this.isInitialized) return;
         
-        const startTime = Date.now(); // FIXED: Use simple Date.now()
+        // FIXED: Ensure performance object exists
+        if (!this.performance) {
+            this.performance = {
+                frameTime: 0,
+                bubbleCount: 0,
+                renderCalls: 0,
+                lastCleanup: Date.now()
+            };
+        }
+        
+        const startTime = Date.now();
         
         try {
             this.activeBubbles.forEach(bubble => {
@@ -674,6 +707,15 @@ class ChatBubbleSystem {
     
     performanceCleanup() {
         const now = Date.now();
+        
+        if (!this.performance) {
+            this.performance = {
+                frameTime: 0,
+                bubbleCount: 0,
+                renderCalls: 0,
+                lastCleanup: Date.now()
+            };
+        }
         
         if (now - this.performance.lastCleanup > 10000) {
             // Clean up expired textures
