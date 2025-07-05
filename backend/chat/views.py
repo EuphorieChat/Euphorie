@@ -1218,13 +1218,13 @@ def admin_users(request):
 # Update this view to fix the template path
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_activity(request):
-    """Redirect to unified admin users view"""
-    return redirect('admin_users')
+    """User activity view - redirects to unified admin users"""
+    return admin_users(request)
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_settings(request):
-    """Redirect to unified admin users view"""
-    return redirect('admin_users')
+    """User settings view - redirects to unified admin users"""
+    return admin_users(request)
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_settings(request):
