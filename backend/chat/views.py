@@ -1182,3 +1182,41 @@ def explore_rooms(request):
     """Dedicated room exploration page with enhanced features"""
     # This is essentially the same as index but can be customized differently
     return index(request)
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render
+from django.db.models import Count
+from datetime import datetime, timedelta
+from .models import Room, Message, User
+
+@staff_member_required
+def admin_dashboard(request):
+    # Get stats for the dashboard
+    total_rooms = Room.objects.count()
+    total_messages = Message.objects.count()
+    total_users = User.objects.count()
+    
+    # Get messages from last 24 hours
+    yesterday = datetime.now() - timedelta(days=1)
+    messages_24h = Message.objects.filter(timestamp__gte=yesterday).count()
+    
+    # Get most active rooms (rooms with most messages)
+    rooms = Room.objects.annotate(
+        messages_count=Count('messages')
+    ).order_by('-messages_count')[:10]
+    
+    # Get recent messages
+    recent_messages = Message.objects.select_related(
+        'user', 'room'
+    ).order_by('-timestamp')[:20]
+    
+    context = {
+        'total_rooms': total_rooms,
+        'total_messages': total_messages,
+        'total_users': total_users,
+        'messages_24h': messages_24h,
+        'rooms': rooms,
+        'recent_messages': recent_messages,
+    }
+    
+    return render(request, 'chat/admin_dashboard.html', context)

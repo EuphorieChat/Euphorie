@@ -1,0 +1,799 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Admin Dashboard - Euphorie{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Enhanced stat cards with base template integration */
+  .stat-card {
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #fdf2f8 0%, #fef3e2 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+  }
+
+  .stat-card:hover::before {
+    opacity: 1;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(244, 114, 182, 0.15);
+    border-color: #ec4899;
+  }
+
+  .stat-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-value {
+    font-size: 2rem;
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+  }
+
+  /* Enhanced section cards */
+  .section-card {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    background: white;
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  }
+
+  .section-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-color: #ec4899;
+    transform: translateY(-2px);
+  }
+
+  .section-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, #ec4899, #f97316);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .section-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Enhanced action buttons and links */
+  .action-link, .action-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    min-height: 44px;
+    text-decoration: none;
+  }
+
+  .action-link:hover, .action-button:hover {
+    transform: translateY(-2px);
+  }
+
+  .action-link:active, .action-button:active {
+    transform: translateY(0);
+  }
+
+  /* Enhanced quick action cards */
+  .action-link.quick-action {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+  }
+
+  .action-link.quick-action::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: -1;
+  }
+
+  .action-link.quick-action:hover::after {
+    transform: translateX(0);
+  }
+
+  .action-link.quick-action:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Enhanced room cards */
+  .room-item {
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+  }
+
+  .room-item:hover {
+    background: linear-gradient(135deg, #fdf2f8 0%, #fef3e2 100%);
+    transform: translateX(4px);
+  }
+
+  .room-avatar {
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    transition: all 0.3s ease;
+  }
+
+  .room-item:hover .room-avatar {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+  }
+
+  /* Enhanced message items */
+  .message-item {
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+  }
+
+  .message-item:hover {
+    background: linear-gradient(135deg, #f8fafc 0%, #fdf2f8 100%);
+    transform: translateX(2px);
+  }
+
+  .user-avatar {
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    transition: all 0.3s ease;
+  }
+
+  .message-item:hover .user-avatar {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(244, 114, 182, 0.2);
+  }
+
+  /* Message content */
+  .message-content {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Enhanced tab system */
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .tab-button {
+    transition: all 0.3s ease;
+    border-radius: 0.375rem;
+  }
+
+  .tab-button:hover {
+    background-color: #fdf2f8;
+    color: #ec4899;
+  }
+
+  .tab-button.active {
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    color: white;
+    box-shadow: 0 2px 4px rgba(244, 114, 182, 0.2);
+  }
+
+  /* Enhanced scroll indicator */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    height: 24px;
+    width: 24px;
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    animation: pulse 2s infinite ease;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .scroll-indicator:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  @keyframes pulse {
+    0% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.05); }
+    100% { opacity: 0.5; transform: scale(1); }
+  }
+
+  /* Custom scrollbar enhancement */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    border-radius: 20px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #be185d, #ea580c);
+  }
+
+  /* Enhanced header section */
+  .dashboard-header {
+    background: linear-gradient(135deg, #fdf2f8 0%, #fef3e2 100%);
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+  }
+
+  .dashboard-header:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.1);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #ec4899, #f97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animation for page elements */
+  .fadeInUp {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease forwards;
+  }
+
+  .fadeInUp-1 {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease forwards;
+    animation-delay: 0.1s;
+  }
+
+  .fadeInUp-2 {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease forwards;
+    animation-delay: 0.2s;
+  }
+
+  .fadeInUp-3 {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease forwards;
+    animation-delay: 0.3s;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Enhanced stat card icons */
+  .stat-icon {
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover .stat-icon {
+    transform: scale(1.1) rotate(5deg);
+    opacity: 0.3;
+  }
+
+  /* Enhanced empty states */
+  .empty-state {
+    transition: all 0.3s ease;
+  }
+
+  .empty-state:hover {
+    transform: translateY(-2px);
+  }
+
+  .empty-state svg {
+    transition: all 0.3s ease;
+  }
+
+  .empty-state:hover svg {
+    transform: scale(1.1);
+    color: #ec4899;
+  }
+
+  /* Responsive breakpoints */
+  @media (max-width: 767px) {
+    .card-value {
+      font-size: 1.5rem;
+    }
+
+    .mobile-hidden {
+      display: none;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .card-value {
+      font-size: 1.75rem;
+    }
+
+    .tablet-hidden {
+      display: none;
+    }
+  }
+
+  /* Breadcrumb styling */
+  .nav-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+
+  .nav-breadcrumb a {
+    color: #ec4899;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .nav-breadcrumb a:hover {
+    color: #be185d;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+  <!-- Breadcrumb Navigation -->
+  <div class="nav-breadcrumb">
+    <a href="{% url 'index' %}">Home</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+    <span>Admin Dashboard</span>
+  </div>
+
+  <!-- Enhanced Header with stats summary -->
+  <div class="dashboard-header p-6 mb-8 fadeInUp">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold gradient-text mb-2">🛡️ Admin Dashboard</h1>
+        <p class="text-gray-600">Welcome back, {{ user.username }}! Here's what's happening in your chat platform.</p>
+      </div>
+      <div class="mt-4 md:mt-0">
+        <div class="inline-flex items-center bg-white bg-opacity-50 backdrop-blur-sm text-pink-600 px-4 py-2 rounded-full border border-pink-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span class="font-medium">{{ messages_24h|default:0 }}</span> new messages today
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Stats Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 fadeInUp-1">
+    <div class="stat-card p-6 relative">
+      <div class="stat-icon absolute top-4 right-4 w-12 h-12 opacity-20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      </div>
+      <h3 class="text-sm font-semibold text-gray-500 mb-2">Total Rooms</h3>
+      <div class="card-value">{{ total_rooms|default:0 }}</div>
+      <div class="text-xs text-gray-400 mt-1">Active chat spaces</div>
+    </div>
+
+    <div class="stat-card p-6 relative">
+      <div class="stat-icon absolute top-4 right-4 w-12 h-12 opacity-20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+      </div>
+      <h3 class="text-sm font-semibold text-gray-500 mb-2">Total Messages</h3>
+      <div class="card-value">{{ total_messages|default:0 }}</div>
+      <div class="text-xs text-gray-400 mt-1">All-time conversations</div>
+    </div>
+
+    <div class="stat-card p-6 relative">
+      <div class="stat-icon absolute top-4 right-4 w-12 h-12 opacity-20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      </div>
+      <h3 class="text-sm font-semibold text-gray-500 mb-2">Total Users</h3>
+      <div class="card-value">{{ total_users|default:0 }}</div>
+      <div class="text-xs text-gray-400 mt-1">Registered members</div>
+    </div>
+
+    <div class="stat-card p-6 relative">
+      <div class="stat-icon absolute top-4 right-4 w-12 h-12 opacity-20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h3 class="text-sm font-semibold text-gray-500 mb-2">Messages (24h)</h3>
+      <div class="card-value">{{ messages_24h|default:0 }}</div>
+      <div class="text-xs text-gray-400 mt-1">Recent activity</div>
+    </div>
+  </div>
+
+  <!-- Activity Overview - with enhanced tabs -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Most Active Rooms -->
+    <div class="section-card overflow-hidden fadeInUp-1">
+      <div class="px-6 py-5 flex justify-between items-center border-b border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          Most Active Rooms
+        </h2>
+        <div class="flex text-xs">
+          <button class="tab-button px-3 py-1.5 focus:outline-none active" data-tab="rooms-cards">Cards</button>
+          <button class="tab-button px-3 py-1.5 ml-2 focus:outline-none" data-tab="rooms-table">Table</button>
+        </div>
+      </div>
+
+      <!-- Rooms in cards view -->
+      <div id="rooms-cards" class="tab-content active py-2">
+        <div class="divide-y divide-gray-100">
+          {% if rooms %}
+            {% for room in rooms %}
+            <div class="room-item px-6 py-4">
+              <div class="flex justify-between items-center mb-2">
+                <a href="{% url 'room' room_name=room.name %}" class="font-medium text-pink-600 hover:underline action-link flex items-center">
+                  <span class="room-avatar w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">
+                    {{ room.name|slice:":1"|upper }}
+                  </span>
+                  <span>{{ room.name }}</span>
+                </a>
+                <span class="bg-pink-50 text-pink-600 text-xs font-medium px-2.5 py-1 rounded-full">{{ room.messages_count|default:0 }}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-gray-500 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  {{ room.creator.username }}
+                </span>
+                <div class="flex space-x-2">
+                  <a href="{% url 'room' room_name=room.name %}" class="text-blue-500 hover:text-blue-700 p-1.5 action-link rounded-full hover:bg-blue-50 transition-colors" title="View Room">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="empty-state px-6 py-8 text-center text-gray-500 flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <p class="mb-2">No rooms found</p>
+            <a href="{% url 'create_room' %}" class="text-pink-600 hover:text-pink-800 font-medium">+ Create New Room</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Rooms in table view -->
+      <div id="rooms-table" class="tab-content overflow-x-auto custom-scrollbar">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-600">
+            <tr>
+              <th class="px-6 py-3 text-left font-medium">Room Name</th>
+              <th class="px-6 py-3 text-center font-medium">Creator</th>
+              <th class="px-6 py-3 text-right font-medium">Messages</th>
+              <th class="px-6 py-3 text-center font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% if rooms %}
+              {% for room in rooms %}
+              <tr class="room-item">
+                <td class="px-6 py-4">
+                  <a href="{% url 'room' room_name=room.name %}" class="font-medium text-pink-600 hover:underline action-link flex items-center">
+                    <span class="room-avatar w-6 h-6 rounded-full flex items-center justify-center text-white font-medium text-xs mr-3">
+                      {{ room.name|slice:":1"|upper }}
+                    </span>
+                    <span>{{ room.name }}</span>
+                  </a>
+                </td>
+                <td class="px-6 py-4 text-center text-gray-500 text-xs">{{ room.creator.username }}</td>
+                <td class="px-6 py-4 text-right font-medium">
+                  <span class="bg-pink-50 text-pink-600 text-xs px-2.5 py-1 rounded-full">{{ room.messages_count|default:0 }}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                  <div class="flex justify-center space-x-2">
+                    <a href="{% url 'room' room_name=room.name %}" class="text-blue-500 hover:text-blue-700 p-1.5 action-link rounded-full hover:bg-blue-50 transition-colors" title="View Room">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+            <tr>
+              <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                <div class="empty-state flex flex-col items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  <p class="mb-2">No rooms found</p>
+                  <a href="{% url 'create_room' %}" class="text-pink-600 hover:text-pink-800 font-medium">+ Create New Room</a>
+                </div>
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+        <a href="{% url 'admin_rooms' %}" class="text-pink-600 hover:text-pink-800 font-medium text-sm flex items-center action-link">
+          <span>View All Rooms</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+        <span class="text-xs text-gray-400">{{ rooms|length|default:0 }} of {{ total_rooms|default:0 }} rooms</span>
+      </div>
+    </div>
+
+    <!-- Recent Messages -->
+    <div class="section-card overflow-hidden relative fadeInUp-2">
+      <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          Recent Messages
+        </h2>
+        <div class="text-xs text-gray-500">
+          Last 24 hours
+        </div>
+      </div>
+      <div class="overflow-y-auto custom-scrollbar max-h-[400px] relative">
+        <div class="divide-y divide-gray-100">
+          {% if recent_messages %}
+            {% for message in recent_messages %}
+            <div class="message-item px-6 py-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="user-avatar w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs mr-3">
+                    {{ message.user.username|slice:":1"|upper }}
+                  </div>
+                  <div>
+                    <span class="font-medium text-gray-800 text-sm">{{ message.user.username }}</span>
+                    <span class="mx-2 text-gray-300">•</span>
+                    <a href="{% url 'room' room_name=message.room.name %}" class="text-xs text-blue-500 hover:underline action-link">
+                      {{ message.room.name }}
+                    </a>
+                  </div>
+                </div>
+                <span class="text-xs text-gray-400 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ message.timestamp|timesince }} ago
+                </span>
+              </div>
+              <div class="pl-11">
+                <p class="text-sm text-gray-600 message-content mb-2">{{ message.content|striptags|truncatechars:100 }}</p>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="empty-state px-6 py-8 text-center text-gray-500 flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <p class="mb-1">No messages found</p>
+            <p class="text-xs text-gray-400">Messages will appear here as they come in</p>
+          </div>
+          {% endif %}
+        </div>
+        {% if recent_messages %}
+        <div class="scroll-indicator">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        {% endif %}
+      </div>
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+        <a href="{% url 'admin_messages' %}" class="text-pink-600 hover:text-pink-800 font-medium text-sm flex items-center action-link">
+          <span>View All Messages</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+        <span class="text-xs text-gray-400">{{ recent_messages|length|default:0 }} recent message(s)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Quick Actions Card -->
+  <div class="section-card overflow-hidden fadeInUp-3">
+    <div class="px-6 py-5 border-b border-gray-100">
+      <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        Admin Quick Actions
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+      <a href="{% url 'admin_rooms' %}" class="action-link quick-action bg-gradient-to-br from-pink-50 to-pink-100 hover:from-pink-100 hover:to-pink-200 p-6 flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="bg-white bg-opacity-80 p-3 rounded-xl mr-4 text-pink-600 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-pink-800 font-semibold">Manage Rooms</div>
+            <div class="text-pink-600 text-sm hidden md:block">View and moderate all rooms</div>
+          </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+
+      <a href="{% url 'admin_messages' %}" class="action-link quick-action bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 p-6 flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="bg-white bg-opacity-80 p-3 rounded-xl mr-4 text-blue-600 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-blue-800 font-semibold">Moderate Messages</div>
+            <div class="text-blue-600 text-sm hidden md:block">Review and manage messages</div>
+          </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+
+      <a href="{% url 'admin_user_activity' %}" class="action-link quick-action bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 p-6 flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="bg-white bg-opacity-80 p-3 rounded-xl mr-4 text-green-600 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-green-800 font-semibold">User Activity</div>
+            <div class="text-green-600 text-sm hidden md:block">Monitor user behavior</div>
+          </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced tab switching functionality
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // Remove active class from all buttons
+        tabButtons.forEach(btn => {
+          btn.classList.remove('active');
+        });
+
+        // Add active class to clicked button
+        this.classList.add('active');
+
+        // Hide all tab contents
+        tabContents.forEach(content => {
+          content.classList.remove('active');
+        });
+
+        // Show the selected tab content
+        const tabId = this.getAttribute('data-tab');
+        const targetTab = document.getElementById(tabId);
+        if (targetTab) {
+          targetTab.classList.add('active');
+        }
+      });
+    });
+
+    // Enhanced scroll indicator functionality
+    const messageContainer = document.querySelector('.custom-scrollbar');
+    const scrollIndicator = document.querySelector('.scroll-indicator');
+
+    if (messageContainer && scrollIndicator) {
+      function updateScrollIndicator() {
+        if (messageContainer.scrollHeight > messageContainer.clientHeight) {
+          scrollIndicator.style.display = 'flex';
+
+          // Hide indicator when scrolled to bottom
+          if (messageContainer.scrollHeight - messageContainer.scrollTop <= messageContainer.clientHeight + 10) {
+            scrollIndicator.style.opacity = '0';
+          } else {
+            scrollIndicator.style.opacity = '0.7';
+          }
+        } else {
+          scrollIndicator.style.display = 'none';
+        }
+      }
+
+      // Initial check
+      updateScrollIndicator();
+
+      // Add event listener
+      messageContainer.addEventListener('scroll', updateScrollIndicator);
+
+      // Update on window resize
+      window.addEventListener('resize', updateScrollIndicator);
+
+      // Smooth scroll to bottom when indicator clicked
+      scrollIndicator.addEventListener('click', function() {
+        messageContainer.scrollTo({
+          top: messageContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      });
+    }
+
+    console.log('Enhanced Euphorie admin dashboard initialized successfully');
+  });
+</script>
+{% endblock %}
