@@ -1,0 +1,3011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>{{ room.name }} - Euphorie 3D</title>
+    
+    <!-- Emotion System CSS -->
+    <link rel="stylesheet" href="/static/css/room/emotion-system.css">
+    
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: #0a0a0a;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #room-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-progress {
+            margin-top: 20px;
+            font-size: 12px;
+            opacity: 0.8;
+            text-align: center;
+        }
+        
+        .loading-step {
+            margin: 5px 0;
+            padding: 4px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .loading-step.completed {
+            color: #4CAF50;
+        }
+        
+        .loading-step.current {
+            color: #FFA726;
+            font-weight: bold;
+        }
+        
+        #three-container {
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            cursor: grab;
+        }
+        
+        #three-container:active {
+            cursor: grabbing;
+        }
+        
+        /* Status Panel - Enhanced */
+        #status-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 11px;
+            z-index: 100;
+            max-width: calc(100vw - 180px);
+            word-wrap: break-word;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .status-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #4CAF50;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.3);
+            padding-bottom: 4px;
+        }
+        
+        .status-item {
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-label {
+            opacity: 0.8;
+        }
+        
+        .status-value {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin-left: 6px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Desktop Chat Panel - Enhanced */
+        #chat-panel.desktop {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 380px;
+            height: 360px;
+            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4), 
+                        0 0 30px rgba(102, 126, 234, 0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #chat-panel.desktop.minimized {
+            height: 60px !important;
+            width: 300px !important;
+            overflow: hidden;
+        }
+        
+        /* Mobile Chat Panel - Enhanced */
+        #mobile-chat-panel.mobile {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(15, 15, 25, 0.98), rgba(25, 25, 40, 0.98));
+            backdrop-filter: blur(20px);
+            border-top: 3px solid rgba(102, 126, 234, 0.4);
+            border-radius: 20px 20px 0 0;
+            padding: 16px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            z-index: 200;
+            max-height: 65vh;
+            transform: translateY(calc(100% - 60px));
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        #mobile-chat-panel.mobile.expanded {
+            transform: translateY(0);
+            max-height: 70vh;
+        }
+        
+        .chat-toggle {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            width: calc(100% + 32px);
+            margin: -16px -16px 16px -16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .chat-toggle:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 1), rgba(118, 75, 162, 1));
+            transform: translateY(-2px);
+        }
+        
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .chat-header h3 {
+            margin: 0;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 700;
+            flex: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .chat-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .connection-indicator {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            border: 2px solid;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .connection-indicator.connected {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(56, 142, 60, 0.2));
+            color: #4CAF50;
+            border-color: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        .connection-indicator.connecting {
+            background: linear-gradient(135deg, rgba(255, 167, 38, 0.2), rgba(255, 152, 0, 0.2));
+            color: #FFA726;
+            border-color: #FFA726;
+            animation: pulse 2s infinite;
+        }
+        
+        .connection-indicator.disconnected {
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.2), rgba(211, 47, 47, 0.2));
+            color: #F44336;
+            border-color: #F44336;
+        }
+        
+        .bubble-mode-toggle {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 152, 0, 0.3));
+            border: 2px solid rgba(255, 107, 53, 0.5);
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .bubble-mode-toggle:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.5), rgba(255, 152, 0, 0.5));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+        }
+        
+        .bubble-mode-toggle.active {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.8), rgba(255, 152, 0, 0.8));
+            border-color: #FF6B35;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+        }
+        
+        .chat-minimize-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-minimize-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .chat-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        #chat-messages, #chat-messages-mobile {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 50, 0.8));
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            font-size: 12px;
+            line-height: 1.4;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            max-height: 200px;
+        }
+        
+        #chat-messages-mobile {
+            max-height: 180px;
+        }
+        
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+            border-left: 3px solid #667eea;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            word-break: break-word;
+            overflow-wrap: break-word;
+            position: relative;
+        }
+        
+        .chat-message:hover {
+            background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));
+            transform: translateX(3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .chat-message.own {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
+            border-left-color: #4CAF50;
+            margin-left: 15px;
+            box-shadow: 0 3px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .chat-message.system {
+            background: linear-gradient(135deg, rgba(255, 167, 38, 0.15), rgba(255, 152, 0, 0.15));
+            border-left-color: #FFA726;
+            font-style: italic;
+            box-shadow: 0 3px 15px rgba(255, 167, 38, 0.2);
+        }
+        
+        .chat-message .username {
+            font-weight: 700;
+            font-size: 10px;
+            color: #667eea;
+            margin-bottom: 4px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .chat-message.own .username {
+            color: #4CAF50;
+        }
+        
+        .chat-message.system .username {
+            color: #FFA726;
+        }
+        
+        .chat-message .timestamp {
+            font-size: 8px;
+            opacity: 0.7;
+            position: absolute;
+            top: 8px;
+            right: 12px;
+        }
+        
+        .chat-message .text {
+            font-size: 11px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.95);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            white-space: pre-wrap;
+            hyphens: auto;
+            margin-top: 2px;
+        }
+        
+        .typing-indicators {
+            margin-bottom: 8px;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            font-size: 10px;
+            margin-bottom: 4px;
+            opacity: 0.8;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 0.8; transform: translateY(0); }
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.5s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
+            30% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        /* Enhanced Scrollbars */
+        #chat-messages::-webkit-scrollbar, #chat-messages-mobile::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-track, #chat-messages-mobile::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-thumb, #chat-messages-mobile::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6));
+            border-radius: 3px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-thumb:hover, #chat-messages-mobile::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+        }
+        
+        #chat-input-container, #chat-input-container-mobile {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+        
+        #chat-input, #chat-input-mobile {
+            flex: 1;
+            padding: 12px 16px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            min-width: 0;
+        }
+        
+        #chat-input:focus, #chat-input-mobile:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1));
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        #chat-input::placeholder, #chat-input-mobile::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        
+        #send-btn, #send-btn-mobile {
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+        
+        #send-btn:hover, #send-btn-mobile:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        #send-btn:disabled, #send-btn-mobile:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Pet Panel - Enhanced */
+        #pet-panel {
+            position: absolute;
+            left: 20px;
+            bottom: 400px;
+            width: 360px;
+            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            z-index: 100;
+            max-height: 220px;
+            overflow-y: auto;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+            display: none;
+        }
+        
+        .pet-panel-header {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #FF6B35;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(255, 107, 53, 0.2);
+        }
+        
+        .pet-add-btn {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #FF6B35, #ff8a50);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .pet-add-btn:hover {
+            background: linear-gradient(135deg, #ff8a50, #FF6B35);
+            transform: translateY(-1px);
+        }
+        
+        .pet-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            margin: 6px 0;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            border-left: 3px solid #FF6B35;
+        }
+        
+        .pet-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
+        }
+        
+        .pet-avatar {
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 107, 53, 0.2);
+            border-radius: 50%;
+        }
+        
+        .pet-info {
+            flex: 1;
+        }
+        
+        .pet-name {
+            font-weight: bold;
+            color: #FF6B35;
+            margin-bottom: 2px;
+        }
+        
+        .pet-status {
+            font-size: 10px;
+            opacity: 0.8;
+        }
+        
+        .pet-stats {
+            display: flex;
+            gap: 8px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        
+        /* Desktop Hamburger Menu System - Enhanced */
+        .desktop-hamburger {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 200;
+            backdrop-filter: blur(10px);
+        }
+        
+        .desktop-hamburger:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .desktop-hamburger.active {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.9), rgba(255, 152, 0, 0.9));
+            transform: rotate(90deg);
+        }
+        
+        /* Desktop Menu - Enhanced */
+        .desktop-actions-menu {
+            position: absolute;
+            top: 80px;
+            right: 15px;
+            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 320px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            transform: translateY(-20px) scale(0.9);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .desktop-actions-menu.active {
+            display: flex;
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        
+        /* Mobile Hamburger Menu System - Enhanced */
+        .mobile-hamburger {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 200;
+            backdrop-filter: blur(10px);
+        }
+        
+        .mobile-hamburger:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .mobile-hamburger.active {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.9), rgba(255, 152, 0, 0.9));
+            transform: rotate(90deg);
+        }
+        
+        /* Mobile Menu Overlay - Enhanced */
+        .mobile-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 190;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .mobile-menu-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Mobile Actions Menu - Enhanced */
+        .mobile-actions-menu {
+            position: fixed;
+            top: 80px;
+            right: 15px;
+            left: 15px;
+            bottom: 20px;
+            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            transform: translateY(-20px) scale(0.9);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        
+        .mobile-actions-menu.active {
+            display: flex;
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        
+        .mobile-menu-header {
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .mobile-action-group {
+            margin-bottom: 20px;
+        }
+        
+        .mobile-action-group:last-child {
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+        }
+        
+        .mobile-action-group-title {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding-left: 4px;
+        }
+        
+        .mobile-action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .mobile-action-btn {
+            padding: 16px 12px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-height: 75px;
+            justify-content: center;
+        }
+        
+        .mobile-action-btn:hover, .mobile-action-btn:active {
+            background: linear-gradient(145deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border-color: rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .mobile-action-btn .icon {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+        
+        .mobile-action-btn.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .mobile-chat-btn {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+            border: 2px solid rgba(102, 126, 234, 0.5);
+        }
+        
+        .mobile-chat-btn:hover, .mobile-chat-btn:active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+            border-color: rgba(102, 126, 234, 0.7);
+        }
+        
+        /* Desktop Chat Quick Restore */
+        #chat-restore-hint {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 105;
+        }
+        
+        .chat-restore-btn {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .chat-restore-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+        
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            /* Mobile Layout */
+            #status-panel {
+                font-size: 10px;
+                padding: 8px 12px;
+                top: 10px;
+                left: 10px;
+                right: 80px;
+                max-width: calc(100vw - 100px);
+            }
+            
+            #pet-panel {
+                bottom: 70vh;
+                left: 10px;
+                right: 10px;
+                width: auto;
+                max-height: 150px;
+                z-index: 175;
+            }
+            
+            .chat-header h3 {
+                font-size: 14px;
+            }
+            
+            .connection-indicator {
+                font-size: 9px;
+                padding: 4px 8px;
+            }
+            
+            .bubble-mode-toggle {
+                font-size: 9px;
+                padding: 4px 8px;
+            }
+            
+            .mobile-hamburger {
+                display: flex;
+            }
+            
+            .desktop-hamburger, .desktop-actions-menu {
+                display: none !important;
+            }
+            
+            /* Hide desktop chat on mobile */
+            #chat-panel.desktop {
+                display: none !important;
+            }
+            
+            #mobile-chat-panel.mobile {
+                display: flex !important;
+            }
+            
+            /* Prevent body scroll when menu is open */
+            body.menu-open {
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+            }
+            
+            /* Improve touch targets */
+            .mobile-action-btn, .chat-toggle, .pet-add-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            /* Chat input improvements for mobile */
+            #chat-input-mobile {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 14px 16px;
+            }
+            
+            #send-btn-mobile {
+                padding: 14px 20px;
+                font-size: 14px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            /* Desktop Layout */
+            .mobile-hamburger, .mobile-menu-overlay, .mobile-actions-menu {
+                display: none !important;
+            }
+            
+            .desktop-hamburger {
+                display: flex;
+            }
+            
+            #pet-panel {
+                bottom: 400px;
+            }
+            
+            /* Ensure desktop chat is visible */
+            #chat-panel.desktop {
+                display: flex !important;
+            }
+            
+            #mobile-chat-panel.mobile {
+                display: none !important;
+            }
+        }
+        
+        /* Animation keyframes */
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes slideOutRight {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Enhanced visual effects */
+        .ui-panel {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        .notification-new {
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        /* Mobile-specific interactions */
+        @media (max-width: 768px) {
+            #three-container {
+                touch-action: pan-x pan-y;
+            }
+        }
+        
+        /* Performance optimizations */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .ui-panel, .mobile-action-btn, .chat-message {
+            will-change: transform;
+        }
+    </style>
+</head>
+<body>
+    <div id="room-container">
+        <!-- Enhanced Loading Screen -->
+        <div id="loading-screen">
+            <div class="loading-spinner"></div>
+            <h2 style="margin: 0 0 10px 0;">Loading {{ room.name }}...</h2>
+            <p style="margin: 0; opacity: 0.8;">Initializing Euphorie 3D Platform...</p>
+            
+            <div class="loading-progress">
+                <div class="loading-step" id="loading-step-1">• Loading Three.js renderer</div>
+                <div class="loading-step" id="loading-step-2">• Initializing modular systems</div>
+                <div class="loading-step" id="loading-step-3">• Setting up avatar & interaction systems</div>
+                <div class="loading-step" id="loading-step-4">• Configuring 3D chat bubbles</div>
+                <div class="loading-step" id="loading-step-5">• Connecting to WebSocket server</div>
+                <div class="loading-step" id="loading-step-6">• Finalizing platform setup</div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Status Panel -->
+        <div id="status-panel" class="ui-panel">
+            <div class="status-header">
+                🌟 Euphorie 3D v2.0
+                <div class="status-indicator"></div>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Room:</span>
+                <span class="status-value">{{ room.name }}</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Scene:</span>
+                <span class="status-value">{{ room.get_scene_preset_display }}</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Users:</span>
+                <span class="status-value" id="user-count">{{ room.active_users_count }}/{{ room.max_users }}</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Bubbles:</span>
+                <span class="status-value" id="bubble-count">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Pets:</span>
+                <span class="status-value" id="pet-count">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Groups:</span>
+                <span class="status-value" id="group-count">0</span>
+            </div>
+        </div>
+        
+        <!-- 3D Container -->
+        <div id="three-container"></div>
+        
+        <!-- Enhanced Pet Panel -->
+        <div id="pet-panel" class="ui-panel">
+            <div class="pet-panel-header">
+                🐾 Active Pets
+                <button class="pet-add-btn" onclick="window.addRandomPet && window.addRandomPet()">
+                    + Add Pet
+                </button>
+            </div>
+            <div id="pet-list">
+                <div style="text-align: center; opacity: 0.7; font-size: 11px; padding: 20px;">
+                    No pets active. Click "Add Pet" to get a companion!
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Desktop Chat Panel -->
+        <div id="chat-panel" class="ui-panel desktop">
+            <div class="chat-header">
+                <h3>💬 Room Chat</h3>
+                <div class="chat-controls">
+                    <span id="connection-indicator" class="connection-indicator connecting">
+                        🔄 Connecting
+                    </span>
+                    <button id="bubble-mode-toggle" class="bubble-mode-toggle active">
+                        3D Bubbles
+                    </button>
+                    <button class="chat-minimize-btn" onclick="window.toggleChatMinimize && window.toggleChatMinimize()">
+                        −
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-content">
+                <!-- Typing Indicators -->
+                <div id="typing-indicators" class="typing-indicators"></div>
+                
+                <div id="chat-messages">
+                    <div class="chat-message system">
+                        <div class="username">System</div>
+                        <div class="timestamp">{{ "now"|date:"H:i" }}</div>
+                        <div class="text">
+                            <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
+                            <strong>🎮 3D Chat Bubbles:</strong><br>
+                            • Messages appear floating above avatars in 3D space<br>
+                            • Real-time synchronization with WebSocket server<br>
+                            • Click the "3D Bubbles" toggle to enable/disable<br><br>
+                            <strong>🎮 Controls:</strong><br>
+                            • Mouse: Rotate camera, scroll to zoom<br>
+                            • Click avatars to interact<br>
+                            • <kbd>1</kbd>/<kbd>W</kbd> Wave, <kbd>2</kbd>/<kbd>D</kbd> Dance<br>
+                            • <kbd>E</kbd> Emotions, <kbd>G</kbd> Group activities<br>
+                            • <kbd>Ctrl+H</kbd> Keyboard shortcuts help
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200" disabled>
+                    <button id="send-btn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Mobile Chat Panel -->
+        <div id="mobile-chat-panel" class="ui-panel mobile">
+            <button class="chat-toggle" onclick="window.toggleMobileChat && window.toggleMobileChat()">
+                💬 Tap to expand chat
+            </button>
+            
+            <div class="chat-header">
+                <h3>💬 Room Chat</h3>
+                <div class="chat-controls">
+                    <span id="connection-indicator-mobile" class="connection-indicator connecting">
+                        🔄 Connecting
+                    </span>
+                    <button id="bubble-mode-toggle-mobile" class="bubble-mode-toggle active">
+                        3D Bubbles
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-content">
+                <!-- Typing Indicators -->
+                <div id="typing-indicators-mobile" class="typing-indicators"></div>
+                
+                <div id="chat-messages-mobile">
+                    <div class="chat-message system">
+                        <div class="username">System</div>
+                        <div class="timestamp">{{ "now"|date:"H:i" }}</div>
+                        <div class="text">
+                            <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
+                            <strong>📱 Mobile Controls:</strong><br>
+                            • Touch & drag to rotate camera<br>
+                            • Pinch to zoom<br>
+                            • Tap avatars to interact<br>
+                            • Use hamburger menu for actions
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="chat-input-container-mobile">
+                    <input type="text" id="chat-input-mobile" placeholder="Type a message..." maxlength="200" disabled>
+                    <button id="send-btn-mobile" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Desktop Hamburger Menu System -->
+        <button class="desktop-hamburger" onclick="window.toggleDesktopMenu && window.toggleDesktopMenu()">
+            ☰
+        </button>
+        
+        <div class="desktop-actions-menu">
+            <div class="mobile-menu-header">🎮 Controls & Actions</div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Chat</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn mobile-chat-btn full-width" 
+                            onclick="window.toggleChatMinimize && window.toggleChatMinimize(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">💬</div>
+                        <div>Toggle Chat</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Quick Actions</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" 
+                            onclick="window.triggerWave && window.triggerWave(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">👋</div>
+                        <div>Wave</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.triggerDance && window.triggerDance(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">💃</div>
+                        <div>Dance</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showEmotionPanel && window.showEmotionPanel(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🎭</div>
+                        <div>Emotions</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showGroupMenu && window.showGroupMenu(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">👥</div>
+                        <div>Groups</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Customization</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" 
+                            onclick="window.customizeAvatar && window.customizeAvatar(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">👤</div>
+                        <div>Avatar</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.addRandomPet && window.addRandomPet(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🐾</div>
+                        <div>Get Pet</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.togglePetPanel && window.togglePetPanel(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🎪</div>
+                        <div>Pet Panel</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.addFriends && window.addFriends(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">👥</div>
+                        <div>Friends</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Environment</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" 
+                            onclick="window.changeScene && window.changeScene(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🏠</div>
+                        <div>Scene</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.controlWeather && window.controlWeather(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🌦️</div>
+                        <div>Weather</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.controlTime && window.controlTime(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🌅</div>
+                        <div>Time</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.toggleMagic && window.toggleMagic(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">✨</div>
+                        <div>Magic</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Mobile Hamburger Menu System -->
+        <button class="mobile-hamburger" onclick="window.toggleMobileMenu && window.toggleMobileMenu()">
+            ☰
+        </button>
+        
+        <div class="mobile-menu-overlay" onclick="window.closeMobileMenu && window.closeMobileMenu()"></div>
+        
+        <div class="mobile-actions-menu">
+            <div class="mobile-menu-header">🎮 Controls & Actions</div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Chat</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn mobile-chat-btn full-width" 
+                            onclick="window.toggleMobileChat && window.toggleMobileChat(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">💬</div>
+                        <div>Toggle Chat</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Quick Actions</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" 
+                            onclick="window.triggerWave && window.triggerWave(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">👋</div>
+                        <div>Wave</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.triggerDance && window.triggerDance(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">💃</div>
+                        <div>Dance</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showEmotionPanel && window.showEmotionPanel(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🎭</div>
+                        <div>Emotions</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showGroupMenu && window.showGroupMenu(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">👥</div>
+                        <div>Groups</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Customization</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" 
+                            onclick="window.customizeAvatar && window.customizeAvatar(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">👤</div>
+                        <div>Avatar</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.addRandomPet && window.addRandomPet(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🐾</div>
+                        <div>Get Pet</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.togglePetPanel && window.togglePetPanel(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🎪</div>
+                        <div>Pet Panel</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.addFriends && window.addFriends(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">👥</div>
+                        <div>Friends</div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-action-group">
+                <div class="mobile-action-group-title">Environment</div>
+                <div class="mobile-action-grid">
+                    <button class="mobile-action-btn" 
+                            onclick="window.changeScene && window.changeScene(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🏠</div>
+                        <div>Scene</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.controlWeather && window.controlWeather(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🌦️</div>
+                        <div>Weather</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.controlTime && window.controlTime(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🌅</div>
+                        <div>Time</div>
+                    </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.toggleMagic && window.toggleMagic(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">✨</div>
+                        <div>Magic</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Desktop Chat Quick Restore -->
+        <div id="chat-restore-hint">
+            <button class="chat-restore-btn" onclick="window.toggleChatMinimize && window.toggleChatMinimize()">
+                💬 Restore Chat
+            </button>
+        </div>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Pass Django context to JavaScript -->
+    <script>
+        window.ROOM_CONFIG = {
+            roomId: '{{ room.id }}',
+            roomName: '{{ room.name }}',
+            scenePreset: '{{ room.scene_preset }}',
+            websocketUrl: '{{ websocket_url }}',
+            userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
+            username: {% if request.user.is_authenticated %}'{{ request.user.username }}'{% else %}'Guest'{% endif %},
+            maxUsers: {{ room.max_users }},
+            currentUsers: {{ room.active_users_count }},
+            // Enhanced WebSocket Configuration
+            rustWebSocketUrl: 'wss://euphorie.com/ws/rust/',
+            chatBubblesEnabled: true,
+            bubbleConfig: {
+                maxBubbles: 25,
+                fadeTime: 6000,
+                maxDistance: 60,
+                fontSize: 18,
+                maxWidth: 350,
+                floatSpeed: 0.5,
+                bobAmount: 0.3,
+                scaleWithDistance: true,
+                enableShadows: true,
+                useAdvancedMaterials: true
+            }
+        };
+        
+        // Mobile detection and responsive setup
+        const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // Enhanced mobile detection for better responsiveness
+        function updateMobileLayout() {
+            const currentIsMobile = window.innerWidth <= 768;
+            document.body.classList.toggle('mobile-layout', currentIsMobile);
+            document.body.classList.toggle('desktop-layout', !currentIsMobile);
+        }
+        
+        // Initialize layout
+        updateMobileLayout();
+        
+        // Handle resize and orientation changes
+        window.addEventListener('resize', updateMobileLayout);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(updateMobileLayout, 100);
+        });
+        
+        console.log('🎮 Euphorie 3D Platform HTML initialized');
+        console.log('📱 Mobile mode:', isMobile);
+        console.log('🏠 Room:', window.ROOM_CONFIG.roomName);
+    </script>
+
+    <!-- Enhanced WebSocket Manager - Improved Version -->
+    <script>
+        // Enhanced WebSocket Manager for Rust Server Integration
+        class EuphorieWebSocketManager {
+            constructor() {
+                this.socket = null;
+                this.connected = false;
+                this.authenticated = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.messageQueue = [];
+                this.typingTimer = null;
+                this.isTyping = false;
+                this.lastPingTime = 0;
+                
+                // Generate user ID if not provided
+                this.userId = window.ROOM_CONFIG.userId || 'guest_' + Math.random().toString(36).substr(2, 9);
+                this.username = window.ROOM_CONFIG.username || 'Guest';
+                this.roomId = window.ROOM_CONFIG.roomId;
+                
+                // Bind methods
+                this.connect = this.connect.bind(this);
+                this.send = this.send.bind(this);
+                this.handleMessage = this.handleMessage.bind(this);
+                this.handleOpen = this.handleOpen.bind(this);
+                this.handleClose = this.handleClose.bind(this);
+                this.handleError = this.handleError.bind(this);
+                
+                console.log('🔌 WebSocket Manager initialized');
+            }
+            
+            connect() {
+                if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+                    return;
+                }
+                
+                try {
+                    const url = window.ROOM_CONFIG.rustWebSocketUrl;
+                    console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
+                    this.updateConnectionStatus('connecting');
+                    
+                    this.socket = new WebSocket(url);
+                    this.socket.onopen = this.handleOpen;
+                    this.socket.onmessage = this.handleMessage;
+                    this.socket.onclose = this.handleClose;
+                    this.socket.onerror = this.handleError;
+                    
+                } catch (error) {
+                    console.error('❌ WebSocket connection failed:', error);
+                    this.scheduleReconnect();
+                }
+            }
+            
+            handleOpen(event) {
+                console.log('✅ Connected to Rust WebSocket server');
+                this.connected = true;
+                this.reconnectAttempts = 0;
+                this.updateConnectionStatus('connected');
+                
+                // Send authentication message
+                this.send({
+                    type: 'auth',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    username: this.username,
+                    timestamp: Date.now()
+                });
+                
+                // Send queued messages
+                while (this.messageQueue.length > 0) {
+                    const message = this.messageQueue.shift();
+                    this.send(message);
+                }
+                
+                // Start ping interval
+                this.startPingInterval();
+            }
+            
+            handleMessage(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 Received message:', data);
+                    
+                    switch (data.type) {
+                        case 'auth_success':
+                            this.authenticated = true;
+                            console.log(`✅ Authentication successful for room: ${data.room_id}`);
+                            this.addSystemMessage(`Connected to ${data.room_info ? data.room_info.name : 'room'}`);
+                            this.enableChatInput();
+                            break;
+                            
+                        case 'auth_error':
+                            console.error(`❌ Authentication failed: ${data.error}`);
+                            this.addSystemMessage(`Authentication failed: ${data.error}`);
+                            break;
+                            
+                        case 'chat_message':
+                            this.handleChatMessage(data);
+                            break;
+                            
+                        case 'user_joined':
+                            console.log(`👋 ${data.username} joined the room`);
+                            this.addSystemMessage(`${data.username} joined the room`);
+                            break;
+                            
+                        case 'user_left':
+                            console.log(`👋 ${data.username} left the room`);
+                            this.addSystemMessage(`${data.username} left the room`);
+                            break;
+                            
+                        case 'emotion':
+                            this.handleEmotion(data);
+                            break;
+                            
+                        case 'interaction':
+                            this.handleInteraction(data);
+                            break;
+                            
+                        case 'typing':
+                            this.handleTyping(data);
+                            break;
+                            
+                        case 'pong':
+                            const latency = Date.now() - this.lastPingTime;
+                            console.log(`🏓 Pong received (${latency}ms)`);
+                            break;
+                            
+                        case 'system':
+                            this.addSystemMessage(data.message);
+                            break;
+                            
+                        case 'error':
+                            console.error(`❌ Server error: ${data.error}`);
+                            this.addSystemMessage(`Error: ${data.error}`);
+                            break;
+                            
+                        default:
+                            console.log(`🔍 Unknown message type: ${data.type}`);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error parsing WebSocket message:', error);
+                }
+            }
+            
+            handleChatMessage(data) {
+                const isOwn = data.user_id === this.userId;
+                this.addMessageToChat(data.username, data.message, isOwn);
+                
+                // Create 3D chat bubble if enabled and system is available
+                if (window.ROOM_CONFIG.chatBubblesEnabled && window.Enhanced3DChatBubbles) {
+                    window.Enhanced3DChatBubbles.createBubbleFromMessage(data);
+                } else if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                    window.ChatBubbleSystem.createBubbleFromMessage(data);
+                }
+                
+                // Update bubble count
+                this.updateBubbleCount();
+            }
+            
+            handleEmotion(data) {
+                console.log(`🎭 ${data.user_id} is feeling ${data.emotion}`);
+                this.addSystemMessage(`${data.user_id} is feeling ${data.emotion} 🎭`);
+                
+                // Trigger 3D emotion if system is available
+                if (window.EmotionSystem && window.EmotionSystem.showRemoteEmotion) {
+                    window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
+                }
+            }
+            
+            handleInteraction(data) {
+                console.log(`🤝 Interaction: ${data.user_id} -> ${data.interaction_type}`);
+                this.addSystemMessage(`${data.user_id} ${data.interaction_type} 🤝`);
+                
+                // Trigger 3D interaction if system is available
+                if (window.InteractionSystem && window.InteractionSystem.handleRemoteInteraction) {
+                    window.InteractionSystem.handleRemoteInteraction(data);
+                }
+            }
+            
+            handleTyping(data) {
+                this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
+            }
+            
+            handleClose(event) {
+                console.log('🔌 WebSocket connection closed:', event);
+                this.connected = false;
+                this.authenticated = false;
+                this.updateConnectionStatus('disconnected');
+                this.disableChatInput();
+                
+                if (!event.wasClean) {
+                    this.scheduleReconnect();
+                }
+            }
+            
+            handleError(error) {
+                console.error('❌ WebSocket error:', error);
+                this.updateConnectionStatus('disconnected');
+            }
+            
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+                    
+                    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                    this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                } else {
+                    console.error('❌ Max reconnection attempts reached');
+                    this.updateConnectionStatus('disconnected');
+                    this.addSystemMessage('Connection failed. Please refresh the page.');
+                }
+            }
+            
+            send(data) {
+                if (this.connected && this.socket.readyState === WebSocket.OPEN) {
+                    try {
+                        this.socket.send(JSON.stringify(data));
+                        console.log('📤 Sent message:', data.type);
+                    } catch (error) {
+                        console.error('❌ Error sending message:', error);
+                    }
+                } else {
+                    console.log('📦 Queuing message (not connected):', data.type);
+                    this.messageQueue.push(data);
+                }
+            }
+            
+            sendChatMessage(message) {
+                if (!this.authenticated) {
+                    console.warn('❌ Not authenticated');
+                    return;
+                }
+                
+                this.send({
+                    type: 'chat_message',
+                    message: message,
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendEmotion(emotion) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'emotion',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    emotion: emotion,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendInteraction(interactionType, targetUserId = null, data = null) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'interaction',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    target_user_id: targetUserId,
+                    interaction_type: interactionType,
+                    data: data,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendTyping(isTyping) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'typing',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    is_typing: isTyping
+                });
+            }
+            
+            startPingInterval() {
+                setInterval(() => {
+                    if (this.connected) {
+                        this.lastPingTime = Date.now();
+                        this.send({
+                            type: 'ping',
+                            timestamp: this.lastPingTime
+                        });
+                    }
+                }, 30000); // Ping every 30 seconds
+            }
+            
+            updateConnectionStatus(status) {
+                const indicators = ['connection-indicator', 'connection-indicator-mobile'];
+                
+                indicators.forEach(id => {
+                    const indicator = document.getElementById(id);
+                    if (indicator) {
+                        indicator.className = `connection-indicator ${status}`;
+                        
+                        switch (status) {
+                            case 'connected':
+                                indicator.textContent = '✅ Connected';
+                                break;
+                            case 'connecting':
+                                indicator.textContent = '🔄 Connecting';
+                                break;
+                            case 'disconnected':
+                                indicator.textContent = '❌ Disconnected';
+                                break;
+                        }
+                    }
+                });
+            }
+            
+            enableChatInput() {
+                const inputs = ['chat-input', 'chat-input-mobile'];
+                const buttons = ['send-btn', 'send-btn-mobile'];
+                
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.disabled = false;
+                        input.placeholder = 'Type a message...';
+                    }
+                });
+                
+                buttons.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                });
+            }
+            
+            disableChatInput() {
+                const inputs = ['chat-input', 'chat-input-mobile'];
+                const buttons = ['send-btn', 'send-btn-mobile'];
+                
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.disabled = true;
+                        input.placeholder = 'Connecting...';
+                    }
+                });
+                
+                buttons.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.disabled = true;
+                    }
+                });
+            }
+            
+            addMessageToChat(username, message, isOwn = false) {
+                const chatContainers = ['chat-messages', 'chat-messages-mobile'];
+                
+                chatContainers.forEach(containerId => {
+                    const chatMessages = document.getElementById(containerId);
+                    if (!chatMessages) return;
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+                    
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    messageDiv.innerHTML = `
+                        <div class="username">${this.escapeHtml(username)}</div>
+                        <div class="timestamp">${timestamp}</div>
+                        <div class="text">${this.escapeHtml(message)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    // Keep only last 50 messages for performance
+                    while (chatMessages.children.length > 50) {
+                        chatMessages.removeChild(chatMessages.firstChild);
+                    }
+                });
+            }
+            
+            addSystemMessage(message) {
+                const chatContainers = ['chat-messages', 'chat-messages-mobile'];
+                
+                chatContainers.forEach(containerId => {
+                    const chatMessages = document.getElementById(containerId);
+                    if (!chatMessages) return;
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message system';
+                    
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    messageDiv.innerHTML = `
+                        <div class="username">System</div>
+                        <div class="timestamp">${timestamp}</div>
+                        <div class="text">${this.escapeHtml(message)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+            }
+            
+            updateTypingIndicator(userId, username, isTyping) {
+                const containers = ['typing-indicators', 'typing-indicators-mobile'];
+                
+                containers.forEach(containerId => {
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
+                    
+                    const indicatorId = `typing-${userId}-${containerId}`;
+                    let indicator = document.getElementById(indicatorId);
+                    
+                    if (isTyping && userId !== this.userId) {
+                        if (!indicator) {
+                            indicator = document.createElement('div');
+                            indicator.id = indicatorId;
+                            indicator.className = 'typing-indicator';
+                            indicator.innerHTML = `
+                                <span>${this.escapeHtml(username)} is typing</span>
+                                <div class="typing-dots">
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                </div>
+                            `;
+                            container.appendChild(indicator);
+                        }
+                    } else {
+                        if (indicator) {
+                            indicator.remove();
+                        }
+                    }
+                });
+            }
+            
+            updateBubbleCount() {
+                let count = 0;
+                if (window.Enhanced3DChatBubbles && window.Enhanced3DChatBubbles.getActiveBubbleCount) {
+                    count = window.Enhanced3DChatBubbles.getActiveBubbleCount();
+                } else if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
+                    count = window.ChatBubbleSystem.getActiveBubbleCount();
+                }
+                
+                const bubbleCountElement = document.getElementById('bubble-count');
+                if (bubbleCountElement) {
+                    bubbleCountElement.textContent = count;
+                }
+            }
+            
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+        }
+        
+        // Initialize WebSocket Manager
+        window.WebSocketManager = null;
+    </script>
+
+    <!-- Chat Bubble System Integration -->
+    <script>
+        // Initialize chat bubble integration after external system loads
+        function initializeChatBubbleIntegration() {
+            // Check if external ChatBubbleSystem is available
+            if (window.ChatBubbleSystem) {
+                console.log('💬 External ChatBubbleSystem detected - integrating...');
+                
+                // Initialize missing properties for your external system
+                if (!window.ChatBubbleSystem.materialPool) {
+                    window.ChatBubbleSystem.materialPool = [];
+                }
+                
+                if (!window.ChatBubbleSystem.texturePool) {
+                    window.ChatBubbleSystem.texturePool = [];
+                }
+                
+                if (!window.ChatBubbleSystem.performance) {
+                    window.ChatBubbleSystem.performance = {
+                        frameTime: 0,
+                        bubbleCount: 0,
+                        renderCalls: 0,
+                        lastCleanup: Date.now()
+                    };
+                }
+                
+                if (!window.ChatBubbleSystem.animations) {
+                    window.ChatBubbleSystem.animations = {
+                        fadeIn: { duration: 300, easing: 'easeOutBack' },
+                        fadeOut: { duration: 500, easing: 'easeInQuart' },
+                        bounce: { duration: 400, easing: 'easeOutBounce' }
+                    };
+                }
+                
+                if (!window.ChatBubbleSystem.sounds) {
+                    window.ChatBubbleSystem.sounds = {};
+                }
+                
+                if (!window.ChatBubbleSystem.isMobile) {
+                    window.ChatBubbleSystem.isMobile = window.innerWidth <= 768;
+                }
+                
+                // Initialize the external system
+                if (typeof window.ChatBubbleSystem.init === 'function') {
+                    window.ChatBubbleSystem.init();
+                }
+                
+                // Set up WebSocket integration
+                setupChatBubbleWebSocketIntegration();
+                
+                console.log('✅ External ChatBubbleSystem integrated successfully');
+                return true;
+            }
+            
+            // Fallback: Create simple chat bubble system
+            console.log('💬 Creating fallback chat bubble system...');
+            createFallbackChatBubbleSystem();
+            return false;
+        }
+        
+        function setupChatBubbleWebSocketIntegration() {
+            // Override the WebSocket chat message handler to integrate with external bubble system
+            if (window.WebSocketManager && window.ChatBubbleSystem) {
+                const originalHandleChatMessage = window.WebSocketManager.handleChatMessage;
+                
+                window.WebSocketManager.handleChatMessage = function(data) {
+                    // Call original handler for chat display
+                    originalHandleChatMessage.call(this, data);
+                    
+                    // Create 3D chat bubble if enabled
+                    if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                        try {
+                            // Convert data format for external system
+                            const bubbleData = {
+                                message: data.message,
+                                username: data.username,
+                                userId: data.user_id,
+                                type: data.type || 'user'
+                            };
+                            
+                            window.ChatBubbleSystem.createBubbleFromMessage(bubbleData);
+                        } catch (error) {
+                            console.warn('Error creating chat bubble:', error);
+                        }
+                    }
+                    
+                    // Update bubble count
+                    this.updateBubbleCount();
+                };
+                
+                console.log('🔗 WebSocket integrated with ChatBubbleSystem');
+            }
+        }
+        
+        function createFallbackChatBubbleSystem() {
+            window.ChatBubbleSystem = {
+                bubbles: new Map(),
+                initialized: false,
+                
+                init() {
+                    if (!window.THREE) {
+                        console.warn('Three.js not available for chat bubbles');
+                        return;
+                    }
+                    this.initialized = true;
+                    console.log('✅ Fallback chat bubble system initialized');
+                },
+                
+                createBubbleFromMessage(data) {
+                    if (!this.initialized || !window.scene) return;
+                    
+                    try {
+                        const bubble = this.createSimpleBubble(data.message, data.username);
+                        if (bubble) {
+                            this.bubbles.set(bubble.id, bubble);
+                            window.scene.add(bubble.sprite);
+                            
+                            setTimeout(() => this.removeBubble(bubble.id), 5000);
+                            console.log(`💬 Created fallback bubble for ${data.username}`);
+                        }
+                    } catch (error) {
+                        console.warn('Error creating fallback bubble:', error);
+                    }
+                },
+                
+                createSimpleBubble(text, username) {
+                    if (!window.THREE) return null;
+                    
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = 300;
+                    canvas.height = 80;
+                    
+                    // Background
+                    ctx.fillStyle = 'rgba(102, 126, 234, 0.9)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Text
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText(username, 10, 20);
+                    ctx.font = '11px Arial';
+                    ctx.fillText(text, 10, 40);
+                    
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+                    const sprite = new THREE.Sprite(material);
+                    
+                    sprite.position.set(
+                        (Math.random() - 0.5) * 10,
+                        2 + Math.random() * 2,
+                        (Math.random() - 0.5) * 10
+                    );
+                    sprite.scale.set(1.5, 0.6, 1);
+                    
+                    return {
+                        id: 'fallback_' + Date.now(),
+                        sprite,
+                        material,
+                        texture
+                    };
+                },
+                
+                removeBubble(bubbleId) {
+                    const bubble = this.bubbles.get(bubbleId);
+                    if (!bubble) return;
+                    
+                    if (window.scene && bubble.sprite) {
+                        window.scene.remove(bubble.sprite);
+                    }
+                    
+                    if (bubble.texture) bubble.texture.dispose();
+                    if (bubble.material) bubble.material.dispose();
+                    
+                    this.bubbles.delete(bubbleId);
+                },
+                
+                getActiveBubbleCount() {
+                    return this.bubbles.size;
+                },
+                
+                clearAllBubbles() {
+                    for (const bubbleId of this.bubbles.keys()) {
+                        this.removeBubble(bubbleId);
+                    }
+                }
+            };
+            
+            // Initialize fallback system
+            window.ChatBubbleSystem.init();
+            
+            // Set up WebSocket integration with fallback
+            setupChatBubbleWebSocketIntegration();
+        }
+        
+        // Try to initialize chat bubble integration after a delay
+        setTimeout(() => {
+            initializeChatBubbleIntegration();
+        }, 1000);
+    </script>
+
+    <!-- Initialize Everything -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize WebSocket connection
+            window.WebSocketManager = new EuphorieWebSocketManager();
+            
+            // Initialize chat bubble system
+            if (window.Enhanced3DChatBubbles) {
+                window.Enhanced3DChatBubbles.init();
+                console.log('💬 Enhanced 3D Chat Bubbles initialized');
+            }
+            
+            // Setup chat input handlers for both desktop and mobile
+            const setupChatHandlers = (inputId, btnId) => {
+                const chatInput = document.getElementById(inputId);
+                const sendBtn = document.getElementById(btnId);
+                
+                if (chatInput && sendBtn) {
+                    let typingTimer;
+                    let isTyping = false;
+                    
+                    // Send message function
+                    const sendMessage = () => {
+                        const message = chatInput.value.trim();
+                        if (!message || !window.WebSocketManager.authenticated) return;
+                        
+                        window.WebSocketManager.sendChatMessage(message);
+                        chatInput.value = '';
+                        
+                        // Stop typing indicator
+                        if (isTyping) {
+                            window.WebSocketManager.sendTyping(false);
+                            isTyping = false;
+                        }
+                    };
+                    
+                    // Typing indicator logic
+                    chatInput.addEventListener('input', () => {
+                        if (!isTyping && window.WebSocketManager.authenticated) {
+                            window.WebSocketManager.sendTyping(true);
+                            isTyping = true;
+                        }
+                        
+                        clearTimeout(typingTimer);
+                        typingTimer = setTimeout(() => {
+                            if (isTyping) {
+                                window.WebSocketManager.sendTyping(false);
+                                isTyping = false;
+                            }
+                        }, 2000);
+                    });
+                    
+                    // Send on Enter
+                    chatInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            sendMessage();
+                        }
+                    });
+                    
+                    // Send on button click
+                    sendBtn.addEventListener('click', sendMessage);
+                }
+            };
+            
+            // Setup for both desktop and mobile
+            setupChatHandlers('chat-input', 'send-btn');
+            setupChatHandlers('chat-input-mobile', 'send-btn-mobile');
+            
+            // Setup bubble mode toggles
+            const setupBubbleToggle = (toggleId) => {
+                const toggle = document.getElementById(toggleId);
+                if (toggle) {
+                    toggle.addEventListener('click', () => {
+                        window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
+                        toggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
+                        toggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
+                        
+                        if (!window.ROOM_CONFIG.chatBubblesEnabled && window.Enhanced3DChatBubbles) {
+                            window.Enhanced3DChatBubbles.clearAllBubbles();
+                        }
+                        
+                        console.log(`💬 Bubble mode: ${window.ROOM_CONFIG.chatBubblesEnabled ? 'enabled' : 'disabled'}`);
+                    });
+                }
+            };
+            
+            setupBubbleToggle('bubble-mode-toggle');
+            setupBubbleToggle('bubble-mode-toggle-mobile');
+            
+            // Auto-connect WebSocket after short delay
+            setTimeout(() => {
+                if (window.WebSocketManager) {
+                    window.WebSocketManager.connect();
+                }
+            }, 1000);
+            
+            console.log('🚀 Chat system initialized');
+        });
+        
+        // Make WebSocket functions available globally
+        window.sendEmotion = function(emotion) {
+            if (window.WebSocketManager) {
+                window.WebSocketManager.sendEmotion(emotion);
+            }
+        };
+        
+        window.sendInteraction = function(type, targetId = null, data = null) {
+            if (window.WebSocketManager) {
+                window.WebSocketManager.sendInteraction(type, targetId, data);
+            }
+        };
+    </script>
+
+    <!-- Keep your existing modular JavaScript system -->
+    <script>
+        // ================================
+        // EUPHORIE 3D MODULAR SYSTEM
+        // Complete JavaScript Implementation
+        // ================================
+
+        // ================================
+        // PHASE 1: MODULE DEPENDENCY MANAGEMENT
+        // ================================
+
+        class EuphorieModuleLoader {
+            constructor() {
+                this.loadedModules = new Set();
+                this.loadingPromises = new Map();
+                this.initializationCallbacks = new Map();
+                
+                // Define system dependencies
+                this.dependencies = {
+                    'globals': [],
+                    'event-bus': ['globals'],
+                    'scene-manager': ['globals', 'event-bus'],
+                    'avatar-system': ['globals', 'event-bus', 'scene-manager'],
+                    'chat-bubble-system': ['globals', 'event-bus', 'scene-manager', 'avatar-system'],
+                    'interaction-system': ['globals', 'event-bus', 'avatar-system'],
+                    'emotion-system': ['globals', 'event-bus', 'avatar-system'],
+                    'pet-system': ['globals', 'event-bus', 'scene-manager', 'avatar-system'],
+                    'group-interaction-system': ['globals', 'event-bus', 'avatar-system', 'interaction-system'],
+                    'advanced-scene-system': ['globals', 'event-bus', 'scene-manager'],
+                    'room-core': ['globals', 'event-bus', 'scene-manager', 'avatar-system', 'interaction-system']
+                };
+                
+                // Map module names to file paths
+                this.modulePaths = {
+                    'globals': '/static/js/core/globals.js',
+                    'event-bus': '/static/js/core/event-bus.js',
+                    'scene-manager': '/static/js/systems/scene-manager.js',
+                    'avatar-system': '/static/js/systems/avatar-system.js',
+                    'chat-bubble-system': '/static/js/systems/chat-bubble-system.js',
+                    'interaction-system': '/static/js/systems/interaction-system.js',
+                    'emotion-system': '/static/js/systems/emotion-system.js',
+                    'pet-system': '/static/js/systems/pet-system.js',
+                    'group-interaction-system': '/static/js/systems/group-interaction-system.js',
+                    'advanced-scene-system': '/static/js/systems/advanced-scene-system.js',
+                    'room-core': '/static/js/room-core.js'
+                };
+                
+                // Map modules to their global objects
+                this.moduleObjects = {
+                    'globals': () => window.Euphorie,
+                    'event-bus': () => window.EventBus,
+                    'scene-manager': () => window.SceneManager,
+                    'avatar-system': () => window.AvatarSystem,
+                    'chat-bubble-system': () => window.ChatBubbleSystem,
+                    'interaction-system': () => window.InteractionSystem,
+                    'emotion-system': () => window.EmotionSystem,
+                    'pet-system': () => window.PetSystem,
+                    'group-interaction-system': () => window.GroupInteractionSystem,
+                    'advanced-scene-system': () => window.AdvancedSceneSystem,
+                    'room-core': () => window.RoomCore
+                };
+            }
+            
+            async loadModule(moduleName) {
+                // Return if already loaded
+                if (this.loadedModules.has(moduleName)) {
+                    return Promise.resolve();
+                }
+                
+                // Return existing promise if currently loading
+                if (this.loadingPromises.has(moduleName)) {
+                    return this.loadingPromises.get(moduleName);
+                }
+                
+                // Load dependencies first
+                const deps = this.dependencies[moduleName] || [];
+                await Promise.all(deps.map(dep => this.loadModule(dep)));
+                
+                // Create loading promise
+                const loadingPromise = this.loadScript(this.modulePaths[moduleName])
+                    .then(() => {
+                        this.loadedModules.add(moduleName);
+                        console.log(`✅ Module loaded: ${moduleName}`);
+                        this.updateLoadingStep(moduleName);
+                        
+                        // Run any pending initialization callbacks
+                        const callback = this.initializationCallbacks.get(moduleName);
+                        if (callback) {
+                            return callback();
+                        }
+                    })
+                    .catch(() => {
+                        // If external file loading fails, continue without error
+                        console.warn(`⚠️ Could not load external module: ${moduleName}`);
+                        this.loadedModules.add(moduleName);
+                        return Promise.resolve();
+                    });
+                    
+                this.loadingPromises.set(moduleName, loadingPromise);
+                return loadingPromise;
+            }
+            
+            loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    // Check if script already exists
+                    const existingScript = document.querySelector(`script[src="${src}"]`);
+                    if (existingScript) {
+                        resolve();
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = false; // Maintain execution order
+                    
+                    script.onload = () => resolve();
+                    script.onerror = () => {
+                        console.warn(`Could not load ${src} - continuing without it`);
+                        resolve(); // Resolve instead of reject to continue
+                    };
+                    
+                    document.head.appendChild(script);
+                });
+            }
+            
+            async initializeModule(moduleName) {
+                const moduleGetter = this.moduleObjects[moduleName];
+                if (!moduleGetter) {
+                    console.warn(`No module object defined for ${moduleName}`);
+                    return;
+                }
+                
+                const moduleObj = moduleGetter();
+                if (moduleObj && typeof moduleObj.init === 'function') {
+                    try {
+                        await moduleObj.init();
+                        console.log(`🔧 Initialized: ${moduleName}`);
+                    } catch (error) {
+                        console.warn(`⚠️ Could not initialize ${moduleName}:`, error.message);
+                    }
+                } else {
+                    console.log(`📦 Module ${moduleName} loaded (no init method)`);
+                }
+            }
+            
+            async loadAllModules() {
+                const moduleNames = Object.keys(this.dependencies);
+                console.log('🚀 Loading all Euphorie modules...');
+                
+                // Update loading screen
+                this.updateLoadingStep('starting');
+                
+                // Load all modules (dependencies will be resolved automatically)
+                await Promise.all(moduleNames.map(name => this.loadModule(name)));
+                
+                console.log('📦 All modules loaded, starting initialization...');
+                this.updateLoadingStep('initializing');
+                
+                // Initialize modules in dependency order
+                const initOrder = this.getInitializationOrder();
+                for (const moduleName of initOrder) {
+                    await this.initializeModule(moduleName);
+                    // Small delay to prevent initialization conflicts
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                
+                console.log('🎉 All Euphorie modules initialized!');
+                this.updateLoadingStep('complete');
+                return this;
+            }
+            
+            getInitializationOrder() {
+                const order = [];
+                const visited = new Set();
+                const visiting = new Set();
+                
+                const visit = (moduleName) => {
+                    if (visited.has(moduleName)) return;
+                    if (visiting.has(moduleName)) {
+                        console.warn(`Circular dependency detected: ${moduleName}`);
+                        return;
+                    }
+                    
+                    visiting.add(moduleName);
+                    const deps = this.dependencies[moduleName] || [];
+                    deps.forEach(dep => visit(dep));
+                    visiting.delete(moduleName);
+                    visited.add(moduleName);
+                    order.push(moduleName);
+                };
+                
+                Object.keys(this.dependencies).forEach(visit);
+                return order;
+            }
+            
+            updateLoadingStep(step) {
+                const stepMap = {
+                    'starting': 1,
+                    'globals': 2,
+                    'scene-manager': 3,
+                    'avatar-system': 3,
+                    'chat-bubble-system': 4,
+                    'initializing': 5,
+                    'complete': 6
+                };
+                
+                const stepNumber = stepMap[step] || 2;
+                
+                // Update loading steps in UI
+                for (let i = 1; i <= 6; i++) {
+                    const stepElement = document.getElementById(`loading-step-${i}`);
+                    if (stepElement) {
+                        stepElement.classList.remove('current', 'completed');
+                        if (i < stepNumber) {
+                            stepElement.classList.add('completed');
+                        } else if (i === stepNumber) {
+                            stepElement.classList.add('current');
+                        }
+                    }
+                }
+            }
+            
+            isModuleLoaded(moduleName) {
+                return this.loadedModules.has(moduleName);
+            }
+            
+            getModuleObject(moduleName) {
+                const getter = this.moduleObjects[moduleName];
+                return getter ? getter() : null;
+            }
+        }
+
+        // ================================
+        // PHASE 2: GLOBAL FUNCTIONS & SYSTEM INTEGRATION
+        // ================================
+
+        class EuphorieGlobalFunctions {
+            constructor(loader) {
+                this.loader = loader;
+                this.setupGlobalFunctions();
+            }
+            
+            setupGlobalFunctions() {
+                // Quick Actions
+                window.triggerWave = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('interaction-system')?.triggerInteraction?.('wave'),
+                    'Wave gesture',
+                    '👋 You wave!'
+                );
+                
+                window.triggerDance = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('interaction-system')?.triggerInteraction?.('dance'),
+                    'Dance animation',
+                    '💃 You dance!'
+                );
+                
+                // Emotions
+                window.showEmotionPanel = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('emotion-system')?.showEmotionPanel?.(),
+                    'Emotion panel',
+                    '🎭 Opening emotions...'
+                );
+                
+                window.triggerEmotion = (emotion) => this.executeWithFallback(
+                    () => {
+                        // Send via WebSocket if available
+                        if (window.sendEmotion) {
+                            window.sendEmotion(emotion);
+                        }
+                        // Also trigger local emotion system
+                        this.loader.getModuleObject('emotion-system')?.triggerEmotion?.(emotion);
+                    },
+                    'Emotion trigger',
+                    `🎭 Feeling ${emotion}!`
+                );
+                
+                // Groups
+                window.showGroupMenu = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('group-interaction-system')?.showGroupActivityMenu?.(),
+                    'Group menu',
+                    '👥 Group activities loading...'
+                );
+                
+                // Avatar
+                window.customizeAvatar = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('room-core')?.showAvatarCustomizationPanel?.(),
+                    'Avatar customization',
+                    '👤 Avatar customization loading...'
+                );
+                
+                // Pets
+                window.addRandomPet = () => this.executeWithFallback(
+                    () => {
+                        const petSystem = this.loader.getModuleObject('pet-system');
+                        if (petSystem && petSystem.assignRandomPet) {
+                            const pet = petSystem.assignRandomPet('default');
+                            if (pet && pet.options) {
+                                this.showNotification(`🐾 ${pet.options.name} joined you!`);
+                            } else {
+                                this.showNotification('🐾 A new pet joined you!');
+                            }
+                            return pet;
+                        }
+                    },
+                    'Pet system',
+                    '🐾 Getting you a pet...'
+                );
+                
+                window.togglePetPanel = () => this.executeWithFallback(
+                    () => {
+                        const petPanel = document.getElementById('pet-panel');
+                        if (petPanel) {
+                            const isVisible = petPanel.style.display !== 'none';
+                            petPanel.style.display = isVisible ? 'none' : 'block';
+                            this.showNotification(isVisible ? '🎪 Pet panel hidden' : '🎪 Pet panel shown');
+                        }
+                    },
+                    'Pet panel',
+                    '🎪 Pet panel loading...'
+                );
+                
+                // Friends
+                window.addFriends = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('room-core')?.addRandomFriends?.(),
+                    'Friend system',
+                    '👥 Adding friends...'
+                );
+                
+                // Environment
+                window.changeScene = () => this.executeWithFallback(
+                    () => {
+                        const advancedScene = this.loader.getModuleObject('advanced-scene-system');
+                        const roomCore = this.loader.getModuleObject('room-core');
+                        
+                        if (advancedScene && advancedScene.showEnvironmentSelector) {
+                            advancedScene.showEnvironmentSelector();
+                        } else if (roomCore && roomCore.changeScene) {
+                            roomCore.changeScene();
+                        } else {
+                            this.showNotification('🏠 Scene system loading...');
+                        }
+                    },
+                    'Scene system',
+                    '🏠 Changing environment...'
+                );
+                
+                window.controlWeather = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('advanced-scene-system')?.showWeatherSelector?.(),
+                    'Weather system',
+                    '🌦️ Weather controls loading...'
+                );
+                
+                window.controlTime = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('advanced-scene-system')?.showTimeOfDaySelector?.(),
+                    'Time system',
+                    '🌅 Time controls loading...'
+                );
+                
+                window.toggleMagic = () => this.executeWithFallback(
+                    () => this.loader.getModuleObject('room-core')?.toggleMagicEffects?.(),
+                    'Magic system',
+                    '✨ Magic effects loading...'
+                );
+                
+                // Chat functions
+                window.toggleMobileChat = () => this.toggleMobilePanel('mobile-chat-panel', 'expanded');
+                window.toggleChatMinimize = () => this.toggleDesktopPanel('chat-panel', 'minimized');
+                
+                // Menu functions
+                window.toggleMobileMenu = () => this.toggleMobileMenu();
+                window.closeMobileMenu = () => this.closeMobileMenu();
+                window.toggleDesktopMenu = () => this.toggleDesktopMenu();
+                window.closeDesktopMenu = () => this.closeDesktopMenu();
+                
+                console.log('🔧 Global functions configured');
+            }
+            
+            executeWithFallback(primaryFunction, systemName, fallbackMessage) {
+                try {
+                    const result = primaryFunction();
+                    if (result === undefined || result === null) {
+                        console.log(`${systemName} not ready yet, showing fallback`);
+                        this.showNotification(fallbackMessage);
+                    }
+                    return result;
+                } catch (error) {
+                    console.warn(`${systemName} not available:`, error.message);
+                    this.showNotification(fallbackMessage);
+                    return null;
+                }
+            }
+            
+            showNotification(message) {
+                // Try to use RoomCore notification system first
+                const roomCore = this.loader.getModuleObject('room-core');
+                if (roomCore && roomCore.showNotification) {
+                    try {
+                        roomCore.showNotification(message);
+                        return;
+                    } catch (error) {
+                        // Fall back to manual notification
+                    }
+                }
+                
+                // Enhanced fallback notification system
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95));
+                    backdrop-filter: blur(15px);
+                    color: white;
+                    padding: 16px 24px;
+                    border-radius: 12px;
+                    z-index: 10000;
+                    max-width: 350px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    font-weight: 600;
+                    font-size: 14px;
+                    transform: translateX(400px);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                // Animate in
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                // Animate out
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(400px)';
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 400);
+                }, 4000);
+            }
+            
+            toggleMobilePanel(panelId, toggleClass) {
+                const panel = document.getElementById(panelId);
+                if (panel) {
+                    panel.classList.toggle(toggleClass);
+                }
+            }
+            
+            toggleDesktopPanel(panelId, toggleClass) {
+                const panel = document.getElementById(panelId);
+                const restoreHint = document.getElementById('chat-restore-hint');
+                
+                if (panel) {
+                    const isMinimized = panel.classList.toggle(toggleClass);
+                    if (restoreHint) {
+                        restoreHint.style.display = isMinimized ? 'block' : 'none';
+                    }
+                }
+            }
+            
+            toggleMobileMenu() {
+                const hamburger = document.querySelector('.mobile-hamburger');
+                const overlay = document.querySelector('.mobile-menu-overlay');
+                const menu = document.querySelector('.mobile-actions-menu');
+                
+                const isOpen = hamburger?.classList.contains('active');
+                
+                if (isOpen) {
+                    this.closeMobileMenu();
+                } else {
+                    hamburger?.classList.add('active');
+                    overlay?.classList.add('active');
+                    menu?.classList.add('active');
+                    document.body.classList.add('menu-open');
+                }
+            }
+            
+            closeMobileMenu() {
+                document.querySelector('.mobile-hamburger')?.classList.remove('active');
+                document.querySelector('.mobile-menu-overlay')?.classList.remove('active');
+                document.querySelector('.mobile-actions-menu')?.classList.remove('active');
+                document.body.classList.remove('menu-open');
+            }
+            
+            toggleDesktopMenu() {
+                const hamburger = document.querySelector('.desktop-hamburger');
+                const menu = document.querySelector('.desktop-actions-menu');
+                
+                const isOpen = hamburger?.classList.contains('active');
+                
+                if (isOpen) {
+                    this.closeDesktopMenu();
+                } else {
+                    hamburger?.classList.add('active');
+                    menu?.classList.add('active');
+                }
+            }
+            
+            closeDesktopMenu() {
+                document.querySelector('.desktop-hamburger')?.classList.remove('active');
+                document.querySelector('.desktop-actions-menu')?.classList.remove('active');
+            }
+        }
+
+        // ================================
+        // PHASE 3: SYSTEM INTEGRATION WITH WEBSOCKET
+        // ================================
+
+        class EuphorieSystemIntegration {
+            constructor(loader) {
+                this.loader = loader;
+                this.setupIntegrations();
+            }
+            
+            setupIntegrations() {
+                // Integrate WebSocket with existing systems
+                if (window.WebSocketManager) {
+                    // Override emotion sending to integrate with existing emotion system
+                    const originalSendEmotion = window.sendEmotion;
+                    window.sendEmotion = (emotion) => {
+                        // Send via WebSocket
+                        if (originalSendEmotion) {
+                            originalSendEmotion(emotion);
+                        }
+                        
+                        // Also trigger local emotion system if available
+                        const emotionSystem = this.loader.getModuleObject('emotion-system');
+                        if (emotionSystem && emotionSystem.triggerLocalEmotion) {
+                            emotionSystem.triggerLocalEmotion(emotion);
+                        }
+                    };
+                    
+                    // Override interaction sending
+                    const originalSendInteraction = window.sendInteraction;
+                    window.sendInteraction = (type, targetId = null, data = null) => {
+                        // Send via WebSocket
+                        if (originalSendInteraction) {
+                            originalSendInteraction(type, targetId, data);
+                        }
+                        
+                        // Also trigger local interaction system if available
+                        const interactionSystem = this.loader.getModuleObject('interaction-system');
+                        if (interactionSystem && interactionSystem.triggerLocalInteraction) {
+                            interactionSystem.triggerLocalInteraction(type, targetId, data);
+                        }
+                    };
+                }
+                
+                console.log('🔗 System integrations configured');
+            }
+        }
+
+        // ================================
+        // PHASE 4: MAIN INITIALIZATION SYSTEM
+        // ================================
+
+        class EuphorieInitializer {
+            constructor() {
+                this.loader = null;
+                this.globalFunctions = null;
+                this.systemIntegration = null;
+                this.isInitialized = false;
+            }
+            
+            async initialize() {
+                if (this.isInitialized) return;
+                
+                console.log('🚀 Starting Euphorie 3D Platform modular system...');
+                
+                try {
+                    // Step 1: Load all modules
+                    this.loader = new EuphorieModuleLoader();
+                    await this.loader.loadAllModules();
+                    
+                    // Step 2: Setup global functions
+                    this.globalFunctions = new EuphorieGlobalFunctions(this.loader);
+                    
+                    // Step 3: Setup system integrations
+                    this.systemIntegration = new EuphorieSystemIntegration(this.loader);
+                    
+                    // Step 4: Final setup
+                    await this.finalSetup();
+                    
+                    this.isInitialized = true;
+                    console.log('🎉 Euphorie 3D Platform modular system initialized!');
+                    
+                    // Hide loading screen after everything is ready
+                    this.hideLoadingScreen();
+                    
+                } catch (error) {
+                    console.warn('⚠️ Some Euphorie modules failed to load:', error.message);
+                    // Still hide loading screen and continue with available functionality
+                    this.hideLoadingScreen();
+                }
+            }
+            
+            async finalSetup() {
+                // Setup responsive layout
+                this.setupResponsiveLayout();
+                
+                // Setup global event handlers
+                this.setupGlobalEvents();
+                
+                // Update UI counters
+                this.updateAllCounters();
+                
+                // Start periodic updates
+                this.startPeriodicUpdates();
+            }
+            
+            setupResponsiveLayout() {
+                const isMobile = window.innerWidth <= 768;
+                
+                // Configure for mobile/desktop
+                if (isMobile) {
+                    document.body.classList.add('mobile-layout');
+                    console.log('📱 Mobile layout configured');
+                } else {
+                    document.body.classList.add('desktop-layout');
+                    console.log('💻 Desktop layout configured');
+                }
+                
+                // Handle orientation changes
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => {
+                        this.setupResponsiveLayout();
+                        this.updateAllCounters();
+                    }, 500);
+                });
+            }
+            
+            setupGlobalEvents() {
+                // Handle page visibility changes
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        console.log('👁️ Page hidden - reducing activity');
+                    } else {
+                        console.log('👁️ Page visible - resuming activity');
+                        this.updateAllCounters();
+                    }
+                });
+                
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    this.updateAllCounters();
+                });
+            }
+            
+            updateAllCounters() {
+                // Update status panel counters
+                this.updateCounter('user-count', this.getActiveUserCount());
+                this.updateCounter('bubble-count', this.getActiveBubbleCount());
+                this.updateCounter('pet-count', this.getActivePetCount());
+                this.updateCounter('group-count', this.getActiveGroupCount());
+            }
+            
+            updateCounter(elementId, count) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = count;
+                }
+            }
+            
+            getActiveUserCount() {
+                const avatarSystem = this.loader?.getModuleObject('avatar-system');
+                if (avatarSystem && avatarSystem.getAllAvatars) {
+                    try {
+                        return avatarSystem.getAllAvatars().length;
+                    } catch (error) {
+                        return 1;
+                    }
+                }
+                return 1;
+            }
+            
+            getActiveBubbleCount() {
+                if (window.Enhanced3DChatBubbles) {
+                    return window.Enhanced3DChatBubbles.getActiveBubbleCount();
+                }
+                const chatBubbleSystem = this.loader?.getModuleObject('chat-bubble-system');
+                if (chatBubbleSystem && chatBubbleSystem.getActiveBubbleCount) {
+                    try {
+                        return chatBubbleSystem.getActiveBubbleCount();
+                    } catch (error) {
+                        return 0;
+                    }
+                }
+                return 0;
+            }
+            
+            getActivePetCount() {
+                const petSystem = this.loader?.getModuleObject('pet-system');
+                if (petSystem && petSystem.getAllPets) {
+                    try {
+                        return petSystem.getAllPets().length;
+                    } catch (error) {
+                        return 0;
+                    }
+                }
+                return 0;
+            }
+            
+            getActiveGroupCount() {
+                const groupSystem = this.loader?.getModuleObject('group-interaction-system');
+                if (groupSystem && groupSystem.getActiveGroups) {
+                    try {
+                        return groupSystem.getActiveGroups().length;
+                    } catch (error) {
+                        return 0;
+                    }
+                }
+                return 0;
+            }
+            
+            startPeriodicUpdates() {
+                // Update counters every 5 seconds
+                setInterval(() => {
+                    this.updateAllCounters();
+                }, 5000);
+            }
+            
+            hideLoadingScreen() {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 500);
+                }
+            }
+        }
+
+        // ================================
+        // GLOBAL INITIALIZATION
+        // ================================
+
+        // Create global loader instance
+        window.EuphorieLoader = new EuphorieModuleLoader();
+
+        // Initialize modular system when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Small delay to let other systems initialize first
+            setTimeout(async () => {
+                const initializer = new EuphorieInitializer();
+                await initializer.initialize();
+            }, 2000);
+        });
+
+        // Also initialize if DOM is already loaded
+        if (document.readyState !== 'loading') {
+            setTimeout(async () => {
+                const initializer = new EuphorieInitializer();
+                await initializer.initialize();
+            }, 2000);
+        }
+
+        console.log('🎮 Euphorie 3D JavaScript system loaded and ready!');
+    </script>
+
+</body>
+</html>
