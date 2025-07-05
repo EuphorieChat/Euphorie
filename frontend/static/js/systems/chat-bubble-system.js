@@ -65,6 +65,7 @@ class ChatBubbleSystem {
         this.createBubble = this.createBubble.bind(this);
         this.update = this.update.bind(this);
         this.handleResize = this.handleResize.bind(this);
+        this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
         
         // Setup resize handler
         window.addEventListener('resize', this.handleResize);
@@ -120,7 +121,7 @@ class ChatBubbleSystem {
     
     setupEventListeners() {
         if (window.EventBus) {
-            window.EventBus.on('chat_message', this.createBubbleFromMessage.bind(this));
+            window.EventBus.on('chat_message', this.createBubbleFromMessage);
             window.EventBus.on('user_left', (data) => this.removeUserBubbles(data.userId));
             window.EventBus.on('scene_changed', () => this.handleSceneChange());
         }
