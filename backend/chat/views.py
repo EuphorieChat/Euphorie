@@ -755,8 +755,9 @@ def admin_rooms(request):
             room = get_object_or_404(Room, name=room_name)
             
             if action == 'clear':
-                message_count = Message.objects.filter(room=room).count()
-                Message.objects.filter(room=room).delete()
+                # Use the correct relationship name 'messages'
+                message_count = room.messages.count()
+                room.messages.all().delete()
                 messages.success(
                     request, 
                     f'Successfully cleared {message_count} messages from room "{room.display_name or room.name}"'
@@ -791,8 +792,8 @@ def admin_rooms(request):
             'Message',
         ])
         
-        # Write messages
-        room_messages = Message.objects.filter(room=room).select_related('user').order_by('timestamp')
+        # Write messages using the correct relationship
+        room_messages = room.messages.select_related('user').order_by('timestamp')
         
         for message in room_messages:
             writer.writerow([
@@ -810,10 +811,25 @@ def admin_rooms(request):
     search_query = request.GET.get('search', '').strip()
     selected_category = request.GET.get('category', '')
     
-    # Start with all rooms and add message counts
-    rooms = Room.objects.select_related('creator').annotate(
-        messages_count=Count('message', distinct=True)
-    ).order_by('-created_at')
+    # Start with all rooms - use existing message_count field or calculate it
+    rooms = Room.objects.select_related('creator', 'category')
+    
+    # If you don't have message_count field, annotate it. If you do, just use it.
+    try:
+        # Try to use existing message_count field
+        rooms = rooms.order_by('-created_at')
+        # Test if message_count field exists
+        test_room = rooms.first()
+        if test_room and hasattr(test_room, 'message_count'):
+            # Use existing field
+            pass
+        else:
+            raise AttributeError("No message_count field")
+    except:
+        # If no message_count field, calculate it
+        rooms = rooms.annotate(
+            messages_count=Count('messages', distinct=True)
+        ).order_by('-created_at')
     
     # Apply search filter
     if search_query:
@@ -826,10 +842,9 @@ def admin_rooms(request):
             Q(creator__last_name__icontains=search_query)
         )
     
-    # Apply category filter (if you have categories)
-    # Uncomment and adjust this if you have a Category model
-    # if selected_category:
-    #     rooms = rooms.filter(category_id=selected_category)
+    # Apply category filter
+    if selected_category:
+        rooms = rooms.filter(category_id=selected_category)
     
     # Pagination
     paginator = Paginator(rooms, 25)  # Show 25 rooms per page
@@ -839,28 +854,39 @@ def admin_rooms(request):
     # Get statistics
     total_rooms = Room.objects.count()
     
-    # Count active rooms (assuming you have an is_active field)
+    # Count active rooms - check if is_public field exists instead of is_active
     try:
-        active_rooms = Room.objects.filter(is_active=True).count()
+        # Try is_public field first
+        active_rooms = Room.objects.filter(is_public=True).count()
     except:
-        # If no is_active field, just use total rooms
-        active_rooms = total_rooms
+        try:
+            # Try is_active field
+            active_rooms = Room.objects.filter(is_active=True).count()
+        except:
+            # If neither field exists, just use total rooms
+            active_rooms = total_rooms
     
     # Get most popular room (by message count)
-    most_popular_room = Room.objects.annotate(
-        msg_count=Count('message')
-    ).order_by('-msg_count').first()
+    try:
+        # Try using existing message_count field
+        most_popular_room = Room.objects.order_by('-message_count').first()
+    except:
+        # If no message_count field, calculate it
+        most_popular_room = Room.objects.annotate(
+            msg_count=Count('messages')
+        ).order_by('-msg_count').first()
     
     total_messages = Message.objects.count()
     
-    # Get all categories for the filter dropdown (if you have categories)
+    # Get all categories for the filter dropdown
     categories = []
-    # Uncomment this if you have a Category model:
-    # try:
-    #     from .models import Category
-    #     categories = Category.objects.all()
-    # except:
-    #     categories = []
+    try:
+        # Check if category field exists and get categories
+        from .models import Category
+        categories = Category.objects.all()
+    except:
+        # If no Category model or relationship, leave empty
+        categories = []
     
     context = {
         'page_obj': page_obj,

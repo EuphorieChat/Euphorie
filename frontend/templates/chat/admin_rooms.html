@@ -1,4 +1,4 @@
-{% extends "base/base.html" %}
+{% extends "chat/base/base.html" %}
 {% load static %}
 
 {% block title %}Rooms Management - Euphorie{% endblock %}
@@ -1101,6 +1101,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="rooms-container">
   <!-- Enhanced Header -->
   <header class="page-header fade-in">
@@ -1137,7 +1138,7 @@
         <div class="stat-mini">
           <div class="stat-mini-icon">✅</div>
           <div class="stat-mini-content">
-            <div class="stat-mini-value">{% if active_rooms.count %}{{ active_rooms.count }}{% else %}{{ active_rooms|default:"0" }}{% endif %}</div>
+            <div class="stat-mini-value">{{ active_rooms|default:"0" }}</div>
             <div class="stat-mini-label">Active</div>
           </div>
         </div>
@@ -1283,11 +1284,11 @@
               <div class="text-xs text-gray-500">{{ room.created_at|date:"g:i A" }}</div>
             </td>
             <td class="text-center">
-              <span class="font-bold text-lg">{{ room.messages_count|default:"0" }}</span>
+              <span class="font-bold text-lg">{% if room.message_count %}{{ room.message_count }}{% elif room.messages_count %}{{ room.messages_count }}{% else %}0{% endif %}</span>
             </td>
             <td class="text-center">
-              <span class="badge {% if room.is_active %}badge-success{% else %}badge-inactive{% endif %}">
-                {% if room.is_active %}Active{% else %}Inactive{% endif %}
+              <span class="badge {% if room.is_public %}badge-success{% else %}badge-inactive{% endif %}">
+                {% if room.is_public %}Public{% else %}Private{% endif %}
               </span>
             </td>
             <td>
@@ -1362,8 +1363,8 @@
               {% endif %}
               <span>{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}</span>
             </a>
-            <span class="badge {% if room.is_active %}badge-success{% else %}badge-inactive{% endif %}">
-              {% if room.is_active %}Active{% else %}Inactive{% endif %}
+            <span class="badge {% if room.is_public %}badge-success{% else %}badge-inactive{% endif %}">
+              {% if room.is_public %}Public{% else %}Private{% endif %}
             </span>
           </div>
           <div class="flex justify-between items-center">
@@ -1385,7 +1386,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>
-              <span class="text-gray-700 font-medium">{{ room.messages_count|default:"0" }}</span>
+              <span class="text-gray-700 font-medium">{% if room.message_count %}{{ room.message_count }}{% elif room.messages_count %}{{ room.messages_count }}{% else %}0{% endif %}</span>
               <span class="text-gray-500 ml-1 text-sm">messages</span>
             </div>
             <div class="flex items-center">
