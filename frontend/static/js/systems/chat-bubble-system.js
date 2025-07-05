@@ -1,5 +1,5 @@
 // /static/js/systems/chat-bubble-system.js
-// 3D Chat Bubble System for Euphorie
+// 3D Chat Bubble System for Euphorie - WORKING VERSION
 // Integrates with existing AvatarSystem and WebSocketManager
 
 class ChatBubbleSystem {
@@ -620,7 +620,7 @@ class ChatBubbleSystem {
     update() {
         if (!this.camera || !this.isInitialized) return;
         
-        const startTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const startTime = Date.now(); // FIXED: Use simple Date.now()
         
         try {
             this.activeBubbles.forEach(bubble => {
@@ -665,10 +665,8 @@ class ChatBubbleSystem {
             console.error('❌ Error in Enhanced ChatBubbleSystem update:', error);
         }
         
-        // Performance tracking
-        if (typeof performance !== 'undefined' && performance.now) {
-            this.performance.frameTime = performance.now() - startTime;
-        }
+        // Performance tracking - FIXED
+        this.performance.frameTime = Date.now() - startTime;
         this.performance.bubbleCount = this.activeBubbles.length;
         this.performance.renderCalls++;
     }
