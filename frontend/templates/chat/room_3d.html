@@ -1995,7 +1995,7 @@
         
         function setupChatBubbleWebSocketIntegration() {
             // Override the WebSocket chat message handler to integrate with external bubble system
-            if (window.WebSocketManager && window.ChatBubbleSystem) {
+            if (window.WebSocketManager && window.ChatBubbleSystem && window.ChatBubbleSystem.isInitialized) {
                 const originalHandleChatMessage = window.WebSocketManager.handleChatMessage;
                 
                 window.WebSocketManager.handleChatMessage = function(data) {
@@ -2003,7 +2003,7 @@
                     originalHandleChatMessage.call(this, data);
                     
                     // Create 3D chat bubble if enabled
-                    if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                    if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem && window.ChatBubbleSystem.isInitialized) {
                         try {
                             // Convert data format for external system
                             const bubbleData = {
@@ -2013,7 +2013,8 @@
                                 type: data.type || 'user'
                             };
                             
-                            window.ChatBubbleSystem.createBubbleFromMessage(bubbleData);
+                            // FIXED: Call the method with proper binding
+                            window.ChatBubbleSystem.createBubbleFromMessage.call(window.ChatBubbleSystem, bubbleData);
                         } catch (error) {
                             console.warn('Error creating chat bubble:', error);
                         }
@@ -2024,6 +2025,9 @@
                 };
                 
                 console.log('🔗 WebSocket integrated with ChatBubbleSystem');
+            } else {
+                console.log('⏳ ChatBubbleSystem not ready yet, retrying in 500ms...');
+                setTimeout(setupChatBubbleWebSocketIntegration, 500);
             }
         }
         
