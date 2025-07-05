@@ -8,7 +8,7 @@ import re
 
 from .models import (
     Room, RoomCategory, UserProfile, MessageReport, 
-    Friendship, WordFilter, UserModerationAction
+    Friendship, WordFilter, UserModerationAction, FriendRequest, Message
 )
 
 
@@ -282,8 +282,41 @@ class MessageReportForm(forms.ModelForm):
         return description
 
 
-class FriendRequestForm(forms.Form):
-    """Form for sending friend requests"""
+# UPDATED: Fixed FriendRequestForm to match your views and models
+class FriendRequestForm(forms.ModelForm):
+    """Form for sending friend requests with optional message"""
+    
+    class Meta:
+        model = FriendRequest
+        fields = ['message']
+        widgets = {
+            'message': forms.Textarea(attrs={
+                'class': 'input',
+                'placeholder': 'Say something nice... (optional)',
+                'rows': 2,
+                'maxlength': 200
+            })
+        }
+    
+    def __init__(self, from_user=None, to_user=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.from_user = from_user
+        self.to_user = to_user
+    
+    def save(self, commit=True):
+        friend_request = super().save(commit=False)
+        if self.from_user:
+            friend_request.from_user = self.from_user
+        if self.to_user:
+            friend_request.to_user = self.to_user
+        if commit:
+            friend_request.save()
+        return friend_request
+
+
+# ADDED: Alternative form for username-based friend requests
+class FriendRequestByUsernameForm(forms.Form):
+    """Form for sending friend requests by username"""
     
     username = forms.CharField(
         max_length=150,
@@ -603,27 +636,20 @@ class AvatarCustomizationForm(forms.Form):
         return cleaned_data
 
 
-class QuickMessageForm(forms.Form):
+class QuickMessageForm(forms.ModelForm):
     """Form for quick message sending in rooms"""
     
-    content = forms.CharField(
-        max_length=1000,
-        widget=forms.TextInput(attrs={
-            'class': 'message-input',
-            'placeholder': 'Type your message...',
-            'autocomplete': 'off',
-            'maxlength': 1000
-        })
-    )
-    
-    message_type = forms.ChoiceField(
-        choices=[
-            ('text', 'Text'),
-            ('emotion', 'Emotion'),
-        ],
-        initial='text',
-        widget=forms.HiddenInput()
-    )
+    class Meta:
+        model = Message
+        fields = ['content']
+        widgets = {
+            'content': forms.TextInput(attrs={
+                'class': 'message-input',
+                'placeholder': 'Type your message...',
+                'autocomplete': 'off',
+                'maxlength': 1000
+            })
+        }
     
     def clean_content(self):
         content = self.cleaned_data['content'].strip()

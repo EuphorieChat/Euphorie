@@ -6,17 +6,20 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, F, Max  # Added Max for last_activity
+from django.db.models import Q, Count, F, Max
 from django.views.generic import TemplateView
 from django.utils import timezone
 from datetime import timedelta
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.urls import reverse
 import json
+import sys
 
+# FIXED: Import all the models your views reference
 from .models import (
     Room, Message, UserProfile, RoomCategory, Friendship, 
-    RoomBookmark, MessageReport, UserActivity
+    RoomBookmark, MessageReport, UserActivity, FriendRequest  # Added FriendRequest
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
@@ -28,14 +31,13 @@ def index(request):
     """
     try:
         # Get all rooms with related data for better performance
-        # Based on your model fields: messages (not message), and you already have message_count
         rooms = Room.objects.select_related('creator', 'category').annotate(
             total_messages=F('message_count'),  # Use existing message_count field
             last_message_time=Max('messages__timestamp')  # Use messages (plural)
         ).order_by('-last_activity', '-message_count')
         
         # Get categories for the filter bar
-        categories = RoomCategory.objects.all().order_by('name')
+        categories = RoomCategory.objects.filter(is_active=True).order_by('sort_order', 'name')
         
         # Handle search if query parameter exists
         search_query = request.GET.get('q', '').strip()
@@ -43,7 +45,8 @@ def index(request):
             rooms = rooms.filter(
                 Q(name__icontains=search_query) |
                 Q(display_name__icontains=search_query) |
-                Q(description__icontains=search_query)
+                Q(description__icontains=search_query) |
+                Q(tags__icontains=search_query)  # Added tags search
             )
         
         # Handle category filter
@@ -59,8 +62,10 @@ def index(request):
             rooms = rooms.order_by('created_at')
         elif sort_option == 'name':
             rooms = rooms.order_by('name')
+        elif sort_option == 'popular':
+            rooms = rooms.order_by('-message_count', '-active_users_count')
         else:  # 'activity' (default)
-            rooms = rooms.order_by('-message_count', '-last_activity')
+            rooms = rooms.order_by('-last_activity', '-message_count')
         
         # Limit results for performance
         rooms = rooms[:50]
@@ -71,19 +76,24 @@ def index(request):
             'search_query': search_query,
             'current_category': category_filter,
             'current_sort': sort_option,
-            'total_rooms': Room.objects.count(),
+            'total_rooms': Room.objects.filter(is_public=True).count(),
             'total_users': User.objects.count(),
-            'total_messages': sum(room.message_count for room in Room.objects.all()),
+            'total_messages': Message.objects.count(),  # More efficient than sum
         }
         
         return render(request, 'chat/room_list.html', context)
         
     except Exception as e:
-        # Debug: Show the error
+        # Enhanced error handling
+        if request.user.is_staff:
+            error_msg = f"Database error: {str(e)}"
+        else:
+            error_msg = "Sorry, we're experiencing technical difficulties. Please try again later."
+            
         context = {
             'rooms': [],
             'categories': [],
-            'error': f"Database error: {str(e)}",
+            'error': error_msg,
             'search_query': '',
             'current_category': '',
             'current_sort': 'activity',
@@ -94,7 +104,7 @@ def index(request):
         return render(request, 'chat/room_list.html', context)
 
 def room(request, room_name):
-    """Individual room view"""
+    """Individual room view with enhanced features"""
     room = get_object_or_404(Room, name=room_name)
     
     # Check if room is public or user has access
@@ -102,13 +112,22 @@ def room(request, room_name):
         messages.error(request, "You don't have access to this room.")
         return redirect('index')
     
-    # Get messages
-    messages_list = Message.objects.filter(room=room).select_related(
+    # Get messages with pagination for better performance
+    messages_list = Message.objects.filter(
+        room=room, 
+        is_deleted=False  # Don't show deleted messages
+    ).select_related(
         'user', 'user__profile'
-    ).order_by('timestamp')
+    ).order_by('-timestamp')[:100]  # Limit recent messages
     
-    # Update last activity
+    # Reverse for display (oldest first)
+    messages_list = list(reversed(messages_list))
+    
+    # Update last activity and increment active users
     room.last_activity = timezone.now()
+    if request.user.is_authenticated:
+        # Simple active user tracking (you might want to implement this differently)
+        room.active_users_count = F('active_users_count') + 1
     room.save(update_fields=['last_activity'])
     
     # Track user activity
@@ -119,18 +138,36 @@ def room(request, room_name):
             activity_type='joined_room',
             description=f"Joined {room.display_name or room.name}"
         )
+        
+        # Check if user has bookmarked this room
+        is_bookmarked = RoomBookmark.objects.filter(
+            user=request.user, room=room
+        ).exists()
+    else:
+        is_bookmarked = False
             
     context = {
         'room': room,
         'messages': messages_list,
         'message_form': QuickMessageForm(),
+        'is_bookmarked': is_bookmarked,
+        'room_tags': room.get_tags_list(),
     }
     
     return render(request, 'chat/room_3d.html', context)
 
 @login_required
 def create_room(request):
-    """Create a new room"""
+    """Create a new room with enhanced validation"""
+    # Check user's room limit
+    from django.conf import settings
+    max_rooms = getattr(settings, 'EUPHORIE_SETTINGS', {}).get('MAX_ROOMS_PER_USER', 10)
+    user_room_count = Room.objects.filter(creator=request.user).count()
+    
+    if user_room_count >= max_rooms:
+        messages.error(request, f'You can only create up to {max_rooms} rooms.')
+        return redirect('index')
+    
     if request.method == 'POST':
         form = RoomCreationForm(request.POST)
         if form.is_valid():
@@ -146,39 +183,65 @@ def create_room(request):
                 description=f"Created room {room.display_name or room.name}"
             )
             
-            messages.success(request, f'Room "{room.display_name}" created successfully!')
+            # Update user profile room count
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.rooms_created = F('rooms_created') + 1
+            profile.save(update_fields=['rooms_created'])
+            
+            messages.success(request, f'Room "{room.display_name or room.name}" created successfully!')
             return redirect('room', room_name=room.name)
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
         form = RoomCreationForm()
     
-    return render(request, 'chat/create_room.html', {'form': form})
+    context = {
+        'form': form,
+        'user_room_count': user_room_count,
+        'max_rooms': max_rooms,
+    }
+    
+    return render(request, 'chat/create_room.html', context)
 
 def search_rooms(request):
-    """Search rooms with AJAX support"""
+    """Enhanced search rooms with better filtering"""
     query = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '')
     
     if not query:
         return JsonResponse({'rooms': []})
     
-    rooms = Room.objects.filter(
+    # Build search query
+    rooms = Room.objects.filter(is_public=True).select_related('category', 'creator')
+    
+    # Search in multiple fields
+    search_filter = (
         Q(name__icontains=query) | 
         Q(display_name__icontains=query) |
-        Q(description__icontains=query),
-        is_public=True
-    ).select_related('category', 'creator').annotate(
+        Q(description__icontains=query) |
+        Q(tags__icontains=query)
+    )
+    rooms = rooms.filter(search_filter)
+    
+    # Category filter
+    if category and category != 'all':
+        rooms = rooms.filter(category__slug=category)
+    
+    # Annotate with message count and limit results
+    rooms = rooms.annotate(
         total_messages=Count('messages')
-    )[:20]  # Increased search results from 10 to 20
+    ).order_by('-total_messages', '-last_activity')[:20]
     
     rooms_data = [{
         'name': room.name,
         'display_name': room.display_name,
         'description': room.description or '',
-        'category': room.category.name if room.category else '',
+        'category': room.category.name if room.category else 'General',
+        'category_icon': room.category.icon if room.category else '💬',
         'creator': room.creator.username,
         'message_count': room.total_messages,
-        'url': f'/room/{room.name}/',
+        'tags': room.get_tags_list(),
+        'url': reverse('room', kwargs={'room_name': room.name}),
     } for room in rooms]
     
     if request.headers.get('Content-Type') == 'application/json':
@@ -192,18 +255,28 @@ def search_rooms(request):
 # ==================== PROFILE VIEWS ====================
 
 def user_profile(request, username):
-    """User profile view"""
+    """Enhanced user profile view"""
     profile_user = get_object_or_404(User, username=username)
     user_profile, created = UserProfile.objects.get_or_create(user=profile_user)
     
     # Get user's rooms
     user_rooms = Room.objects.filter(creator=profile_user, is_public=True).annotate(
         total_messages=Count('messages')
-    )[:6]
+    ).order_by('-last_activity')[:6]
+    
+    # Get user's recent activity (if public)
+    recent_activities = []
+    if user_profile.profile_visibility == 'public' or (
+        request.user.is_authenticated and Friendship.are_friends(request.user, profile_user)
+    ):
+        recent_activities = UserActivity.objects.filter(
+            user=profile_user, is_public=True
+        ).select_related('room').order_by('-created_at')[:10]
     
     # Check friendship status
     friendship_status = 'none'
     can_send_request = True
+    pending_request = None
     
     if request.user.is_authenticated and request.user != profile_user:
         # Check if they are already friends
@@ -224,31 +297,47 @@ def user_profile(request, username):
                 else:
                     friendship_status = 'request_received'
                 can_send_request = False
+        
+        # Check if user allows friend requests
+        if not user_profile.allow_friend_requests:
+            can_send_request = False
     
     context = {
         'profile_user': profile_user,
         'user_profile': user_profile,
         'user_rooms': user_rooms,
+        'recent_activities': recent_activities,
         'friendship_status': friendship_status,
         'can_send_request': can_send_request,
+        'pending_request': pending_request,
     }
     
     return render(request, 'chat/user_profile.html', context)
 
 @login_required
 def edit_profile(request, username):
-    """Edit user profile"""
+    """Edit user profile with enhanced features"""
     if request.user.username != username:
-        return HttpResponseForbidden()
+        return HttpResponseForbidden("You can only edit your own profile.")
     
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=user_profile)
         if form.is_valid():
-            form.save()
+            profile = form.save()
+            
+            # Create activity log
+            UserActivity.objects.create(
+                user=request.user,
+                activity_type='customized_avatar',
+                description="Updated profile settings"
+            )
+            
             messages.success(request, 'Profile updated successfully!')
             return redirect('user_profile', username=username)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = UserProfileForm(instance=user_profile)
     
@@ -259,7 +348,7 @@ def edit_profile(request, username):
 
 @login_required
 def profile_settings(request):
-    """User profile settings"""
+    """Enhanced user profile settings"""
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
@@ -268,12 +357,23 @@ def profile_settings(request):
             form.save()
             messages.success(request, 'Settings updated successfully!')
             return redirect('profile_settings')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = UserProfileForm(instance=user_profile)
+    
+    # Get user statistics
+    user_stats = {
+        'rooms_created': Room.objects.filter(creator=request.user).count(),
+        'messages_sent': Message.objects.filter(user=request.user).count(),
+        'friends_count': Friendship.objects.filter(user=request.user, status='accepted').count(),
+        'join_date': request.user.date_joined,
+    }
     
     context = {
         'form': form,
         'user_profile': user_profile,
+        'user_stats': user_stats,
     }
     
     return render(request, 'chat/profile_settings.html', context)
@@ -282,27 +382,39 @@ def profile_settings(request):
 
 @login_required
 def friends_list(request):
-    """Display user's friends and friend requests"""
+    """Enhanced friends list with search and filtering"""
     
     # Get user's current friends
-    friends = Friendship.get_friends(request.user)
+    friends = Friendship.get_friends(request.user).select_related('profile')
     
     # Get pending friend requests (received)
     pending_requests = FriendRequest.objects.filter(
         to_user=request.user,
         status='pending'
-    ).select_related('from_user__profile')
+    ).select_related('from_user__profile').order_by('-created_at')
     
     # Get sent friend requests
     sent_requests = FriendRequest.objects.filter(
         from_user=request.user,
         status='pending'
-    ).select_related('to_user__profile')
+    ).select_related('to_user__profile').order_by('-created_at')
+    
+    # Search functionality
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        friends = friends.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
     
     context = {
         'friends': friends,
         'pending_requests': pending_requests,
         'sent_requests': sent_requests,
+        'search_query': search_query,
+        'friends_count': friends.count(),
+        'pending_count': pending_requests.count(),
     }
     
     return render(request, 'chat/friends_list.html', context)
@@ -310,11 +422,11 @@ def friends_list(request):
 @login_required
 @require_POST
 def send_friend_request(request, user_id):
-    """Send a friend request to another user"""
+    """Send a friend request to another user by ID"""
     try:
         to_user = get_object_or_404(User, id=user_id)
         
-        # Check if trying to send to self
+        # Validation checks
         if to_user == request.user:
             messages.error(request, "You can't send a friend request to yourself!")
             return redirect('friends_list')
@@ -322,7 +434,13 @@ def send_friend_request(request, user_id):
         # Check if already friends
         if Friendship.are_friends(request.user, to_user):
             messages.info(request, f"You are already friends with {to_user.username}!")
-            return redirect('friends_list')
+            return redirect('user_profile', username=to_user.username)
+        
+        # Check if user allows friend requests
+        to_user_profile = getattr(to_user, 'profile', None)
+        if to_user_profile and not to_user_profile.allow_friend_requests:
+            messages.error(request, f"{to_user.username} is not accepting friend requests.")
+            return redirect('user_profile', username=to_user.username)
         
         # Check if request already exists
         existing_request = FriendRequest.objects.filter(
@@ -333,12 +451,13 @@ def send_friend_request(request, user_id):
         
         if existing_request:
             messages.info(request, "A friend request already exists between you and this user.")
-            return redirect('friends_list')
+            return redirect('user_profile', username=to_user.username)
         
         # Create friend request
         friend_request = FriendRequest.objects.create(
             from_user=request.user,
-            to_user=to_user
+            to_user=to_user,
+            message=request.POST.get('message', '')
         )
         
         messages.success(request, f"Friend request sent to {to_user.username}!")
@@ -360,7 +479,7 @@ def accept_friend_request(request, request_id):
             status='pending'
         )
         
-        # Accept the request
+        # Accept the request (this creates the friendship)
         friend_request.accept()
         
         messages.success(request, f"You are now friends with {friend_request.from_user.username}!")
@@ -417,10 +536,11 @@ def remove_friend(request, user_id):
     try:
         friend = get_object_or_404(User, id=user_id)
         
-        # Remove friendship
+        # Remove bidirectional friendship
         Friendship.objects.filter(
             Q(user=request.user, friend=friend) |
-            Q(user=friend, friend=request.user)
+            Q(user=friend, friend=request.user),
+            status='accepted'
         ).delete()
         
         messages.success(request, f"You are no longer friends with {friend.username}.")
@@ -431,7 +551,7 @@ def remove_friend(request, user_id):
         return redirect('friends_list')
 
 @login_required
-@require_http_methods(["POST"])
+@require_POST
 def send_friend_request_by_username(request, username):
     """Send a friend request by username (for profile pages)"""
     friend_user = get_object_or_404(User, username=username)
@@ -443,6 +563,12 @@ def send_friend_request_by_username(request, username):
     # Check if friendship already exists
     if Friendship.are_friends(request.user, friend_user):
         messages.info(request, "You are already friends.")
+        return redirect('user_profile', username=username)
+    
+    # Check if user allows friend requests
+    friend_profile = getattr(friend_user, 'profile', None)
+    if friend_profile and not friend_profile.allow_friend_requests:
+        messages.error(request, f"{username} is not accepting friend requests.")
         return redirect('user_profile', username=username)
     
     # Check if request already exists
@@ -458,56 +584,55 @@ def send_friend_request_by_username(request, username):
     
     FriendRequest.objects.create(
         from_user=request.user,
-        to_user=friend_user
+        to_user=friend_user,
+        message=request.POST.get('message', '')
     )
     messages.success(request, f"Friend request sent to {username}.")
     
     return redirect('user_profile', username=username)
 
 @login_required
-@require_http_methods(["POST"])
-def respond_friend_request(request, friendship_id):
-    """Accept or decline a friend request (legacy method)"""
-    friendship = get_object_or_404(Friendship, id=friendship_id, friend=request.user)
-    action = request.POST.get('action')
-    
-    if action == 'accept':
-        friendship.status = 'accepted'
-        friendship.save()
-        messages.success(request, f"You are now friends with {friendship.user.username}.")
-    elif action == 'decline':
-        friendship.delete()
-        messages.info(request, "Friend request declined.")
-    
-    return redirect('friends_list')
-
-@login_required
-@require_http_methods(["POST"])
+@require_POST
 def remove_friend_by_username(request, username):
     """Remove a friend by username"""
     friend_user = get_object_or_404(User, username=username)
     
-    friendship = Friendship.objects.filter(
+    # Remove bidirectional friendship
+    removed_count = Friendship.objects.filter(
         Q(user=request.user, friend=friend_user) |
         Q(user=friend_user, friend=request.user),
         status='accepted'
-    ).first()
+    ).delete()[0]
     
-    if friendship:
-        friendship.delete()
+    if removed_count > 0:
         messages.success(request, f"Removed {username} from friends.")
+    else:
+        messages.info(request, f"You were not friends with {username}.")
     
     return redirect('friends_list')
 
 @login_required
 def friend_suggestions(request):
-    """Friend suggestions based on mutual friends"""
-    # This is a simplified version - you can enhance the algorithm
+    """Enhanced friend suggestions"""
+    # Get users who are not already friends and not self
+    excluded_user_ids = list(Friendship.objects.filter(
+        user=request.user
+    ).values_list('friend_id', flat=True))
+    excluded_user_ids.append(request.user.id)
+    
+    # Get users with pending requests
+    pending_user_ids = list(FriendRequest.objects.filter(
+        Q(from_user=request.user) | Q(to_user=request.user),
+        status='pending'
+    ).values_list('from_user_id', 'to_user_id'))
+    # Flatten the list
+    pending_user_ids = [user_id for pair in pending_user_ids for user_id in pair]
+    excluded_user_ids.extend(pending_user_ids)
+    
     suggestions = User.objects.exclude(
-        id=request.user.id
-    ).exclude(
-        Q(friendships__friend=request.user) |
-        Q(friend_of__user=request.user)
+        id__in=excluded_user_ids
+    ).select_related('profile').filter(
+        profile__allow_friend_requests=True
     )[:10]
     
     return render(request, 'chat/friend_suggestions.html', {
@@ -518,7 +643,12 @@ def friend_suggestions(request):
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_dashboard(request):
-    """Admin dashboard"""
+    """Enhanced admin dashboard"""
+    # Calculate date ranges
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=7)
+    month_ago = today - timedelta(days=30)
+    
     stats = {
         'total_users': User.objects.count(),
         'total_rooms': Room.objects.count(),
@@ -526,63 +656,147 @@ def admin_dashboard(request):
         'active_users_today': User.objects.filter(
             last_login__gte=timezone.now() - timedelta(days=1)
         ).count(),
-        'public_rooms': Room.objects.filter(is_public=True).count(),  # Added public rooms count
-        'private_rooms': Room.objects.filter(is_public=False).count(),  # Added private rooms count
+        'active_users_week': User.objects.filter(
+            last_login__gte=timezone.now() - timedelta(days=7)
+        ).count(),
+        'public_rooms': Room.objects.filter(is_public=True).count(),
+        'private_rooms': Room.objects.filter(is_public=False).count(),
         'pending_friend_requests': FriendRequest.objects.filter(status='pending').count(),
+        'pending_reports': MessageReport.objects.filter(status='pending').count(),
+        'new_users_week': User.objects.filter(date_joined__gte=week_ago).count(),
+        'new_rooms_week': Room.objects.filter(created_at__gte=week_ago).count(),
     }
     
-    recent_rooms = Room.objects.select_related('creator').order_by('-created_at')[:5]
+    # Recent activity
+    recent_rooms = Room.objects.select_related('creator', 'category').order_by('-created_at')[:5]
     recent_reports = MessageReport.objects.select_related(
-        'reporter', 'message'
+        'reporter', 'message', 'message__user'
     ).order_by('-created_at')[:5]
+    recent_users = User.objects.select_related('profile').order_by('-date_joined')[:5]
     
     context = {
         'stats': stats,
         'recent_rooms': recent_rooms,
         'recent_reports': recent_reports,
+        'recent_users': recent_users,
     }
     
     return render(request, 'chat/admin/dashboard.html', context)
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_rooms(request):
-    """Admin room management"""
+    """Enhanced admin room management"""
     rooms = Room.objects.select_related('creator', 'category').annotate(
-        total_messages=Count('messages')
+        total_messages=Count('messages'),
+        report_count=Count('messages__reports')
     ).order_by('-created_at')
     
-    return render(request, 'chat/admin/rooms.html', {'rooms': rooms})
+    # Add search functionality
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        rooms = rooms.filter(
+            Q(name__icontains=search_query) |
+            Q(display_name__icontains=search_query) |
+            Q(creator__username__icontains=search_query)
+        )
+    
+    # Add pagination
+    paginator = Paginator(rooms, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'chat/admin/rooms.html', {
+        'rooms': page_obj,
+        'search_query': search_query
+    })
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_messages(request):
-    """Admin message management"""
+    """Enhanced admin message management"""
     messages_list = Message.objects.select_related(
         'user', 'room'
+    ).annotate(
+        report_count=Count('reports')
     ).order_by('-timestamp')
+    
+    # Filter by reported messages
+    show_reported = request.GET.get('reported') == 'true'
+    if show_reported:
+        messages_list = messages_list.filter(report_count__gt=0)
+    
+    # Add search
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        messages_list = messages_list.filter(
+            Q(content__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(room__name__icontains=search_query)
+        )
     
     paginator = Paginator(messages_list, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'chat/admin/messages.html', {'messages': page_obj})
+    return render(request, 'chat/admin/messages.html', {
+        'messages': page_obj,
+        'search_query': search_query,
+        'show_reported': show_reported
+    })
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_activity(request):
-    """Admin user activity monitoring"""
+    """Enhanced admin user activity monitoring"""
     activities = UserActivity.objects.select_related(
         'user', 'room'
-    ).order_by('-created_at')[:100]  # Fixed field name from timestamp to created_at
+    ).order_by('-created_at')
     
-    return render(request, 'chat/admin/user_activity.html', {'activities': activities})
+    # Filter by activity type
+    activity_type = request.GET.get('type', '')
+    if activity_type:
+        activities = activities.filter(activity_type=activity_type)
+    
+    # Pagination
+    paginator = Paginator(activities, 100)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get activity types for filter
+    activity_types = UserActivity.ACTIVITY_TYPES
+    
+    return render(request, 'chat/admin/user_activity.html', {
+        'activities': page_obj,
+        'activity_types': activity_types,
+        'current_type': activity_type
+    })
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_settings(request):
-    """Admin user settings"""
+    """Enhanced admin user settings"""
     users = User.objects.select_related('profile').annotate(
-        room_count=Count('created_rooms')
+        room_count=Count('created_rooms'),
+        message_count=Count('message_set'),
+        friend_count=Count('friendships')
     ).order_by('-date_joined')
     
-    return render(request, 'chat/admin/user_settings.html', {'users': users})
+    # Add search
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(users, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'chat/admin/user_settings.html', {
+        'users': page_obj,
+        'search_query': search_query
+    })
 
 # ==================== API ENDPOINTS ====================
 
@@ -591,20 +805,21 @@ def api_user_profile(request):
     """Get user profile data"""
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     
-    # Fixed field names to match the model
     data = {
         'username': request.user.username,
+        'display_name': user_profile.display_name,
         'bio': user_profile.bio,
         'location': user_profile.location,
         'website': user_profile.website,
-        'theme': user_profile.theme,  # Fixed field name
-        'avatar_customization': user_profile.avatar_customization,  # Updated to use JSON field
+        'theme': user_profile.theme,
+        'status': user_profile.status,
+        'avatar_customization': user_profile.avatar_customization,
     }
     
     return JsonResponse(data)
 
 @login_required
-@require_http_methods(["POST"])
+@require_POST
 def api_update_avatar(request):
     """Update user avatar"""
     try:
@@ -615,7 +830,14 @@ def api_update_avatar(request):
         current_avatar = user_profile.avatar_customization or {}
         current_avatar.update(data)
         user_profile.avatar_customization = current_avatar
-        user_profile.save()
+        user_profile.save(update_fields=['avatar_customization'])
+        
+        # Log activity
+        UserActivity.objects.create(
+            user=request.user,
+            activity_type='customized_avatar',
+            description="Customized avatar appearance"
+        )
         
         return JsonResponse({'success': True})
     except Exception as e:
@@ -623,18 +845,27 @@ def api_update_avatar(request):
 
 @login_required
 def api_friends_online(request):
-    """Get online friends"""
-    # Simplified - you can enhance with real online status
+    """Get online friends (simplified implementation)"""
     friends = Friendship.objects.filter(
         user=request.user,
         status='accepted'
-    ).select_related('friend', 'friend__profile')[:10]
+    ).select_related('friend', 'friend__profile')[:20]
     
     friends_data = []
     for friendship in friends:
+        # Simple online status based on last activity
+        last_seen = getattr(friendship.friend.profile, 'last_seen', None)
+        is_online = False
+        if last_seen:
+            time_diff = timezone.now() - last_seen
+            is_online = time_diff.total_seconds() < 300  # 5 minutes
+        
         friends_data.append({
+            'id': friendship.friend.id,
             'username': friendship.friend.username,
-            'status': 'online',  # You can implement real status tracking
+            'display_name': friendship.friend.profile.display_username,
+            'status': 'online' if is_online else 'offline',
+            'last_seen': last_seen.isoformat() if last_seen else None,
         })
     
     return JsonResponse({'friends': friends_data})
@@ -643,27 +874,41 @@ def api_load_more_rooms(request):
     """Load more rooms for infinite scroll"""
     page = int(request.GET.get('page', 1))
     category = request.GET.get('category', 'all')
+    sort_by = request.GET.get('sort', 'activity')
     
     rooms = Room.objects.filter(is_public=True).select_related('category', 'creator')
     
     if category != 'all':
         rooms = rooms.filter(category__slug=category)
     
-    paginator = Paginator(rooms, 20)  # Increased from 12 to 20
+    # Apply sorting
+    if sort_by == 'newest':
+        rooms = rooms.order_by('-created_at')
+    elif sort_by == 'popular':
+        rooms = rooms.order_by('-message_count', '-active_users_count')
+    else:  # activity
+        rooms = rooms.order_by('-last_activity')
+    
+    paginator = Paginator(rooms, 20)
     page_obj = paginator.get_page(page)
     
     rooms_data = [{
         'name': room.name,
         'display_name': room.display_name,
         'description': room.description or '',
+        'category': room.category.name if room.category else 'General',
         'creator': room.creator.username,
-        'url': f'/room/{room.name}/',
+        'message_count': room.message_count,
+        'active_users': room.active_users_count,
+        'tags': room.get_tags_list(),
+        'url': reverse('room', kwargs={'room_name': room.name}),
     } for room in page_obj]
     
     return JsonResponse({
         'rooms': rooms_data,
         'has_next': page_obj.has_next(),
         'next_page': page_obj.next_page_number() if page_obj.has_next() else None,
+        'total_pages': paginator.num_pages,
     })
 
 def api_search_rooms(request):
@@ -673,39 +918,51 @@ def api_search_rooms(request):
 # ==================== UTILITY VIEWS ====================
 
 def privacy_policy(request):
-    """Privacy policy page view"""
+    """Enhanced privacy policy page view"""
     context = {
         'page_title': 'Privacy Policy - Euphorie, Inc.',
         'meta_description': 'Learn how Euphorie, Inc. protects your privacy and handles your data in our comprehensive privacy policy',
         'site_name': 'Euphorie',
-        'privacy_policy_last_updated': 'June 17, 2025',
+        'privacy_policy_last_updated': 'December 2024',
         'privacy_email': 'privacy@euphorieinc.com',
         'support_email': 'euphorieinc@gmail.com',
-        'billing_email': None,  # Set to None or remove if not used
-        'debug': True,  # Your template checks for this
-        # Add base template variables if needed
-        'pending_friend_requests_count': 0,
-        'user_created_rooms': False,
+        'company_name': 'Euphorie, Inc.',
+        'company_address': '123 Innovation Street, Tech City, TC 12345',
     }
     return render(request, 'chat/privacy_policy.html', context)
 
 def terms_of_service(request):
-    """Terms of service page"""
-    return render(request, 'chat/terms_of_service.html')
+    """Enhanced terms of service page"""
+    context = {
+        'page_title': 'Terms of Service - Euphorie',
+        'meta_description': 'Terms of Service for using the Euphorie platform',
+        'last_updated': 'December 2024',
+        'company_name': 'Euphorie, Inc.',
+    }
+    return render(request, 'chat/terms_of_service.html', context)
 
 # ==================== MODERATION ====================
 
 @login_required
-@require_http_methods(["POST"])
+@require_POST
 def report_message(request, message_id):
-    """Report a message"""
+    """Report a message with enhanced validation"""
     message = get_object_or_404(Message, id=message_id)
     reason = request.POST.get('reason', 'inappropriate')
+    description = request.POST.get('description', '').strip()
+    
+    # Prevent self-reporting
+    if message.user == request.user:
+        messages.error(request, "You cannot report your own message.")
+        return redirect('room', room_name=message.room.name)
     
     report, created = MessageReport.objects.get_or_create(
         reporter=request.user,
         message=message,
-        defaults={'reason': reason}
+        defaults={
+            'reason': reason,
+            'description': description
+        }
     )
     
     if created:
@@ -716,72 +973,116 @@ def report_message(request, message_id):
     return redirect('room', room_name=message.room.name)
 
 @login_required
-@require_http_methods(["POST"])
+@require_POST
 def report_user(request, username):
-    """Report a user"""
+    """Report a user (placeholder - implement UserReport model if needed)"""
     reported_user = get_object_or_404(User, username=username)
     reason = request.POST.get('reason', 'inappropriate')
     
-    # You can create a UserReport model similar to MessageReport
+    if reported_user == request.user:
+        messages.error(request, "You cannot report yourself.")
+        return redirect('user_profile', username=username)
+    
+    # For now, just show a success message
+    # In the future, implement a UserReport model
     messages.success(request, 'User reported. Thank you for the report.')
     return redirect('user_profile', username=username)
 
 @user_passes_test(lambda u: u.is_staff)
 def moderation_dashboard(request):
-    """Moderation dashboard for staff"""
+    """Enhanced moderation dashboard for staff"""
     reports = MessageReport.objects.select_related(
         'reporter', 'message', 'message__user', 'message__room'
-    ).filter(status='pending').order_by('-created_at')  # Fixed field name
+    ).filter(status='pending').order_by('-created_at')
     
-    return render(request, 'chat/admin/moderation.html', {'reports': reports})
+    # Add filtering
+    filter_reason = request.GET.get('reason', '')
+    if filter_reason:
+        reports = reports.filter(reason=filter_reason)
+    
+    # Pagination
+    paginator = Paginator(reports, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get reason choices for filter
+    reason_choices = MessageReport.REASON_CHOICES
+    
+    context = {
+        'reports': page_obj,
+        'reason_choices': reason_choices,
+        'current_reason': filter_reason,
+    }
+    
+    return render(request, 'chat/admin/moderation.html', context)
 
 # ==================== ROOM ACTIONS ====================
 
 @login_required
-@require_http_methods(["POST"])
+@require_POST
 def bookmark_room(request, room_id):
     """Bookmark or unbookmark a room"""
     room = get_object_or_404(Room, id=room_id)
     
     bookmark, created = RoomBookmark.objects.get_or_create(
         user=request.user,
-        room=room
+        room=room,
+        defaults={'notes': request.POST.get('notes', '')}
     )
     
     if not created:
         bookmark.delete()
         action = 'removed'
+        message = f'Removed {room.display_name or room.name} from bookmarks.'
     else:
         action = 'added'
+        message = f'Added {room.display_name or room.name} to bookmarks.'
     
-    return JsonResponse({'action': action})
+    # Return JSON for AJAX requests
+    if request.headers.get('Content-Type') == 'application/json':
+        return JsonResponse({'action': action, 'message': message})
+    
+    # Return redirect for regular requests
+    messages.success(request, message)
+    return redirect('room', room_name=room.name)
 
 def room_categories(request):
     """Get all room categories"""
-    categories = RoomCategory.objects.all().order_by('name')
+    categories = RoomCategory.objects.filter(is_active=True).order_by('sort_order', 'name')
     categories_data = [{
         'slug': cat.slug,
         'name': cat.name,
         'icon': cat.icon,
+        'color': cat.color,
         'description': cat.description,
+        'room_count': Room.objects.filter(category=cat, is_public=True).count(),
     } for cat in categories]
     
     return JsonResponse({'categories': categories_data})
 
 def trending_rooms(request):
-    """Get trending rooms"""
-    trending = Room.objects.filter(is_public=True).annotate(
-        total_messages=Count('messages')
-    ).filter(total_messages__gte=20).order_by('-total_messages')[:10]
+    """Get trending rooms based on recent activity"""
+    # Define trending criteria
+    week_ago = timezone.now() - timedelta(days=7)
+    
+    trending = Room.objects.filter(
+        is_public=True,
+        last_activity__gte=week_ago
+    ).annotate(
+        total_messages=Count('messages'),
+        recent_messages=Count('messages', filter=Q(messages__timestamp__gte=week_ago))
+    ).filter(
+        recent_messages__gte=5  # At least 5 messages in the last week
+    ).order_by('-recent_messages', '-total_messages')[:10]
     
     return render(request, 'chat/trending_rooms.html', {'rooms': trending})
 
-# ==================== DEBUG VIEW (TEMPORARY) ====================
+# ==================== DEBUG VIEW ====================
 
 def debug_rooms(request):
     """Debug view to check room counts - REMOVE IN PRODUCTION"""
-    if not request.user.is_staff:
-        return HttpResponseForbidden()
+    if not (request.user.is_staff and request.user.is_superuser):
+        return HttpResponseForbidden("Access denied")
     
     stats = {
         'total_rooms': Room.objects.count(),
@@ -792,107 +1093,37 @@ def debug_rooms(request):
     
     # Get rooms by category
     for category in RoomCategory.objects.all():
-        stats['rooms_by_category'][category.name] = Room.objects.filter(
-            category=category, is_public=True
-        ).count()
+        stats['rooms_by_category'][category.name] = {
+            'total': Room.objects.filter(category=category).count(),
+            'public': Room.objects.filter(category=category, is_public=True).count(),
+        }
     
     # Get rooms without category
-    stats['rooms_by_category']['No Category'] = Room.objects.filter(
-        category__isnull=True, is_public=True
-    ).count()
+    stats['rooms_by_category']['No Category'] = {
+        'total': Room.objects.filter(category__isnull=True).count(),
+        'public': Room.objects.filter(category__isnull=True, is_public=True).count(),
+    }
     
-    # Get all rooms
-    all_rooms = Room.objects.all().order_by('name')
+    # Get sample rooms
+    sample_rooms = Room.objects.select_related('creator', 'category').order_by('-created_at')[:10]
     
     return JsonResponse({
         'stats': stats,
-        'rooms': [{
+        'sample_rooms': [{
+            'id': room.id,
             'name': room.name,
             'display_name': room.display_name,
             'is_public': room.is_public,
             'category': room.category.name if room.category else None,
             'creator': room.creator.username if room.creator else None,
-        } for room in all_rooms]
+            'created_at': room.created_at.isoformat(),
+            'message_count': room.message_count,
+        } for room in sample_rooms]
     }, json_dumps_params={'indent': 2})
 
-# ==================== AUTHENTICATION VIEWS ====================
-# Note: You might want to use Django's built-in auth views or django-allauth
-# These are simplified examples
-
-def user_login(request):
-    """
-    Custom login view - fixed to properly handle form
-    """
-    from django.contrib.auth import authenticate, login
-    from django.contrib.auth.forms import AuthenticationForm
-    
-    # Redirect if user is already logged in
-    if request.user.is_authenticated:
-        return redirect('index')
-    
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                
-                # Redirect to 'next' parameter or home
-                next_url = request.GET.get('next', '/')
-                return redirect(next_url)
-            else:
-                messages.error(request, 'Invalid username or password.')
-        else:
-            messages.error(request, 'Please correct the errors below.')
-    else:
-        form = AuthenticationForm()  # Create empty form for GET requests
-    
-    return render(request, 'account/login.html', {'form': form})
-
-
-def user_signup(request):
-    """
-    Custom signup view - fixed to properly handle form
-    """
-    from django.contrib.auth.forms import UserCreationForm
-    from django.contrib.auth import login
-    
-    # Redirect if user is already logged in
-    if request.user.is_authenticated:
-        return redirect('index')
-    
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            # Log the user in immediately after signup
-            login(request, user)
-            messages.success(request, 'Account created successfully!')
-            return redirect('index')
-        else:
-            messages.error(request, 'Please correct the errors below.')
-    else:
-        form = UserCreationForm()  # Create empty form for GET requests
-    
-    return render(request, 'account/signup.html', {'form': form})
-
-
-def user_logout(request):
-    """
-    Custom logout view
-    """
-    from django.contrib.auth import logout
-    
-    if request.user.is_authenticated:
-        logout(request)
-        messages.success(request, 'You have been logged out successfully.')
-    
-    return redirect('index')
+# ==================== EXPLORE ROOMS ====================
 
 def explore_rooms(request):
-    """
-    Dedicated room exploration page
-    """
-    return index(request) 
+    """Dedicated room exploration page with enhanced features"""
+    # This is essentially the same as index but can be customized differently
+    return index(request)

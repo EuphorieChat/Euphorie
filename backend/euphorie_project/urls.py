@@ -4,101 +4,218 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.auth import views as auth_views
 from django.views.generic import TemplateView
 from django.shortcuts import redirect
-# REMOVED: from . import views  # This was causing the error!
-
+from django.http import HttpResponse
 
 def redirect_to_app(request):
     """Redirect legacy URLs to new structure"""
     return redirect('index')
 
+def robots_txt(request):
+    """Generate robots.txt dynamically"""
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/",
+        "Disallow: /api/",
+        "Disallow: /accounts/",
+        "",
+        f"Sitemap: {request.build_absolute_uri('/sitemap.xml')}"
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
+
 urlpatterns = [
     # ==================== ADMIN ====================
     path('admin/', admin.site.urls),
-    path('accounts/', include('allauth.urls')),  # This should handle /accounts/login/
-    path('', include('chat.urls')),
     
     # ==================== AUTHENTICATION URLS ====================
-    # Django built-in auth views with custom templates
-    path('accounts/login/', auth_views.LoginView.as_view(
-        template_name='registration/login.html',
-        redirect_authenticated_user=True,
-        next_page='index'
-    ), name='auth_login'),
+    # Use allauth for ALL authentication - this handles /accounts/login/, /accounts/signup/, etc.
+    path('accounts/', include('allauth.urls')),
     
-    path('accounts/logout/', auth_views.LogoutView.as_view(
-        next_page='index'
-    ), name='auth_logout'),
-    
-    path('accounts/signup/', TemplateView.as_view(
-        template_name='registration/signup.html'
-    ), name='auth_signup'),
-    
-    # Password reset views
-    path('accounts/password-reset/', auth_views.PasswordResetView.as_view(
-        template_name='registration/password_reset.html',
-        email_template_name='registration/password_reset_email.html',
-        subject_template_name='registration/password_reset_subject.txt',
-        success_url='/accounts/password-reset/done/'
-    ), name='password_reset'),
-    
-    path('accounts/password-reset/done/', auth_views.PasswordResetDoneView.as_view(
-        template_name='registration/password_reset_done.html'
-    ), name='password_reset_done'),
-    
-    path('accounts/reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
-        template_name='registration/password_reset_confirm.html',
-        success_url='/accounts/reset/done/'
-    ), name='password_reset_confirm'),
-    
-    path('accounts/reset/done/', auth_views.PasswordResetCompleteView.as_view(
-        template_name='registration/password_reset_complete.html'
-    ), name='password_reset_complete'),
+    # ==================== MAIN CHAT APPLICATION ====================
+    # All main functionality handled by chat app
+    path('', include('chat.urls')),
     
     # ==================== STATIC PAGES ====================
-    # NOTE: Privacy policy is now handled by the chat app, so we removed the duplicate
-    # The chat app's privacy_policy view will handle /privacy/
-    
-    path('terms/', TemplateView.as_view(
-        template_name='pages/terms_of_service.html'
-    ), name='static_terms'),
-    
     path('about/', TemplateView.as_view(
-        template_name='pages/about.html'
+        template_name='pages/about.html',
+        extra_context={
+            'page_title': 'About Euphorie - 3D Chat Platform',
+            'meta_description': 'Learn about Euphorie, the next-generation 3D chat platform revolutionizing online communication'
+        }
     ), name='about'),
     
     path('help/', TemplateView.as_view(
-        template_name='pages/help.html'
+        template_name='pages/help.html',
+        extra_context={
+            'page_title': 'Help & Support - Euphorie',
+            'meta_description': 'Get help with Euphorie - tutorials, FAQs, and support resources'
+        }
     ), name='help'),
     
     path('contact/', TemplateView.as_view(
-        template_name='pages/contact.html'
+        template_name='pages/contact.html',
+        extra_context={
+            'page_title': 'Contact Us - Euphorie',
+            'meta_description': 'Get in touch with the Euphorie team',
+            'contact_email': 'euphorieinc@gmail.com'
+        }
     ), name='contact'),
     
+    path('features/', TemplateView.as_view(
+        template_name='pages/features.html',
+        extra_context={
+            'page_title': 'Features - Euphorie 3D Chat',
+            'meta_description': 'Discover Euphorie\'s innovative features: 3D rooms, avatar customization, and more'
+        }
+    ), name='features'),
+    
+    path('pricing/', TemplateView.as_view(
+        template_name='pages/pricing.html',
+        extra_context={
+            'page_title': 'Pricing - Euphorie',
+            'meta_description': 'Euphorie pricing plans - join for free or upgrade for premium features'
+        }
+    ), name='pricing'),
+    
+    # ==================== LEGAL PAGES ====================
+    path('terms/', TemplateView.as_view(
+        template_name='pages/terms_of_service.html',
+        extra_context={
+            'page_title': 'Terms of Service - Euphorie',
+            'meta_description': 'Terms of Service for Euphorie chat platform',
+            'last_updated': 'December 2024'
+        }
+    ), name='terms_of_service'),
+    
+    # Privacy policy is handled by chat app to include dynamic content
+    
+    # ==================== SEO & DISCOVERY ====================
+    path('robots.txt', robots_txt, name='robots_txt'),
+    
+    # ==================== API DOCUMENTATION ====================
+    path('api/docs/', TemplateView.as_view(
+        template_name='pages/api_docs.html',
+        extra_context={
+            'page_title': 'API Documentation - Euphorie',
+            'meta_description': 'Euphorie API documentation for developers'
+        }
+    ), name='api_docs'),
+    
+    # ==================== STATUS & MONITORING ====================
+    path('status/', TemplateView.as_view(
+        template_name='pages/status.html',
+        extra_context={
+            'page_title': 'System Status - Euphorie',
+            'meta_description': 'Current system status and uptime for Euphorie platform'
+        }
+    ), name='status'),
+    
+    path('health/', lambda request: HttpResponse(
+        "OK", 
+        content_type="text/plain",
+        status=200
+    ), name='health_check'),
+    
     # ==================== LEGACY REDIRECTS ====================
-    # Redirect common legacy URLs
+    # Redirect common legacy URLs to maintain SEO
     path('home/', redirect_to_app, name='legacy_home'),
     path('rooms/', redirect_to_app, name='legacy_rooms'),
     path('explore/', redirect_to_app, name='legacy_explore'),
+    path('chat/', redirect_to_app, name='legacy_chat'),
+    path('login/', lambda request: redirect('/accounts/login/'), name='legacy_login'),
+    path('signup/', lambda request: redirect('/accounts/signup/'), name='legacy_signup'),
+    path('register/', lambda request: redirect('/accounts/signup/'), name='legacy_register'),
     
-    # ==================== MAIN CHAT APPLICATION ====================
-    # All main functionality handled by chat app (including privacy policy)
-    path('', include('chat.urls')),
+    # ==================== SOCIAL MEDIA REDIRECTS ====================
+    path('twitter/', lambda request: redirect('https://twitter.com/euphorieinc'), name='social_twitter'),
+    path('discord/', lambda request: redirect('https://discord.gg/euphorie'), name='social_discord'),
+    path('github/', lambda request: redirect('https://github.com/euphorie'), name='social_github'),
     
-    # ==================== API ENDPOINTS (Future) ====================
-    # Placeholder for future REST API
-    # path('api/v1/', include('chat.api.v1.urls')),
+    # ==================== DOWNLOAD LINKS ====================
+    path('download/', TemplateView.as_view(
+        template_name='pages/download.html',
+        extra_context={
+            'page_title': 'Download Euphorie Apps',
+            'meta_description': 'Download Euphorie mobile and desktop apps for the best experience'
+        }
+    ), name='download'),
     
-    # ==================== HEALTH CHECK ====================
-    path('health/', TemplateView.as_view(
-        template_name='pages/health.html'
-    ), name='health_check'),
+    path('download/android/', lambda request: redirect('https://play.google.com/store/apps/details?id=com.euphorie.app'), name='download_android'),
+    path('download/ios/', lambda request: redirect('https://apps.apple.com/app/euphorie/id123456789'), name='download_ios'),
+    path('download/desktop/', lambda request: redirect('https://github.com/euphorie/desktop/releases'), name='download_desktop'),
+    
+    # ==================== COMMUNITY LINKS ====================
+    path('community/', TemplateView.as_view(
+        template_name='pages/community.html',
+        extra_context={
+            'page_title': 'Community - Euphorie',
+            'meta_description': 'Join the Euphorie community - forums, events, and user groups'
+        }
+    ), name='community'),
+    
+    path('blog/', TemplateView.as_view(
+        template_name='pages/blog.html',
+        extra_context={
+            'page_title': 'Blog - Euphorie',
+            'meta_description': 'Latest news and updates from the Euphorie team'
+        }
+    ), name='blog'),
+    
+    # ==================== DEVELOPER RESOURCES ====================
+    path('developers/', TemplateView.as_view(
+        template_name='pages/developers.html',
+        extra_context={
+            'page_title': 'Developers - Euphorie',
+            'meta_description': 'Resources for developers building with Euphorie'
+        }
+    ), name='developers'),
+    
+    # ==================== BUSINESS PAGES ====================
+    path('enterprise/', TemplateView.as_view(
+        template_name='pages/enterprise.html',
+        extra_context={
+            'page_title': 'Enterprise Solutions - Euphorie',
+            'meta_description': 'Euphorie enterprise solutions for businesses and organizations'
+        }
+    ), name='enterprise'),
+    
+    path('partnerships/', TemplateView.as_view(
+        template_name='pages/partnerships.html',
+        extra_context={
+            'page_title': 'Partnerships - Euphorie',
+            'meta_description': 'Partner with Euphorie - integration and collaboration opportunities'
+        }
+    ), name='partnerships'),
+    
+    # ==================== SPECIAL CAMPAIGNS ====================
+    path('beta/', TemplateView.as_view(
+        template_name='pages/beta.html',
+        extra_context={
+            'page_title': 'Beta Program - Euphorie',
+            'meta_description': 'Join the Euphorie beta program and get early access to new features'
+        }
+    ), name='beta_program'),
+    
+    path('referrals/', TemplateView.as_view(
+        template_name='pages/referrals.html',
+        extra_context={
+            'page_title': 'Refer Friends - Euphorie',
+            'meta_description': 'Invite friends to Euphorie and earn rewards'
+        }
+    ), name='referrals'),
 ]
 
+# ==================== ERROR HANDLERS ====================
+# Custom error pages (optional - uncomment to enable)
+# handler400 = 'chat.views.custom_400'
+# handler403 = 'chat.views.custom_403'
+# handler404 = 'chat.views.custom_404'
+# handler500 = 'chat.views.custom_500'
+
 # ==================== MEDIA & STATIC FILES ====================
-# Serve media files in development
+# Serve media and static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
@@ -112,14 +229,14 @@ if settings.DEBUG:
     except ImportError:
         pass
 
-# ==================== CUSTOM ERROR HANDLERS ====================
-# Custom error pages (optional - can be enabled later)
-# handler404 = 'chat.views.custom_404'
-# handler500 = 'chat.views.custom_500'
-# handler403 = 'chat.views.custom_403'
-# handler400 = 'chat.views.custom_400'
+# ==================== ADMIN CUSTOMIZATION ====================
+# Customize admin site
+admin.site.site_header = getattr(settings, 'ADMIN_SITE_HEADER', 'Euphorie Administration')
+admin.site.site_title = getattr(settings, 'ADMIN_SITE_TITLE', 'Euphorie Admin Portal')
+admin.site.index_title = getattr(settings, 'ADMIN_INDEX_TITLE', 'Welcome to Euphorie Administration')
 
-# ==================== SITEMAPS (Future) ====================
+# ==================== SITEMAPS (Future Enhancement) ====================
+# Uncomment and configure when ready to add sitemaps
 # from django.contrib.sitemaps.views import sitemap
 # from chat.sitemaps import RoomSitemap, StaticViewSitemap
 # 
@@ -133,10 +250,16 @@ if settings.DEBUG:
 #          name='django.contrib.sitemaps.views.sitemap'),
 # ]
 
-# ==================== ROBOTS.TXT (Future) ====================
+# ==================== API VERSIONING (Future Enhancement) ====================
+# Uncomment when API is ready
 # urlpatterns += [
-#     path('robots.txt', TemplateView.as_view(
-#         template_name='robots.txt',
-#         content_type='text/plain'
-#     )),
+#     path('api/v1/', include('chat.api.v1.urls')),
+#     path('api/v2/', include('chat.api.v2.urls')),  # Future version
+# ]
+
+# ==================== WEBHOOKS (Future Enhancement) ====================
+# Uncomment when webhook system is implemented
+# urlpatterns += [
+#     path('webhooks/stripe/', include('chat.webhooks.stripe_urls')),
+#     path('webhooks/github/', include('chat.webhooks.github_urls')),
 # ]

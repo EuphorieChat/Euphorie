@@ -34,27 +34,32 @@ def global_context(request):
     
     # Only add categories if the model exists (after migration)
     try:
-        from .models import RoomCategory, Friendship
+        from .models import RoomCategory, FriendRequest, Room, MessageReport
         
         # Add categories for all pages
         context['categories'] = RoomCategory.objects.filter(is_active=True).order_by('sort_order', 'name')
         
         # Add user-specific context for authenticated users
         if request.user.is_authenticated:
-            # Pending friend requests count
-            pending_requests_count = Friendship.objects.filter(
-                friend=request.user,
+            # FIXED: Use FriendRequest model instead of Friendship for pending requests
+            pending_requests_count = FriendRequest.objects.filter(
+                to_user=request.user,
                 status='pending'
             ).count()
             
+            # Check if user has created rooms (for admin menu)
+            user_created_rooms = Room.objects.filter(
+                creator=request.user
+            ).exists()
+            
             context.update({
                 'pending_friend_requests_count': pending_requests_count,
+                'user_created_rooms': user_created_rooms,
                 'user_profile': getattr(request.user, 'profile', None),
             })
             
             # Staff-specific context
             if request.user.is_staff:
-                from .models import MessageReport
                 # Pending moderation reports
                 pending_reports_count = MessageReport.objects.filter(
                     status='pending'
@@ -66,19 +71,22 @@ def global_context(request):
         else:
             context.update({
                 'pending_friend_requests_count': 0,
+                'user_created_rooms': False,
                 'user_profile': None,
             })
-    except:
-        # Models don't exist yet (before migration)
+    except Exception as e:
+        # Models don't exist yet (before migration) or other error
         context['categories'] = []
         if request.user.is_authenticated:
             context.update({
                 'pending_friend_requests_count': 0,
+                'user_created_rooms': False,
                 'user_profile': None,
             })
         else:
             context.update({
                 'pending_friend_requests_count': 0,
+                'user_created_rooms': False,
                 'user_profile': None,
             })
     

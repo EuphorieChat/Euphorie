@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.core.validators import RegexValidator, URLValidator
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
+from django.db.models import Q
 import json
 
 class UserProfile(models.Model):
@@ -172,7 +173,6 @@ class Room(models.Model):
         return scene_presets.get(getattr(self, 'scene_preset', 'modern_office'), 'Modern Office')
 
 
-
 class Message(models.Model):
     """Enhanced message model"""
     
@@ -247,19 +247,97 @@ class MessageReport(models.Model):
         return f"Report: {self.message.content[:30]} by {self.reporter.username}"
 
 
-class Friendship(models.Model):
-    """Enhanced friendship model with rich features"""
+class FriendRequest(models.Model):
+    """Friend request system - separate from accepted friendships"""
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
         ('declined', 'Declined'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_friend_requests')
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_friend_requests')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    message = models.TextField(max_length=200, blank=True, help_text="Optional message with friend request")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['from_user', 'to_user']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Friend request from {self.from_user.username} to {self.to_user.username} ({self.status})"
+    
+    def accept(self):
+        """Accept the friend request and create friendship"""
+        if self.status != 'pending':
+            raise ValueError("Can only accept pending friend requests")
+            
+        self.status = 'accepted'
+        self.responded_at = timezone.now()
+        self.save()
+        
+        # Create bidirectional friendship
+        Friendship.objects.get_or_create(
+            user=self.from_user, 
+            friend=self.to_user,
+            defaults={'status': 'accepted'}
+        )
+        Friendship.objects.get_or_create(
+            user=self.to_user, 
+            friend=self.from_user,
+            defaults={'status': 'accepted'}
+        )
+        
+        # Create activity logs
+        UserActivity.objects.create(
+            user=self.from_user,
+            activity_type='made_friend',
+            description=f"Became friends with {self.to_user.username}",
+            friend=self.to_user
+        )
+        UserActivity.objects.create(
+            user=self.to_user,
+            activity_type='made_friend',
+            description=f"Became friends with {self.from_user.username}",
+            friend=self.from_user
+        )
+    
+    def decline(self):
+        """Decline the friend request"""
+        if self.status != 'pending':
+            raise ValueError("Can only decline pending friend requests")
+            
+        self.status = 'declined'
+        self.responded_at = timezone.now()
+        self.save()
+    
+    def cancel(self):
+        """Cancel the friend request (by sender)"""
+        if self.status != 'pending':
+            raise ValueError("Can only cancel pending friend requests")
+            
+        self.status = 'cancelled'
+        self.responded_at = timezone.now()
+        self.save()
+
+
+class Friendship(models.Model):
+    """Enhanced friendship model with rich features"""
+    
+    STATUS_CHOICES = [
+        ('accepted', 'Accepted'),
         ('blocked', 'Blocked'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships')
     friend = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friend_of')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='accepted')
     
     # Enhanced features
     nickname = models.CharField(max_length=50, blank=True, help_text="Custom nickname for this friend")
@@ -284,7 +362,29 @@ class Friendship(models.Model):
     @property
     def display_name(self):
         """Return nickname if set, otherwise friend's display name"""
-        return self.nickname or self.friend.profile.display_username
+        if self.nickname:
+            return self.nickname
+        try:
+            return self.friend.profile.display_username
+        except:
+            return self.friend.username
+    
+    @classmethod
+    def are_friends(cls, user1, user2):
+        """Check if two users are friends"""
+        return cls.objects.filter(
+            Q(user=user1, friend=user2) | Q(user=user2, friend=user1),
+            status='accepted'
+        ).exists()
+    
+    @classmethod
+    def get_friends(cls, user):
+        """Get all friends for a user"""
+        friend_ids = cls.objects.filter(
+            user=user, status='accepted'
+        ).values_list('friend_id', flat=True)
+        
+        return User.objects.filter(id__in=friend_ids).select_related('profile')
 
 
 class FriendSuggestion(models.Model):
@@ -438,4 +538,3 @@ class UserActivity(models.Model):
     
     def __str__(self):
         return f"{self.user.username}: {self.description}"
-    
