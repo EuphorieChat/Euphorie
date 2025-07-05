@@ -1,20 +1,21 @@
 # backend/chat/views.py
 
-from django.shortcuts import render, redirect, get_object_or_404
+from datetime import datetime, timedelta
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, F, Max
-from django.views.generic import TemplateView
-from django.utils import timezone
-from datetime import timedelta
-from django.views.decorators.http import require_http_methods, require_POST
-from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponseForbidden
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-import json
-import sys
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods, require_POST
+from django.views.generic import TemplateView
+
+from .models import Room, Message, UserProfile
 
 # FIXED: Import all the models your views reference
 from .models import (
@@ -638,6 +639,43 @@ def friend_suggestions(request):
     return render(request, 'chat/friend_suggestions.html', {
         'suggestions': suggestions
     })
+
+@login_required
+def dashboard(request):
+    user = request.user
+    
+    # Get user's rooms (adjust the relationship based on your model)
+    user_rooms = Room.objects.filter(users=user)  # or however you track user's rooms
+    
+    # Get user's messages count
+    user_messages_count = Message.objects.filter(user=user).count()
+    
+    # Get recent messages from user's rooms
+    recent_messages = Message.objects.filter(
+        room__users=user
+    ).select_related('user', 'room').order_by('-timestamp')[:10]
+    
+    # Get today's message count
+    today = datetime.now().date()
+    messages_today = Message.objects.filter(
+        user=user,
+        timestamp__date=today
+    ).count()
+    
+    # Get online users count (basic implementation)
+    # You might want to implement a more sophisticated online tracking system
+    online_users_count = 0  # Placeholder
+    
+    context = {
+        'user_rooms': user_rooms,
+        'user_rooms_count': user_rooms.count(),
+        'user_messages_count': user_messages_count,
+        'recent_messages': recent_messages,
+        'messages_today': messages_today,
+        'online_users_count': online_users_count,
+    }
+    
+    return render(request, 'chat/dashboard.html', context)
 
 # ==================== ADMIN VIEWS ====================
 

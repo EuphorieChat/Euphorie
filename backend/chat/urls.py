@@ -11,6 +11,7 @@ urlpatterns = [
     path('create-room/', views.create_room, name='create_room'),
     path('search/', views.search_rooms, name='search_rooms'),
     path('explore/', views.explore_rooms, name='explore_rooms'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     
     # ==================== PROFILE URLS ====================
     path('profile/settings/', views.profile_settings, name='profile_settings'),
