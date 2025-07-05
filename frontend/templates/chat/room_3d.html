@@ -369,7 +369,7 @@
         }
         
         /* Desktop Controls Panel */
-        #controls-panel.desktop {
+        #controls-panel {
             position: absolute;
             top: 20px;
             right: 20px;
@@ -380,11 +380,13 @@
         }
         
         /* Mobile Controls - Floating Action Button */
-        #controls-panel.mobile {
-            position: fixed;
-            bottom: 80px;
-            right: 15px;
-            z-index: 150;
+        @media (max-width: 768px) {
+            #controls-panel {
+                position: fixed;
+                bottom: 80px;
+                right: 15px;
+                z-index: 150;
+            }
         }
         
         .mobile-fab {
@@ -561,22 +563,6 @@
                 right: 70px;
             }
             
-            #chat-panel {
-                display: flex !important;
-            }
-            
-            .chat-toggle {
-                display: block !important;
-            }
-            
-            .desktop {
-                display: none !important;
-            }
-            
-            .mobile {
-                display: flex !important;
-            }
-            
             #pet-panel {
                 bottom: 70vh;
                 left: 10px;
@@ -588,7 +574,7 @@
             .control-btn {
                 font-size: 12px;
                 padding: 10px 12px;
-                min-width: 180px;
+                min-width: 160px;
             }
             
             .quick-btn {
@@ -610,20 +596,54 @@
                 font-size: 8px;
                 padding: 3px 6px;
             }
+            
+            /* Mobile Controls - convert to FAB style */
+            #controls-panel {
+                flex-direction: row;
+                gap: 4px;
+                flex-wrap: wrap;
+                max-width: 200px;
+                justify-content: flex-end;
+            }
+            
+            .control-btn {
+                font-size: 10px;
+                padding: 8px 10px;
+                min-width: auto;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                flex-direction: column;
+                gap: 2px;
+            }
+            
+            .control-btn:nth-child(1) { order: 1; } /* Magic */
+            .control-btn:nth-child(4) { order: 2; } /* Emotions */
+            .control-btn:nth-child(5) { order: 3; } /* Friends */
+            .control-btn:nth-child(6) { order: 4; } /* Pets */
+            .control-btn:nth-child(7) { order: 5; } /* Groups */
+            .control-btn:nth-child(2) { order: 6; } /* Avatar */
+            .control-btn:nth-child(8) { order: 7; } /* Scene */
+            .control-btn:nth-child(9) { order: 8; } /* Weather */
+            .control-btn:nth-child(10) { order: 9; } /* Time */
         }
         
         @media (min-width: 769px) {
-            /* Desktop Layout */
-            .mobile {
+            /* Desktop Layout - ensure all elements are visible */
+            .chat-toggle {
                 display: none !important;
             }
             
-            .desktop {
-                display: flex !important;
+            #controls-content-desktop {
+                display: inline !important;
             }
             
-            #chat-panel {
-                display: flex !important;
+            #controls-content-mobile {
+                display: none !important;
             }
             
             #pet-panel {
@@ -729,7 +749,7 @@
         </div>
         
         <!-- Enhanced Chat Panel with Responsive Design -->
-        <div id="chat-panel" class="ui-panel desktop">
+        <div id="chat-panel" class="ui-panel">
             <div class="chat-header">
                 <h3>💬 Room Chat</h3>
                 <div class="chat-controls">
@@ -737,6 +757,9 @@
                     <button id="bubble-mode-toggle" class="bubble-mode-toggle active">3D Bubbles</button>
                 </div>
             </div>
+            
+            <!-- Mobile Chat Toggle (only visible on mobile) -->
+            <button class="chat-toggle" onclick="toggleMobileChat()" style="display: none;">💬 Tap to expand chat</button>
             
             <!-- Typing Indicators -->
             <div id="typing-indicators"></div>
@@ -746,7 +769,8 @@
                     <div class="username">System</div>
                     <div class="text">
                         <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
-                        <strong>🎮 3D Chat Bubbles:</strong><br>
+                        <strong id="controls-text-desktop">🎮 3D Chat Bubbles:</strong><br>
+                        <span id="controls-content-desktop">
                         • Messages appear floating above avatars in 3D space<br>
                         • Real-time synchronization with Rust WebSocket server<br>
                         • Click the "3D Bubbles" toggle to enable/disable<br><br>
@@ -755,6 +779,14 @@
                         • Click avatars to interact<br>
                         • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">1</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">W</kbd> Wave, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">2</kbd>/<kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">D</kbd> Dance<br>
                         • <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">E</kbd> Emotions, <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">G</kbd> Group activities
+                        </span>
+                        <span id="controls-content-mobile" style="display: none;">
+                        <strong>📱 Mobile Controls:</strong><br>
+                        • Touch & drag to rotate camera<br>
+                        • Pinch to zoom<br>
+                        • Tap avatars to interact<br>
+                        • Use floating buttons for quick actions
+                        </span>
                     </div>
                 </div>
             </div>
@@ -764,82 +796,26 @@
             </div>
         </div>
         
-        <!-- Mobile Chat Panel -->
-        <div id="chat-panel-mobile" class="mobile" style="display: none;">
-            <button class="chat-toggle" onclick="toggleMobileChat()">💬 Chat</button>
-            <div class="chat-header">
-                <h3>💬 Room Chat</h3>
-                <div class="chat-controls">
-                    <span id="connection-indicator-mobile" class="connection-indicator connecting">🔄 Connecting</span>
-                    <button id="bubble-mode-toggle-mobile" class="bubble-mode-toggle active">3D Bubbles</button>
-                </div>
-            </div>
-            
-            <!-- Typing Indicators -->
-            <div id="typing-indicators-mobile"></div>
-            
-            <div id="chat-messages-mobile">
-                <div class="chat-message system">
-                    <div class="username">System</div>
-                    <div class="text">
-                        <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
-                        <strong>📱 Mobile Controls:</strong><br>
-                        • Touch & drag to rotate camera<br>
-                        • Pinch to zoom<br>
-                        • Tap avatars to interact<br>
-                        • Use floating buttons for quick actions
-                    </div>
-                </div>
-            </div>
-            <div id="chat-input-container-mobile">
-                <input type="text" id="chat-input-mobile" placeholder="Type a message..." maxlength="200" disabled>
-                <button id="send-btn-mobile" disabled>Send</button>
-            </div>
-        </div>
-        
-        <!-- Desktop Controls Panel -->
-        <div id="controls-panel" class="desktop ui-panel">
-            <button id="toggle-magic" class="control-btn">✨ Magic Effects</button>
-            <button id="avatar-customize" class="control-btn">👤 Customize Avatar</button>
-            <button id="emotions-control" class="control-btn emotion-control-btn">🎭 Emotions</button>
-            <button id="add-friends" class="control-btn">👥 Add Friends</button>
-            <button id="pet-toggle" class="control-btn">🐾 Pet Panel</button>
-            <button id="group-activities" class="control-btn">👫 Group Activities</button>
-            <button id="change-scene" class="control-btn">🏠 Environment</button>
-            <button id="weather-control" class="control-btn">🌦️ Weather</button>
-            <button id="time-control" class="control-btn">🌅 Time of Day</button>
-        </div>
-        
-        <!-- Mobile Controls - Floating Action Button -->
-        <div id="controls-panel-mobile" class="mobile">
-            <button class="mobile-fab" onclick="toggleMobileControls()">⚙️</button>
-            <div class="mobile-controls-menu" id="mobile-controls-menu">
-                <button class="control-btn" onclick="closeMobileControls()" id="toggle-magic-mobile">✨ Magic Effects</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="avatar-customize-mobile">👤 Customize Avatar</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="emotions-control-mobile">🎭 Emotions</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="add-friends-mobile">👥 Add Friends</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="pet-toggle-mobile">🐾 Pet Panel</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="group-activities-mobile">👫 Group Activities</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="change-scene-mobile">🏠 Environment</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="weather-control-mobile">🌦️ Weather</button>
-                <button class="control-btn" onclick="closeMobileControls()" id="time-control-mobile">🌅 Time of Day</button>
-            </div>
+        <!-- Controls Panel -->
+        <div id="controls-panel" class="ui-panel">
+            <button id="toggle-magic" class="control-btn">✨</button>
+            <button id="avatar-customize" class="control-btn">👤</button>
+            <button id="emotions-control" class="control-btn emotion-control-btn">🎭</button>
+            <button id="add-friends" class="control-btn">👥</button>
+            <button id="pet-toggle" class="control-btn">🐾</button>
+            <button id="group-activities" class="control-btn">👫</button>
+            <button id="change-scene" class="control-btn">🏠</button>
+            <button id="weather-control" class="control-btn">🌦️</button>
+            <button id="time-control" class="control-btn">🌅</button>
         </div>
         
         <!-- Quick Actions - Responsive -->
-        <div id="quick-actions" class="desktop">
+        <div id="quick-actions">
             <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave')" title="Wave (1/W)">👋</button>
             <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance')" title="Dance (2/D)">💃</button>
             <button class="quick-btn" onclick="window.EmotionSystem && window.EmotionSystem.showEmotionPanel()" title="Show Emotions (E)">🎭</button>
             <button class="quick-btn" onclick="window.GroupInteractionSystem && window.GroupInteractionSystem.showGroupActivityMenu()" title="Group Activities (G)">👥</button>
             <button class="quick-btn" onclick="window.PetSystem && window.PetSystem.assignRandomPet('default')" title="Get Pet">🐾</button>
-        </div>
-        
-        <!-- Mobile Quick Actions -->
-        <div id="quick-actions-mobile" class="mobile" style="display: none;">
-            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('wave')" title="Wave">👋</button>
-            <button class="quick-btn" onclick="window.InteractionSystem && window.InteractionSystem.triggerInteraction('dance')" title="Dance">💃</button>
-            <button class="quick-btn" onclick="window.EmotionSystem && window.EmotionSystem.showEmotionPanel()" title="Emotions">🎭</button>
         </div>
     </div>
 
@@ -874,55 +850,56 @@
         
         // Mobile-specific functions
         function toggleMobileChat() {
-            const chatPanel = document.getElementById('chat-panel-mobile');
+            const chatPanel = document.getElementById('chat-panel');
             if (chatPanel) {
                 chatPanel.classList.toggle('expanded');
             }
         }
         
-        function toggleMobileControls() {
-            const fab = document.querySelector('.mobile-fab');
-            const menu = document.getElementById('mobile-controls-menu');
-            
-            if (fab && menu) {
-                const isOpen = menu.classList.contains('show');
-                fab.classList.toggle('open', !isOpen);
-                menu.classList.toggle('show', !isOpen);
-            }
-        }
-        
-        function closeMobileControls() {
-            const fab = document.querySelector('.mobile-fab');
-            const menu = document.getElementById('mobile-controls-menu');
-            
-            if (fab && menu) {
-                fab.classList.remove('open');
-                menu.classList.remove('show');
-            }
-        }
-        
         // Setup responsive layout based on screen size
         function setupResponsiveLayout() {
-            const mobileElements = document.querySelectorAll('.mobile');
-            const desktopElements = document.querySelectorAll('.desktop');
+            const chatPanel = document.getElementById('chat-panel');
+            const controlsPanel = document.getElementById('controls-panel');
+            const quickActions = document.getElementById('quick-actions');
             
             if (isMobile) {
-                mobileElements.forEach(el => {
-                    el.style.display = el.classList.contains('mobile') ? 'flex' : 'block';
-                });
-                desktopElements.forEach(el => el.style.display = 'none');
-                
-                // Setup mobile chat panel
-                const mobileChat = document.getElementById('chat-panel-mobile');
-                if (mobileChat) {
-                    mobileChat.className = 'mobile';
-                    mobileChat.style.display = 'flex';
+                // Mobile-specific setup for chat
+                if (chatPanel) {
+                    chatPanel.classList.add('mobile');
                 }
-            } else {
-                desktopElements.forEach(el => {
-                    el.style.display = el.classList.contains('desktop') ? 'flex' : 'block';
+                
+                // Update control button text for mobile
+                document.querySelectorAll('.control-btn').forEach((btn, index) => {
+                    const texts = ['✨', '👤', '🎭', '👥', '🐾', '👫', '🏠', '🌦️', '🌅'];
+                    if (texts[index]) {
+                        btn.innerHTML = texts[index];
+                    }
                 });
-                mobileElements.forEach(el => el.style.display = 'none');
+            } else {
+                // Desktop-specific setup
+                if (chatPanel) {
+                    chatPanel.classList.remove('mobile', 'expanded');
+                }
+                
+                // Restore full control button text for desktop
+                const buttons = document.querySelectorAll('.control-btn');
+                const fullTexts = [
+                    '✨ Magic Effects',
+                    '👤 Customize Avatar', 
+                    '🎭 Emotions',
+                    '👥 Add Friends',
+                    '🐾 Pet Panel',
+                    '👫 Group Activities',
+                    '🏠 Environment',
+                    '🌦️ Weather',
+                    '🌅 Time of Day'
+                ];
+                
+                buttons.forEach((btn, index) => {
+                    if (fullTexts[index]) {
+                        btn.innerHTML = fullTexts[index];
+                    }
+                });
             }
         }
         
@@ -934,15 +911,7 @@
             setupResponsiveLayout();
         });
         
-        // Close mobile controls when clicking outside
-        document.addEventListener('click', (e) => {
-            const controlsPanel = document.getElementById('controls-panel-mobile');
-            const menu = document.getElementById('mobile-controls-menu');
-            
-            if (isMobile && controlsPanel && !controlsPanel.contains(e.target) && menu && menu.classList.contains('show')) {
-                closeMobileControls();
-            }
-        });
+        // Remove mobile controls clicking outside handler since we simplified the design
     </script>
 
     <!-- Enhanced WebSocket Manager with Mobile Support -->
@@ -1244,166 +1213,120 @@
             }
             
             updateConnectionStatus(status) {
-                const indicators = [
-                    document.getElementById('connection-indicator'),
-                    document.getElementById('connection-indicator-mobile')
-                ];
-                
-                indicators.forEach(indicator => {
-                    if (indicator) {
-                        indicator.className = `connection-indicator ${status}`;
-                        
-                        switch (status) {
-                            case 'connected':
-                                indicator.textContent = '✅ Connected';
-                                break;
-                            case 'connecting':
-                                indicator.textContent = '🔄 Connecting';
-                                break;
-                            case 'disconnected':
-                                indicator.textContent = '❌ Disconnected';
-                                break;
-                        }
+                const indicator = document.getElementById('connection-indicator');
+                if (indicator) {
+                    indicator.className = `connection-indicator ${status}`;
+                    
+                    switch (status) {
+                        case 'connected':
+                            indicator.textContent = '✅ Connected';
+                            break;
+                        case 'connecting':
+                            indicator.textContent = '🔄 Connecting';
+                            break;
+                        case 'disconnected':
+                            indicator.textContent = '❌ Disconnected';
+                            break;
                     }
-                });
+                }
             }
             
             enableChatInput() {
-                const inputs = [
-                    document.getElementById('chat-input'),
-                    document.getElementById('chat-input-mobile')
-                ];
-                const buttons = [
-                    document.getElementById('send-btn'),
-                    document.getElementById('send-btn-mobile')
-                ];
+                const chatInput = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('send-btn');
                 
-                inputs.forEach(input => {
-                    if (input) {
-                        input.disabled = false;
-                        input.placeholder = 'Type a message...';
-                    }
-                });
-                
-                buttons.forEach(btn => {
-                    if (btn) {
-                        btn.disabled = false;
-                    }
-                });
+                if (chatInput) {
+                    chatInput.disabled = false;
+                    chatInput.placeholder = 'Type a message...';
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                }
             }
             
             disableChatInput() {
-                const inputs = [
-                    document.getElementById('chat-input'),
-                    document.getElementById('chat-input-mobile')
-                ];
-                const buttons = [
-                    document.getElementById('send-btn'),
-                    document.getElementById('send-btn-mobile')
-                ];
+                const chatInput = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('send-btn');
                 
-                inputs.forEach(input => {
-                    if (input) {
-                        input.disabled = true;
-                        input.placeholder = 'Connecting...';
-                    }
-                });
-                
-                buttons.forEach(btn => {
-                    if (btn) {
-                        btn.disabled = true;
-                    }
-                });
+                if (chatInput) {
+                    chatInput.disabled = true;
+                    chatInput.placeholder = 'Connecting...';
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                }
             }
             
             addMessageToChat(username, message, isOwn = false) {
-                const chatContainers = [
-                    document.getElementById('chat-messages'),
-                    document.getElementById('chat-messages-mobile')
-                ];
+                const chatMessages = document.getElementById('chat-messages');
+                if (!chatMessages) return;
                 
-                chatContainers.forEach(chatMessages => {
-                    if (!chatMessages) return;
-                    
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
-                    
-                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    messageDiv.innerHTML = `
-                        <div class="username">${this.escapeHtml(username)}</div>
-                        <div class="timestamp">${timestamp}</div>
-                        <div class="text">${this.escapeHtml(message)}</div>
-                    `;
-                    
-                    chatMessages.appendChild(messageDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    
-                    // Keep only last 50 messages for performance
-                    while (chatMessages.children.length > 50) {
-                        chatMessages.removeChild(chatMessages.firstChild);
-                    }
-                });
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+                
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.innerHTML = `
+                    <div class="username">${this.escapeHtml(username)}</div>
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="text">${this.escapeHtml(message)}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Keep only last 50 messages for performance
+                while (chatMessages.children.length > 50) {
+                    chatMessages.removeChild(chatMessages.firstChild);
+                }
             }
             
             addSystemMessage(message) {
-                const chatContainers = [
-                    document.getElementById('chat-messages'),
-                    document.getElementById('chat-messages-mobile')
-                ];
+                const chatMessages = document.getElementById('chat-messages');
+                if (!chatMessages) return;
                 
-                chatContainers.forEach(chatMessages => {
-                    if (!chatMessages) return;
-                    
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'chat-message system';
-                    
-                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    messageDiv.innerHTML = `
-                        <div class="username">System</div>
-                        <div class="timestamp">${timestamp}</div>
-                        <div class="text">${this.escapeHtml(message)}</div>
-                    `;
-                    
-                    chatMessages.appendChild(messageDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                });
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message system';
+                
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.innerHTML = `
+                    <div class="username">System</div>
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="text">${this.escapeHtml(message)}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
             
             updateTypingIndicator(userId, username, isTyping) {
-                const containers = [
-                    document.getElementById('typing-indicators'),
-                    document.getElementById('typing-indicators-mobile')
-                ];
+                const container = document.getElementById('typing-indicators');
+                if (!container) return;
                 
-                containers.forEach(container => {
-                    if (!container) return;
-                    
-                    const indicatorId = `typing-${userId}`;
-                    let indicator = document.getElementById(indicatorId);
-                    
-                    if (isTyping && userId !== this.userId) {
-                        if (!indicator) {
-                            indicator = document.createElement('div');
-                            indicator.id = indicatorId;
-                            indicator.className = 'typing-indicator';
-                            indicator.innerHTML = `
-                                <span>${this.escapeHtml(username)} is typing</span>
-                                <div class="typing-dots">
-                                    <div class="typing-dot"></div>
-                                    <div class="typing-dot"></div>
-                                    <div class="typing-dot"></div>
-                                </div>
-                            `;
-                            container.appendChild(indicator);
-                        }
-                    } else {
-                        if (indicator) {
-                            indicator.remove();
-                        }
+                const indicatorId = `typing-${userId}`;
+                let indicator = document.getElementById(indicatorId);
+                
+                if (isTyping && userId !== this.userId) {
+                    if (!indicator) {
+                        indicator = document.createElement('div');
+                        indicator.id = indicatorId;
+                        indicator.className = 'typing-indicator';
+                        indicator.innerHTML = `
+                            <span>${this.escapeHtml(username)} is typing</span>
+                            <div class="typing-dots">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        `;
+                        container.appendChild(indicator);
                     }
-                });
+                } else {
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                }
             }
             
             escapeHtml(text) {
@@ -1425,10 +1348,10 @@
             // Initialize WebSocket connection
             window.WebSocketManager = new EuphorieWebSocketManager();
             
-            // Setup chat input handlers for both desktop and mobile
-            const setupChatHandlers = (inputId, btnId) => {
-                const chatInput = document.getElementById(inputId);
-                const sendBtn = document.getElementById(btnId);
+            // Setup chat input handlers for the single chat panel
+            const setupChatHandlers = () => {
+                const chatInput = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('send-btn');
                 
                 if (chatInput && sendBtn) {
                     let typingTimer;
@@ -1478,32 +1401,22 @@
                 }
             };
             
-            // Setup handlers for both desktop and mobile chat
-            setupChatHandlers('chat-input', 'send-btn');
-            setupChatHandlers('chat-input-mobile', 'send-btn-mobile');
+            // Setup handlers for the single chat panel
+            setupChatHandlers();
             
-            // Setup bubble mode toggles
-            const setupBubbleToggle = (toggleId) => {
-                const bubbleModeToggle = document.getElementById(toggleId);
-                if (bubbleModeToggle) {
-                    bubbleModeToggle.addEventListener('click', () => {
-                        window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
-                        
-                        // Update both toggles
-                        document.querySelectorAll('.bubble-mode-toggle').forEach(toggle => {
-                            toggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
-                            toggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
-                        });
-                        
-                        if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                            window.ChatBubbleSystem.clearAllBubbles();
-                        }
-                    });
-                }
-            };
-            
-            setupBubbleToggle('bubble-mode-toggle');
-            setupBubbleToggle('bubble-mode-toggle-mobile');
+            // Setup bubble mode toggle
+            const bubbleModeToggle = document.getElementById('bubble-mode-toggle');
+            if (bubbleModeToggle) {
+                bubbleModeToggle.addEventListener('click', () => {
+                    window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
+                    bubbleModeToggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
+                    bubbleModeToggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
+                    
+                    if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                        window.ChatBubbleSystem.clearAllBubbles();
+                    }
+                });
+            }
             
             console.log('🚀 Euphorie WebSocket integration initialized');
         });
@@ -1585,56 +1498,40 @@
         }
         
         function initializeControlPanels() {
-            // Initialize pet panel toggle for both desktop and mobile
-            const setupPetToggle = (toggleId) => {
-                const petToggle = document.getElementById(toggleId);
-                const petPanel = document.getElementById('pet-panel');
-                
-                if (petToggle && petPanel) {
-                    petToggle.addEventListener('click', () => {
-                        const isVisible = petPanel.style.display !== 'none';
-                        petPanel.style.display = isVisible ? 'none' : 'block';
-                        petToggle.style.background = isVisible ? 'rgba(255,255,255,0.1)' : 'rgba(255, 107, 53, 0.3)';
-                    });
-                }
-            };
+            // Initialize pet panel toggle
+            const petToggle = document.getElementById('pet-toggle');
+            const petPanel = document.getElementById('pet-panel');
+            const groupActivities = document.getElementById('group-activities');
+            const emotionsControl = document.getElementById('emotions-control');
             
-            setupPetToggle('pet-toggle');
-            setupPetToggle('pet-toggle-mobile');
+            if (petToggle && petPanel) {
+                petToggle.addEventListener('click', () => {
+                    const isVisible = petPanel.style.display !== 'none';
+                    petPanel.style.display = isVisible ? 'none' : 'block';
+                    petToggle.style.background = isVisible ? 'rgba(255,255,255,0.1)' : 'rgba(255, 107, 53, 0.3)';
+                });
+            }
             
-            // Initialize group activities for both desktop and mobile
-            const setupGroupActivities = (buttonId) => {
-                const groupActivities = document.getElementById(buttonId);
-                if (groupActivities) {
-                    groupActivities.addEventListener('click', () => {
-                        if (window.GroupInteractionSystem) {
-                            window.GroupInteractionSystem.showGroupActivityMenu();
-                        }
-                    });
-                }
-            };
+            if (groupActivities) {
+                groupActivities.addEventListener('click', () => {
+                    if (window.GroupInteractionSystem) {
+                        window.GroupInteractionSystem.showGroupActivityMenu();
+                    }
+                });
+            }
             
-            setupGroupActivities('group-activities');
-            setupGroupActivities('group-activities-mobile');
-            
-            // Initialize emotion control buttons for both desktop and mobile
-            const setupEmotionControl = (buttonId) => {
-                const emotionsControl = document.getElementById(buttonId);
-                if (emotionsControl) {
-                    emotionsControl.addEventListener('click', () => {
-                        console.log('🎭 Emotion button clicked');
-                        
-                        if (window.EmotionSystem && window.EmotionSystem.showEmotionPanel) {
-                            window.EmotionSystem.showEmotionPanel();
-                        } else {
-                            createInlineEmotionPanel();
-                        }
-                    });
-                }
-            };
-            
-            setupEmotionControl('emotions-control');
-            setupEmotionControl('emotions-control-mobile');
+            // Initialize emotion control button with WebSocket integration
+            if (emotionsControl) {
+                emotionsControl.addEventListener('click', () => {
+                    console.log('🎭 Emotion button clicked');
+                    
+                    if (window.EmotionSystem && window.EmotionSystem.showEmotionPanel) {
+                        window.EmotionSystem.showEmotionPanel();
+                    } else {
+                        createInlineEmotionPanel();
+                    }
+                });
+            }
             
             // Counter update interval
             setInterval(() => {
