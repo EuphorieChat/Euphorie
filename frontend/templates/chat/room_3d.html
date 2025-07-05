@@ -379,13 +379,107 @@
             z-index: 100;
         }
         
-        /* Mobile Controls - Floating Action Button */
+        .control-btn {
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 160px;
+            text-align: left;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .control-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Mobile Controls - Bottom Sheet Style */
         @media (max-width: 768px) {
             #controls-panel {
                 position: fixed;
-                bottom: 80px;
+                bottom: 0;
                 right: 15px;
-                z-index: 150;
+                left: 15px;
+                transform: translateY(calc(100% - 60px));
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                background: rgba(0,0,0,0.95);
+                backdrop-filter: blur(15px);
+                border-top: 2px solid rgba(255, 107, 53, 0.6);
+                border-radius: 20px 20px 0 0;
+                padding: 15px;
+                z-index: 180;
+                flex-direction: column;
+                gap: 12px;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+            
+            #controls-panel.expanded {
+                transform: translateY(0);
+            }
+            
+            .controls-toggle {
+                background: linear-gradient(135deg, rgba(255, 107, 53, 0.8), rgba(255, 152, 0, 0.8));
+                border: none;
+                color: white;
+                padding: 12px;
+                border-radius: 12px 12px 0 0;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                text-align: center;
+                width: 100%;
+                margin: -15px -15px 15px -15px;
+                transition: all 0.3s ease;
+            }
+            
+            .controls-toggle:hover {
+                background: linear-gradient(135deg, rgba(255, 107, 53, 1), rgba(255, 152, 0, 1));
+            }
+            
+            .control-btn {
+                font-size: 14px;
+                padding: 15px 20px;
+                min-width: auto;
+                width: 100%;
+                text-align: center;
+                border-radius: 12px;
+                background: rgba(255,255,255,0.1);
+                border: 1px solid rgba(255,255,255,0.2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+            }
+            
+            .control-btn:hover {
+                transform: translateY(0);
+                background: rgba(255,255,255,0.2);
+            }
+            
+            /* Create mobile control groups */
+            .control-group {
+                display: flex;
+                gap: 8px;
+                width: 100%;
+            }
+            
+            .control-group .control-btn {
+                flex: 1;
+                font-size: 12px;
+                padding: 12px 8px;
             }
         }
         
@@ -560,7 +654,8 @@
                 padding: 6px 10px;
                 top: 5px;
                 left: 5px;
-                right: 70px;
+                right: 80px;
+                z-index: 100;
             }
             
             #pet-panel {
@@ -569,18 +664,7 @@
                 right: 10px;
                 width: auto;
                 max-height: 150px;
-            }
-            
-            .control-btn {
-                font-size: 12px;
-                padding: 10px 12px;
-                min-width: 160px;
-            }
-            
-            .quick-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
+                z-index: 175;
             }
             
             .chat-header h3 {
@@ -596,45 +680,19 @@
                 font-size: 8px;
                 padding: 3px 6px;
             }
-            
-            /* Mobile Controls - convert to FAB style */
-            #controls-panel {
-                flex-direction: row;
-                gap: 4px;
-                flex-wrap: wrap;
-                max-width: 200px;
-                justify-content: flex-end;
-            }
-            
-            .control-btn {
-                font-size: 10px;
-                padding: 8px 10px;
-                min-width: auto;
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                flex-direction: column;
-                gap: 2px;
-            }
-            
-            .control-btn:nth-child(1) { order: 1; } /* Magic */
-            .control-btn:nth-child(4) { order: 2; } /* Emotions */
-            .control-btn:nth-child(5) { order: 3; } /* Friends */
-            .control-btn:nth-child(6) { order: 4; } /* Pets */
-            .control-btn:nth-child(7) { order: 5; } /* Groups */
-            .control-btn:nth-child(2) { order: 6; } /* Avatar */
-            .control-btn:nth-child(8) { order: 7; } /* Scene */
-            .control-btn:nth-child(9) { order: 8; } /* Weather */
-            .control-btn:nth-child(10) { order: 9; } /* Time */
         }
         
         @media (min-width: 769px) {
             /* Desktop Layout - ensure all elements are visible */
             .chat-toggle {
+                display: none !important;
+            }
+            
+            .controls-toggle {
+                display: none !important;
+            }
+            
+            .mobile-panel-toggle {
                 display: none !important;
             }
             
@@ -648,6 +706,15 @@
             
             #pet-panel {
                 bottom: 320px;
+            }
+            
+            #controls-panel {
+                transform: none !important;
+                background: transparent !important;
+                border: none !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                position: absolute !important;
             }
         }
         
@@ -798,16 +865,34 @@
         
         <!-- Controls Panel -->
         <div id="controls-panel" class="ui-panel">
-            <button id="toggle-magic" class="control-btn">✨</button>
-            <button id="avatar-customize" class="control-btn">👤</button>
-            <button id="emotions-control" class="control-btn emotion-control-btn">🎭</button>
-            <button id="add-friends" class="control-btn">👥</button>
-            <button id="pet-toggle" class="control-btn">🐾</button>
-            <button id="group-activities" class="control-btn">👫</button>
-            <button id="change-scene" class="control-btn">🏠</button>
-            <button id="weather-control" class="control-btn">🌦️</button>
-            <button id="time-control" class="control-btn">🌅</button>
+            <button class="controls-toggle" onclick="toggleMobileControls()" style="display: none;">⚙️ Controls & Settings</button>
+            
+            <div class="control-group">
+                <button id="toggle-magic" class="control-btn">✨ Magic Effects</button>
+                <button id="emotions-control" class="control-btn emotion-control-btn">🎭 Emotions</button>
+            </div>
+            
+            <div class="control-group">
+                <button id="avatar-customize" class="control-btn">👤 Customize Avatar</button>
+                <button id="add-friends" class="control-btn">👥 Add Friends</button>
+            </div>
+            
+            <div class="control-group">
+                <button id="pet-toggle" class="control-btn">🐾 Pet Panel</button>
+                <button id="group-activities" class="control-btn">👫 Group Activities</button>
+            </div>
+            
+            <div class="control-group">
+                <button id="change-scene" class="control-btn">🏠 Environment</button>
+                <button id="weather-control" class="control-btn">🌦️ Weather</button>
+            </div>
+            
+            <button id="time-control" class="control-btn">🌅 Time of Day</button>
         </div>
+        
+        <!-- Mobile Toggle Buttons -->
+        <button class="mobile-panel-toggle" onclick="toggleMobileChat()">💬</button>
+        <button class="mobile-panel-toggle controls" onclick="toggleMobileControls()">⚙️</button>
         
         <!-- Quick Actions - Responsive -->
         <div id="quick-actions">
@@ -856,50 +941,42 @@
             }
         }
         
+        function toggleMobileControls() {
+            const controlsPanel = document.getElementById('controls-panel');
+            if (controlsPanel) {
+                controlsPanel.classList.toggle('expanded');
+            }
+        }
+        
         // Setup responsive layout based on screen size
         function setupResponsiveLayout() {
             const chatPanel = document.getElementById('chat-panel');
             const controlsPanel = document.getElementById('controls-panel');
-            const quickActions = document.getElementById('quick-actions');
+            const controlsToggle = document.querySelector('.controls-toggle');
+            const chatToggle = document.querySelector('.chat-toggle');
             
             if (isMobile) {
-                // Mobile-specific setup for chat
-                if (chatPanel) {
-                    chatPanel.classList.add('mobile');
-                }
+                // Show mobile toggles
+                if (controlsToggle) controlsToggle.style.display = 'block';
+                if (chatToggle) chatToggle.style.display = 'block';
                 
-                // Update control button text for mobile
-                document.querySelectorAll('.control-btn').forEach((btn, index) => {
-                    const texts = ['✨', '👤', '🎭', '👥', '🐾', '👫', '🏠', '🌦️', '🌅'];
-                    if (texts[index]) {
-                        btn.innerHTML = texts[index];
-                    }
-                });
+                // Ensure panels start collapsed on mobile
+                if (chatPanel) chatPanel.classList.remove('expanded');
+                if (controlsPanel) controlsPanel.classList.remove('expanded');
+                
             } else {
-                // Desktop-specific setup
+                // Hide mobile toggles on desktop
+                if (controlsToggle) controlsToggle.style.display = 'none';
+                if (chatToggle) chatToggle.style.display = 'none';
+                
+                // Ensure panels are properly positioned on desktop
                 if (chatPanel) {
-                    chatPanel.classList.remove('mobile', 'expanded');
+                    chatPanel.classList.remove('expanded');
+                    chatPanel.style.transform = 'none';
                 }
-                
-                // Restore full control button text for desktop
-                const buttons = document.querySelectorAll('.control-btn');
-                const fullTexts = [
-                    '✨ Magic Effects',
-                    '👤 Customize Avatar', 
-                    '🎭 Emotions',
-                    '👥 Add Friends',
-                    '🐾 Pet Panel',
-                    '👫 Group Activities',
-                    '🏠 Environment',
-                    '🌦️ Weather',
-                    '🌅 Time of Day'
-                ];
-                
-                buttons.forEach((btn, index) => {
-                    if (fullTexts[index]) {
-                        btn.innerHTML = fullTexts[index];
-                    }
-                });
+                if (controlsPanel) {
+                    controlsPanel.classList.remove('expanded');
+                }
             }
         }
         
