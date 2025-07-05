@@ -1,6 +1,5 @@
 // Enhanced Avatar System - Realistic human avatars with natural arms and detailed features
 // Compatible with room-core.js and room_3d.html
-// UPDATED: Complete ChatBubble Integration v4.0
 
 window.AvatarSystem = {
     avatars: new Map(),
@@ -23,7 +22,7 @@ window.AvatarSystem = {
     init: async function() {
         if (this.isInitialized) return;
         
-        console.log('👤 Initializing Enhanced Avatar System with ChatBubble Integration');
+        console.log('👤 Initializing Enhanced Avatar System');
         
         this.isInitialized = true;
         
@@ -54,12 +53,7 @@ window.AvatarSystem = {
         // Set up breathing animation for all avatars
         this.startBreathingAnimation();
         
-        console.log('✅ Enhanced Avatar System initialized with ChatBubble support');
-        
-        // Emit initialization event for other systems
-        if (window.EventBus) {
-            window.EventBus.emit('avatar-system:initialized', this);
-        }
+        console.log('✅ Enhanced Avatar System initialized');
     },
     
     createAvatar: function(userId, options = {}) {
@@ -84,14 +78,6 @@ window.AvatarSystem = {
         
         // Create avatar group
         const avatarGroup = new THREE.Group();
-        
-        // CRITICAL: Add userId to userData for ChatBubble system
-        avatarGroup.userData = {
-            userId: avatarId,
-            type: 'avatar',
-            isAvatar: true
-        };
-        avatarGroup.name = `avatar_${avatarId}`;
         
         // Create ultra-realistic human avatar
         const avatar = this.createRealisticHuman(defaultOptions);
@@ -148,139 +134,12 @@ window.AvatarSystem = {
         // Add entrance animation
         this.playEntranceAnimation(avatarData);
         
-        // CRITICAL: Emit event for ChatBubble system with proper structure
+        // Emit event
         if (window.EventBus) {
-            setTimeout(() => {
-                window.EventBus.emit('avatar:created', {
-                    id: avatarId,
-                    avatar: avatarData,
-                    position: avatarGroup.position.clone(),
-                    userData: avatarGroup.userData
-                });
-            }, 100); // Small delay to ensure avatar is fully added to scene
+            window.EventBus.emit('avatar:created', avatarData);
         }
         
         return avatarData;
-    },
-    
-    // CRITICAL: Enhanced avatar position getter for ChatBubble system
-    getAvatarPosition: function(userId) {
-        try {
-            // Method 1: Direct avatar lookup from our avatars Map
-            if (this.avatars && this.avatars.has(userId)) {
-                const avatar = this.avatars.get(userId);
-                if (avatar?.group?.position) {
-                    return avatar.group.position.clone();
-                }
-            }
-            
-            // Method 2: Scene search for backwards compatibility
-            if (window.SceneManager?.scene) {
-                const avatar = window.SceneManager.scene.children.find(child => 
-                    child.userData?.userId === userId || 
-                    child.name === `avatar_${userId}` ||
-                    child.userData?.id === userId
-                );
-                if (avatar?.position) {
-                    return avatar.position.clone();
-                }
-            }
-            
-            // Method 3: Default position for current user
-            if (userId === window.ROOM_CONFIG?.userId || userId === 'default') {
-                return new THREE.Vector3(0, 0, 0);
-            }
-            
-            console.warn(`👤 No position found for avatar: ${userId}`);
-            return null;
-            
-        } catch (error) {
-            console.error('❌ Error getting avatar position:', error);
-            return null;
-        }
-    },
-    
-    // CRITICAL: Enhanced position update with ChatBubble integration
-    updateAvatarPosition: function(avatarId, position) {
-        try {
-            const avatar = this.avatars.get(avatarId);
-            if (avatar && avatar.group) {
-                // Update avatar position
-                avatar.group.position.set(position.x, position.y, position.z);
-                avatar.position = avatar.group.position.clone();
-                avatar.lastUpdate = Date.now();
-                
-                console.log(`👤 Updated avatar ${avatarId} position:`, position);
-                
-                // CRITICAL: Emit position change event for ChatBubble system
-                if (window.EventBus) {
-                    window.EventBus.emit('avatar:position-changed', {
-                        userId: avatarId,
-                        position: avatar.group.position.clone(),
-                        avatar: avatar
-                    });
-                }
-                
-                // Direct notification to ChatBubbleSystem if available
-                if (window.ChatBubbleSystem?.handleAvatarPositionUpdate) {
-                    try {
-                        window.ChatBubbleSystem.handleAvatarPositionUpdate(avatarId, position);
-                    } catch (error) {
-                        console.warn('Error notifying ChatBubbleSystem:', error);
-                    }
-                }
-                
-                return true;
-            } else {
-                console.warn(`👤 Avatar ${avatarId} not found for position update`);
-                return false;
-            }
-        } catch (error) {
-            console.error('❌ Error updating avatar position:', error);
-            return false;
-        }
-    },
-    
-    // CRITICAL: Enhanced methods for ChatBubble system integration
-    getAllAvatars: function() {
-        try {
-            return Array.from(this.avatars.values());
-        } catch (error) {
-            console.warn('Error getting all avatars:', error);
-            return [];
-        }
-    },
-    
-    hasAvatar: function(userId) {
-        return this.avatars && this.avatars.has(userId);
-    },
-    
-    getAvatar: function(userId) {
-        return this.avatars ? this.avatars.get(userId) : null;
-    },
-    
-    // CRITICAL: Avatar movement with automatic ChatBubble updates
-    moveAvatar: function(avatarId, newPosition, duration = 1000) {
-        const avatar = this.avatars.get(avatarId);
-        if (!avatar) return;
-        
-        const startPosition = avatar.group.position.clone();
-        const startTime = Date.now();
-        
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Smooth interpolation
-            const currentPosition = startPosition.clone().lerp(newPosition, progress);
-            this.updateAvatarPosition(avatarId, currentPosition);
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-        
-        animate();
     },
     
     createRealisticHuman: function(options = {}) {
@@ -1056,6 +915,15 @@ window.AvatarSystem = {
         };
     },
     
+    updateAvatarPosition: function(avatarId, position) {
+        const avatar = this.avatars.get(avatarId);
+        if (avatar) {
+            avatar.group.position.set(position.x, position.y, position.z);
+            avatar.position = avatar.group.position.clone();
+            avatar.lastUpdate = Date.now();
+        }
+    },
+    
     removeAvatar: function(avatarId) {
         const avatar = this.avatars.get(avatarId);
         if (avatar) {
@@ -1064,85 +932,18 @@ window.AvatarSystem = {
             }
             this.avatars.delete(avatarId);
             console.log(`👤 Removed realistic avatar: ${avatarId}`);
-            
-            // Emit removal event for ChatBubble system
-            if (window.EventBus) {
-                window.EventBus.emit('avatar:removed', {
-                    userId: avatarId,
-                    avatar: avatar
-                });
-            }
         }
+    },
+    
+    getAvatar: function(avatarId) {
+        return this.avatars.get(avatarId);
+    },
+    
+    getAllAvatars: function() {
+        return Array.from(this.avatars.values());
     },
     
     generateId: function() {
         return Math.random().toString(36).substr(2, 9);
-    },
-    
-    // CRITICAL: Additional ChatBubble integration methods
-    
-    // Get avatar world position (including any parent transforms)
-    getAvatarWorldPosition: function(userId) {
-        try {
-            const avatar = this.avatars.get(userId);
-            if (avatar?.group) {
-                const worldPosition = new THREE.Vector3();
-                avatar.group.getWorldPosition(worldPosition);
-                return worldPosition;
-            }
-            return this.getAvatarPosition(userId);
-        } catch (error) {
-            console.warn('Error getting avatar world position:', error);
-            return this.getAvatarPosition(userId);
-        }
-    },
-    
-    // Get all avatar positions at once for performance
-    getAllAvatarPositions: function() {
-        const positions = new Map();
-        try {
-            this.avatars.forEach((avatar, userId) => {
-                if (avatar.group?.position) {
-                    positions.set(userId, avatar.group.position.clone());
-                }
-            });
-        } catch (error) {
-            console.warn('Error getting all avatar positions:', error);
-        }
-        return positions;
-    },
-    
-    // Check if avatar is visible in scene
-    isAvatarVisible: function(userId) {
-        try {
-            const avatar = this.avatars.get(userId);
-            return avatar?.group?.visible && avatar.group.parent;
-        } catch (error) {
-            return false;
-        }
-    },
-    
-    // Enhanced debugging methods
-    debugAvatarSystem: function() {
-        console.log('👤 AvatarSystem Debug Info:');
-        console.log('- Total avatars:', this.avatars.size);
-        console.log('- Initialized:', this.isInitialized);
-        
-        this.avatars.forEach((avatar, id) => {
-            console.log(`- Avatar ${id}:`, {
-                position: avatar.group?.position,
-                visible: avatar.group?.visible,
-                inScene: !!avatar.group?.parent,
-                lastUpdate: new Date(avatar.lastUpdate).toLocaleTimeString()
-            });
-        });
-        
-        return {
-            totalAvatars: this.avatars.size,
-            isInitialized: this.isInitialized,
-            avatarList: Array.from(this.avatars.keys())
-        };
     }
 };
-
-console.log('👤✨ Enhanced AvatarSystem with complete ChatBubble integration loaded');
