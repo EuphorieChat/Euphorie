@@ -1403,10 +1403,9 @@
         </div>
     </div>
 
-    <!-- Three.js from CDN -->
+<!-- Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <!-- Your existing JavaScript will be added back later -->
     <!-- Pass Django context to JavaScript -->
     <script>
         window.ROOM_CONFIG = {
@@ -1457,6 +1456,969 @@
         console.log('🎮 Euphorie 3D Platform HTML initialized');
         console.log('📱 Mobile mode:', isMobile);
         console.log('🏠 Room:', window.ROOM_CONFIG.roomName);
+    </script>
+
+    <!-- Essential EventBus System -->
+    <script>
+        // ================================
+        // ESSENTIAL EVENTBUS FOR CHATBUBBLE INTEGRATION
+        // ================================
+
+        class EuphorieEventBus {
+            constructor() {
+                this.events = new Map();
+                this.debugMode = false;
+                this.messageQueue = [];
+                this.isProcessing = false;
+                
+                // Auto-setup WebSocket integration
+                this.setupWebSocketIntegration();
+                
+                console.log('📡 Essential EventBus system loaded');
+            }
+            
+            on(event, callback) {
+                if (!this.events.has(event)) {
+                    this.events.set(event, new Set());
+                }
+                this.events.get(event).add(callback);
+                
+                if (this.debugMode) {
+                    console.log(`📡 EventBus: Registered listener for '${event}'`);
+                }
+            }
+            
+            off(event, callback) {
+                if (this.events.has(event)) {
+                    this.events.get(event).delete(callback);
+                }
+            }
+            
+            emit(event, data = null) {
+                if (this.debugMode) {
+                    console.log(`📡 EventBus: Emitting '${event}'`, data);
+                }
+                
+                if (this.events.has(event)) {
+                    const callbacks = this.events.get(event);
+                    callbacks.forEach(callback => {
+                        try {
+                            callback(data);
+                        } catch (error) {
+                            console.warn(`EventBus callback error for '${event}':`, error);
+                        }
+                    });
+                }
+            }
+            
+            // WebSocket integration for chat messages
+            setupWebSocketIntegration() {
+                // Monitor for WebSocket messages and route to ChatBubbleSystem
+                this.on('chat_message', (data) => {
+                    if (window.ChatBubbleSystem && window.ChatBubbleSystem.createBubbleFromMessage) {
+                        try {
+                            window.ChatBubbleSystem.createBubbleFromMessage(data);
+                        } catch (error) {
+                            console.warn('EventBus: Error creating bubble from message:', error);
+                        }
+                    }
+                });
+                
+                // Avatar position change events
+                this.on('avatar:position-changed', (data) => {
+                    if (window.ChatBubbleSystem && window.ChatBubbleSystem.updateUserPosition) {
+                        try {
+                            window.ChatBubbleSystem.updateUserPosition(data.userId, data.position);
+                        } catch (error) {
+                            console.warn('EventBus: Error updating user position:', error);
+                        }
+                    }
+                });
+            }
+            
+            setDebugMode(enabled) {
+                this.debugMode = enabled;
+                console.log(`📡 EventBus debug mode: ${enabled ? 'ON' : 'OFF'}`);
+            }
+            
+            // Utility for waiting for specific events
+            waitForEvent(event, timeout = 5000) {
+                return new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        this.off(event, handler);
+                        reject(new Error(`Event '${event}' timeout after ${timeout}ms`));
+                    }, timeout);
+                    
+                    const handler = (data) => {
+                        clearTimeout(timeoutId);
+                        this.off(event, handler);
+                        resolve(data);
+                    };
+                    
+                    this.on(event, handler);
+                });
+            }
+        }
+
+        // Initialize global EventBus
+        window.EventBus = new EuphorieEventBus();
+    </script>
+
+    <!-- Fixed ChatBubbleSystem v4.0 -->
+    <script>
+        // ================================
+        // FIXED CHATBUBBLE SYSTEM v4.0 - COMPLETE SOLUTION
+        // ================================
+
+        class FixedChatBubbleSystem {
+            constructor() {
+                console.log('💬✨ ChatBubbleSystem v4.0 created with complete fixes');
+                
+                // Core properties
+                this.isInitialized = false;
+                this.bubbles = new Map();
+                this.bubblePool = [];
+                this.userBubbleCounts = new Map();
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                
+                // Performance tracking
+                this.performanceStats = {
+                    frameTime: 0,
+                    bubbleCount: 0,
+                    memoryUsage: 0,
+                    lastUpdate: Date.now()
+                };
+                
+                // CRITICAL FIX: Bind all methods to prevent context loss
+                this.init = this.init.bind(this);
+                this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
+                this.createBubble = this.createBubble.bind(this);
+                this.createTextTexture = this.createTextTexture.bind(this);
+                this.positionBubbleAboveAvatar = this.positionBubbleAboveAvatar.bind(this);
+                this.getAvatarPosition = this.getAvatarPosition.bind(this);
+                this.updateBubbles = this.updateBubbles.bind(this);
+                this.removeBubble = this.removeBubble.bind(this);
+                this.clearAllBubbles = this.clearAllBubbles.bind(this);
+                this.getActiveBubbleCount = this.getActiveBubbleCount.bind(this);
+                this.setDebugMode = this.setDebugMode.bind(this);
+                this.updateConfig = this.updateConfig.bind(this);
+                this.getPerformanceStats = this.getPerformanceStats.bind(this);
+                
+                // Configuration with sensible defaults
+                this.config = {
+                    maxBubbles: 25,
+                    maxBubblesPerUser: 3,
+                    fadeTime: 6000,
+                    fontSize: 18,
+                    maxWidth: 350,
+                    yOffset: 3.0,
+                    floatSpeed: 0.5,
+                    bobAmount: 0.3,
+                    scaleWithDistance: true,
+                    enableShadows: true,
+                    useAdvancedMaterials: true,
+                    avoidOverlap: true,
+                    cullingDistance: 100,
+                    lodDistance: 30,
+                    debugMode: false
+                };
+                
+                // Advanced positioning
+                this.stackPositions = new Map(); // Track vertical stacking per user
+                
+                console.log('💬 ChatBubbleSystem v4.0 initialized with advanced features');
+            }
+            
+            // CRITICAL FIX: Robust initialization with dependency waiting
+            async init() {
+                if (this.isInitialized) {
+                    console.log('✅ ChatBubbleSystem already initialized');
+                    return Promise.resolve();
+                }
+                
+                console.log('🚀 Initializing ChatBubbleSystem v4.0...');
+                
+                return new Promise((resolve, reject) => {
+                    let attempts = 0;
+                    const maxAttempts = 20;
+                    
+                    const checkDependencies = () => {
+                        attempts++;
+                        
+                        // Check for required dependencies
+                        const dependencies = {
+                            THREE: window.THREE,
+                            SceneManager: window.SceneManager?.scene,
+                            Camera: window.SceneManager?.camera || this.findCamera(),
+                            Renderer: window.SceneManager?.renderer || this.findRenderer()
+                        };
+                        
+                        const missing = Object.entries(dependencies)
+                            .filter(([name, obj]) => !obj)
+                            .map(([name]) => name);
+                        
+                        if (missing.length === 0) {
+                            // All dependencies available
+                            this.scene = dependencies.SceneManager;
+                            this.camera = dependencies.Camera;
+                            this.renderer = dependencies.Renderer;
+                            
+                            this.setupRenderLoop();
+                            this.setupEventListeners();
+                            this.isInitialized = true;
+                            
+                            console.log('✅ ChatBubbleSystem v4.0 fully initialized');
+                            resolve();
+                            
+                        } else if (attempts >= maxAttempts) {
+                            console.warn(`⚠️ ChatBubbleSystem timeout waiting for: ${missing.join(', ')}`);
+                            // Try to initialize with what we have
+                            this.initializeWithFallbacks();
+                            resolve();
+                            
+                        } else {
+                            if (this.config.debugMode) {
+                                console.log(`⏳ ChatBubbleSystem waiting for: ${missing.join(', ')} (${attempts}/${maxAttempts})`);
+                            }
+                            setTimeout(checkDependencies, 250);
+                        }
+                    };
+                    
+                    checkDependencies();
+                });
+            }
+            
+            // ENHANCED: Smart dependency finder with multiple fallbacks
+            findCamera() {
+                const candidates = [
+                    () => window.SceneManager?.camera,
+                    () => window.camera,
+                    () => document.querySelector('canvas')?.__camera,
+                    () => {
+                        // Search in global Three.js objects
+                        if (window.THREE) {
+                            for (const key in window) {
+                                const obj = window[key];
+                                if (obj instanceof window.THREE.Camera) {
+                                    return obj;
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                ];
+                
+                for (const candidate of candidates) {
+                    try {
+                        const camera = candidate();
+                        if (camera && camera.position) {
+                            return camera;
+                        }
+                    } catch (error) {
+                        // Silent fail, try next candidate
+                    }
+                }
+                return null;
+            }
+            
+            findRenderer() {
+                const candidates = [
+                    () => window.SceneManager?.renderer,
+                    () => window.renderer,
+                    () => document.querySelector('canvas')?.__renderer,
+                    () => {
+                        // Search for WebGL canvas
+                        const canvas = document.querySelector('canvas');
+                        if (canvas) {
+                            const context = canvas.getContext('webgl') || canvas.getContext('webgl2');
+                            return context ? { domElement: canvas } : null;
+                        }
+                        return null;
+                    }
+                ];
+                
+                for (const candidate of candidates) {
+                    try {
+                        const renderer = candidate();
+                        if (renderer) {
+                            return renderer;
+                        }
+                    } catch (error) {
+                        // Silent fail, try next candidate
+                    }
+                }
+                return null;
+            }
+            
+            initializeWithFallbacks() {
+                console.log('🔧 ChatBubbleSystem initializing with fallbacks...');
+                
+                this.scene = this.scene || this.findCamera()?.parent;
+                this.camera = this.camera || this.findCamera();
+                this.renderer = this.renderer || this.findRenderer();
+                
+                if (!this.scene && window.THREE) {
+                    console.log('🔧 Creating fallback scene');
+                    this.scene = new window.THREE.Scene();
+                }
+                
+                this.setupRenderLoop();
+                this.setupEventListeners();
+                this.isInitialized = true;
+                
+                console.log('✅ ChatBubbleSystem initialized with fallbacks');
+            }
+            
+            setupRenderLoop() {
+                // Integrate with existing render loop or create our own
+                if (window.SceneManager?.addUpdateCallback) {
+                    window.SceneManager.addUpdateCallback(this.updateBubbles);
+                } else {
+                    // Fallback: our own animation loop
+                    const animate = () => {
+                        this.updateBubbles();
+                        requestAnimationFrame(animate);
+                    };
+                    animate();
+                }
+            }
+            
+            setupEventListeners() {
+                // Listen for EventBus events
+                if (window.EventBus) {
+                    window.EventBus.on('chat_message', this.createBubbleFromMessage);
+                    window.EventBus.on('avatar:position-changed', (data) => {
+                        this.updateUserPosition(data.userId, data.position);
+                    });
+                }
+            }
+            
+            // MAIN METHOD: Create bubble from WebSocket message
+            createBubbleFromMessage(messageData) {
+                if (!this.isInitialized) {
+                    console.warn('ChatBubbleSystem not initialized yet');
+                    return null;
+                }
+                
+                if (!messageData || !messageData.message) {
+                    console.warn('Invalid message data for bubble creation');
+                    return null;
+                }
+                
+                const userId = messageData.userId || messageData.user_id || 'unknown';
+                const message = messageData.message;
+                const username = messageData.username || userId;
+                
+                if (this.config.debugMode) {
+                    console.log(`💬 Creating bubble for ${username}: "${message}"`);
+                }
+                
+                return this.createBubble(userId, message, username);
+            }
+            
+            // ENHANCED: Smart bubble creation with improved positioning
+            createBubble(userId, message, username = null) {
+                try {
+                    if (!this.scene || !window.THREE) {
+                        console.warn('Scene or THREE.js not available');
+                        return null;
+                    }
+                    
+                    // Check bubble limits
+                    if (this.bubbles.size >= this.config.maxBubbles) {
+                        this.removeOldestBubble();
+                    }
+                    
+                    const userBubbleCount = this.userBubbleCounts.get(userId) || 0;
+                    if (userBubbleCount >= this.config.maxBubblesPerUser) {
+                        this.removeOldestUserBubble(userId);
+                    }
+                    
+                    // CRITICAL FIX: Enhanced avatar position detection
+                    const avatarPosition = this.getAvatarPosition(userId);
+                    if (!avatarPosition) {
+                        console.warn(`No avatar position found for ${userId}, using fallback`);
+                    }
+                    
+                    // Create bubble geometry and material
+                    const bubble = this.createBubbleObject(message, username);
+                    if (!bubble) {
+                        console.warn('Failed to create bubble object');
+                        return null;
+                    }
+                    
+                    // ENHANCED: Smart positioning with stacking
+                    this.positionBubbleAboveAvatar(bubble, userId, avatarPosition);
+                    
+                    // Add to scene and tracking
+                    this.scene.add(bubble);
+                    
+                    const bubbleId = `bubble_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                    bubble.userData.id = bubbleId;
+                    bubble.userData.userId = userId;
+                    bubble.userData.createdAt = Date.now();
+                    bubble.userData.message = message;
+                    
+                    this.bubbles.set(bubbleId, bubble);
+                    this.userBubbleCounts.set(userId, (this.userBubbleCounts.get(userId) || 0) + 1);
+                    
+                    // Schedule removal
+                    setTimeout(() => {
+                        this.removeBubble(bubbleId);
+                    }, this.config.fadeTime);
+                    
+                    if (this.config.debugMode) {
+                        console.log(`✅ Bubble created: ${bubbleId}`);
+                    }
+                    
+                    return bubble;
+                    
+                } catch (error) {
+                    console.error('Error creating bubble:', error);
+                    return null;
+                }
+            }
+            
+            // ENHANCED: Beautiful bubble creation with glassmorphism effect
+            createBubbleObject(message, username) {
+                try {
+                    // Create text texture
+                    const texture = this.createTextTexture(message, username);
+                    if (!texture) return null;
+                    
+                    // Calculate dimensions
+                    const aspectRatio = texture.image.width / texture.image.height;
+                    const width = Math.min(this.config.maxWidth * 0.01, 4);
+                    const height = width / aspectRatio;
+                    
+                    // Create geometry
+                    const geometry = new THREE.PlaneGeometry(width, height);
+                    
+                    // ENHANCED: Beautiful glassmorphism material
+                    const material = new THREE.MeshBasicMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.95,
+                        side: THREE.DoubleSide,
+                        alphaTest: 0.01,
+                        depthWrite: false
+                    });
+                    
+                    const bubble = new THREE.Mesh(geometry, material);
+                    
+                    // Enhanced properties
+                    bubble.userData.originalOpacity = 0.95;
+                    bubble.userData.floatOffset = Math.random() * Math.PI * 2;
+                    bubble.userData.bobSpeed = 0.5 + Math.random() * 0.5;
+                    
+                    // ENHANCED: Entrance animation
+                    bubble.scale.setScalar(0.1);
+                    bubble.material.opacity = 0;
+                    
+                    // Smooth scale and fade in
+                    const animateIn = () => {
+                        const progress = Math.min((Date.now() - bubble.userData.createdAt) / 300, 1);
+                        const easeOut = 1 - Math.pow(1 - progress, 3);
+                        
+                        bubble.scale.setScalar(0.1 + easeOut * 0.9);
+                        bubble.material.opacity = easeOut * 0.95;
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateIn);
+                        }
+                    };
+                    
+                    bubble.userData.createdAt = Date.now();
+                    animateIn();
+                    
+                    return bubble;
+                    
+                } catch (error) {
+                    console.error('Error creating bubble object:', error);
+                    return null;
+                }
+            }
+            
+            // ENHANCED: Beautiful text rendering with glassmorphism effect
+            createTextTexture(message, username) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    // Enhanced text processing
+                    const displayText = username ? `${username}: ${message}` : message;
+                    const words = displayText.split(' ');
+                    const maxWidth = this.config.maxWidth;
+                    const fontSize = this.config.fontSize;
+                    const lineHeight = fontSize * 1.4;
+                    const padding = 20;
+                    
+                    // Set up font for measurement
+                    context.font = `${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+                    
+                    // Word wrap calculation
+                    const lines = [];
+                    let currentLine = '';
+                    
+                    for (const word of words) {
+                        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                        const metrics = context.measureText(testLine);
+                        
+                        if (metrics.width > maxWidth - padding * 2 && currentLine) {
+                            lines.push(currentLine);
+                            currentLine = word;
+                        } else {
+                            currentLine = testLine;
+                        }
+                    }
+                    if (currentLine) lines.push(currentLine);
+                    
+                    // Calculate canvas size
+                    const textWidth = Math.max(
+                        ...lines.map(line => context.measureText(line).width)
+                    );
+                    const canvasWidth = Math.min(textWidth + padding * 2, maxWidth);
+                    const canvasHeight = lines.length * lineHeight + padding * 2;
+                    
+                    // Set canvas size
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    
+                    // ENHANCED: Beautiful glassmorphism background
+                    const gradient = context.createLinearGradient(0, 0, 0, canvasHeight);
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+                    
+                    // Background with rounded corners
+                    context.fillStyle = gradient;
+                    this.roundRect(context, 0, 0, canvasWidth, canvasHeight, 15);
+                    context.fill();
+                    
+                    // Subtle border
+                    context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    context.lineWidth = 1;
+                    this.roundRect(context, 0.5, 0.5, canvasWidth - 1, canvasHeight - 1, 15);
+                    context.stroke();
+                    
+                    // Enhanced text rendering
+                    context.font = `${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    
+                    // Text shadow for depth
+                    context.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                    context.shadowBlur = 2;
+                    context.shadowOffsetY = 1;
+                    
+                    // Draw text
+                    context.fillStyle = '#FFFFFF';
+                    const startY = canvasHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
+                    
+                    lines.forEach((line, index) => {
+                        const y = startY + index * lineHeight;
+                        context.fillText(line, canvasWidth / 2, y);
+                    });
+                    
+                    // Create texture
+                    const texture = new THREE.CanvasTexture(canvas);
+                    texture.minFilter = THREE.LinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.format = THREE.RGBAFormat;
+                    
+                    return texture;
+                    
+                } catch (error) {
+                    console.error('Error creating text texture:', error);
+                    return null;
+                }
+            }
+            
+            // Utility for rounded rectangles
+            roundRect(ctx, x, y, width, height, radius) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+            }
+            
+            // CRITICAL FIX: Enhanced avatar position detection with multiple fallbacks
+            getAvatarPosition(userId) {
+                try {
+                    // Method 1: AvatarSystem integration
+                    if (window.AvatarSystem?.getAvatarPosition) {
+                        const position = window.AvatarSystem.getAvatarPosition(userId);
+                        if (position) {
+                            return position.clone();
+                        }
+                    }
+                    
+                    // Method 2: Direct avatar lookup in AvatarSystem
+                    if (window.AvatarSystem?.avatars?.has(userId)) {
+                        const avatar = window.AvatarSystem.avatars.get(userId);
+                        if (avatar?.group?.position) {
+                            return avatar.group.position.clone();
+                        }
+                    }
+                    
+                    // Method 3: Scene search by userData
+                    if (this.scene) {
+                        const avatar = this.scene.children.find(child => 
+                            child.userData?.userId === userId ||
+                            child.userData?.id === userId ||
+                            child.name === userId
+                        );
+                        if (avatar?.position) {
+                            return avatar.position.clone();
+                        }
+                    }
+                    
+                    // Method 4: Search in scene groups
+                    if (this.scene) {
+                        for (const child of this.scene.children) {
+                            if (child.isGroup || child.children.length > 0) {
+                                const avatar = child.children.find(subChild =>
+                                    subChild.userData?.userId === userId
+                                );
+                                if (avatar?.position) {
+                                    const worldPosition = new THREE.Vector3();
+                                    avatar.getWorldPosition(worldPosition);
+                                    return worldPosition;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Method 5: Intelligent fallback positions
+                    return this.getIntelligentFallbackPosition(userId);
+                    
+                } catch (error) {
+                    console.warn('Error getting avatar position:', error);
+                    return this.getIntelligentFallbackPosition(userId);
+                }
+            }
+            
+            // ENHANCED: Smart fallback positioning
+            getIntelligentFallbackPosition(userId) {
+                try {
+                    // Use camera position as reference
+                    if (this.camera?.position) {
+                        const cameraPos = this.camera.position;
+                        const offset = new THREE.Vector3(
+                            (Math.random() - 0.5) * 10,
+                            0,
+                            (Math.random() - 0.5) * 10
+                        );
+                        
+                        // Position in front of camera
+                        const direction = new THREE.Vector3(0, 0, -5);
+                        if (this.camera.getWorldDirection) {
+                            this.camera.getWorldDirection(direction);
+                            direction.multiplyScalar(-5);
+                        }
+                        
+                        return cameraPos.clone().add(direction).add(offset);
+                    }
+                    
+                    // Ultimate fallback: origin with user-based offset
+                    const userHash = this.hashUserId(userId);
+                    const angle = (userHash % 100) / 100 * Math.PI * 2;
+                    const radius = 5 + (userHash % 50) / 10;
+                    
+                    return new THREE.Vector3(
+                        Math.cos(angle) * radius,
+                        1,
+                        Math.sin(angle) * radius
+                    );
+                    
+                } catch (error) {
+                    console.warn('Fallback positioning failed:', error);
+                    return new THREE.Vector3(0, 1, 0);
+                }
+            }
+            
+            hashUserId(userId) {
+                let hash = 0;
+                for (let i = 0; i < userId.length; i++) {
+                    const char = userId.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32-bit integer
+                }
+                return Math.abs(hash);
+            }
+            
+            // ENHANCED: Smart bubble positioning with stacking and overlap avoidance
+            positionBubbleAboveAvatar(bubble, userId, avatarPosition) {
+                try {
+                    const basePosition = avatarPosition || this.getIntelligentFallbackPosition(userId);
+                    
+                    // Calculate stacking offset
+                    const userStack = this.stackPositions.get(userId) || 0;
+                    const yOffset = this.config.yOffset + (userStack * 0.8);
+                    
+                    // Set position
+                    bubble.position.copy(basePosition);
+                    bubble.position.y += yOffset;
+                    
+                    // Update stack tracking
+                    this.stackPositions.set(userId, userStack + 1);
+                    
+                    // Overlap avoidance
+                    if (this.config.avoidOverlap) {
+                        this.avoidBubbleOverlap(bubble, userId);
+                    }
+                    
+                    // Make bubble face camera
+                    if (this.camera) {
+                        bubble.lookAt(this.camera.position);
+                    }
+                    
+                    if (this.config.debugMode) {
+                        console.log(`📍 Bubble positioned for ${userId} at:`, bubble.position);
+                    }
+                    
+                } catch (error) {
+                    console.warn('Error positioning bubble:', error);
+                    // Fallback to basic positioning
+                    bubble.position.set(0, this.config.yOffset, 0);
+                }
+            }
+            
+            avoidBubbleOverlap(newBubble, userId) {
+                try {
+                    const newPos = newBubble.position;
+                    const minDistance = 1.5;
+                    
+                    for (const [id, existingBubble] of this.bubbles) {
+                        if (existingBubble.userData.userId === userId) continue;
+                        
+                        const existingPos = existingBubble.position;
+                        const distance = newPos.distanceTo(existingPos);
+                        
+                        if (distance < minDistance) {
+                            // Move bubble to avoid overlap
+                            const direction = newPos.clone().sub(existingPos).normalize();
+                            newPos.copy(existingPos).add(direction.multiplyScalar(minDistance));
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error in overlap avoidance:', error);
+                }
+            }
+            
+            // ENHANCED: Smooth bubble animation with performance optimization
+            updateBubbles() {
+                if (!this.isInitialized || this.bubbles.size === 0) return;
+                
+                try {
+                    const now = Date.now();
+                    const deltaTime = (now - this.performanceStats.lastUpdate) / 1000;
+                    this.performanceStats.lastUpdate = now;
+                    
+                    const bubblesToRemove = [];
+                    
+                    for (const [id, bubble] of this.bubbles) {
+                        try {
+                            // Check if bubble should be removed
+                            const age = now - bubble.userData.createdAt;
+                            if (age > this.config.fadeTime) {
+                                bubblesToRemove.push(id);
+                                continue;
+                            }
+                            
+                            // Performance: Skip updates for distant bubbles
+                            if (this.camera && this.config.cullingDistance > 0) {
+                                const distance = bubble.position.distanceTo(this.camera.position);
+                                if (distance > this.config.cullingDistance) {
+                                    bubble.visible = false;
+                                    continue;
+                                } else {
+                                    bubble.visible = true;
+                                }
+                            }
+                            
+                            // Floating animation
+                            if (this.config.floatSpeed > 0) {
+                                const time = now * 0.001;
+                                const offset = bubble.userData.floatOffset || 0;
+                                const bobSpeed = bubble.userData.bobSpeed || 1;
+                                
+                                const floatY = Math.sin(time * this.config.floatSpeed * bobSpeed + offset) * this.config.bobAmount;
+                                bubble.position.y += floatY * deltaTime;
+                            }
+                            
+                            // Fade out animation
+                            if (age > this.config.fadeTime - 1000) {
+                                const fadeProgress = (age - (this.config.fadeTime - 1000)) / 1000;
+                                const opacity = (1 - fadeProgress) * bubble.userData.originalOpacity;
+                                bubble.material.opacity = Math.max(0, opacity);
+                                
+                                // Scale down
+                                const scale = 1 - fadeProgress * 0.2;
+                                bubble.scale.setScalar(Math.max(0.1, scale));
+                            }
+                            
+                            // Always face camera
+                            if (this.camera && this.camera.position) {
+                                bubble.lookAt(this.camera.position);
+                            }
+                            
+                        } catch (error) {
+                            console.warn(`Error updating bubble ${id}:`, error);
+                            bubblesToRemove.push(id);
+                        }
+                    }
+                    
+                    // Remove expired bubbles
+                    bubblesToRemove.forEach(id => this.removeBubble(id));
+                    
+                    // Update performance stats
+                    this.performanceStats.bubbleCount = this.bubbles.size;
+                    this.performanceStats.frameTime = Date.now() - now;
+                    
+                } catch (error) {
+                    console.warn('Error in updateBubbles:', error);
+                }
+            }
+            
+            // ENHANCED: Clean bubble removal with stack management
+            removeBubble(bubbleId) {
+                try {
+                    const bubble = this.bubbles.get(bubbleId);
+                    if (!bubble) return;
+                    
+                    const userId = bubble.userData.userId;
+                    
+                    // Remove from scene
+                    if (this.scene && bubble.parent) {
+                        this.scene.remove(bubble);
+                    }
+                    
+                    // Dispose of resources
+                    if (bubble.geometry) bubble.geometry.dispose();
+                    if (bubble.material) {
+                        if (bubble.material.map) bubble.material.map.dispose();
+                        bubble.material.dispose();
+                    }
+                    
+                    // Update tracking
+                    this.bubbles.delete(bubbleId);
+                    
+                    if (userId) {
+                        const userCount = this.userBubbleCounts.get(userId) || 0;
+                        this.userBubbleCounts.set(userId, Math.max(0, userCount - 1));
+                        
+                        // Update stack positions
+                        const userStack = this.stackPositions.get(userId) || 0;
+                        this.stackPositions.set(userId, Math.max(0, userStack - 1));
+                    }
+                    
+                    if (this.config.debugMode) {
+                        console.log(`🗑️ Bubble removed: ${bubbleId}`);
+                    }
+                    
+                } catch (error) {
+                    console.warn('Error removing bubble:', error);
+                }
+            }
+            
+            removeOldestBubble() {
+                let oldestId = null;
+                let oldestTime = Infinity;
+                
+                for (const [id, bubble] of this.bubbles) {
+                    if (bubble.userData.createdAt < oldestTime) {
+                        oldestTime = bubble.userData.createdAt;
+                        oldestId = id;
+                    }
+                }
+                
+                if (oldestId) {
+                    this.removeBubble(oldestId);
+                }
+            }
+            
+            removeOldestUserBubble(userId) {
+                let oldestId = null;
+                let oldestTime = Infinity;
+                
+                for (const [id, bubble] of this.bubbles) {
+                    if (bubble.userData.userId === userId && bubble.userData.createdAt < oldestTime) {
+                        oldestTime = bubble.userData.createdAt;
+                        oldestId = id;
+                    }
+                }
+                
+                if (oldestId) {
+                    this.removeBubble(oldestId);
+                }
+            }
+            
+            clearAllBubbles() {
+                try {
+                    const bubbleIds = Array.from(this.bubbles.keys());
+                    bubbleIds.forEach(id => this.removeBubble(id));
+                    
+                    this.bubbles.clear();
+                    this.userBubbleCounts.clear();
+                    this.stackPositions.clear();
+                    
+                    console.log('🧹 All chat bubbles cleared');
+                } catch (error) {
+                    console.warn('Error clearing bubbles:', error);
+                }
+            }
+            
+            // Utility methods
+            getActiveBubbleCount() {
+                return this.bubbles.size;
+            }
+            
+            updateUserPosition(userId, position) {
+                try {
+                    // Update positions of all bubbles for this user
+                    for (const [id, bubble] of this.bubbles) {
+                        if (bubble.userData.userId === userId) {
+                            this.positionBubbleAboveAvatar(bubble, userId, position);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error updating user position:', error);
+                }
+            }
+            
+            setDebugMode(enabled) {
+                this.config.debugMode = enabled;
+                console.log(`💬 ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
+            }
+            
+            updateConfig(newConfig) {
+                this.config = { ...this.config, ...newConfig };
+                console.log('💬 ChatBubbleSystem config updated:', newConfig);
+            }
+            
+            getPerformanceStats() {
+                return {
+                    isInitialized: this.isInitialized,
+                    bubbleCount: this.bubbles.size,
+                    averageFrameTime: this.performanceStats.frameTime,
+                    memoryUsage: this.bubbles.size * 1024, // Rough estimate
+                    userCounts: Object.fromEntries(this.userBubbleCounts)
+                };
+            }
+        }
+
+        // Initialize global ChatBubbleSystem
+        window.ChatBubbleSystem = new FixedChatBubbleSystem();
+        console.log('💬✨ Fixed ChatBubbleSystem v4.0 loaded globally');
     </script>
 
     <!-- Enhanced WebSocket Manager - Improved Version -->
@@ -1609,15 +2571,15 @@
                 const isOwn = data.user_id === this.userId;
                 this.addMessageToChat(data.username, data.message, isOwn);
                 
-                // Create 3D chat bubble if enabled and system is available
-                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                // CRITICAL: Emit event for ChatBubbleSystem
+                if (window.EventBus) {
+                    window.EventBus.emit('chat_message', data);
+                }
+                
+                // Direct integration as fallback
+                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem?.createBubbleFromMessage) {
                     try {
-                        // Use the safe wrapper method
-                        if (window.ChatBubbleSystem.createBubbleFromMessageSafe) {
-                            window.ChatBubbleSystem.createBubbleFromMessageSafe(data);
-                        } else if (window.ChatBubbleSystem.createBubbleFromMessage) {
-                            window.ChatBubbleSystem.createBubbleFromMessage(data);
-                        }
+                        window.ChatBubbleSystem.createBubbleFromMessage(data);
                     } catch (error) {
                         console.warn('Error creating chat bubble:', error);
                     }
@@ -1943,188 +2905,504 @@
         window.WebSocketManager = null;
     </script>
 
-    <!-- Fixed Chat Bubble System Integration -->
+    <!-- Complete Integration Script -->
     <script>
-        // Clean integration setup that works with the fixed ChatBubbleSystem
-        function setupChatBubbleWebSocketIntegration() {
-            console.log('🔗 Setting up ChatBubble WebSocket integration...');
+        // Complete ChatBubble Integration Script
+        // Add this to your room.html AFTER all the existing scripts
+
+        // ================================
+        // CRITICAL INTEGRATION FIXES
+        // ================================
+
+        (function() {
+            'use strict';
             
-            let integrationAttempts = 0;
-            const maxAttempts = 10;
+            console.log('🔧 Starting complete ChatBubble integration...');
             
-            function attemptIntegration() {
-                integrationAttempts++;
-                
-                if (integrationAttempts > maxAttempts) {
-                    console.warn('❌ Max integration attempts reached');
-                    return;
-                }
-                
-                // Check if required systems are available
-                if (!window.WebSocketManager) {
-                    console.log(`🔗 Attempt ${integrationAttempts}: WebSocketManager not ready`);
-                    setTimeout(attemptIntegration, 500);
-                    return;
-                }
-                
-                if (!window.ChatBubbleSystem) {
-                    console.log(`🔗 Attempt ${integrationAttempts}: ChatBubbleSystem not ready`);
-                    setTimeout(attemptIntegration, 500);
-                    return;
-                }
-                
-                // Check if ChatBubbleSystem is initialized
-                if (!window.ChatBubbleSystem.isInitialized) {
-                    console.log(`🔗 Attempt ${integrationAttempts}: ChatBubbleSystem not initialized`);
-                    
-                    // Try to initialize it
-                    if (window.ChatBubbleSystem.init) {
-                        try {
-                            window.ChatBubbleSystem.init();
-                        } catch (error) {
-                            console.log('ChatBubbleSystem init in progress...');
+            // ================================
+            // 1. ENHANCED WEBSOCKET INTEGRATION
+            // ================================
+            
+            function enhanceWebSocketForBubbles() {
+                // Wait for WebSocketManager to be available
+                const checkWebSocket = () => {
+                    if (window.WebSocketManager || window.EuphorieWebSocketManager) {
+                        const wsManager = window.WebSocketManager || window.EuphorieWebSocketManager;
+                        
+                        // Enhanced message handling for chat bubbles
+                        const originalHandleChatMessage = wsManager.handleChatMessage;
+                        if (originalHandleChatMessage) {
+                            wsManager.handleChatMessage = function(data) {
+                                // Call original handler
+                                originalHandleChatMessage.call(this, data);
+                                
+                                // CRITICAL: Emit event for ChatBubbleSystem
+                                if (window.EventBus) {
+                                    window.EventBus.emit('chat_message', data);
+                                }
+                                
+                                // Direct integration as fallback
+                                if (window.ChatBubbleSystem?.createBubbleFromMessage) {
+                                    try {
+                                        window.ChatBubbleSystem.createBubbleFromMessage(data);
+                                    } catch (error) {
+                                        console.warn('Direct bubble creation failed:', error);
+                                    }
+                                }
+                            };
                         }
+                        
+                        console.log('✅ WebSocket enhanced for chat bubbles');
+                        return true;
                     }
-                    
-                    setTimeout(attemptIntegration, 500);
-                    return;
-                }
+                    return false;
+                };
                 
-                // Integration successful
-                console.log('✅ ChatBubble WebSocket integration completed');
-                
-                // Start periodic bubble count updates
-                setInterval(() => {
-                    try {
-                        if (window.WebSocketManager && window.WebSocketManager.updateBubbleCount) {
-                            window.WebSocketManager.updateBubbleCount();
+                // Try immediately, then with intervals
+                if (!checkWebSocket()) {
+                    const interval = setInterval(() => {
+                        if (checkWebSocket()) {
+                            clearInterval(interval);
                         }
-                    } catch (error) {
-                        console.warn('Error updating bubble count:', error);
-                    }
-                }, 5000);
+                    }, 500);
+                    
+                    // Stop trying after 10 seconds
+                    setTimeout(() => clearInterval(interval), 10000);
+                }
             }
             
-            // Start integration attempts
-            attemptIntegration();
-        }
-
-        // Initialize integration when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(setupChatBubbleWebSocketIntegration, 1000);
-        });
-    </script>
-
-    <!-- Initialize Everything -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize WebSocket connection
-            window.WebSocketManager = new EuphorieWebSocketManager();
+            // ================================
+            // 2. SCENE MANAGER INTEGRATION
+            // ================================
             
-            // Setup chat input handlers for both desktop and mobile
-            const setupChatHandlers = (inputId, btnId) => {
-                const chatInput = document.getElementById(inputId);
-                const sendBtn = document.getElementById(btnId);
+            function enhanceSceneManager() {
+                const checkSceneManager = () => {
+                    if (window.SceneManager && window.SceneManager.scene) {
+                        // Add camera utilities if missing
+                        if (!window.SceneManager.getCameraFrustum) {
+                            window.SceneManager.getCameraFrustum = function() {
+                                if (!this.camera) return null;
+                                
+                                const frustum = new THREE.Frustum();
+                                const matrix = new THREE.Matrix4().multiplyMatrices(
+                                    this.camera.projectionMatrix,
+                                    this.camera.matrixWorldInverse
+                                );
+                                frustum.setFromProjectionMatrix(matrix);
+                                return frustum;
+                            };
+                        }
+                        
+                        if (!window.SceneManager.isPositionVisible) {
+                            window.SceneManager.isPositionVisible = function(position, margin = 5) {
+                                const frustum = this.getCameraFrustum();
+                                if (!frustum) return true;
+                                
+                                const sphere = new THREE.Sphere(position, margin);
+                                return frustum.intersectsSphere(sphere);
+                            };
+                        }
+                        
+                        console.log('✅ SceneManager enhanced for chat bubbles');
+                        return true;
+                    }
+                    return false;
+                };
                 
-                if (chatInput && sendBtn) {
-                    let typingTimer;
-                    let isTyping = false;
+                if (!checkSceneManager()) {
+                    const interval = setInterval(() => {
+                        if (checkSceneManager()) {
+                            clearInterval(interval);
+                        }
+                    }, 300);
                     
-                    // Send message function
+                    setTimeout(() => clearInterval(interval), 8000);
+                }
+            }
+            
+            // ================================
+            // 3. AVATAR SYSTEM INTEGRATION
+            // ================================
+            
+            function enhanceAvatarSystem() {
+                const checkAvatarSystem = () => {
+                    if (window.AvatarSystem) {
+                        // Ensure required methods exist
+                        if (!window.AvatarSystem.getAvatarPosition) {
+                            window.AvatarSystem.getAvatarPosition = function(userId) {
+                                try {
+                                    if (this.avatars && this.avatars.has(userId)) {
+                                        const avatar = this.avatars.get(userId);
+                                        return avatar.group?.position?.clone() || null;
+                                    }
+                                    
+                                    // Fallback to scene search
+                                    if (window.SceneManager?.scene) {
+                                        const avatar = window.SceneManager.scene.children.find(child => 
+                                            child.userData?.userId === userId
+                                        );
+                                        return avatar?.position?.clone() || null;
+                                    }
+                                    
+                                    return null;
+                                } catch (error) {
+                                    console.warn('Error getting avatar position:', error);
+                                    return null;
+                                }
+                            };
+                        }
+                        
+                        if (!window.AvatarSystem.getAllAvatars) {
+                            window.AvatarSystem.getAllAvatars = function() {
+                                return this.avatars ? Array.from(this.avatars.values()) : [];
+                            };
+                        }
+                        
+                        // Enhanced position update with events
+                        const originalUpdatePosition = window.AvatarSystem.updateAvatarPosition;
+                        if (originalUpdatePosition && !window.AvatarSystem._enhancedForBubbles) {
+                            window.AvatarSystem.updateAvatarPosition = function(avatarId, position) {
+                                const result = originalUpdatePosition.call(this, avatarId, position);
+                                
+                                // Emit position change event
+                                if (window.EventBus) {
+                                    window.EventBus.emit('avatar:position-changed', {
+                                        userId: avatarId,
+                                        position: position
+                                    });
+                                }
+                                
+                                return result;
+                            };
+                            
+                            window.AvatarSystem._enhancedForBubbles = true;
+                        }
+                        
+                        console.log('✅ AvatarSystem enhanced for chat bubbles');
+                        return true;
+                    }
+                    return false;
+                };
+                
+                if (!checkAvatarSystem()) {
+                    const interval = setInterval(() => {
+                        if (checkAvatarSystem()) {
+                            clearInterval(interval);
+                        }
+                    }, 300);
+                    
+                    setTimeout(() => clearInterval(interval), 8000);
+                }
+            }
+            
+            // ================================
+            // 4. BUBBLE SYSTEM INITIALIZATION
+            // ================================
+            
+            function initializeBubbleSystem() {
+                let attempts = 0;
+                const maxAttempts = 20;
+                
+                const tryInitialize = () => {
+                    attempts++;
+                    
+                    if (attempts > maxAttempts) {
+                        console.warn('❌ ChatBubbleSystem initialization timeout');
+                        return;
+                    }
+                    
+                    // Check if all required systems are ready
+                    const required = {
+                        THREE: window.THREE,
+                        SceneManager: window.SceneManager?.scene,
+                        EventBus: window.EventBus,
+                        ChatBubbleSystem: window.ChatBubbleSystem
+                    };
+                    
+                    const missing = Object.entries(required)
+                        .filter(([name, obj]) => !obj)
+                        .map(([name]) => name);
+                    
+                    if (missing.length > 0) {
+                        console.log(`⏳ Waiting for: ${missing.join(', ')} (attempt ${attempts})`);
+                        setTimeout(tryInitialize, 500);
+                        return;
+                    }
+                    
+                    // Initialize ChatBubbleSystem
+                    if (!window.ChatBubbleSystem.isInitialized) {
+                        console.log('🚀 Initializing ChatBubbleSystem...');
+                        
+                        window.ChatBubbleSystem.init()
+                            .then(() => {
+                                console.log('✅ ChatBubbleSystem initialized successfully');
+                                
+                                // Test bubble creation
+                                setTimeout(() => {
+                                    createTestBubble();
+                                }, 2000);
+                            })
+                            .catch(error => {
+                                console.warn('⚠️ ChatBubbleSystem initialization failed:', error);
+                            });
+                    } else {
+                        console.log('✅ ChatBubbleSystem already initialized');
+                    }
+                };
+                
+                // Start initialization
+                setTimeout(tryInitialize, 1000);
+            }
+            
+            // ================================
+            // 5. TEST BUBBLE CREATION
+            // ================================
+            
+            function createTestBubble() {
+                if (!window.ROOM_CONFIG?.chatBubblesEnabled) return;
+                
+                try {
+                    const testMessage = {
+                        userId: 'system_test',
+                        username: 'System',
+                        message: '🎉 Chat bubbles are working perfectly!',
+                        timestamp: Date.now()
+                    };
+                    
+                    if (window.ChatBubbleSystem?.createBubbleFromMessage) {
+                        const bubble = window.ChatBubbleSystem.createBubbleFromMessage(testMessage);
+                        if (bubble) {
+                            console.log('🎉 Test bubble created successfully!');
+                            
+                            // Show success notification
+                            showIntegrationNotification('Chat bubbles initialized! 🎉', 'success');
+                        } else {
+                            console.warn('⚠️ Test bubble creation returned null');
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error creating test bubble:', error);
+                }
+            }
+            
+            // ================================
+            // 6. ENHANCED CHAT INPUT HANDLING
+            // ================================
+            
+            function enhanceChatInput() {
+                const setupInput = (inputId, btnId) => {
+                    const input = document.getElementById(inputId);
+                    const btn = document.getElementById(btnId);
+                    
+                    if (!input || !btn) return;
+                    
+                    // Enhanced send message function
                     const sendMessage = () => {
-                        const message = chatInput.value.trim();
-                        if (!message || !window.WebSocketManager.authenticated) return;
+                        const message = input.value.trim();
+                        if (!message) return;
                         
-                        window.WebSocketManager.sendChatMessage(message);
-                        chatInput.value = '';
+                        // Clear input
+                        input.value = '';
                         
-                        // Stop typing indicator
-                        if (isTyping) {
-                            window.WebSocketManager.sendTyping(false);
-                            isTyping = false;
+                        // Send via WebSocket if available
+                        if (window.WebSocketManager?.sendChatMessage) {
+                            window.WebSocketManager.sendChatMessage(message);
+                        } else {
+                            // Create bubble directly for testing
+                            const messageData = {
+                                userId: window.ROOM_CONFIG?.userId || 'user_' + Math.random().toString(36).substr(2, 9),
+                                username: window.ROOM_CONFIG?.username || 'You',
+                                message: message,
+                                timestamp: Date.now()
+                            };
+                            
+                            if (window.ChatBubbleSystem?.createBubbleFromMessage) {
+                                window.ChatBubbleSystem.createBubbleFromMessage(messageData);
+                            }
+                            
+                            // Also add to chat display
+                            if (window.WebSocketManager?.addMessageToChat) {
+                                window.WebSocketManager.addMessageToChat(messageData.username, messageData.message, true);
+                            }
                         }
                     };
                     
-                    // Typing indicator logic
-                    chatInput.addEventListener('input', () => {
-                        if (!isTyping && window.WebSocketManager.authenticated) {
-                            window.WebSocketManager.sendTyping(true);
-                            isTyping = true;
-                        }
-                        
-                        clearTimeout(typingTimer);
-                        typingTimer = setTimeout(() => {
-                            if (isTyping) {
-                                window.WebSocketManager.sendTyping(false);
-                                isTyping = false;
-                            }
-                        }, 2000);
-                    });
-                    
-                    // Send on Enter
-                    chatInput.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
+                    // Enhanced event listeners
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             sendMessage();
                         }
                     });
                     
-                    // Send on button click
-                    sendBtn.addEventListener('click', sendMessage);
-                }
-            };
+                    btn.addEventListener('click', sendMessage);
+                };
+                
+                // Setup both desktop and mobile inputs
+                setupInput('chat-input', 'send-btn');
+                setupInput('chat-input-mobile', 'send-btn-mobile');
+                
+                console.log('✅ Chat input enhanced');
+            }
             
-            // Setup for both desktop and mobile
-            setupChatHandlers('chat-input', 'send-btn');
-            setupChatHandlers('chat-input-mobile', 'send-btn-mobile');
+            // ================================
+            // 7. UTILITY FUNCTIONS
+            // ================================
             
-            // Setup bubble mode toggles
-            const setupBubbleToggle = (toggleId) => {
-                const toggle = document.getElementById(toggleId);
-                if (toggle) {
-                    toggle.addEventListener('click', () => {
-                        window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
-                        toggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
-                        toggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
-                        
-                        if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                            try {
-                                window.ChatBubbleSystem.clearAllBubbles();
-                            } catch (error) {
-                                console.warn('Error clearing bubbles:', error);
-                            }
+            function showIntegrationNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'success' ? 'linear-gradient(135deg, #4CAF50, #45a049)' : 
+                                 type === 'error' ? 'linear-gradient(135deg, #f44336, #d32f2f)' :
+                                 'linear-gradient(135deg, #2196F3, #1976D2)'};
+                    color: white;
+                    padding: 16px 24px;
+                    border-radius: 12px;
+                    z-index: 10000;
+                    max-width: 350px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    font-weight: 600;
+                    font-size: 14px;
+                    transform: translateX(400px);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                // Animate in
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                // Animate out
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(400px)';
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 400);
+                }, 4000);
+            }
+            
+            // ================================
+            // 8. GLOBAL STATUS MONITORING
+            // ================================
+            
+            function setupStatusMonitoring() {
+                // Update bubble count in status panel
+                const updateBubbleCount = () => {
+                    const bubbleCountElement = document.getElementById('bubble-count');
+                    if (bubbleCountElement && window.ChatBubbleSystem?.getActiveBubbleCount) {
+                        try {
+                            const count = window.ChatBubbleSystem.getActiveBubbleCount();
+                            bubbleCountElement.textContent = count;
+                        } catch (error) {
+                            bubbleCountElement.textContent = '0';
                         }
-                        
-                        console.log(`💬 Bubble mode: ${window.ROOM_CONFIG.chatBubblesEnabled ? 'enabled' : 'disabled'}`);
-                    });
-                }
+                    }
+                };
+                
+                // Update every 3 seconds
+                setInterval(updateBubbleCount, 3000);
+                
+                // Performance monitoring
+                const logPerformance = () => {
+                    if (window.ChatBubbleSystem?.getPerformanceStats) {
+                        try {
+                            const stats = window.ChatBubbleSystem.getPerformanceStats();
+                            console.log('💬 ChatBubble Performance:', {
+                                bubbles: stats.bubbleCount,
+                                avgFrameTime: stats.averageFrameTime?.toFixed(2) + 'ms',
+                                memoryUsage: (stats.memoryUsage / 1024).toFixed(1) + 'KB',
+                                isInitialized: stats.isInitialized
+                            });
+                        } catch (error) {
+                            console.warn('Error getting performance stats:', error);
+                        }
+                    }
+                };
+                
+                // Log performance every 30 seconds
+                setInterval(logPerformance, 30000);
+            }
+            
+            // ================================
+            // 9. MAIN INITIALIZATION SEQUENCE
+            // ================================
+            
+            function runCompleteIntegration() {
+                console.log('🔧 Running complete ChatBubble integration sequence...');
+                
+                // Step 1: Enhance core systems
+                enhanceWebSocketForBubbles();
+                enhanceSceneManager();
+                enhanceAvatarSystem();
+                
+                // Step 2: Initialize bubble system
+                initializeBubbleSystem();
+                
+                // Step 3: Enhance chat input
+                setTimeout(enhanceChatInput, 2000);
+                
+                // Step 4: Setup monitoring
+                setTimeout(setupStatusMonitoring, 3000);
+                
+                // Step 5: Final verification
+                setTimeout(() => {
+                    const systems = {
+                        EventBus: !!window.EventBus,
+                        SceneManager: !!(window.SceneManager?.scene),
+                        AvatarSystem: !!window.AvatarSystem,
+                        ChatBubbleSystem: !!(window.ChatBubbleSystem?.isInitialized),
+                        WebSocketManager: !!(window.WebSocketManager || window.EuphorieWebSocketManager)
+                    };
+                    
+                    const readySystems = Object.entries(systems).filter(([name, ready]) => ready);
+                    const notReadySystems = Object.entries(systems).filter(([name, ready]) => !ready);
+                    
+                    console.log('🎯 Integration Status:');
+                    console.log('✅ Ready:', readySystems.map(([name]) => name).join(', '));
+                    if (notReadySystems.length > 0) {
+                        console.log('⚠️ Not Ready:', notReadySystems.map(([name]) => name).join(', '));
+                    }
+                    
+                    if (systems.ChatBubbleSystem) {
+                        showIntegrationNotification('ChatBubble system fully integrated! 🚀', 'success');
+                    } else {
+                        showIntegrationNotification('ChatBubble integration incomplete ⚠️', 'error');
+                    }
+                }, 5000);
+            }
+            
+            // ================================
+            // AUTO-START INTEGRATION
+            // ================================
+            
+            // Start integration when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(runCompleteIntegration, 1000);
+                });
+            } else {
+                // DOM already ready
+                setTimeout(runCompleteIntegration, 1000);
+            }
+            
+            // Global access for debugging
+            window.EuphorieChatIntegration = {
+                runCompleteIntegration,
+                createTestBubble,
+                showIntegrationNotification,
+                enhanceWebSocketForBubbles,
+                enhanceSceneManager,
+                enhanceAvatarSystem,
+                initializeBubbleSystem
             };
             
-            setupBubbleToggle('bubble-mode-toggle');
-            setupBubbleToggle('bubble-mode-toggle-mobile');
+            console.log('🔧 Complete ChatBubble integration script loaded');
             
-            // Auto-connect WebSocket after short delay
-            setTimeout(() => {
-                if (window.WebSocketManager) {
-                    window.WebSocketManager.connect();
-                }
-            }, 1000);
-            
-            console.log('🚀 Chat system initialized');
-        });
-        
-        // Make WebSocket functions available globally
-        window.sendEmotion = function(emotion) {
-            if (window.WebSocketManager) {
-                window.WebSocketManager.sendEmotion(emotion);
-            }
-        };
-        
-        window.sendInteraction = function(type, targetId = null, data = null) {
-            if (window.WebSocketManager) {
-                window.WebSocketManager.sendInteraction(type, targetId, data);
-            }
-        };
+        })();
     </script>
 
     <!-- Enhanced Modular System - Fixed for ChatBubbleSystem -->
@@ -2171,7 +3449,7 @@
                     'room-core': '/static/js/room-core.js'
                 };
                 
-                // FIXED: Updated module objects to handle new ChatBubbleSystem pattern
+                // Updated module objects to handle new ChatBubbleSystem pattern
                 this.moduleObjects = {
                     'globals': () => window.Euphorie,
                     'event-bus': () => window.EventBus,
@@ -2190,21 +3468,18 @@
                 this.initializationCallbacks.set('chat-bubble-system', () => this.initializeChatBubbleSystem());
             }
             
-            // CRITICAL FIX: Smart ChatBubbleSystem instance getter
+            // Smart ChatBubbleSystem instance getter
             getChatBubbleSystemInstance() {
-                // Try multiple patterns to get the ChatBubbleSystem
-                
-                // 1. Try the singleton instance first
+                // Try the singleton instance first
                 if (window.ChatBubbleSystem && typeof window.ChatBubbleSystem.init === 'function') {
                     return window.ChatBubbleSystem;
                 }
                 
-                // 2. Try to get instance from class
+                // Try to get instance from class
                 if (window.ChatBubbleSystemClass && typeof window.ChatBubbleSystemClass.getInstance === 'function') {
                     try {
                         const instance = window.ChatBubbleSystemClass.getInstance();
                         if (instance) {
-                            // Also set it as the global instance for consistency
                             window.ChatBubbleSystem = instance;
                             return instance;
                         }
@@ -2213,12 +3488,11 @@
                     }
                 }
                 
-                // 3. Return null if nothing is available
                 console.warn('No ChatBubbleSystem implementation found');
                 return null;
             }
             
-            // CRITICAL FIX: Special initialization for ChatBubbleSystem
+            // Special initialization for ChatBubbleSystem
             async initializeChatBubbleSystem() {
                 console.log('🔧 Initializing ChatBubbleSystem...');
                 
@@ -2899,10 +4173,6 @@
             }
         }
 
-        // ================================
-        // GLOBAL INITIALIZATION
-        // ================================
-
         // Initialize modular system when DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
             // Small delay to let other systems initialize first
@@ -2911,6 +4181,118 @@
                 await initializer.initialize();
             }, 2000);
         });
+    </script>
+
+    <!-- Initialize Everything -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize WebSocket connection
+            window.WebSocketManager = new EuphorieWebSocketManager();
+            
+            // Setup chat input handlers for both desktop and mobile
+            const setupChatHandlers = (inputId, btnId) => {
+                const chatInput = document.getElementById(inputId);
+                const sendBtn = document.getElementById(btnId);
+                
+                if (chatInput && sendBtn) {
+                    let typingTimer;
+                    let isTyping = false;
+                    
+                    // Send message function
+                    const sendMessage = () => {
+                        const message = chatInput.value.trim();
+                        if (!message || !window.WebSocketManager.authenticated) return;
+                        
+                        window.WebSocketManager.sendChatMessage(message);
+                        chatInput.value = '';
+                        
+                        // Stop typing indicator
+                        if (isTyping) {
+                            window.WebSocketManager.sendTyping(false);
+                            isTyping = false;
+                        }
+                    };
+                    
+                    // Typing indicator logic
+                    chatInput.addEventListener('input', () => {
+                        if (!isTyping && window.WebSocketManager.authenticated) {
+                            window.WebSocketManager.sendTyping(true);
+                            isTyping = true;
+                        }
+                        
+                        clearTimeout(typingTimer);
+                        typingTimer = setTimeout(() => {
+                            if (isTyping) {
+                                window.WebSocketManager.sendTyping(false);
+                                isTyping = false;
+                            }
+                        }, 2000);
+                    });
+                    
+                    // Send on Enter
+                    chatInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            sendMessage();
+                        }
+                    });
+                    
+                    // Send on button click
+                    sendBtn.addEventListener('click', sendMessage);
+                }
+            };
+            
+            // Setup for both desktop and mobile
+            setupChatHandlers('chat-input', 'send-btn');
+            setupChatHandlers('chat-input-mobile', 'send-btn-mobile');
+            
+            // Setup bubble mode toggles
+            const setupBubbleToggle = (toggleId) => {
+                const toggle = document.getElementById(toggleId);
+                if (toggle) {
+                    toggle.addEventListener('click', () => {
+                        window.ROOM_CONFIG.chatBubblesEnabled = !window.ROOM_CONFIG.chatBubblesEnabled;
+                        toggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
+                        toggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
+                        
+                        if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                            try {
+                                window.ChatBubbleSystem.clearAllBubbles();
+                            } catch (error) {
+                                console.warn('Error clearing bubbles:', error);
+                            }
+                        }
+                        
+                        console.log(`💬 Bubble mode: ${window.ROOM_CONFIG.chatBubblesEnabled ? 'enabled' : 'disabled'}`);
+                    });
+                }
+            };
+            
+            setupBubbleToggle('bubble-mode-toggle');
+            setupBubbleToggle('bubble-mode-toggle-mobile');
+            
+            // Auto-connect WebSocket after short delay
+            setTimeout(() => {
+                if (window.WebSocketManager) {
+                    window.WebSocketManager.connect();
+                }
+            }, 1000);
+            
+            console.log('🚀 Chat system initialized');
+        });
+        
+        // Make WebSocket functions available globally
+        window.sendEmotion = function(emotion) {
+            if (window.WebSocketManager) {
+                window.WebSocketManager.sendEmotion(emotion);
+            }
+        };
+        
+        window.sendInteraction = function(type, targetId = null, data = null) {
+            if (window.WebSocketManager) {
+                window.WebSocketManager.sendInteraction(type, targetId, data);
+            }
+        };
 
         console.log('🎮 Euphorie 3D JavaScript system loaded and ready!');
     </script>

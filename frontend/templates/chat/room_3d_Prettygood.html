@@ -1403,9 +1403,17 @@
         </div>
     </div>
 
+
+
+
+    
     <!-- Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
+
+
+
+    <!-- Your existing JavaScript will be added back later -->
     <!-- Pass Django context to JavaScript -->
     <script>
         window.ROOM_CONFIG = {
@@ -1609,10 +1617,17 @@
                 this.addMessageToChat(data.username, data.message, isOwn);
                 
                 // Create 3D chat bubble if enabled and system is available
-                if (window.ROOM_CONFIG.chatBubblesEnabled && window.Enhanced3DChatBubbles) {
-                    window.Enhanced3DChatBubbles.createBubbleFromMessage(data);
-                } else if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                    window.ChatBubbleSystem.createBubbleFromMessage(data);
+                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                    try {
+                        // Use the safe wrapper method
+                        if (window.ChatBubbleSystem.createBubbleFromMessageSafe) {
+                            window.ChatBubbleSystem.createBubbleFromMessageSafe(data);
+                        } else if (window.ChatBubbleSystem.createBubbleFromMessage) {
+                            window.ChatBubbleSystem.createBubbleFromMessage(data);
+                        }
+                    } catch (error) {
+                        console.warn('Error creating chat bubble:', error);
+                    }
                 }
                 
                 // Update bubble count
@@ -1905,10 +1920,12 @@
             
             updateBubbleCount() {
                 let count = 0;
-                if (window.Enhanced3DChatBubbles && window.Enhanced3DChatBubbles.getActiveBubbleCount) {
-                    count = window.Enhanced3DChatBubbles.getActiveBubbleCount();
-                } else if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
-                    count = window.ChatBubbleSystem.getActiveBubbleCount();
+                if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
+                    try {
+                        count = window.ChatBubbleSystem.getActiveBubbleCount();
+                    } catch (error) {
+                        console.warn('Error getting bubble count:', error);
+                    }
                 }
                 
                 const bubbleCountElement = document.getElementById('bubble-count');
@@ -1933,206 +1950,76 @@
         window.WebSocketManager = null;
     </script>
 
-    <!-- Chat Bubble System Integration -->
+    <!-- Fixed Chat Bubble System Integration -->
     <script>
-        // Initialize chat bubble integration after external system loads
-        function initializeChatBubbleIntegration() {
-            // Check if external ChatBubbleSystem is available
-            if (window.ChatBubbleSystem) {
-                console.log('💬 External ChatBubbleSystem detected - integrating...');
-                
-                // Initialize missing properties for your external system
-                if (!window.ChatBubbleSystem.materialPool) {
-                    window.ChatBubbleSystem.materialPool = [];
-                }
-                
-                if (!window.ChatBubbleSystem.texturePool) {
-                    window.ChatBubbleSystem.texturePool = [];
-                }
-                
-                if (!window.ChatBubbleSystem.performance) {
-                    window.ChatBubbleSystem.performance = {
-                        frameTime: 0,
-                        bubbleCount: 0,
-                        renderCalls: 0,
-                        lastCleanup: Date.now()
-                    };
-                }
-                
-                if (!window.ChatBubbleSystem.animations) {
-                    window.ChatBubbleSystem.animations = {
-                        fadeIn: { duration: 300, easing: 'easeOutBack' },
-                        fadeOut: { duration: 500, easing: 'easeInQuart' },
-                        bounce: { duration: 400, easing: 'easeOutBounce' }
-                    };
-                }
-                
-                if (!window.ChatBubbleSystem.sounds) {
-                    window.ChatBubbleSystem.sounds = {};
-                }
-                
-                if (!window.ChatBubbleSystem.isMobile) {
-                    window.ChatBubbleSystem.isMobile = window.innerWidth <= 768;
-                }
-                
-                // Initialize the external system
-                if (typeof window.ChatBubbleSystem.init === 'function') {
-                    window.ChatBubbleSystem.init();
-                }
-                
-                // Set up WebSocket integration
-                setupChatBubbleWebSocketIntegration();
-                
-                console.log('✅ External ChatBubbleSystem integrated successfully');
-                return true;
-            }
-            
-            // Fallback: Create simple chat bubble system
-            console.log('💬 Creating fallback chat bubble system...');
-            createFallbackChatBubbleSystem();
-            return false;
-        }
-        
+        // Clean integration setup that works with the fixed ChatBubbleSystem
         function setupChatBubbleWebSocketIntegration() {
-            // Override the WebSocket chat message handler to integrate with external bubble system
-            if (window.WebSocketManager && window.ChatBubbleSystem) {
-                const originalHandleChatMessage = window.WebSocketManager.handleChatMessage;
+            console.log('🔗 Setting up ChatBubble WebSocket integration...');
+            
+            let integrationAttempts = 0;
+            const maxAttempts = 10;
+            
+            function attemptIntegration() {
+                integrationAttempts++;
                 
-                window.WebSocketManager.handleChatMessage = function(data) {
-                    // Call original handler for chat display
-                    originalHandleChatMessage.call(this, data);
+                if (integrationAttempts > maxAttempts) {
+                    console.warn('❌ Max integration attempts reached');
+                    return;
+                }
+                
+                // Check if required systems are available
+                if (!window.WebSocketManager) {
+                    console.log(`🔗 Attempt ${integrationAttempts}: WebSocketManager not ready`);
+                    setTimeout(attemptIntegration, 500);
+                    return;
+                }
+                
+                if (!window.ChatBubbleSystem) {
+                    console.log(`🔗 Attempt ${integrationAttempts}: ChatBubbleSystem not ready`);
+                    setTimeout(attemptIntegration, 500);
+                    return;
+                }
+                
+                // Check if ChatBubbleSystem is initialized
+                if (!window.ChatBubbleSystem.isInitialized) {
+                    console.log(`🔗 Attempt ${integrationAttempts}: ChatBubbleSystem not initialized`);
                     
-                    // Create 3D chat bubble if enabled
-                    if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                    // Try to initialize it
+                    if (window.ChatBubbleSystem.init) {
                         try {
-                            // Convert data format for external system
-                            const bubbleData = {
-                                message: data.message,
-                                username: data.username,
-                                userId: data.user_id,
-                                type: data.type || 'user'
-                            };
-                            
-                            window.ChatBubbleSystem.createBubbleFromMessage(bubbleData);
+                            window.ChatBubbleSystem.init();
                         } catch (error) {
-                            console.warn('Error creating chat bubble:', error);
+                            console.log('ChatBubbleSystem init in progress...');
                         }
                     }
                     
-                    // Update bubble count
-                    this.updateBubbleCount();
-                };
+                    setTimeout(attemptIntegration, 500);
+                    return;
+                }
                 
-                console.log('🔗 WebSocket integrated with ChatBubbleSystem');
-            }
-        }
-        
-        function createFallbackChatBubbleSystem() {
-            window.ChatBubbleSystem = {
-                bubbles: new Map(),
-                initialized: false,
+                // Integration successful
+                console.log('✅ ChatBubble WebSocket integration completed');
                 
-                init() {
-                    if (!window.THREE) {
-                        console.warn('Three.js not available for chat bubbles');
-                        return;
-                    }
-                    this.initialized = true;
-                    console.log('✅ Fallback chat bubble system initialized');
-                },
-                
-                createBubbleFromMessage(data) {
-                    if (!this.initialized || !window.scene) return;
-                    
+                // Start periodic bubble count updates
+                setInterval(() => {
                     try {
-                        const bubble = this.createSimpleBubble(data.message, data.username);
-                        if (bubble) {
-                            this.bubbles.set(bubble.id, bubble);
-                            window.scene.add(bubble.sprite);
-                            
-                            setTimeout(() => this.removeBubble(bubble.id), 5000);
-                            console.log(`💬 Created fallback bubble for ${data.username}`);
+                        if (window.WebSocketManager && window.WebSocketManager.updateBubbleCount) {
+                            window.WebSocketManager.updateBubbleCount();
                         }
                     } catch (error) {
-                        console.warn('Error creating fallback bubble:', error);
+                        console.warn('Error updating bubble count:', error);
                     }
-                },
-                
-                createSimpleBubble(text, username) {
-                    if (!window.THREE) return null;
-                    
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    canvas.width = 300;
-                    canvas.height = 80;
-                    
-                    // Background
-                    ctx.fillStyle = 'rgba(102, 126, 234, 0.9)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Text
-                    ctx.fillStyle = 'white';
-                    ctx.font = 'bold 12px Arial';
-                    ctx.fillText(username, 10, 20);
-                    ctx.font = '11px Arial';
-                    ctx.fillText(text, 10, 40);
-                    
-                    const texture = new THREE.CanvasTexture(canvas);
-                    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-                    const sprite = new THREE.Sprite(material);
-                    
-                    sprite.position.set(
-                        (Math.random() - 0.5) * 10,
-                        2 + Math.random() * 2,
-                        (Math.random() - 0.5) * 10
-                    );
-                    sprite.scale.set(1.5, 0.6, 1);
-                    
-                    return {
-                        id: 'fallback_' + Date.now(),
-                        sprite,
-                        material,
-                        texture
-                    };
-                },
-                
-                removeBubble(bubbleId) {
-                    const bubble = this.bubbles.get(bubbleId);
-                    if (!bubble) return;
-                    
-                    if (window.scene && bubble.sprite) {
-                        window.scene.remove(bubble.sprite);
-                    }
-                    
-                    if (bubble.texture) bubble.texture.dispose();
-                    if (bubble.material) bubble.material.dispose();
-                    
-                    this.bubbles.delete(bubbleId);
-                },
-                
-                getActiveBubbleCount() {
-                    return this.bubbles.size;
-                },
-                
-                clearAllBubbles() {
-                    for (const bubbleId of this.bubbles.keys()) {
-                        this.removeBubble(bubbleId);
-                    }
-                }
-            };
+                }, 5000);
+            }
             
-            // Initialize fallback system
-            window.ChatBubbleSystem.init();
-            
-            // Set up WebSocket integration with fallback
-            setupChatBubbleWebSocketIntegration();
+            // Start integration attempts
+            attemptIntegration();
         }
-        
-        // Try to initialize chat bubble integration after a delay
-        setTimeout(() => {
-            initializeChatBubbleIntegration();
-        }, 1000);
+
+        // Initialize integration when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(setupChatBubbleWebSocketIntegration, 1000);
+        });
     </script>
 
     <!-- Initialize Everything -->
@@ -2140,12 +2027,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize WebSocket connection
             window.WebSocketManager = new EuphorieWebSocketManager();
-            
-            // Initialize chat bubble system
-            if (window.Enhanced3DChatBubbles) {
-                window.Enhanced3DChatBubbles.init();
-                console.log('💬 Enhanced 3D Chat Bubbles initialized');
-            }
             
             // Setup chat input handlers for both desktop and mobile
             const setupChatHandlers = (inputId, btnId) => {
@@ -2213,8 +2094,12 @@
                         toggle.classList.toggle('active', window.ROOM_CONFIG.chatBubblesEnabled);
                         toggle.textContent = window.ROOM_CONFIG.chatBubblesEnabled ? '3D Bubbles' : 'Text Only';
                         
-                        if (!window.ROOM_CONFIG.chatBubblesEnabled && window.Enhanced3DChatBubbles) {
-                            window.Enhanced3DChatBubbles.clearAllBubbles();
+                        if (!window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                            try {
+                                window.ChatBubbleSystem.clearAllBubbles();
+                            } catch (error) {
+                                console.warn('Error clearing bubbles:', error);
+                            }
                         }
                         
                         console.log(`💬 Bubble mode: ${window.ROOM_CONFIG.chatBubblesEnabled ? 'enabled' : 'disabled'}`);
@@ -2249,17 +2134,14 @@
         };
     </script>
 
-    <!-- Keep your existing modular JavaScript system -->
+    <!-- Enhanced Modular System - Fixed for ChatBubbleSystem -->
     <script>
         // ================================
-        // EUPHORIE 3D MODULAR SYSTEM
+        // EUPHORIE 3D MODULAR SYSTEM - FIXED
         // Complete JavaScript Implementation
         // ================================
 
-        // ================================
-        // PHASE 1: MODULE DEPENDENCY MANAGEMENT
-        // ================================
-
+        // Fixed Module Loader for ChatBubbleSystem
         class EuphorieModuleLoader {
             constructor() {
                 this.loadedModules = new Set();
@@ -2287,7 +2169,7 @@
                     'event-bus': '/static/js/core/event-bus.js',
                     'scene-manager': '/static/js/systems/scene-manager.js',
                     'avatar-system': '/static/js/systems/avatar-system.js',
-                    'chat-bubble-system': '/static/js/systems/chat-bubble-system.js',
+                    'chat-bubble-system': '/static/js/systems/chat-bubble-system.js?v=' + Date.now(),
                     'interaction-system': '/static/js/systems/interaction-system.js',
                     'emotion-system': '/static/js/systems/emotion-system.js',
                     'pet-system': '/static/js/systems/pet-system.js',
@@ -2296,13 +2178,13 @@
                     'room-core': '/static/js/room-core.js'
                 };
                 
-                // Map modules to their global objects
+                // FIXED: Updated module objects to handle new ChatBubbleSystem pattern
                 this.moduleObjects = {
                     'globals': () => window.Euphorie,
                     'event-bus': () => window.EventBus,
                     'scene-manager': () => window.SceneManager,
                     'avatar-system': () => window.AvatarSystem,
-                    'chat-bubble-system': () => window.ChatBubbleSystem,
+                    'chat-bubble-system': () => this.getChatBubbleSystemInstance(),
                     'interaction-system': () => window.InteractionSystem,
                     'emotion-system': () => window.EmotionSystem,
                     'pet-system': () => window.PetSystem,
@@ -2310,6 +2192,96 @@
                     'advanced-scene-system': () => window.AdvancedSceneSystem,
                     'room-core': () => window.RoomCore
                 };
+                
+                // Special initialization handlers for complex modules
+                this.initializationCallbacks.set('chat-bubble-system', () => this.initializeChatBubbleSystem());
+            }
+            
+            // CRITICAL FIX: Smart ChatBubbleSystem instance getter
+            getChatBubbleSystemInstance() {
+                // Try multiple patterns to get the ChatBubbleSystem
+                
+                // 1. Try the singleton instance first
+                if (window.ChatBubbleSystem && typeof window.ChatBubbleSystem.init === 'function') {
+                    return window.ChatBubbleSystem;
+                }
+                
+                // 2. Try to get instance from class
+                if (window.ChatBubbleSystemClass && typeof window.ChatBubbleSystemClass.getInstance === 'function') {
+                    try {
+                        const instance = window.ChatBubbleSystemClass.getInstance();
+                        if (instance) {
+                            // Also set it as the global instance for consistency
+                            window.ChatBubbleSystem = instance;
+                            return instance;
+                        }
+                    } catch (error) {
+                        console.warn('Could not get ChatBubbleSystem instance from class:', error);
+                    }
+                }
+                
+                // 3. Return null if nothing is available
+                console.warn('No ChatBubbleSystem implementation found');
+                return null;
+            }
+            
+            // CRITICAL FIX: Special initialization for ChatBubbleSystem
+            async initializeChatBubbleSystem() {
+                console.log('🔧 Initializing ChatBubbleSystem...');
+                
+                try {
+                    const chatSystem = this.getChatBubbleSystemInstance();
+                    
+                    if (!chatSystem) {
+                        console.warn('ChatBubbleSystem not available for initialization');
+                        return;
+                    }
+                    
+                    // Check if already initialized
+                    if (chatSystem.isInitialized) {
+                        console.log('✅ ChatBubbleSystem already initialized');
+                        return;
+                    }
+                    
+                    // Try to initialize with proper error handling
+                    if (typeof chatSystem.init === 'function') {
+                        await this.safeInitialize(chatSystem, 'ChatBubbleSystem');
+                    } else if (typeof chatSystem.initSafe === 'function') {
+                        await this.safeInitialize(chatSystem, 'ChatBubbleSystem', 'initSafe');
+                    } else {
+                        console.warn('ChatBubbleSystem has no init method');
+                    }
+                    
+                } catch (error) {
+                    console.warn('Error initializing ChatBubbleSystem:', error);
+                }
+            }
+            
+            // Safe initialization wrapper
+            async safeInitialize(moduleObj, moduleName, methodName = 'init') {
+                return new Promise((resolve) => {
+                    try {
+                        const result = moduleObj[methodName]();
+                        
+                        // If it returns a promise, wait for it
+                        if (result && typeof result.then === 'function') {
+                            result.then(() => {
+                                console.log(`✅ ${moduleName} initialized successfully`);
+                                resolve();
+                            }).catch((error) => {
+                                console.warn(`⚠️ ${moduleName} initialization had issues:`, error);
+                                resolve(); // Still resolve to continue loading
+                            });
+                        } else {
+                            console.log(`✅ ${moduleName} initialized successfully`);
+                            resolve();
+                        }
+                        
+                    } catch (error) {
+                        console.warn(`⚠️ Could not initialize ${moduleName}:`, error);
+                        resolve(); // Still resolve to continue loading
+                    }
+                });
             }
             
             async loadModule(moduleName) {
@@ -2340,10 +2312,20 @@
                             return callback();
                         }
                     })
-                    .catch(() => {
-                        // If external file loading fails, continue without error
-                        console.warn(`⚠️ Could not load external module: ${moduleName}`);
-                        this.loadedModules.add(moduleName);
+                    .catch((error) => {
+                        // If external file loading fails, continue without error for most modules
+                        if (moduleName === 'chat-bubble-system') {
+                            console.warn(`⚠️ External ChatBubbleSystem failed to load, using embedded version`);
+                            // For chat-bubble-system, we have the embedded version in the HTML
+                            this.loadedModules.add(moduleName);
+                            const callback = this.initializationCallbacks.get(moduleName);
+                            if (callback) {
+                                return callback();
+                            }
+                        } else {
+                            console.warn(`⚠️ Could not load external module: ${moduleName}`);
+                            this.loadedModules.add(moduleName);
+                        }
                         return Promise.resolve();
                     });
                     
@@ -2354,7 +2336,7 @@
             loadScript(src) {
                 return new Promise((resolve, reject) => {
                     // Check if script already exists
-                    const existingScript = document.querySelector(`script[src="${src}"]`);
+                    const existingScript = document.querySelector(`script[src*="${src.split('?')[0]}"]`);
                     if (existingScript) {
                         resolve();
                         return;
@@ -2382,10 +2364,20 @@
                 }
                 
                 const moduleObj = moduleGetter();
-                if (moduleObj && typeof moduleObj.init === 'function') {
+                if (!moduleObj) {
+                    console.warn(`Module ${moduleName} not available`);
+                    return;
+                }
+                
+                // Special handling for ChatBubbleSystem
+                if (moduleName === 'chat-bubble-system') {
+                    // Already handled in initializeChatBubbleSystem
+                    return;
+                }
+                
+                if (typeof moduleObj.init === 'function') {
                     try {
-                        await moduleObj.init();
-                        console.log(`🔧 Initialized: ${moduleName}`);
+                        await this.safeInitialize(moduleObj, moduleName);
                     } catch (error) {
                         console.warn(`⚠️ Could not initialize ${moduleName}:`, error.message);
                     }
@@ -2417,6 +2409,7 @@
                 
                 console.log('🎉 All Euphorie modules initialized!');
                 this.updateLoadingStep('complete');
+                
                 return this;
             }
             
@@ -2482,7 +2475,7 @@
         }
 
         // ================================
-        // PHASE 2: GLOBAL FUNCTIONS & SYSTEM INTEGRATION
+        // GLOBAL FUNCTIONS & SYSTEM INTEGRATION
         // ================================
 
         class EuphorieGlobalFunctions {
@@ -2642,17 +2635,6 @@
             }
             
             showNotification(message) {
-                // Try to use RoomCore notification system first
-                const roomCore = this.loader.getModuleObject('room-core');
-                if (roomCore && roomCore.showNotification) {
-                    try {
-                        roomCore.showNotification(message);
-                        return;
-                    } catch (error) {
-                        // Fall back to manual notification
-                    }
-                }
-                
                 // Enhanced fallback notification system
                 const notification = document.createElement('div');
                 notification.style.cssText = `
@@ -2753,62 +2735,13 @@
         }
 
         // ================================
-        // PHASE 3: SYSTEM INTEGRATION WITH WEBSOCKET
-        // ================================
-
-        class EuphorieSystemIntegration {
-            constructor(loader) {
-                this.loader = loader;
-                this.setupIntegrations();
-            }
-            
-            setupIntegrations() {
-                // Integrate WebSocket with existing systems
-                if (window.WebSocketManager) {
-                    // Override emotion sending to integrate with existing emotion system
-                    const originalSendEmotion = window.sendEmotion;
-                    window.sendEmotion = (emotion) => {
-                        // Send via WebSocket
-                        if (originalSendEmotion) {
-                            originalSendEmotion(emotion);
-                        }
-                        
-                        // Also trigger local emotion system if available
-                        const emotionSystem = this.loader.getModuleObject('emotion-system');
-                        if (emotionSystem && emotionSystem.triggerLocalEmotion) {
-                            emotionSystem.triggerLocalEmotion(emotion);
-                        }
-                    };
-                    
-                    // Override interaction sending
-                    const originalSendInteraction = window.sendInteraction;
-                    window.sendInteraction = (type, targetId = null, data = null) => {
-                        // Send via WebSocket
-                        if (originalSendInteraction) {
-                            originalSendInteraction(type, targetId, data);
-                        }
-                        
-                        // Also trigger local interaction system if available
-                        const interactionSystem = this.loader.getModuleObject('interaction-system');
-                        if (interactionSystem && interactionSystem.triggerLocalInteraction) {
-                            interactionSystem.triggerLocalInteraction(type, targetId, data);
-                        }
-                    };
-                }
-                
-                console.log('🔗 System integrations configured');
-            }
-        }
-
-        // ================================
-        // PHASE 4: MAIN INITIALIZATION SYSTEM
+        // MAIN INITIALIZATION SYSTEM
         // ================================
 
         class EuphorieInitializer {
             constructor() {
                 this.loader = null;
                 this.globalFunctions = null;
-                this.systemIntegration = null;
                 this.isInitialized = false;
             }
             
@@ -2825,10 +2758,7 @@
                     // Step 2: Setup global functions
                     this.globalFunctions = new EuphorieGlobalFunctions(this.loader);
                     
-                    // Step 3: Setup system integrations
-                    this.systemIntegration = new EuphorieSystemIntegration(this.loader);
-                    
-                    // Step 4: Final setup
+                    // Step 3: Final setup
                     await this.finalSetup();
                     
                     this.isInitialized = true;
@@ -2924,13 +2854,9 @@
             }
             
             getActiveBubbleCount() {
-                if (window.Enhanced3DChatBubbles) {
-                    return window.Enhanced3DChatBubbles.getActiveBubbleCount();
-                }
-                const chatBubbleSystem = this.loader?.getModuleObject('chat-bubble-system');
-                if (chatBubbleSystem && chatBubbleSystem.getActiveBubbleCount) {
+                if (window.ChatBubbleSystem?.getActiveBubbleCount) {
                     try {
-                        return chatBubbleSystem.getActiveBubbleCount();
+                        return window.ChatBubbleSystem.getActiveBubbleCount();
                     } catch (error) {
                         return 0;
                     }
@@ -2984,9 +2910,6 @@
         // GLOBAL INITIALIZATION
         // ================================
 
-        // Create global loader instance
-        window.EuphorieLoader = new EuphorieModuleLoader();
-
         // Initialize modular system when DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
             // Small delay to let other systems initialize first
@@ -2996,16 +2919,9 @@
             }, 2000);
         });
 
-        // Also initialize if DOM is already loaded
-        if (document.readyState !== 'loading') {
-            setTimeout(async () => {
-                const initializer = new EuphorieInitializer();
-                await initializer.initialize();
-            }, 2000);
-        }
-
         console.log('🎮 Euphorie 3D JavaScript system loaded and ready!');
     </script>
+
 
 </body>
 </html>

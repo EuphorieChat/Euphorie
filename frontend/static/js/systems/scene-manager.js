@@ -1,4 +1,5 @@
 // Enhanced 3D Scene Manager - Integrated with Advanced Scene System
+// UPDATED: Complete ChatBubble Integration v4.0
 
 window.SceneManager = {
     scene: null,
@@ -99,7 +100,7 @@ window.SceneManager = {
     init: async function(containerId, scenePreset = 'modern_office') {
         if (this.isInitialized) return;
         
-        console.log('🎬 Initializing Enhanced Scene Manager');
+        console.log('🎬 Initializing Enhanced Scene Manager with ChatBubble Support');
         
         try {
             // Get container
@@ -158,9 +159,9 @@ window.SceneManager = {
             }
             
             this.isInitialized = true;
-            console.log('✅ Enhanced Scene Manager initialized');
+            console.log('✅ Enhanced Scene Manager initialized with ChatBubble support');
             
-            // Emit event
+            // CRITICAL: Emit event for ChatBubble system
             if (window.EventBus) {
                 window.EventBus.emit('scene:initialized', {
                     scene: this.scene,
@@ -526,30 +527,183 @@ window.SceneManager = {
         return this.scene.getObjectByName(name);
     },
     
+    // CRITICAL: ChatBubble system utilities
+    getCameraFrustum: function() {
+        if (!this.camera) return null;
+        
+        try {
+            const frustum = new THREE.Frustum();
+            const matrix = new THREE.Matrix4().multiplyMatrices(
+                this.camera.projectionMatrix,
+                this.camera.matrixWorldInverse
+            );
+            frustum.setFromProjectionMatrix(matrix);
+            return frustum;
+        } catch (error) {
+            console.warn('Error creating camera frustum:', error);
+            return null;
+        }
+    },
+    
+    // CRITICAL: Check if position is visible for ChatBubble culling
+    isPositionVisible: function(position, margin = 5) {
+        try {
+            const frustum = this.getCameraFrustum();
+            if (!frustum) return true; // If we can't determine, assume visible
+            
+            const sphere = new THREE.Sphere(position, margin);
+            return frustum.intersectsSphere(sphere);
+        } catch (error) {
+            console.warn('Error checking position visibility:', error);
+            return true; // If error, assume visible for safety
+        }
+    },
+    
+    // CRITICAL: Get distance from camera for ChatBubble LOD
+    getDistanceFromCamera: function(position) {
+        try {
+            if (!this.camera || !position) return 0;
+            return this.camera.position.distanceTo(position);
+        } catch (error) {
+            console.warn('Error calculating distance from camera:', error);
+            return 0;
+        }
+    },
+    
+    // Enhanced raycasting for object selection
+    raycastFromCamera: function(mousePosition, objects = null) {
+        try {
+            if (!this.camera) return [];
+            
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            
+            // Convert mouse position to normalized device coordinates
+            const rect = this.container.getBoundingClientRect();
+            mouse.x = ((mousePosition.x - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((mousePosition.y - rect.top) / rect.height) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, this.camera);
+            
+            const targetObjects = objects || this.scene.children;
+            return raycaster.intersectObjects(targetObjects, true);
+        } catch (error) {
+            console.warn('Error in raycasting:', error);
+            return [];
+        }
+    },
+    
     // Camera utilities
     getCameraPosition: function() {
-        return this.camera.position.clone();
+        return this.camera ? this.camera.position.clone() : new THREE.Vector3();
     },
     
     setCameraPosition: function(x, y, z) {
-        this.camera.position.set(x, y, z);
+        if (this.camera) {
+            this.camera.position.set(x, y, z);
+        }
     },
     
     focusOnObject: function(object, distance = 5) {
-        const objectPosition = object.position.clone();
-        const direction = this.camera.position.clone().sub(objectPosition).normalize();
-        this.camera.position.copy(objectPosition.add(direction.multiplyScalar(distance)));
-        this.camera.lookAt(objectPosition);
+        if (!this.camera || !object) return;
+        
+        try {
+            const objectPosition = object.position.clone();
+            const direction = this.camera.position.clone().sub(objectPosition).normalize();
+            this.camera.position.copy(objectPosition.add(direction.multiplyScalar(distance)));
+            this.camera.lookAt(objectPosition);
+        } catch (error) {
+            console.warn('Error focusing on object:', error);
+        }
+    },
+    
+    // Enhanced scene querying for ChatBubbles
+    findObjectsByType: function(type) {
+        const objects = [];
+        try {
+            this.scene.traverse(child => {
+                if (child.userData?.type === type) {
+                    objects.push(child);
+                }
+            });
+        } catch (error) {
+            console.warn('Error finding objects by type:', error);
+        }
+        return objects;
+    },
+    
+    findAvatars: function() {
+        return this.findObjectsByType('avatar');
+    },
+    
+    findChatBubbles: function() {
+        return this.findObjectsByType('chatBubble');
     },
     
     // Performance utilities
     getStats: function() {
-        return {
-            objects: this.scene.children.length,
-            triangles: this.renderer.info.render.triangles,
-            calls: this.renderer.info.render.calls,
-            memory: this.renderer.info.memory
-        };
+        try {
+            return {
+                objects: this.scene ? this.scene.children.length : 0,
+                triangles: this.renderer ? this.renderer.info.render.triangles : 0,
+                calls: this.renderer ? this.renderer.info.render.calls : 0,
+                memory: this.renderer ? this.renderer.info.memory : {},
+                isInitialized: this.isInitialized,
+                currentPreset: this.currentPreset
+            };
+        } catch (error) {
+            console.warn('Error getting scene stats:', error);
+            return {
+                objects: 0,
+                triangles: 0,
+                calls: 0,
+                memory: {},
+                isInitialized: this.isInitialized,
+                currentPreset: this.currentPreset
+            };
+        }
+    },
+    
+    // Enhanced lighting utilities
+    updateLighting: function(lightingConfig) {
+        try {
+            this.clearLights();
+            this.setupLighting(lightingConfig);
+            console.log('🔆 Lighting updated');
+        } catch (error) {
+            console.error('Error updating lighting:', error);
+        }
+    },
+    
+    // Scene optimization
+    optimizeScene: function() {
+        try {
+            let optimizations = 0;
+            
+            // Remove invisible objects
+            const objectsToRemove = [];
+            this.scene.traverse(child => {
+                if (child.visible === false && child.parent) {
+                    objectsToRemove.push(child);
+                }
+            });
+            
+            objectsToRemove.forEach(obj => {
+                this.scene.remove(obj);
+                optimizations++;
+            });
+            
+            // Force garbage collection of unused resources
+            if (this.renderer) {
+                this.renderer.renderLists.dispose();
+            }
+            
+            console.log(`🎯 Scene optimized: ${optimizations} objects removed`);
+            return optimizations;
+        } catch (error) {
+            console.warn('Error optimizing scene:', error);
+            return 0;
+        }
     },
     
     // Preset utilities
@@ -562,6 +716,100 @@ window.SceneManager = {
     },
     
     getPresetInfo: function(presetName) {
-        return this.presets[presetName];
+        return this.presets[presetName] || null;
+    },
+    
+    // Enhanced preset changing with smooth transitions
+    changePreset: function(presetName, animated = true) {
+        try {
+            if (!this.presets[presetName]) {
+                console.warn(`Unknown preset: ${presetName}`);
+                return false;
+            }
+            
+            if (animated) {
+                // Create transition effect first
+                this.createTransitionEffect(this.presets[presetName]);
+                
+                // Apply preset after short delay
+                setTimeout(() => {
+                    this.applyPreset(presetName);
+                }, 500);
+            } else {
+                this.applyPreset(presetName);
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error changing preset:', error);
+            return false;
+        }
+    },
+    
+    // Debugging utilities
+    debugScene: function() {
+        console.log('🎬 SceneManager Debug Info:');
+        console.log('- Initialized:', this.isInitialized);
+        console.log('- Current preset:', this.currentPreset);
+        console.log('- Objects in scene:', this.scene ? this.scene.children.length : 0);
+        console.log('- Camera position:', this.getCameraPosition());
+        console.log('- Renderer info:', this.getStats());
+        
+        if (this.scene) {
+            console.log('- Scene children:');
+            this.scene.children.forEach((child, index) => {
+                console.log(`  ${index}: ${child.name || child.type} (${child.constructor.name})`);
+            });
+        }
+        
+        return this.getStats();
+    },
+    
+    // Cleanup and disposal
+    dispose: function() {
+        try {
+            console.log('🧹 Disposing SceneManager...');
+            
+            // Remove event listeners
+            window.removeEventListener('resize', this.onWindowResize);
+            
+            // Dispose of all scene objects
+            if (this.scene) {
+                this.scene.traverse(child => {
+                    if (child.geometry) {
+                        child.geometry.dispose();
+                    }
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(material => material.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+                this.scene.clear();
+            }
+            
+            // Dispose renderer
+            if (this.renderer) {
+                this.renderer.dispose();
+                if (this.renderer.domElement && this.renderer.domElement.parentNode) {
+                    this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+                }
+            }
+            
+            // Clear references
+            this.scene = null;
+            this.camera = null;
+            this.renderer = null;
+            this.container = null;
+            this.isInitialized = false;
+            
+            console.log('✅ SceneManager disposed successfully');
+        } catch (error) {
+            console.error('Error disposing SceneManager:', error);
+        }
     }
 };
+
+console.log('🎬✨ Enhanced SceneManager with complete ChatBubble integration loaded');
