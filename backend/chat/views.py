@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
@@ -1182,12 +1183,6 @@ def explore_rooms(request):
     """Dedicated room exploration page with enhanced features"""
     # This is essentially the same as index but can be customized differently
     return index(request)
-
-from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import render
-from django.db.models import Count
-from datetime import datetime, timedelta
-from .models import Room, Message, User
 
 @staff_member_required
 def admin_dashboard(request):
