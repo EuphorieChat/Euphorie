@@ -1,0 +1,1608 @@
+{% extends "chat/base/base.html" %}
+{% load static %}
+
+{% block title %}Rooms Management - Euphorie{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Enhanced Room Management with modern improvements */
+  .rooms-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+
+  /* Improved Header Section */
+  .page-header {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 50%;
+    opacity: 0.1;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-20px, -20px) rotate(180deg); }
+  }
+
+  .header-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.025em;
+  }
+
+  .page-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+    font-weight: 400;
+  }
+
+  /* Ultra-Compact Stats Bar */
+  .stats-bar {
+    background: linear-gradient(135deg, var(--surface) 0%, #f8fafc 100%);
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .stat-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .stat-mini-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .stat-mini-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .stat-mini-value {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .stat-mini-label {
+    font-size: 0.625rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  .quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .quick-btn {
+    padding: 0.5rem 0.875rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .quick-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(244, 114, 182, 0.3);
+    color: white;
+    text-decoration: none;
+  }
+
+  .quick-btn.secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  .quick-btn.secondary:hover {
+    background: var(--surface-hover);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  /* Enhanced Search Section - More Compact */
+  .search-section {
+    background: var(--surface);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .search-form {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .search-group {
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 2.75rem;
+    border: 2px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all var(--duration-normal) var(--ease);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .search-input:hover {
+    border-color: var(--border-focus);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+    transition: color var(--duration-normal) var(--ease);
+    z-index: 1;
+  }
+
+  .search-input:focus ~ .search-icon {
+    color: var(--primary);
+  }
+
+  .category-select {
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    min-width: 160px;
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .category-select:hover {
+    border-color: var(--border-focus);
+  }
+
+  .category-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+  }
+
+  .search-btn {
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    font-size: 0.875rem;
+  }
+
+  .search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.4);
+  }
+
+  /* Enhanced Table Container - More Compact */
+  .table-container {
+    background: var(--surface);
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+  }
+
+  .table-header {
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, var(--surface-hover) 0%, #f1f5f9 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .table-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .table-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .view-toggle {
+    display: flex;
+    background: var(--border);
+    border-radius: 0.5rem;
+    padding: 0.125rem;
+  }
+
+  .toggle-btn {
+    padding: 0.375rem 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .toggle-btn.active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Enhanced Data Table */
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .data-table th {
+    font-weight: 700;
+    text-align: left;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, var(--surface-hover) 0%, #f1f5f9 100%);
+    color: var(--text-primary);
+    white-space: nowrap;
+    position: relative;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .data-table th::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transform: scaleX(0);
+    transition: transform var(--duration-normal) var(--ease);
+  }
+
+  .data-table:hover th::after {
+    transform: scaleX(1);
+  }
+
+  .data-table td {
+    padding: 1.5rem 2rem;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table tbody tr {
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .data-table tbody tr:hover {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
+    transform: scale(1.005);
+  }
+
+  .data-table tbody tr:hover td {
+    border-color: transparent;
+  }
+
+  /* Enhanced Room Name Links */
+  .room-name-link {
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    transition: all var(--duration-normal) var(--ease);
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+  }
+
+  .room-name-link:hover {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transform: translateX(6px);
+    text-decoration: none;
+  }
+
+  .room-name-link svg {
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  /* Enhanced User Avatars */
+  .user-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: all var(--duration-normal) var(--ease);
+    box-shadow: 0 4px 8px rgba(244, 114, 182, 0.2);
+  }
+
+  .data-table tr:hover .user-avatar {
+    transform: scale(1.15);
+    box-shadow: 0 6px 16px rgba(244, 114, 182, 0.4);
+  }
+
+  /* Enhanced Action Buttons */
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .action-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease-spring);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-3px) scale(1.1);
+  }
+
+  .action-btn:active {
+    transform: translateY(-1px) scale(1.05);
+  }
+
+  .action-btn.view {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #2563eb;
+  }
+
+  .action-btn.view:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+  }
+
+  .action-btn.clear {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #d97706;
+  }
+
+  .action-btn.clear:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: white;
+    box-shadow: 0 12px 24px rgba(217, 119, 6, 0.4);
+  }
+
+  .action-btn.delete {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #dc2626;
+  }
+
+  .action-btn.delete:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    box-shadow: 0 12px 24px rgba(220, 38, 38, 0.4);
+  }
+
+  .action-btn.export {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #059669;
+  }
+
+  .action-btn.export:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: white;
+    box-shadow: 0 12px 24px rgba(5, 150, 105, 0.4);
+  }
+
+  /* Enhanced Tooltips */
+  .action-btn .tooltip {
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #1f2937, #111827);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--duration-normal) var(--ease);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .action-btn .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #1f2937 transparent transparent transparent;
+  }
+
+  .action-btn:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
+  }
+
+  /* Enhanced Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    line-height: 1;
+    transition: all var(--duration-normal) var(--ease);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-primary {
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+    color: var(--primary);
+    border: 1px solid var(--primary);
+  }
+
+  .badge-success {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #059669;
+    border: 1px solid #059669;
+  }
+
+  .badge-inactive {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    color: #6b7280;
+    border: 1px solid #6b7280;
+  }
+
+  .data-table tr:hover .badge {
+    transform: scale(1.1);
+  }
+
+  /* Enhanced Mobile Cards */
+  .mobile-cards {
+    display: none;
+  }
+
+  .room-card {
+    background: linear-gradient(135deg, var(--surface) 0%, #f8fafc 100%);
+    border-radius: 1.5rem;
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: all var(--duration-normal) var(--ease);
+    position: relative;
+  }
+
+  .room-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
+    opacity: 0;
+    transition: opacity var(--duration-normal) var(--ease);
+  }
+
+  .room-card:hover::before {
+    opacity: 0.3;
+  }
+
+  .room-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(244, 114, 182, 0.2);
+    border-color: var(--primary);
+  }
+
+  .room-card__header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--surface-hover) 0%, #f1f5f9 100%);
+    position: relative;
+    z-index: 1;
+  }
+
+  .room-card__content {
+    padding: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .room-card__footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--surface-hover) 0%, #f8fafc 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Enhanced Pagination */
+  .pagination-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .pagination-info {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pagination-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0 0.75rem;
+    border-radius: 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .pagination-link:hover {
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    text-decoration: none;
+    color: var(--primary);
+    box-shadow: 0 4px 8px rgba(244, 114, 182, 0.2);
+  }
+
+  .pagination-item.active .pagination-link {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .pagination-item.disabled .pagination-link {
+    color: var(--text-tertiary);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .pagination-item.disabled .pagination-link:hover {
+    background: var(--surface);
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Enhanced Empty State */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .empty-state-icon {
+    width: 5rem;
+    height: 5rem;
+    color: var(--text-tertiary);
+    margin-bottom: 1.5rem;
+    transition: all var(--duration-normal) var(--ease);
+  }
+
+  .empty-state:hover .empty-state-icon {
+    color: var(--primary);
+    transform: scale(1.1);
+  }
+
+  .empty-state-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+  }
+
+  .empty-state-description {
+    color: var(--text-secondary);
+    max-width: 28rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  /* Enhanced Create Button */
+  .create-room-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
+    transition: all var(--duration-normal) var(--ease-spring);
+    z-index: 100;
+    text-decoration: none;
+  }
+
+  .create-room-btn:hover {
+    transform: translateY(-4px) scale(1.1);
+    box-shadow: 0 12px 30px rgba(244, 114, 182, 0.5);
+    color: white;
+    text-decoration: none;
+  }
+
+  /* CSS Variables for theming - add these if not already defined */
+  :root {
+    --primary: #f472b6;
+    --primary-light: #fce7f3;
+    --secondary: #ec4899;
+    --secondary-light: #fdf2f8;
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+    --border: #e2e8f0;
+    --border-focus: #cbd5e1;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-tertiary: #94a3b8;
+    --duration-normal: 0.2s;
+    --ease: ease-out;
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* Responsive Design - Ultra Compact Mobile */
+  @media (max-width: 1024px) {
+    .search-form {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .search-btn {
+      justify-content: center;
+    }
+
+    .table-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .table-meta {
+      order: -1;
+    }
+
+    .stats-row {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .quick-actions {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .rooms-container {
+      padding: 1rem;
+    }
+
+    .page-header {
+      padding: 1.5rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .stats-row > .flex {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      width: 100%;
+    }
+
+    .stat-mini {
+      justify-content: center;
+      text-align: center;
+    }
+
+    .stat-mini-content {
+      align-items: center;
+    }
+
+    .table-container .desktop-table {
+      display: none;
+    }
+
+    .mobile-cards {
+      display: block;
+    }
+
+    .create-room-btn {
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 3.5rem;
+      height: 3.5rem;
+    }
+
+    .search-section {
+      padding: 1rem;
+    }
+
+    .table-header {
+      padding: 1rem;
+    }
+
+    .stats-bar {
+      padding: 1rem;
+    }
+  }
+
+  /* Utility classes */
+  .flex {
+    display: flex;
+  }
+
+  .flex-col {
+    flex-direction: column;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .justify-between {
+    justify-content: space-between;
+  }
+
+  .justify-center {
+    justify-content: center;
+  }
+
+  .gap-4 {
+    gap: 1rem;
+  }
+
+  .gap-6 {
+    gap: 1.5rem;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .text-sm {
+    font-size: 0.875rem;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
+  .text-lg {
+    font-size: 1.125rem;
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .font-bold {
+    font-weight: 700;
+  }
+
+  .w-3 {
+    width: 0.75rem;
+  }
+
+  .w-4 {
+    width: 1rem;
+  }
+
+  .w-5 {
+    width: 1.25rem;
+  }
+
+  .w-6 {
+    width: 1.5rem;
+  }
+
+  .w-8 {
+    width: 2rem;
+  }
+
+  .h-3 {
+    height: 0.75rem;
+  }
+
+  .h-4 {
+    height: 1rem;
+  }
+
+  .h-5 {
+    height: 1.25rem;
+  }
+
+  .h-6 {
+    height: 1.5rem;
+  }
+
+  .h-8 {
+    height: 2rem;
+  }
+
+  .mr-2 {
+    margin-right: 0.5rem;
+  }
+
+  .mr-3 {
+    margin-right: 0.75rem;
+  }
+
+  .ml-1 {
+    margin-left: 0.25rem;
+  }
+
+  .mb-3 {
+    margin-bottom: 0.75rem;
+  }
+
+  .grid {
+    display: grid;
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .lg\\:flex-row {
+      flex-direction: row;
+    }
+
+    .lg\\:items-center {
+      align-items: center;
+    }
+
+    .lg\\:justify-between {
+      justify-content: space-between;
+    }
+
+    .lg\\:block {
+      display: block;
+    }
+
+    .lg\\:hidden {
+      display: none;
+    }
+  }
+
+  /* Button styles */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--duration-normal) var(--ease);
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.4);
+    color: white;
+    text-decoration: none;
+  }
+
+  /* Color utilities */
+  .text-gray-400 {
+    color: #9ca3af;
+  }
+
+  .text-gray-500 {
+    color: #6b7280;
+  }
+
+  .text-gray-600 {
+    color: #4b5563;
+  }
+
+  .text-gray-700 {
+    color: #374151;
+  }
+
+  .text-pink-400 {
+    color: #f472b6;
+  }
+
+  .text-pink-600 {
+    color: #db2777;
+  }
+
+  .hover\\:text-pink-800:hover {
+    color: #9d174d;
+  }
+
+  /* Animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in {
+    opacity: 0;
+    animation: fadeInUp 0.6s var(--ease) forwards;
+  }
+
+  .fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .fade-in:nth-child(3) { animation-delay: 0.3s; }
+  .fade-in:nth-child(4) { animation-delay: 0.4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rooms-container">
+  <!-- Enhanced Header -->
+  <header class="page-header fade-in">
+    <div class="header-content">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 class="page-title">Rooms Management</h1>
+          <p class="page-subtitle">Manage and monitor all chat rooms on the platform</p>
+        </div>
+        <div class="hidden lg:block">
+          <a href="{% url 'create_room' %}" class="btn btn-primary inline-flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create New Room
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ultra-Compact Stats Bar -->
+  <div class="stats-bar fade-in">
+    <div class="stats-row">
+      <div class="flex items-center gap-6">
+        <div class="stat-mini">
+          <div class="stat-mini-icon">🏠</div>
+          <div class="stat-mini-content">
+            <div class="stat-mini-value">{{ total_rooms|default:"0" }}</div>
+            <div class="stat-mini-label">Total Rooms</div>
+          </div>
+        </div>
+        
+        <div class="stat-mini">
+          <div class="stat-mini-icon">✅</div>
+          <div class="stat-mini-content">
+            <div class="stat-mini-value">{% if active_rooms.count %}{{ active_rooms.count }}{% else %}{{ active_rooms|default:"0" }}{% endif %}</div>
+            <div class="stat-mini-label">Active</div>
+          </div>
+        </div>
+        
+        <div class="stat-mini">
+          <div class="stat-mini-icon">⭐</div>
+          <div class="stat-mini-content">
+            <div class="stat-mini-value">{{ most_popular_room|default:"None"|truncatechars:8 }}</div>
+            <div class="stat-mini-label">Most Popular</div>
+          </div>
+        </div>
+        
+        <div class="stat-mini">
+          <div class="stat-mini-icon">💬</div>
+          <div class="stat-mini-content">
+            <div class="stat-mini-value">{{ total_messages|default:"0" }}</div>
+            <div class="stat-mini-label">Messages</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <a href="{% url 'create_room' %}" class="quick-btn">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+          </svg>
+          New Room
+        </a>
+        <button class="quick-btn secondary" onclick="window.location.reload()">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compact Search Section -->
+  <div class="search-section fade-in">
+    <form method="get" action="{% url 'admin_rooms' %}" class="search-form">
+      <div class="search-group">
+        <div class="relative">
+          <input
+            type="search"
+            id="search"
+            name="search"
+            value="{{ search_query }}"
+            placeholder="Search rooms, creators, descriptions..."
+            class="search-input"
+          >
+          <div class="search-icon">
+            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <select name="category" id="category" class="category-select">
+        <option value="">All Categories</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>
+          {{ category.name }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="search-btn">
+        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        Search
+      </button>
+    </form>
+  </div>
+
+  <!-- Enhanced Table Container -->
+  <div class="table-container fade-in">
+    <div class="table-header">
+      <div>
+        <h2 class="table-title">Rooms Directory</h2>
+        <div class="table-meta">
+          <span>{{ page_obj.paginator.count|default:"0" }} total rooms</span>
+          {% if search_query %}<span>• Filtered results</span>{% endif %}
+        </div>
+      </div>
+      <div class="view-toggle">
+        <button class="toggle-btn active" id="table-view">📊 Table</button>
+        <button class="toggle-btn" id="card-view">📱 Cards</button>
+      </div>
+    </div>
+
+    <!-- Desktop Table View -->
+    <div class="desktop-table">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Room Details</th>
+            <th>Creator</th>
+            <th class="text-center">Category</th>
+            <th class="text-center">Created</th>
+            <th class="text-center">Messages</th>
+            <th class="text-center">Status</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for room in page_obj %}
+          <tr>
+            <td>
+              <a href="{% url 'admin_room_detail' room_name=room.name %}" class="room-name-link">
+                {% if room.is_private %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                {% endif %}
+                <span>{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}</span>
+              </a>
+            </td>
+            <td>
+              <div class="flex items-center">
+                <div class="user-avatar mr-3">
+                  {{ room.creator.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <div class="font-medium">{{ room.creator.username }}</div>
+                  <div class="text-sm text-gray-500">{{ room.creator.get_full_name|default:"" }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-center">
+              {% if room.category %}
+              <span class="badge badge-primary">
+                {{ room.category.name }}
+              </span>
+              {% else %}
+              <span class="text-gray-400 text-xs">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="text-sm font-medium">{{ room.created_at|date:"M d, Y" }}</div>
+              <div class="text-xs text-gray-500">{{ room.created_at|date:"g:i A" }}</div>
+            </td>
+            <td class="text-center">
+              <span class="font-bold text-lg">{{ room.messages_count|default:"0" }}</span>
+            </td>
+            <td class="text-center">
+              <span class="badge {% if room.is_active %}badge-success{% else %}badge-inactive{% endif %}">
+                {% if room.is_active %}Active{% else %}Inactive{% endif %}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <a href="{% url 'admin_room_detail' room_name=room.name %}" class="action-btn view">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span class="tooltip">View Room</span>
+                </a>
+                <a href="{% url 'admin_clear_room' room_name=room.name %}" class="action-btn clear clear-room-btn" data-room-name="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span class="tooltip">Clear Messages</span>
+                </a>
+                <a href="{% url 'admin_delete_room' room_name=room.name %}" class="action-btn delete delete-room-btn" data-room-name="{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span class="tooltip">Delete Room</span>
+                </a>
+                <a href="{% url 'admin_export_chat' room_name=room.name %}" class="action-btn export">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span class="tooltip">Export Chat</span>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h3 class="empty-state-title">No rooms found</h3>
+                <p class="empty-state-description">
+                  {% if search_query %}
+                    No rooms match your search criteria. Try adjusting your search terms or clearing the filters.
+                  {% else %}
+                    There are no rooms created yet. Be the first to create a room and start conversations!
+                  {% endif %}
+                </p>
+                {% if search_query %}
+                <a href="{% url 'admin_rooms' %}" class="btn btn-primary">Clear Search</a>
+                {% else %}
+                <a href="{% url 'create_room' %}" class="btn btn-primary">Create First Room</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards">
+      {% for room in page_obj %}
+      <div class="room-card">
+        <div class="room-card__header">
+          <div class="flex justify-between items-start mb-3">
+            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="room-name-link text-lg">
+              {% if room.is_private %}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              {% endif %}
+              <span>{% if room.display_name %}{{ room.display_name }}{% else %}{{ room.name }}{% endif %}</span>
+            </a>
+            <span class="badge {% if room.is_active %}badge-success{% else %}badge-inactive{% endif %}">
+              {% if room.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="flex items-center">
+              <div class="user-avatar mr-2 w-8 h-8 text-sm">
+                {{ room.creator.username|slice:":1"|upper }}
+              </div>
+              <span class="text-sm text-gray-600">{{ room.creator.username }}</span>
+            </div>
+            <div class="text-xs text-gray-500">
+              {{ room.created_at|date:"M d, Y" }}
+            </div>
+          </div>
+        </div>
+
+        <div class="room-card__content">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              <span class="text-gray-700 font-medium">{{ room.messages_count|default:"0" }}</span>
+              <span class="text-gray-500 ml-1 text-sm">messages</span>
+            </div>
+            <div class="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              {% if room.category %}
+              <span class="badge badge-primary text-xs">{{ room.category.name }}</span>
+              {% else %}
+              <span class="text-gray-400 text-sm">No category</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="room-card__footer">
+          <a href="{% url 'admin_room_detail' room_name=room.name %}" class="text-pink-600 hover:text-pink-800 font-medium text-sm">
+            View Details →
+          </a>
+          <div class="action-buttons">
+            <a href="{% url 'admin_room_detail' room_name=room.name %}" class="action-btn view">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </li>
+          {% else %}
+          <li class="pagination-item disabled">
+            <span class="pagination-link" aria-disabled="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Floating Create Button (Mobile) -->
+<a href="{% url 'create_room' %}" class="create-room-btn lg:hidden">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+  </svg>
+</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced confirmation dialogs
+    const clearRoomBtns = document.querySelectorAll('.clear-room-btn');
+    const deleteRoomBtns = document.querySelectorAll('.delete-room-btn');
+
+    clearRoomBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const roomName = this.getAttribute('data-room-name');
+            
+            // Create custom confirmation dialog
+            const confirmed = confirm(
+                `⚠️ Clear Messages from "${roomName}"?\n\n` +
+                `This will permanently delete ALL messages in this room.\n` +
+                `This action cannot be undone.\n\n` +
+                `Are you absolutely sure?`
+            );
+            
+            if (confirmed) {
+                // Add loading state
+                this.style.opacity = '0.5';
+                this.style.pointerEvents = 'none';
+                window.location.href = this.href;
+            }
+        });
+    });
+
+    deleteRoomBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const roomName = this.getAttribute('data-room-name');
+            
+            const confirmed = confirm(
+                `🗑️ Delete Room "${roomName}"?\n\n` +
+                `This will permanently delete:\n` +
+                `• The entire room\n` +
+                `• All messages and chat history\n` +
+                `• All room settings and data\n\n` +
+                `⚠️ THIS CANNOT BE UNDONE!\n\n` +
+                `Type "DELETE" to confirm deletion.`
+            );
+            
+            if (confirmed) {
+                const verification = prompt(`To confirm deletion, type "DELETE" (all caps):`);
+                if (verification === 'DELETE') {
+                    this.style.opacity = '0.5';
+                    this.style.pointerEvents = 'none';
+                    window.location.href = this.href;
+                } else {
+                    alert('Deletion cancelled - verification text did not match.');
+                }
+            }
+        });
+    });
+
+    // Enhanced search functionality
+    const searchInput = document.getElementById('search');
+    const categorySelect = document.getElementById('category');
+    
+    // Auto-submit on category change
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            this.closest('form').submit();
+        });
+    }
+
+    // Search suggestions (could be enhanced with AJAX)
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            // Could add live search suggestions here
+        });
+    }
+
+    // View toggle functionality
+    const tableViewBtn = document.getElementById('table-view');
+    const cardViewBtn = document.getElementById('card-view');
+    const desktopTable = document.querySelector('.desktop-table');
+    const mobileCards = document.querySelector('.mobile-cards');
+
+    if (tableViewBtn && cardViewBtn) {
+        tableViewBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            cardViewBtn.classList.remove('active');
+            desktopTable.style.display = 'block';
+            mobileCards.style.display = 'none';
+            localStorage.setItem('roomsView', 'table');
+        });
+
+        cardViewBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            tableViewBtn.classList.remove('active');
+            desktopTable.style.display = 'none';
+            mobileCards.style.display = 'block';
+            localStorage.setItem('roomsView', 'cards');
+        });
+
+        // Restore saved view preference
+        const savedView = localStorage.getItem('roomsView');
+        if (savedView === 'cards') {
+            cardViewBtn.click();
+        }
+    }
+
+    // Enhanced animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // Observe all fade-in elements
+    document.querySelectorAll('.fade-in').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Smooth scrolling for pagination
+    document.querySelectorAll('.pagination-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (this.href && !this.href.includes('#')) {
+                // Add loading state for pagination
+                this.style.opacity = '0.7';
+                this.innerHTML = '<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            }
+        });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + K for search focus
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            searchInput?.focus();
+        }
+        
+        // Ctrl/Cmd + N for new room
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            window.location.href = "{% url 'create_room' %}";
+        }
+    });
+
+    // Enhanced table row interactions
+    document.querySelectorAll('.data-table tbody tr').forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.005)';
+            this.style.zIndex = '1';
+        });
+
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.zIndex = '';
+        });
+    });
+
+    console.log('🚀 Enhanced Euphorie Rooms Management initialized');
+});
+</script>
+{% endblock %}
