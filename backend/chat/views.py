@@ -928,7 +928,7 @@ def admin_messages(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'chat/admin/messages.html', {
+    return render(request, 'chat/admin_messages.html', {
         'messages': page_obj,
         'search_query': search_query,
         'show_reported': show_reported
