@@ -1406,21 +1406,21 @@
     <!-- Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <!-- Your existing JavaScript will be added back later -->
-    <!-- Pass Django context to JavaScript -->
+
+    // FIXED: Pass Django context to JavaScript with proper fallbacks
     <script>
         window.ROOM_CONFIG = {
-            roomId: '{{ room.id }}',
-            roomName: '{{ room.name }}',
-            scenePreset: '{{ room.scene_preset }}',
-            websocketUrl: '{{ websocket_url }}',
+            roomId: '{{ room.id|default:"default-room" }}',
+            roomName: '{{ room.name|default:"Euphorie Room" }}',
+            scenePreset: '{{ room.scene_preset|default:"forest" }}',
+            websocketUrl: '{{ websocket_url|default:"ws://127.0.0.1:9001" }}',
             userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
-            username: {% if request.user.is_authenticated %}'{{ request.user.username }}'{% else %}'Guest'{% endif %},
-            maxUsers: {{ room.max_users }},
-            currentUsers: {{ room.active_users_count }},
+            username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest'{% endif %},
+            maxUsers: {{ room.max_users|default:10 }},
+            currentUsers: {{ room.active_users_count|default:1 }},
             
             // FIXED: Point to your Rust server
-            rustWebSocketUrl: 'ws://127.0.0.1:9001', // Your Rust server address
+            rustWebSocketUrl: 'ws://127.0.0.1:9001',
             
             chatBubblesEnabled: true,
             bubbleConfig: {
@@ -1436,6 +1436,21 @@
                 useAdvancedMaterials: true
             }
         };
+        
+        // SAFETY CHECK: Validate ROOM_CONFIG after creation
+        if (!window.ROOM_CONFIG.roomId || window.ROOM_CONFIG.roomId === '') {
+            window.ROOM_CONFIG.roomId = 'fallback-room-' + Math.random().toString(36).substr(2, 9);
+            console.warn('⚠️ Using fallback room ID:', window.ROOM_CONFIG.roomId);
+        }
+        
+        if (!window.ROOM_CONFIG.userId) {
+            window.ROOM_CONFIG.userId = 'guest_' + Math.random().toString(36).substr(2, 9);
+            console.warn('⚠️ Using fallback user ID:', window.ROOM_CONFIG.userId);
+        }
+        
+        if (!window.ROOM_CONFIG.username || window.ROOM_CONFIG.username === '') {
+            window.ROOM_CONFIG.username = 'Guest';
+        }
         
         // Mobile detection and responsive setup
         const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -1459,6 +1474,8 @@
         console.log('🎮 Euphorie 3D Platform HTML initialized');
         console.log('📱 Mobile mode:', isMobile);
         console.log('🏠 Room:', window.ROOM_CONFIG.roomName);
+        console.log('👤 User:', window.ROOM_CONFIG.username);
+        console.log('🔧 Config:', window.ROOM_CONFIG);
     </script>
 
     <!-- Enhanced WebSocket Manager - Improved Version -->
