@@ -53,7 +53,7 @@ impl WebSocketServer {
         let listener = TcpListener::bind(&addr).await?;
         tracing::info!("🚀 WebSocket server listening on {}", addr);
 
-        while let Ok((stream, addr)) = listener.accept().await {
+        while let Ok((mut stream, addr)) = listener.accept().await {
             tracing::debug!("👋 New connection from {}", addr);
             
             // Check connection limits
