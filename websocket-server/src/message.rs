@@ -1,3 +1,4 @@
+// src/message.rs - Updated message types for multi-user support
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -9,10 +10,19 @@ pub enum ClientMessage {
         username: Option<String>,
         timestamp: u64,
     },
+    GetRoomState {
+        room_id: String,
+    },
     ChatMessage {
         message: String,
         user_id: String,
         room_id: String,
+        timestamp: u64,
+    },
+    PositionUpdate {
+        user_id: String,
+        room_id: String,
+        position: Position,
         timestamp: u64,
     },
     AvatarUpdate {
@@ -58,6 +68,10 @@ pub enum ServerMessage {
     AuthError {
         error: String,
     },
+    RoomState {
+        room_id: String,
+        users: Vec<UserInfo>,
+    },
     ChatMessage {
         user_id: String,
         username: String,
@@ -73,6 +87,11 @@ pub enum ServerMessage {
         user_id: String,
         username: String,
     },
+    UserPositionUpdate {
+        user_id: String,
+        position: Position,
+        timestamp: u64,
+    },
     AvatarUpdate {
         user_id: String,
         position: Position,
@@ -82,6 +101,7 @@ pub enum ServerMessage {
     },
     Interaction {
         user_id: String,
+        username: String,
         target_user_id: Option<String>,
         interaction_type: String,
         data: Option<serde_json::Value>,
@@ -89,6 +109,7 @@ pub enum ServerMessage {
     },
     Emotion {
         user_id: String,
+        username: String,
         emotion: String,
         timestamp: u64,
     },
