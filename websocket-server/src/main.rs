@@ -5,7 +5,7 @@ use euphorie_websocket::{
     Config,
     WebSocketServer,
 };
-use tracing::{info, warn, error};
+use tracing::{info, error};
 use tracing_subscriber;
 
 #[derive(Parser)]
