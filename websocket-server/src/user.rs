@@ -1,46 +1,44 @@
-// src/user.rs - User representation
-use crate::message::{UserInfo, Position, AvatarInfo};
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+// FIXED: src/user.rs
+use crate::message::{UserInfo, Position}; // Removed unused AvatarInfo import
+use chrono::{DateTime, Utc};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct User {
-    pub user_id: String,
+    pub id: String,
     pub username: String,
-    pub connection_id: Uuid,
     pub position: Position,
-    pub is_typing: bool,
-    pub joined_at: u64,
+    pub room_id: Option<String>,
+    pub connected_at: DateTime<Utc>,
 }
 
 impl User {
-    pub fn new(user_id: String, username: String, connection_id: Uuid) -> Self {
+    pub fn new(id: String, username: String) -> Self {
         Self {
-            user_id,
+            id,
             username,
-            connection_id,
             position: Position { x: 0.0, y: 0.0, z: 0.0 },
-            is_typing: false,
-            joined_at: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            room_id: None,
+            connected_at: Utc::now(),
         }
     }
-}
 
-impl Into<UserInfo> for User {
-    fn into(self) -> UserInfo {
+    pub fn to_user_info(&self) -> UserInfo {
         UserInfo {
-            user_id: self.user_id,
-            username: self.username,
-            avatar: None, // Can be expanded later
-            position: Some(self.position),
-            is_typing: self.is_typing,
-            last_seen: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            user_id: self.id.clone(),
+            username: self.username.clone(),
+            position: self.position.clone(),
         }
+    }
+
+    pub fn update_position(&mut self, position: Position) {
+        self.position = position;
+    }
+
+    pub fn join_room(&mut self, room_id: String) {
+        self.room_id = Some(room_id);
+    }
+
+    pub fn leave_room(&mut self) {
+        self.room_id = None;
     }
 }
