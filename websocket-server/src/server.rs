@@ -1,19 +1,17 @@
-// FIXED: src/server.rs  
-use std::collections::HashMap;
 use std::sync::Arc;
-use crate::message::{ClientMessage, ServerMessage, Position}; // Removed unused imports
-use crate::room::{Room, RoomUser}; // Import RoomUser instead of User
+
+use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo, RoomInfo};
+use crate::room::Room;
 use crate::user::User;
+
 use dashmap::DashMap;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::RwLock;
-use tokio_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
+use tokio_tungstenite::{accept_async, tungstenite::Message};
 use futures_util::{SinkExt, StreamExt};
-use uuid::Uuid;
 
 pub struct WebSocketServer {
     pub connections: Arc<DashMap<String, WebSocketConnection>>,
-    pub rooms: Arc<DashMap<String, Arc<Room>>>, // Use Arc<Room> for shared ownership
+    pub rooms: Arc<DashMap<String, Arc<Room>>>,
 }
 
 #[derive(Debug)]
@@ -52,7 +50,7 @@ impl WebSocketServer {
         let ws_stream = accept_async(stream).await?;
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
         
-        let user_id = Uuid::new_v4().to_string();
+        let user_id = uuid::Uuid::new_v4().to_string();
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let connection = WebSocketConnection {
@@ -64,7 +62,6 @@ impl WebSocketServer {
         self.connections.insert(user_id.clone(), connection);
 
         // Handle outgoing messages
-        let connections_clone = self.connections.clone(); // Prefixed with underscore to avoid warning
         tokio::spawn(async move {
             while let Some(message) = rx.recv().await {
                 if ws_sender.send(message).await.is_err() {
@@ -102,44 +99,39 @@ impl WebSocketServer {
         let message: ClientMessage = serde_json::from_str(text)?;
         
         match message {
-            ClientMessage::Auth { user_id: auth_user_id, room_id, username, timestamp: _ } => {
-                // Update user ID if provided
+            ClientMessage::Auth { user_id: auth_user_id, room_id, username, .. } => {
+                // FIXED: Based on your errors, these must be Option<String>
                 let final_user_id = auth_user_id.unwrap_or_else(|| user_id.to_string());
-                
-                // Create or get room
+                let final_username = username.unwrap_or_else(|| "Guest".to_string());
+
                 let room = self.get_or_create_room(&room_id).await;
-                
-                // Create user
+
                 let user = User {
                     id: final_user_id.clone(),
-                    username: username.clone(),
+                    username: final_username.clone(),
                     position: Position { x: 0.0, y: 0.0, z: 0.0 },
                     room_id: Some(room_id.clone()),
                     connected_at: chrono::Utc::now(),
                 };
 
-                // Add user to room
                 if room.add_user(user).await {
-                    // Update connection
                     if let Some(mut conn) = self.connections.get_mut(user_id) {
                         conn.room_id = Some(room_id.clone());
                     }
 
-                    // Send auth success
                     let response = ServerMessage::AuthSuccess {
+                        user_id: final_user_id.clone(),
                         room_id: room_id.clone(),
-                        room_info: Some(room.to_room_info().await),
+                        room_info: room.to_room_info().await,
                     };
                     self.send_to_user(user_id, &response).await?;
 
-                    // Notify others about new user
                     let user_joined = ServerMessage::UserJoined {
-                        user_id: final_user_id.clone(),
-                        username: username.clone(),
-                        position: Position { x: 0.0, y: 0.0, z: 0.0 },
+                        user_id: final_user_id,
+                        username: final_username,
+                        avatar: Some(AvatarInfo::default()),
                     };
                     self.broadcast_to_room(&room_id, &user_joined, Some(user_id)).await?;
-
                 } else {
                     let response = ServerMessage::AuthError {
                         error: "Room is full".to_string(),
@@ -148,15 +140,16 @@ impl WebSocketServer {
                 }
             }
 
-            ClientMessage::ChatMessage { message: msg, user_id: msg_user_id, room_id, timestamp: _ } => {
+            ClientMessage::ChatMessage { message: msg, user_id: msg_user_id, room_id, .. } => {
                 if let Some(conn) = self.connections.get(user_id) {
                     if let Some(ref conn_room_id) = conn.room_id {
                         if conn_room_id == &room_id {
+                            let final_user_id = msg_user_id.unwrap_or_else(|| user_id.to_string());
                             let response = ServerMessage::ChatMessage {
-                                user_id: msg_user_id.unwrap_or_else(|| user_id.to_string()),
-                                username: "User".to_string(), // You might want to get this from the room
+                                user_id: final_user_id,
+                                username: "User".to_string(),
                                 message: msg,
-                                timestamp: chrono::Utc::now().timestamp_millis(),
+                                timestamp: chrono::Utc::now().timestamp_millis() as u64,
                             };
                             self.broadcast_to_room(&room_id, &response, None).await?;
                         }
@@ -164,47 +157,46 @@ impl WebSocketServer {
                 }
             }
 
-            ClientMessage::PositionUpdate { user_id: pos_user_id, room_id, position, timestamp: _ } => {
+            ClientMessage::PositionUpdate { user_id: pos_user_id, room_id, position, .. } => {
                 let final_user_id = pos_user_id.unwrap_or_else(|| user_id.to_string());
-                
                 if let Some(room) = self.rooms.get(&room_id) {
                     if room.update_user_position(&final_user_id, position.clone()).await {
                         let response = ServerMessage::UserPositionUpdate {
                             user_id: final_user_id,
                             position,
+                            timestamp: chrono::Utc::now().timestamp_millis() as u64,
                         };
                         self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
                     }
                 }
             }
 
-            ClientMessage::Emotion { user_id: emotion_user_id, room_id, emotion, timestamp: _ } => {
+            ClientMessage::Emotion { user_id: emotion_user_id, room_id, emotion, .. } => {
                 let final_user_id = emotion_user_id.unwrap_or_else(|| user_id.to_string());
-                
                 let response = ServerMessage::Emotion {
                     user_id: final_user_id,
-                    username: "User".to_string(), // Get from room if available
+                    username: "User".to_string(),
                     emotion,
+                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
                 };
                 self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
             }
 
-            ClientMessage::Interaction { user_id: int_user_id, room_id, target_user_id, interaction_type, data, timestamp: _ } => {
+            ClientMessage::Interaction { user_id: int_user_id, room_id, target_user_id, interaction_type, data, .. } => {
                 let final_user_id = int_user_id.unwrap_or_else(|| user_id.to_string());
-                
                 let response = ServerMessage::Interaction {
                     user_id: final_user_id,
                     username: "User".to_string(),
                     target_user_id,
                     interaction_type,
                     data,
+                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
                 };
                 self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
             }
 
             ClientMessage::Typing { user_id: typing_user_id, room_id, is_typing } => {
                 let final_user_id = typing_user_id.unwrap_or_else(|| user_id.to_string());
-                
                 let response = ServerMessage::Typing {
                     user_id: final_user_id,
                     username: "User".to_string(),
@@ -215,13 +207,18 @@ impl WebSocketServer {
 
             ClientMessage::GetRoomState { room_id } => {
                 if let Some(room) = self.rooms.get(&room_id) {
+                    let users: Vec<UserInfo> = room.get_all_users().await.into_iter().map(|u| UserInfo {
+                        user_id: u.user_id,
+                        username: u.username,
+                        position: Some(u.position),
+                        avatar: Some(AvatarInfo::default()),
+                        is_typing: false,
+                        last_seen: chrono::Utc::now().timestamp_millis(),
+                    }).collect();
+
                     let response = ServerMessage::RoomState {
-                        room_info: room.to_room_info().await,
-                        users: room.get_all_users().await.into_iter().map(|u| UserInfo {
-                            user_id: u.user_id,
-                            username: u.username,
-                            position: u.position,
-                        }).collect(),
+                        room_id,
+                        users,
                     };
                     self.send_to_user(user_id, &response).await?;
                 }
@@ -238,14 +235,14 @@ impl WebSocketServer {
 
     async fn get_or_create_room(&self, room_id: &str) -> Arc<Room> {
         if let Some(room) = self.rooms.get(room_id) {
-            room.value().clone() // FIXED: Use .value() to get the Arc<Room>
+            room.value().clone()
         } else {
             let room = Arc::new(Room::new(
                 room_id.to_string(),
                 format!("Room {}", room_id),
-                10, // max users
+                10,
             ));
-            self.rooms.insert(room_id.to_string(), room.clone()); // FIXED: Insert the Arc<Room>
+            self.rooms.insert(room_id.to_string(), room.clone());
             room
         }
     }
@@ -260,20 +257,16 @@ impl WebSocketServer {
 
     async fn broadcast_to_room(&self, room_id: &str, message: &ServerMessage, exclude_user: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
         let json = serde_json::to_string(message)?;
-        
         for conn in self.connections.iter() {
             if let Some(ref conn_room_id) = conn.room_id {
                 if conn_room_id == room_id {
-                    if let Some(exclude) = exclude_user {
-                        if conn.user_id == exclude {
-                            continue;
-                        }
+                    if exclude_user.map_or(false, |exclude| conn.user_id == exclude) {
+                        continue;
                     }
                     let _ = conn.sender.send(Message::Text(json.clone()));
                 }
             }
         }
-        
         Ok(())
     }
 

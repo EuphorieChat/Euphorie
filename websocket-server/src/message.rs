@@ -1,170 +1,38 @@
-// src/message.rs - Updated message types for multi-user support
+// FIXED: src/message.rs - Correct timestamp types
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum ClientMessage {
-    Auth {
-        user_id: String,
-        room_id: String,
-        username: Option<String>,
-        timestamp: u64,
-    },
-    GetRoomState {
-        room_id: String,
-    },
-    ChatMessage {
-        message: String,
-        user_id: String,
-        room_id: String,
-        timestamp: u64,
-    },
-    PositionUpdate {
-        user_id: String,
-        room_id: String,
-        position: Position,
-        timestamp: u64,
-    },
-    AvatarUpdate {
-        user_id: String,
-        room_id: String,
-        position: Position,
-        rotation: Rotation,
-        animation: Option<String>,
-        timestamp: u64,
-    },
-    Interaction {
-        user_id: String,
-        room_id: String,
-        target_user_id: Option<String>,
-        interaction_type: String,
-        data: Option<serde_json::Value>,
-        timestamp: u64,
-    },
-    Emotion {
-        user_id: String,
-        room_id: String,
-        emotion: String,
-        timestamp: u64,
-    },
-    Typing {
-        user_id: String,
-        room_id: String,
-        is_typing: bool,
-    },
-    Ping {
-        timestamp: u64,
-    },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum ServerMessage {
-    AuthSuccess {
-        user_id: String,
-        room_id: String,
-        room_info: RoomInfo,
-    },
-    AuthError {
-        error: String,
-    },
-    RoomState {
-        room_id: String,
-        users: Vec<UserInfo>,
-    },
-    ChatMessage {
-        user_id: String,
-        username: String,
-        message: String,
-        timestamp: u64,
-    },
-    UserJoined {
-        user_id: String,
-        username: String,
-        avatar: Option<AvatarInfo>,
-    },
-    UserLeft {
-        user_id: String,
-        username: String,
-    },
-    UserPositionUpdate {
-        user_id: String,
-        position: Position,
-        timestamp: u64,
-    },
-    AvatarUpdate {
-        user_id: String,
-        position: Position,
-        rotation: Rotation,
-        animation: Option<String>,
-        timestamp: u64,
-    },
-    Interaction {
-        user_id: String,
-        username: String,
-        target_user_id: Option<String>,
-        interaction_type: String,
-        data: Option<serde_json::Value>,
-        timestamp: u64,
-    },
-    Emotion {
-        user_id: String,
-        username: String,
-        emotion: String,
-        timestamp: u64,
-    },
-    Typing {
-        user_id: String,
-        username: String,
-        is_typing: bool,
-    },
-    RoomUpdate {
-        user_count: usize,
-        active_users: Vec<UserInfo>,
-    },
-    Error {
-        error: String,
-        code: Option<u16>,
-    },
-    Pong {
-        timestamp: u64,
-    },
-    System {
-        message: String,
-        level: String,
-    },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Rotation {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AvatarInfo {
+    pub avatar_type: String,
     pub color: String,
     pub accessories: Vec<String>,
-    pub animation: Option<String>,
+}
+
+impl Default for AvatarInfo {
+    fn default() -> Self {
+        Self {
+            avatar_type: "default".to_string(),
+            color: "#4CAF50".to_string(),
+            accessories: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user_id: String,
     pub username: String,
-    pub avatar: Option<AvatarInfo>,
     pub position: Option<Position>,
+    pub avatar: Option<AvatarInfo>,
     pub is_typing: bool,
-    pub last_seen: u64,
+    pub last_seen: i64, // Keep as i64 for consistency with chrono
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -175,4 +43,159 @@ pub struct RoomInfo {
     pub max_users: usize,
     pub scene_preset: String,
     pub active_users: Vec<UserInfo>,
+}
+
+// Client -> Server messages
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum ClientMessage {
+    #[serde(rename = "auth")]
+    Auth {
+        user_id: Option<String>,
+        room_id: String,
+        username: Option<String>,
+        timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "chat_message")]
+    ChatMessage {
+        message: String,
+        user_id: Option<String>,
+        room_id: String,
+        timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "position_update")]
+    PositionUpdate {
+        user_id: Option<String>,
+        room_id: String,
+        position: Position,
+        timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "emotion")]
+    Emotion {
+        user_id: Option<String>,
+        room_id: String,
+        emotion: String,
+        timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "interaction")]
+    Interaction {
+        user_id: Option<String>,
+        room_id: String,
+        target_user_id: Option<String>,
+        interaction_type: String,
+        data: Option<serde_json::Value>,
+        timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "typing")]
+    Typing {
+        user_id: Option<String>,
+        room_id: String,
+        is_typing: bool,
+    },
+
+    #[serde(rename = "get_room_state")]
+    GetRoomState {
+        room_id: String,
+    },
+
+    #[serde(rename = "ping")]
+    Ping {
+        timestamp: i64,
+    },
+}
+
+// Server -> Client messages
+#[derive(Debug, Serialize)]
+#[serde(tag = "type")]
+pub enum ServerMessage {
+    #[serde(rename = "auth_success")]
+    AuthSuccess {
+        user_id: String,
+        room_id: String,
+        room_info: RoomInfo,
+    },
+
+    #[serde(rename = "auth_error")]
+    AuthError {
+        error: String,
+    },
+
+    #[serde(rename = "room_state")]
+    RoomState {
+        room_id: String,
+        users: Vec<UserInfo>,
+    },
+
+    #[serde(rename = "user_joined")]
+    UserJoined {
+        user_id: String,
+        username: String,
+        avatar: Option<AvatarInfo>,
+    },
+
+    #[serde(rename = "user_left")]
+    UserLeft {
+        user_id: String,
+        username: String,
+    },
+
+    #[serde(rename = "chat_message")]
+    ChatMessage {
+        user_id: String,
+        username: String,
+        message: String,
+        timestamp: i64, // FIXED: Changed to i64 for consistency
+    },
+
+    #[serde(rename = "user_position_update")]
+    UserPositionUpdate {
+        user_id: String,
+        position: Position,
+        timestamp: i64, // FIXED: Changed to i64 for consistency
+    },
+
+    #[serde(rename = "emotion")]
+    Emotion {
+        user_id: String,
+        username: String,
+        emotion: String,
+        timestamp: i64, // FIXED: Changed to i64 for consistency
+    },
+
+    #[serde(rename = "interaction")]
+    Interaction {
+        user_id: String,
+        username: String,
+        target_user_id: Option<String>,
+        interaction_type: String,
+        data: Option<serde_json::Value>,
+        timestamp: i64, // FIXED: Changed to i64 for consistency
+    },
+
+    #[serde(rename = "typing")]
+    Typing {
+        user_id: String,
+        username: String,
+        is_typing: bool,
+    },
+
+    #[serde(rename = "pong")]
+    Pong {
+        timestamp: i64,
+    },
+
+    #[serde(rename = "system")]
+    System {
+        message: String,
+    },
+
+    #[serde(rename = "error")]
+    Error {
+        error: String,
+    },
 }

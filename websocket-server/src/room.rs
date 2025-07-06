@@ -1,20 +1,18 @@
-// FIXED: src/room.rs
+// FINAL FIXED: src/room.rs - All field errors resolved
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use uuid::Uuid;
-use crate::message::{RoomInfo, UserInfo, Position};
+use crate::message::{RoomInfo, UserInfo, Position, AvatarInfo};
 
 #[derive(Debug, Clone)]
 pub struct Room {
     pub id: String,
     pub name: String,
-    pub users: Arc<RwLock<HashMap<String, RoomUser>>>, // Renamed to avoid conflict
+    pub users: Arc<RwLock<HashMap<String, RoomUser>>>,
     pub max_users: usize,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-// Renamed from User to RoomUser to avoid conflict with crate::user::User
 #[derive(Debug, Clone)]
 pub struct RoomUser {
     pub user_id: String,
@@ -84,12 +82,16 @@ impl Room {
 
     pub async fn to_room_info(&self) -> RoomInfo {
         let user_count = self.get_user_count().await;
-        let users: Vec<UserInfo> = self.get_all_users().await
+        // FIXED: Create UserInfo with all required fields
+        let active_users: Vec<UserInfo> = self.get_all_users().await
             .into_iter()
             .map(|user| UserInfo {
                 user_id: user.user_id,
                 username: user.username,
-                position: user.position,
+                position: Some(user.position), // FIXED: Wrapped in Some()
+                avatar: Some(AvatarInfo::default()), // FIXED: Added missing field
+                is_typing: false, // FIXED: Added missing field
+                last_seen: chrono::Utc::now().timestamp_millis(), // FIXED: Added missing field
             })
             .collect();
 
@@ -98,7 +100,8 @@ impl Room {
             name: self.name.clone(),
             user_count,
             max_users: self.max_users,
-            users,
+            scene_preset: "forest".to_string(), // FIXED: Added missing field
+            active_users, // FIXED: Use correct field name
         }
     }
 }

@@ -1,5 +1,5 @@
-// FIXED: src/user.rs
-use crate::message::{UserInfo, Position}; // Removed unused AvatarInfo import
+// FINAL FIXED: src/user.rs - All missing fields added
+use crate::message::{UserInfo, Position, AvatarInfo};
 use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone)]
@@ -26,7 +26,10 @@ impl User {
         UserInfo {
             user_id: self.id.clone(),
             username: self.username.clone(),
-            position: self.position.clone(),
+            position: Some(self.position.clone()), // FIXED: Wrapped in Some()
+            avatar: Some(AvatarInfo::default()),    // FIXED: Added missing field
+            is_typing: false,                       // FIXED: Added missing field
+            last_seen: Utc::now().timestamp_millis(), // FIXED: Added missing field
         }
     }
 
