@@ -8,10 +8,27 @@ use dashmap::DashMap;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use futures_util::{SinkExt, StreamExt};
+use anyhow::Result;
+
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub host: String,
+    pub port: u16,
+    pub max_connections: usize,
+    pub max_rooms: usize,
+    pub max_users_per_room: usize,
+}
+
+impl Config {
+    pub fn address(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
+}
 
 pub struct WebSocketServer {
     pub connections: Arc<DashMap<String, WebSocketConnection>>,
     pub rooms: Arc<DashMap<String, Arc<Room>>>,
+    pub config: Config,
 }
 
 #[derive(Debug)]
@@ -22,23 +39,33 @@ pub struct WebSocketConnection {
 }
 
 impl WebSocketServer {
-    pub fn new() -> Self {
-        Self {
+    pub async fn new(config: Config) -> Result<Self> {
+        Ok(Self {
             connections: Arc::new(DashMap::new()),
             rooms: Arc::new(DashMap::new()),
-        }
+            config,
+        })
     }
 
-    pub async fn start(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let listener = TcpListener::bind(addr).await?;
-        println!("🚀 WebSocket server listening on {}", addr);
+    pub async fn run(&self) -> Result<()> {
+        let addr = self.config.address();
+        let listener = TcpListener::bind(&addr).await?;
+        tracing::info!("🚀 WebSocket server listening on {}", addr);
 
         while let Ok((stream, addr)) = listener.accept().await {
-            println!("👋 New connection from {}", addr);
+            tracing::debug!("👋 New connection from {}", addr);
+            
+            // Check connection limits
+            if self.connections.len() >= self.config.max_connections {
+                tracing::warn!("🚫 Connection limit reached, rejecting connection from {}", addr);
+                let _ = stream.shutdown().await;
+                continue;
+            }
+            
             let server = self.clone();
             tokio::spawn(async move {
                 if let Err(e) = server.handle_connection(stream).await {
-                    eprintln!("❌ Error handling connection: {}", e);
+                    tracing::error!("❌ Error handling connection: {}", e);
                 }
             });
         }
@@ -46,7 +73,7 @@ impl WebSocketServer {
         Ok(())
     }
 
-    async fn handle_connection(&self, stream: TcpStream) -> Result<(), Box<dyn std::error::Error>> {
+    async fn handle_connection(&self, stream: TcpStream) -> Result<()> {
         let ws_stream = accept_async(stream).await?;
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
         
@@ -75,15 +102,15 @@ impl WebSocketServer {
             match msg {
                 Ok(Message::Text(text)) => {
                     if let Err(e) = self.handle_message(&user_id, &text).await {
-                        eprintln!("❌ Error handling message: {}", e);
+                        tracing::error!("❌ Error handling message: {}", e);
                     }
                 }
                 Ok(Message::Close(_)) => {
-                    println!("👋 Connection closed for user {}", user_id);
+                    tracing::debug!("👋 Connection closed for user {}", user_id);
                     break;
                 }
                 Err(e) => {
-                    eprintln!("❌ WebSocket error: {}", e);
+                    tracing::error!("❌ WebSocket error: {}", e);
                     break;
                 }
                 _ => {}
@@ -95,16 +122,15 @@ impl WebSocketServer {
         Ok(())
     }
 
-    async fn handle_message(&self, user_id: &str, text: &str) -> Result<(), Box<dyn std::error::Error>> {
+    async fn handle_message(&self, user_id: &str, text: &str) -> Result<()> {
         let message: ClientMessage = serde_json::from_str(text)?;
         
         match message {
             ClientMessage::Auth { user_id: auth_user_id, room_id, username, .. } => {
-                // FIXED: Based on your errors, these must be Option<String>
                 let final_user_id = auth_user_id.unwrap_or_else(|| user_id.to_string());
                 let final_username = username.unwrap_or_else(|| "Guest".to_string());
 
-                let room = self.get_or_create_room(&room_id).await;
+                let room = self.get_or_create_room(&room_id).await?;
 
                 let user = User {
                     id: final_user_id.clone(),
@@ -233,21 +259,26 @@ impl WebSocketServer {
         Ok(())
     }
 
-    async fn get_or_create_room(&self, room_id: &str) -> Arc<Room> {
+    async fn get_or_create_room(&self, room_id: &str) -> Result<Arc<Room>> {
         if let Some(room) = self.rooms.get(room_id) {
-            room.value().clone()
+            Ok(room.value().clone())
         } else {
+            // Check room limits
+            if self.rooms.len() >= self.config.max_rooms {
+                return Err(anyhow::anyhow!("Maximum number of rooms reached"));
+            }
+            
             let room = Arc::new(Room::new(
                 room_id.to_string(),
                 format!("Room {}", room_id),
-                10,
+                self.config.max_users_per_room,
             ));
             self.rooms.insert(room_id.to_string(), room.clone());
-            room
+            Ok(room)
         }
     }
 
-    async fn send_to_user(&self, user_id: &str, message: &ServerMessage) -> Result<(), Box<dyn std::error::Error>> {
+    async fn send_to_user(&self, user_id: &str, message: &ServerMessage) -> Result<()> {
         if let Some(conn) = self.connections.get(user_id) {
             let json = serde_json::to_string(message)?;
             let _ = conn.sender.send(Message::Text(json));
@@ -255,7 +286,7 @@ impl WebSocketServer {
         Ok(())
     }
 
-    async fn broadcast_to_room(&self, room_id: &str, message: &ServerMessage, exclude_user: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    async fn broadcast_to_room(&self, room_id: &str, message: &ServerMessage, exclude_user: Option<&str>) -> Result<()> {
         let json = serde_json::to_string(message)?;
         for conn in self.connections.iter() {
             if let Some(ref conn_room_id) = conn.room_id {
@@ -292,6 +323,7 @@ impl Clone for WebSocketServer {
         Self {
             connections: self.connections.clone(),
             rooms: self.rooms.clone(),
+            config: self.config.clone(),
         }
     }
 }
