@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo, RoomInfo};
+use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo};
 use crate::room::Room;
 use crate::user::User;
 
@@ -149,7 +149,7 @@ impl WebSocketServer {
                                 user_id: final_user_id,
                                 username: "User".to_string(),
                                 message: msg,
-                                timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                                timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             self.broadcast_to_room(&room_id, &response, None).await?;
                         }
@@ -164,7 +164,7 @@ impl WebSocketServer {
                         let response = ServerMessage::UserPositionUpdate {
                             user_id: final_user_id,
                             position,
-                            timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                            timestamp: chrono::Utc::now().timestamp_millis(),
                         };
                         self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
                     }
@@ -177,7 +177,7 @@ impl WebSocketServer {
                     user_id: final_user_id,
                     username: "User".to_string(),
                     emotion,
-                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                    timestamp: chrono::Utc::now().timestamp_millis(),
                 };
                 self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
             }
@@ -190,7 +190,7 @@ impl WebSocketServer {
                     target_user_id,
                     interaction_type,
                     data,
-                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                    timestamp: chrono::Utc::now().timestamp_millis(),
                 };
                 self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
             }
