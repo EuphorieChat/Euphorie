@@ -1,12 +1,15 @@
-// src/main.rs - Updated main with better error handling
+// src/main.rs - Updated with rate limiting and message history configuration
 use anyhow::Result;
 use clap::Parser;
 use euphorie_websocket::{
     Config,
     WebSocketServer,
+    RateLimiterConfig,
+    MessageHistoryConfig,
 };
 use tracing::{info, error};
 use tracing_subscriber;
+use std::time::Duration;
 
 #[derive(Parser)]
 #[command(name = "euphorie-websocket")]
@@ -26,6 +29,23 @@ struct Cli {
     
     #[arg(long, default_value = "100")]
     max_users_per_room: usize,
+    
+    // Rate limiting options
+    #[arg(long, default_value = "10")]
+    rate_limit_messages_per_second: u32,
+    
+    #[arg(long, default_value = "5")]
+    rate_limit_burst: u32,
+    
+    // Message history options
+    #[arg(long, default_value = "100")]
+    max_messages_per_room: usize,
+    
+    #[arg(long, default_value = "200")]
+    max_rooms_in_cache: usize,
+    
+    #[arg(long, default_value = "24")]
+    message_ttl_hours: u64,
     
     #[arg(short, long)]
     verbose: bool,
@@ -57,10 +77,25 @@ async fn main() -> Result<()> {
     info!("⚡ Max connections: {}", cli.max_connections);
     info!("🏠 Max rooms: {}", cli.max_rooms);
     info!("👥 Max users per room: {}", cli.max_users_per_room);
+    info!("🚦 Rate limit: {} msgs/sec, burst: {}", cli.rate_limit_messages_per_second, cli.rate_limit_burst);
+    info!("📚 Message history: {} msgs/room, {} rooms cached, {}h TTL", 
+          cli.max_messages_per_room, cli.max_rooms_in_cache, cli.message_ttl_hours);
     
     if let Some(ref origin) = cli.cors_origin {
         info!("🌐 CORS origin: {}", origin);
     }
+    
+    let rate_limiter_config = RateLimiterConfig {
+        messages_per_window: cli.rate_limit_messages_per_second,
+        window_duration: Duration::from_secs(1),
+        burst_limit: cli.rate_limit_burst,
+    };
+
+    let message_history_config = MessageHistoryConfig {
+        max_messages_per_room: cli.max_messages_per_room,
+        max_rooms_in_cache: cli.max_rooms_in_cache,
+        message_ttl_hours: cli.message_ttl_hours,
+    };
     
     let config = Config {
         host: cli.host,
@@ -68,6 +103,8 @@ async fn main() -> Result<()> {
         max_connections: cli.max_connections,
         max_rooms: cli.max_rooms,
         max_users_per_room: cli.max_users_per_room,
+        rate_limiter: rate_limiter_config,
+        message_history: message_history_config,
     };
     
     let server = WebSocketServer::new(config).await

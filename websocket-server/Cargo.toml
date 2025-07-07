@@ -1,15 +1,56 @@
 [package]
 name = "euphorie-websocket"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "High-performance WebSocket server for Euphorie 3D multi-user rooms with rate limiting and message history"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/euphorie-websocket"
+
+[[bin]]
+name = "euphorie-websocket"
+path = "src/main.rs"
 
 [dependencies]
-tokio = { version = "1.0", features = ["full"] }
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
 tokio-tungstenite = "0.21"
 futures-util = "0.3"
+
+# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-uuid = { version = "1.0", features = ["v4"] }
+
+# Concurrent data structures
 dashmap = "5.5"
-chrono = { version = "0.4", features = ["serde"] }  # ADDED: Missing chrono dependency
-clap = { version = "4.0", features = ["derive"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI
+clap = { version = "4.4", features = ["derive"] }
+
+# UUID generation
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Additional utilities
+arc-swap = "1.6"  # For atomic updates to shared data
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true

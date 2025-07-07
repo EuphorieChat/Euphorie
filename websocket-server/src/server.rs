@@ -1,8 +1,11 @@
+// src/server.rs - Updated with rate limiting and message history
 use std::sync::Arc;
 
 use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo};
 use crate::room::Room;
 use crate::user::User;
+use crate::rate_limiter::{RateLimiter, RateLimiterConfig};
+use crate::message_history::{MessageHistory, MessageHistoryConfig};
 
 use dashmap::DashMap;
 use tokio::net::{TcpListener, TcpStream};
@@ -18,6 +21,8 @@ pub struct Config {
     pub max_connections: usize,
     pub max_rooms: usize,
     pub max_users_per_room: usize,
+    pub rate_limiter: RateLimiterConfig,
+    pub message_history: MessageHistoryConfig,
 }
 
 impl Config {
@@ -26,10 +31,26 @@ impl Config {
     }
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            host: "127.0.0.1".to_string(),
+            port: 9001,
+            max_connections: 10000,
+            max_rooms: 50,
+            max_users_per_room: 100,
+            rate_limiter: RateLimiterConfig::default(),
+            message_history: MessageHistoryConfig::default(),
+        }
+    }
+}
+
 pub struct WebSocketServer {
     pub connections: Arc<DashMap<String, WebSocketConnection>>,
     pub rooms: Arc<DashMap<String, Arc<Room>>>,
     pub config: Config,
+    pub rate_limiter: RateLimiter,
+    pub message_history: MessageHistory,
 }
 
 #[derive(Debug)]
@@ -41,10 +62,25 @@ pub struct WebSocketConnection {
 
 impl WebSocketServer {
     pub async fn new(config: Config) -> Result<Self> {
+        let rate_limiter = RateLimiter::new(config.rate_limiter.clone());
+        let message_history = MessageHistory::new(config.message_history.clone());
+
+        // Start periodic cleanup task for rate limiter
+        let cleanup_rate_limiter = rate_limiter.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(300)); // Every 5 minutes
+            loop {
+                interval.tick().await;
+                cleanup_rate_limiter.cleanup_old_users();
+            }
+        });
+
         Ok(Self {
             connections: Arc::new(DashMap::new()),
             rooms: Arc::new(DashMap::new()),
             config,
+            rate_limiter,
+            message_history,
         })
     }
 
@@ -126,6 +162,23 @@ impl WebSocketServer {
     async fn handle_message(&self, user_id: &str, text: &str) -> Result<()> {
         let message: ClientMessage = serde_json::from_str(text)?;
         
+        // Apply rate limiting to most message types (except ping/auth)
+        let should_rate_limit = matches!(message, 
+            ClientMessage::ChatMessage { .. } |
+            ClientMessage::PositionUpdate { .. } |
+            ClientMessage::Emotion { .. } |
+            ClientMessage::Interaction { .. } |
+            ClientMessage::Typing { .. }
+        );
+
+        if should_rate_limit && !self.rate_limiter.check_rate_limit(user_id) {
+            let error_response = ServerMessage::Error {
+                error: "Rate limit exceeded. Please slow down.".to_string(),
+            };
+            self.send_to_user(user_id, &error_response).await?;
+            return Ok(());
+        }
+        
         match message {
             ClientMessage::Auth { user_id: auth_user_id, room_id, username, .. } => {
                 let final_user_id = auth_user_id.unwrap_or_else(|| user_id.to_string());
@@ -153,11 +206,20 @@ impl WebSocketServer {
                     };
                     self.send_to_user(user_id, &response).await?;
 
+                    // Send recent message history to the user
+                    let recent_messages = self.message_history.get_recent_messages(&room_id, Some(20)).await;
+                    for stored_message in recent_messages {
+                        self.send_to_user(user_id, &stored_message.message).await?;
+                    }
+
                     let user_joined = ServerMessage::UserJoined {
                         user_id: final_user_id,
                         username: final_username,
                         avatar: Some(AvatarInfo::default()),
                     };
+                    
+                    // Store and broadcast user joined message
+                    self.message_history.add_message(&room_id, user_joined.clone()).await;
                     self.broadcast_to_room(&room_id, &user_joined, Some(user_id)).await?;
                 } else {
                     let response = ServerMessage::AuthError {
@@ -172,12 +234,29 @@ impl WebSocketServer {
                     if let Some(ref conn_room_id) = conn.room_id {
                         if conn_room_id == &room_id {
                             let final_user_id = msg_user_id.unwrap_or_else(|| user_id.to_string());
+                            
+                            // Get username from room data
+                            let username = if let Some(room) = self.rooms.get(&room_id) {
+                                if let Some(room_user) = room.get_user(&final_user_id).await {
+                                    room_user.username
+                                } else {
+                                    "User".to_string()
+                                }
+                            } else {
+                                "User".to_string()
+                            };
+
                             let response = ServerMessage::ChatMessage {
                                 user_id: final_user_id,
-                                username: "User".to_string(),
+                                username,
                                 message: msg,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
+                            
+                            // Store message in history
+                            self.message_history.add_message(&room_id, response.clone()).await;
+                            
+                            // Broadcast to room
                             self.broadcast_to_room(&room_id, &response, None).await?;
                         }
                     }
@@ -200,35 +279,78 @@ impl WebSocketServer {
 
             ClientMessage::Emotion { user_id: emotion_user_id, room_id, emotion, .. } => {
                 let final_user_id = emotion_user_id.unwrap_or_else(|| user_id.to_string());
+                
+                let username = if let Some(room) = self.rooms.get(&room_id) {
+                    if let Some(room_user) = room.get_user(&final_user_id).await {
+                        room_user.username
+                    } else {
+                        "User".to_string()
+                    }
+                } else {
+                    "User".to_string()
+                };
+
                 let response = ServerMessage::Emotion {
                     user_id: final_user_id,
-                    username: "User".to_string(),
+                    username,
                     emotion,
                     timestamp: chrono::Utc::now().timestamp_millis(),
                 };
+                
+                // Store emotion in history
+                self.message_history.add_message(&room_id, response.clone()).await;
+                
                 self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
             }
 
             ClientMessage::Interaction { user_id: int_user_id, room_id, target_user_id, interaction_type, data, .. } => {
                 let final_user_id = int_user_id.unwrap_or_else(|| user_id.to_string());
+                
+                let username = if let Some(room) = self.rooms.get(&room_id) {
+                    if let Some(room_user) = room.get_user(&final_user_id).await {
+                        room_user.username
+                    } else {
+                        "User".to_string()
+                    }
+                } else {
+                    "User".to_string()
+                };
+
                 let response = ServerMessage::Interaction {
                     user_id: final_user_id,
-                    username: "User".to_string(),
+                    username,
                     target_user_id,
                     interaction_type,
                     data,
                     timestamp: chrono::Utc::now().timestamp_millis(),
                 };
+                
+                // Store interaction in history
+                self.message_history.add_message(&room_id, response.clone()).await;
+                
                 self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
             }
 
             ClientMessage::Typing { user_id: typing_user_id, room_id, is_typing } => {
                 let final_user_id = typing_user_id.unwrap_or_else(|| user_id.to_string());
+                
+                let username = if let Some(room) = self.rooms.get(&room_id) {
+                    if let Some(room_user) = room.get_user(&final_user_id).await {
+                        room_user.username
+                    } else {
+                        "User".to_string()
+                    }
+                } else {
+                    "User".to_string()
+                };
+
                 let response = ServerMessage::Typing {
                     user_id: final_user_id,
-                    username: "User".to_string(),
+                    username,
                     is_typing,
                 };
+                
+                // Don't store typing indicators in history
                 self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
             }
 
@@ -311,6 +433,10 @@ impl WebSocketServer {
                             user_id: removed_user.user_id.clone(),
                             username: removed_user.username.clone(),
                         };
+                        
+                        // Store user left message in history
+                        self.message_history.add_message(&room_id, response.clone()).await;
+                        
                         let _ = self.broadcast_to_room(&room_id, &response, None).await;
                     }
                 }
@@ -325,6 +451,8 @@ impl Clone for WebSocketServer {
             connections: self.connections.clone(),
             rooms: self.rooms.clone(),
             config: self.config.clone(),
+            rate_limiter: self.rate_limiter.clone(),
+            message_history: self.message_history.clone(),
         }
     }
 }
