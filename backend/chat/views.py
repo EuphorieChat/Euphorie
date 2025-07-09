@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import json
 import csv
 import requests
-
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, user_passes_test
