@@ -1413,7 +1413,7 @@
             scenePreset: '{{ room.scene_preset|default:"forest" }}',
             websocketUrl: `wss://${window.location.hostname}/ws/`,
             userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
-            username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest'{% endif %},
+            username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest_' + Math.random().toString(36).substr(2, 9){% endif %},
             maxUsers: {{ room.max_users|default:10 }},
             currentUsers: {{ room.active_users_count|default:1 }},
             
@@ -1479,6 +1479,7 @@
 
     <!-- Enhanced WebSocket Manager - Improved Version -->
     <script>
+
     // Enhanced WebSocket Manager for Rust Server Integration - COMPLETE VERSION
     class EuphorieWebSocketManager {
         constructor() {
