@@ -380,6 +380,7 @@ class NationalityMiddleware(MiddlewareMixin):
     
     def process_request(self, request):
         """Process incoming request to detect nationality"""
+        # Check if nationality system is enabled
         if not getattr(settings, 'NATIONALITY_SETTINGS', {}).get('ENABLE_AUTO_DETECTION', False):
             return None
             
@@ -387,17 +388,24 @@ class NationalityMiddleware(MiddlewareMixin):
         if request.path.startswith('/admin/') or request.path.startswith('/static/'):
             return None
             
+        # Import here to avoid circular imports
+        try:
+            from .models import get_client_ip
+        except ImportError:
+            return None
+            
         # Get client IP
         request.client_ip = get_client_ip(request)
         
-        # Auto-detect nationality for authenticated users
-        if request.user.is_authenticated and hasattr(request.user, 'profile'):
-            profile = request.user.profile
-            if not profile.nationality and not profile.auto_detected_country:
-                # Detect nationality in background (don't block request)
-                try:
-                    profile.auto_detect_country(request.client_ip)
-                except:
-                    pass  # Fail silently
+        # Only process if user is available and authenticated
+        if hasattr(request, 'user') and request.user and not isinstance(request.user, AnonymousUser):
+            if request.user.is_authenticated and hasattr(request.user, 'profile'):
+                profile = request.user.profile
+                if not profile.nationality and not profile.auto_detected_country:
+                    # Detect nationality in background (don't block request)
+                    try:
+                        profile.auto_detect_country(request.client_ip)
+                    except Exception:
+                        pass  # Fail silently to not break the request
         
         return None
