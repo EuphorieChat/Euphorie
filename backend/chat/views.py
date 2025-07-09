@@ -154,6 +154,7 @@ def room(request, room_name):
         'message_form': QuickMessageForm(),
         'is_bookmarked': is_bookmarked,
         'room_tags': room.get_tags_list(),
+        'user_id': request.user.id if request.user.is_authenticated else None,  # ADD THIS LINE
     }
     
     return render(request, 'chat/room_3d.html', context)
