@@ -1407,51 +1407,113 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        window.ROOM_CONFIG = {
-            roomId: '{{ room.id|default:"default-room" }}',
-            roomName: '{{ room.name|default:"Euphorie Room" }}',
-            scenePreset: '{{ room.scene_preset|default:"forest" }}',
-            websocketUrl: `wss://${window.location.hostname}/ws/`,
+        // DJANGO DEBUG: Check what Django is outputting
+        console.log('🔍 Django Template Debug:');
+        console.log('request.user.is_authenticated:', {{ request.user.is_authenticated|yesno:"true,false" }});
+        console.log('request.user.id:', "{{ request.user.id }}");
+        console.log('request.user.username:', "{{ request.user.username|escapejs }}");
+        console.log('user_id from context:', "{{ user_id }}");
+
+        // Create ROOM_CONFIG with proper error handling
+        try {
+            window.ROOM_CONFIG = {
+                roomId: '{{ room.id|default:"default-room" }}',
+                roomName: '{{ room.name|default:"Euphorie Room" }}',
+                scenePreset: '{{ room.scene_preset|default:"forest" }}',
+                websocketUrl: `wss://${window.location.hostname}/ws/`,
+                
+                // Fixed: Use request.user.id for authenticated users
+                userId: {% if request.user.is_authenticated %}'{{ request.user.id }}'{% else %}null{% endif %},
+                username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest_' + Math.random().toString(36).substr(2, 9){% endif %},
+                isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
+                
+                maxUsers: {{ room.max_users|default:10 }},
+                currentUsers: {{ room.active_users_count|default:1 }},
+                
+                // FIXED: Use WSS through nginx proxy
+                rustWebSocketUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/`,
+                
+                chatBubblesEnabled: true,
+                bubbleConfig: {
+                    maxBubbles: 25,
+                    fadeTime: 6000,
+                    maxDistance: 60,
+                    fontSize: 18,
+                    maxWidth: 350,
+                    floatSpeed: 0.5,
+                    bobAmount: 0.3,
+                    scaleWithDistance: true,
+                    enableShadows: true,
+                    useAdvancedMaterials: true
+                }
+            };
             
-            // FIX: Use request.user.id instead of user_id
-            userId: {% if request.user.is_authenticated %}'{{ request.user.id }}'{% else %}null{% endif %},
-            username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest_' + Math.random().toString(36).substr(2, 9){% endif %},
-            isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
+            console.log('✅ ROOM_CONFIG created successfully');
             
-            maxUsers: {{ room.max_users|default:10 }},
-            currentUsers: {{ room.active_users_count|default:1 }},
+        } catch (error) {
+            console.error('❌ Error creating ROOM_CONFIG:', error);
             
-            // FIXED: Use WSS through nginx proxy
-            rustWebSocketUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/`,
+            // Fallback ROOM_CONFIG
+            window.ROOM_CONFIG = {
+                roomId: 'fallback-room-' + Math.random().toString(36).substr(2, 9),
+                roomName: 'Fallback Room',
+                scenePreset: 'forest',
+                websocketUrl: `wss://${window.location.hostname}/ws/`,
+                userId: null,
+                username: 'Guest_' + Math.random().toString(36).substr(2, 9),
+                isAuthenticated: false,
+                maxUsers: 10,
+                currentUsers: 1,
+                rustWebSocketUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/`,
+                chatBubblesEnabled: true,
+                bubbleConfig: {
+                    maxBubbles: 25,
+                    fadeTime: 6000,
+                    maxDistance: 60,
+                    fontSize: 18,
+                    maxWidth: 350,
+                    floatSpeed: 0.5,
+                    bobAmount: 0.3,
+                    scaleWithDistance: true,
+                    enableShadows: true,
+                    useAdvancedMaterials: true
+                }
+            };
             
-            chatBubblesEnabled: true,
-            bubbleConfig: {
-                maxBubbles: 25,
-                fadeTime: 6000,
-                maxDistance: 60,
-                fontSize: 18,
-                maxWidth: 350,
-                floatSpeed: 0.5,
-                bobAmount: 0.3,
-                scaleWithDistance: true,
-                enableShadows: true,
-                useAdvancedMaterials: true
-            }
-        };
+            console.warn('⚠️ Using fallback ROOM_CONFIG');
+        }
         
-        // SAFETY CHECK: Validate ROOM_CONFIG after creation
+        // CRITICAL DEBUG: Check final ROOM_CONFIG values
+        console.log('🔍 Final ROOM_CONFIG values:');
+        console.log('userId:', window.ROOM_CONFIG.userId);
+        console.log('username:', window.ROOM_CONFIG.username);
+        console.log('isAuthenticated:', window.ROOM_CONFIG.isAuthenticated);
+        console.log('rustWebSocketUrl:', window.ROOM_CONFIG.rustWebSocketUrl);
+        console.log('Full config:', window.ROOM_CONFIG);
+        
+        // SAFETY CHECKS with better validation
         if (!window.ROOM_CONFIG.roomId || window.ROOM_CONFIG.roomId === '') {
             window.ROOM_CONFIG.roomId = 'fallback-room-' + Math.random().toString(36).substr(2, 9);
             console.warn('⚠️ Using fallback room ID:', window.ROOM_CONFIG.roomId);
         }
         
-        if (!window.ROOM_CONFIG.userId) {
+        // For authenticated users, userId should NOT be null
+        if (window.ROOM_CONFIG.isAuthenticated && !window.ROOM_CONFIG.userId) {
+            console.error('❌ CRITICAL: Authenticated user has null userId!');
+            console.error('Django user ID was:', "{{ request.user.id }}");
+            console.error('user_id from context was:', "{{ user_id }}");
+            // Don't create fallback - this indicates a real problem
+        }
+        
+        // For guest users, create proper guest ID if needed
+        if (!window.ROOM_CONFIG.isAuthenticated && !window.ROOM_CONFIG.userId) {
             window.ROOM_CONFIG.userId = 'guest_' + Math.random().toString(36).substr(2, 9);
-            console.warn('⚠️ Using fallback user ID:', window.ROOM_CONFIG.userId);
+            console.warn('⚠️ Created guest user ID:', window.ROOM_CONFIG.userId);
         }
         
         if (!window.ROOM_CONFIG.username || window.ROOM_CONFIG.username === '') {
-            window.ROOM_CONFIG.username = 'Guest';
+            window.ROOM_CONFIG.username = window.ROOM_CONFIG.isAuthenticated ? 'User' : 'Guest';
+            console.warn('⚠️ Using fallback username:', window.ROOM_CONFIG.username);
         }
         
         // Mobile detection and responsive setup
@@ -1473,14 +1535,25 @@
             setTimeout(updateMobileLayout, 100);
         });
         
+        // Final logging
         console.log('🎮 Euphorie 3D Platform HTML initialized');
         console.log('📱 Mobile mode:', isMobile);
         console.log('🏠 Room:', window.ROOM_CONFIG.roomName);
         console.log('👤 User:', window.ROOM_CONFIG.username);
-        console.log('🔧 Config:', window.ROOM_CONFIG);
+        console.log('🔧 User ID:', window.ROOM_CONFIG.userId);
+        console.log('🔧 Is Authenticated:', window.ROOM_CONFIG.isAuthenticated);
         console.log('🔌 WebSocket URL:', window.ROOM_CONFIG.rustWebSocketUrl);
+        
+        // Validate ROOM_CONFIG is properly set
+        if (!window.ROOM_CONFIG) {
+            console.error('❌ CRITICAL: ROOM_CONFIG is still undefined after creation!');
+        } else if (window.ROOM_CONFIG.isAuthenticated && !window.ROOM_CONFIG.userId) {
+            console.error('❌ CRITICAL: Authenticated user still has no userId!');
+        } else {
+            console.log('✅ ROOM_CONFIG validation passed');
+        }
     </script>
-
+    
     <!-- Enhanced WebSocket Manager - Improved Version -->
     <script>
 
