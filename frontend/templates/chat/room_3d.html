@@ -1748,15 +1748,27 @@
         // NEW: Handle when a user joins
         handleUserJoined(data) {
             console.log(`👋 ${data.username} joined the room`);
-            this.addSystemMessage(`${data.username} joined the room`);
             
-            // Don't create avatar for ourselves
-            if (data.user_id !== this.userId) {
-                this.connectedUsers.set(data.user_id, data);
-                this.createRemoteAvatar(data);
+            // Check if AvatarSystem is available
+            if (window.AvatarSystem && window.AvatarSystem.createRemoteAvatar) {
+                console.log(`👤 Creating remote avatar for: ${data.username}`);
+                try {
+                    window.AvatarSystem.createRemoteAvatar(data.user_id, data.username, data.avatar);
+                    console.log(`✅ Remote avatar created for ${data.username}`);
+                } catch (error) {
+                    console.error(`❌ Error creating remote avatar for ${data.username}:`, error);
+                }
+            } else {
+                console.warn(`⚠️ AvatarSystem not available for creating remote avatar for ${data.username}`);
+                
+                // Try to wait for AvatarSystem to be ready
+                setTimeout(() => {
+                    if (window.AvatarSystem && window.AvatarSystem.createRemoteAvatar) {
+                        console.log(`🔄 Retrying avatar creation for: ${data.username}`);
+                        window.AvatarSystem.createRemoteAvatar(data.user_id, data.username, data.avatar);
+                    }
+                }, 1000);
             }
-            
-            this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
         }
         
         // NEW: Handle when a user leaves
