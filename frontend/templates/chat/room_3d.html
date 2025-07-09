@@ -1962,7 +1962,7 @@
                 this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
             }
             
-            // FIXED: Create avatar for remote user with nationality flag
+            // FIXED: Create avatar for remote user with nationality flag - ENHANCED FOR BETTER NAMETAG VISIBILITY
             async createRemoteAvatar(userData) {
                 console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
                 
@@ -2010,6 +2010,27 @@
                         
                         if (avatar) {
                             console.log(`✅ Created avatar for ${userData.username} using AvatarSystem.createAvatar`);
+                            
+                            // CRITICAL: Add the enhanced nametag with flag after avatar creation
+                            setTimeout(async () => {
+                                try {
+                                    const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                                    if (nametagGroup && avatar) {
+                                        // Remove any existing nametag first
+                                        const existingNametag = avatar.getObjectByName('nametag');
+                                        if (existingNametag) {
+                                            avatar.remove(existingNametag);
+                                        }
+                                        
+                                        nametagGroup.name = 'nametag';
+                                        avatar.add(nametagGroup);
+                                        console.log(`🏳️ Added enhanced nametag with flag to ${userData.username}`);
+                                    }
+                                } catch (error) {
+                                    console.warn(`Could not add enhanced nametag to ${userData.username}:`, error);
+                                }
+                            }, 100);
+                            
                             return avatar;
                         }
                         
@@ -2018,10 +2039,11 @@
                     }
                 }
                 
-                // Strategy 2: Use the scene and THREE from the SceneManager
-                if (window.SceneManager && window.SceneManager.scene && window.THREE) {
+                // Strategy 2: Create simple THREE.js avatar with enhanced nametag
+                if (this.getAvailableScene() && window.THREE) {
                     try {
-                        console.log(`📋 Using SceneManager.scene for ${userData.username}`);
+                        const scene = this.getAvailableScene();
+                        console.log(`📋 Using direct Three.js scene for ${userData.username}`);
                         
                         // Create a simple colored box as avatar
                         const geometry = new THREE.BoxGeometry(1, 2, 1);
@@ -2045,9 +2067,12 @@
                             Math.sin(angle) * radius
                         );
                         
-                        // Add username label with nationality flag
+                        // Add enhanced username label with nationality flag
                         const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
-                        avatar.add(nametagGroup);
+                        if (nametagGroup) {
+                            nametagGroup.name = 'nametag';
+                            avatar.add(nametagGroup);
+                        }
                         
                         // Store user ID for removal
                         avatar.userData = { 
@@ -2056,65 +2081,17 @@
                             nationality: userData.nationality || 'UN'
                         };
                         
-                        window.SceneManager.scene.add(avatar);
-                        console.log(`✅ Created Three.js avatar for ${userData.username} using SceneManager.scene`);
+                        scene.add(avatar);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} with enhanced nametag`);
                         
                         return avatar;
                         
                     } catch (error) {
-                        console.error(`❌ Error creating Three.js avatar with SceneManager:`, error);
+                        console.error(`❌ Error creating Three.js avatar:`, error);
                     }
                 }
                 
-                // Strategy 3: Try to get the scene from the AvatarSystem
-                if (window.AvatarSystem && window.AvatarSystem.scene && window.THREE) {
-                    try {
-                        console.log(`📋 Using AvatarSystem.scene for ${userData.username}`);
-                        
-                        // Create a simple colored box as avatar
-                        const geometry = new THREE.BoxGeometry(1, 2, 1);
-                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
-                        const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-                        const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
-                        const avatar = new THREE.Mesh(geometry, material);
-                        
-                        // Position avatar
-                        const hash = userData.user_id.split('').reduce((a, b) => {
-                            a = ((a << 5) - a) + b.charCodeAt(0);
-                            return a & a;
-                        }, 0);
-                        
-                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-                        const radius = 3 + (Math.abs(hash) % 4);
-                        
-                        avatar.position.set(
-                            Math.cos(angle) * radius,
-                            1, // Height above ground
-                            Math.sin(angle) * radius
-                        );
-                        
-                        // Add username label with nationality flag
-                        const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
-                        avatar.add(nametagGroup);
-                        
-                        // Store user ID for removal
-                        avatar.userData = { 
-                            userId: userData.user_id, 
-                            username: userData.username,
-                            nationality: userData.nationality || 'UN'
-                        };
-                        
-                        window.AvatarSystem.scene.add(avatar);
-                        console.log(`✅ Created Three.js avatar for ${userData.username} using AvatarSystem.scene`);
-                        
-                        return avatar;
-                        
-                    } catch (error) {
-                        console.error(`❌ Error creating Three.js avatar with AvatarSystem.scene:`, error);
-                    }
-                }
-                
-                // Strategy 4: Wait for systems to be ready and try again
+                // Strategy 3: Wait for systems to be ready and try again
                 console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
                 
                 setTimeout(() => {
@@ -2128,89 +2105,187 @@
                 this.showNotification(`⏳ Creating avatar for ${userData.username} from ${this.getCountryName(userData.nationality || 'UN')}...`);
             }
             
-            // Create enhanced nametag with nationality flag
+            // Helper to get available scene
+            getAvailableScene() {
+                if (window.SceneManager && window.SceneManager.scene) {
+                    return window.SceneManager.scene;
+                }
+                if (window.AvatarSystem && window.AvatarSystem.scene) {
+                    return window.AvatarSystem.scene;
+                }
+                if (window.scene) {
+                    return window.scene;
+                }
+                return null;
+            }
+            
+            // ENHANCED: Create enhanced nametag with nationality flag - IMPROVED VISIBILITY
             async createEnhancedNametagWithFlag(userData) {
                 const nationality = userData.nationality || 'UN';
                 
-                // Create nametag canvas
+                // Create nametag canvas with larger size for better visibility
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
-                canvas.width = 320;
-                canvas.height = 90;
+                canvas.width = 400;
+                canvas.height = 120;
                 
-                // Background with gradient
+                // Clear canvas
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Enhanced background with gradient and glow effect
                 const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
-                gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
-                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+                gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.9)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
                 context.fillStyle = gradient;
-                this.roundRect(context, 0, 0, canvas.width, canvas.height, 10);
+                this.roundRect(context, 5, 5, canvas.width - 10, canvas.height - 10, 15);
                 context.fill();
                 
-                // Border
-                context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                context.lineWidth = 2;
+                // Outer glow effect
+                context.shadowColor = 'rgba(102, 126, 234, 0.6)';
+                context.shadowBlur = 20;
+                context.shadowOffsetX = 0;
+                context.shadowOffsetY = 0;
+                
+                // Enhanced border with glow
+                context.strokeStyle = 'rgba(102, 126, 234, 0.8)';
+                context.lineWidth = 3;
                 context.stroke();
                 
-                // Username
-                context.fillStyle = 'white';
-                context.font = 'bold 20px Arial';
-                context.textAlign = 'center';
-                context.fillText(userData.username, canvas.width / 2, 35);
+                // Reset shadow for text
+                context.shadowColor = 'transparent';
+                context.shadowBlur = 0;
                 
-                // Country name
-                const countryName = this.getCountryName(nationality);
-                context.fillStyle = '#4CAF50';
-                context.font = '14px Arial';
-                context.fillText(countryName, canvas.width / 2, 60);
-                
-                // Create nametag mesh
-                const labelTexture = new THREE.CanvasTexture(canvas);
-                const labelMaterial = new THREE.MeshBasicMaterial({ 
-                    map: labelTexture, 
-                    transparent: true 
-                });
-                const labelGeometry = new THREE.PlaneGeometry(3.2, 0.9);
-                const nametagMesh = new THREE.Mesh(labelGeometry, labelMaterial);
-                nametagMesh.position.set(0, 2.8, 0);
-                
-                // Create flag mesh
-                const nametagGroup = new THREE.Group();
-                nametagGroup.add(nametagMesh);
-                
+                // Draw flag first (left side)
                 try {
-                    const flagTexture = await this.loadFlagTexture(nationality);
-                    if (flagTexture) {
-                        const flagMaterial = new THREE.MeshBasicMaterial({ 
-                            map: flagTexture, 
-                            transparent: true 
-                        });
-                        const flagGeometry = new THREE.PlaneGeometry(0.6, 0.4);
-                        const flagMesh = new THREE.Mesh(flagGeometry, flagMaterial);
-                        flagMesh.position.set(-1.2, 3.5, 0.01);
-                        nametagGroup.add(flagMesh);
+                    const flagCanvas = document.createElement('canvas');
+                    const flagContext = flagCanvas.getContext('2d');
+                    flagCanvas.width = 48;
+                    flagCanvas.height = 32;
+                    
+                    // Try to load and draw flag
+                    if (nationality !== 'UN') {
+                        const flagImg = new Image();
+                        flagImg.crossOrigin = 'anonymous';
                         
-                        console.log(`🏳️ Added flag for ${nationality} to ${userData.username}'s nametag`);
+                        await new Promise((resolve, reject) => {
+                            flagImg.onload = () => {
+                                flagContext.drawImage(flagImg, 0, 0, 48, 32);
+                                
+                                // Draw flag on main canvas
+                                context.drawImage(flagCanvas, 20, 20);
+                                
+                                // Flag border
+                                context.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                                context.lineWidth = 1;
+                                context.strokeRect(20, 20, 48, 32);
+                                
+                                resolve();
+                            };
+                            flagImg.onerror = () => resolve(); // Continue without flag
+                            flagImg.src = `https://flagcdn.com/w48/${nationality.toLowerCase()}.png`;
+                        });
+                    } else {
+                        // Draw globe icon for unknown nationality
+                        context.font = '24px Arial';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        context.fillText('🌍', 44, 36);
                     }
                 } catch (error) {
-                    console.warn(`Could not load flag for ${nationality}:`, error);
+                    console.warn('Could not draw flag:', error);
+                    // Draw fallback globe icon
+                    context.font = '24px Arial';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    context.fillText('🌍', 44, 36);
                 }
                 
-                return nametagGroup;
-            }
-            
-            // Load flag texture from CDN
-            async loadFlagTexture(countryCode) {
-                try {
-                    const flagUrl = `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
-                    const texture = new THREE.TextureLoader().load(flagUrl);
-                    texture.minFilter = THREE.LinearFilter;
-                    texture.magFilter = THREE.LinearFilter;
-                    console.log(`🏳️ Successfully loaded flag texture for ${countryCode}`);
-                    return texture;
-                } catch (error) {
-                    console.warn(`Failed to load flag for ${countryCode}:`, error);
-                    return null;
+                // Username with enhanced styling
+                context.font = 'bold 24px Arial';
+                context.textAlign = 'left';
+                context.textBaseline = 'top';
+                context.fillStyle = 'white';
+                
+                // Text shadow for username
+                context.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                context.shadowBlur = 4;
+                context.shadowOffsetX = 2;
+                context.shadowOffsetY = 2;
+                
+                context.fillText(userData.username, 85, 20);
+                
+                // Country name with enhanced styling
+                const countryName = this.getCountryName(nationality);
+                context.font = '16px Arial';
+                context.fillStyle = '#4CAF50';
+                context.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                context.shadowBlur = 2;
+                context.shadowOffsetX = 1;
+                context.shadowOffsetY = 1;
+                
+                context.fillText(countryName, 85, 55);
+                
+                // Online indicator (green dot)
+                context.shadowColor = 'transparent';
+                context.shadowBlur = 0;
+                context.fillStyle = '#4CAF50';
+                context.beginPath();
+                context.arc(canvas.width - 25, 25, 8, 0, Math.PI * 2);
+                context.fill();
+                
+                // Online indicator glow
+                context.shadowColor = '#4CAF50';
+                context.shadowBlur = 10;
+                context.fill();
+                
+                // Create nametag mesh with higher resolution
+                const labelTexture = new THREE.CanvasTexture(canvas);
+                labelTexture.minFilter = THREE.LinearFilter;
+                labelTexture.magFilter = THREE.LinearFilter;
+                
+                const labelMaterial = new THREE.MeshBasicMaterial({ 
+                    map: labelTexture, 
+                    transparent: true,
+                    alphaTest: 0.01,
+                    side: THREE.DoubleSide
+                });
+                
+                const labelGeometry = new THREE.PlaneGeometry(4, 1.2);
+                const nametagMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+                
+                // Position nametag higher above avatar
+                nametagMesh.position.set(0, 3.5, 0);
+                
+                // Make nametag always face camera
+                nametagMesh.lookAt = function(camera) {
+                    if (camera) {
+                        this.lookAt(camera.position);
+                    }
+                };
+                
+                // Create group for nametag
+                const nametagGroup = new THREE.Group();
+                nametagGroup.add(nametagMesh);
+                nametagGroup.name = 'nametag';
+                
+                // Store user data
+                nametagGroup.userData = {
+                    userId: userData.user_id,
+                    username: userData.username,
+                    nationality: nationality
+                };
+                
+                // Update nametag to always face camera
+                if (window.SceneManager && window.SceneManager.camera) {
+                    nametagGroup.lookAt(window.SceneManager.camera.position);
                 }
+                
+                console.log(`🏳️ Created enhanced nametag for ${userData.username} from ${countryName}`);
+                
+                return nametagGroup;
             }
             
             // Get country name from code
@@ -2266,41 +2341,17 @@
                     }
                 }
                 
-                // Strategy 2: Manual removal from SceneManager.scene
-                if (window.SceneManager && window.SceneManager.scene) {
-                    try {
-                        const avatarsToRemove = [];
-                        window.SceneManager.scene.traverse((child) => {
-                            if (child.userData && child.userData.userId === userId) {
-                                avatarsToRemove.push(child);
-                            }
-                        });
-                        
-                        avatarsToRemove.forEach(avatar => {
-                            // Dispose of geometry and materials
-                            if (avatar.geometry) avatar.geometry.dispose();
-                            if (avatar.material) {
-                                if (Array.isArray(avatar.material)) {
-                                    avatar.material.forEach(material => material.dispose());
-                                } else {
-                                    avatar.material.dispose();
-                                }
-                            }
-                            
-                            window.SceneManager.scene.remove(avatar);
-                            console.log(`✅ Manually removed avatar for user ${userId} from SceneManager.scene`);
-                        });
-                        
-                    } catch (error) {
-                        console.error('Error manually removing avatar from SceneManager.scene:', error);
-                    }
-                }
+                // Strategy 2: Manual removal from available scenes
+                const scenes = [
+                    window.SceneManager?.scene,
+                    window.AvatarSystem?.scene,
+                    window.scene
+                ].filter(Boolean);
                 
-                // Strategy 3: Manual removal from AvatarSystem.scene
-                if (window.AvatarSystem && window.AvatarSystem.scene) {
+                scenes.forEach(scene => {
                     try {
                         const avatarsToRemove = [];
-                        window.AvatarSystem.scene.traverse((child) => {
+                        scene.traverse((child) => {
                             if (child.userData && child.userData.userId === userId) {
                                 avatarsToRemove.push(child);
                             }
@@ -2317,14 +2368,14 @@
                                 }
                             }
                             
-                            window.AvatarSystem.scene.remove(avatar);
-                            console.log(`✅ Manually removed avatar for user ${userId} from AvatarSystem.scene`);
+                            scene.remove(avatar);
+                            console.log(`✅ Manually removed avatar for user ${userId} from scene`);
                         });
                         
                     } catch (error) {
-                        console.error('Error manually removing avatar from AvatarSystem.scene:', error);
+                        console.error('Error manually removing avatar from scene:', error);
                     }
-                }
+                });
                 
                 // Also remove their chat bubbles
                 if (window.ChatBubbleSystem && window.ChatBubbleSystem.removeUserBubbles) {
@@ -2985,7 +3036,7 @@
             console.log('================================');
         };
         
-        // Enhanced Nationality System
+        // FIXED: Enhanced Nationality System with proper country formatting
         window.showNationalitySelector = function() {
             const modal = document.createElement('div');
             modal.style.cssText = `
@@ -3014,8 +3065,8 @@
                 overflow-y: auto;
             `;
             
-            // Get countries from ROOM_CONFIG or use defaults
-            const countries = window.ROOM_CONFIG?.nationalityCountries || [
+            // FIXED: Proper country list formatting
+            const countries = [
                 ['US', 'United States'], ['CA', 'Canada'], ['GB', 'United Kingdom'],
                 ['DE', 'Germany'], ['FR', 'France'], ['JP', 'Japan'], ['AU', 'Australia'],
                 ['BR', 'Brazil'], ['IN', 'India'], ['CN', 'China'], ['KR', 'South Korea'],
@@ -3036,7 +3087,7 @@
             
             content.innerHTML = `
                 <h2 style="margin-top: 0; color: #4CAF50;">🌍 Select Your Nationality</h2>
-                <p style="margin-bottom: 20px; color: #ccc;">Choose your country to display your flag on your nametag:</p>
+                <p style="margin-bottom: 20px; color: #ccc;">Choose your country to display your flag on your 3D avatar nametag:</p>
                 
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; color: #ccc;">Current: <strong>${window.ROOM_CONFIG.userCountryName || 'Unknown'}</strong></label>
@@ -3294,6 +3345,36 @@
                 console.log('🌍 Room Demographics:', window.ROOM_CONFIG.roomDemographics);
             }
         };
+        
+        // Camera follow function for nametags
+        window.updateNametagOrientation = function() {
+            if (!window.SceneManager?.camera) return;
+            
+            const scenes = [
+                window.SceneManager?.scene,
+                window.AvatarSystem?.scene,
+                window.scene
+            ].filter(Boolean);
+            
+            scenes.forEach(scene => {
+                scene.traverse((child) => {
+                    if (child.name === 'nametag' && child.lookAt) {
+                        try {
+                            child.lookAt(window.SceneManager.camera.position);
+                        } catch (error) {
+                            // Ignore errors in lookAt
+                        }
+                    }
+                });
+            });
+        };
+        
+        // Start nametag orientation updates
+        setInterval(() => {
+            if (window.updateNametagOrientation) {
+                window.updateNametagOrientation();
+            }
+        }, 100);
     </script>
 
     <!-- Enhanced Modular System - Fixed for ChatBubbleSystem -->
