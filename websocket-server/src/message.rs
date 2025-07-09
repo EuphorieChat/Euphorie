@@ -1,4 +1,4 @@
-// FIXED: src/message.rs - Correct timestamp types
+// FIXED: src/message.rs - Correct timestamp types and added missing traits
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,8 +109,8 @@ pub enum ClientMessage {
     },
 }
 
-// Server -> Client messages
-#[derive(Debug, Serialize)]
+// Server -> Client messages - FIXED: Added Clone and Deserialize traits
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ServerMessage {
     #[serde(rename = "auth_success")]
