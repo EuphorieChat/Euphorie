@@ -128,9 +128,14 @@ def room(request, room_name):
     # Update last activity and increment active users
     room.last_activity = timezone.now()
     if request.user.is_authenticated:
-        # Simple active user tracking (you might want to implement this differently)
+        # FIXED: Don't use F() object in template context
         room.active_users_count = F('active_users_count') + 1
-    room.save(update_fields=['last_activity'])
+        room.save(update_fields=['last_activity', 'active_users_count'])
+        
+        # Refresh from database to get the actual count for template
+        room.refresh_from_db()
+    else:
+        room.save(update_fields=['last_activity'])
     
     # Track user activity
     if request.user.is_authenticated:
@@ -154,7 +159,7 @@ def room(request, room_name):
         'message_form': QuickMessageForm(),
         'is_bookmarked': is_bookmarked,
         'room_tags': room.get_tags_list(),
-        'user_id': request.user.id if request.user.is_authenticated else None,  # ADD THIS LINE
+        'user_id': request.user.id if request.user.is_authenticated else None,
     }
     
     return render(request, 'chat/room_3d.html', context)
