@@ -24,7 +24,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',  # Required for allauth
-    'django.contrib.gis',  # For GeoIP2 nationality detection
     'chat',
     'allauth',
     'allauth.account',
@@ -34,6 +33,14 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.apple',
     'widget_tweaks'
 ]
+
+# Optional GIS support for enhanced nationality detection
+try:
+    import django.contrib.gis
+    INSTALLED_APPS.append('django.contrib.gis')
+    GIS_ENABLED = True
+except ImportError:
+    GIS_ENABLED = False
 
 SITE_ID = 1
 
@@ -152,8 +159,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ==================== NATIONALITY & GEOLOCATION CONFIGURATION ====================
 
-# GeoIP2 Configuration for nationality detection
+# GeoIP2 Configuration for nationality detection (optional)
 GEOIP_PATH = BASE_DIR / 'geoip2'
+
+# Only enable GeoIP2 if both GIS and geoip2 are available
+try:
+    import geoip2
+    if GIS_ENABLED:
+        GEOIP_ENABLED = True
+    else:
+        GEOIP_ENABLED = False
+        import warnings
+        warnings.warn("GeoIP2 library found but django.contrib.gis not available. Using fallback APIs.")
+except ImportError:
+    GEOIP_ENABLED = False
 
 # Nationality System Settings
 NATIONALITY_SETTINGS = {
@@ -610,11 +629,14 @@ if 'test' in sys.argv:
 # Optional packages for enhanced functionality
 OPTIONAL_APPS = []
 
-# GeoIP2 for better nationality detection
+# GeoIP2 for better nationality detection (requires GDAL)
 try:
     import geoip2
-    OPTIONAL_APPS.append('geoip2')
-    GEOIP_ENABLED = True
+    if GIS_ENABLED:
+        OPTIONAL_APPS.append('geoip2')
+        GEOIP_ENABLED = True
+    else:
+        GEOIP_ENABLED = False
 except ImportError:
     GEOIP_ENABLED = False
 
@@ -679,6 +701,9 @@ if NATIONALITY_SETTINGS.get('ENABLE_AUTO_DETECTION') and not REQUESTS_ENABLED:
 if GEOIP_ENABLED and not GEOIP_PATH.exists():
     import warnings
     warnings.warn(f"GeoIP2 enabled but path {GEOIP_PATH} does not exist")
+elif not GIS_ENABLED and NATIONALITY_SETTINGS.get('ENABLE_AUTO_DETECTION'):
+    import warnings
+    warnings.warn("GeoIP2 not available (requires GDAL). Using fallback APIs for nationality detection.")
 
 # Print nationality system status
 if DEBUG:

@@ -1,14 +1,16 @@
-# backend/chat/middleware.py
-
-from django.utils import timezone
-from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound
-from django.core.cache import cache
-from django.conf import settings
-from django.templatetags.static import static
-import time
 import json
 import logging
+import time
+
+from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
+from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound
+from django.templatetags.static import static
+from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
+
+from .models import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -372,3 +374,30 @@ class WebSocketAuthMiddleware:
                 scope['user'] = AnonymousUser()
         
         return await self.inner(scope, receive, send)
+    
+class NationalityMiddleware(MiddlewareMixin):
+    """Middleware to detect and set user nationality"""
+    
+    def process_request(self, request):
+        """Process incoming request to detect nationality"""
+        if not getattr(settings, 'NATIONALITY_SETTINGS', {}).get('ENABLE_AUTO_DETECTION', False):
+            return None
+            
+        # Skip for admin, static files, etc.
+        if request.path.startswith('/admin/') or request.path.startswith('/static/'):
+            return None
+            
+        # Get client IP
+        request.client_ip = get_client_ip(request)
+        
+        # Auto-detect nationality for authenticated users
+        if request.user.is_authenticated and hasattr(request.user, 'profile'):
+            profile = request.user.profile
+            if not profile.nationality and not profile.auto_detected_country:
+                # Detect nationality in background (don't block request)
+                try:
+                    profile.auto_detect_country(request.client_ip)
+                except:
+                    pass  # Fail silently
+        
+        return None

@@ -91,3 +91,25 @@ def global_context(request):
             })
     
     return context
+
+def nationality_context(request):
+    """Add nationality context to templates"""
+    context = {}
+    
+    if hasattr(request, 'user') and request.user.is_authenticated:
+        if hasattr(request.user, 'profile'):
+            profile = request.user.profile
+            context.update({
+                'user_nationality': profile.get_display_nationality(),
+                'user_country_name': profile.get_country_name(),
+                'user_flag_url': profile.get_flag_url(),
+                'show_nationality': profile.show_nationality,
+            })
+    
+    # Add nationality system settings
+    context.update({
+        'nationality_enabled': getattr(settings, 'NATIONALITY_SETTINGS', {}).get('ENABLE_FLAG_DISPLAY', True),
+        'nationality_countries': getattr(settings, 'COUNTRY_CHOICES', []),
+    })
+    
+    return context
