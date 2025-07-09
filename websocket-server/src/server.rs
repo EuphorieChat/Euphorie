@@ -114,16 +114,16 @@ impl WebSocketServer {
         let ws_stream = accept_async(stream).await?;
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
         
-        let user_id = uuid::Uuid::new_v4().to_string();
+        let connection_id = uuid::Uuid::new_v4().to_string();
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let connection = WebSocketConnection {
-            user_id: user_id.clone(),
+            user_id: connection_id.clone(),
             room_id: None,
             sender: tx,
         };
 
-        self.connections.insert(user_id.clone(), connection);
+        self.connections.insert(connection_id.clone(), connection);
 
         // Handle outgoing messages
         tokio::spawn(async move {
@@ -138,12 +138,12 @@ impl WebSocketServer {
         while let Some(msg) = ws_receiver.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    if let Err(e) = self.handle_message(&user_id, &text).await {
+                    if let Err(e) = self.handle_message(&connection_id, &text).await {
                         tracing::error!("❌ Error handling message: {}", e);
                     }
                 }
                 Ok(Message::Close(_)) => {
-                    tracing::debug!("👋 Connection closed for user {}", user_id);
+                    tracing::debug!("👋 Connection closed for connection {}", connection_id);
                     break;
                 }
                 Err(e) => {
@@ -155,11 +155,11 @@ impl WebSocketServer {
         }
 
         // Cleanup
-        self.cleanup_user(&user_id).await;
+        self.cleanup_user(&connection_id).await;
         Ok(())
     }
 
-    async fn handle_message(&self, user_id: &str, text: &str) -> Result<()> {
+    async fn handle_message(&self, connection_id: &str, text: &str) -> Result<()> {
         let message: ClientMessage = serde_json::from_str(text)?;
         
         // Apply rate limiting to most message types (except ping/auth)
@@ -171,18 +171,34 @@ impl WebSocketServer {
             ClientMessage::Typing { .. }
         );
 
-        if should_rate_limit && !self.rate_limiter.check_rate_limit(user_id) {
+        if should_rate_limit && !self.rate_limiter.check_rate_limit(connection_id) {
             let error_response = ServerMessage::Error {
                 error: "Rate limit exceeded. Please slow down.".to_string(),
             };
-            self.send_to_user(user_id, &error_response).await?;
+            self.send_to_connection(connection_id, &error_response).await?;
             return Ok(());
         }
         
         match message {
             ClientMessage::Auth { user_id: auth_user_id, room_id, username, .. } => {
-                let final_user_id = auth_user_id.unwrap_or_else(|| user_id.to_string());
-                let final_username = username.unwrap_or_else(|| "Guest".to_string());
+                // FIXED: Properly handle authenticated vs guest users
+                let (final_user_id, final_username) = match (auth_user_id, username) {
+                    // Authenticated user with proper ID and username
+                    (Some(user_id), Some(username)) if !user_id.is_empty() && !username.is_empty() => {
+                        (user_id, username)
+                    },
+                    
+                    // Guest user - generate guest ID
+                    _ => {
+                        let guest_id = format!("guest_{}", 
+                            uuid::Uuid::new_v4().to_string()
+                                .split('-')
+                                .next()
+                                .unwrap_or("unknown")
+                        );
+                        (guest_id, "Guest".to_string())
+                    }
+                };
 
                 let room = self.get_or_create_room(&room_id).await?;
 
@@ -195,7 +211,9 @@ impl WebSocketServer {
                 };
 
                 if room.add_user(user).await {
-                    if let Some(mut conn) = self.connections.get_mut(user_id) {
+                    // Update connection with the actual user ID
+                    if let Some(mut conn) = self.connections.get_mut(connection_id) {
+                        conn.user_id = final_user_id.clone();
                         conn.room_id = Some(room_id.clone());
                     }
 
@@ -204,36 +222,36 @@ impl WebSocketServer {
                         room_id: room_id.clone(),
                         room_info: room.to_room_info().await,
                     };
-                    self.send_to_user(user_id, &response).await?;
+                    self.send_to_connection(connection_id, &response).await?;
 
                     // Send recent message history to the user
                     let recent_messages = self.message_history.get_recent_messages(&room_id, Some(20)).await;
                     for stored_message in recent_messages {
-                        self.send_to_user(user_id, &stored_message.message).await?;
+                        self.send_to_connection(connection_id, &stored_message.message).await?;
                     }
 
                     let user_joined = ServerMessage::UserJoined {
-                        user_id: final_user_id,
+                        user_id: final_user_id.clone(),
                         username: final_username,
                         avatar: Some(AvatarInfo::default()),
                     };
                     
                     // Store and broadcast user joined message
                     self.message_history.add_message(&room_id, user_joined.clone()).await;
-                    self.broadcast_to_room(&room_id, &user_joined, Some(user_id)).await?;
+                    self.broadcast_to_room(&room_id, &user_joined, Some(&final_user_id)).await?;
                 } else {
                     let response = ServerMessage::AuthError {
                         error: "Room is full".to_string(),
                     };
-                    self.send_to_user(user_id, &response).await?;
+                    self.send_to_connection(connection_id, &response).await?;
                 }
             }
 
             ClientMessage::ChatMessage { message: msg, user_id: msg_user_id, room_id, .. } => {
-                if let Some(conn) = self.connections.get(user_id) {
+                if let Some(conn) = self.connections.get(connection_id) {
                     if let Some(ref conn_room_id) = conn.room_id {
                         if conn_room_id == &room_id {
-                            let final_user_id = msg_user_id.unwrap_or_else(|| user_id.to_string());
+                            let final_user_id = msg_user_id.unwrap_or_else(|| conn.user_id.clone());
                             
                             // Get username from room data
                             let username = if let Some(room) = self.rooms.get(&room_id) {
@@ -264,94 +282,102 @@ impl WebSocketServer {
             }
 
             ClientMessage::PositionUpdate { user_id: pos_user_id, room_id, position, .. } => {
-                let final_user_id = pos_user_id.unwrap_or_else(|| user_id.to_string());
-                if let Some(room) = self.rooms.get(&room_id) {
-                    if room.update_user_position(&final_user_id, position.clone()).await {
-                        let response = ServerMessage::UserPositionUpdate {
-                            user_id: final_user_id,
-                            position,
-                            timestamp: chrono::Utc::now().timestamp_millis(),
-                        };
-                        self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
+                if let Some(conn) = self.connections.get(connection_id) {
+                    let final_user_id = pos_user_id.unwrap_or_else(|| conn.user_id.clone());
+                    if let Some(room) = self.rooms.get(&room_id) {
+                        if room.update_user_position(&final_user_id, position.clone()).await {
+                            let response = ServerMessage::UserPositionUpdate {
+                                user_id: final_user_id,
+                                position,
+                                timestamp: chrono::Utc::now().timestamp_millis(),
+                            };
+                            self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
+                        }
                     }
                 }
             }
 
             ClientMessage::Emotion { user_id: emotion_user_id, room_id, emotion, .. } => {
-                let final_user_id = emotion_user_id.unwrap_or_else(|| user_id.to_string());
-                
-                let username = if let Some(room) = self.rooms.get(&room_id) {
-                    if let Some(room_user) = room.get_user(&final_user_id).await {
-                        room_user.username
+                if let Some(conn) = self.connections.get(connection_id) {
+                    let final_user_id = emotion_user_id.unwrap_or_else(|| conn.user_id.clone());
+                    
+                    let username = if let Some(room) = self.rooms.get(&room_id) {
+                        if let Some(room_user) = room.get_user(&final_user_id).await {
+                            room_user.username
+                        } else {
+                            "User".to_string()
+                        }
                     } else {
                         "User".to_string()
-                    }
-                } else {
-                    "User".to_string()
-                };
+                    };
 
-                let response = ServerMessage::Emotion {
-                    user_id: final_user_id,
-                    username,
-                    emotion,
-                    timestamp: chrono::Utc::now().timestamp_millis(),
-                };
-                
-                // Store emotion in history
-                self.message_history.add_message(&room_id, response.clone()).await;
-                
-                self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
+                    let response = ServerMessage::Emotion {
+                        user_id: final_user_id,
+                        username,
+                        emotion,
+                        timestamp: chrono::Utc::now().timestamp_millis(),
+                    };
+                    
+                    // Store emotion in history
+                    self.message_history.add_message(&room_id, response.clone()).await;
+                    
+                    self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
+                }
             }
 
             ClientMessage::Interaction { user_id: int_user_id, room_id, target_user_id, interaction_type, data, .. } => {
-                let final_user_id = int_user_id.unwrap_or_else(|| user_id.to_string());
-                
-                let username = if let Some(room) = self.rooms.get(&room_id) {
-                    if let Some(room_user) = room.get_user(&final_user_id).await {
-                        room_user.username
+                if let Some(conn) = self.connections.get(connection_id) {
+                    let final_user_id = int_user_id.unwrap_or_else(|| conn.user_id.clone());
+                    
+                    let username = if let Some(room) = self.rooms.get(&room_id) {
+                        if let Some(room_user) = room.get_user(&final_user_id).await {
+                            room_user.username
+                        } else {
+                            "User".to_string()
+                        }
                     } else {
                         "User".to_string()
-                    }
-                } else {
-                    "User".to_string()
-                };
+                    };
 
-                let response = ServerMessage::Interaction {
-                    user_id: final_user_id,
-                    username,
-                    target_user_id,
-                    interaction_type,
-                    data,
-                    timestamp: chrono::Utc::now().timestamp_millis(),
-                };
-                
-                // Store interaction in history
-                self.message_history.add_message(&room_id, response.clone()).await;
-                
-                self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
+                    let response = ServerMessage::Interaction {
+                        user_id: final_user_id,
+                        username,
+                        target_user_id,
+                        interaction_type,
+                        data,
+                        timestamp: chrono::Utc::now().timestamp_millis(),
+                    };
+                    
+                    // Store interaction in history
+                    self.message_history.add_message(&room_id, response.clone()).await;
+                    
+                    self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
+                }
             }
 
             ClientMessage::Typing { user_id: typing_user_id, room_id, is_typing } => {
-                let final_user_id = typing_user_id.unwrap_or_else(|| user_id.to_string());
-                
-                let username = if let Some(room) = self.rooms.get(&room_id) {
-                    if let Some(room_user) = room.get_user(&final_user_id).await {
-                        room_user.username
+                if let Some(conn) = self.connections.get(connection_id) {
+                    let final_user_id = typing_user_id.unwrap_or_else(|| conn.user_id.clone());
+                    
+                    let username = if let Some(room) = self.rooms.get(&room_id) {
+                        if let Some(room_user) = room.get_user(&final_user_id).await {
+                            room_user.username
+                        } else {
+                            "User".to_string()
+                        }
                     } else {
                         "User".to_string()
-                    }
-                } else {
-                    "User".to_string()
-                };
+                    };
 
-                let response = ServerMessage::Typing {
-                    user_id: final_user_id,
-                    username,
-                    is_typing,
-                };
-                
-                // Don't store typing indicators in history
-                self.broadcast_to_room(&room_id, &response, Some(user_id)).await?;
+                    let response = ServerMessage::Typing {
+                        user_id: final_user_id,
+                        username,
+                        is_typing,
+                    };
+                    
+                    // Don't store typing indicators in history
+                    self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
+                }
             }
 
             ClientMessage::GetRoomState { room_id } => {
@@ -369,13 +395,13 @@ impl WebSocketServer {
                         room_id,
                         users,
                     };
-                    self.send_to_user(user_id, &response).await?;
+                    self.send_to_connection(connection_id, &response).await?;
                 }
             }
 
             ClientMessage::Ping { timestamp } => {
                 let response = ServerMessage::Pong { timestamp };
-                self.send_to_user(user_id, &response).await?;
+                self.send_to_connection(connection_id, &response).await?;
             }
         }
 
@@ -401,8 +427,8 @@ impl WebSocketServer {
         }
     }
 
-    async fn send_to_user(&self, user_id: &str, message: &ServerMessage) -> Result<()> {
-        if let Some(conn) = self.connections.get(user_id) {
+    async fn send_to_connection(&self, connection_id: &str, message: &ServerMessage) -> Result<()> {
+        if let Some(conn) = self.connections.get(connection_id) {
             let json = serde_json::to_string(message)?;
             let _ = conn.sender.send(Message::Text(json));
         }
@@ -424,11 +450,11 @@ impl WebSocketServer {
         Ok(())
     }
 
-    async fn cleanup_user(&self, user_id: &str) {
-        if let Some((_, conn)) = self.connections.remove(user_id) {
+    async fn cleanup_user(&self, connection_id: &str) {
+        if let Some((_, conn)) = self.connections.remove(connection_id) {
             if let Some(room_id) = conn.room_id {
                 if let Some(room) = self.rooms.get(&room_id) {
-                    if let Some(removed_user) = room.remove_user(user_id).await {
+                    if let Some(removed_user) = room.remove_user(&conn.user_id).await {
                         let response = ServerMessage::UserLeft {
                             user_id: removed_user.user_id.clone(),
                             username: removed_user.username.clone(),
