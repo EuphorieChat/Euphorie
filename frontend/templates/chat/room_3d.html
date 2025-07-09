@@ -1748,30 +1748,27 @@
         // NEW: Handle when a user joins
         handleUserJoined(data) {
             console.log(`👋 ${data.username} joined the room`);
-            this.createAvatarWithRetry(data);
-        }
-
-        async createAvatarWithRetry(data, maxRetries = 5) {
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                if (window.AvatarSystem && window.AvatarSystem.createRemoteAvatar) {
-                    try {
-                        console.log(`👤 Creating remote avatar for: ${data.username} (attempt ${attempt})`);
-                        const result = window.AvatarSystem.createRemoteAvatar(data.user_id, data.username, data.avatar);
-                        console.log(`✅ Created avatar for ${data.username}`, result);
-                        return;
-                    } catch (error) {
-                        console.error(`❌ Error creating avatar for ${data.username}:`, error);
-                        if (attempt === maxRetries) return;
-                    }
-                } else {
-                    console.warn(`⚠️ AvatarSystem not available for ${data.username} (attempt ${attempt})`);
-                }
-                
-                // Wait before retry
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
             
-            console.error(`❌ Failed to create avatar for ${data.username} after ${maxRetries} attempts`);
+            // Check if AvatarSystem is available
+            if (window.AvatarSystem && window.AvatarSystem.createRemoteAvatar) {
+                console.log(`👤 Creating remote avatar for: ${data.username}`);
+                try {
+                    window.AvatarSystem.createRemoteAvatar(data.user_id, data.username, data.avatar);
+                    console.log(`✅ Remote avatar created for ${data.username}`);
+                } catch (error) {
+                    console.error(`❌ Error creating remote avatar for ${data.username}:`, error);
+                }
+            } else {
+                console.warn(`⚠️ AvatarSystem not available for creating remote avatar for ${data.username}`);
+                
+                // Try to wait for AvatarSystem to be ready
+                setTimeout(() => {
+                    if (window.AvatarSystem && window.AvatarSystem.createRemoteAvatar) {
+                        console.log(`🔄 Retrying avatar creation for: ${data.username}`);
+                        window.AvatarSystem.createRemoteAvatar(data.user_id, data.username, data.avatar);
+                    }
+                }, 1000);
+            }
         }
         
         // NEW: Handle when a user leaves
