@@ -1789,7 +1789,7 @@
                 this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
             }
             
-            // FIXED: Create avatar for remote user with multiple strategies
+            // FIXED: Create avatar for remote user - uses the actual loaded systems
             async createRemoteAvatar(userData) {
                 console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id})`);
                 
@@ -1799,7 +1799,7 @@
                     return;
                 }
                 
-                // Strategy 1: Try AvatarSystem.createAvatar (most likely to work)
+                // Strategy 1: Use AvatarSystem.createAvatar with the user ID as the avatar ID
                 if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
                     try {
                         console.log(`📋 Using AvatarSystem.createAvatar for ${userData.username}`);
@@ -1826,9 +1826,11 @@
                             position.z = userData.position.z;
                         }
                         
+                        // Create avatar using the user ID as avatar ID
                         const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
                             name: userData.username,
                             position: position,
+                            // Use random customization if available
                             ...(window.AvatarSystem.getRandomCustomization ? window.AvatarSystem.getRandomCustomization() : {})
                         });
                         
@@ -1842,22 +1844,10 @@
                     }
                 }
                 
-                // Strategy 2: Try AvatarSystem.createRemoteAvatar (fallback)
-                if (window.AvatarSystem && window.AvatarSystem.createRemoteAvatar) {
+                // Strategy 2: Use the scene and THREE from the SceneManager
+                if (window.SceneManager && window.SceneManager.scene && window.THREE) {
                     try {
-                        console.log(`📋 Using AvatarSystem.createRemoteAvatar for ${userData.username}`);
-                        const result = window.AvatarSystem.createRemoteAvatar(userData.user_id, userData.username, userData.avatar);
-                        console.log(`✅ Created avatar for ${userData.username} using AvatarSystem.createRemoteAvatar`);
-                        return result;
-                    } catch (error) {
-                        console.error(`❌ Error creating avatar with AvatarSystem.createRemoteAvatar:`, error);
-                    }
-                }
-                
-                // Strategy 3: Create a basic Three.js avatar directly in the scene
-                if (window.scene && window.THREE) {
-                    try {
-                        console.log(`📋 Using Three.js direct creation for ${userData.username}`);
+                        console.log(`📋 Using SceneManager.scene for ${userData.username}`);
                         
                         // Create a simple colored box as avatar
                         const geometry = new THREE.BoxGeometry(1, 2, 1);
@@ -1903,23 +1893,90 @@
                         // Store user ID for removal
                         avatar.userData = { userId: userData.user_id, username: userData.username };
                         
-                        window.scene.add(avatar);
-                        console.log(`✅ Created Three.js avatar for ${userData.username}`);
+                        window.SceneManager.scene.add(avatar);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} using SceneManager.scene`);
                         
                         return avatar;
                         
                     } catch (error) {
-                        console.error(`❌ Error creating Three.js avatar:`, error);
+                        console.error(`❌ Error creating Three.js avatar with SceneManager:`, error);
                     }
                 }
                 
-                console.error(`❌ Failed to create avatar for ${userData.username} - no working method found`);
+                // Strategy 3: Try to get the scene from the AvatarSystem
+                if (window.AvatarSystem && window.AvatarSystem.scene && window.THREE) {
+                    try {
+                        console.log(`📋 Using AvatarSystem.scene for ${userData.username}`);
+                        
+                        // Create a simple colored box as avatar
+                        const geometry = new THREE.BoxGeometry(1, 2, 1);
+                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+                        const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+                        const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
+                        const avatar = new THREE.Mesh(geometry, material);
+                        
+                        // Position avatar
+                        const hash = userData.user_id.split('').reduce((a, b) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                        }, 0);
+                        
+                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                        const radius = 3 + (Math.abs(hash) % 4);
+                        
+                        avatar.position.set(
+                            Math.cos(angle) * radius,
+                            1, // Height above ground
+                            Math.sin(angle) * radius
+                        );
+                        
+                        // Add username label
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 256;
+                        canvas.height = 64;
+                        context.fillStyle = 'white';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+                        context.fillStyle = 'black';
+                        context.font = '20px Arial';
+                        context.textAlign = 'center';
+                        context.fillText(userData.username, canvas.width / 2, canvas.height / 2 + 7);
+                        
+                        const labelTexture = new THREE.CanvasTexture(canvas);
+                        const labelMaterial = new THREE.MeshBasicMaterial({ map: labelTexture });
+                        const labelGeometry = new THREE.PlaneGeometry(2, 0.5);
+                        const label = new THREE.Mesh(labelGeometry, labelMaterial);
+                        label.position.set(0, 2.5, 0);
+                        avatar.add(label);
+                        
+                        // Store user ID for removal
+                        avatar.userData = { userId: userData.user_id, username: userData.username };
+                        
+                        window.AvatarSystem.scene.add(avatar);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} using AvatarSystem.scene`);
+                        
+                        return avatar;
+                        
+                    } catch (error) {
+                        console.error(`❌ Error creating Three.js avatar with AvatarSystem.scene:`, error);
+                    }
+                }
+                
+                // Strategy 4: Wait for systems to be ready and try again
+                console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
+                
+                setTimeout(() => {
+                    console.log(`🔄 Retrying avatar creation for ${userData.username}...`);
+                    this.createRemoteAvatar(userData);
+                }, 2000);
+                
+                console.error(`❌ Failed to create avatar for ${userData.username} - will retry in 2 seconds`);
                 
                 // Show notification to user
-                this.showNotification(`⚠️ Could not create avatar for ${userData.username}`);
+                this.showNotification(`⏳ Creating avatar for ${userData.username}...`);
             }
             
-            // FIXED: Remove avatar for remote user
+            // FIXED: Remove avatar for remote user - handles multiple scene sources
             removeRemoteAvatar(userId) {
                 console.log('🗑️ Removing remote avatar for user:', userId);
                 
@@ -1933,11 +1990,11 @@
                     }
                 }
                 
-                // Strategy 2: Manual removal from Three.js scene
-                if (window.scene) {
+                // Strategy 2: Manual removal from SceneManager.scene
+                if (window.SceneManager && window.SceneManager.scene) {
                     try {
                         const avatarsToRemove = [];
-                        window.scene.traverse((child) => {
+                        window.SceneManager.scene.traverse((child) => {
                             if (child.userData && child.userData.userId === userId) {
                                 avatarsToRemove.push(child);
                             }
@@ -1954,12 +2011,42 @@
                                 }
                             }
                             
-                            window.scene.remove(avatar);
-                            console.log(`✅ Manually removed avatar for user ${userId}`);
+                            window.SceneManager.scene.remove(avatar);
+                            console.log(`✅ Manually removed avatar for user ${userId} from SceneManager.scene`);
                         });
                         
                     } catch (error) {
-                        console.error('Error manually removing avatar:', error);
+                        console.error('Error manually removing avatar from SceneManager.scene:', error);
+                    }
+                }
+                
+                // Strategy 3: Manual removal from AvatarSystem.scene
+                if (window.AvatarSystem && window.AvatarSystem.scene) {
+                    try {
+                        const avatarsToRemove = [];
+                        window.AvatarSystem.scene.traverse((child) => {
+                            if (child.userData && child.userData.userId === userId) {
+                                avatarsToRemove.push(child);
+                            }
+                        });
+                        
+                        avatarsToRemove.forEach(avatar => {
+                            // Dispose of geometry and materials
+                            if (avatar.geometry) avatar.geometry.dispose();
+                            if (avatar.material) {
+                                if (Array.isArray(avatar.material)) {
+                                    avatar.material.forEach(material => material.dispose());
+                                } else {
+                                    avatar.material.dispose();
+                                }
+                            }
+                            
+                            window.AvatarSystem.scene.remove(avatar);
+                            console.log(`✅ Manually removed avatar for user ${userId} from AvatarSystem.scene`);
+                        });
+                        
+                    } catch (error) {
+                        console.error('Error manually removing avatar from AvatarSystem.scene:', error);
                     }
                 }
                 
@@ -2579,6 +2666,28 @@
             if (window.WebSocketManager) {
                 window.WebSocketManager.sendInteraction(type, targetId, data);
             }
+        };
+        
+        // Add avatar systems debug function
+        window.debugAvatarSystems = function() {
+            console.log('🔍 === AVATAR SYSTEMS DEBUG ===');
+            console.log('window.AvatarSystem:', !!window.AvatarSystem);
+            if (window.AvatarSystem) {
+                console.log('  - createAvatar:', typeof window.AvatarSystem.createAvatar);
+                console.log('  - createRemoteAvatar:', typeof window.AvatarSystem.createRemoteAvatar);
+                console.log('  - removeAvatar:', typeof window.AvatarSystem.removeAvatar);
+                console.log('  - scene:', !!window.AvatarSystem.scene);
+                console.log('  - getRandomCustomization:', typeof window.AvatarSystem.getRandomCustomization);
+            }
+            
+            console.log('window.SceneManager:', !!window.SceneManager);
+            if (window.SceneManager) {
+                console.log('  - scene:', !!window.SceneManager.scene);
+            }
+            
+            console.log('window.THREE:', !!window.THREE);
+            console.log('window.scene:', !!window.scene);
+            console.log('================================');
         };
     </script>
 
