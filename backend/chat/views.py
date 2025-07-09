@@ -179,22 +179,17 @@ def room(request, room_name):
     # Get messages with pagination for better performance
     messages_list = Message.objects.filter(
         room=room, 
-        is_deleted=False  # Don't show deleted messages
+        is_deleted=False
     ).select_related(
         'user', 'user__profile'
-    ).order_by('-timestamp')[:100]  # Limit recent messages
-    
-    # Reverse for display (oldest first)
+    ).order_by('-timestamp')[:100]
     messages_list = list(reversed(messages_list))
     
     # Update last activity and increment active users
     room.last_activity = timezone.now()
     if request.user.is_authenticated:
-        # FIXED: Don't use F() object in template context
         room.active_users_count = F('active_users_count') + 1
         room.save(update_fields=['last_activity', 'active_users_count'])
-        
-        # Refresh from database to get the actual count for template
         room.refresh_from_db()
     else:
         room.save(update_fields=['last_activity'])
@@ -204,7 +199,6 @@ def room(request, room_name):
     user_country_name = 'Unknown'
     user_flag_url = ''
     
-    # Track user activity and handle nationality
     if request.user.is_authenticated:
         UserActivity.objects.create(
             user=request.user,
@@ -213,15 +207,11 @@ def room(request, room_name):
             description=f"Joined {room.display_name or room.name}"
         )
         
-        # Check if user has bookmarked this room
         is_bookmarked = RoomBookmark.objects.filter(
             user=request.user, room=room
         ).exists()
         
-        # Get or create user profile with nationality handling
-        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
-        
-        # Get current nationality
+        user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
         user_nationality = user_profile.get_display_nationality()
         
         # Auto-detect nationality if not set or is unknown
@@ -231,27 +221,21 @@ def room(request, room_name):
                 detected_country = get_country_from_ip(ip)
                 
                 if detected_country and detected_country != 'UN':
-                    # Update the profile with detected country
                     user_profile.auto_detected_country = detected_country
-                    if not user_profile.nationality:  # Only set if user hasn't manually chosen
+                    if not user_profile.nationality:
                         user_profile.nationality = detected_country
                     user_profile.save()
                     user_nationality = detected_country
-                    
-                    # Log the detection
                     logger.info(f"Auto-detected nationality {detected_country} for user {request.user.username} from IP {ip}")
             except Exception as e:
                 logger.warning(f"Failed to auto-detect nationality for user {request.user.username}: {e}")
-                # Keep default 'UN' if detection fails
         
-        # Get enhanced nationality information
         user_country_name = user_profile.get_country_name()
         user_flag_url = user_profile.get_flag_url()
         
-        # Update nationality statistics
         try:
             from .models import NationalityStats
-            stats, created = NationalityStats.objects.get_or_create(
+            stats, _ = NationalityStats.objects.get_or_create(
                 country_code=user_nationality,
                 defaults={
                     'total_users': 0,
@@ -260,30 +244,22 @@ def room(request, room_name):
                     'room_visits': 0
                 }
             )
-            
-            # Increment room visits
             stats.room_visits = F('room_visits') + 1
             stats.save(update_fields=['room_visits'])
-            
         except Exception as e:
             logger.warning(f"Failed to update nationality statistics: {e}")
-            
+    
     else:
         is_bookmarked = False
-        
-        # For anonymous users, detect nationality from IP
         try:
             ip = get_client_ip(request)
             detected_country = get_country_from_ip(ip)
             if detected_country and detected_country != 'UN':
                 user_nationality = detected_country
                 
-                # Get country name and flag URL for anonymous users
-                from django.conf import settings
                 country_choices = dict(getattr(settings, 'COUNTRY_CHOICES', []))
                 user_country_name = country_choices.get(user_nationality, 'Unknown')
                 
-                # Generate flag URL
                 flag_settings = getattr(settings, 'NATIONALITY_SETTINGS', {})
                 flag_cdn_url = flag_settings.get('FLAG_CDN_URL', 'https://flagcdn.com/w{size}/{country}.png')
                 flag_size = flag_settings.get('SUPPORTED_FLAG_SIZES', [32])[0]
@@ -292,9 +268,7 @@ def room(request, room_name):
                 logger.info(f"Anonymous user detected from {detected_country} (IP: {ip})")
         except Exception as e:
             logger.warning(f"Failed to detect nationality for anonymous user: {e}")
-            # Keep defaults if detection fails
     
-    # Enhanced context with nationality support
     context = {
         'room': room,
         'messages': messages_list,
@@ -304,17 +278,14 @@ def room(request, room_name):
         'user_id': request.user.id if request.user.is_authenticated else None,
         'is_authenticated': request.user.is_authenticated,
         
-        # Nationality context
         'user_nationality': user_nationality,
         'user_country_name': user_country_name,
         'user_flag_url': user_flag_url,
         
-        # Additional nationality context for frontend
         'nationality_enabled': getattr(settings, 'NATIONALITY_SETTINGS', {}).get('ENABLE_FLAG_DISPLAY', True),
         'nationality_countries': getattr(settings, 'COUNTRY_CHOICES', []),
         'nationality_auto_detect': getattr(settings, 'NATIONALITY_SETTINGS', {}).get('ENABLE_AUTO_DETECTION', True),
         
-        # Room demographics (if enabled)
         'room_demographics': get_room_demographics(room) if getattr(settings, 'NATIONALITY_SETTINGS', {}).get('ENABLE_ROOM_DEMOGRAPHICS', True) else None,
     }
     
