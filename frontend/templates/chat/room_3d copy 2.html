@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -88,7 +89,7 @@
             cursor: grabbing;
         }
         
-        /* Status Panel - Enhanced with Nationality */
+        /* Status Panel - Enhanced */
         #status-panel {
             position: absolute;
             top: 15px;
@@ -113,20 +114,6 @@
             color: #4CAF50;
             border-bottom: 1px solid rgba(76, 175, 80, 0.3);
             padding-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .status-header .flag-icon {
-            width: 16px;
-            height: 12px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
         }
         
         .status-item {
@@ -404,18 +391,7 @@
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
-            gap: 6px;
-        }
-        
-        .chat-message .username .user-flag {
-            width: 16px;
-            height: 12px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
+            gap: 4px;
         }
         
         .chat-message.own .username {
@@ -567,65 +543,6 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
-        }
-        
-        /* Demographics Panel */
-        #demographics-panel {
-            position: absolute;
-            top: 15px;
-            right: 80px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 12px 16px;
-            color: white;
-            font-size: 11px;
-            z-index: 100;
-            max-width: 250px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            display: none;
-        }
-        
-        .demographics-header {
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #667eea;
-            border-bottom: 1px solid rgba(102, 126, 234, 0.3);
-            padding-bottom: 4px;
-        }
-        
-        .demographics-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
-            padding: 4px 0;
-        }
-        
-        .demographics-flag {
-            width: 16px;
-            height: 12px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .demographics-info {
-            flex: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .demographics-name {
-            font-size: 10px;
-            opacity: 0.9;
-        }
-        
-        .demographics-count {
-            font-size: 10px;
-            color: #4CAF50;
-            font-weight: bold;
         }
         
         /* Pet Panel - Enhanced */
@@ -990,10 +907,6 @@
                 max-width: calc(100vw - 100px);
             }
             
-            #demographics-panel {
-                display: none !important;
-            }
-            
             #pet-panel {
                 bottom: 70vh;
                 left: 10px;
@@ -1073,10 +986,6 @@
                 bottom: 400px;
             }
             
-            #demographics-panel {
-                display: block;
-            }
-            
             /* Ensure desktop chat is visible */
             #chat-panel.desktop {
                 display: flex !important;
@@ -1147,15 +1056,10 @@
             </div>
         </div>
         
-        <!-- Enhanced Status Panel with Nationality -->
+        <!-- Enhanced Status Panel -->
         <div id="status-panel" class="ui-panel">
             <div class="status-header">
                 🌟 Euphorie 3D v2.0
-                {% if user_flag_url %}
-                    <img src="{{ user_flag_url }}" class="flag-icon" alt="{{ user_country_name }}" title="{{ user_country_name }}">
-                {% else %}
-                    <span class="flag-icon">🌍</span>
-                {% endif %}
                 <div class="status-indicator"></div>
             </div>
             <div class="status-item">
@@ -1182,29 +1086,7 @@
                 <span class="status-label">Groups:</span>
                 <span class="status-value" id="group-count">0</span>
             </div>
-            {% if user_country_name %}
-            <div class="status-item">
-                <span class="status-label">Your Location:</span>
-                <span class="status-value">{{ user_country_name }}</span>
-            </div>
-            {% endif %}
         </div>
-        
-        <!-- Room Demographics Panel -->
-        {% if room_demographics %}
-        <div id="demographics-panel" class="ui-panel">
-            <div class="demographics-header">🌍 Room Demographics</div>
-            {% for demo in room_demographics %}
-            <div class="demographics-item">
-                <img src="https://flagcdn.com/w20/{{ demo.code|lower }}.png" class="demographics-flag" alt="{{ demo.name }}">
-                <div class="demographics-info">
-                    <span class="demographics-name">{{ demo.name }}</span>
-                    <span class="demographics-count">{{ demo.count }}</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
         
         <!-- 3D Container -->
         <div id="three-container"></div>
@@ -1251,10 +1133,6 @@
                         <div class="timestamp">{{ "now"|date:"H:i" }}</div>
                         <div class="text">
                             <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
-                            <strong>🌍 Nationality System:</strong><br>
-                            • Your nationality: {{ user_country_name|default:"Unknown" }}<br>
-                            • Flags appear on all user nametags<br>
-                            • Demographics shown in room statistics<br><br>
                             <strong>🎮 3D Chat Bubbles:</strong><br>
                             • Messages appear floating above avatars in 3D space<br>
                             • Real-time synchronization with WebSocket server<br>
@@ -1304,7 +1182,6 @@
                         <div class="timestamp">{{ "now"|date:"H:i" }}</div>
                         <div class="text">
                             <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
-                            <strong>🌍 Your Location:</strong> {{ user_country_name|default:"Unknown" }}<br><br>
                             <strong>📱 Mobile Controls:</strong><br>
                             • Touch & drag to rotate camera<br>
                             • Pinch to zoom<br>
@@ -1547,11 +1424,8 @@
         console.log('request.user.id:', "{{ request.user.id }}");
         console.log('request.user.username:', "{{ request.user.username|escapejs }}");
         console.log('user_id from context:', "{{ user_id }}");
-        console.log('user_nationality:', "{{ user_nationality }}");
-        console.log('user_country_name:', "{{ user_country_name }}");
-        console.log('user_flag_url:', "{{ user_flag_url }}");
 
-        // Create ROOM_CONFIG with proper error handling and nationality support
+        // Create ROOM_CONFIG with proper error handling
         try {
             window.ROOM_CONFIG = {
                 roomId: '{{ room.id|default:"default-room" }}',
@@ -1562,12 +1436,7 @@
                 // Fixed: Use request.user.id for authenticated users
                 userId: {% if request.user.is_authenticated %}'{{ request.user.id }}'{% else %}null{% endif %},
                 username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest_' + Math.random().toString(36).substr(2, 9){% endif %},
-                
-                // Enhanced nationality support
                 userNationality: '{{ user_nationality|default:"UN" }}',
-                userCountryName: '{{ user_country_name|default:"Unknown" }}',
-                userFlagUrl: '{{ user_flag_url|default:"" }}',
-                
                 isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
                 
                 maxUsers: {{ room.max_users|default:10 }},
@@ -1575,12 +1444,6 @@
                 
                 // FIXED: Use WSS through nginx proxy
                 rustWebSocketUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/`,
-                
-                // Nationality system configuration
-                nationalityEnabled: {{ nationality_enabled|yesno:"true,false" }},
-                nationalityAutoDetect: {{ nationality_auto_detect|yesno:"true,false" }},
-                nationalityCountries: {{ nationality_countries|safe }},
-                roomDemographics: {{ room_demographics|safe }},
                 
                 chatBubblesEnabled: true,
                 bubbleConfig: {
@@ -1602,7 +1465,7 @@
         } catch (error) {
             console.error('❌ Error creating ROOM_CONFIG:', error);
             
-            // Fallback ROOM_CONFIG with nationality support
+            // Fallback ROOM_CONFIG
             window.ROOM_CONFIG = {
                 roomId: 'fallback-room-' + Math.random().toString(36).substr(2, 9),
                 roomName: 'Fallback Room',
@@ -1610,17 +1473,10 @@
                 websocketUrl: `wss://${window.location.hostname}/ws/`,
                 userId: null,
                 username: 'Guest_' + Math.random().toString(36).substr(2, 9),
-                userNationality: 'UN',
-                userCountryName: 'Unknown',
-                userFlagUrl: '',
                 isAuthenticated: false,
                 maxUsers: 10,
                 currentUsers: 1,
                 rustWebSocketUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/`,
-                nationalityEnabled: true,
-                nationalityAutoDetect: true,
-                nationalityCountries: [],
-                roomDemographics: [],
                 chatBubblesEnabled: true,
                 bubbleConfig: {
                     maxBubbles: 25,
@@ -1643,12 +1499,8 @@
         console.log('🔍 Final ROOM_CONFIG values:');
         console.log('userId:', window.ROOM_CONFIG.userId);
         console.log('username:', window.ROOM_CONFIG.username);
-        console.log('userNationality:', window.ROOM_CONFIG.userNationality);
-        console.log('userCountryName:', window.ROOM_CONFIG.userCountryName);
-        console.log('userFlagUrl:', window.ROOM_CONFIG.userFlagUrl);
         console.log('isAuthenticated:', window.ROOM_CONFIG.isAuthenticated);
         console.log('rustWebSocketUrl:', window.ROOM_CONFIG.rustWebSocketUrl);
-        console.log('nationalityEnabled:', window.ROOM_CONFIG.nationalityEnabled);
         console.log('Full config:', window.ROOM_CONFIG);
         
         // SAFETY CHECKS with better validation
@@ -1684,12 +1536,6 @@
             const currentIsMobile = window.innerWidth <= 768;
             document.body.classList.toggle('mobile-layout', currentIsMobile);
             document.body.classList.toggle('desktop-layout', !currentIsMobile);
-            
-            // Show/hide demographics panel based on screen size
-            const demographicsPanel = document.getElementById('demographics-panel');
-            if (demographicsPanel) {
-                demographicsPanel.style.display = currentIsMobile ? 'none' : 'block';
-            }
         }
         
         // Initialize layout
@@ -1707,8 +1553,6 @@
         console.log('🏠 Room:', window.ROOM_CONFIG.roomName);
         console.log('👤 User:', window.ROOM_CONFIG.username);
         console.log('🔧 User ID:', window.ROOM_CONFIG.userId);
-        console.log('🌍 User Nationality:', window.ROOM_CONFIG.userNationality);
-        console.log('🏳️ User Country:', window.ROOM_CONFIG.userCountryName);
         console.log('🔧 Is Authenticated:', window.ROOM_CONFIG.isAuthenticated);
         console.log('🔌 WebSocket URL:', window.ROOM_CONFIG.rustWebSocketUrl);
         
@@ -1722,9 +1566,9 @@
         }
     </script>
     
-    <!-- Enhanced WebSocket Manager - FIXED VERSION with Nationality Support -->
+    <!-- Enhanced WebSocket Manager - FIXED VERSION -->
     <script>
-        // Enhanced WebSocket Manager for Rust Server Integration - FIXED AVATAR CREATION with Nationality
+        // Enhanced WebSocket Manager for Rust Server Integration - FIXED AVATAR CREATION
         class EuphorieWebSocketManager {
             constructor() {
                 this.socket = null;
@@ -1742,7 +1586,6 @@
                 // Generate user ID if not provided
                 this.userId = (window.ROOM_CONFIG && window.ROOM_CONFIG.userId) || 'guest_' + Math.random().toString(36).substr(2, 9);
                 this.username = (window.ROOM_CONFIG && window.ROOM_CONFIG.username) || 'Guest';
-                this.userNationality = (window.ROOM_CONFIG && window.ROOM_CONFIG.userNationality) || 'UN';
                 this.roomId = (window.ROOM_CONFIG && window.ROOM_CONFIG.roomId) || 'default-room';
 
                 // Double-check that ROOM_CONFIG exists
@@ -1751,7 +1594,6 @@
                     window.ROOM_CONFIG = {
                         userId: this.userId,
                         username: this.username,
-                        userNationality: this.userNationality,
                         roomId: this.roomId,
                         rustWebSocketUrl: `wss://${window.location.hostname}/ws/`
                     };
@@ -1767,7 +1609,6 @@
                 
                 console.log('🔌 WebSocket Manager initialized for user:', this.username);
                 console.log('🔍 User ID:', this.userId);
-                console.log('🌍 User Nationality:', this.userNationality);
             }
             
             connect() {
@@ -1798,13 +1639,12 @@
                 this.reconnectAttempts = 0;
                 this.updateConnectionStatus('connected');
                 
-                // Send authentication message with nationality
+                // Send authentication message
                 this.send({
                     type: 'auth',
                     user_id: this.userId,
                     room_id: this.roomId,
                     username: this.username,
-                    nationality: this.userNationality,
                     timestamp: Date.now()
                 });
                 
@@ -1897,7 +1737,7 @@
                 }
             }
             
-            // FIXED: Handle room state to sync all users with nationality
+            // FIXED: Handle room state to sync all users
             handleRoomState(data) {
                 console.log('🏠 Received room state:', data);
                 
@@ -1908,12 +1748,11 @@
                     // Add all users from room state, but DON'T create avatar for current user
                     data.users.forEach(user => {
                         console.log(`👤 Processing user: ${user.username} (${user.user_id})`);
-                        console.log(`🌍 User nationality: ${user.nationality || 'UN'}`);
                         console.log(`🔍 Current user ID: ${this.userId}`);
                         console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
                         
                         if (user.user_id !== this.userId) {
-                            console.log(`✅ Adding remote user: ${user.username} from ${user.nationality || 'UN'}`);
+                            console.log(`✅ Adding remote user: ${user.username}`);
                             this.connectedUsers.set(user.user_id, user);
                             this.createRemoteAvatar(user);
                         } else {
@@ -1927,18 +1766,18 @@
                 }
             }
             
-            // FIXED: Handle when a user joins with nationality
+            // FIXED: Handle when a user joins
             handleUserJoined(data) {
-                console.log(`👋 ${data.username} joined from ${data.nationality || 'UN'}`);
+                console.log(`👋 ${data.username} joined the room`);
                 console.log(`🔍 Joined user ID: ${data.user_id}`);
                 console.log(`🔍 Current user ID: ${this.userId}`);
                 console.log(`🔍 User ID comparison: "${data.user_id}" !== "${this.userId}" = ${data.user_id !== this.userId}`);
                 
-                this.addSystemMessage(`${data.username} joined from ${this.getCountryName(data.nationality || 'UN')}`);
+                this.addSystemMessage(`${data.username} joined the room`);
                 
                 // CRITICAL: Don't create avatar for ourselves
                 if (data.user_id !== this.userId) {
-                    console.log(`✅ Creating remote avatar for: ${data.username} (${data.nationality || 'UN'})`);
+                    console.log(`✅ Creating remote avatar for: ${data.username}`);
                     this.connectedUsers.set(data.user_id, data);
                     this.createRemoteAvatar(data);
                 } else {
@@ -1962,9 +1801,9 @@
                 this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
             }
             
-            // FIXED: Create avatar for remote user with nationality flag
+            // FIXED: Create avatar for remote user - uses the actual loaded systems
             async createRemoteAvatar(userData) {
-                console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
+                console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id})`);
                 
                 // Double-check we're not creating avatar for current user
                 if (userData.user_id === this.userId) {
@@ -1999,10 +1838,9 @@
                             position.z = userData.position.z;
                         }
                         
-                        // Create avatar using the user ID as avatar ID with nationality
+                        // Create avatar using the user ID as avatar ID
                         const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
                             name: userData.username,
-                            nationality: userData.nationality || 'UN',
                             position: position,
                             // Use random customization if available
                             ...(window.AvatarSystem.getRandomCustomization ? window.AvatarSystem.getRandomCustomization() : {})
@@ -2050,11 +1888,7 @@
                         avatar.add(nametagGroup);
                         
                         // Store user ID for removal
-                        avatar.userData = { 
-                            userId: userData.user_id, 
-                            username: userData.username,
-                            nationality: userData.nationality || 'UN'
-                        };
+                        avatar.userData = { userId: userData.user_id, username: userData.username };
                         
                         window.SceneManager.scene.add(avatar);
                         console.log(`✅ Created Three.js avatar for ${userData.username} using SceneManager.scene`);
@@ -2098,11 +1932,7 @@
                         avatar.add(nametagGroup);
                         
                         // Store user ID for removal
-                        avatar.userData = { 
-                            userId: userData.user_id, 
-                            username: userData.username,
-                            nationality: userData.nationality || 'UN'
-                        };
+                        avatar.userData = { userId: userData.user_id, username: userData.username };
                         
                         window.AvatarSystem.scene.add(avatar);
                         console.log(`✅ Created Three.js avatar for ${userData.username} using AvatarSystem.scene`);
@@ -2125,7 +1955,7 @@
                 console.error(`❌ Failed to create avatar for ${userData.username} - will retry in 2 seconds`);
                 
                 // Show notification to user
-                this.showNotification(`⏳ Creating avatar for ${userData.username} from ${this.getCountryName(userData.nationality || 'UN')}...`);
+                this.showNotification(`⏳ Creating avatar for ${userData.username}...`);
             }
             
             // Create enhanced nametag with nationality flag
@@ -2158,7 +1988,15 @@
                 context.fillText(userData.username, canvas.width / 2, 35);
                 
                 // Country name
-                const countryName = this.getCountryName(nationality);
+                const countryNames = {
+                    'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
+                    'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
+                    'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+                    'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
+                    'UN': 'Unknown'
+                };
+                
+                const countryName = countryNames[nationality] || 'Unknown';
                 context.fillStyle = '#4CAF50';
                 context.font = '14px Arial';
                 context.fillText(countryName, canvas.width / 2, 60);
@@ -2188,8 +2026,6 @@
                         const flagMesh = new THREE.Mesh(flagGeometry, flagMaterial);
                         flagMesh.position.set(-1.2, 3.5, 0.01);
                         nametagGroup.add(flagMesh);
-                        
-                        console.log(`🏳️ Added flag for ${nationality} to ${userData.username}'s nametag`);
                     }
                 } catch (error) {
                     console.warn(`Could not load flag for ${nationality}:`, error);
@@ -2205,36 +2041,11 @@
                     const texture = new THREE.TextureLoader().load(flagUrl);
                     texture.minFilter = THREE.LinearFilter;
                     texture.magFilter = THREE.LinearFilter;
-                    console.log(`🏳️ Successfully loaded flag texture for ${countryCode}`);
                     return texture;
                 } catch (error) {
                     console.warn(`Failed to load flag for ${countryCode}:`, error);
                     return null;
                 }
-            }
-            
-            // Get country name from code
-            getCountryName(countryCode) {
-                const countryNames = {
-                    'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
-                    'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
-                    'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
-                    'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
-                    'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland',
-                    'DK': 'Denmark', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
-                    'PL': 'Poland', 'TR': 'Turkey', 'GR': 'Greece', 'PT': 'Portugal',
-                    'IE': 'Ireland', 'CZ': 'Czech Republic', 'HU': 'Hungary', 'RO': 'Romania',
-                    'BG': 'Bulgaria', 'HR': 'Croatia', 'SK': 'Slovakia', 'SI': 'Slovenia',
-                    'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia', 'AR': 'Argentina',
-                    'CL': 'Chile', 'PE': 'Peru', 'CO': 'Colombia', 'VE': 'Venezuela',
-                    'UY': 'Uruguay', 'PY': 'Paraguay', 'BO': 'Bolivia', 'EC': 'Ecuador',
-                    'ZA': 'South Africa', 'EG': 'Egypt', 'MA': 'Morocco', 'NG': 'Nigeria',
-                    'KE': 'Kenya', 'GH': 'Ghana', 'TH': 'Thailand', 'VN': 'Vietnam',
-                    'PH': 'Philippines', 'ID': 'Indonesia', 'MY': 'Malaysia', 'SG': 'Singapore',
-                    'UN': 'Unknown'
-                };
-                
-                return countryNames[countryCode] || 'Unknown';
             }
             
             // Helper function for rounded rectangles
@@ -2387,12 +2198,7 @@
             
             handleChatMessage(data) {
                 const isOwn = data.user_id === this.userId;
-                
-                // Add nationality information to chat message display
-                const userNationality = data.nationality || 'UN';
-                const countryName = this.getCountryName(userNationality);
-                
-                this.addMessageToChat(data.username, data.message, isOwn, userNationality, countryName);
+                this.addMessageToChat(data.username, data.message, isOwn);
                 
                 // Create 3D chat bubble if enabled and system is available
                 if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
@@ -2413,9 +2219,8 @@
             }
             
             handleEmotion(data) {
-                const countryName = this.getCountryName(data.nationality || 'UN');
-                console.log(`🎭 ${data.user_id} from ${countryName} is feeling ${data.emotion}`);
-                this.addSystemMessage(`${data.username || data.user_id} from ${countryName} is feeling ${data.emotion} 🎭`);
+                console.log(`🎭 ${data.user_id} is feeling ${data.emotion}`);
+                this.addSystemMessage(`${data.username || data.user_id} is feeling ${data.emotion} 🎭`);
                 
                 // Trigger 3D emotion if system is available
                 if (window.EmotionSystem && window.EmotionSystem.showRemoteEmotion) {
@@ -2424,9 +2229,8 @@
             }
             
             handleInteraction(data) {
-                const countryName = this.getCountryName(data.nationality || 'UN');
-                console.log(`🤝 Interaction: ${data.user_id} from ${countryName} -> ${data.interaction_type}`);
-                this.addSystemMessage(`${data.username || data.user_id} from ${countryName} ${data.interaction_type} 🤝`);
+                console.log(`🤝 Interaction: ${data.user_id} -> ${data.interaction_type}`);
+                this.addSystemMessage(`${data.username || data.user_id} ${data.interaction_type} 🤝`);
                 
                 // Trigger 3D interaction if system is available
                 if (window.InteractionSystem && window.InteractionSystem.handleRemoteInteraction) {
@@ -2504,7 +2308,6 @@
                     message: message,
                     user_id: this.userId,
                     room_id: this.roomId,
-                    nationality: this.userNationality,
                     timestamp: Date.now()
                 });
             }
@@ -2518,7 +2321,6 @@
                     user_id: this.userId,
                     room_id: this.roomId,
                     position: position,
-                    nationality: this.userNationality,
                     timestamp: Date.now()
                 });
             }
@@ -2531,7 +2333,6 @@
                     user_id: this.userId,
                     room_id: this.roomId,
                     emotion: emotion,
-                    nationality: this.userNationality,
                     timestamp: Date.now()
                 });
             }
@@ -2545,7 +2346,6 @@
                     room_id: this.roomId,
                     target_user_id: targetUserId,
                     interaction_type: interactionType,
-                    nationality: this.userNationality,
                     data: data,
                     timestamp: Date.now()
                 });
@@ -2637,7 +2437,7 @@
                 });
             }
             
-            addMessageToChat(username, message, isOwn = false, nationality = 'UN', countryName = 'Unknown') {
+            addMessageToChat(username, message, isOwn = false) {
                 const chatContainers = ['chat-messages', 'chat-messages-mobile'];
                 
                 chatContainers.forEach(containerId => {
@@ -2649,16 +2449,8 @@
                     
                     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     
-                    // Create flag image element
-                    const flagImg = nationality !== 'UN' ? 
-                        `<img src="https://flagcdn.com/w20/${nationality.toLowerCase()}.png" class="user-flag" alt="${countryName}" title="${countryName}">` : 
-                        '<span class="user-flag">🌍</span>';
-                    
                     messageDiv.innerHTML = `
-                        <div class="username">
-                            ${flagImg}
-                            ${this.escapeHtml(username)}
-                        </div>
+                        <div class="username">${this.escapeHtml(username)}</div>
                         <div class="timestamp">${timestamp}</div>
                         <div class="text">${this.escapeHtml(message)}</div>
                     `;
@@ -2985,7 +2777,7 @@
             console.log('================================');
         };
         
-        // Enhanced Nationality System
+        // Initialize Nationality System
         window.showNationalitySelector = function() {
             const modal = document.createElement('div');
             modal.style.cssText = `
@@ -3010,40 +2802,21 @@
                 width: 90%;
                 color: white;
                 box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-                max-height: 80vh;
-                overflow-y: auto;
             `;
             
-            // Get countries from ROOM_CONFIG or use defaults
-            const countries = window.ROOM_CONFIG?.nationalityCountries || [
-                ['US', 'United States'], ['CA', 'Canada'], ['GB', 'United Kingdom'],
-                ['DE', 'Germany'], ['FR', 'France'], ['JP', 'Japan'], ['AU', 'Australia'],
-                ['BR', 'Brazil'], ['IN', 'India'], ['CN', 'China'], ['KR', 'South Korea'],
-                ['RU', 'Russia'], ['MX', 'Mexico'], ['IT', 'Italy'], ['ES', 'Spain'],
-                ['NL', 'Netherlands'], ['SE', 'Sweden'], ['NO', 'Norway'], ['FI', 'Finland'],
-                ['DK', 'Denmark'], ['BE', 'Belgium'], ['CH', 'Switzerland'], ['AT', 'Austria'],
-                ['PL', 'Poland'], ['TR', 'Turkey'], ['GR', 'Greece'], ['PT', 'Portugal'],
-                ['IE', 'Ireland'], ['CZ', 'Czech Republic'], ['HU', 'Hungary'], ['RO', 'Romania'],
-                ['BG', 'Bulgaria'], ['HR', 'Croatia'], ['SK', 'Slovakia'], ['SI', 'Slovenia'],
-                ['LT', 'Lithuania'], ['LV', 'Latvia'], ['EE', 'Estonia'], ['AR', 'Argentina'],
-                ['CL', 'Chile'], ['PE', 'Peru'], ['CO', 'Colombia'], ['VE', 'Venezuela'],
-                ['UY', 'Uruguay'], ['PY', 'Paraguay'], ['BO', 'Bolivia'], ['EC', 'Ecuador'],
-                ['ZA', 'South Africa'], ['EG', 'Egypt'], ['MA', 'Morocco'], ['NG', 'Nigeria'],
-                ['KE', 'Kenya'], ['GH', 'Ghana'], ['TH', 'Thailand'], ['VN', 'Vietnam'],
-                ['PH', 'Philippines'], ['ID', 'Indonesia'], ['MY', 'Malaysia'], ['SG', 'Singapore'],
-                ['UN', 'Unknown']
-            ];
+            const countries = {
+                'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
+                'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
+                'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+                'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
+                'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland',
+                'DK': 'Denmark', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
+                'UN': 'Unknown'
+            };
             
             content.innerHTML = `
                 <h2 style="margin-top: 0; color: #4CAF50;">🌍 Select Your Nationality</h2>
                 <p style="margin-bottom: 20px; color: #ccc;">Choose your country to display your flag on your nametag:</p>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; color: #ccc;">Current: <strong>${window.ROOM_CONFIG.userCountryName || 'Unknown'}</strong></label>
-                    <img src="${window.ROOM_CONFIG.userFlagUrl || 'https://flagcdn.com/w40/un.png'}" 
-                         style="width: 40px; height: 30px; border-radius: 4px; border: 2px solid #555;"
-                         alt="Current flag">
-                </div>
                 
                 <select id="nationality-select" style="
                     width: 100%;
@@ -3055,20 +2828,10 @@
                     font-size: 16px;
                     margin-bottom: 20px;
                 ">
-                    ${countries.map(([code, name]) => 
+                    ${Object.entries(countries).map(([code, name]) => 
                         `<option value="${code}" ${code === window.ROOM_CONFIG.userNationality ? 'selected' : ''}>${name}</option>`
                     ).join('')}
                 </select>
-                
-                <div id="preview-section" style="margin-bottom: 20px; text-align: center;">
-                    <div style="color: #ccc; font-size: 12px; margin-bottom: 8px;">Preview:</div>
-                    <img id="preview-flag" src="${window.ROOM_CONFIG.userFlagUrl || 'https://flagcdn.com/w40/un.png'}" 
-                         style="width: 40px; height: 30px; border-radius: 4px; border: 2px solid #4CAF50;"
-                         alt="Preview flag">
-                    <div id="preview-name" style="color: #4CAF50; font-weight: bold; margin-top: 8px;">
-                        ${window.ROOM_CONFIG.userCountryName || 'Unknown'}
-                    </div>
-                </div>
                 
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button id="cancel-nationality" style="
@@ -3078,8 +2841,6 @@
                         border-radius: 8px;
                         color: white;
                         cursor: pointer;
-                        font-size: 14px;
-                        transition: all 0.3s ease;
                     ">Cancel</button>
                     <button id="save-nationality" style="
                         padding: 10px 20px;
@@ -3088,114 +2849,23 @@
                         border-radius: 8px;
                         color: white;
                         cursor: pointer;
-                        font-size: 14px;
-                        transition: all 0.3s ease;
-                    ">Save & Update</button>
+                    ">Save</button>
                 </div>
             `;
             
             modal.appendChild(content);
             document.body.appendChild(modal);
             
-            // Add hover effects
-            const cancelBtn = document.getElementById('cancel-nationality');
-            const saveBtn = document.getElementById('save-nationality');
-            
-            cancelBtn.addEventListener('mouseover', () => {
-                cancelBtn.style.background = '#777';
-            });
-            cancelBtn.addEventListener('mouseout', () => {
-                cancelBtn.style.background = '#666';
-            });
-            
-            saveBtn.addEventListener('mouseover', () => {
-                saveBtn.style.background = '#45a049';
-            });
-            saveBtn.addEventListener('mouseout', () => {
-                saveBtn.style.background = '#4CAF50';
-            });
-            
-            // Preview functionality
-            const nationalitySelect = document.getElementById('nationality-select');
-            const previewFlag = document.getElementById('preview-flag');
-            const previewName = document.getElementById('preview-name');
-            
-            nationalitySelect.addEventListener('change', () => {
-                const selectedCode = nationalitySelect.value;
-                const selectedName = countries.find(([code]) => code === selectedCode)?.[1] || 'Unknown';
-                
-                if (selectedCode === 'UN') {
-                    previewFlag.src = 'https://flagcdn.com/w40/un.png';
-                } else {
-                    previewFlag.src = `https://flagcdn.com/w40/${selectedCode.toLowerCase()}.png`;
-                }
-                
-                previewName.textContent = selectedName;
-            });
-            
             // Event handlers
-            cancelBtn.onclick = () => {
+            document.getElementById('cancel-nationality').onclick = () => {
                 document.body.removeChild(modal);
             };
             
-            saveBtn.onclick = async () => {
-                const selectedNationality = nationalitySelect.value;
-                const selectedName = countries.find(([code]) => code === selectedNationality)?.[1] || 'Unknown';
+            document.getElementById('save-nationality').onclick = async () => {
+                const selectedNationality = document.getElementById('nationality-select').value;
                 
                 // Update local config
                 window.ROOM_CONFIG.userNationality = selectedNationality;
-                window.ROOM_CONFIG.userCountryName = selectedName;
-                
-                if (selectedNationality === 'UN') {
-                    window.ROOM_CONFIG.userFlagUrl = 'https://flagcdn.com/w40/un.png';
-                } else {
-                    window.ROOM_CONFIG.userFlagUrl = `https://flagcdn.com/w40/${selectedNationality.toLowerCase()}.png`;
-                }
-                
-                // Update WebSocket manager nationality
-                if (window.WebSocketManager) {
-                    window.WebSocketManager.userNationality = selectedNationality;
-                }
-                
-                // Update status panel flag
-                const statusPanel = document.getElementById('status-panel');
-                if (statusPanel) {
-                    const flagIcon = statusPanel.querySelector('.flag-icon');
-                    if (flagIcon) {
-                        if (selectedNationality === 'UN') {
-                            flagIcon.innerHTML = '🌍';
-                        } else {
-                            flagIcon.innerHTML = `<img src="${window.ROOM_CONFIG.userFlagUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="${selectedName}">`;
-                        }
-                    }
-                }
-                
-                // Update user location in status panel
-                const statusItems = document.querySelectorAll('.status-item');
-                statusItems.forEach(item => {
-                    const label = item.querySelector('.status-label');
-                    if (label && label.textContent === 'Your Location:') {
-                        const value = item.querySelector('.status-value');
-                        if (value) {
-                            value.textContent = selectedName;
-                        }
-                    }
-                });
-                
-                // Send nationality update through WebSocket if connected
-                if (window.WebSocketManager && window.WebSocketManager.authenticated) {
-                    try {
-                        window.WebSocketManager.send({
-                            type: 'update_nationality',
-                            user_id: window.WebSocketManager.userId,
-                            room_id: window.WebSocketManager.roomId,
-                            nationality: selectedNationality,
-                            timestamp: Date.now()
-                        });
-                    } catch (error) {
-                        console.warn('Could not send nationality update:', error);
-                    }
-                }
                 
                 // Show success notification
                 const notification = document.createElement('div');
@@ -3212,16 +2882,8 @@
                     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
                     transform: translateX(400px);
                     transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
                 `;
-                
-                notification.innerHTML = `
-                    <img src="${window.ROOM_CONFIG.userFlagUrl}" style="width: 20px; height: 15px; border-radius: 2px;" alt="${selectedName}">
-                    <span>🏳️ Nationality updated to ${selectedName}</span>
-                `;
-                
+                notification.textContent = `🏳️ Nationality updated to ${countries[selectedNationality]}`;
                 document.body.appendChild(notification);
                 
                 setTimeout(() => {
@@ -3242,57 +2904,6 @@
                     document.body.removeChild(modal);
                 }
             };
-            
-            // Focus on select
-            nationalitySelect.focus();
-        };
-        
-        // Debug functions for nationality system
-        window.debugNationality = function() {
-            console.log('🌍 === NATIONALITY DEBUG ===');
-            console.log('User nationality:', window.ROOM_CONFIG.userNationality);
-            console.log('User country name:', window.ROOM_CONFIG.userCountryName);
-            console.log('User flag URL:', window.ROOM_CONFIG.userFlagUrl);
-            console.log('Nationality enabled:', window.ROOM_CONFIG.nationalityEnabled);
-            console.log('Auto-detect enabled:', window.ROOM_CONFIG.nationalityAutoDetect);
-            console.log('Available countries:', window.ROOM_CONFIG.nationalityCountries);
-            console.log('Room demographics:', window.ROOM_CONFIG.roomDemographics);
-            console.log('WebSocket Manager:', !!window.WebSocketManager);
-            if (window.WebSocketManager) {
-                console.log('  - Connected users:', window.WebSocketManager.connectedUsers?.size || 0);
-                console.log('  - User nationality:', window.WebSocketManager.userNationality);
-            }
-            console.log('==========================');
-        };
-        
-        // Test flag loading
-        window.testFlagLoading = function(countryCode = 'US') {
-            console.log(`🧪 Testing flag loading for ${countryCode}...`);
-            
-            if (window.WebSocketManager && window.WebSocketManager.loadFlagTexture) {
-                window.WebSocketManager.loadFlagTexture(countryCode).then(texture => {
-                    console.log(`✅ Flag texture loaded for ${countryCode}:`, texture);
-                }).catch(error => {
-                    console.error(`❌ Failed to load flag for ${countryCode}:`, error);
-                });
-            } else {
-                console.warn('WebSocketManager not available or loadFlagTexture method missing');
-            }
-        };
-        
-        // Show room demographics
-        window.showRoomDemographics = function() {
-            const demographicsPanel = document.getElementById('demographics-panel');
-            if (demographicsPanel) {
-                const isVisible = demographicsPanel.style.display !== 'none';
-                demographicsPanel.style.display = isVisible ? 'none' : 'block';
-                
-                if (!isVisible && window.ROOM_CONFIG.roomDemographics) {
-                    console.log('🌍 Room Demographics:', window.ROOM_CONFIG.roomDemographics);
-                }
-            } else {
-                console.log('🌍 Room Demographics:', window.ROOM_CONFIG.roomDemographics);
-            }
         };
     </script>
 
