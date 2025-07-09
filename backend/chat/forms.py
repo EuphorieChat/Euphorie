@@ -109,7 +109,28 @@ class RoomCreationForm(forms.ModelForm):
 
 
 class UserProfileForm(forms.ModelForm):
-    """Enhanced user profile form"""
+    """Enhanced user profile form with nationality support"""
+    
+    # Nationality fields
+    nationality = forms.ChoiceField(
+        choices=[('', 'Select your nationality')] + UserProfile.COUNTRY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'input nationality-select',
+            'id': 'nationality-select'
+        }),
+        help_text="Your nationality will be displayed on your avatar as a flag"
+    )
+    
+    show_nationality = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'checkbox',
+            'id': 'show-nationality-checkbox'
+        }),
+        help_text="Show your nationality flag on your avatar"
+    )
     
     # Avatar customization fields
     hair_style = forms.ChoiceField(
@@ -118,10 +139,13 @@ class UserProfileForm(forms.ModelForm):
             ('long', 'Long'),
             ('curly', 'Curly'),
             ('braids', 'Braids'),
+            ('ponytail', 'Ponytail'),
             ('bald', 'Bald'),
+            ('buzz', 'Buzz Cut'),
+            ('mohawk', 'Mohawk'),
         ],
         required=False,
-        widget=forms.Select(attrs={'class': 'input'})
+        widget=forms.Select(attrs={'class': 'input avatar-select'})
     )
     
     hair_color = forms.CharField(
@@ -129,7 +153,7 @@ class UserProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={
             'type': 'color',
-            'class': 'color-input',
+            'class': 'color-input avatar-color-picker',
             'value': '#8B4513'
         })
     )
@@ -139,7 +163,7 @@ class UserProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={
             'type': 'color',
-            'class': 'color-input',
+            'class': 'color-input avatar-color-picker',
             'value': '#FDBCB4'
         })
     )
@@ -149,7 +173,7 @@ class UserProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={
             'type': 'color',
-            'class': 'color-input',
+            'class': 'color-input avatar-color-picker',
             'value': '#FF6B6B'
         })
     )
@@ -159,7 +183,7 @@ class UserProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={
             'type': 'color',
-            'class': 'color-input',
+            'class': 'color-input avatar-color-picker',
             'value': '#4ECDC4'
         })
     )
@@ -169,15 +193,27 @@ class UserProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={
             'type': 'color',
-            'class': 'color-input',
+            'class': 'color-input avatar-color-picker',
             'value': '#4A90E2'
         })
+    )
+    
+    eye_shape = forms.ChoiceField(
+        choices=[
+            ('normal', 'Normal'),
+            ('large', 'Large'),
+            ('small', 'Small'),
+            ('almond', 'Almond'),
+        ],
+        required=False,
+        widget=forms.Select(attrs={'class': 'input avatar-select'})
     )
     
     class Meta:
         model = UserProfile
         fields = [
             'display_name', 'bio', 'location', 'website',
+            'nationality', 'show_nationality',
             'theme', 'status_message', 'profile_visibility',
             'show_online_status', 'allow_friend_requests'
         ]
@@ -213,6 +249,17 @@ class UserProfileForm(forms.ModelForm):
             'allow_friend_requests': forms.CheckboxInput(attrs={'class': 'checkbox'}),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Pre-populate avatar fields from existing customization
+        if self.instance and self.instance.avatar_customization:
+            avatar_data = self.instance.avatar_customization
+            
+            for field_name in ['hair_style', 'hair_color', 'skin_tone', 'shirt_color', 'pants_color', 'eye_color', 'eye_shape']:
+                if field_name in avatar_data:
+                    self.fields[field_name].initial = avatar_data[field_name]
+    
     def clean_display_name(self):
         display_name = self.cleaned_data['display_name'].strip()
         
@@ -233,6 +280,30 @@ class UserProfileForm(forms.ModelForm):
         
         return website
     
+    def clean_nationality(self):
+        nationality = self.cleaned_data.get('nationality')
+        
+        if nationality:
+            # Validate nationality code
+            valid_countries = [code for code, name in UserProfile.COUNTRY_CHOICES]
+            if nationality not in valid_countries:
+                raise ValidationError("Invalid nationality selected.")
+        
+        return nationality
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Validate color codes
+        color_fields = ['hair_color', 'skin_tone', 'eye_color', 'shirt_color', 'pants_color']
+        
+        for field in color_fields:
+            color = cleaned_data.get(field)
+            if color and not re.match(r'^#[0-9A-Fa-f]{6}$', color):
+                raise ValidationError(f"Invalid color code for {field.replace('_', ' ')}")
+        
+        return cleaned_data
+    
     def save(self, commit=True):
         profile = super().save(commit=False)
         
@@ -244,14 +315,57 @@ class UserProfileForm(forms.ModelForm):
             'shirt_color': self.cleaned_data.get('shirt_color', '#FF6B6B'),
             'pants_color': self.cleaned_data.get('pants_color', '#4ECDC4'),
             'eye_color': self.cleaned_data.get('eye_color', '#4A90E2'),
+            'eye_shape': self.cleaned_data.get('eye_shape', 'normal'),
         }
         
-        profile.avatar_customization = avatar_data
+        # Update existing avatar customization or create new
+        current_avatar = profile.avatar_customization or {}
+        current_avatar.update(avatar_data)
+        profile.avatar_customization = current_avatar
         
         if commit:
             profile.save()
+            
+            # Create activity log for nationality update
+            if self.cleaned_data.get('nationality') != self.instance.nationality:
+                from .models import UserActivity
+                UserActivity.objects.create(
+                    user=profile.user,
+                    activity_type='updated_nationality',
+                    description=f"Updated nationality to {profile.get_country_name()}",
+                    metadata={
+                        'old_nationality': self.instance.nationality,
+                        'new_nationality': self.cleaned_data.get('nationality')
+                    }
+                )
         
         return profile
+
+
+class NationalitySelectionForm(forms.Form):
+    """Standalone form for nationality selection"""
+    
+    nationality = forms.ChoiceField(
+        choices=[('', 'Select your nationality')] + UserProfile.COUNTRY_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'input nationality-select',
+            'id': 'nationality-modal-select'
+        })
+    )
+    
+    def clean_nationality(self):
+        nationality = self.cleaned_data.get('nationality')
+        
+        if not nationality:
+            raise ValidationError("Please select your nationality.")
+        
+        # Validate nationality code
+        valid_countries = [code for code, name in UserProfile.COUNTRY_CHOICES]
+        if nationality not in valid_countries:
+            raise ValidationError("Invalid nationality selected.")
+        
+        return nationality
 
 
 class MessageReportForm(forms.ModelForm):
@@ -465,7 +579,7 @@ class WordFilterForm(forms.ModelForm):
 
 
 class SearchForm(forms.Form):
-    """Enhanced search form"""
+    """Enhanced search form with nationality filtering"""
     
     query = forms.CharField(
         max_length=200,
@@ -484,6 +598,16 @@ class SearchForm(forms.Form):
         widget=forms.Select(attrs={'class': 'input'})
     )
     
+    nationality = forms.ChoiceField(
+        choices=[('', 'All Nationalities')] + UserProfile.COUNTRY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'input nationality-filter',
+            'id': 'nationality-filter'
+        }),
+        help_text="Filter by nationality"
+    )
+    
     tags = forms.CharField(
         max_length=100,
         required=False,
@@ -498,7 +622,8 @@ class SearchForm(forms.Form):
             ('activity', 'Recent Activity'),
             ('created', 'Newest'),
             ('popular', 'Most Popular'),
-            ('name', 'Name A-Z')
+            ('name', 'Name A-Z'),
+            ('diverse', 'Most Diverse'),  # New sort option
         ],
         required=False,
         initial='activity',
@@ -514,6 +639,7 @@ class BulkModerationForm(forms.Form):
         ('warn_users', 'Warn Message Authors'),
         ('mute_users', 'Mute Message Authors'),
         ('resolve_reports', 'Mark Reports as Resolved'),
+        ('update_nationality', 'Update User Nationalities'),  # New action
     ]
     
     action = forms.ChoiceField(
@@ -534,6 +660,16 @@ class BulkModerationForm(forms.Form):
         widget=forms.HiddenInput()
     )
     
+    # For nationality updates
+    new_nationality = forms.ChoiceField(
+        choices=[('', 'Select nationality')] + UserProfile.COUNTRY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'input nationality-bulk-select',
+            'id': 'bulk-nationality-select'
+        })
+    )
+    
     def clean_selected_items(self):
         selected = self.cleaned_data['selected_items']
         
@@ -549,10 +685,20 @@ class BulkModerationForm(forms.Form):
             raise ValidationError("Maximum 100 items can be processed at once.")
         
         return item_ids
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        action = cleaned_data.get('action')
+        new_nationality = cleaned_data.get('new_nationality')
+        
+        if action == 'update_nationality' and not new_nationality:
+            raise ValidationError("Please select a nationality for the update action.")
+        
+        return cleaned_data
 
 
 class AvatarCustomizationForm(forms.Form):
-    """Standalone avatar customization form"""
+    """Standalone avatar customization form with nationality"""
     
     HAIR_STYLES = [
         ('short', 'Short'),
@@ -622,6 +768,25 @@ class AvatarCustomizationForm(forms.Form):
         })
     )
     
+    # Nationality field
+    nationality = forms.ChoiceField(
+        choices=[('', 'Select nationality')] + UserProfile.COUNTRY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'avatar-select nationality-avatar-select',
+            'id': 'avatar-nationality-select'
+        })
+    )
+    
+    show_nationality = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'checkbox avatar-nationality-checkbox',
+            'id': 'avatar-show-nationality'
+        })
+    )
+    
     def clean(self):
         cleaned_data = super().clean()
         
@@ -632,6 +797,13 @@ class AvatarCustomizationForm(forms.Form):
             color = cleaned_data.get(field)
             if color and not re.match(r'^#[0-9A-Fa-f]{6}$', color):
                 raise ValidationError(f"Invalid color code for {field.replace('_', ' ')}")
+        
+        # Validate nationality
+        nationality = cleaned_data.get('nationality')
+        if nationality:
+            valid_countries = [code for code, name in UserProfile.COUNTRY_CHOICES]
+            if nationality not in valid_countries:
+                raise ValidationError("Invalid nationality selected.")
         
         return cleaned_data
 
@@ -669,3 +841,89 @@ class QuickMessageForm(forms.ModelForm):
             raise ValidationError("Please avoid excessive repeated characters.")
         
         return content
+
+
+class RoomDemographicsFilterForm(forms.Form):
+    """Form for filtering room demographics"""
+    
+    min_countries = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=50,
+        widget=forms.NumberInput(attrs={
+            'class': 'input',
+            'placeholder': 'Min countries',
+            'min': 1,
+            'max': 50
+        }),
+        help_text="Minimum number of different countries"
+    )
+    
+    min_users = forms.IntegerField(
+        required=False,
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'input',
+            'placeholder': 'Min users',
+            'min': 1
+        }),
+        help_text="Minimum number of active users"
+    )
+    
+    category = forms.ModelChoiceField(
+        queryset=RoomCategory.objects.filter(is_active=True),
+        required=False,
+        empty_label="All Categories",
+        widget=forms.Select(attrs={'class': 'input'})
+    )
+    
+    sort_by = forms.ChoiceField(
+        choices=[
+            ('diversity', 'Most Diverse'),
+            ('users', 'Most Users'),
+            ('activity', 'Most Active'),
+            ('name', 'Name A-Z'),
+        ],
+        required=False,
+        initial='diversity',
+        widget=forms.Select(attrs={'class': 'input'})
+    )
+
+
+class FriendSuggestionsFilterForm(forms.Form):
+    """Form for filtering friend suggestions"""
+    
+    suggestion_type = forms.ChoiceField(
+        choices=[
+            ('all', 'All Suggestions'),
+            ('same_nationality', 'Same Nationality'),
+            ('mutual_friends', 'Mutual Friends'),
+            ('same_rooms', 'Same Rooms'),
+            ('similar_interests', 'Similar Interests'),
+        ],
+        required=False,
+        initial='all',
+        widget=forms.Select(attrs={'class': 'input'})
+    )
+    
+    nationality = forms.ChoiceField(
+        choices=[('', 'Any Nationality')] + UserProfile.COUNTRY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'input nationality-filter',
+            'id': 'friend-nationality-filter'
+        })
+    )
+    
+    limit = forms.IntegerField(
+        required=False,
+        min_value=5,
+        max_value=50,
+        initial=10,
+        widget=forms.NumberInput(attrs={
+            'class': 'input',
+            'min': 5,
+            'max': 50
+        }),
+        help_text="Number of suggestions to show"
+    )

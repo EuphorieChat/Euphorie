@@ -1265,6 +1265,11 @@
                         <div class="icon">👥</div>
                         <div>Friends</div>
                     </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showNationalitySelector && window.showNationalitySelector(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🌍</div>
+                        <div>Nationality</div>
+                    </button>
                 </div>
             </div>
             
@@ -1365,6 +1370,11 @@
                         <div class="icon">👥</div>
                         <div>Friends</div>
                     </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showNationalitySelector && window.showNationalitySelector(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🌍</div>
+                        <div>Nationality</div>
+                    </button>
                 </div>
             </div>
             
@@ -1425,6 +1435,7 @@
                 // Fixed: Use request.user.id for authenticated users
                 userId: {% if request.user.is_authenticated %}'{{ request.user.id }}'{% else %}null{% endif %},
                 username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest_' + Math.random().toString(36).substr(2, 9){% endif %},
+                userNationality: '{{ user_nationality|default:"UN" }}',
                 isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
                 
                 maxUsers: {{ room.max_users|default:10 }},
@@ -1871,24 +1882,9 @@
                             Math.sin(angle) * radius
                         );
                         
-                        // Add username label
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.width = 256;
-                        canvas.height = 64;
-                        context.fillStyle = 'white';
-                        context.fillRect(0, 0, canvas.width, canvas.height);
-                        context.fillStyle = 'black';
-                        context.font = '20px Arial';
-                        context.textAlign = 'center';
-                        context.fillText(userData.username, canvas.width / 2, canvas.height / 2 + 7);
-                        
-                        const labelTexture = new THREE.CanvasTexture(canvas);
-                        const labelMaterial = new THREE.MeshBasicMaterial({ map: labelTexture });
-                        const labelGeometry = new THREE.PlaneGeometry(2, 0.5);
-                        const label = new THREE.Mesh(labelGeometry, labelMaterial);
-                        label.position.set(0, 2.5, 0);
-                        avatar.add(label);
+                        // Add username label with nationality flag
+                        const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                        avatar.add(nametagGroup);
                         
                         // Store user ID for removal
                         avatar.userData = { userId: userData.user_id, username: userData.username };
@@ -1930,24 +1926,9 @@
                             Math.sin(angle) * radius
                         );
                         
-                        // Add username label
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.width = 256;
-                        canvas.height = 64;
-                        context.fillStyle = 'white';
-                        context.fillRect(0, 0, canvas.width, canvas.height);
-                        context.fillStyle = 'black';
-                        context.font = '20px Arial';
-                        context.textAlign = 'center';
-                        context.fillText(userData.username, canvas.width / 2, canvas.height / 2 + 7);
-                        
-                        const labelTexture = new THREE.CanvasTexture(canvas);
-                        const labelMaterial = new THREE.MeshBasicMaterial({ map: labelTexture });
-                        const labelGeometry = new THREE.PlaneGeometry(2, 0.5);
-                        const label = new THREE.Mesh(labelGeometry, labelMaterial);
-                        label.position.set(0, 2.5, 0);
-                        avatar.add(label);
+                        // Add username label with nationality flag
+                        const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                        avatar.add(nametagGroup);
                         
                         // Store user ID for removal
                         avatar.userData = { userId: userData.user_id, username: userData.username };
@@ -1974,6 +1955,111 @@
                 
                 // Show notification to user
                 this.showNotification(`⏳ Creating avatar for ${userData.username}...`);
+            }
+            
+            // Create enhanced nametag with nationality flag
+            async createEnhancedNametagWithFlag(userData) {
+                const nationality = userData.nationality || 'UN';
+                
+                // Create nametag canvas
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 320;
+                canvas.height = 90;
+                
+                // Background with gradient
+                const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+                context.fillStyle = gradient;
+                this.roundRect(context, 0, 0, canvas.width, canvas.height, 10);
+                context.fill();
+                
+                // Border
+                context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                context.lineWidth = 2;
+                context.stroke();
+                
+                // Username
+                context.fillStyle = 'white';
+                context.font = 'bold 20px Arial';
+                context.textAlign = 'center';
+                context.fillText(userData.username, canvas.width / 2, 35);
+                
+                // Country name
+                const countryNames = {
+                    'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
+                    'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
+                    'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+                    'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
+                    'UN': 'Unknown'
+                };
+                
+                const countryName = countryNames[nationality] || 'Unknown';
+                context.fillStyle = '#4CAF50';
+                context.font = '14px Arial';
+                context.fillText(countryName, canvas.width / 2, 60);
+                
+                // Create nametag mesh
+                const labelTexture = new THREE.CanvasTexture(canvas);
+                const labelMaterial = new THREE.MeshBasicMaterial({ 
+                    map: labelTexture, 
+                    transparent: true 
+                });
+                const labelGeometry = new THREE.PlaneGeometry(3.2, 0.9);
+                const nametagMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+                nametagMesh.position.set(0, 2.8, 0);
+                
+                // Create flag mesh
+                const nametagGroup = new THREE.Group();
+                nametagGroup.add(nametagMesh);
+                
+                try {
+                    const flagTexture = await this.loadFlagTexture(nationality);
+                    if (flagTexture) {
+                        const flagMaterial = new THREE.MeshBasicMaterial({ 
+                            map: flagTexture, 
+                            transparent: true 
+                        });
+                        const flagGeometry = new THREE.PlaneGeometry(0.6, 0.4);
+                        const flagMesh = new THREE.Mesh(flagGeometry, flagMaterial);
+                        flagMesh.position.set(-1.2, 3.5, 0.01);
+                        nametagGroup.add(flagMesh);
+                    }
+                } catch (error) {
+                    console.warn(`Could not load flag for ${nationality}:`, error);
+                }
+                
+                return nametagGroup;
+            }
+            
+            // Load flag texture from CDN
+            async loadFlagTexture(countryCode) {
+                try {
+                    const flagUrl = `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
+                    const texture = new THREE.TextureLoader().load(flagUrl);
+                    texture.minFilter = THREE.LinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    return texture;
+                } catch (error) {
+                    console.warn(`Failed to load flag for ${countryCode}:`, error);
+                    return null;
+                }
+            }
+            
+            // Helper function for rounded rectangles
+            roundRect(ctx, x, y, width, height, radius) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
             }
             
             // FIXED: Remove avatar for remote user - handles multiple scene sources
@@ -2688,6 +2774,135 @@
             console.log('window.THREE:', !!window.THREE);
             console.log('window.scene:', !!window.scene);
             console.log('================================');
+        };
+        
+        // Initialize Nationality System
+        window.showNationalitySelector = function() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 500px;
+                width: 90%;
+                color: white;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            `;
+            
+            const countries = {
+                'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
+                'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
+                'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+                'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
+                'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland',
+                'DK': 'Denmark', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
+                'UN': 'Unknown'
+            };
+            
+            content.innerHTML = `
+                <h2 style="margin-top: 0; color: #4CAF50;">🌍 Select Your Nationality</h2>
+                <p style="margin-bottom: 20px; color: #ccc;">Choose your country to display your flag on your nametag:</p>
+                
+                <select id="nationality-select" style="
+                    width: 100%;
+                    padding: 12px;
+                    border-radius: 8px;
+                    border: 1px solid #555;
+                    background: #333;
+                    color: white;
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                ">
+                    ${Object.entries(countries).map(([code, name]) => 
+                        `<option value="${code}" ${code === window.ROOM_CONFIG.userNationality ? 'selected' : ''}>${name}</option>`
+                    ).join('')}
+                </select>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="cancel-nationality" style="
+                        padding: 10px 20px;
+                        background: #666;
+                        border: none;
+                        border-radius: 8px;
+                        color: white;
+                        cursor: pointer;
+                    ">Cancel</button>
+                    <button id="save-nationality" style="
+                        padding: 10px 20px;
+                        background: #4CAF50;
+                        border: none;
+                        border-radius: 8px;
+                        color: white;
+                        cursor: pointer;
+                    ">Save</button>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Event handlers
+            document.getElementById('cancel-nationality').onclick = () => {
+                document.body.removeChild(modal);
+            };
+            
+            document.getElementById('save-nationality').onclick = async () => {
+                const selectedNationality = document.getElementById('nationality-select').value;
+                
+                // Update local config
+                window.ROOM_CONFIG.userNationality = selectedNationality;
+                
+                // Show success notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #4CAF50, #45a049);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    z-index: 10001;
+                    font-weight: 600;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    transform: translateX(400px);
+                    transition: all 0.3s ease;
+                `;
+                notification.textContent = `🏳️ Nationality updated to ${countries[selectedNationality]}`;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(400px)';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+                
+                document.body.removeChild(modal);
+            };
+            
+            // Close on background click
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
         };
     </script>
 

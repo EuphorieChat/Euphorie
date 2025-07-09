@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',  # Required for allauth
+    'django.contrib.gis',  # For GeoIP2 nationality detection
     'chat',
     'allauth',
     'allauth.account',
@@ -41,6 +42,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'chat.middleware.FaviconMiddleware',
+    'chat.middleware.NationalityMiddleware',  # Added nationality middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -68,6 +70,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'chat.context_processors.favicon_context',
                 'chat.context_processors.global_context',
+                'chat.context_processors.nationality_context',  # Added nationality context
             ],
         },
     },
@@ -146,6 +149,71 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ==================== NATIONALITY & GEOLOCATION CONFIGURATION ====================
+
+# GeoIP2 Configuration for nationality detection
+GEOIP_PATH = BASE_DIR / 'geoip2'
+
+# Nationality System Settings
+NATIONALITY_SETTINGS = {
+    'ENABLE_AUTO_DETECTION': True,
+    'ENABLE_MANUAL_SELECTION': True,
+    'ENABLE_FLAG_DISPLAY': True,
+    'DEFAULT_COUNTRY': 'UN',  # Unknown country fallback
+    'CACHE_TIMEOUT': 86400,  # 24 hours
+    'API_TIMEOUT': 5,  # 5 seconds
+    'ENABLE_STATISTICS': True,
+    'UPDATE_STATS_INTERVAL': 3600,  # 1 hour
+    'FALLBACK_APIS': [
+        'https://ipapi.co/{ip}/country_code/',
+        'http://ip-api.com/json/{ip}?fields=countryCode',
+    ],
+    'ENABLE_FRIEND_SUGGESTIONS': True,
+    'ENABLE_ROOM_DEMOGRAPHICS': True,
+    'FLAG_CDN_URL': 'https://flagcdn.com/w{size}/{country}.png',
+    'SUPPORTED_FLAG_SIZES': [16, 20, 24, 32, 40, 48, 64],
+}
+
+# IP Geolocation APIs Configuration
+GEOLOCATION_APIS = {
+    'primary': {
+        'name': 'ipapi.co',
+        'url': 'https://ipapi.co/{ip}/country_code/',
+        'timeout': 5,
+        'enabled': True,
+    },
+    'secondary': {
+        'name': 'ip-api.com',
+        'url': 'http://ip-api.com/json/{ip}?fields=countryCode',
+        'timeout': 5,
+        'enabled': True,
+    },
+    'fallback': {
+        'name': 'browser_locale',
+        'enabled': True,
+    }
+}
+
+# Country choices for forms and validation
+COUNTRY_CHOICES = [
+    ('US', 'United States'), ('CA', 'Canada'), ('GB', 'United Kingdom'),
+    ('DE', 'Germany'), ('FR', 'France'), ('JP', 'Japan'), ('AU', 'Australia'),
+    ('BR', 'Brazil'), ('IN', 'India'), ('CN', 'China'), ('KR', 'South Korea'),
+    ('RU', 'Russia'), ('MX', 'Mexico'), ('IT', 'Italy'), ('ES', 'Spain'),
+    ('NL', 'Netherlands'), ('SE', 'Sweden'), ('NO', 'Norway'), ('FI', 'Finland'),
+    ('DK', 'Denmark'), ('BE', 'Belgium'), ('CH', 'Switzerland'), ('AT', 'Austria'),
+    ('PL', 'Poland'), ('TR', 'Turkey'), ('GR', 'Greece'), ('PT', 'Portugal'),
+    ('IE', 'Ireland'), ('CZ', 'Czech Republic'), ('HU', 'Hungary'), ('RO', 'Romania'),
+    ('BG', 'Bulgaria'), ('HR', 'Croatia'), ('SK', 'Slovakia'), ('SI', 'Slovenia'),
+    ('LT', 'Lithuania'), ('LV', 'Latvia'), ('EE', 'Estonia'), ('AR', 'Argentina'),
+    ('CL', 'Chile'), ('PE', 'Peru'), ('CO', 'Colombia'), ('VE', 'Venezuela'),
+    ('UY', 'Uruguay'), ('PY', 'Paraguay'), ('BO', 'Bolivia'), ('EC', 'Ecuador'),
+    ('ZA', 'South Africa'), ('EG', 'Egypt'), ('MA', 'Morocco'), ('NG', 'Nigeria'),
+    ('KE', 'Kenya'), ('GH', 'Ghana'), ('TH', 'Thailand'), ('VN', 'Vietnam'),
+    ('PH', 'Philippines'), ('ID', 'Indonesia'), ('MY', 'Malaysia'), ('SG', 'Singapore'),
+    ('UN', 'Unknown'),
+]
 
 # ==================== AUTHENTICATION CONFIGURATION ====================
 
@@ -243,11 +311,15 @@ EUPHORIE_SETTINGS = {
     'ENABLE_3D_ROOMS': True,
     'ENABLE_FRIEND_SYSTEM': True,
     'ENABLE_MODERATION': True,
+    'ENABLE_NATIONALITY_SYSTEM': True,  # Added nationality system
     'DEFAULT_ROOM_CATEGORY': 'general',
     'FEATURED_ROOMS_COUNT': 6,
     'RECENT_ROOMS_COUNT': 12,
     'MAX_FRIEND_REQUESTS': 50,
     'MESSAGE_RATE_LIMIT': 30,  # messages per minute
+    'NATIONALITY_DISPLAY_DEFAULT': True,  # Show nationality flags by default
+    'ENABLE_NATIONALITY_SUGGESTIONS': True,  # Enable nationality-based friend suggestions
+    'ENABLE_ROOM_DEMOGRAPHICS': True,  # Enable room nationality demographics
 }
 
 # File upload settings
@@ -261,6 +333,11 @@ if DEBUG:
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
             'LOCATION': 'unique-snowflake',
+        },
+        'nationality': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'nationality-cache',
+            'TIMEOUT': 86400,  # 24 hours
         }
     }
 else:
@@ -268,6 +345,11 @@ else:
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
             'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        },
+        'nationality': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/2'),
+            'TIMEOUT': 86400,  # 24 hours
         }
     }
 
@@ -321,6 +403,12 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        'nationality_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'nationality.log',
+            'formatter': 'verbose',
+        },
     },
     'root': {
         'handlers': ['console'],
@@ -347,6 +435,11 @@ LOGGING = {
             'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False,
         },
+        'chat.nationality': {
+            'handlers': ['nationality_file', 'console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -369,6 +462,7 @@ MESSAGE_TAGS = {
 os.makedirs(STATIC_ROOT, exist_ok=True)
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+os.makedirs(GEOIP_PATH, exist_ok=True)  # Create GeoIP2 directory
 
 # WebSocket settings (for future real-time features)
 ASGI_APPLICATION = 'euphorie_project.asgi.application'
@@ -387,6 +481,58 @@ LOCALE_PATHS = [
 # Custom user model (for future use)
 # AUTH_USER_MODEL = 'chat.User'  # Uncomment if you create a custom user model
 
+# ==================== NATIONALITY SYSTEM TASKS ====================
+
+# Celery configuration for background tasks (optional)
+if os.getenv('CELERY_BROKER_URL'):
+    CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')
+    CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+    CELERY_ACCEPT_CONTENT = ['json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = TIME_ZONE
+    CELERY_ENABLE_UTC = True
+    
+    # Scheduled tasks for nationality system
+    CELERY_BEAT_SCHEDULE = {
+        'update-nationality-stats': {
+            'task': 'chat.tasks.update_nationality_stats',
+            'schedule': 3600.0,  # Every hour
+        },
+        'cleanup-old-geolocation-cache': {
+            'task': 'chat.tasks.cleanup_geolocation_cache',
+            'schedule': 86400.0,  # Every day
+        },
+    }
+
+# ==================== RATE LIMITING ====================
+
+# Rate limiting for nationality API endpoints
+RATELIMIT_SETTINGS = {
+    'NATIONALITY_API': {
+        'rate': '100/h',  # 100 requests per hour per IP
+        'block': True,
+    },
+    'GEOLOCATION_API': {
+        'rate': '50/h',  # 50 requests per hour per IP
+        'block': True,
+    },
+}
+
+# ==================== SECURITY HEADERS ====================
+
+# Additional security headers for nationality system
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Content Security Policy (CSP) for flag images
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_IMG_SRC = ["'self'", 'https://flagcdn.com', 'data:']
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'"]
+
+# ==================== DEVELOPMENT SETTINGS ====================
+
 # Development-specific settings
 if DEBUG:
     # Add development middleware
@@ -398,6 +544,24 @@ if DEBUG:
         DEBUG_TOOLBAR_CONFIG = {
             'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
         }
+        
+        # Debug toolbar panels
+        DEBUG_TOOLBAR_PANELS = [
+            'debug_toolbar.panels.history.HistoryPanel',
+            'debug_toolbar.panels.versions.VersionsPanel',
+            'debug_toolbar.panels.timer.TimerPanel',
+            'debug_toolbar.panels.settings.SettingsPanel',
+            'debug_toolbar.panels.headers.HeadersPanel',
+            'debug_toolbar.panels.request.RequestPanel',
+            'debug_toolbar.panels.sql.SQLPanel',
+            'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+            'debug_toolbar.panels.templates.TemplatesPanel',
+            'debug_toolbar.panels.cache.CachePanel',
+            'debug_toolbar.panels.signals.SignalsPanel',
+            'debug_toolbar.panels.logging.LoggingPanel',
+            'debug_toolbar.panels.redirects.RedirectsPanel',
+            'debug_toolbar.panels.profiling.ProfilingPanel',
+        ]
     except ImportError:
         pass
     
@@ -405,6 +569,15 @@ if DEBUG:
     CACHES['default']['OPTIONS'] = {
         'MAX_ENTRIES': 100,
     }
+    
+    # Development nationality settings
+    NATIONALITY_SETTINGS.update({
+        'ENABLE_DEBUG_LOGGING': True,
+        'CACHE_TIMEOUT': 300,  # 5 minutes for development
+        'API_TIMEOUT': 10,  # Longer timeout for development
+    })
+
+# ==================== TESTING SETTINGS ====================
 
 # Test settings
 if 'test' in sys.argv:
@@ -415,9 +588,105 @@ if 'test' in sys.argv:
     PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
+    
+    # Disable nationality detection in tests
+    NATIONALITY_SETTINGS.update({
+        'ENABLE_AUTO_DETECTION': False,
+        'ENABLE_STATISTICS': False,
+    })
+    
+    # Use dummy cache for tests
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'nationality': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+
+# ==================== OPTIONAL PACKAGES ====================
+
+# Optional packages for enhanced functionality
+OPTIONAL_APPS = []
+
+# GeoIP2 for better nationality detection
+try:
+    import geoip2
+    OPTIONAL_APPS.append('geoip2')
+    GEOIP_ENABLED = True
+except ImportError:
+    GEOIP_ENABLED = False
+
+# Redis for production caching
+try:
+    import redis
+    OPTIONAL_APPS.append('redis')
+    REDIS_ENABLED = True
+except ImportError:
+    REDIS_ENABLED = False
+
+# Requests for API calls
+try:
+    import requests
+    OPTIONAL_APPS.append('requests')
+    REQUESTS_ENABLED = True
+except ImportError:
+    REQUESTS_ENABLED = False
+
+# ==================== FEATURE FLAGS ====================
+
+# Feature flags for gradual rollout
+FEATURE_FLAGS = {
+    'NATIONALITY_SYSTEM': True,
+    'NATIONALITY_AUTO_DETECTION': True,
+    'NATIONALITY_FRIEND_SUGGESTIONS': True,
+    'NATIONALITY_ROOM_DEMOGRAPHICS': True,
+    'NATIONALITY_ADMIN_STATS': True,
+    'NATIONALITY_API_ENDPOINTS': True,
+    'NATIONALITY_MIDDLEWARE': True,
+    'NATIONALITY_CONTEXT_PROCESSOR': True,
+}
+
+# Environment-specific feature flags
+if DEBUG:
+    FEATURE_FLAGS.update({
+        'NATIONALITY_DEBUG_LOGGING': True,
+        'NATIONALITY_VERBOSE_ERRORS': True,
+    })
+
+# ==================== IMPORT LOCAL SETTINGS ====================
 
 # Import local settings if they exist
 try:
     from .local_settings import *
 except ImportError:
     pass
+
+# ==================== SETTINGS VALIDATION ====================
+
+# Validate essential settings
+if not SECRET_KEY or SECRET_KEY == 'django-insecure-your-secret-key-change-in-production':
+    if not DEBUG:
+        raise ValueError("SECRET_KEY must be set in production")
+
+# Validate nationality settings
+if NATIONALITY_SETTINGS.get('ENABLE_AUTO_DETECTION') and not REQUESTS_ENABLED:
+    import warnings
+    warnings.warn("Nationality auto-detection enabled but requests package not installed")
+
+# Validate GeoIP2 settings
+if GEOIP_ENABLED and not GEOIP_PATH.exists():
+    import warnings
+    warnings.warn(f"GeoIP2 enabled but path {GEOIP_PATH} does not exist")
+
+# Print nationality system status
+if DEBUG:
+    print(f"🌍 Nationality System Status:")
+    print(f"  - Auto-detection: {'✅' if NATIONALITY_SETTINGS['ENABLE_AUTO_DETECTION'] else '❌'}")
+    print(f"  - Manual selection: {'✅' if NATIONALITY_SETTINGS['ENABLE_MANUAL_SELECTION'] else '❌'}")
+    print(f"  - Flag display: {'✅' if NATIONALITY_SETTINGS['ENABLE_FLAG_DISPLAY'] else '❌'}")
+    print(f"  - Statistics: {'✅' if NATIONALITY_SETTINGS['ENABLE_STATISTICS'] else '❌'}")
+    print(f"  - GeoIP2: {'✅' if GEOIP_ENABLED else '❌'}")
+    print(f"  - Redis: {'✅' if REDIS_ENABLED else '❌'}")
+    print(f"  - Requests: {'✅' if REQUESTS_ENABLED else '❌'}")

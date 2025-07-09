@@ -1,14 +1,18 @@
 # backend/chat/views.py
 
 from datetime import datetime, timedelta
+import json
+import csv
+import requests
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.db.models import Q, Count, F, Max
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -21,9 +25,64 @@ from .models import Room, Message, UserProfile
 # FIXED: Import all the models your views reference
 from .models import (
     Room, Message, UserProfile, RoomCategory, Friendship, 
-    RoomBookmark, MessageReport, UserActivity, FriendRequest  # Added FriendRequest
+    RoomBookmark, MessageReport, UserActivity, FriendRequest, 
+    FriendSuggestion, NationalityStats, get_client_ip  # Added nationality imports
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
+
+# ==================== NATIONALITY HELPER FUNCTIONS ====================
+
+def get_country_from_ip(ip):
+    """Get country code from IP address with multiple fallbacks"""
+    try:
+        # Try to get from cache first (24 hour cache)
+        cached_country = cache.get(f'country_{ip}')
+        if cached_country:
+            return cached_country
+        
+        # Method 1: Use Django GeoIP2 (recommended for production)
+        try:
+            from django.contrib.gis.geoip2 import GeoIP2
+            g = GeoIP2()
+            country = g.country_code(ip)
+            if country:
+                cache.set(f'country_{ip}', country, 86400)  # Cache for 24 hours
+                return country
+        except Exception as e:
+            print(f"GeoIP2 failed: {e}")
+        
+        # Method 2: External API fallback
+        try:
+            response = requests.get(f'https://ipapi.co/{ip}/country_code/', timeout=5)
+            if response.status_code == 200:
+                country = response.text.strip().upper()
+                if len(country) == 2:  # Valid country code
+                    cache.set(f'country_{ip}', country, 86400)
+                    return country
+        except requests.RequestException as e:
+            print(f"IP API failed: {e}")
+        
+        # Method 3: Alternative API
+        try:
+            response = requests.get(f'http://ip-api.com/json/{ip}?fields=countryCode', timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                country = data.get('countryCode')
+                if country:
+                    cache.set(f'country_{ip}', country, 86400)
+                    return country
+        except requests.RequestException as e:
+            print(f"Alternative IP API failed: {e}")
+            
+    except Exception as e:
+        print(f"Country detection failed: {e}")
+    
+    return 'UN'  # Unknown country
+
+def get_country_name(country_code):
+    """Get country name from country code"""
+    country_dict = dict(UserProfile.COUNTRY_CHOICES)
+    return country_dict.get(country_code, 'Unknown')
 
 # ==================== MAIN PAGES ====================
 
@@ -106,7 +165,7 @@ def index(request):
         return render(request, 'chat/room_list.html', context)
 
 def room(request, room_name):
-    """Individual room view with enhanced features"""
+    """Individual room view with enhanced features and nationality support"""
     room = get_object_or_404(Room, name=room_name)
     
     # Check if room is public or user has access
@@ -150,8 +209,22 @@ def room(request, room_name):
         is_bookmarked = RoomBookmark.objects.filter(
             user=request.user, room=room
         ).exists()
+        
+        # Auto-detect nationality if not set
+        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        user_nationality = user_profile.get_display_nationality()
+        
+        if not user_nationality or user_nationality == 'UN':
+            ip = get_client_ip(request)
+            detected_country = get_country_from_ip(ip)
+            if detected_country != 'UN':
+                user_profile.auto_detect_country(ip)
+                user_nationality = detected_country
     else:
         is_bookmarked = False
+        # For anonymous users, detect nationality from IP
+        ip = get_client_ip(request)
+        user_nationality = get_country_from_ip(ip)
             
     context = {
         'room': room,
@@ -160,6 +233,8 @@ def room(request, room_name):
         'is_bookmarked': is_bookmarked,
         'room_tags': room.get_tags_list(),
         'user_id': request.user.id if request.user.is_authenticated else None,
+        'user_nationality': user_nationality,  # Added nationality context
+        'is_authenticated': request.user.is_authenticated,
     }
     
     return render(request, 'chat/room_3d.html', context)
@@ -260,10 +335,376 @@ def search_rooms(request):
         'query': query
     })
 
+# ==================== NATIONALITY API ENDPOINTS ====================
+
+@require_http_methods(["GET"])
+def api_get_user_country(request):
+    """API endpoint to get user's country"""
+    ip = get_client_ip(request)
+    country = get_country_from_ip(ip)
+    
+    # If user is authenticated, update their auto-detected country
+    if request.user.is_authenticated:
+        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        if user_profile.auto_detected_country != country:
+            user_profile.auto_detected_country = country
+            user_profile.save(update_fields=['auto_detected_country'])
+    
+    return JsonResponse({
+        'country_code': country,
+        'country_name': get_country_name(country),
+        'ip': ip,
+        'user_set_nationality': request.user.profile.nationality if request.user.is_authenticated and hasattr(request.user, 'profile') else None,
+        'display_nationality': request.user.profile.get_display_nationality() if request.user.is_authenticated and hasattr(request.user, 'profile') else country
+    })
+
+@csrf_exempt
+@login_required
+@require_http_methods(["POST"])
+def api_update_nationality(request):
+    """API endpoint to update user's nationality"""
+    try:
+        data = json.loads(request.body)
+        nationality = data.get('nationality', '').upper()
+        
+        # Validate nationality code
+        valid_countries = [code for code, name in UserProfile.COUNTRY_CHOICES]
+        
+        if nationality not in valid_countries:
+            return JsonResponse({'error': 'Invalid country code'}, status=400)
+        
+        # Update user's nationality
+        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        success = user_profile.update_nationality(nationality)
+        
+        if success:
+            # Create activity log
+            UserActivity.objects.create(
+                user=request.user,
+                activity_type='updated_nationality',
+                description=f"Updated nationality to {get_country_name(nationality)}",
+                metadata={'old_nationality': user_profile.nationality, 'new_nationality': nationality}
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'nationality': nationality,
+                'country_name': get_country_name(nationality),
+                'message': f'Nationality updated to {get_country_name(nationality)}'
+            })
+        else:
+            return JsonResponse({'error': 'Failed to update nationality'}, status=500)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def api_detect_nationality(request):
+    """API endpoint for explicit nationality detection"""
+    ip = get_client_ip(request)
+    country = get_country_from_ip(ip)
+    
+    return JsonResponse({
+        'detected_country': country,
+        'country_name': get_country_name(country),
+        'ip': ip,
+        'method': 'ip_detection'
+    })
+
+@require_http_methods(["GET"])
+def api_get_countries(request):
+    """API endpoint to get list of available countries"""
+    countries = [
+        {'code': code, 'name': name} 
+        for code, name in UserProfile.COUNTRY_CHOICES
+    ]
+    return JsonResponse({'countries': countries})
+
+@require_http_methods(["GET"])
+def api_nationality_stats(request):
+    """API endpoint to get nationality statistics"""
+    # Update stats first
+    NationalityStats.update_stats()
+    
+    stats = NationalityStats.objects.all().order_by('-user_count')[:20]
+    
+    stats_data = [{
+        'nationality': stat.nationality,
+        'country_name': get_country_name(stat.nationality),
+        'user_count': stat.user_count,
+        'message_count': stat.message_count,
+        'rooms_created': stat.rooms_created,
+    } for stat in stats]
+    
+    return JsonResponse({
+        'stats': stats_data,
+        'total_users': User.objects.count(),
+        'users_with_nationality': UserProfile.objects.exclude(
+            Q(nationality__isnull=True) & Q(auto_detected_country__isnull=True)
+        ).count()
+    })
+
+@login_required
+def api_user_profile_extended(request):
+    """Extended user profile API with nationality"""
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    data = {
+        'username': request.user.username,
+        'display_name': user_profile.display_name,
+        'bio': user_profile.bio,
+        'location': user_profile.location,
+        'website': user_profile.website,
+        'theme': user_profile.theme,
+        'status': user_profile.status,
+        'avatar_customization': user_profile.avatar_customization,
+        'nationality': user_profile.nationality,
+        'auto_detected_country': user_profile.auto_detected_country,
+        'display_nationality': user_profile.get_display_nationality(),
+        'country_name': user_profile.get_country_name(),
+        'flag_url': user_profile.get_flag_url(),
+        'show_nationality': user_profile.show_nationality,
+    }
+    
+    return JsonResponse(data)
+
+# ==================== ROOM NATIONALITY ENDPOINTS ====================
+
+@require_http_methods(["GET"])
+def api_room_demographics(request, room_id):
+    """API endpoint to get room nationality demographics"""
+    room = get_object_or_404(Room, id=room_id)
+    
+    # Get nationality distribution
+    nationalities = room.get_user_nationalities()
+    
+    # Convert to detailed format
+    demographics = []
+    for nationality, count in nationalities.items():
+        demographics.append({
+            'nationality': nationality,
+            'country_name': get_country_name(nationality),
+            'user_count': count,
+            'flag_url': f"https://flagcdn.com/w40/{nationality.lower()}.png" if nationality != 'UN' else None
+        })
+    
+    demographics.sort(key=lambda x: x['user_count'], reverse=True)
+    
+    return JsonResponse({
+        'room_id': room_id,
+        'room_name': room.name,
+        'demographics': demographics,
+        'total_active_users': sum(nationalities.values()),
+        'unique_countries': len(nationalities)
+    })
+
+@require_http_methods(["GET"])
+def api_room_users_by_country(request, room_id):
+    """API endpoint to get users in a room grouped by nationality"""
+    room = get_object_or_404(Room, id=room_id)
+    
+    # Get recent messages to find active users
+    recent_messages = room.messages.filter(
+        timestamp__gte=timezone.now() - timezone.timedelta(hours=24)
+    ).select_related('user__profile').distinct('user')
+    
+    users_by_country = {}
+    for message in recent_messages:
+        if hasattr(message.user, 'profile'):
+            nationality = message.user.profile.get_display_nationality() or 'UN'
+            if nationality not in users_by_country:
+                users_by_country[nationality] = []
+            
+            users_by_country[nationality].append({
+                'username': message.user.username,
+                'display_name': message.user.profile.display_username,
+                'last_active': message.timestamp.isoformat()
+            })
+    
+    return JsonResponse({
+        'room_id': room_id,
+        'users_by_country': users_by_country
+    })
+
+def room_demographics(request):
+    """Room demographics page"""
+    # Get top rooms by diversity
+    rooms = Room.objects.filter(is_public=True).annotate(
+        message_count_calc=Count('messages')
+    ).order_by('-message_count_calc')[:20]
+    
+    room_data = []
+    for room in rooms:
+        nationalities = room.get_user_nationalities()
+        room_data.append({
+            'room': room,
+            'unique_countries': len(nationalities),
+            'total_users': sum(nationalities.values()),
+            'top_countries': sorted(nationalities.items(), key=lambda x: x[1], reverse=True)[:5]
+        })
+    
+    # Sort by diversity (unique countries)
+    room_data.sort(key=lambda x: x['unique_countries'], reverse=True)
+    
+    return render(request, 'chat/room_demographics.html', {
+        'room_data': room_data
+    })
+
+# ==================== FRIEND NATIONALITY ENDPOINTS ====================
+
+@login_required
+def api_friends_by_nationality(request):
+    """API endpoint to get friends grouped by nationality"""
+    friends = Friendship.get_friends(request.user).select_related('profile')
+    
+    friends_by_nationality = {}
+    for friend in friends:
+        nationality = friend.profile.get_display_nationality() if hasattr(friend, 'profile') else 'UN'
+        if nationality not in friends_by_nationality:
+            friends_by_nationality[nationality] = []
+        
+        friends_by_nationality[nationality].append({
+            'username': friend.username,
+            'display_name': friend.profile.display_username if hasattr(friend, 'profile') else friend.username,
+            'status': friend.profile.status if hasattr(friend, 'profile') else 'online',
+        })
+    
+    return JsonResponse({
+        'friends_by_nationality': friends_by_nationality,
+        'total_friends': friends.count()
+    })
+
+@login_required
+def api_nationality_friend_suggestions(request):
+    """API endpoint for nationality-based friend suggestions"""
+    user_profile = getattr(request.user, 'profile', None)
+    if not user_profile:
+        return JsonResponse({'suggestions': []})
+    
+    user_nationality = user_profile.get_display_nationality()
+    if not user_nationality:
+        return JsonResponse({'suggestions': []})
+    
+    # Get existing friends and pending requests
+    excluded_user_ids = list(Friendship.objects.filter(
+        user=request.user
+    ).values_list('friend_id', flat=True))
+    
+    pending_user_ids = list(FriendRequest.objects.filter(
+        Q(from_user=request.user) | Q(to_user=request.user),
+        status='pending'
+    ).values_list('from_user_id', 'to_user_id'))
+    pending_user_ids = [user_id for pair in pending_user_ids for user_id in pair]
+    excluded_user_ids.extend(pending_user_ids)
+    excluded_user_ids.append(request.user.id)
+    
+    # Find users with same nationality
+    same_nationality_users = User.objects.filter(
+        profile__nationality=user_nationality
+    ).exclude(
+        id__in=excluded_user_ids
+    ).select_related('profile')[:10]
+    
+    suggestions = []
+    for user in same_nationality_users:
+        suggestions.append({
+            'user_id': user.id,
+            'username': user.username,
+            'display_name': user.profile.display_username,
+            'nationality': user_nationality,
+            'country_name': get_country_name(user_nationality),
+            'flag_url': user.profile.get_flag_url(),
+            'suggestion_reason': f"From {get_country_name(user_nationality)}"
+        })
+    
+    return JsonResponse({
+        'suggestions': suggestions,
+        'user_nationality': user_nationality,
+        'country_name': get_country_name(user_nationality)
+    })
+
+# ==================== ADMIN NATIONALITY ENDPOINTS ====================
+
+@staff_member_required
+def admin_nationality_stats(request):
+    """Admin page for nationality statistics"""
+    # Update stats
+    NationalityStats.update_stats()
+    
+    stats = NationalityStats.objects.all().order_by('-user_count')
+    
+    # Get user distribution
+    total_users = User.objects.count()
+    users_with_nationality = UserProfile.objects.exclude(
+        Q(nationality__isnull=True) & Q(auto_detected_country__isnull=True)
+    ).count()
+    
+    # Get top countries
+    top_countries = stats[:10]
+    
+    context = {
+        'stats': stats,
+        'total_users': total_users,
+        'users_with_nationality': users_with_nationality,
+        'coverage_percentage': (users_with_nationality / total_users * 100) if total_users > 0 else 0,
+        'top_countries': top_countries,
+    }
+    
+    return render(request, 'chat/admin/nationality_stats.html', context)
+
+def debug_nationality(request):
+    """Debug nationality system"""
+    if not (request.user.is_staff and request.user.is_superuser):
+        return HttpResponseForbidden("Access denied")
+    
+    # Get IP and detection info
+    ip = get_client_ip(request)
+    detected_country = get_country_from_ip(ip)
+    
+    # Get user nationality info
+    user_nationality_info = {}
+    if request.user.is_authenticated:
+        user_profile = getattr(request.user, 'profile', None)
+        if user_profile:
+            user_nationality_info = {
+                'nationality': user_profile.nationality,
+                'auto_detected_country': user_profile.auto_detected_country,
+                'display_nationality': user_profile.get_display_nationality(),
+                'country_name': user_profile.get_country_name(),
+                'flag_url': user_profile.get_flag_url(),
+                'show_nationality': user_profile.show_nationality,
+            }
+    
+    # Get nationality stats
+    nationality_counts = {}
+    for profile in UserProfile.objects.all():
+        nationality = profile.get_display_nationality()
+        if nationality:
+            nationality_counts[nationality] = nationality_counts.get(nationality, 0) + 1
+    
+    debug_info = {
+        'ip_info': {
+            'ip': ip,
+            'detected_country': detected_country,
+            'country_name': get_country_name(detected_country),
+        },
+        'user_info': user_nationality_info,
+        'nationality_counts': nationality_counts,
+        'total_users': User.objects.count(),
+        'users_with_nationality': len([c for c in nationality_counts.values() if c > 0]),
+        'cache_info': {
+            'cached_country': cache.get(f'country_{ip}'),
+        }
+    }
+    
+    return JsonResponse(debug_info, json_dumps_params={'indent': 2})
+
 # ==================== PROFILE VIEWS ====================
 
 def user_profile(request, username):
-    """Enhanced user profile view"""
+    """Enhanced user profile view with nationality"""
     profile_user = get_object_or_404(User, username=username)
     user_profile, created = UserProfile.objects.get_or_create(user=profile_user)
     
@@ -318,6 +759,9 @@ def user_profile(request, username):
         'friendship_status': friendship_status,
         'can_send_request': can_send_request,
         'pending_request': pending_request,
+        'user_nationality': user_profile.get_display_nationality(),
+        'country_name': user_profile.get_country_name(),
+        'flag_url': user_profile.get_flag_url(),
     }
     
     return render(request, 'chat/user_profile.html', context)
@@ -621,7 +1065,7 @@ def remove_friend_by_username(request, username):
 
 @login_required
 def friend_suggestions(request):
-    """Enhanced friend suggestions"""
+    """Enhanced friend suggestions with nationality-based suggestions"""
     # Get users who are not already friends and not self
     excluded_user_ids = list(Friendship.objects.filter(
         user=request.user
@@ -637,15 +1081,31 @@ def friend_suggestions(request):
     pending_user_ids = [user_id for pair in pending_user_ids for user_id in pair]
     excluded_user_ids.extend(pending_user_ids)
     
-    suggestions = User.objects.exclude(
+    # Get nationality-based suggestions
+    nationality_suggestions = []
+    user_profile = getattr(request.user, 'profile', None)
+    if user_profile and user_profile.get_display_nationality():
+        nationality_suggestions = User.objects.filter(
+            profile__nationality=user_profile.get_display_nationality()
+        ).exclude(
+            id__in=excluded_user_ids
+        ).select_related('profile')[:5]
+    
+    # Get general suggestions
+    general_suggestions = User.objects.exclude(
         id__in=excluded_user_ids
     ).select_related('profile').filter(
         profile__allow_friend_requests=True
     )[:10]
     
-    return render(request, 'chat/friend_suggestions.html', {
-        'suggestions': suggestions
-    })
+    context = {
+        'nationality_suggestions': nationality_suggestions,
+        'general_suggestions': general_suggestions,
+        'user_nationality': user_profile.get_display_nationality() if user_profile else None,
+        'country_name': user_profile.get_country_name() if user_profile else None,
+    }
+    
+    return render(request, 'chat/friend_suggestions.html', context)
 
 @login_required
 def dashboard(request):
@@ -705,7 +1165,7 @@ def user_settings(request):
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_dashboard(request):
-    """Enhanced admin dashboard"""
+    """Enhanced admin dashboard with nationality stats"""
     # Calculate date ranges
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
@@ -727,6 +1187,9 @@ def admin_dashboard(request):
         'pending_reports': MessageReport.objects.filter(status='pending').count(),
         'new_users_week': User.objects.filter(date_joined__gte=week_ago).count(),
         'new_rooms_week': Room.objects.filter(created_at__gte=week_ago).count(),
+        'users_with_nationality': UserProfile.objects.exclude(
+            Q(nationality__isnull=True) & Q(auto_detected_country__isnull=True)
+        ).count(),
     }
     
     # Recent activity
@@ -736,14 +1199,21 @@ def admin_dashboard(request):
     ).order_by('-created_at')[:5]
     recent_users = User.objects.select_related('profile').order_by('-date_joined')[:5]
     
+    # Top nationalities
+    top_nationalities = NationalityStats.objects.order_by('-user_count')[:10]
+    
     context = {
         'stats': stats,
         'recent_rooms': recent_rooms,
         'recent_reports': recent_reports,
         'recent_users': recent_users,
+        'top_nationalities': top_nationalities,
     }
     
     return render(request, 'chat/admin/dashboard.html', context)
+
+# [REST OF THE ORIGINAL VIEWS REMAIN THE SAME - admin_rooms, admin_messages, etc.]
+# [I'll keep them unchanged to preserve your existing functionality]
 
 @staff_member_required
 def admin_rooms(request):
@@ -1229,15 +1699,10 @@ def admin_user_activity(request):
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_user_settings(request):
-    """User settings view - redirects to unified admin users"""
-    return admin_users(request)
-
-@user_passes_test(lambda u: u.is_staff)
-def admin_user_settings(request):
     """Enhanced admin user settings"""
     users = User.objects.select_related('profile').annotate(
         room_count=Count('created_rooms'),
-        message_count=Count('message_set'),
+        message_count=Count('message'),
         friend_count=Count('friendships')
     ).order_by('-date_joined')
     
@@ -1329,6 +1794,9 @@ def api_friends_online(request):
             'display_name': friendship.friend.profile.display_username,
             'status': 'online' if is_online else 'offline',
             'last_seen': last_seen.isoformat() if last_seen else None,
+            'nationality': friendship.friend.profile.get_display_nationality(),
+            'country_name': friendship.friend.profile.get_country_name(),
+            'flag_url': friendship.friend.profile.get_flag_url(),
         })
     
     return JsonResponse({'friends': friends_data})
@@ -1590,35 +2058,3 @@ def explore_rooms(request):
     """Dedicated room exploration page with enhanced features"""
     # This is essentially the same as index but can be customized differently
     return index(request)
-
-@staff_member_required
-def admin_dashboard(request):
-    # Get stats for the dashboard
-    total_rooms = Room.objects.count()
-    total_messages = Message.objects.count()
-    total_users = User.objects.count()
-    
-    # Get messages from last 24 hours
-    yesterday = datetime.now() - timedelta(days=1)
-    messages_24h = Message.objects.filter(timestamp__gte=yesterday).count()
-    
-    # Get most active rooms (rooms with most messages)
-    rooms = Room.objects.annotate(
-        messages_count=Count('messages')
-    ).order_by('-messages_count')[:10]
-    
-    # Get recent messages
-    recent_messages = Message.objects.select_related(
-        'user', 'room'
-    ).order_by('-timestamp')[:20]
-    
-    context = {
-        'total_rooms': total_rooms,
-        'total_messages': total_messages,
-        'total_users': total_users,
-        'messages_24h': messages_24h,
-        'rooms': rooms,
-        'recent_messages': recent_messages,
-    }
-    
-    return render(request, 'chat/admin_dashboard.html', context)

@@ -6,12 +6,13 @@ from django.contrib.auth.models import User
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models import Count
 from datetime import timedelta
 
 from .models import (
     UserProfile, Room, RoomCategory, Message, MessageReport,
     Friendship, FriendSuggestion, RoomBookmark, UserModerationAction,
-    WordFilter, UserActivity
+    WordFilter, UserActivity, NationalityStats, FriendRequest
 )
 
 
@@ -22,27 +23,42 @@ class UserProfileInline(admin.StackedInline):
     verbose_name_plural = 'Profile'
     fields = [
         'display_name', 'bio', 'location', 'website',
+        'nationality', 'auto_detected_country', 'show_nationality',
         'theme', 'status', 'status_message',
         'profile_visibility', 'show_online_status', 'allow_friend_requests',
         'total_messages', 'rooms_created', 'last_seen'
     ]
-    readonly_fields = ['total_messages', 'rooms_created', 'last_seen']
+    readonly_fields = ['auto_detected_country', 'total_messages', 'rooms_created', 'last_seen']
 
 
 class MessageInline(admin.TabularInline):
     model = Message
     extra = 0
     max_num = 10
-    fields = ['user', 'content', 'message_type', 'timestamp']
-    readonly_fields = ['timestamp']
+    fields = ['user', 'content', 'message_type', 'user_nationality_at_time', 'timestamp']
+    readonly_fields = ['user_nationality_at_time', 'timestamp']
     ordering = ['-timestamp']
 
 
 # Custom User Admin
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
-    list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff', 'get_last_seen', 'get_message_count']
-    list_filter = BaseUserAdmin.list_filter + ('profile__status', 'profile__theme')
+    list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff', 'get_nationality', 'get_last_seen', 'get_message_count']
+    list_filter = BaseUserAdmin.list_filter + ('profile__status', 'profile__theme', 'profile__nationality')
+    
+    def get_nationality(self, obj):
+        if hasattr(obj, 'profile') and obj.profile:
+            nationality = obj.profile.get_display_nationality()
+            if nationality and nationality != 'UN':
+                country_name = obj.profile.get_country_name()
+                flag_url = f"https://flagcdn.com/w20/{nationality.lower()}.png"
+                return format_html(
+                    '<img src="{}" alt="{}" style="width: 20px; height: 14px; margin-right: 5px;"> {}',
+                    flag_url, nationality, country_name
+                )
+            return 'Unknown'
+        return 'No Profile'
+    get_nationality.short_description = 'Nationality'
     
     def get_last_seen(self, obj):
         if hasattr(obj, 'profile') and obj.profile.last_seen:
@@ -68,14 +84,18 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'display_name', 'status', 'total_messages', 'rooms_created', 'last_seen']
-    list_filter = ['status', 'theme', 'profile_visibility', 'created_at']
-    search_fields = ['user__username', 'user__email', 'display_name', 'bio']
-    readonly_fields = ['total_messages', 'rooms_created', 'created_at', 'updated_at']
+    list_display = ['user', 'display_name', 'get_nationality_display', 'status', 'total_messages', 'rooms_created', 'last_seen']
+    list_filter = ['status', 'theme', 'profile_visibility', 'nationality', 'show_nationality', 'created_at']
+    search_fields = ['user__username', 'user__email', 'display_name', 'bio', 'location']
+    readonly_fields = ['auto_detected_country', 'total_messages', 'rooms_created', 'created_at', 'updated_at']
     
     fieldsets = (
         ('User Information', {
             'fields': ('user', 'display_name', 'bio', 'location', 'website')
+        }),
+        ('Nationality & Location', {
+            'fields': ('nationality', 'auto_detected_country', 'show_nationality'),
+            'description': 'Nationality settings and flag display preferences'
         }),
         ('Preferences', {
             'fields': ('theme', 'status', 'status_message')
@@ -92,6 +112,78 @@ class UserProfileAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def get_nationality_display(self, obj):
+        nationality = obj.get_display_nationality()
+        if nationality and nationality != 'UN':
+            country_name = obj.get_country_name()
+            flag_url = f"https://flagcdn.com/w20/{nationality.lower()}.png"
+            status = "🔹 Manual" if obj.nationality else "🔸 Auto-detected"
+            return format_html(
+                '<img src="{}" alt="{}" style="width: 20px; height: 14px; margin-right: 5px;"> {} {}',
+                flag_url, nationality, country_name, status
+            )
+        return 'Unknown'
+    get_nationality_display.short_description = 'Nationality'
+    
+    actions = ['update_nationality_stats', 'reset_nationality', 'enable_nationality_display', 'disable_nationality_display']
+    
+    def update_nationality_stats(self, request, queryset):
+        NationalityStats.update_stats()
+        self.message_user(request, "Nationality statistics updated successfully.")
+    update_nationality_stats.short_description = "Update nationality statistics"
+    
+    def reset_nationality(self, request, queryset):
+        queryset.update(nationality=None)
+        self.message_user(request, f"Reset nationality for {queryset.count()} users.")
+    reset_nationality.short_description = "Reset nationality to auto-detect"
+    
+    def enable_nationality_display(self, request, queryset):
+        queryset.update(show_nationality=True)
+        self.message_user(request, f"Enabled nationality display for {queryset.count()} users.")
+    enable_nationality_display.short_description = "Enable nationality display"
+    
+    def disable_nationality_display(self, request, queryset):
+        queryset.update(show_nationality=False)
+        self.message_user(request, f"Disabled nationality display for {queryset.count()} users.")
+    disable_nationality_display.short_description = "Disable nationality display"
+
+
+@admin.register(NationalityStats)
+class NationalityStatsAdmin(admin.ModelAdmin):
+    list_display = ['get_nationality_display', 'user_count', 'message_count', 'rooms_created', 'last_updated']
+    list_filter = ['last_updated']
+    search_fields = ['nationality']
+    readonly_fields = ['last_updated']
+    ordering = ['-user_count']
+    
+    def get_nationality_display(self, obj):
+        if obj.nationality and obj.nationality != 'UN':
+            country_dict = dict(UserProfile.COUNTRY_CHOICES)
+            country_name = country_dict.get(obj.nationality, 'Unknown')
+            flag_url = f"https://flagcdn.com/w20/{obj.nationality.lower()}.png"
+            return format_html(
+                '<img src="{}" alt="{}" style="width: 20px; height: 14px; margin-right: 5px;"> {} ({})',
+                flag_url, country_name, obj.nationality
+            )
+        return 'Unknown'
+    get_nationality_display.short_description = 'Country'
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+    
+    actions = ['refresh_stats']
+    
+    def refresh_stats(self, request, queryset):
+        NationalityStats.update_stats()
+        self.message_user(request, "Nationality statistics refreshed successfully.")
+    refresh_stats.short_description = "Refresh nationality statistics"
 
 
 @admin.register(RoomCategory)
@@ -116,7 +208,7 @@ class RoomCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ['name', 'display_name', 'category', 'creator', 'is_public', 'message_count', 'last_activity']
+    list_display = ['name', 'display_name', 'category', 'creator', 'is_public', 'message_count', 'get_nationality_diversity', 'last_activity']
     list_filter = ['is_public', 'is_featured', 'category', 'created_at']
     search_fields = ['name', 'display_name', 'description', 'tags']
     readonly_fields = ['message_count', 'active_users_count', 'created_at', 'updated_at']
@@ -142,7 +234,33 @@ class RoomAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['make_featured', 'remove_featured', 'make_public', 'make_private']
+    def get_nationality_diversity(self, obj):
+        try:
+            nationalities = obj.get_user_nationalities()
+            unique_countries = len(nationalities)
+            total_users = sum(nationalities.values())
+            
+            if unique_countries > 0:
+                # Show top 3 countries with flags
+                top_countries = sorted(nationalities.items(), key=lambda x: x[1], reverse=True)[:3]
+                flags_html = ""
+                for country, count in top_countries:
+                    if country != 'UN':
+                        flag_url = f"https://flagcdn.com/w16/{country.lower()}.png"
+                        flags_html += f'<img src="{flag_url}" alt="{country}" style="width: 16px; height: 12px; margin-right: 2px;" title="{country}: {count} users">'
+                
+                return format_html(
+                    '{} {} countries ({})',
+                    flags_html,
+                    unique_countries,
+                    total_users
+                )
+            return 'No activity'
+        except:
+            return 'Error'
+    get_nationality_diversity.short_description = 'Nationality Diversity'
+    
+    actions = ['make_featured', 'remove_featured', 'make_public', 'make_private', 'analyze_demographics']
     
     def make_featured(self, request, queryset):
         queryset.update(is_featured=True)
@@ -159,21 +277,44 @@ class RoomAdmin(admin.ModelAdmin):
     def make_private(self, request, queryset):
         queryset.update(is_public=False)
     make_private.short_description = "Make selected rooms private"
+    
+    def analyze_demographics(self, request, queryset):
+        total_diversity = 0
+        for room in queryset:
+            nationalities = room.get_user_nationalities()
+            total_diversity += len(nationalities)
+        
+        avg_diversity = total_diversity / queryset.count() if queryset.count() > 0 else 0
+        self.message_user(request, f"Average nationality diversity: {avg_diversity:.1f} countries per room")
+    analyze_demographics.short_description = "Analyze nationality demographics"
 
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ['user', 'room', 'content_preview', 'message_type', 'is_edited', 'timestamp']
-    list_filter = ['message_type', 'is_edited', 'is_deleted', 'timestamp']
+    list_display = ['user', 'room', 'content_preview', 'message_type', 'get_user_nationality', 'is_edited', 'timestamp']
+    list_filter = ['message_type', 'is_edited', 'is_deleted', 'user_nationality_at_time', 'timestamp']
     search_fields = ['content', 'user__username', 'room__name']
-    readonly_fields = ['timestamp', 'edited_at']
+    readonly_fields = ['user_nationality_at_time', 'timestamp', 'edited_at']
     date_hierarchy = 'timestamp'
     
     def content_preview(self, obj):
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
     content_preview.short_description = 'Content'
     
-    actions = ['soft_delete_messages', 'restore_messages']
+    def get_user_nationality(self, obj):
+        nationality = obj.user_nationality_at_time
+        if nationality and nationality != 'UN':
+            country_dict = dict(UserProfile.COUNTRY_CHOICES)
+            country_name = country_dict.get(nationality, 'Unknown')
+            flag_url = f"https://flagcdn.com/w16/{nationality.lower()}.png"
+            return format_html(
+                '<img src="{}" alt="{}" style="width: 16px; height: 12px; margin-right: 5px;"> {}',
+                flag_url, nationality, country_name
+            )
+        return 'Unknown'
+    get_user_nationality.short_description = 'User Nationality'
+    
+    actions = ['soft_delete_messages', 'restore_messages', 'update_nationality_context']
     
     def soft_delete_messages(self, request, queryset):
         queryset.update(is_deleted=True)
@@ -182,6 +323,18 @@ class MessageAdmin(admin.ModelAdmin):
     def restore_messages(self, request, queryset):
         queryset.update(is_deleted=False)
     restore_messages.short_description = "Restore selected messages"
+    
+    def update_nationality_context(self, request, queryset):
+        updated = 0
+        for message in queryset:
+            if hasattr(message.user, 'profile'):
+                nationality = message.user.profile.get_display_nationality()
+                if nationality != message.user_nationality_at_time:
+                    message.user_nationality_at_time = nationality
+                    message.save(update_fields=['user_nationality_at_time'])
+                    updated += 1
+        self.message_user(request, f"Updated nationality context for {updated} messages.")
+    update_nationality_context.short_description = "Update nationality context"
 
 
 @admin.register(MessageReport)
@@ -219,22 +372,84 @@ class MessageReportAdmin(admin.ModelAdmin):
     mark_dismissed.short_description = "Mark selected reports as dismissed"
 
 
+@admin.register(FriendRequest)
+class FriendRequestAdmin(admin.ModelAdmin):
+    list_display = ['from_user', 'to_user', 'status', 'created_at', 'responded_at']
+    list_filter = ['status', 'created_at', 'responded_at']
+    search_fields = ['from_user__username', 'to_user__username', 'message']
+    readonly_fields = ['created_at', 'updated_at', 'responded_at']
+    
+    fieldsets = (
+        ('Request Information', {
+            'fields': ('from_user', 'to_user', 'message', 'status')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at', 'responded_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['approve_requests', 'decline_requests']
+    
+    def approve_requests(self, request, queryset):
+        approved = 0
+        for friend_request in queryset.filter(status='pending'):
+            try:
+                friend_request.accept()
+                approved += 1
+            except:
+                pass
+        self.message_user(request, f"Approved {approved} friend requests.")
+    approve_requests.short_description = "Approve selected friend requests"
+    
+    def decline_requests(self, request, queryset):
+        declined = queryset.filter(status='pending').count()
+        for friend_request in queryset.filter(status='pending'):
+            friend_request.decline()
+        self.message_user(request, f"Declined {declined} friend requests.")
+    decline_requests.short_description = "Decline selected friend requests"
+
+
 @admin.register(Friendship)
 class FriendshipAdmin(admin.ModelAdmin):
-    list_display = ['user', 'friend', 'status', 'nickname', 'is_favorite', 'created_at']
+    list_display = ['user', 'friend', 'status', 'nickname', 'is_favorite', 'mutual_friends_count', 'created_at']
     list_filter = ['status', 'is_favorite', 'created_at']
     search_fields = ['user__username', 'friend__username', 'nickname']
     readonly_fields = ['mutual_friends_count', 'created_at', 'updated_at']
     
-    actions = ['approve_requests', 'block_friendships']
-    
-    def approve_requests(self, request, queryset):
-        queryset.filter(status='pending').update(status='accepted')
-    approve_requests.short_description = "Approve selected friend requests"
+    actions = ['block_friendships', 'unblock_friendships', 'calculate_mutual_friends']
     
     def block_friendships(self, request, queryset):
         queryset.update(status='blocked')
+        self.message_user(request, f"Blocked {queryset.count()} friendships.")
     block_friendships.short_description = "Block selected friendships"
+    
+    def unblock_friendships(self, request, queryset):
+        queryset.update(status='accepted')
+        self.message_user(request, f"Unblocked {queryset.count()} friendships.")
+    unblock_friendships.short_description = "Unblock selected friendships"
+    
+    def calculate_mutual_friends(self, request, queryset):
+        updated = 0
+        for friendship in queryset:
+            # Calculate mutual friends count
+            user_friends = set(Friendship.objects.filter(
+                user=friendship.user, status='accepted'
+            ).values_list('friend_id', flat=True))
+            
+            friend_friends = set(Friendship.objects.filter(
+                user=friendship.friend, status='accepted'
+            ).values_list('friend_id', flat=True))
+            
+            mutual_count = len(user_friends.intersection(friend_friends))
+            
+            if friendship.mutual_friends_count != mutual_count:
+                friendship.mutual_friends_count = mutual_count
+                friendship.save(update_fields=['mutual_friends_count'])
+                updated += 1
+        
+        self.message_user(request, f"Updated mutual friends count for {updated} friendships.")
+    calculate_mutual_friends.short_description = "Calculate mutual friends count"
 
 
 @admin.register(UserModerationAction)
@@ -290,16 +505,57 @@ class UserActivityAdmin(admin.ModelAdmin):
 
 @admin.register(FriendSuggestion)
 class FriendSuggestionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'suggested_user', 'suggestion_type', 'score', 'mutual_friends', 'is_dismissed']
+    list_display = ['user', 'suggested_user', 'suggestion_type', 'score', 'mutual_friends', 'shared_rooms', 'is_dismissed']
     list_filter = ['suggestion_type', 'is_dismissed', 'created_at']
     search_fields = ['user__username', 'suggested_user__username']
     readonly_fields = ['created_at']
     
-    actions = ['dismiss_suggestions']
+    actions = ['dismiss_suggestions', 'generate_nationality_suggestions']
     
     def dismiss_suggestions(self, request, queryset):
         queryset.update(is_dismissed=True)
     dismiss_suggestions.short_description = "Dismiss selected suggestions"
+    
+    def generate_nationality_suggestions(self, request, queryset):
+        # Generate nationality-based suggestions for users
+        from django.contrib.auth.models import User
+        from django.db.models import Q
+        
+        generated = 0
+        for user_profile in UserProfile.objects.exclude(nationality__isnull=True):
+            user = user_profile.user
+            user_nationality = user_profile.get_display_nationality()
+            
+            if user_nationality and user_nationality != 'UN':
+                # Find other users with same nationality
+                same_nationality_users = User.objects.filter(
+                    profile__nationality=user_nationality
+                ).exclude(id=user.id)
+                
+                # Exclude existing friends and pending requests
+                existing_friends = Friendship.objects.filter(user=user).values_list('friend_id', flat=True)
+                existing_suggestions = FriendSuggestion.objects.filter(user=user).values_list('suggested_user_id', flat=True)
+                
+                same_nationality_users = same_nationality_users.exclude(
+                    Q(id__in=existing_friends) | Q(id__in=existing_suggestions)
+                )
+                
+                for suggested_user in same_nationality_users[:5]:  # Limit to 5 suggestions per user
+                    suggestion, created = FriendSuggestion.objects.get_or_create(
+                        user=user,
+                        suggested_user=suggested_user,
+                        defaults={
+                            'suggestion_type': 'same_nationality',
+                            'score': 0.7,
+                            'mutual_friends': 0,
+                            'shared_rooms': 0,
+                        }
+                    )
+                    if created:
+                        generated += 1
+        
+        self.message_user(request, f"Generated {generated} nationality-based friend suggestions.")
+    generate_nationality_suggestions.short_description = "Generate nationality-based suggestions"
 
 
 @admin.register(RoomBookmark)
@@ -310,7 +566,85 @@ class RoomBookmarkAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
 
 
+# Custom admin actions for bulk operations
+def bulk_update_nationality_stats(modeladmin, request, queryset):
+    """Update nationality statistics for all countries"""
+    NationalityStats.update_stats()
+    modeladmin.message_user(request, "Successfully updated nationality statistics for all countries.")
+bulk_update_nationality_stats.short_description = "Update nationality statistics"
+
+
+def export_nationality_report(modeladmin, request, queryset):
+    """Export nationality report"""
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="nationality_report.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Country Code', 'Country Name', 'User Count', 'Message Count', 'Rooms Created'])
+    
+    stats = NationalityStats.objects.all().order_by('-user_count')
+    country_dict = dict(UserProfile.COUNTRY_CHOICES)
+    
+    for stat in stats:
+        writer.writerow([
+            stat.nationality,
+            country_dict.get(stat.nationality, 'Unknown'),
+            stat.user_count,
+            stat.message_count,
+            stat.rooms_created
+        ])
+    
+    return response
+export_nationality_report.short_description = "Export nationality report (CSV)"
+
+
+# Add bulk actions to UserProfile admin
+UserProfileAdmin.actions.extend([bulk_update_nationality_stats, export_nationality_report])
+
+
 # Admin site customization
 admin.site.site_header = 'Euphorie Administration'
 admin.site.site_title = 'Euphorie Admin'
 admin.site.index_title = 'Welcome to Euphorie Administration'
+
+# Add custom admin dashboard info
+class AdminDashboardInfo:
+    """Custom dashboard information for nationality statistics"""
+    
+    @staticmethod
+    def get_nationality_summary():
+        """Get summary of nationality statistics"""
+        total_users = User.objects.count()
+        users_with_nationality = UserProfile.objects.exclude(
+            nationality__isnull=True, auto_detected_country__isnull=True
+        ).count()
+        
+        coverage_percentage = (users_with_nationality / total_users * 100) if total_users > 0 else 0
+        
+        top_countries = NationalityStats.objects.order_by('-user_count')[:5]
+        
+        return {
+            'total_users': total_users,
+            'users_with_nationality': users_with_nationality,
+            'coverage_percentage': coverage_percentage,
+            'top_countries': top_countries,
+            'unique_countries': NationalityStats.objects.count()
+        }
+
+
+# Custom admin site index template context
+def admin_index_context(request):
+    """Add nationality statistics to admin index"""
+    if request.user.is_staff:
+        context = {
+            'nationality_summary': AdminDashboardInfo.get_nationality_summary(),
+        }
+        return context
+    return {}
+
+
+# Register the context processor (you'll need to add this to settings.py)
+admin.site.index_template = 'admin/custom_index.html'  # Optional: create custom template

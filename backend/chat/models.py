@@ -7,10 +7,12 @@ from django.core.validators import RegexValidator, URLValidator
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.db.models import Q
+from django.core.cache import cache
 import json
+import requests
 
 class UserProfile(models.Model):
-    """Enhanced user profile with 3D avatar customization"""
+    """Enhanced user profile with 3D avatar customization and nationality"""
     
     THEME_CHOICES = [
         ('light', 'Light'),
@@ -32,6 +34,26 @@ class UserProfile(models.Model):
         ('private', 'Private'),
     ]
     
+    # Common country codes for validation
+    COUNTRY_CHOICES = [
+        ('US', 'United States'), ('CA', 'Canada'), ('GB', 'United Kingdom'),
+        ('DE', 'Germany'), ('FR', 'France'), ('JP', 'Japan'), ('AU', 'Australia'),
+        ('BR', 'Brazil'), ('IN', 'India'), ('CN', 'China'), ('KR', 'South Korea'),
+        ('RU', 'Russia'), ('MX', 'Mexico'), ('IT', 'Italy'), ('ES', 'Spain'),
+        ('NL', 'Netherlands'), ('SE', 'Sweden'), ('NO', 'Norway'), ('FI', 'Finland'),
+        ('DK', 'Denmark'), ('BE', 'Belgium'), ('CH', 'Switzerland'), ('AT', 'Austria'),
+        ('PL', 'Poland'), ('TR', 'Turkey'), ('GR', 'Greece'), ('PT', 'Portugal'),
+        ('IE', 'Ireland'), ('CZ', 'Czech Republic'), ('HU', 'Hungary'), ('RO', 'Romania'),
+        ('BG', 'Bulgaria'), ('HR', 'Croatia'), ('SK', 'Slovakia'), ('SI', 'Slovenia'),
+        ('LT', 'Lithuania'), ('LV', 'Latvia'), ('EE', 'Estonia'), ('AR', 'Argentina'),
+        ('CL', 'Chile'), ('PE', 'Peru'), ('CO', 'Colombia'), ('VE', 'Venezuela'),
+        ('UY', 'Uruguay'), ('PY', 'Paraguay'), ('BO', 'Bolivia'), ('EC', 'Ecuador'),
+        ('ZA', 'South Africa'), ('EG', 'Egypt'), ('MA', 'Morocco'), ('NG', 'Nigeria'),
+        ('KE', 'Kenya'), ('GH', 'Ghana'), ('TH', 'Thailand'), ('VN', 'Vietnam'),
+        ('PH', 'Philippines'), ('ID', 'Indonesia'), ('MY', 'Malaysia'), ('SG', 'Singapore'),
+        ('UN', 'Unknown'),
+    ]
+    
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     
     # Avatar & Appearance
@@ -41,9 +63,26 @@ class UserProfile(models.Model):
     )
     display_name = models.CharField(max_length=50, blank=True)
     
+    # Nationality & Location
+    nationality = models.CharField(
+        max_length=2, 
+        choices=COUNTRY_CHOICES,
+        blank=True, 
+        null=True,
+        help_text="User-selected nationality (2-letter country code)"
+    )
+    auto_detected_country = models.CharField(
+        max_length=2, 
+        choices=COUNTRY_CHOICES,
+        blank=True, 
+        null=True,
+        help_text="Auto-detected country from IP address"
+    )
+    location = models.CharField(max_length=100, blank=True)
+    show_nationality = models.BooleanField(default=True, help_text="Show nationality flag on avatar")
+    
     # Profile Information
     bio = models.TextField(max_length=300, blank=True)
-    location = models.CharField(max_length=100, blank=True)
     website = models.URLField(blank=True, validators=[URLValidator()])
     
     # Preferences
@@ -74,6 +113,60 @@ class UserProfile(models.Model):
         """Return display name if set, otherwise username"""
         return self.display_name or self.user.username
     
+    def get_display_nationality(self):
+        """Returns user-set nationality or auto-detected as fallback"""
+        if self.show_nationality:
+            return self.nationality or self.auto_detected_country or 'UN'
+        return None
+    
+    def get_country_name(self):
+        """Get full country name from nationality code"""
+        country_dict = dict(self.COUNTRY_CHOICES)
+        nationality = self.get_display_nationality()
+        return country_dict.get(nationality, 'Unknown') if nationality else None
+    
+    def get_flag_url(self):
+        """Get flag image URL for the user's nationality"""
+        nationality = self.get_display_nationality()
+        if nationality and nationality != 'UN':
+            return f"https://flagcdn.com/w40/{nationality.lower()}.png"
+        return None
+    
+    def update_nationality(self, nationality):
+        """Update user's nationality and save"""
+        if nationality in dict(self.COUNTRY_CHOICES):
+            self.nationality = nationality
+            self.save(update_fields=['nationality'])
+            return True
+        return False
+    
+    def auto_detect_country(self, ip_address):
+        """Auto-detect country from IP address"""
+        try:
+            # Check cache first
+            cached_country = cache.get(f'country_{ip_address}')
+            if cached_country:
+                self.auto_detected_country = cached_country
+                self.save(update_fields=['auto_detected_country'])
+                return cached_country
+            
+            # Try external API
+            response = requests.get(f'https://ipapi.co/{ip_address}/country_code/', timeout=5)
+            if response.status_code == 200:
+                country = response.text.strip().upper()
+                if country in dict(self.COUNTRY_CHOICES):
+                    self.auto_detected_country = country
+                    self.save(update_fields=['auto_detected_country'])
+                    cache.set(f'country_{ip_address}', country, 86400)  # Cache for 24 hours
+                    return country
+        except:
+            pass
+        
+        # Fallback to unknown
+        self.auto_detected_country = 'UN'
+        self.save(update_fields=['auto_detected_country'])
+        return 'UN'
+    
     def get_avatar_settings(self):
         """Get avatar customization with defaults"""
         defaults = {
@@ -84,7 +177,16 @@ class UserProfile(models.Model):
             'pants_color': '#4ECDC4',
             'eye_color': '#4A90E2',
         }
-        return {**defaults, **self.avatar_customization}
+        settings = {**defaults, **self.avatar_customization}
+        
+        # Add nationality info for avatar system
+        nationality = self.get_display_nationality()
+        if nationality:
+            settings['nationality'] = nationality
+            settings['country_name'] = self.get_country_name()
+            settings['flag_url'] = self.get_flag_url()
+        
+        return settings
 
 
 class RoomCategory(models.Model):
@@ -171,10 +273,28 @@ class Room(models.Model):
             'beach_resort': 'Beach Resort',
         }
         return scene_presets.get(getattr(self, 'scene_preset', 'modern_office'), 'Modern Office')
+    
+    def get_user_nationalities(self):
+        """Get nationality distribution of active users in this room"""
+        from django.db.models import Count
+        
+        # Get recent messages to find active users
+        recent_messages = self.messages.filter(
+            timestamp__gte=timezone.now() - timezone.timedelta(hours=24)
+        ).select_related('user__profile')
+        
+        nationalities = {}
+        for message in recent_messages:
+            if hasattr(message.user, 'profile'):
+                nationality = message.user.profile.get_display_nationality()
+                if nationality:
+                    nationalities[nationality] = nationalities.get(nationality, 0) + 1
+        
+        return nationalities
 
 
 class Message(models.Model):
-    """Enhanced message model"""
+    """Enhanced message model with nationality context"""
     
     MESSAGE_TYPES = [
         ('text', 'Text'),
@@ -191,6 +311,9 @@ class Message(models.Model):
     # 3D Position for avatar messages
     avatar_position = models.JSONField(default=dict, help_text="3D position when message was sent")
     
+    # User context at time of message (for historical accuracy)
+    user_nationality_at_time = models.CharField(max_length=2, blank=True, null=True)
+    
     # Message metadata
     is_edited = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
@@ -204,6 +327,19 @@ class Message(models.Model):
     
     def __str__(self):
         return f"{self.user.username}: {self.content[:50]}"
+    
+    def save(self, *args, **kwargs):
+        # Store user's nationality at time of message
+        if not self.user_nationality_at_time and hasattr(self.user, 'profile'):
+            self.user_nationality_at_time = self.user.profile.get_display_nationality()
+        super().save(*args, **kwargs)
+    
+    def get_user_flag_url(self):
+        """Get flag URL for the user at the time of message"""
+        nationality = self.user_nationality_at_time
+        if nationality and nationality != 'UN':
+            return f"https://flagcdn.com/w40/{nationality.lower()}.png"
+        return None
 
 
 class MessageReport(models.Model):
@@ -395,6 +531,7 @@ class FriendSuggestion(models.Model):
         ('same_rooms', 'Same Rooms'),
         ('similar_interests', 'Similar Interests'),
         ('location_based', 'Location Based'),
+        ('same_nationality', 'Same Nationality'),  # New suggestion type
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friend_suggestions')
@@ -516,6 +653,7 @@ class UserActivity(models.Model):
         ('made_friend', 'Made Friend'),
         ('earned_achievement', 'Earned Achievement'),
         ('customized_avatar', 'Customized Avatar'),
+        ('updated_nationality', 'Updated Nationality'),  # New activity type
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')
@@ -538,3 +676,70 @@ class UserActivity(models.Model):
     
     def __str__(self):
         return f"{self.user.username}: {self.description}"
+
+
+class NationalityStats(models.Model):
+    """Track nationality statistics for analytics"""
+    
+    nationality = models.CharField(max_length=2, unique=True)
+    user_count = models.PositiveIntegerField(default=0)
+    message_count = models.PositiveIntegerField(default=0)
+    rooms_created = models.PositiveIntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name_plural = "Nationality Statistics"
+        ordering = ['-user_count']
+    
+    def __str__(self):
+        country_dict = dict(UserProfile.COUNTRY_CHOICES)
+        country_name = country_dict.get(self.nationality, 'Unknown')
+        return f"{country_name} ({self.nationality}): {self.user_count} users"
+    
+    @classmethod
+    def update_stats(cls):
+        """Update nationality statistics"""
+        from django.db.models import Count
+        
+        # Get nationality counts
+        nationality_counts = UserProfile.objects.values('nationality', 'auto_detected_country').annotate(
+            count=Count('id')
+        )
+        
+        # Update or create stats
+        for item in nationality_counts:
+            nationality = item['nationality'] or item['auto_detected_country']
+            if nationality:
+                stats, created = cls.objects.get_or_create(
+                    nationality=nationality,
+                    defaults={'user_count': item['count']}
+                )
+                if not created:
+                    stats.user_count = item['count']
+                    stats.save()
+
+
+# Signal to create UserProfile when User is created
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
+
+
+# Utility function to get client IP
+def get_client_ip(request):
+    """Get client IP address from request"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip

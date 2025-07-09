@@ -39,6 +39,7 @@ urlpatterns = [
     path('bookmark/room/<int:room_id>/', views.bookmark_room, name='bookmark_room'),
     path('rooms/categories/', views.room_categories, name='room_categories'),
     path('rooms/trending/', views.trending_rooms, name='trending_rooms'),
+    path('rooms/demographics/', views.room_demographics, name='room_demographics'),  # New: nationality demographics
     
     # ==================== ADMIN URLS ====================
     path('manage/', views.admin_dashboard, name='admin_dashboard'),
@@ -47,6 +48,7 @@ urlpatterns = [
     path('manage/users/activity/', views.admin_user_activity, name='admin_user_activity'),
     path('manage/rooms/', views.admin_rooms, name='admin_rooms'),
     path('manage/settings/', views.admin_user_settings, name='admin_user_settings'),
+    path('manage/nationality-stats/', views.admin_nationality_stats, name='admin_nationality_stats'),  # New: nationality analytics
     
     # ==================== API ENDPOINTS ====================
     path('api/profile/', views.api_user_profile, name='api_user_profile'),
@@ -55,10 +57,27 @@ urlpatterns = [
     path('api/rooms/load-more/', views.api_load_more_rooms, name='api_load_more_rooms'),
     path('api/search/rooms/', views.api_search_rooms, name='api_search_rooms'),
     
+    # ==================== NATIONALITY API ENDPOINTS ====================
+    path('api/user-country/', views.api_get_user_country, name='api_get_user_country'),
+    path('api/update-nationality/', views.api_update_nationality, name='api_update_nationality'),
+    path('api/nationality/detect/', views.api_detect_nationality, name='api_detect_nationality'),
+    path('api/nationality/countries/', views.api_get_countries, name='api_get_countries'),
+    path('api/nationality/stats/', views.api_nationality_stats, name='api_nationality_stats'),
+    path('api/user-profile-extended/', views.api_user_profile_extended, name='api_user_profile_extended'),
+    
+    # ==================== ROOM NATIONALITY ENDPOINTS ====================
+    path('api/room/<int:room_id>/demographics/', views.api_room_demographics, name='api_room_demographics'),
+    path('api/room/<int:room_id>/users-by-country/', views.api_room_users_by_country, name='api_room_users_by_country'),
+    
+    # ==================== FRIEND NATIONALITY ENDPOINTS ====================
+    path('api/friends/by-nationality/', views.api_friends_by_nationality, name='api_friends_by_nationality'),
+    path('api/friends/suggestions/nationality/', views.api_nationality_friend_suggestions, name='api_nationality_friend_suggestions'),
+    
     # ==================== UTILITY PAGES ====================
     path('privacy/', views.privacy_policy, name='privacy_policy'),
     path('terms/', views.terms_of_service, name='terms_of_service'),
     
     # ==================== DEBUG ====================
     path('debug/rooms/', views.debug_rooms, name='debug_rooms'),
+    path('debug/nationality/', views.debug_nationality, name='debug_nationality'),  # New: nationality debugging
 ]
