@@ -30,6 +30,9 @@ from .models import (
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
+import logging
+logger = logging.getLogger(__name__)
+
 # ==================== NATIONALITY HELPER FUNCTIONS ====================
 
 def get_country_from_ip(ip):
