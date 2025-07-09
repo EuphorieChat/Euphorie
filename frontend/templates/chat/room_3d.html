@@ -1411,14 +1411,14 @@
             roomId: '{{ room.id|default:"default-room" }}',
             roomName: '{{ room.name|default:"Euphorie Room" }}',
             scenePreset: '{{ room.scene_preset|default:"forest" }}',
-            websocketUrl: `wss://${window.location.hostname}/ws/`,
+            rustWebSocketUrl: `ws://${window.location.hostname}:9001/`,
             userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
             username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest'{% endif %},
             maxUsers: {{ room.max_users|default:10 }},
             currentUsers: {{ room.active_users_count|default:1 }},
             
             // FIXED: Use WSS through nginx proxy
-            rustWebSocketUrl: `wss://${window.location.hostname}/ws/`,
+            rustWebSocketUrl: `ws://${window.location.hostname}:9001/`,
             
             chatBubblesEnabled: true,
             bubbleConfig: {
