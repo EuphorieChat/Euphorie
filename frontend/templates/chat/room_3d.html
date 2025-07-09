@@ -1412,8 +1412,12 @@
             roomName: '{{ room.name|default:"Euphorie Room" }}',
             scenePreset: '{{ room.scene_preset|default:"forest" }}',
             websocketUrl: `wss://${window.location.hostname}/ws/`,
-            userId: {% if user_id %}'{{ user_id }}'{% else %}null{% endif %},
+            
+            // FIX: Use request.user.id instead of user_id
+            userId: {% if request.user.is_authenticated %}'{{ request.user.id }}'{% else %}null{% endif %},
             username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest_' + Math.random().toString(36).substr(2, 9){% endif %},
+            isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
+            
             maxUsers: {{ room.max_users|default:10 }},
             currentUsers: {{ room.active_users_count|default:1 }},
             
