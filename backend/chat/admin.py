@@ -644,7 +644,3 @@ def admin_index_context(request):
         }
         return context
     return {}
-
-
-# Register the context processor (you'll need to add this to settings.py)
-admin.site.index_template = 'admin/custom_index.html'  # Optional: create custom template
