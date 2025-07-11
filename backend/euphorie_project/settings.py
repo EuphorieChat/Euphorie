@@ -309,6 +309,9 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# To force HTTPS for allauth
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
+
 # Social account settings for better UX
 SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
