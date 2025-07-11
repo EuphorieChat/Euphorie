@@ -295,6 +295,16 @@ SOCIALACCOUNT_PROVIDERS = {
             'User.Read',
         ],
         'VERIFIED_EMAIL': True,
+    },
+    'apple': {
+        'APP': {
+            'client_id': 'com.euphorie.webauth',
+            'secret': '',  # Will use SocialApp secret (private key)
+            'key': 'LSGQ36SNK2',  # Key ID
+            'team': 'YBASLHXF5R',  # Team ID - THIS IS REQUIRED
+        },
+        'SCOPE': ['name', 'email'],
+        'VERIFIED_EMAIL': True,
     }
 }
 
