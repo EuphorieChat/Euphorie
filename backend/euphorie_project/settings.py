@@ -295,7 +295,7 @@ SOCIALACCOUNT_PROVIDERS = {
             'User.Read',
         ],
         'VERIFIED_EMAIL': True,
-    },
+    }
     # 'apple': {
     #     'APP': {
     #         'client_id': os.getenv('APPLE_SERVICES_ID'),  
