@@ -290,7 +290,7 @@ SOCIALACCOUNT_PROVIDERS = {
     'microsoft': {
         'APP': {
             'client_id': os.getenv('MICROSOFT_CLIENT_ID'),
-            'secret': os.getenv('MICROSOFT_SECRET'),
+            'secret': os.getenv('MICROSOFT_CLIENT_SECRET'),
         },
         'SCOPE': [
             'User.Read',
