@@ -13,19 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
-ALLOWED_HOSTS = [
-    'localhost', 
-    '127.0.0.1', 
-    'euphorie.com', 
-    'www.euphorie.com', 
-    '172.31.84.166', 
-    '0.0.0.0',
-    '107.20.118.7',   
-    '17.32.194.37',  
-    '17.32.194.38',  
-    '17.32.194.39',
-    '107.20.118.0/24', # This won't work - Django doesn't support CIDR
-]
+ALLOWED_HOSTS = ['*']  # Allow all hosts - safe when behind reverse proxy
 
 # Applications
 INSTALLED_APPS = [
@@ -313,7 +301,7 @@ SOCIALACCOUNT_PROVIDERS = {
             'client_id': os.getenv('APPLE_SERVICES_ID'),  
             'secret': '', 
             'key': os.getenv('APPLE_KEY_ID'),
-            'team': os.getenv('APPLE_TEAM_ID'),  # Add this line
+            'team': os.getenv('APPLE_TEAM_ID'),
             'certificate_key': os.getenv('APPLE_PRIVATE_KEY'),
         },
         'SCOPE': ['name', 'email'],
@@ -446,17 +434,27 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'WARNING',
+        'level': 'INFO',  # Changed from WARNING to INFO for better debugging
     },
     'loggers': {
         'django': {
             'handlers': ['file', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if DEBUG else 'INFO',  # More verbose in debug mode
             'propagate': False,
         },
         'allauth': {
             'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
+            'level': 'DEBUG',  # Always debug for OAuth troubleshooting
+            'propagate': False,
+        },
+        'allauth.socialaccount.providers.apple': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'allauth.socialaccount.providers.apple.client': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
             'propagate': False,
         },
         'chat': {
