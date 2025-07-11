@@ -248,10 +248,9 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Allauth settings for seamless authentication
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # Allow both username and email login
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}  # Replaces ACCOUNT_AUTHENTICATION_METHOD
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']  # Replaces EMAIL_REQUIRED and USERNAME_REQUIRED
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # Skip email verification for faster onboarding
-ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
 ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
 ACCOUNT_UNIQUE_EMAIL = True
@@ -267,7 +266,7 @@ ACCOUNT_FORMS = {
 
 # Session configuration
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = False 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 APPLE_SERVICES_ID='com.euphorie.web'
