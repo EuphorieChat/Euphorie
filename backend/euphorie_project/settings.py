@@ -295,6 +295,21 @@ SOCIALACCOUNT_PROVIDERS = {
             'User.Read',
         ],
         'VERIFIED_EMAIL': True,
+    },
+    'apple': {
+        'APPS': [{
+            'client_id': 'com.euphorie.webauth',
+            'secret': 'LSGQ36SNK2',  # Key ID
+            'key': 'YBASLHXF5R',    # Team ID
+            'settings': {
+                'certificate_key': """-----BEGIN PRIVATE KEY-----
+MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgrjihdOXAoiSDWNrO
+LDC4MEIwOTuJLTghBVWNWwIsC8CgCgYIKoZIzj0DAQehRANCAAR+uQc7VKarQbUm
+Knwlhx6XyEn8JHHwY4rvLQip/HPECEzq7GrU5jxYVp/2ajKWxEKZCspiZxH7YuQ9
+yIR4XyYD
+-----END PRIVATE KEY-----"""
+            }
+        }]
     }
 }
 
