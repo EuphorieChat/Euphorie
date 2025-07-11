@@ -313,6 +313,7 @@ SOCIALACCOUNT_PROVIDERS = {
             'client_id': os.getenv('APPLE_SERVICES_ID'),  
             'secret': '', 
             'key': os.getenv('APPLE_KEY_ID'),
+            'team': os.getenv('APPLE_TEAM_ID'),  # Add this line
             'certificate_key': os.getenv('APPLE_PRIVATE_KEY'),
         },
         'SCOPE': ['name', 'email'],
