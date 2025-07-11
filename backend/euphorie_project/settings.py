@@ -300,7 +300,7 @@ SOCIALACCOUNT_PROVIDERS = {
     'apple': {
         'APP': {
             'client_id': os.getenv('APPLE_CLIENT_ID'),
-            'secret': os.getenv('APPLE_SECRET'),
+            'secret': '',  # Apple doesn't use client_secret
             'key': os.getenv('APPLE_KEY_ID'),
             'certificate_key': os.getenv('APPLE_PRIVATE_KEY'),
         },
