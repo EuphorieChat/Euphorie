@@ -270,6 +270,8 @@ SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
+APPLE_SERVICES_ID=com.euphorie.web
+
 # Social account providers configuration
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -299,8 +301,8 @@ SOCIALACCOUNT_PROVIDERS = {
     },
     'apple': {
         'APP': {
-            'client_id': os.getenv('APPLE_CLIENT_ID'),
-            'secret': '',  # Apple doesn't use client_secret
+            'client_id': os.getenv('APPLE_SERVICES_ID'),  
+            'secret': '', 
             'key': os.getenv('APPLE_KEY_ID'),
             'certificate_key': os.getenv('APPLE_PRIVATE_KEY'),
         },
