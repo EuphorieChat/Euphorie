@@ -295,16 +295,18 @@ SOCIALACCOUNT_PROVIDERS = {
             'User.Read',
         ],
         'VERIFIED_EMAIL': True,
-    },
-    'apple': {
-        'APP': {
-            'client_id': 'com.euphorie.webauth',
-            'secret': 'eyJhbGciOiJFUzI1NiIsImtpZCI6IkxTR1EzNlNOSzIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJZQkFTTEhYRjVSIiwiaWF0IjoxNzUyMjM0NDUwLCJleHAiOjE3Njc3ODY0NTAsImF1ZCI6Imh0dHBzOi8vYXBwbGVpZC5hcHBsZS5jb20iLCJzdWIiOiJjb20uZXVwaG9yaWUud2ViYXV0aCJ9.jOZJJNJsm4Q8a2NZzTU-9COq6ammGDr1uda7rV3HgFn2qTP7bHKKR3Op0k70zLcCCQl3A3UXBenUXhkKOMXrLw',
-            'key': 'LSGQ36SNK2'
-        },
-        'SCOPE': ['name', 'email'],
-        'VERIFIED_EMAIL': True,
     }
+    # 'apple': {
+    #     'APP': {
+    #         'client_id': os.getenv('APPLE_SERVICES_ID'),  
+    #         'secret': '', 
+    #         'key': os.getenv('APPLE_KEY_ID'),
+    #         'team': os.getenv('APPLE_TEAM_ID'),
+    #         'certificate_key': os.getenv('APPLE_PRIVATE_KEY'),
+    #     },
+    #     'SCOPE': ['name', 'email'],
+    #     'VERIFIED_EMAIL': True,
+    # }
 }
 
 # To force HTTPS for allauth
