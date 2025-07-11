@@ -324,6 +324,9 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_STORE_TOKENS = False
 
+SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
+
+
 # ==================== EUPHORIE SPECIFIC SETTINGS ====================
 
 # Custom settings for the Euphorie platform
