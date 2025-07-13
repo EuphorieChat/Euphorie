@@ -1343,7 +1343,10 @@
 </div>
 
 <script>
-// Enhanced Messages Management System
+// IMPORTANT: Don't interfere with global menu management
+// The header dropdown is handled by the global EuphorieMenuManager in base.html
+
+// Enhanced Messages Management System (scoped to settings)
 class EuphorieMessagesManager {
     constructor() {
         this.messages = new Map();
@@ -1479,7 +1482,7 @@ class EuphorieMessagesManager {
             <div class="message-content">
                 <p class="message-text">${text}</p>
             </div>
-            <button class="message-close" onclick="window.messagesManager?.dismissMessage('${messageId}')" aria-label="Dismiss message">
+            <button class="message-close" onclick="window.settingsMessagesManager?.dismissMessage('${messageId}')" aria-label="Dismiss message">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1510,24 +1513,25 @@ class EuphorieMessagesManager {
 
 // Global function for dismissing messages (called from onclick)
 function dismissMessage(messageId) {
-    if (window.messagesManager) {
-        window.messagesManager.dismissMessage(messageId);
+    if (window.settingsMessagesManager) {
+        window.settingsMessagesManager.dismissMessage(messageId);
     }
 }
 
 // Enhanced tab navigation
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize messages manager first
-    window.messagesManager = new EuphorieMessagesManager();
+    // IMPORTANT: Don't interfere with global menu management
+    // Initialize settings-specific messages manager
+    window.settingsMessagesManager = new EuphorieMessagesManager();
     
-    // Add to global utils if available
+    // Add to global utils if available (scoped for settings)
     if (window.utils) {
-        window.utils.addMessage = (text, type, autoHide) => {
-            return window.messagesManager.addMessage(text, type, autoHide);
+        window.utils.addSettingsMessage = (text, type, autoHide) => {
+            return window.settingsMessagesManager.addMessage(text, type, autoHide);
         };
         
-        window.utils.clearMessages = () => {
-            window.messagesManager.clearAll();
+        window.utils.clearSettingsMessages = () => {
+            window.settingsMessagesManager.clearAll();
         };
     }
 
@@ -1563,10 +1567,11 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.hash = sectionId;
     }
     
-    // Tab click handlers
+    // Tab click handlers (with event prevention)
     navTabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation(); // Prevent event bubbling
             const sectionId = tab.dataset.section;
             showSection(sectionId);
         });
@@ -1584,6 +1589,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
+            e.stopPropagation(); // Prevent event bubbling
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
                 const originalText = submitBtn.innerHTML;
@@ -1612,7 +1618,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Enhanced toggle switches with immediate feedback
     const toggles = document.querySelectorAll('.enhanced-toggle-switch input');
     toggles.forEach(toggle => {
-        toggle.addEventListener('change', function() {
+        toggle.addEventListener('change', function(e) {
+            e.stopPropagation(); // Prevent event bubbling
             // Add visual feedback
             const slider = this.nextElementSibling;
             slider.style.transform = 'scale(1.05)';
@@ -1672,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Enhanced modal functions
+// Enhanced modal functions (with event prevention)
 function showDeleteAccountModal() {
     const modal = document.getElementById('delete-account-modal');
     modal.style.display = 'flex';
@@ -1698,34 +1705,39 @@ function showComingSoonToast(feature) {
     }
 }
 
-// Enhanced ripple effects for buttons
+// Enhanced ripple effects for buttons (with event prevention)
 document.querySelectorAll('.btn-enhanced').forEach(button => {
-    button.addEventListener('click', function(e) {
-        const ripple = document.createElement('span');
-        const rect = this.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        
-        ripple.style.width = ripple.style.height = size + 'px';
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-        ripple.style.position = 'absolute';
-        ripple.style.borderRadius = '50%';
-        ripple.style.background = 'rgba(255, 255, 255, 0.6)';
-        ripple.style.transform = 'scale(0)';
-        ripple.style.animation = 'ripple 0.6s linear';
-        ripple.style.pointerEvents = 'none';
-        
-        this.appendChild(ripple);
-        
-        setTimeout(() => {
-            ripple.remove();
-        }, 600);
-    });
+    // Only add if not already handled by global script
+    if (!button.hasAttribute('data-ripple-added')) {
+        button.setAttribute('data-ripple-added', 'true');
+        button.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event bubbling
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.style.position = 'absolute';
+            ripple.style.borderRadius = '50%';
+            ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+            ripple.style.transform = 'scale(0)';
+            ripple.style.animation = 'ripple 0.6s linear';
+            ripple.style.pointerEvents = 'none';
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    }
 });
 
-// Enhanced keyboard navigation
+// Enhanced keyboard navigation (settings-specific)
 document.addEventListener('keydown', function(e) {
     // Ctrl/Cmd + S to save current form
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -1756,52 +1768,55 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Enhanced animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes ripple {
-        to {
-            transform: scale(4);
-            opacity: 0;
+// Enhanced animations (only if not already present)
+if (!document.querySelector('style[data-settings-ripple]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-settings-ripple', 'true');
+    style.textContent = `
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
         }
-    }
-    
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
-        to {
-            opacity: 1;
-            transform: scale(1);
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.95);
+            }
         }
-    }
-    
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
-            transform: scale(1);
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
         }
-        to {
-            opacity: 0;
-            transform: scale(0.95);
+        
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
         }
-    }
-    
-    .animate-spin {
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-`;
-document.head.appendChild(style);
+    `;
+    document.head.appendChild(style);
+}
 
 // Enhanced accessibility features
 document.querySelectorAll('.toggle-container').forEach(container => {
@@ -1815,6 +1830,7 @@ document.querySelectorAll('.toggle-container').forEach(container => {
         // Make the entire container clickable
         container.addEventListener('click', (e) => {
             if (e.target !== toggle) {
+                e.stopPropagation(); // Prevent event bubbling
                 toggle.click();
             }
         });
@@ -1823,6 +1839,7 @@ document.querySelectorAll('.toggle-container').forEach(container => {
         container.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent event bubbling
                 toggle.click();
             }
         });
@@ -1859,58 +1876,10 @@ function validateForm(form) {
     return isValid;
 }
 
-// Enhanced auto-save functionality (optional)
-let autoSaveTimeout;
-function setupAutoSave() {
-    const inputs = document.querySelectorAll('.floating-input');
-    
-    inputs.forEach(input => {
-        input.addEventListener('input', () => {
-            clearTimeout(autoSaveTimeout);
-            
-            // Show auto-save indicator
-            let indicator = document.getElementById('auto-save-indicator');
-            if (!indicator) {
-                indicator = document.createElement('div');
-                indicator.id = 'auto-save-indicator';
-                indicator.style.cssText = `
-                    position: fixed;
-                    top: 1rem;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: linear-gradient(135deg, var(--primary), var(--secondary));
-                    color: white;
-                    padding: 0.5rem 1rem;
-                    border-radius: var(--radius-lg);
-                    font-size: 0.875rem;
-                    font-weight: 600;
-                    z-index: 1000;
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
-                `;
-                document.body.appendChild(indicator);
-            }
-            
-            indicator.textContent = 'Auto-saving...';
-            indicator.style.opacity = '1';
-            
-            // Auto-save after 2 seconds of inactivity
-            autoSaveTimeout = setTimeout(() => {
-                indicator.textContent = 'Saved ✓';
-                setTimeout(() => {
-                    indicator.style.opacity = '0';
-                }, 1000);
-            }, 2000);
-        });
-    });
-}
-
-// Initialize auto-save (uncomment if needed)
-// setupAutoSave();
-
-// Enhanced loading states for quick actions
+// Enhanced loading states for quick actions (with event prevention)
 document.querySelectorAll('.quick-action-card').forEach(card => {
     card.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent event bubbling
         const icon = this.querySelector('.quick-action-icon');
         const originalContent = icon.innerHTML;
         
@@ -1945,5 +1914,8 @@ const observer = new IntersectionObserver((entries) => {
 document.querySelectorAll('.setting-card').forEach(card => {
     observer.observe(card);
 });
+
+console.log('🚀 Enhanced Euphorie Settings loaded successfully');
+console.log('✅ Global header dropdown functionality preserved');
 </script>
 {% endblock %}
