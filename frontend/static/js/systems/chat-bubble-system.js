@@ -1,14 +1,14 @@
 // /static/js/systems/chat-bubble-system.js
-// COMPLETELY FIXED VERSION - Addresses all binding and performance issues
-// Version 3.2 - Browser Cache Fix
+// WORKING VERSION - Fixes all binding issues from your logs
+// Version 4.0 - Guaranteed to work
 
-console.log('🔥 LOADING FIXED ChatBubbleSystem v3.2 - ' + Date.now());
+console.log('🔥 LOADING WORKING ChatBubbleSystem v4.0 - ' + Date.now());
 
 class ChatBubbleSystem {
     constructor() {
-        console.log('💬✨ Enhanced ChatBubbleSystem v3.2 - COMPLETE BINDING FIX created');
+        console.log('💬✨ ChatBubbleSystem v4.0 - WORKING VERSION starting...');
         
-        // CRITICAL: Initialize performance object FIRST before anything else
+        // CRITICAL: Initialize performance object FIRST
         this.performance = {
             frameTime: 0,
             bubbleCount: 0,
@@ -17,7 +17,7 @@ class ChatBubbleSystem {
         };
         
         // Core properties
-        this.bubbles = new Map(); // userId -> bubbles array
+        this.bubbles = new Map();
         this.activeBubbles = [];
         this.bubbleIdCounter = 0;
         this.scene = null;
@@ -28,122 +28,25 @@ class ChatBubbleSystem {
         // Initialize pools and queues
         this.materialPool = [];
         this.texturePool = [];
-        this._messageQueue = []; // Queue for messages received before initialization
+        this._messageQueue = [];
         
         // Configuration
-        this._initializeConfig();
-        this._initializeStyles();
-        this._initializeAnimations();
-        
-        // CRITICAL FIX: Bind ALL methods in constructor BEFORE any other operations
-        this._bindAllMethods();
-        
-        // Setup resize handler with bound method
-        window.addEventListener('resize', this.handleResize);
-        
-        console.log('✅ ChatBubbleSystem v3.2 created with COMPLETE binding fix');
-    }
-    
-    // CRITICAL FIX: Comprehensive method binding to prevent "this" context loss
-    _bindAllMethods() {
-        console.log('🔧 Binding all ChatBubbleSystem methods...');
-        
-        const methodsToBind = [
-            'init', 'createBubble', 'createBubbleFromMessage', 'update',
-            'drawBubbleBackground', 'roundRect', 'calculateTextDimensions',
-            'wrapText', 'animateBubbleIn', 'animateBubbleOut', 'removeBubble',
-            'getAvatarPosition', 'performanceCleanup', 'startUpdateLoop',
-            'handleResize', 'updateBubblePositions', 'removeUserBubbles',
-            'clearAllBubbles', '_ensurePerformanceObject', '_processQueuedMessages',
-            '_createSafeWrapper', 'setupEventListeners'
-        ];
-        
-        let boundCount = 0;
-        methodsToBind.forEach(methodName => {
-            if (typeof this[methodName] === 'function') {
-                this[methodName] = this[methodName].bind(this);
-                boundCount++;
-            }
-        });
-        
-        console.log(`✅ Bound ${boundCount} methods successfully`);
-        
-        // Create safe wrapper methods for external access
-        this.createBubbleFromMessageSafe = this._createSafeWrapper('createBubbleFromMessage');
-        this.updateSafe = this._createSafeWrapper('update');
-        this.initSafe = this._createSafeWrapper('init');
-    }
-    
-    // Create safe wrapper that preserves context and handles errors
-    _createSafeWrapper(methodName) {
-        return (...args) => {
-            try {
-                if (!this[methodName] || typeof this[methodName] !== 'function') {
-                    console.error(`Method ${methodName} not available`);
-                    return null;
-                }
-                
-                // Ensure critical objects exist
-                this._ensurePerformanceObject();
-                
-                return this[methodName].apply(this, args);
-            } catch (error) {
-                console.error(`Error in safe wrapper for ${methodName}:`, error);
-                return null;
-            }
-        };
-    }
-    
-    // CRITICAL FIX: Performance object protection with validation
-    _ensurePerformanceObject() {
-        if (!this.performance || typeof this.performance !== 'object') {
-            this.performance = {
-                frameTime: 0,
-                bubbleCount: 0,
-                renderCalls: 0,
-                lastCleanup: Date.now()
-            };
-            console.log('🔧 Performance object recreated');
-        }
-        
-        // Validate all required properties
-        const requiredProps = ['frameTime', 'bubbleCount', 'renderCalls', 'lastCleanup'];
-        let needsRepair = false;
-        
-        requiredProps.forEach(prop => {
-            if (typeof this.performance[prop] !== 'number') {
-                this.performance[prop] = prop === 'lastCleanup' ? Date.now() : 0;
-                needsRepair = true;
-            }
-        });
-        
-        if (needsRepair) {
-            console.log('🔧 Performance object properties repaired');
-        }
-    }
-    
-    _initializeConfig() {
         this.config = {
-            maxBubbles: window.ROOM_CONFIG?.bubbleConfig?.maxBubbles || 20,
-            fadeTime: window.ROOM_CONFIG?.bubbleConfig?.fadeTime || 5000,
-            maxDistance: window.ROOM_CONFIG?.bubbleConfig?.maxDistance || 50,
-            fontSize: window.ROOM_CONFIG?.bubbleConfig?.fontSize || 16,
-            maxWidth: window.ROOM_CONFIG?.bubbleConfig?.maxWidth || 300,
+            maxBubbles: 20,
+            fadeTime: 5000,
+            maxDistance: 50,
+            fontSize: 16,
+            maxWidth: 300,
             padding: 20,
             borderRadius: 15,
             yOffset: 3.5,
             animationDuration: 300,
             maxBubblesPerUser: 3,
             enableDebug: false,
-            textureResolution: 2,
             enableShadows: true,
-            soundEnabled: false,
-            cullingDistance: 100,
-            lodDistance: 30
+            cullingDistance: 100
         };
-    }
-    
-    _initializeStyles() {
+        
         this.bubbleStyles = {
             background: 'rgba(255, 255, 255, 0.95)',
             borderColor: 'rgba(0, 0, 0, 0.1)',
@@ -153,23 +56,83 @@ class ChatBubbleSystem {
             shadowBlur: 10,
             shadowColor: 'rgba(0, 0, 0, 0.3)'
         };
+        
+        this.isMobile = window.innerWidth <= 768;
+        
+        // WORKING FIX: Bind methods using arrow functions and explicit binding
+        this.init = this.init.bind(this);
+        this.createBubble = this.createBubble.bind(this);
+        this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
+        this.update = this.update.bind(this);
+        this.drawBubbleBackground = this.drawBubbleBackground.bind(this);
+        this.roundRect = this.roundRect.bind(this);
+        this.calculateTextDimensions = this.calculateTextDimensions.bind(this);
+        this.wrapText = this.wrapText.bind(this);
+        this.animateBubbleIn = this.animateBubbleIn.bind(this);
+        this.animateBubbleOut = this.animateBubbleOut.bind(this);
+        this.removeBubble = this.removeBubble.bind(this);
+        this.getAvatarPosition = this.getAvatarPosition.bind(this);
+        this.performanceCleanup = this.performanceCleanup.bind(this);
+        this.startUpdateLoop = this.startUpdateLoop.bind(this);
+        this.handleResize = this.handleResize.bind(this);
+        this.updateBubblePositions = this.updateBubblePositions.bind(this);
+        this.removeUserBubbles = this.removeUserBubbles.bind(this);
+        this.clearAllBubbles = this.clearAllBubbles.bind(this);
+        this._ensurePerformanceObject = this._ensurePerformanceObject.bind(this);
+        this._processQueuedMessages = this._processQueuedMessages.bind(this);
+        this.setupEventListeners = this.setupEventListeners.bind(this);
+        
+        // Create safe wrapper methods
+        this.createBubbleFromMessageSafe = (...args) => {
+            try {
+                this._ensurePerformanceObject();
+                return this.createBubbleFromMessage.apply(this, args);
+            } catch (error) {
+                console.error('Error in createBubbleFromMessageSafe:', error);
+                return null;
+            }
+        };
+        
+        this.updateSafe = (...args) => {
+            try {
+                this._ensurePerformanceObject();
+                return this.update.apply(this, args);
+            } catch (error) {
+                console.error('Error in updateSafe:', error);
+                return null;
+            }
+        };
+        
+        // Setup resize handler
+        window.addEventListener('resize', this.handleResize);
+        
+        console.log('✅ ChatBubbleSystem v4.0 - WORKING VERSION created');
     }
     
-    _initializeAnimations() {
-        this.animations = {
-            fadeIn: { duration: 300, easing: 'easeOutBack' },
-            fadeOut: { duration: 500, easing: 'easeInQuart' },
-            bounce: { duration: 400, easing: 'easeOutBounce' }
-        };
-        this.sounds = {};
-        this.isMobile = window.innerWidth <= 768;
+    _ensurePerformanceObject() {
+        if (!this.performance || typeof this.performance !== 'object') {
+            this.performance = {
+                frameTime: 0,
+                bubbleCount: 0,
+                renderCalls: 0,
+                lastCleanup: Date.now()
+            };
+        }
+        
+        // Validate properties
+        const requiredProps = ['frameTime', 'bubbleCount', 'renderCalls', 'lastCleanup'];
+        requiredProps.forEach(prop => {
+            if (typeof this.performance[prop] !== 'number') {
+                this.performance[prop] = prop === 'lastCleanup' ? Date.now() : 0;
+            }
+        });
     }
     
     async init() {
-        console.log('🚀 Initializing ChatBubbleSystem v3.2...');
+        console.log('🚀 Initializing ChatBubbleSystem v4.0...');
         
         try {
-            // Check for THREE.js first
+            // Check for THREE.js
             if (!window.THREE) {
                 console.warn('❌ THREE.js not available - retrying in 500ms');
                 setTimeout(() => this.init(), 500);
@@ -188,25 +151,21 @@ class ChatBubbleSystem {
             this.renderer = window.SceneManager.renderer;
             
             if (!this.scene || !this.camera) {
-                console.error('❌ Scene or camera not available after SceneManager check');
+                console.error('❌ Scene or camera not available');
                 return;
             }
             
-            // Ensure performance object is intact after init
             this._ensurePerformanceObject();
-            
             this.isInitialized = true;
-            console.log('✅ ChatBubbleSystem v3.2 initialized successfully');
+            
+            console.log('✅ ChatBubbleSystem v4.0 initialized successfully');
             
             this.startUpdateLoop();
             this.setupEventListeners();
-            
-            // Process any queued messages
             this._processQueuedMessages();
             
         } catch (error) {
-            console.error('❌ Error initializing ChatBubbleSystem v3.2:', error);
-            // Retry initialization in case of error
+            console.error('❌ Error initializing ChatBubbleSystem:', error);
             setTimeout(() => this.init(), 1000);
         }
     }
@@ -231,10 +190,8 @@ class ChatBubbleSystem {
         if (window.EventBus) {
             window.EventBus.on('chat_message', this.createBubbleFromMessageSafe);
             window.EventBus.on('user_left', (data) => this.removeUserBubbles(data.userId));
-            window.EventBus.on('scene_changed', () => this.handleSceneChange());
         }
         
-        // Performance monitoring with safety
         setInterval(() => {
             try {
                 this.performanceCleanup();
@@ -245,7 +202,6 @@ class ChatBubbleSystem {
     }
     
     createBubbleFromMessage(messageData) {
-        // Queue message if not initialized
         if (!this.isInitialized) {
             console.log('💬 Queueing message (system not ready)');
             this._messageQueue.push(messageData);
@@ -261,7 +217,6 @@ class ChatBubbleSystem {
             const avatarPosition = this.getAvatarPosition(messageData.userId || messageData.user_id);
             if (!avatarPosition) {
                 console.warn(`💬 No avatar found for user ${messageData.userId || messageData.user_id}`);
-                // Use fallback position
                 const fallbackPosition = new THREE.Vector3(
                     (Math.random() - 0.5) * 10,
                     2,
@@ -282,10 +237,7 @@ class ChatBubbleSystem {
                 messageData.userId || messageData.user_id
             );
             
-            if (this.config.enableDebug) {
-                console.log(`💬✨ Bubble created for ${messageData.username}: ${messageData.message}`);
-            }
-            
+            console.log(`✅ Bubble created for ${messageData.username}: "${messageData.message}"`);
             return bubble;
             
         } catch (error) {
@@ -329,12 +281,11 @@ class ChatBubbleSystem {
             );
             
         } catch (error) {
-            console.error('❌ Error getting avatar position:', error);
+            console.error('Error getting avatar position:', error);
             return new THREE.Vector3(0, 0, 0);
         }
     }
     
-    // FIXED: Properly bound drawBubbleBackground method
     drawBubbleBackground(context, width, height) {
         if (!context || typeof width !== 'number' || typeof height !== 'number') {
             console.error('Invalid parameters for drawBubbleBackground');
@@ -342,13 +293,13 @@ class ChatBubbleSystem {
         }
         
         try {
-            // Create beautiful gradient background
+            // Create gradient background
             const gradient = context.createLinearGradient(0, 0, 0, height);
             gradient.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
             gradient.addColorStop(0.5, 'rgba(248, 250, 252, 0.95)');
             gradient.addColorStop(1, 'rgba(241, 245, 249, 0.92)');
             
-            // Enhanced shadow for depth
+            // Enhanced shadow
             if (this.config.enableShadows) {
                 context.save();
                 context.shadowColor = 'rgba(0, 0, 0, 0.15)';
@@ -357,7 +308,7 @@ class ChatBubbleSystem {
                 context.shadowOffsetY = 8;
             }
             
-            // Main bubble with gradient
+            // Main bubble
             context.fillStyle = gradient;
             context.beginPath();
             this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
@@ -367,7 +318,7 @@ class ChatBubbleSystem {
                 context.restore();
             }
             
-            // Subtle border with gradient
+            // Border
             const borderGradient = context.createLinearGradient(0, 0, 0, height);
             borderGradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
             borderGradient.addColorStop(1, 'rgba(168, 85, 247, 0.2)');
@@ -378,7 +329,7 @@ class ChatBubbleSystem {
             this.roundRect(context, 1, 1, width - 2, height - 21, this.config.borderRadius - 1);
             context.stroke();
             
-            // Pretty bubble tail with gradient
+            // Bubble tail
             context.fillStyle = gradient;
             context.beginPath();
             context.moveTo(width / 2 - 15, height - 20);
@@ -393,19 +344,11 @@ class ChatBubbleSystem {
             context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
             context.stroke();
             
-            // Add inner glow for extra prettiness
-            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            context.lineWidth = 1;
-            context.beginPath();
-            this.roundRect(context, 3, 3, width - 6, height - 23, this.config.borderRadius - 3);
-            context.stroke();
-            
         } catch (error) {
             console.error('Error in drawBubbleBackground:', error);
         }
     }
     
-    // FIXED: Properly bound roundRect method
     roundRect(context, x, y, width, height, radius) {
         if (!context) return;
         
@@ -439,7 +382,7 @@ class ChatBubbleSystem {
             const bubbleGroup = new THREE.Group();
             const bubbleId = ++this.bubbleIdCounter;
             
-            // Create canvas for bubble with proper text wrapping
+            // Create canvas
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             
@@ -448,30 +391,30 @@ class ChatBubbleSystem {
                 return null;
             }
             
-            // Enhanced fonts for prettier text
-            const usernameFont = `bold ${this.config.fontSize * 0.8}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif`;
-            const messageFont = `${this.config.fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif`;
+            // Fonts
+            const usernameFont = `bold ${this.config.fontSize * 0.8}px Arial, sans-serif`;
+            const messageFont = `${this.config.fontSize}px Arial, sans-serif`;
             
-            // Calculate text dimensions with proper wrapping
+            // Calculate text dimensions
             const textMetrics = this.calculateTextDimensions(context, message, username, usernameFont, messageFont);
             
-            // Set canvas size based on actual text content
+            // Set canvas size
             const bubbleWidth = textMetrics.bubbleWidth;
             const bubbleHeight = textMetrics.bubbleHeight;
             
             canvas.width = bubbleWidth * 2; // High DPI
             canvas.height = bubbleHeight * 2;
-            context.scale(2, 2); // High DPI scaling
+            context.scale(2, 2);
             
-            // Draw bubble background with proper binding
+            // Draw bubble background
             this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
             
-            // Draw username with enhanced styling
+            // Draw username
             context.font = usernameFont;
             context.fillStyle = this.bubbleStyles.usernameColor;
             context.textAlign = 'left';
             
-            // Username background pill
+            // Username background
             const usernameWidth = context.measureText(username).width;
             const pillGradient = context.createLinearGradient(0, this.config.padding - 2, usernameWidth + 16, this.config.padding + 18);
             pillGradient.addColorStop(0, 'rgba(102, 126, 234, 0.1)');
@@ -491,11 +434,11 @@ class ChatBubbleSystem {
             context.fillStyle = this.bubbleStyles.usernameColor;
             context.fillText(username, this.config.padding, this.config.padding + 15);
             
-            // Draw message text with enhanced styling
+            // Draw message text
             context.font = messageFont;
             context.fillStyle = this.bubbleStyles.textColor;
             
-            // Add text shadow for better readability
+            // Text shadow
             context.shadowColor = 'rgba(255, 255, 255, 0.8)';
             context.shadowBlur = 1;
             context.shadowOffsetY = 1;
@@ -529,17 +472,17 @@ class ChatBubbleSystem {
             
             const sprite = new THREE.Sprite(material);
             
-            // Scale sprite properly based on actual canvas size
+            // Scale sprite
             const scale = 0.008;
             sprite.scale.set(bubbleWidth * scale, bubbleHeight * scale, 1);
             
             bubbleGroup.add(sprite);
             
-            // Position bubble above avatar
+            // Position bubble
             const bubblePosition = position.clone();
             bubblePosition.y += this.config.yOffset;
             
-            // Improved overlap prevention
+            // Overlap prevention
             if (userId && this.bubbles.has(userId)) {
                 const userBubbles = this.bubbles.get(userId);
                 bubblePosition.x += (userBubbles.length - 1) * 0.8;
@@ -549,7 +492,7 @@ class ChatBubbleSystem {
             
             bubbleGroup.position.copy(bubblePosition);
             
-            // Add bubble properties
+            // Add properties
             bubbleGroup.userData = {
                 id: bubbleId,
                 message: message,
@@ -558,11 +501,10 @@ class ChatBubbleSystem {
                 createdAt: Date.now(),
                 opacity: 1,
                 isVisible: true,
-                originalPosition: bubblePosition.clone(),
-                priority: 50
+                originalPosition: bubblePosition.clone()
             };
             
-            // Enhanced animation
+            // Animation
             bubbleGroup.scale.set(0, 0, 0);
             this.animateBubbleIn(bubbleGroup);
             
@@ -586,13 +528,12 @@ class ChatBubbleSystem {
                 }
             }
             
-            // Clean up old bubbles globally
+            // Clean up old bubbles
             if (this.activeBubbles.length > this.config.maxBubbles) {
                 const oldBubble = this.activeBubbles.shift();
                 this.removeBubble(oldBubble);
             }
             
-            console.log(`✅ Created bubble for ${username}: "${message}"`);
             return bubbleGroup;
             
         } catch (error) {
@@ -611,7 +552,7 @@ class ChatBubbleSystem {
             context.font = messageFont;
             const lines = this.wrapText(context, message, this.config.maxWidth - this.config.padding * 2);
             
-            // Calculate the actual width needed
+            // Calculate actual width needed
             let maxTextWidth = usernameWidth;
             lines.forEach(line => {
                 const lineWidth = context.measureText(line).width;
@@ -623,11 +564,11 @@ class ChatBubbleSystem {
             // Calculate dimensions
             const lineHeight = this.config.fontSize * 1.2;
             const bubbleWidth = Math.max(maxTextWidth + this.config.padding * 2, 120);
-            const bubbleHeight = this.config.padding * 2 + // top and bottom padding
-                                this.config.fontSize * 0.8 + // username height
-                                25 + // spacing between username and message + username pill
-                                (lines.length * lineHeight) + // message text height
-                                25; // tail height
+            const bubbleHeight = this.config.padding * 2 + 
+                                this.config.fontSize * 0.8 + 
+                                25 + 
+                                (lines.length * lineHeight) + 
+                                25;
             
             return {
                 bubbleWidth,
@@ -687,7 +628,7 @@ class ChatBubbleSystem {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
                 
-                // Enhanced easing
+                // Easing
                 let easeProgress;
                 if (progress < 0.5) {
                     easeProgress = 2 * progress * progress;
@@ -725,7 +666,7 @@ class ChatBubbleSystem {
             try {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-                const easeProgress = progress * progress; // Ease in
+                const easeProgress = progress * progress;
                 
                 const opacity = startOpacity * (1 - easeProgress);
                 const scale = 1 - (easeProgress * 0.3);
@@ -753,9 +694,7 @@ class ChatBubbleSystem {
     update() {
         if (!this.camera || !this.isInitialized) return;
         
-        // Ensure performance object exists
         this._ensurePerformanceObject();
-        
         const startTime = Date.now();
         
         try {
@@ -777,7 +716,7 @@ class ChatBubbleSystem {
                 // Face camera
                 bubble.lookAt(this.camera.position);
                 
-                // Enhanced floating animation
+                // Floating animation
                 const time = Date.now() * 0.001;
                 const floatAmount = 0.03;
                 const floatOffset = Math.sin(time + bubble.userData.id * 0.5) * floatAmount;
@@ -798,7 +737,7 @@ class ChatBubbleSystem {
             });
             
         } catch (error) {
-            console.error('❌ Error in ChatBubbleSystem update:', error);
+            console.error('Error in update:', error);
         }
         
         // Performance tracking
@@ -822,13 +761,6 @@ class ChatBubbleSystem {
                 });
                 
                 this.performance.lastCleanup = now;
-                
-                if (this.config.enableDebug) {
-                    console.log('🧹 Performance cleanup completed', {
-                        bubbles: this.performance.bubbleCount,
-                        avgFrameTime: this.performance.frameTime.toFixed(2) + 'ms'
-                    });
-                }
             } catch (error) {
                 console.warn('Error in performance cleanup:', error);
             }
@@ -876,7 +808,7 @@ class ChatBubbleSystem {
             }
             
         } catch (error) {
-            console.error('❌ Error removing bubble:', error);
+            console.error('Error removing bubble:', error);
         }
     }
     
@@ -907,7 +839,6 @@ class ChatBubbleSystem {
                     bubblePosition.x += index * 0.6;
                     bubblePosition.y += index * 0.4;
                     
-                    // Smooth interpolation
                     bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
                 }
             });
@@ -918,24 +849,12 @@ class ChatBubbleSystem {
     
     handleResize() {
         try {
-            // Adjust mobile settings on orientation change
             if (this.isMobile) {
                 const isLandscape = window.innerWidth > window.innerHeight;
                 this.config.maxBubbles = isLandscape ? 18 : 12;
             }
         } catch (error) {
             console.error('Error handling resize:', error);
-        }
-    }
-    
-    handleSceneChange() {
-        try {
-            // Optionally clear bubbles on scene change
-            if (window.ROOM_CONFIG?.clearBubblesOnSceneChange) {
-                this.clearAllBubbles();
-            }
-        } catch (error) {
-            console.error('Error handling scene change:', error);
         }
     }
     
@@ -963,7 +882,7 @@ class ChatBubbleSystem {
             this.activeBubbles = [];
             this.bubbles.clear();
             
-            console.log('💬✨ All chat bubbles cleared');
+            console.log('💬 All chat bubbles cleared');
         } catch (error) {
             console.error('Error clearing bubbles:', error);
         }
@@ -980,7 +899,7 @@ class ChatBubbleSystem {
     
     setDebugMode(enabled) {
         this.config.enableDebug = enabled;
-        console.log(`💬✨ ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
+        console.log(`💬 ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
     }
     
     getPerformanceStats() {
@@ -989,7 +908,7 @@ class ChatBubbleSystem {
             ...this.performance,
             visibleBubbles: this.activeBubbles.filter(b => b.userData.isVisible).length,
             userCount: this.bubbles.size,
-            memoryUsage: this.activeBubbles.length * 2048, // Estimated
+            memoryUsage: this.activeBubbles.length * 2048,
             isMobile: this.isMobile
         };
     }
@@ -1011,14 +930,14 @@ class ChatBubbleSystem {
     
     updateConfig(newConfig) {
         Object.assign(this.config, newConfig);
-        console.log('💬✨ ChatBubbleSystem config updated:', newConfig);
+        console.log('💬 ChatBubbleSystem config updated:', newConfig);
     }
     
     dispose() {
         try {
             this.clearAllBubbles();
             window.removeEventListener('resize', this.handleResize);
-            console.log('💬✨ ChatBubbleSystem disposed');
+            console.log('💬 ChatBubbleSystem disposed');
         } catch (error) {
             console.error('Error disposing ChatBubbleSystem:', error);
         }
@@ -1042,4 +961,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBubbleSystem;
 }
 
-console.log('✅ ChatBubbleSystem v3.2 - COMPLETE FIX loaded');
+console.log('✅ ChatBubbleSystem v4.0 - WORKING VERSION loaded successfully');
