@@ -419,17 +419,17 @@ impl WebSocketServer {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = scene_user_id.unwrap_or_else(|| conn.user_id.clone());
                     
-                    let final_username = username.unwrap_or_else(|| {
-                        if let Some(room) = self.rooms.get(&room_id) {
-                            if let Some(room_user) = futures::executor::block_on(room.get_user(&final_user_id)) {
-                                room_user.username
-                            } else {
-                                "User".to_string()
-                            }
+                    let final_username = if let Some(username) = username {
+                        username
+                    } else if let Some(room) = self.rooms.get(&room_id) {
+                        if let Some(room_user) = room.get_user(&final_user_id).await {
+                            room_user.username
                         } else {
                             "User".to_string()
                         }
-                    });
+                    } else {
+                        "User".to_string()
+                    };
 
                     // Update room's scene preset
                     if let Some(room) = self.rooms.get(&room_id) {
@@ -446,7 +446,7 @@ impl WebSocketServer {
                         timestamp: chrono::Utc::now().timestamp_millis(),
                     };
                     
-                    tracing::info!("🏠 Scene change: {} -> {}", response.username, response.scene_preset);
+                    tracing::info!("🏠 Scene change: {} -> {}", final_username, scene_preset);
                     
                     // Store scene change in history
                     self.message_history.add_message(&room_id, response.clone()).await;
@@ -461,17 +461,17 @@ impl WebSocketServer {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = weather_user_id.unwrap_or_else(|| conn.user_id.clone());
                     
-                    let final_username = username.unwrap_or_else(|| {
-                        if let Some(room) = self.rooms.get(&room_id) {
-                            if let Some(room_user) = futures::executor::block_on(room.get_user(&final_user_id)) {
-                                room_user.username
-                            } else {
-                                "User".to_string()
-                            }
+                    let final_username = if let Some(username) = username {
+                        username
+                    } else if let Some(room) = self.rooms.get(&room_id) {
+                        if let Some(room_user) = room.get_user(&final_user_id).await {
+                            room_user.username
                         } else {
                             "User".to_string()
                         }
-                    });
+                    } else {
+                        "User".to_string()
+                    };
 
                     let response = ServerMessage::WeatherChange {
                         user_id: final_user_id,
@@ -482,7 +482,7 @@ impl WebSocketServer {
                         timestamp: chrono::Utc::now().timestamp_millis(),
                     };
                     
-                    tracing::info!("🌦️ Weather change: {} -> {}", response.username, response.weather_type);
+                    tracing::info!("🌦️ Weather change: {} -> {}", final_username, weather_type);
                     
                     // Store weather change in history
                     self.message_history.add_message(&room_id, response.clone()).await;
@@ -497,17 +497,17 @@ impl WebSocketServer {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = time_user_id.unwrap_or_else(|| conn.user_id.clone());
                     
-                    let final_username = username.unwrap_or_else(|| {
-                        if let Some(room) = self.rooms.get(&room_id) {
-                            if let Some(room_user) = futures::executor::block_on(room.get_user(&final_user_id)) {
-                                room_user.username
-                            } else {
-                                "User".to_string()
-                            }
+                    let final_username = if let Some(username) = username {
+                        username
+                    } else if let Some(room) = self.rooms.get(&room_id) {
+                        if let Some(room_user) = room.get_user(&final_user_id).await {
+                            room_user.username
                         } else {
                             "User".to_string()
                         }
-                    });
+                    } else {
+                        "User".to_string()
+                    };
 
                     let response = ServerMessage::TimeChange {
                         user_id: final_user_id,
@@ -518,7 +518,7 @@ impl WebSocketServer {
                         timestamp: chrono::Utc::now().timestamp_millis(),
                     };
                     
-                    tracing::info!("🌅 Time change: {} -> {}", response.username, response.time_of_day);
+                    tracing::info!("🌅 Time change: {} -> {}", final_username, time_of_day);
                     
                     // Store time change in history
                     self.message_history.add_message(&room_id, response.clone()).await;
