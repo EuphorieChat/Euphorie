@@ -1871,6 +1871,18 @@
                             this.handleTyping(data);
                             break;
                             
+                        case 'scene_change':
+                            this.handleSceneChange(data);
+                            break;
+                            
+                        case 'weather_change':
+                            this.handleWeatherChange(data);
+                            break;
+                            
+                        case 'time_change':
+                            this.handleTimeChange(data);
+                            break;
+                            
                         case 'pong':
                             const latency = Date.now() - this.lastPingTime;
                             console.log(`🏓 Pong received (${latency}ms)`);
@@ -2489,6 +2501,116 @@
             
             handleTyping(data) {
                 this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
+            }
+            
+            // 🏠 NEW: Handle scene changes from other users
+            handleSceneChange(data) {
+                const isOwn = data.user_id === this.userId;
+                const countryName = this.getCountryName(data.nationality || 'UN');
+                
+                console.log(`🏠 ${data.username || data.user_id} from ${countryName} changed scene to: ${data.scene_preset}`);
+                
+                if (!isOwn) {
+                    // Apply scene change from remote user
+                    const sceneName = data.scene_name || data.scene_preset;
+                    this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the scene to ${sceneName} 🏠`);
+                    
+                    // Apply the scene change locally
+                    if (window.SceneManager && window.SceneManager.applyScenePreset) {
+                        try {
+                            window.SceneManager.applyScenePreset(data.scene_preset, data.change_data);
+                            console.log(`✅ Applied remote scene change: ${data.scene_preset}`);
+                            
+                            // Show notification
+                            this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
+                        } catch (error) {
+                            console.error('❌ Error applying remote scene change:', error);
+                        }
+                    } else if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.applyScenePreset) {
+                        try {
+                            window.AdvancedSceneSystem.applyScenePreset(data.scene_preset, data.change_data);
+                            console.log(`✅ Applied remote scene change via AdvancedSceneSystem: ${data.scene_preset}`);
+                            
+                            // Show notification
+                            this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
+                        } catch (error) {
+                            console.error('❌ Error applying remote scene change via AdvancedSceneSystem:', error);
+                        }
+                    } else {
+                        console.warn('⚠️ No scene system available to apply remote scene change');
+                        this.showNotification(`🏠 ${data.username || 'user'} changed the scene (reload to see changes)`);
+                    }
+                } else {
+                    // Own scene change - just show confirmation
+                    const sceneName = data.scene_name || data.scene_preset;
+                    this.addSystemMessage(`You changed the scene to ${sceneName} 🏠`);
+                }
+            }
+            
+            // 🌦️ NEW: Handle weather changes from other users
+            handleWeatherChange(data) {
+                const isOwn = data.user_id === this.userId;
+                const countryName = this.getCountryName(data.nationality || 'UN');
+                
+                console.log(`🌦️ ${data.username || data.user_id} from ${countryName} changed weather to: ${data.weather_type}`);
+                
+                if (!isOwn) {
+                    // Apply weather change from remote user
+                    this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the weather to ${data.weather_type} 🌦️`);
+                    
+                    // Apply the weather change locally
+                    if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.setWeather) {
+                        try {
+                            window.AdvancedSceneSystem.setWeather(data.weather_type, data.intensity);
+                            console.log(`✅ Applied remote weather change: ${data.weather_type}`);
+                            
+                            // Show notification
+                            this.showNotification(`🌦️ Weather changed to ${data.weather_type} by ${data.username || 'user'}`);
+                        } catch (error) {
+                            console.error('❌ Error applying remote weather change:', error);
+                        }
+                    } else {
+                        console.warn('⚠️ No weather system available to apply remote weather change');
+                        this.showNotification(`🌦️ ${data.username || 'user'} changed the weather`);
+                    }
+                } else {
+                    // Own weather change - just show confirmation
+                    this.addSystemMessage(`You changed the weather to ${data.weather_type} 🌦️`);
+                }
+            }
+            
+            // 🌅 NEW: Handle time changes from other users
+            handleTimeChange(data) {
+                const isOwn = data.user_id === this.userId;
+                const countryName = this.getCountryName(data.nationality || 'UN');
+                
+                console.log(`🌅 ${data.username || data.user_id} from ${countryName} changed time to: ${data.time_of_day}`);
+                
+                if (!isOwn) {
+                    // Apply time change from remote user
+                    const timeDisplay = data.hour ? `${data.time_of_day} (${data.hour}:00)` : data.time_of_day;
+                    this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the time to ${timeDisplay} 🌅`);
+                    
+                    // Apply the time change locally
+                    if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.setTimeOfDay) {
+                        try {
+                            window.AdvancedSceneSystem.setTimeOfDay(data.time_of_day, data.hour);
+                            console.log(`✅ Applied remote time change: ${data.time_of_day}`);
+                            
+                            // Show notification
+                            this.showNotification(`🌅 Time changed to ${timeDisplay} by ${data.username || 'user'}`);
+                        } catch (error) {
+                            console.error('❌ Error applying remote time change:', error);
+                        }
+                    } else {
+                        console.warn('⚠️ No time system available to apply remote time change');
+                        this.showNotification(`🌅 ${data.username || 'user'} changed the time`);
+                    }
+                } else {
+                    // Own time change - just show confirmation
+                    const timeDisplay = data.hour ? `${data.time_of_day} (${data.hour}:00)` : data.time_of_day;
+                    this.addSystemMessage(`You changed the time to ${timeDisplay} 🌅`);
+                }
             }
             
             handleClose(event) {
@@ -4120,6 +4242,67 @@
             }
         };
         
+        // 🏠 NEW: Scene synchronization function
+        window.sendSceneChange = function(scenePreset, sceneName = null, changeData = null) {
+            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
+                window.WebSocketManager.send({
+                    type: 'scene_change',
+                    user_id: window.WebSocketManager.userId,
+                    room_id: window.WebSocketManager.roomId,
+                    username: window.WebSocketManager.username,
+                    scene_preset: scenePreset,
+                    scene_name: sceneName,
+                    change_data: changeData,
+                    nationality: window.WebSocketManager.userNationality,
+                    timestamp: Date.now()
+                });
+                
+                console.log(`📤 Sent scene change: ${scenePreset}${sceneName ? ` (${sceneName})` : ''}`);
+            } else {
+                console.warn('❌ Cannot send scene change - not connected to WebSocket');
+            }
+        };
+        
+        // 🌦️ NEW: Weather synchronization function  
+        window.sendWeatherChange = function(weatherType, intensity = 1.0) {
+            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
+                window.WebSocketManager.send({
+                    type: 'weather_change',
+                    user_id: window.WebSocketManager.userId,
+                    room_id: window.WebSocketManager.roomId,
+                    username: window.WebSocketManager.username,
+                    weather_type: weatherType,
+                    intensity: intensity,
+                    nationality: window.WebSocketManager.userNationality,
+                    timestamp: Date.now()
+                });
+                
+                console.log(`📤 Sent weather change: ${weatherType} (${intensity})`);
+            } else {
+                console.warn('❌ Cannot send weather change - not connected to WebSocket');
+            }
+        };
+        
+        // 🌅 NEW: Time of day synchronization function
+        window.sendTimeChange = function(timeOfDay, hour = null) {
+            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
+                window.WebSocketManager.send({
+                    type: 'time_change',
+                    user_id: window.WebSocketManager.userId,
+                    room_id: window.WebSocketManager.roomId,
+                    username: window.WebSocketManager.username,
+                    time_of_day: timeOfDay,
+                    hour: hour,
+                    nationality: window.WebSocketManager.userNationality,
+                    timestamp: Date.now()
+                });
+                
+                console.log(`📤 Sent time change: ${timeOfDay}${hour ? ` (${hour}:00)` : ''}`);
+            } else {
+                console.warn('❌ Cannot send time change - not connected to WebSocket');
+            }
+        };
+        
         // FIXED: Enhanced Nationality System with proper country formatting
         window.showNationalitySelector = function() {
             const modal = document.createElement('div');
@@ -4792,6 +4975,31 @@
                         const roomCore = this.loader.getModuleObject('room-core');
                         
                         if (advancedScene && advancedScene.showEnvironmentSelector) {
+                            // Enhanced scene selector that sends WebSocket updates
+                            const originalShowSelector = advancedScene.showEnvironmentSelector;
+                            advancedScene.showEnvironmentSelector = function() {
+                                const result = originalShowSelector.call(this);
+                                
+                                // Override scene change to include WebSocket sync
+                                if (this.applyScenePreset) {
+                                    const originalApply = this.applyScenePreset;
+                                    this.applyScenePreset = function(preset, data) {
+                                        // Apply locally first
+                                        const result = originalApply.call(this, preset, data);
+                                        
+                                        // Then sync to other users
+                                        if (window.sendSceneChange) {
+                                            const presetName = this.getScenePresetName ? this.getScenePresetName(preset) : preset;
+                                            window.sendSceneChange(preset, presetName, data);
+                                        }
+                                        
+                                        return result;
+                                    };
+                                }
+                                
+                                return result;
+                            };
+                            
                             advancedScene.showEnvironmentSelector();
                         } else if (roomCore && roomCore.changeScene) {
                             roomCore.changeScene();
@@ -4804,13 +5012,75 @@
                 );
                 
                 window.controlWeather = () => this.executeWithFallback(
-                    () => this.loader.getModuleObject('advanced-scene-system')?.showWeatherSelector?.(),
+                    () => {
+                        const advancedScene = this.loader.getModuleObject('advanced-scene-system');
+                        if (advancedScene && advancedScene.showWeatherSelector) {
+                            // Enhanced weather selector that sends WebSocket updates
+                            const originalShowSelector = advancedScene.showWeatherSelector;
+                            advancedScene.showWeatherSelector = function() {
+                                const result = originalShowSelector.call(this);
+                                
+                                // Override weather change to include WebSocket sync
+                                if (this.setWeather) {
+                                    const originalSetWeather = this.setWeather;
+                                    this.setWeather = function(weatherType, intensity = 1.0) {
+                                        // Apply locally first
+                                        const result = originalSetWeather.call(this, weatherType, intensity);
+                                        
+                                        // Then sync to other users
+                                        if (window.sendWeatherChange) {
+                                            window.sendWeatherChange(weatherType, intensity);
+                                        }
+                                        
+                                        return result;
+                                    };
+                                }
+                                
+                                return result;
+                            };
+                            
+                            advancedScene.showWeatherSelector();
+                        } else {
+                            this.showNotification('🌦️ Weather system loading...');
+                        }
+                    },
                     'Weather system',
                     '🌦️ Weather controls loading...'
                 );
                 
                 window.controlTime = () => this.executeWithFallback(
-                    () => this.loader.getModuleObject('advanced-scene-system')?.showTimeOfDaySelector?.(),
+                    () => {
+                        const advancedScene = this.loader.getModuleObject('advanced-scene-system');
+                        if (advancedScene && advancedScene.showTimeOfDaySelector) {
+                            // Enhanced time selector that sends WebSocket updates
+                            const originalShowSelector = advancedScene.showTimeOfDaySelector;
+                            advancedScene.showTimeOfDaySelector = function() {
+                                const result = originalShowSelector.call(this);
+                                
+                                // Override time change to include WebSocket sync
+                                if (this.setTimeOfDay) {
+                                    const originalSetTime = this.setTimeOfDay;
+                                    this.setTimeOfDay = function(timeOfDay, hour = null) {
+                                        // Apply locally first
+                                        const result = originalSetTime.call(this, timeOfDay, hour);
+                                        
+                                        // Then sync to other users
+                                        if (window.sendTimeChange) {
+                                            window.sendTimeChange(timeOfDay, hour);
+                                        }
+                                        
+                                        return result;
+                                    };
+                                }
+                                
+                                return result;
+                            };
+                            
+                            advancedScene.showTimeOfDaySelector();
+                        } else {
+                            this.showNotification('🌅 Time system loading...');
+                        }
+                    },
                     'Time system',
                     '🌅 Time controls loading...'
                 );

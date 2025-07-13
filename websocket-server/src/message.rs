@@ -1,4 +1,4 @@
-// FIXED: src/message.rs - Correct timestamp types and added missing traits
+// UPDATED: src/message.rs - Added Scene Synchronization Support
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,7 +32,8 @@ pub struct UserInfo {
     pub position: Option<Position>,
     pub avatar: Option<AvatarInfo>,
     pub is_typing: bool,
-    pub last_seen: i64, // Keep as i64 for consistency with chrono
+    pub last_seen: i64,
+    pub nationality: Option<String>, // NEW: Added nationality support
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,6 +55,7 @@ pub enum ClientMessage {
         user_id: Option<String>,
         room_id: String,
         username: Option<String>,
+        nationality: Option<String>, // NEW: Added nationality
         timestamp: Option<i64>,
     },
 
@@ -62,6 +64,7 @@ pub enum ClientMessage {
         message: String,
         user_id: Option<String>,
         room_id: String,
+        nationality: Option<String>, // NEW: Added nationality
         timestamp: Option<i64>,
     },
 
@@ -70,6 +73,7 @@ pub enum ClientMessage {
         user_id: Option<String>,
         room_id: String,
         position: Position,
+        nationality: Option<String>, // NEW: Added nationality
         timestamp: Option<i64>,
     },
 
@@ -78,6 +82,7 @@ pub enum ClientMessage {
         user_id: Option<String>,
         room_id: String,
         emotion: String,
+        nationality: Option<String>, // NEW: Added nationality
         timestamp: Option<i64>,
     },
 
@@ -88,6 +93,7 @@ pub enum ClientMessage {
         target_user_id: Option<String>,
         interaction_type: String,
         data: Option<serde_json::Value>,
+        nationality: Option<String>, // NEW: Added nationality
         timestamp: Option<i64>,
     },
 
@@ -107,9 +113,44 @@ pub enum ClientMessage {
     Ping {
         timestamp: i64,
     },
+
+    // 🆕 NEW: Scene Synchronization Messages
+    #[serde(rename = "scene_change")]
+    SceneChange {
+        user_id: Option<String>,
+        room_id: String,
+        username: Option<String>,
+        scene_preset: String,
+        scene_name: Option<String>,
+        change_data: Option<serde_json::Value>,
+        nationality: Option<String>,
+        timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "weather_change")]
+    WeatherChange {
+        user_id: Option<String>,
+        room_id: String,
+        username: Option<String>,
+        weather_type: String,
+        intensity: Option<f32>,
+        nationality: Option<String>,
+        timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "time_change")]
+    TimeChange {
+        user_id: Option<String>,
+        room_id: String,
+        username: Option<String>,
+        time_of_day: String,
+        hour: Option<u8>,
+        nationality: Option<String>,
+        timestamp: Option<i64>,
+    },
 }
 
-// Server -> Client messages - FIXED: Added Clone and Deserialize traits
+// Server -> Client messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ServerMessage {
@@ -136,12 +177,14 @@ pub enum ServerMessage {
         user_id: String,
         username: String,
         avatar: Option<AvatarInfo>,
+        nationality: Option<String>, // NEW: Added nationality
     },
 
     #[serde(rename = "user_left")]
     UserLeft {
         user_id: String,
         username: String,
+        nationality: Option<String>, // NEW: Added nationality
     },
 
     #[serde(rename = "chat_message")]
@@ -149,14 +192,16 @@ pub enum ServerMessage {
         user_id: String,
         username: String,
         message: String,
-        timestamp: i64, // FIXED: Changed to i64 for consistency
+        nationality: Option<String>, // NEW: Added nationality
+        timestamp: i64,
     },
 
     #[serde(rename = "user_position_update")]
     UserPositionUpdate {
         user_id: String,
         position: Position,
-        timestamp: i64, // FIXED: Changed to i64 for consistency
+        nationality: Option<String>, // NEW: Added nationality
+        timestamp: i64,
     },
 
     #[serde(rename = "emotion")]
@@ -164,7 +209,8 @@ pub enum ServerMessage {
         user_id: String,
         username: String,
         emotion: String,
-        timestamp: i64, // FIXED: Changed to i64 for consistency
+        nationality: Option<String>, // NEW: Added nationality
+        timestamp: i64,
     },
 
     #[serde(rename = "interaction")]
@@ -174,7 +220,8 @@ pub enum ServerMessage {
         target_user_id: Option<String>,
         interaction_type: String,
         data: Option<serde_json::Value>,
-        timestamp: i64, // FIXED: Changed to i64 for consistency
+        nationality: Option<String>, // NEW: Added nationality
+        timestamp: i64,
     },
 
     #[serde(rename = "typing")]
@@ -197,5 +244,37 @@ pub enum ServerMessage {
     #[serde(rename = "error")]
     Error {
         error: String,
+    },
+
+    // 🆕 NEW: Scene Synchronization Response Messages
+    #[serde(rename = "scene_change")]
+    SceneChange {
+        user_id: String,
+        username: String,
+        scene_preset: String,
+        scene_name: Option<String>,
+        change_data: Option<serde_json::Value>,
+        nationality: Option<String>,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "weather_change")]
+    WeatherChange {
+        user_id: String,
+        username: String,
+        weather_type: String,
+        intensity: f32,
+        nationality: Option<String>,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "time_change")]
+    TimeChange {
+        user_id: String,
+        username: String,
+        time_of_day: String,
+        hour: Option<u8>,
+        nationality: Option<String>,
+        timestamp: i64,
     },
 }

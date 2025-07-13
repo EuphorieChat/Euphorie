@@ -1,4 +1,4 @@
-// src/server.rs - Updated with rate limiting and message history
+// UPDATED: src/server.rs - Added Scene Synchronization Handlers
 use std::sync::Arc;
 
 use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo};
@@ -168,7 +168,10 @@ impl WebSocketServer {
             ClientMessage::PositionUpdate { .. } |
             ClientMessage::Emotion { .. } |
             ClientMessage::Interaction { .. } |
-            ClientMessage::Typing { .. }
+            ClientMessage::Typing { .. } |
+            ClientMessage::SceneChange { .. } |     // NEW: Rate limit scene changes
+            ClientMessage::WeatherChange { .. } |   // NEW: Rate limit weather changes
+            ClientMessage::TimeChange { .. }        // NEW: Rate limit time changes
         );
 
         if should_rate_limit && !self.rate_limiter.check_rate_limit(connection_id) {
@@ -180,8 +183,8 @@ impl WebSocketServer {
         }
         
         match message {
-            ClientMessage::Auth { user_id: auth_user_id, room_id, username, .. } => {
-                // FIXED: Properly handle authenticated vs guest users
+            ClientMessage::Auth { user_id: auth_user_id, room_id, username, nationality, .. } => {
+                // Handle authenticated vs guest users with nationality support
                 let (final_user_id, final_username) = match (auth_user_id, username) {
                     // Authenticated user with proper ID and username
                     (Some(user_id), Some(username)) if !user_id.is_empty() && !username.is_empty() => {
@@ -207,6 +210,7 @@ impl WebSocketServer {
                     username: final_username.clone(),
                     position: Position { x: 0.0, y: 0.0, z: 0.0 },
                     room_id: Some(room_id.clone()),
+                    nationality: nationality.clone(), // NEW: Store nationality
                     connected_at: chrono::Utc::now(),
                 };
 
@@ -234,6 +238,7 @@ impl WebSocketServer {
                         user_id: final_user_id.clone(),
                         username: final_username,
                         avatar: Some(AvatarInfo::default()),
+                        nationality: nationality, // NEW: Include nationality
                     };
                     
                     // Store and broadcast user joined message
@@ -247,7 +252,7 @@ impl WebSocketServer {
                 }
             }
 
-            ClientMessage::ChatMessage { message: msg, user_id: msg_user_id, room_id, .. } => {
+            ClientMessage::ChatMessage { message: msg, user_id: msg_user_id, room_id, nationality, .. } => {
                 if let Some(conn) = self.connections.get(connection_id) {
                     if let Some(ref conn_room_id) = conn.room_id {
                         if conn_room_id == &room_id {
@@ -268,6 +273,7 @@ impl WebSocketServer {
                                 user_id: final_user_id,
                                 username,
                                 message: msg,
+                                nationality, // NEW: Include nationality
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             
@@ -281,7 +287,7 @@ impl WebSocketServer {
                 }
             }
 
-            ClientMessage::PositionUpdate { user_id: pos_user_id, room_id, position, .. } => {
+            ClientMessage::PositionUpdate { user_id: pos_user_id, room_id, position, nationality, .. } => {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = pos_user_id.unwrap_or_else(|| conn.user_id.clone());
                     if let Some(room) = self.rooms.get(&room_id) {
@@ -289,6 +295,7 @@ impl WebSocketServer {
                             let response = ServerMessage::UserPositionUpdate {
                                 user_id: final_user_id,
                                 position,
+                                nationality, // NEW: Include nationality
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
@@ -297,7 +304,7 @@ impl WebSocketServer {
                 }
             }
 
-            ClientMessage::Emotion { user_id: emotion_user_id, room_id, emotion, .. } => {
+            ClientMessage::Emotion { user_id: emotion_user_id, room_id, emotion, nationality, .. } => {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = emotion_user_id.unwrap_or_else(|| conn.user_id.clone());
                     
@@ -315,6 +322,7 @@ impl WebSocketServer {
                         user_id: final_user_id,
                         username,
                         emotion,
+                        nationality, // NEW: Include nationality
                         timestamp: chrono::Utc::now().timestamp_millis(),
                     };
                     
@@ -325,7 +333,7 @@ impl WebSocketServer {
                 }
             }
 
-            ClientMessage::Interaction { user_id: int_user_id, room_id, target_user_id, interaction_type, data, .. } => {
+            ClientMessage::Interaction { user_id: int_user_id, room_id, target_user_id, interaction_type, data, nationality, .. } => {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = int_user_id.unwrap_or_else(|| conn.user_id.clone());
                     
@@ -345,6 +353,7 @@ impl WebSocketServer {
                         target_user_id,
                         interaction_type,
                         data,
+                        nationality, // NEW: Include nationality
                         timestamp: chrono::Utc::now().timestamp_millis(),
                     };
                     
@@ -388,6 +397,7 @@ impl WebSocketServer {
                         position: Some(u.position),
                         avatar: Some(AvatarInfo::default()),
                         is_typing: false,
+                        nationality: u.nationality, // NEW: Include nationality
                         last_seen: chrono::Utc::now().timestamp_millis(),
                     }).collect();
 
@@ -402,6 +412,120 @@ impl WebSocketServer {
             ClientMessage::Ping { timestamp } => {
                 let response = ServerMessage::Pong { timestamp };
                 self.send_to_connection(connection_id, &response).await?;
+            }
+
+            // 🆕 NEW: Scene Change Handler
+            ClientMessage::SceneChange { user_id: scene_user_id, room_id, username, scene_preset, scene_name, change_data, nationality, .. } => {
+                if let Some(conn) = self.connections.get(connection_id) {
+                    let final_user_id = scene_user_id.unwrap_or_else(|| conn.user_id.clone());
+                    
+                    let final_username = username.unwrap_or_else(|| {
+                        if let Some(room) = self.rooms.get(&room_id) {
+                            if let Some(room_user) = futures::executor::block_on(room.get_user(&final_user_id)) {
+                                room_user.username
+                            } else {
+                                "User".to_string()
+                            }
+                        } else {
+                            "User".to_string()
+                        }
+                    });
+
+                    // Update room's scene preset
+                    if let Some(room) = self.rooms.get(&room_id) {
+                        room.update_scene_preset(scene_preset.clone()).await;
+                    }
+
+                    let response = ServerMessage::SceneChange {
+                        user_id: final_user_id,
+                        username: final_username,
+                        scene_preset,
+                        scene_name,
+                        change_data,
+                        nationality,
+                        timestamp: chrono::Utc::now().timestamp_millis(),
+                    };
+                    
+                    tracing::info!("🏠 Scene change: {} -> {}", response.username, response.scene_preset);
+                    
+                    // Store scene change in history
+                    self.message_history.add_message(&room_id, response.clone()).await;
+                    
+                    // Broadcast to all users in room (including sender for confirmation)
+                    self.broadcast_to_room(&room_id, &response, None).await?;
+                }
+            }
+
+            // 🆕 NEW: Weather Change Handler
+            ClientMessage::WeatherChange { user_id: weather_user_id, room_id, username, weather_type, intensity, nationality, .. } => {
+                if let Some(conn) = self.connections.get(connection_id) {
+                    let final_user_id = weather_user_id.unwrap_or_else(|| conn.user_id.clone());
+                    
+                    let final_username = username.unwrap_or_else(|| {
+                        if let Some(room) = self.rooms.get(&room_id) {
+                            if let Some(room_user) = futures::executor::block_on(room.get_user(&final_user_id)) {
+                                room_user.username
+                            } else {
+                                "User".to_string()
+                            }
+                        } else {
+                            "User".to_string()
+                        }
+                    });
+
+                    let response = ServerMessage::WeatherChange {
+                        user_id: final_user_id,
+                        username: final_username,
+                        weather_type,
+                        intensity: intensity.unwrap_or(1.0),
+                        nationality,
+                        timestamp: chrono::Utc::now().timestamp_millis(),
+                    };
+                    
+                    tracing::info!("🌦️ Weather change: {} -> {}", response.username, response.weather_type);
+                    
+                    // Store weather change in history
+                    self.message_history.add_message(&room_id, response.clone()).await;
+                    
+                    // Broadcast to all users in room
+                    self.broadcast_to_room(&room_id, &response, None).await?;
+                }
+            }
+
+            // 🆕 NEW: Time Change Handler
+            ClientMessage::TimeChange { user_id: time_user_id, room_id, username, time_of_day, hour, nationality, .. } => {
+                if let Some(conn) = self.connections.get(connection_id) {
+                    let final_user_id = time_user_id.unwrap_or_else(|| conn.user_id.clone());
+                    
+                    let final_username = username.unwrap_or_else(|| {
+                        if let Some(room) = self.rooms.get(&room_id) {
+                            if let Some(room_user) = futures::executor::block_on(room.get_user(&final_user_id)) {
+                                room_user.username
+                            } else {
+                                "User".to_string()
+                            }
+                        } else {
+                            "User".to_string()
+                        }
+                    });
+
+                    let response = ServerMessage::TimeChange {
+                        user_id: final_user_id,
+                        username: final_username,
+                        time_of_day,
+                        hour,
+                        nationality,
+                        timestamp: chrono::Utc::now().timestamp_millis(),
+                    };
+                    
+                    tracing::info!("🌅 Time change: {} -> {}", response.username, response.time_of_day);
+                    
+                    // Store time change in history
+                    self.message_history.add_message(&room_id, response.clone()).await;
+                    
+                    // Broadcast to all users in room
+                    self.broadcast_to_room(&room_id, &response, None).await?;
+                }
             }
         }
 
@@ -458,6 +582,7 @@ impl WebSocketServer {
                         let response = ServerMessage::UserLeft {
                             user_id: removed_user.user_id.clone(),
                             username: removed_user.username.clone(),
+                            nationality: removed_user.nationality.clone(), // NEW: Include nationality
                         };
                         
                         // Store user left message in history
