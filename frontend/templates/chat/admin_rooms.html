@@ -5,364 +5,426 @@
 
 {% block extra_css %}
 <style>
-  :root {
-    --primary: #667eea;
-    --primary-light: #764ba2;
-    --secondary: #f093fb;
-    --accent: #4facfe;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --surface: #ffffff;
-    --surface-dark: #f8fafc;
-    --surface-darker: #f1f5f9;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --border: #e2e8f0;
-    --border-light: #f1f5f9;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --radius: 0.5rem;
-    --radius-lg: 1rem;
-    --radius-xl: 1.5rem;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  .admin-container {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem 1rem;
-  }
-
-  .admin-content {
+/* Enhanced Admin Rooms Styles with Modern UX */
+.admin-container {
     max-width: 1400px;
     margin: 0 auto;
-  }
+    padding: 2rem 1rem;
+    min-height: 100vh;
+}
 
-  /* Hero Header */
-  .hero-header {
-    background: var(--surface);
-    border-radius: var(--radius-xl);
-    padding: 3rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-xl);
-    position: relative;
-    overflow: hidden;
-  }
+.admin-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    animation: fadeInDown 0.6s ease-out;
+}
 
-  .hero-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 300px;
-    height: 300px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 50%;
-    opacity: 0.1;
-    transform: translate(100px, -100px);
-  }
-
-  .hero-content {
-    position: relative;
-    z-index: 1;
-  }
-
-  .hero-title {
-    font-size: 3rem;
+.admin-title {
+    font-size: 3.5rem;
     font-weight: 900;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin: 0 0 1rem 0;
-    letter-spacing: -0.025em;
-  }
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
 
-  .hero-subtitle {
-    font-size: 1.25rem;
+.admin-subtitle {
     color: var(--text-secondary);
-    margin: 0 0 2rem 0;
-    max-width: 600px;
-  }
+    font-size: 1.375rem;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+    font-weight: 400;
+}
 
-  .hero-actions {
+.admin-actions {
     display: flex;
+    justify-content: center;
     gap: 1rem;
     flex-wrap: wrap;
-  }
+}
 
-  .btn {
+.btn-enhanced {
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: var(--radius);
+    justify-content: center;
     font-weight: 600;
-    font-size: 0.875rem;
-    text-decoration: none;
+    border-radius: var(--radius-xl);
+    padding: 0.875rem 2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-  }
+    border: none;
+    font-family: inherit;
+    text-decoration: none;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+}
 
-  .btn::before {
+.btn-enhanced::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s ease;
-  }
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform 0.5s, opacity 0.8s;
+}
 
-  .btn:hover::before {
-    left: 100%;
-  }
+.btn-enhanced:active::after {
+    transform: scale(0, 0);
+    opacity: 0.3;
+    transition: 0s;
+}
 
-  .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
+.btn-primary-enhanced {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    box-shadow: var(--shadow);
-  }
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
+}
 
-  .btn-primary:hover {
+.btn-primary-enhanced:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(244, 114, 182, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary-enhanced {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    color: var(--text-primary);
+    backdrop-filter: blur(10px);
+}
+
+.btn-secondary-enhanced:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-    color: white;
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
     text-decoration: none;
-  }
+}
 
-  .btn-secondary {
-    background: var(--surface-dark);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-  }
+.stats-section {
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
 
-  .btn-secondary:hover {
-    background: var(--surface-darker);
-    transform: translateY(-1px);
-    color: var(--text-primary);
-    text-decoration: none;
-  }
-
-  /* Stats Grid */
-  .stats-grid {
+.stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
+    gap: 2rem;
+}
 
-  .stat-card {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
+.stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
     padding: 2rem;
-    box-shadow: var(--shadow-md);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    transition: all 0.3s ease;
-  }
+}
 
-  .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
-  }
-
-  .stat-card::before {
+.stat-card::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-  }
+    background: linear-gradient(90deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
 
-  .stat-icon {
+.stat-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 
+        0 35px 70px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.2);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.stat-icon {
     width: 3rem;
     height: 3rem;
-    border-radius: var(--radius);
+    background: linear-gradient(135deg, var(--primary-light), rgba(96, 165, 250, 0.1));
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--primary);
     font-size: 1.5rem;
-    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1) rotate(5deg);
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-  }
+}
 
-  .stat-value {
-    font-size: 2.5rem;
-    font-weight: 900;
-    color: var(--text-primary);
-    margin: 0;
-    line-height: 1;
-  }
-
-  .stat-label {
+.stat-title {
     font-size: 0.875rem;
+    font-weight: 600;
     color: var(--text-secondary);
-    margin: 0.5rem 0 0 0;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-weight: 600;
-  }
+    margin-bottom: 0.5rem;
+}
 
-  /* Search Panel */
-  .search-panel {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.stat-description {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
+.search-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
     padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-md);
-  }
+    margin-bottom: 3rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+    position: relative;
+    overflow: hidden;
+}
 
-  .search-form {
+.search-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.search-form {
     display: grid;
     grid-template-columns: 2fr 1fr auto;
-    gap: 1rem;
+    gap: 1.5rem;
     align-items: end;
-  }
+}
 
-  .form-group {
+.form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-  }
+    gap: 0.75rem;
+}
 
-  .form-label {
+.form-label {
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
-  }
+}
 
-  .form-input {
-    padding: 0.75rem 1rem;
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-    background: var(--surface);
-  }
+.form-input {
+    padding: 1rem 1.25rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-xl);
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  .form-input:focus {
+.form-input:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  }
-
-  .search-btn {
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .search-btn:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-  }
+}
 
-  /* Data Table */
-  .table-panel {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
+.form-input:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.15);
+}
+
+.rooms-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
     overflow: hidden;
-    margin-bottom: 2rem;
-  }
+    animation: fadeInUp 0.6s ease-out 0.6s both;
+    position: relative;
+}
 
-  .table-header {
-    padding: 1.5rem 2rem;
-    background: var(--surface-dark);
-    border-bottom: 1px solid var(--border);
+.rooms-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.table-header {
+    padding: 2rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.1);
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
-  }
+}
 
-  .table-title {
-    font-size: 1.25rem;
-    font-weight: 700;
+.table-title {
+    font-size: 1.5rem;
+    font-weight: 800;
     color: var(--text-primary);
     margin: 0;
-  }
+}
 
-  .table-meta {
+.table-meta {
     font-size: 0.875rem;
     color: var(--text-secondary);
-  }
+    background: rgba(244, 114, 182, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(244, 114, 182, 0.2);
+}
 
-  .data-table {
+.table-container {
+    overflow-x: auto;
+}
+
+.data-table {
     width: 100%;
-    border-collapse: collapse;
-  }
+    border-collapse: separate;
+    border-spacing: 0;
+}
 
-  .data-table th {
-    padding: 1rem 2rem;
-    text-align: left;
-    font-weight: 600;
-    font-size: 0.875rem;
+.data-table th {
+    background: rgba(244, 114, 182, 0.05);
     color: var(--text-secondary);
-    background: var(--surface-dark);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .data-table td {
+    font-weight: 700;
     padding: 1.5rem 2rem;
-    border-bottom: 1px solid var(--border-light);
+    text-align: left;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.data-table td {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.05);
     vertical-align: middle;
-  }
+}
 
-  .data-table tbody tr {
-    transition: all 0.2s ease;
-  }
+.data-table tbody tr {
+    transition: all 0.3s ease;
+    position: relative;
+}
 
-  .data-table tbody tr:hover {
-    background: var(--surface-dark);
-  }
+.data-table tbody tr::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
 
-  .room-name {
-    font-weight: 600;
+.data-table tbody tr:hover {
+    background: rgba(244, 114, 182, 0.03);
+    transform: translateX(4px);
+}
+
+.data-table tbody tr:hover::before {
+    opacity: 1;
+}
+
+.room-name {
+    font-weight: 700;
     color: var(--primary);
     text-decoration: none;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-  }
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+}
 
-  .room-name:hover {
-    color: var(--accent);
+.room-name:hover {
+    color: var(--primary-hover);
     text-decoration: none;
-  }
+    transform: translateX(4px);
+}
 
-  .user-info {
+.room-name svg {
+    transition: all 0.3s ease;
+}
+
+.room-name:hover svg {
+    transform: scale(1.1);
+}
+
+.user-info {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-  }
+    gap: 1rem;
+}
 
-  .user-avatar {
+.user-avatar {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
@@ -372,54 +434,64 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 1rem;
-  }
-
-  .user-details h4 {
-    margin: 0;
     font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
+    transition: all 0.3s ease;
+}
 
-  .user-details p {
+.data-table tbody tr:hover .user-avatar {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
+}
+
+.user-details h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.user-details p {
     margin: 0;
     font-size: 0.75rem;
     color: var(--text-secondary);
-  }
+}
 
-  .badge {
+.badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.75rem;
+    padding: 0.375rem 0.875rem;
     border-radius: 9999px;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-  }
+    border: 1px solid;
+}
 
-  .badge-success {
+.badge-success {
     background: rgba(16, 185, 129, 0.1);
     color: var(--success);
-  }
+    border-color: rgba(16, 185, 129, 0.2);
+}
 
-  .badge-warning {
+.badge-warning {
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning);
-  }
+    border-color: rgba(245, 158, 11, 0.2);
+}
 
-  .badge-danger {
+.badge-danger {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
-  }
+    border-color: rgba(239, 68, 68, 0.2);
+}
 
-  .actions {
+.actions {
     display: flex;
     gap: 0.5rem;
-  }
+}
 
-  .action-btn {
+.action-btn {
     width: 2.5rem;
     height: 2.5rem;
     border: none;
@@ -428,61 +500,65 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     text-decoration: none;
-  }
+}
 
-  .action-btn:hover {
-    transform: translateY(-2px) scale(1.1);
-  }
+.action-btn:hover {
+    transform: translateY(-3px) scale(1.1);
+    text-decoration: none;
+}
 
-  .action-btn.view {
+.action-btn.view {
     background: rgba(59, 130, 246, 0.1);
     color: #3b82f6;
-  }
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
 
-  .action-btn.view:hover {
+.action-btn.view:hover {
     background: #3b82f6;
     color: white;
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
-  }
+    box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+}
 
-  .action-btn.clear {
+.action-btn.clear {
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning);
-  }
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
 
-  .action-btn.clear:hover {
+.action-btn.clear:hover {
     background: var(--warning);
     color: white;
-    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
-  }
+    box-shadow: 0 12px 30px rgba(245, 158, 11, 0.4);
+}
 
-  .action-btn.delete {
+.action-btn.delete {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
-  }
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
 
-  .action-btn.delete:hover {
+.action-btn.delete:hover {
     background: var(--danger);
     color: white;
-    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
-  }
+    box-shadow: 0 12px 30px rgba(239, 68, 68, 0.4);
+}
 
-  .action-btn.export {
+.action-btn.export {
     background: rgba(16, 185, 129, 0.1);
     color: var(--success);
-  }
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
 
-  .action-btn.export:hover {
+.action-btn.export:hover {
     background: var(--success);
     color: white;
-    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
-  }
+    box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+}
 
-  /* Tooltip */
-  .tooltip {
+.tooltip {
     position: absolute;
     bottom: 100%;
     left: 50%;
@@ -490,189 +566,126 @@
     background: rgba(0, 0, 0, 0.9);
     color: white;
     padding: 0.5rem 0.75rem;
-    border-radius: var(--radius);
+    border-radius: var(--radius-md);
     font-size: 0.75rem;
     white-space: nowrap;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     pointer-events: none;
     z-index: 1000;
     margin-bottom: 0.5rem;
-  }
+}
 
-  .action-btn:hover .tooltip {
+.action-btn:hover .tooltip {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(-4px);
-  }
+}
 
-  /* Empty State */
-  .empty-state {
+.empty-state {
     text-align: center;
     padding: 4rem 2rem;
-  }
+}
 
-  .empty-icon {
-    width: 4rem;
-    height: 4rem;
-    margin: 0 auto 1.5rem;
-    color: var(--text-muted);
-  }
+.empty-icon {
+    width: 5rem;
+    height: 5rem;
+    margin: 0 auto 2rem;
+    color: var(--text-tertiary);
+    opacity: 0.5;
+}
 
-  .empty-title {
-    font-size: 1.5rem;
-    font-weight: 700;
+.empty-title {
+    font-size: 1.75rem;
+    font-weight: 800;
     color: var(--text-primary);
-    margin: 0 0 0.75rem 0;
-  }
+    margin: 0 0 1rem 0;
+}
 
-  .empty-description {
+.empty-description {
     color: var(--text-secondary);
     margin: 0 0 2rem 0;
-    max-width: 400px;
+    max-width: 500px;
     margin-left: auto;
     margin-right: auto;
-  }
+    line-height: 1.6;
+}
 
-  /* Pagination */
-  .pagination-container {
-    background: var(--surface-dark);
-    padding: 1.5rem 2rem;
-    border-top: 1px solid var(--border);
+.pagination-container {
+    background: rgba(244, 114, 182, 0.02);
+    padding: 2rem;
+    border-top: 1px solid rgba(244, 114, 182, 0.1);
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
-  }
+}
 
-  .pagination-info {
+.pagination-info {
     color: var(--text-secondary);
     font-size: 0.875rem;
-  }
+    font-weight: 500;
+}
 
-  .pagination {
+.pagination {
     display: flex;
     gap: 0.5rem;
     list-style: none;
     margin: 0;
     padding: 0;
-  }
+}
 
-  .pagination-item {
+.pagination-item {
     list-style: none;
-  }
+}
 
-  .pagination-link {
+.pagination-link {
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 2.5rem;
     height: 2.5rem;
     padding: 0 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.8);
     color: var(--text-primary);
     text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
 
-  .pagination-link:hover {
+.pagination-link:hover {
     background: var(--primary);
     border-color: var(--primary);
     color: white;
     text-decoration: none;
-    transform: translateY(-1px);
-  }
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
+}
 
-  .pagination-item.active .pagination-link {
-    background: var(--primary);
+.pagination-item.active .pagination-link {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     border-color: var(--primary);
     color: white;
-  }
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+}
 
-  .pagination-item.disabled .pagination-link {
+.pagination-item.disabled .pagination-link {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
-  }
+}
 
-  /* Mobile Responsiveness */
-  @media (max-width: 768px) {
-    .admin-container {
-      padding: 1rem;
-    }
-
-    .hero-header {
-      padding: 2rem;
-    }
-
-    .hero-title {
-      font-size: 2rem;
-    }
-
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .search-form {
-      grid-template-columns: 1fr;
-    }
-
-    .table-panel {
-      overflow-x: auto;
-    }
-
-    .data-table {
-      min-width: 800px;
-    }
-
-    .table-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .pagination-container {
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .hero-actions {
-      justify-content: center;
-    }
-  }
-
-  /* Animations */
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .animate-in {
-    animation: fadeInUp 0.6s ease-out;
-  }
-
-  .animate-in:nth-child(1) { animation-delay: 0.1s; }
-  .animate-in:nth-child(2) { animation-delay: 0.2s; }
-  .animate-in:nth-child(3) { animation-delay: 0.3s; }
-  .animate-in:nth-child(4) { animation-delay: 0.4s; }
-
-  /* Loading States */
-  .loading {
+.loading {
     opacity: 0.6;
     pointer-events: none;
-  }
+}
 
-  .spinner {
+.spinner {
     display: inline-block;
     width: 1rem;
     height: 1rem;
@@ -680,320 +693,454 @@
     border-top: 2px solid currentColor;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-  }
+}
 
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
+/* Enhanced Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
     }
-  }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 1rem;
+    }
+
+    .admin-title {
+        font-size: 2.5rem;
+    }
+
+    .admin-subtitle {
+        font-size: 1.125rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .search-form {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .data-table {
+        min-width: 800px;
+    }
+
+    .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .admin-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn-enhanced {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+
+    .stat-card {
+        padding: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .actions {
+        flex-wrap: wrap;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .stat-card,
+    .search-section,
+    .rooms-section {
+        border-width: 3px;
+    }
+    
+    .btn-enhanced {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-{% csrf_token %}
 <div class="admin-container">
-  <div class="admin-content">
-    <!-- Hero Header -->
-    <header class="hero-header animate-in">
-      <div class="hero-content">
-        <h1 class="hero-title">Rooms Management</h1>
-        <p class="hero-subtitle">
-          Manage and monitor all chat rooms across your platform. View analytics, moderate content, and maintain community standards.
+    <!-- Enhanced Header Section -->
+    <div class="admin-header">
+        <h1 class="admin-title">🏠 Rooms Management</h1>
+        <p class="admin-subtitle">
+            Manage and monitor all chat rooms across your platform. View analytics, moderate content, and maintain community standards.
         </p>
-        <div class="hero-actions">
-          <a href="{% url 'create_room' %}" class="btn btn-primary">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
-            </svg>
-            Create New Room
-          </a>
-          <button onclick="window.location.reload()" class="btn btn-secondary">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
-            </svg>
-            Refresh Data
-          </button>
+        <div class="admin-actions">
+            <a href="{% url 'create_room' %}" class="btn-enhanced btn-primary-enhanced">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                </svg>
+                Create New Room
+            </a>
+            <button onclick="window.location.reload()" class="btn-enhanced btn-secondary-enhanced">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                </svg>
+                Refresh Data
+            </button>
         </div>
-      </div>
-    </header>
-
-    <!-- Stats Grid -->
-    <div class="stats-grid animate-in">
-      <div class="stat-card">
-        <div class="stat-icon">🏠</div>
-        <h3 class="stat-value">{{ total_rooms|default:"0" }}</h3>
-        <p class="stat-label">Total Rooms</p>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">✅</div>
-        <h3 class="stat-value">{{ active_rooms|default:"0" }}</h3>
-        <p class="stat-label">Active Rooms</p>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⭐</div>
-        <h3 class="stat-value">{{ most_popular_room|default:"None"|truncatechars:12 }}</h3>
-        <p class="stat-label">Most Popular</p>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">💬</div>
-        <h3 class="stat-value">{{ total_messages|default:"0" }}</h3>
-        <p class="stat-label">Total Messages</p>
-      </div>
     </div>
 
-    <!-- Search Panel -->
-    <div class="search-panel animate-in">
-      <form method="get" action="{% url 'admin_rooms' %}" class="search-form">
-        <div class="form-group">
-          <label for="search" class="form-label">Search Rooms</label>
-          <input
-            type="search"
-            id="search"
-            name="search"
-            value="{{ search_query }}"
-            placeholder="Search by name, creator, description..."
-            class="form-input"
-          >
+    <!-- Enhanced Stats Section -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🏠</div>
+                </div>
+                <div class="stat-title">Total Rooms</div>
+                <div class="stat-value">{{ total_rooms|default:"0" }}</div>
+                <div class="stat-description">All chat spaces on the platform</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">✅</div>
+                </div>
+                <div class="stat-title">Active Rooms</div>
+                <div class="stat-value">{{ active_rooms|default:"0" }}</div>
+                <div class="stat-description">Rooms with recent activity</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">⭐</div>
+                </div>
+                <div class="stat-title">Most Popular</div>
+                <div class="stat-value" style="font-size: 1.5rem;">{{ most_popular_room|default:"None"|truncatechars:15 }}</div>
+                <div class="stat-description">Room with most activity</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">💬</div>
+                </div>
+                <div class="stat-title">Total Messages</div>
+                <div class="stat-value">{{ total_messages|default:"0" }}</div>
+                <div class="stat-description">Messages across all rooms</div>
+            </div>
         </div>
-        <div class="form-group">
-          <label for="category" class="form-label">Category</label>
-          <select name="category" id="category" class="form-input">
-            <option value="">All Categories</option>
-            {% for category in categories %}
-            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
-              {{ category.name }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        <button type="submit" class="search-btn">
-          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
-          </svg>
-          Search
-        </button>
-      </form>
     </div>
 
-    <!-- Data Table -->
-    <div class="table-panel animate-in">
-      <div class="table-header">
-        <div>
-          <h2 class="table-title">Rooms Directory</h2>
-          <div class="table-meta">
-            {% if page_obj %}
-              {{ page_obj.paginator.count }} total rooms
-              {% if search_query %} • Filtered results{% endif %}
-            {% else %}
-              0 total rooms
-            {% endif %}
-          </div>
-        </div>
-      </div>
+    <!-- Enhanced Search Section -->
+    <div class="search-section">
+        <form method="get" action="{% url 'admin_rooms' %}" class="search-form">
+            <div class="form-group">
+                <label for="search" class="form-label">Search Rooms</label>
+                <input
+                    type="search"
+                    id="search"
+                    name="search"
+                    value="{{ search_query }}"
+                    placeholder="Search by name, creator, description..."
+                    class="form-input"
+                >
+            </div>
+            <div class="form-group">
+                <label for="category" class="form-label">Category</label>
+                <select name="category" id="category" class="form-input">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-enhanced btn-primary-enhanced">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                </svg>
+                Search
+            </button>
+        </form>
+    </div>
 
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Room Details</th>
-              <th>Creator</th>
-              <th>Category</th>
-              <th>Created</th>
-              <th>Messages</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for room in page_obj %}
-            <tr>
-              <td>
-                <a href="{% url 'room' room_name=room.name %}" class="room-name">
-                  {% if not room.is_public %}
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                    </svg>
-                  {% endif %}
-                  {{ room.display_name|default:room.name }}
-                </a>
-              </td>
-              <td>
-                <div class="user-info">
-                  <div class="user-avatar">
-                    {{ room.creator.username|slice:":1"|upper }}
-                  </div>
-                  <div class="user-details">
-                    <h4>{{ room.creator.username }}</h4>
-                    {% if room.creator.get_full_name %}
-                      <p>{{ room.creator.get_full_name }}</p>
-                    {% endif %}
-                  </div>
-                </div>
-              </td>
-              <td>
-                {% if room.category %}
-                  <span class="badge badge-success">{{ room.category.name }}</span>
+    <!-- Enhanced Rooms Table -->
+    <div class="rooms-section">
+        <div class="table-header">
+            <div>
+                <h2 class="table-title">Rooms Directory</h2>
+            </div>
+            <div class="table-meta">
+                {% if page_obj %}
+                    {{ page_obj.paginator.count }} total rooms
+                    {% if search_query %} • Filtered results{% endif %}
                 {% else %}
-                  <span class="badge badge-warning">Uncategorized</span>
+                    0 total rooms
                 {% endif %}
-              </td>
-              <td>
-                <div>
-                  <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ room.created_at|date:"M d, Y" }}</div>
-                  <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ room.created_at|date:"g:i A" }}</div>
-                </div>
-              </td>
-              <td>
-                <div style="font-weight: 700; font-size: 1.125rem;">
-                  {% if room.message_count %}{{ room.message_count }}{% elif room.messages_count %}{{ room.messages_count }}{% else %}0{% endif %}
-                </div>
-              </td>
-              <td>
-                {% if room.is_public %}
-                  <span class="badge badge-success">Public</span>
-                {% else %}
-                  <span class="badge badge-warning">Private</span>
-                {% endif %}
-              </td>
-              <td>
-                <div class="actions">
-                  <a href="{% url 'room' room_name=room.name %}" class="action-btn view">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                      <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span class="tooltip">View Room</span>
-                  </a>
-                  <button class="action-btn clear clear-room-btn" data-room-name="{{ room.name }}" data-room-display="{{ room.display_name|default:room.name }}">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span class="tooltip">Clear Messages</span>
-                  </button>
-                  <button class="action-btn delete delete-room-btn" data-room-name="{{ room.name }}" data-room-display="{{ room.display_name|default:room.name }}">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span class="tooltip">Delete Room</span>
-                  </button>
-                  <a href="?export=1&room_name={{ room.name }}" class="action-btn export">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span class="tooltip">Export Chat</span>
-                  </a>
-                </div>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="7">
-                <div class="empty-state">
-                  <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"></path>
-                  </svg>
-                  <h3 class="empty-title">No rooms found</h3>
-                  <p class="empty-description">
-                    {% if search_query %}
-                      No rooms match your search criteria. Try adjusting your search terms or clearing the filters.
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Room Details</th>
+                        <th>Creator</th>
+                        <th>Category</th>
+                        <th>Created</th>
+                        <th>Messages</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for room in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'room' room_name=room.name %}" class="room-name">
+                                {% if not room.is_public %}
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                {% endif %}
+                                {{ room.display_name|default:room.name }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="user-info">
+                                <div class="user-avatar">
+                                    {{ room.creator.username|slice:":1"|upper }}
+                                </div>
+                                <div class="user-details">
+                                    <h4>{{ room.creator.username }}</h4>
+                                    {% if room.creator.get_full_name %}
+                                        <p>{{ room.creator.get_full_name }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if room.category %}
+                                <span class="badge badge-success">{{ room.category.name }}</span>
+                            {% else %}
+                                <span class="badge badge-warning">Uncategorized</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>
+                                <div style="font-weight: 700; margin-bottom: 0.25rem; color: var(--text-primary);">{{ room.created_at|date:"M d, Y" }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ room.created_at|date:"g:i A" }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">
+                                {% if room.message_count %}{{ room.message_count }}{% elif room.messages_count %}{{ room.messages_count }}{% else %}0{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if room.is_public %}
+                                <span class="badge badge-success">Public</span>
+                            {% else %}
+                                <span class="badge badge-warning">Private</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="{% url 'room' room_name=room.name %}" class="action-btn view">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="tooltip">View Room</span>
+                                </a>
+                                <button class="action-btn clear clear-room-btn" data-room-name="{{ room.name }}" data-room-display="{{ room.display_name|default:room.name }}">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="tooltip">Clear Messages</span>
+                                </button>
+                                <button class="action-btn delete delete-room-btn" data-room-name="{{ room.name }}" data-room-display="{{ room.display_name|default:room.name }}">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="tooltip">Delete Room</span>
+                                </button>
+                                <a href="?export=1&room_name={{ room.name }}" class="action-btn export">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="tooltip">Export Chat</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"></path>
+                                </svg>
+                                <h3 class="empty-title">No rooms found</h3>
+                                <p class="empty-description">
+                                    {% if search_query %}
+                                        No rooms match your search criteria. Try adjusting your search terms or clearing the filters.
+                                    {% else %}
+                                        There are no rooms created yet. Be the first to create a room and start conversations!
+                                    {% endif %}
+                                </p>
+                                {% if search_query %}
+                                    <a href="{% url 'admin_rooms' %}" class="btn-enhanced btn-primary-enhanced">Clear Search</a>
+                                {% else %}
+                                    <a href="{% url 'create_room' %}" class="btn-enhanced btn-primary-enhanced">Create First Room</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Enhanced Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-container">
+            <div class="pagination-info">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} rooms
+            </div>
+            <nav>
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="pagination-item">
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ page_obj.previous_page_number }}" class="pagination-link">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </a>
+                    </li>
                     {% else %}
-                      There are no rooms created yet. Be the first to create a room and start conversations!
+                    <li class="pagination-item disabled">
+                        <span class="pagination-link">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </span>
+                    </li>
                     {% endif %}
-                  </p>
-                  {% if search_query %}
-                    <a href="{% url 'admin_rooms' %}" class="btn btn-primary">Clear Search</a>
-                  {% else %}
-                    <a href="{% url 'create_room' %}" class="btn btn-primary">Create First Room</a>
-                  {% endif %}
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
 
-      <!-- Pagination -->
-      {% if page_obj.has_other_pages %}
-      <div class="pagination-container">
-        <div class="pagination-info">
-          Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} rooms
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="pagination-item active">
+                            <span class="pagination-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="pagination-item">
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ num }}" class="pagination-link">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                        <li class="pagination-item">
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ num }}" class="pagination-link">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                        <li class="pagination-item">
+                            <span class="pagination-link">…</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="pagination-item">
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ page_obj.next_page_number }}" class="pagination-link">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="pagination-item disabled">
+                        <span class="pagination-link">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
-        <nav>
-          <ul class="pagination">
-            {% if page_obj.has_previous %}
-            <li class="pagination-item">
-              <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ page_obj.previous_page_number }}" class="pagination-link">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-              </a>
-            </li>
-            {% else %}
-            <li class="pagination-item disabled">
-              <span class="pagination-link">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-              </span>
-            </li>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-              {% if page_obj.number == num %}
-              <li class="pagination-item active">
-                <span class="pagination-link">{{ num }}</span>
-              </li>
-              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-              <li class="pagination-item">
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ num }}" class="pagination-link">
-                  {{ num }}
-                </a>
-              </li>
-              {% elif num == 1 or num == page_obj.paginator.num_pages %}
-              <li class="pagination-item">
-                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ num }}" class="pagination-link">
-                  {{ num }}
-                </a>
-              </li>
-              {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
-              <li class="pagination-item">
-                <span class="pagination-link">…</span>
-              </li>
-              {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-            <li class="pagination-item">
-              <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}page={{ page_obj.next_page_number }}" class="pagination-link">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                </svg>
-              </a>
-            </li>
-            {% else %}
-            <li class="pagination-item disabled">
-              <span class="pagination-link">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                </svg>
-              </span>
-            </li>
-            {% endif %}
-          </ul>
-        </nav>
-      </div>
-      {% endif %}
+        {% endif %}
     </div>
-  </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Enhanced confirmation dialogs
+    // Enhanced confirmation dialogs with better UX
     const clearRoomBtns = document.querySelectorAll('.clear-room-btn');
     const deleteRoomBtns = document.querySelectorAll('.delete-room-btn');
 
@@ -1003,8 +1150,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const roomName = this.getAttribute('data-room-name');
             const roomDisplay = this.getAttribute('data-room-display');
             
-            if (confirm(`⚠️ Clear all messages from "${roomDisplay}"?\n\nThis will permanently delete ALL messages in this room and cannot be undone.`)) {
-                submitAction('clear', roomName, this);
+            if (window.utils && window.utils.showToast) {
+                // Show confirmation via toast system if available
+                const confirmed = confirm(`⚠️ Clear all messages from "${roomDisplay}"?\n\nThis will permanently delete ALL messages in this room and cannot be undone.`);
+                if (confirmed) {
+                    submitAction('clear', roomName, this);
+                }
+            } else {
+                // Fallback to standard confirm
+                if (confirm(`⚠️ Clear all messages from "${roomDisplay}"?\n\nThis will permanently delete ALL messages in this room and cannot be undone.`)) {
+                    submitAction('clear', roomName, this);
+                }
             }
         });
     });
@@ -1020,16 +1176,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (verification === 'DELETE') {
                     submitAction('delete', roomName, this);
                 } else {
-                    alert('Deletion cancelled - verification text did not match.');
+                    if (window.utils && window.utils.showToast) {
+                        window.utils.showToast('Deletion cancelled - verification text did not match.', 'warning', 3000);
+                    } else {
+                        alert('Deletion cancelled - verification text did not match.');
+                    }
                 }
             }
         });
     });
 
     function submitAction(action, roomName, button) {
-        // Add loading state
+        // Add enhanced loading state
+        const originalContent = button.innerHTML;
         button.classList.add('loading');
         button.innerHTML = '<div class="spinner"></div>';
+        button.disabled = true;
         
         // Create and submit form
         const form = document.createElement('form');
@@ -1058,56 +1220,152 @@ document.addEventListener('DOMContentLoaded', function() {
         form.appendChild(roomInput);
         
         document.body.appendChild(form);
+        
+        // Show progress if available
+        if (window.utils && window.utils.showToast) {
+            window.utils.showToast(`${action === 'delete' ? 'Deleting' : 'Clearing'} room...`, 'info', 2000);
+        }
+        
         form.submit();
     }
 
-    // Auto-submit category filter
+    // Enhanced category filter with auto-submit
     const categorySelect = document.getElementById('category');
     if (categorySelect) {
         categorySelect.addEventListener('change', function() {
-            this.closest('form').submit();
+            // Add loading state to form
+            const form = this.closest('form');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.classList.add('loading');
+                submitBtn.innerHTML = '<div class="spinner"></div> Filtering...';
+            }
+            
+            form.submit();
         });
     }
 
-    // Keyboard shortcuts
+    // Enhanced keyboard shortcuts
     document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + K to focus search
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
-            document.getElementById('search')?.focus();
+            const searchInput = document.getElementById('search');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
         }
         
+        // Ctrl/Cmd + N to create new room
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
             window.location.href = "{% url 'create_room' %}";
         }
+        
+        // Escape to clear search
+        if (e.key === 'Escape') {
+            const searchInput = document.getElementById('search');
+            if (searchInput && searchInput.value) {
+                searchInput.value = '';
+                searchInput.closest('form').submit();
+            }
+        }
     });
 
-    // Enhanced table interactions
+    // Enhanced table interactions with smooth animations
     document.querySelectorAll('.data-table tbody tr').forEach(row => {
         row.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.002)';
+            this.style.willChange = 'transform';
         });
 
         row.addEventListener('mouseleave', function() {
-            this.style.transform = '';
+            this.style.willChange = 'auto';
         });
     });
 
-    // Animate elements on scroll
+    // Enhanced scroll-triggered animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+                entry.target.style.animationPlayState = 'running';
             }
         });
-    }, { threshold: 0.1 });
+    }, observerOptions);
 
-    document.querySelectorAll('.animate-in').forEach(el => {
+    // Observe animated elements
+    document.querySelectorAll('[class*="fadeIn"]').forEach(el => {
+        el.style.animationPlayState = 'paused';
         observer.observe(el);
     });
 
-    console.log('🚀 Euphorie Admin Rooms Management loaded');
+    // Enhanced ripple effects for buttons
+    document.querySelectorAll('.btn-enhanced').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.style.position = 'absolute';
+            ripple.style.borderRadius = '50%';
+            ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+            ripple.style.transform = 'scale(0)';
+            ripple.style.animation = 'ripple 0.6s linear';
+            ripple.style.pointerEvents = 'none';
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+
+    // Performance optimization for lower-end devices
+    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
+        document.documentElement.style.setProperty('--transition-duration', '0.1s');
+    }
+
+    // Enhanced search with debouncing
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        let searchTimeout;
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            
+            // Visual feedback for search
+            this.style.background = 'linear-gradient(white, white) padding-box, linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(96, 165, 250, 0.3)) border-box';
+            
+            searchTimeout = setTimeout(() => {
+                this.style.background = '';
+            }, 500);
+        });
+    }
+
+    console.log('🚀 Enhanced Euphorie Admin Rooms Management loaded successfully');
 });
+
+// Add ripple animation CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}
