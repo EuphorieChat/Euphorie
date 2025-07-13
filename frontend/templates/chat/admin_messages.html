@@ -5,146 +5,377 @@
 
 {% block extra_css %}
 <style>
-  .admin-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
-    transition: all 0.3s ease;
-  }
-  
-  .admin-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.15);
-  }
-  
-  .btn-admin {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    border: none;
-    cursor: pointer;
+/* Enhanced Admin Messages Styles with Modern UX */
+.admin-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+}
+
+.admin-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.admin-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.admin-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.375rem;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.admin-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-enhanced {
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-  }
-  
-  .btn-primary { background: #3b82f6; color: white; }
-  .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
-  
-  .btn-danger { background: #ef4444; color: white; }
-  .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
-  
-  .btn-success { background: #10b981; color: white; }
-  .btn-success:hover { background: #059669; transform: translateY(-1px); }
-  
-  .btn-secondary { background: #6b7280; color: white; }
-  .btn-secondary:hover { background: #4b5563; transform: translateY(-1px); }
-  
-  .form-control {
-    padding: 10px 12px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s ease;
-  }
-  
-  .form-control:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-  
-  .message-row {
-    border-bottom: 1px solid #f3f4f6;
-    padding: 16px;
-    transition: background-color 0.2s ease;
-  }
-  
-  .message-row:hover {
-    background-color: #f9fafb;
-  }
-  
-  .message-row.selected {
-    background-color: #eff6ff;
-    border-left: 4px solid #3b82f6;
-  }
-  
-  .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
+    justify-content: center;
+    font-weight: 600;
+    border-radius: var(--radius-xl);
+    padding: 0.875rem 2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    text-decoration: none;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+}
+
+.btn-enhanced::after {
+    content: '';
+    position: absolute;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 9999;
-    backdrop-filter: blur(4px);
-  }
-  
-  .modal.show {
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform 0.5s, opacity 0.8s;
+}
+
+.btn-enhanced:active::after {
+    transform: scale(0, 0);
+    opacity: 0.3;
+    transition: 0s;
+}
+
+.btn-primary-enhanced {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
+}
+
+.btn-primary-enhanced:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(244, 114, 182, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary-enhanced {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    color: var(--text-primary);
+    backdrop-filter: blur(10px);
+}
+
+.btn-secondary-enhanced:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+    text-decoration: none;
+}
+
+.btn-danger-enhanced {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger-enhanced:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(239, 68, 68, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.stats-section {
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
+    padding: 2rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.stat-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 
+        0 35px 70px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.2);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.stat-icon {
+    width: 3rem;
+    height: 3rem;
+    background: linear-gradient(135deg, var(--primary-light), rgba(96, 165, 250, 0.1));
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  
-  .modal-content {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-  
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 24px;
-  }
-  
-  .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--primary);
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1) rotate(5deg);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-  }
-  
-  .stat-number {
-    font-size: 2rem;
-    font-weight: bold;
-    margin-bottom: 4px;
-  }
-  
-  .checkbox-custom {
-    width: 18px;
-    height: 18px;
-    border: 2px solid #d1d5db;
-    border-radius: 4px;
+}
+
+.stat-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.stat-description {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
+.filters-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
+    padding: 2rem;
+    margin-bottom: 3rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+    position: relative;
+    overflow: hidden;
+}
+
+.filters-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.filters-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.filters-form-row {
+    display: grid;
+    grid-template-columns: 3fr auto;
+    gap: 1.5rem;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-input {
+    padding: 1rem 1.25rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-xl);
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-input:focus {
+    outline: none;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
+    transform: translateY(-2px);
+}
+
+.form-input:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.15);
+}
+
+.messages-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    overflow: hidden;
+    animation: fadeInUp 0.6s ease-out 0.6s both;
+    position: relative;
+}
+
+.messages-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.bulk-actions {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: rgba(244, 114, 182, 0.02);
+}
+
+.bulk-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.checkbox-custom {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     position: relative;
-    transition: all 0.2s ease;
-  }
-  
-  .checkbox-custom input {
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.checkbox-custom input {
     opacity: 0;
     position: absolute;
     width: 100%;
     height: 100%;
     cursor: pointer;
-  }
-  
-  .checkbox-custom input:checked + .checkmark {
-    background: #3b82f6;
-    border-color: #3b82f6;
-  }
-  
-  .checkbox-custom input:checked + .checkmark::after {
+    margin: 0;
+}
+
+.checkbox-custom input:checked + .checkmark {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: var(--primary);
+    transform: scale(1.1);
+}
+
+.checkbox-custom input:checked + .checkmark::after {
     content: '✓';
     color: white;
     position: absolute;
@@ -153,327 +384,968 @@
     transform: translate(-50%, -50%);
     font-size: 12px;
     font-weight: bold;
-  }
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    transition: all 0.3s ease;
+}
+
+.select-all-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.selected-count {
+    background: rgba(244, 114, 182, 0.1);
+    color: var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border: 1px solid rgba(244, 114, 182, 0.2);
+}
+
+.messages-list {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.messages-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.messages-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages-list::-webkit-scrollbar-thumb {
+    background: rgba(244, 114, 182, 0.3);
+    border-radius: 10px;
+}
+
+.messages-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(244, 114, 182, 0.5);
+}
+
+.message-item {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.05);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.message-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.message-item:hover {
+    background: rgba(244, 114, 182, 0.03);
+    transform: translateX(4px);
+}
+
+.message-item:hover::before {
+    opacity: 1;
+}
+
+.message-item.selected {
+    background: rgba(244, 114, 182, 0.08);
+    border-left: 4px solid var(--primary);
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.message-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.message-item:hover .user-avatar {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
+}
+
+.user-info h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.user-info p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.room-badge {
+    background: rgba(96, 165, 250, 0.1);
+    color: #3b82f6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+}
+
+.message-actions {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.message-item:hover .message-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.75rem;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px) scale(1.1);
+}
+
+.action-btn.edit {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.action-btn.edit:hover {
+    background: #3b82f6;
+    color: white;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.action-btn.delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.action-btn.delete:hover {
+    background: #ef4444;
+    color: white;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+.message-content {
+    background: rgba(244, 114, 182, 0.05);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    transition: all 0.3s ease;
+}
+
+.message-item:hover .message-content {
+    background: rgba(244, 114, 182, 0.08);
+    border-color: rgba(244, 114, 182, 0.2);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    width: 5rem;
+    height: 5rem;
+    margin: 0 auto 2rem;
+    color: var(--text-tertiary);
+    opacity: 0.5;
+}
+
+.empty-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+}
+
+.empty-description {
+    color: var(--text-secondary);
+    margin: 0 0 2rem 0;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.pagination-container {
+    background: rgba(244, 114, 182, 0.02);
+    padding: 2rem;
+    border-top: 1px solid rgba(244, 114, 182, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pagination-info {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pagination-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.pagination-link:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
+}
+
+.pagination-link.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+}
+
+.pagination-link.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+}
+
+.modal-content {
+    background: white;
+    border-radius: var(--radius-2xl);
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.1);
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+}
+
+.modal-body {
+    margin-bottom: 2rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(244, 114, 182, 0.1);
+}
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Enhanced Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 1rem;
+    }
+
+    .admin-title {
+        font-size: 2.5rem;
+    }
+
+    .admin-subtitle {
+        font-size: 1.125rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .filters-form {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .filters-form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .bulk-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .message-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .message-meta {
+        align-self: flex-end;
+    }
+
+    .message-actions {
+        opacity: 1;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .admin-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn-enhanced {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+
+    .stat-card {
+        padding: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .modal-content {
+        margin: 1rem;
+        width: calc(100% - 2rem);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .stat-card,
+    .filters-section,
+    .messages-section {
+        border-width: 3px;
+    }
+    
+    .btn-enhanced {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
-  
-  <!-- Header -->
-  <div class="admin-card p-6 mb-6">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Message Management</h1>
-        <p class="text-gray-600">Manage, edit, and moderate all messages</p>
-      </div>
-      <div class="mt-4 md:mt-0 flex gap-3">
-        <button onclick="showAddModal()" class="btn-admin btn-success">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          Add Message
-        </button>
-        <a href="{% url 'admin_dashboard' %}" class="btn-admin btn-secondary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-          </svg>
-          Back to Dashboard
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-number">{{ message_count }}</div>
-      <div class="text-sm opacity-90">Total Messages</div>
-    </div>
-    
-    {% if filter_active %}
-    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-      <div class="stat-number">{{ page_obj.paginator.count }}</div>
-      <div class="text-sm opacity-90">Filtered Results</div>
-    </div>
-    {% endif %}
-    
-    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-      <div class="stat-number" id="selected-count">0</div>
-      <div class="text-sm opacity-90">Selected</div>
-    </div>
-  </div>
-
-  <!-- Filters -->
-  <div class="admin-card p-6 mb-6">
-    <form method="get" class="space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-          <input type="search" name="search" value="{{ search_query }}" 
-                 placeholder="Search messages, users, rooms..." 
-                 class="form-control w-full">
+<div class="admin-container">
+    <!-- Enhanced Header Section -->
+    <div class="admin-header">
+        <h1 class="admin-title">💬 Message Management</h1>
+        <p class="admin-subtitle">
+            Monitor, moderate, and manage all messages across your platform. Maintain community standards and ensure positive conversations.
+        </p>
+        <div class="admin-actions">
+            <button onclick="showAddModal()" class="btn-enhanced btn-primary-enhanced">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                </svg>
+                Add Message
+            </button>
+            <a href="{% url 'admin_dashboard' %}" class="btn-enhanced btn-secondary-enhanced">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Back to Dashboard
+            </button>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
-          <select name="timeframe" class="form-control w-full">
-            <option value="">All Time</option>
-            <option value="day" {% if time_filter == 'day' %}selected{% endif %}>Last 24 Hours</option>
-            <option value="week" {% if time_filter == 'week' %}selected{% endif %}>Last Week</option>
-            <option value="month" {% if time_filter == 'month' %}selected{% endif %}>Last Month</option>
-          </select>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Room</label>
-          <select name="room" class="form-control w-full">
-            <option value="">All Rooms</option>
-            {% for room in all_rooms %}
-            <option value="{{ room.id }}" {% if room_filter == room.id|stringformat:"s" %}selected{% endif %}>
-              {{ room.display_name|default:room.name }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">User</label>
-          <select name="user" class="form-control w-full">
-            <option value="">All Users</option>
-            {% for user in all_users %}
-            <option value="{{ user.id }}" {% if user_filter == user.id|stringformat:"s" %}selected{% endif %}>
-              {{ user.username }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      
-      <div class="flex flex-col sm:flex-row gap-4 items-end">
-        <div class="flex-1">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
-          <input type="text" name="keywords" value="{{ keywords }}" 
-                 placeholder="Comma-separated keywords..." 
-                 class="form-control w-full">
-        </div>
-        
-        <div class="flex gap-2">
-          <button type="submit" class="btn-admin btn-primary">Apply Filters</button>
-          <a href="{% url 'admin_messages' %}" class="btn-admin btn-secondary">Clear All</a>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  <!-- Bulk Actions -->
-  <div class="admin-card mb-6">
-    <div class="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-4">
-        <div class="checkbox-custom">
-          <input type="checkbox" id="select-all">
-          <div class="checkmark"></div>
-        </div>
-        <span class="font-medium text-gray-700">Select All</span>
-      </div>
-      
-      <div class="flex gap-2">
-        <button onclick="bulkDelete()" class="btn-admin btn-danger" id="bulk-delete-btn" disabled>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-          Delete Selected
-        </button>
-      </div>
     </div>
 
-    <!-- Messages List -->
-    <div class="divide-y divide-gray-200">
-      {% for message in page_obj %}
-      <div class="message-row" data-message-id="{{ message.id }}">
-        <div class="flex items-start gap-4">
-          
-          <!-- Checkbox -->
-          <div class="checkbox-custom mt-1">
-            <input type="checkbox" class="message-checkbox" value="{{ message.id }}">
-            <div class="checkmark"></div>
-          </div>
-          
-          <!-- Avatar -->
-          <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-              {{ message.user.username|slice:":1"|upper }}
+    <!-- Enhanced Stats Section -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">💬</div>
+                </div>
+                <div class="stat-title">Total Messages</div>
+                <div class="stat-value">{{ message_count|default:"0" }}</div>
+                <div class="stat-description">All messages across platform</div>
             </div>
-          </div>
-          
-          <!-- Content -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-900">{{ message.user.username }}</span>
-                <span class="text-sm text-blue-600">{{ message.room.display_name|default:message.room.name }}</span>
-                <span class="text-sm text-gray-500">{{ message.timestamp|timesince }} ago</span>
-              </div>
-              
-              <div class="flex items-center gap-2">
-                <button onclick="editMessage({{ message.id }}, '{{ message.content|escapejs }}')" 
-                        class="btn-admin btn-primary" style="padding: 4px 8px; font-size: 12px;">
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                  Edit
-                </button>
-                <button onclick="deleteMessage({{ message.id }})" 
-                        class="btn-admin btn-danger" style="padding: 4px 8px; font-size: 12px;">
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                  Delete
-                </button>
-              </div>
+
+            {% if filter_active %}
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🔍</div>
+                </div>
+                <div class="stat-title">Filtered Results</div>
+                <div class="stat-value">{{ page_obj.paginator.count|default:"0" }}</div>
+                <div class="stat-description">Messages matching criteria</div>
+            </div>
+            {% endif %}
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">✅</div>
+                </div>
+                <div class="stat-title">Selected</div>
+                <div class="stat-value" id="selected-count">0</div>
+                <div class="stat-description">Messages currently selected</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">⏰</div>
+                </div>
+                <div class="stat-title">Recent (24h)</div>
+                <div class="stat-value">{{ messages_24h|default:"0" }}</div>
+                <div class="stat-description">Messages in last day</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Filters Section -->
+    <div class="filters-section">
+        <form method="get" class="filters-form">
+            <div class="form-group">
+                <label for="search" class="form-label">Search Messages</label>
+                <input
+                    type="search"
+                    id="search"
+                    name="search"
+                    value="{{ search_query }}"
+                    placeholder="Search messages, users, rooms..."
+                    class="form-input"
+                >
+            </div>
+            <div class="form-group">
+                <label for="timeframe" class="form-label">Time Range</label>
+                <select name="timeframe" id="timeframe" class="form-input">
+                    <option value="">All Time</option>
+                    <option value="day" {% if time_filter == 'day' %}selected{% endif %}>Last 24 Hours</option>
+                    <option value="week" {% if time_filter == 'week' %}selected{% endif %}>Last Week</option>
+                    <option value="month" {% if time_filter == 'month' %}selected{% endif %}>Last Month</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="room" class="form-label">Room</label>
+                <select name="room" id="room" class="form-input">
+                    <option value="">All Rooms</option>
+                    {% for room in all_rooms %}
+                    <option value="{{ room.id }}" {% if room_filter == room.id|stringformat:"s" %}selected{% endif %}>
+                        {{ room.display_name|default:room.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="user" class="form-label">User</label>
+                <select name="user" id="user" class="form-input">
+                    <option value="">All Users</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}" {% if user_filter == user.id|stringformat:"s" %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+        
+        <div class="filters-form-row">
+            <div class="form-group">
+                <label for="keywords" class="form-label">Keywords</label>
+                <input
+                    type="text"
+                    id="keywords"
+                    name="keywords"
+                    value="{{ keywords }}"
+                    placeholder="Comma-separated keywords..."
+                    class="form-input"
+                    form="filter-form"
+                >
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" form="filter-form" class="btn-enhanced btn-primary-enhanced">Apply Filters</button>
+                <a href="{% url 'admin_messages' %}" class="btn-enhanced btn-secondary-enhanced">Clear All</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Messages Section -->
+    <div class="messages-section">
+        <!-- Bulk Actions -->
+        <div class="bulk-actions">
+            <div class="bulk-actions-left">
+                <div class="checkbox-custom">
+                    <input type="checkbox" id="select-all">
+                    <div class="checkmark"></div>
+                </div>
+                <label for="select-all" class="select-all-label">Select All</label>
+                <div class="selected-count" id="selected-count-badge">0 selected</div>
             </div>
             
-            <div class="text-gray-700 bg-gray-50 p-3 rounded-lg">
-              {{ message.content|linebreaksbr }}
+            <div>
+                <button onclick="bulkDelete()" class="btn-enhanced btn-danger-enhanced" id="bulk-delete-btn" disabled>
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    Delete Selected
+                </button>
             </div>
-          </div>
         </div>
-      </div>
-      {% empty %}
-      <div class="p-8 text-center text-gray-500">
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-        </svg>
-        <h3 class="text-lg font-medium mb-2">No messages found</h3>
-        <p class="text-gray-400">Try adjusting your search filters</p>
-      </div>
-      {% endfor %}
-    </div>
 
-    <!-- Pagination -->
-    {% if page_obj.has_other_pages %}
-    <div class="p-4 border-t border-gray-200 flex items-center justify-between">
-      <span class="text-sm text-gray-700">
-        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
-      </span>
-      
-      <div class="flex gap-1">
-        {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
-           class="btn-admin btn-secondary">Previous</a>
+        <!-- Messages List -->
+        <div class="messages-list">
+            {% for message in page_obj %}
+            <div class="message-item" data-message-id="{{ message.id }}">
+                <div class="message-header">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <!-- Checkbox -->
+                        <div class="checkbox-custom">
+                            <input type="checkbox" class="message-checkbox" value="{{ message.id }}">
+                            <div class="checkmark"></div>
+                        </div>
+                        
+                        <!-- User Info -->
+                        <div class="message-user">
+                            <div class="user-avatar">
+                                {{ message.user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="user-info">
+                                <h4>{{ message.user.username }}</h4>
+                                <p>{{ message.user.email|truncatechars:25 }}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Room Badge -->
+                        <div class="room-badge">
+                            {{ message.room.display_name|default:message.room.name }}
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <!-- Message Meta -->
+                        <div class="message-meta">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                            </svg>
+                            {{ message.timestamp|timesince }} ago
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="message-actions">
+                            <button onclick="editMessage({{ message.id }}, '{{ message.content|escapejs }}')" class="action-btn edit" title="Edit Message">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteMessage({{ message.id }})" class="action-btn delete" title="Delete Message">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="message-content">
+                    {{ message.content|linebreaksbr }}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                </svg>
+                <h3 class="empty-title">No messages found</h3>
+                <p class="empty-description">
+                    {% if search_query %}
+                        No messages match your search criteria. Try adjusting your search terms or clearing the filters.
+                    {% else %}
+                        There are no messages to display. Messages will appear here as conversations happen.
+                    {% endif %}
+                </p>
+                {% if search_query %}
+                    <a href="{% url 'admin_messages' %}" class="btn-enhanced btn-primary-enhanced">Clear Search</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Enhanced Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-container">
+            <div class="pagination-info">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} messages
+            </div>
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                   class="pagination-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Previous
+                </a>
+                {% else %}
+                <span class="pagination-link disabled">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Previous
+                </span>
+                {% endif %}
+                
+                <span class="pagination-link active">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                   class="pagination-link">
+                    Next
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                </a>
+                {% else %}
+                <span class="pagination-link disabled">
+                    Next
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                </span>
+                {% endif %}
+            </div>
+        </div>
         {% endif %}
-        
-        <span class="btn-admin" style="background: #e5e7eb; color: #374151;">
-          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-        </span>
-        
-        {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
-           class="btn-admin btn-secondary">Next</a>
-        {% endif %}
-      </div>
     </div>
-    {% endif %}
-  </div>
 </div>
 
 <!-- Add Message Modal -->
 <div id="addModal" class="modal">
-  <div class="modal-content">
-    <h2 class="text-xl font-bold mb-4">Add New Message</h2>
-    <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="add">
-      
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Room</label>
-          <select name="room_id" class="form-control w-full" required>
-            <option value="">Select a room...</option>
-            {% for room in all_rooms %}
-            <option value="{{ room.id }}">{{ room.display_name|default:room.name }}</option>
-            {% endfor %}
-          </select>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Add New Message</h2>
+            <button onclick="closeModal('addModal')" class="modal-close">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">User</label>
-          <select name="user_id" class="form-control w-full" required>
-            <option value="{{ user.id }}">{{ user.username }} (You)</option>
-            {% for u in all_users %}
-            {% if u != user %}
-            <option value="{{ u.id }}">{{ u.username }}</option>
-            {% endif %}
-            {% endfor %}
-          </select>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Message Content</label>
-          <textarea name="content" class="form-control w-full" rows="4" required 
-                    placeholder="Enter message content..."></textarea>
-        </div>
-      </div>
-      
-      <div class="flex justify-end gap-3 mt-6">
-        <button type="button" onclick="closeModal('addModal')" class="btn-admin btn-secondary">Cancel</button>
-        <button type="submit" class="btn-admin btn-success">Add Message</button>
-      </div>
-    </form>
-  </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="add-room" class="form-label">Room</label>
+                    <select name="room_id" id="add-room" class="form-input" required>
+                        <option value="">Select a room...</option>
+                        {% for room in all_rooms %}
+                        <option value="{{ room.id }}">{{ room.display_name|default:room.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="add-user" class="form-label">User</label>
+                    <select name="user_id" id="add-user" class="form-input" required>
+                        <option value="{{ user.id }}">{{ user.username }} (You)</option>
+                        {% for u in all_users %}
+                        {% if u != user %}
+                        <option value="{{ u.id }}">{{ u.username }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="add-content" class="form-label">Message Content</label>
+                    <textarea name="content" id="add-content" class="form-input" rows="4" required 
+                              placeholder="Enter message content..." style="resize: vertical; min-height: 100px;"></textarea>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('addModal')" class="btn-enhanced btn-secondary-enhanced">Cancel</button>
+                <button type="submit" class="btn-enhanced btn-primary-enhanced">Add Message</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Edit Message Modal -->
 <div id="editModal" class="modal">
-  <div class="modal-content">
-    <h2 class="text-xl font-bold mb-4">Edit Message</h2>
-    <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="edit">
-      <input type="hidden" name="message_id" id="edit-message-id">
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Message Content</label>
-        <textarea name="content" id="edit-content" class="form-control w-full" rows="4" required></textarea>
-      </div>
-      
-      <div class="flex justify-end gap-3 mt-6">
-        <button type="button" onclick="closeModal('editModal')" class="btn-admin btn-secondary">Cancel</button>
-        <button type="submit" class="btn-admin btn-primary">Update Message</button>
-      </div>
-    </form>
-  </div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Message</h2>
+            <button onclick="closeModal('editModal')" class="modal-close">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="message_id" id="edit-message-id">
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-content" class="form-label">Message Content</label>
+                    <textarea name="content" id="edit-content" class="form-input" rows="4" required
+                              style="resize: vertical; min-height: 100px;"></textarea>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('editModal')" class="btn-enhanced btn-secondary-enhanced">Cancel</button>
+                <button type="submit" class="btn-enhanced btn-primary-enhanced">Update Message</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
 <div id="deleteModal" class="modal">
-  <div class="modal-content">
-    <h2 class="text-xl font-bold mb-4 text-red-600">Confirm Delete</h2>
-    <p class="text-gray-600 mb-6">Are you sure you want to delete this message? This action cannot be undone.</p>
-    
-    <form method="post" id="deleteForm">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="delete">
-      <input type="hidden" name="message_id" id="delete-message-id">
-      
-      <div class="flex justify-end gap-3">
-        <button type="button" onclick="closeModal('deleteModal')" class="btn-admin btn-secondary">Cancel</button>
-        <button type="submit" class="btn-admin btn-danger">Delete Message</button>
-      </div>
-    </form>
-  </div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" style="color: #ef4444;">Confirm Delete</h2>
+            <button onclick="closeModal('deleteModal')" class="modal-close">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--text-secondary); line-height: 1.6;">Are you sure you want to delete this message? This action cannot be undone.</p>
+        </div>
+        
+        <form method="post" id="deleteForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="message_id" id="delete-message-id">
+            
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('deleteModal')" class="btn-enhanced btn-secondary-enhanced">Cancel</button>
+                <button type="submit" class="btn-enhanced btn-danger-enhanced">Delete Message</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<!-- Add form for filter submission -->
+<form id="filter-form" method="get" style="display: none;">
+    <input type="hidden" name="search" value="{{ search_query }}">
+    <input type="hidden" name="timeframe" value="{{ time_filter }}">
+    <input type="hidden" name="room" value="{{ room_filter }}">
+    <input type="hidden" name="user" value="{{ user_filter }}">
+    <input type="hidden" name="keywords" value="{{ keywords }}">
+</form>
 
 {% endblock %}
 
-{% block extra_js %}
+{% block javascript %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced selection management
     const selectAllCheckbox = document.getElementById('select-all');
     const messageCheckboxes = document.querySelectorAll('.message-checkbox');
     const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
     const selectedCountElement = document.getElementById('selected-count');
+    const selectedCountBadge = document.getElementById('selected-count-badge');
 
     // Update UI based on selections
     function updateSelectionUI() {
@@ -481,11 +1353,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const count = checkedBoxes.length;
         
         selectedCountElement.textContent = count;
+        selectedCountBadge.textContent = `${count} selected`;
         bulkDeleteBtn.disabled = count === 0;
         
         // Update row highlighting
         messageCheckboxes.forEach(checkbox => {
-            const row = checkbox.closest('.message-row');
+            const row = checkbox.closest('.message-item');
             if (checkbox.checked) {
                 row.classList.add('selected');
             } else {
@@ -495,6 +1368,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update select all checkbox
         selectAllCheckbox.checked = count === messageCheckboxes.length && count > 0;
+        selectAllCheckbox.indeterminate = count > 0 && count < messageCheckboxes.length;
     }
 
     // Select all functionality
@@ -510,17 +1384,64 @@ document.addEventListener('DOMContentLoaded', function() {
         checkbox.addEventListener('change', updateSelectionUI);
     });
 
+    // Enhanced filter form submission
+    const filterInputs = document.querySelectorAll('#search, #timeframe, #room, #user, #keywords');
+    const filterForm = document.getElementById('filter-form');
+    
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            // Update hidden form inputs
+            const hiddenInput = filterForm.querySelector(`input[name="${this.name}"]`);
+            if (hiddenInput) {
+                hiddenInput.value = this.value;
+            }
+            
+            // Auto-submit for select elements
+            if (this.tagName === 'SELECT') {
+                filterForm.submit();
+            }
+        });
+        
+        // Submit on Enter for text inputs
+        if (input.type === 'search' || input.type === 'text') {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const hiddenInput = filterForm.querySelector(`input[name="${this.name}"]`);
+                    if (hiddenInput) {
+                        hiddenInput.value = this.value;
+                    }
+                    filterForm.submit();
+                }
+            });
+        }
+    });
+
     // Initialize UI
     updateSelectionUI();
 });
 
-// Modal functions
+// Enhanced modal functions
 function showModal(modalId) {
-    document.getElementById(modalId).classList.add('show');
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        // Focus management
+        const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 300);
+        }
+    }
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
 }
 
 function showAddModal() {
@@ -541,11 +1462,23 @@ function deleteMessage(messageId) {
 function bulkDelete() {
     const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
     if (checkedBoxes.length === 0) {
-        alert('Please select messages to delete.');
+        if (window.utils && window.utils.showToast) {
+            window.utils.showToast('Please select messages to delete.', 'warning', 3000);
+        } else {
+            alert('Please select messages to delete.');
+        }
         return;
     }
     
-    if (confirm(`Are you sure you want to delete ${checkedBoxes.length} selected message(s)?`)) {
+    const count = checkedBoxes.length;
+    const confirmed = confirm(`Are you sure you want to delete ${count} selected message${count > 1 ? 's' : ''}?\n\nThis action cannot be undone.`);
+    
+    if (confirmed) {
+        // Show loading state
+        const originalText = document.getElementById('bulk-delete-btn').innerHTML;
+        document.getElementById('bulk-delete-btn').innerHTML = '<div class="spinner"></div> Deleting...';
+        document.getElementById('bulk-delete-btn').disabled = true;
+        
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = `
@@ -562,15 +1495,156 @@ function bulkDelete() {
         });
         
         document.body.appendChild(form);
+        
+        if (window.utils && window.utils.showToast) {
+            window.utils.showToast(`Deleting ${count} message${count > 1 ? 's' : ''}...`, 'info', 2000);
+        }
+        
         form.submit();
     }
 }
+
+// Enhanced keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + K to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+    
+    // Ctrl/Cmd + A to select all (when not in input)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        const selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = !selectAllCheckbox.checked;
+            selectAllCheckbox.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // Delete key to delete selected
+    if (e.key === 'Delete' && !e.target.matches('input, textarea')) {
+        const checkedBoxes = document.querySelectorAll('.message-checkbox:checked');
+        if (checkedBoxes.length > 0) {
+            e.preventDefault();
+            bulkDelete();
+        }
+    }
+    
+    // Escape to close modals
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal.show');
+        modals.forEach(modal => {
+            modal.classList.remove('show');
+        });
+        document.body.style.overflow = '';
+    }
+});
 
 // Close modals when clicking outside
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal')) {
         e.target.classList.remove('show');
+        document.body.style.overflow = '';
     }
 });
+
+// Enhanced button ripple effects
+document.querySelectorAll('.btn-enhanced').forEach(button => {
+    button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        ripple.style.position = 'absolute';
+        ripple.style.borderRadius = '50%';
+        ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+        ripple.style.transform = 'scale(0)';
+        ripple.style.animation = 'ripple 0.6s linear';
+        ripple.style.pointerEvents = 'none';
+        
+        this.appendChild(ripple);
+        
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
+    });
+});
+
+// Performance optimization for lower-end devices
+if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
+    document.documentElement.style.setProperty('--transition-duration', '0.1s');
+}
+
+// Enhanced search with debouncing
+const searchInput = document.getElementById('search');
+if (searchInput) {
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        
+        // Visual feedback for search
+        this.style.background = 'linear-gradient(white, white) padding-box, linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(96, 165, 250, 0.3)) border-box';
+        
+        searchTimeout = setTimeout(() => {
+            this.style.background = '';
+        }, 500);
+    });
+}
+
+// Enhanced message interactions
+document.querySelectorAll('.message-item').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+        this.style.willChange = 'transform';
+    });
+
+    item.addEventListener('mouseleave', function() {
+        this.style.willChange = 'auto';
+    });
+});
+
+// Enhanced scroll-triggered animations
+const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.animationPlayState = 'running';
+        }
+    });
+}, observerOptions);
+
+// Observe animated elements
+document.querySelectorAll('[class*="fadeIn"]').forEach(el => {
+    el.style.animationPlayState = 'paused';
+    observer.observe(el);
+});
+
+console.log('🚀 Enhanced Euphorie Admin Messages Management loaded successfully');
+
+// Add ripple animation CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}
