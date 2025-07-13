@@ -359,6 +359,33 @@
     color: var(--danger);
 }
 
+.text-warning {
+    color: var(--warning) !important;
+}
+
+.text-danger {
+    color: var(--danger) !important;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    color: var(--warning);
+    border-left: 4px solid var(--warning);
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: var(--danger);
+    border-left: 4px solid var(--danger);
+}
+
 /* Mobile Optimizations */
 @media (max-width: 640px) {
     .create-room-container {
@@ -430,7 +457,9 @@
                 <div class="stat-label">Rooms Created</div>
             </div>
             <div class="stat-item">
-                <span class="stat-value" id="remaining-slots">{{ max_rooms }}</span>
+                <span class="stat-value{% if remaining_slots <= 2 %} text-warning{% endif %}{% if remaining_slots == 0 %} text-danger{% endif %}">
+                    {{ remaining_slots|default_if_none:0 }}
+                </span>
                 <div class="stat-label">Remaining Slots</div>
             </div>
             <div class="stat-item">
@@ -440,24 +469,15 @@
         </div>
     </div>
     
-    <script>
-        // Calculate remaining slots
-        document.addEventListener('DOMContentLoaded', function() {
-            const remainingElement = document.getElementById('remaining-slots');
-            const userRoomCount = {{ user_room_count|default:0 }};
-            const maxRooms = {{ max_rooms|default:10 }};
-            const remaining = Math.max(0, maxRooms - userRoomCount);
-            remainingElement.textContent = remaining;
-            
-            // Add visual warning if close to limit
-            if (remaining <= 2) {
-                remainingElement.style.color = 'var(--warning)';
-            }
-            if (remaining === 0) {
-                remainingElement.style.color = 'var(--danger)';
-            }
-        });
-    </script>
+    {% if remaining_slots <= 2 and remaining_slots > 0 %}
+    <div class="alert alert-warning">
+        ⚠️ You're approaching your room limit. You can create {{ remaining_slots }} more room{{ remaining_slots|pluralize }}.
+    </div>
+    {% elif remaining_slots == 0 %}
+    <div class="alert alert-danger">
+        🚫 You've reached your maximum room limit. Delete some rooms to create new ones.
+    </div>
+    {% endif %}
     {% endif %}
 
     <!-- Form Container -->
@@ -492,7 +512,7 @@
                 <div class="form-group">
                     <label for="{{ form.name.id_for_label }}" class="form-label required">Room Name</label>
                     <div class="input-icon-container">
-                        {{ form.name|add_class:"form-input input-with-icon" }}
+                        {{ form.name }}
                         <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
@@ -504,7 +524,7 @@
                 <!-- Display Name -->
                 <div class="form-group">
                     <label for="{{ form.display_name.id_for_label }}" class="form-label">Display Name</label>
-                    {{ form.display_name|add_class:"form-input" }}
+                    {{ form.display_name }}
                     <div class="character-counter" id="display-name-counter">0 / 255</div>
                     <div class="help-text">Optional friendly name shown to users (defaults to room name if empty)</div>
                 </div>
@@ -512,7 +532,7 @@
                 <!-- Description -->
                 <div class="form-group">
                     <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-                    {{ form.description|add_class:"form-input form-textarea" }}
+                    {{ form.description }}
                     <div class="character-counter" id="description-counter">0 / 500</div>
                     <div class="help-text">Describe what your room is about to help others discover it</div>
                 </div>
@@ -530,7 +550,7 @@
                 <!-- Category -->
                 <div class="form-group">
                     <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
-                    {{ form.category|add_class:"form-input form-select" }}
+                    {{ form.category }}
                     {% if not categories_count or categories_count == 0 %}
                     <div class="help-text" style="color: var(--warning);">
                         ⚠️ No categories available yet. Your room will be assigned to "General Discussion" automatically.
@@ -544,7 +564,7 @@
                 {% if form.suggest_new_category %}
                 <div class="form-group">
                     <label for="{{ form.suggest_new_category.id_for_label }}" class="form-label">Suggest New Category</label>
-                    {{ form.suggest_new_category|add_class:"form-input" }}
+                    {{ form.suggest_new_category }}
                     <div class="help-text">Don't see the right category? Suggest one for admin review!</div>
                 </div>
                 {% endif %}
@@ -553,7 +573,7 @@
                 <div class="form-group">
                     <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
                     <div class="tags-input">
-                        {{ form.tags|add_class:"form-input" }}
+                        {{ form.tags }}
                         <div class="tags-preview" id="tags-preview"></div>
                     </div>
                     <div class="character-counter" id="tags-counter">0 / 200</div>
@@ -574,14 +594,14 @@
                 <!-- Max Users -->
                 <div class="form-group">
                     <label for="{{ form.max_users.id_for_label }}" class="form-label">Maximum Users</label>
-                    {{ form.max_users|add_class:"form-input" }}
+                    {{ form.max_users }}
                     <div class="help-text">Maximum number of users allowed in the room (2-100)</div>
                 </div>
 
                 <!-- Public Room -->
                 <div class="form-group">
                     <div class="checkbox-group">
-                        {{ form.is_public|add_class:"checkbox" }}
+                        {{ form.is_public }}
                         <label for="{{ form.is_public.id_for_label }}" class="checkbox-label">
                             Public Room
                             <div class="checkbox-description">
