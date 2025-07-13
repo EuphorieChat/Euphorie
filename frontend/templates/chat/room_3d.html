@@ -4902,36 +4902,36 @@
                     // ENHANCED: Integrate scene synchronization
                     this.enhanceSceneSystemWithSync(sceneSystem);
                     
+                    // Also setup late enhancement as backup
+                    this.setupLateSceneEnhancement();
+                    
                 } catch (error) {
                     console.warn('Error initializing Scene System:', error);
+                    // Setup late enhancement as fallback
+                    this.setupLateSceneEnhancement();
                 }
             }
             
-            // NEW: Enhance scene system with synchronization capabilities - FIXED VERSION
+            // NEW: Enhanced scene system integration that works after the system loads
             enhanceSceneSystemWithSync(sceneSystem) {
                 console.log('🔄 Enhancing Scene System with synchronization...');
                 
                 // Add synchronization state tracking
                 sceneSystem._syncInProgress = false;
+                sceneSystem._blockSync = false;
                 
                 // Wrap scene change methods to include WebSocket sync
                 if (sceneSystem.applyScenePreset) {
                     const originalApplyScenePreset = sceneSystem.applyScenePreset.bind(sceneSystem);
                     
                     sceneSystem.applyScenePreset = function(preset, data = {}) {
-                        console.log(`🔄 Scene preset change: ${preset}, fromRemote: ${!!data.fromRemote}, syncInProgress: ${this._syncInProgress}`);
-                        
-                        // Prevent infinite loops
-                        if (this._syncInProgress && data.fromRemote) {
-                            console.log('⚠️ Skipping scene sync - already in progress');
-                            return;
-                        }
+                        console.log(`🔄 Scene preset change: ${preset}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
                         
                         // Apply locally first
                         const result = originalApplyScenePreset(preset, data);
                         
                         // Send to other users ONLY if this is a local user action
-                        if (!data.fromRemote && !this._syncInProgress && window.sendSceneChange) {
+                        if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendSceneChange) {
                             this._syncInProgress = true;
                             const sceneName = this.getScenePresetName ? this.getScenePresetName(preset) : preset;
                             
@@ -4945,24 +4945,18 @@
                     };
                 }
                 
-                // Wrap weather change methods - FIXED VERSION
+                // Wrap weather change methods - ENHANCED VERSION WITH BLOCK
                 if (sceneSystem.setWeather) {
                     const originalSetWeather = sceneSystem.setWeather.bind(sceneSystem);
                     
                     sceneSystem.setWeather = function(weatherType, intensity = 1.0, data = {}) {
-                        console.log(`🔄 Weather change: ${weatherType}, fromRemote: ${!!data.fromRemote}, syncInProgress: ${this._syncInProgress}`);
-                        
-                        // Prevent infinite loops
-                        if (this._syncInProgress && data.fromRemote) {
-                            console.log('⚠️ Skipping weather sync - already in progress');
-                            return;
-                        }
+                        console.log(`🔄 Weather change: ${weatherType}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
                         
                         // Apply locally first
                         const result = originalSetWeather(weatherType, intensity, data);
                         
-                        // Send to other users ONLY if this is a local user action
-                        if (!data.fromRemote && !this._syncInProgress && window.sendWeatherChange) {
+                        // Send to other users ONLY if this is a local user action AND sync is not blocked
+                        if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendWeatherChange) {
                             this._syncInProgress = true;
                             
                             setTimeout(() => {
@@ -4975,24 +4969,18 @@
                     };
                 }
                 
-                // Wrap time change methods - FIXED VERSION
+                // Wrap time change methods - ENHANCED VERSION WITH BLOCK
                 if (sceneSystem.setTimeOfDay) {
                     const originalSetTimeOfDay = sceneSystem.setTimeOfDay.bind(sceneSystem);
                     
                     sceneSystem.setTimeOfDay = function(timeOfDay, hour = null, data = {}) {
-                        console.log(`🔄 Time change: ${timeOfDay}, fromRemote: ${!!data.fromRemote}, syncInProgress: ${this._syncInProgress}`);
-                        
-                        // Prevent infinite loops
-                        if (this._syncInProgress && data.fromRemote) {
-                            console.log('⚠️ Skipping time sync - already in progress');
-                            return;
-                        }
+                        console.log(`🔄 Time change: ${timeOfDay}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
                         
                         // Apply locally first
                         const result = originalSetTimeOfDay(timeOfDay, hour, data);
                         
-                        // Send to other users ONLY if this is a local user action
-                        if (!data.fromRemote && !this._syncInProgress && window.sendTimeChange) {
+                        // Send to other users ONLY if this is a local user action AND sync is not blocked
+                        if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendTimeChange) {
                             this._syncInProgress = true;
                             
                             setTimeout(() => {
@@ -5005,7 +4993,41 @@
                     };
                 }
                 
-                console.log('✅ Scene System enhanced with synchronization (loop-safe)');
+                console.log('✅ Scene System enhanced with synchronization (block-safe)');
+            }
+            
+            // NEW: Late scene system enhancement for already loaded systems
+            setupLateSceneEnhancement() {
+                // Check for AdvancedSceneSystem periodically and enhance it when ready
+                const checkAndEnhance = () => {
+                    if (window.AdvancedSceneSystem && !window.AdvancedSceneSystem._enhanced) {
+                        console.log('🔄 Late-enhancing AdvancedSceneSystem...');
+                        this.enhanceSceneSystemWithSync(window.AdvancedSceneSystem);
+                        window.AdvancedSceneSystem._enhanced = true;
+                        return true;
+                    }
+                    return false;
+                };
+                
+                // Try immediately
+                if (checkAndEnhance()) {
+                    return;
+                }
+                
+                // Try every 500ms for up to 10 seconds
+                let attempts = 0;
+                const maxAttempts = 20;
+                
+                const interval = setInterval(() => {
+                    attempts++;
+                    
+                    if (checkAndEnhance() || attempts >= maxAttempts) {
+                        clearInterval(interval);
+                        if (attempts >= maxAttempts) {
+                            console.warn('⚠️ Could not late-enhance scene system');
+                        }
+                    }
+                }, 500);
             }
             
             // Safe initialization wrapper
