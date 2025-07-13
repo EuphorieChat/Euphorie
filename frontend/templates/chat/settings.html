@@ -5,410 +5,1256 @@
 
 {% block extra_css %}
 <style>
-    .settings-container {
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    
-    .setting-card {
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e5e7eb;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        transition: all 0.3s ease;
-    }
-    
-    .setting-card:hover {
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-    }
-    
-    .payment-method-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: between;
-        transition: all 0.3s ease;
-    }
-    
-    .payment-method-card:hover {
-        border-color: #ec4899;
-        box-shadow: 0 4px 8px rgba(244, 114, 182, 0.1);
-    }
-    
-    .btn-primary {
-        background: linear-gradient(135deg, #f472b6, #ec4899);
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        transition: all 0.2s;
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(244, 114, 182, 0.4);
-        color: white;
-    }
-    
-    .btn-secondary {
-        background: white;
-        color: #374151;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        transition: all 0.2s;
-        border: 1px solid #d1d5db;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-    }
-    
-    .btn-secondary:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
-        color: #374151;
-    }
+/* Enhanced Settings Styles with Modern UX */
+.settings-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
 
-    .toggle-switch {
-        position: relative;
-        display: inline-block;
-        width: 60px;
-        height: 34px;
-    }
+.settings-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fadeInDown 0.6s ease-out;
+}
 
-    .toggle-switch input {
+.settings-title {
+    font-size: 3rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.settings-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.settings-navigation {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.nav-tab {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 2px solid transparent;
+    border-radius: var(--radius-xl);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.nav-tab:hover {
+    background: rgba(244, 114, 182, 0.1);
+    border-color: rgba(244, 114, 182, 0.3);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+}
+
+.nav-tab:hover::before {
+    left: 100%;
+}
+
+.nav-tab.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.4);
+}
+
+.settings-content {
+    flex: 1;
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+.setting-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.setting-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.setting-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 35px 70px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.2);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.1);
+}
+
+.card-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.card-icon {
+    width: 2rem;
+    height: 2rem;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 0.5rem;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-description {
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* Enhanced Form Groups */
+.form-section {
+    margin-bottom: 2.5rem;
+}
+
+.form-group {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+/* Enhanced Floating Label Inputs */
+.floating-label-container {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.floating-label {
+    position: absolute;
+    left: 1.5rem;
+    top: 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    padding: 0 0.5rem;
+    border-radius: var(--radius-md);
+    transform-origin: left center;
+}
+
+.floating-label.required::after {
+    content: " *";
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.floating-input {
+    width: 100%;
+    padding: 1.5rem 1.5rem 0.75rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-2xl);
+    font-size: 1rem;
+    font-weight: 500;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-input:focus,
+.floating-input:not(:placeholder-shown) {
+    padding-top: 1.75rem;
+    padding-bottom: 0.5rem;
+}
+
+.floating-input:focus + .floating-label,
+.floating-input:not(:placeholder-shown) + .floating-label {
+    transform: translateY(-1.5rem) translateX(-0.25rem) scale(0.85);
+    color: var(--primary);
+    background: white;
+    font-weight: 600;
+}
+
+.floating-input:focus {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
+    transform: translateY(-2px);
+}
+
+.floating-input:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px);
+    box-shadow: 
+        0 8px 25px -8px rgba(244, 114, 182, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.1);
+}
+
+/* Enhanced Toggle Switches */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.05), rgba(96, 165, 250, 0.05));
+    border: 2px solid transparent;
+    border-radius: var(--radius-xl);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.toggle-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.toggle-container:hover::before {
+    opacity: 1;
+}
+
+.toggle-container:hover {
+    border-color: rgba(244, 114, 182, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+}
+
+.toggle-info {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.toggle-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.toggle-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.enhanced-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 64px;
+    height: 36px;
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+.enhanced-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.enhanced-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #e2e8f0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 36px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.enhanced-slider:before {
+    position: absolute;
+    content: "";
+    height: 28px;
+    width: 28px;
+    left: 4px;
+    bottom: 4px;
+    background: white;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.enhanced-toggle-switch input:checked + .enhanced-slider {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 0 0 2px rgba(244, 114, 182, 0.2);
+}
+
+.enhanced-toggle-switch input:checked + .enhanced-slider:before {
+    transform: translateX(28px);
+    box-shadow: 
+        0 6px 12px rgba(244, 114, 182, 0.3),
+        0 2px 4px rgba(244, 114, 182, 0.1);
+}
+
+.enhanced-toggle-switch input:focus + .enhanced-slider {
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 0 0 4px rgba(244, 114, 182, 0.2);
+}
+
+/* Enhanced Action Cards */
+.action-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.03), rgba(96, 165, 250, 0.03));
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    border-radius: var(--radius-xl);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.action-card:hover {
+    border-color: rgba(244, 114, 182, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+}
+
+.action-card:hover::before {
+    left: 100%;
+}
+
+.action-info {
+    flex: 1;
+}
+
+.action-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.action-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Enhanced Buttons */
+.btn-enhanced {
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border-radius: var(--radius-xl);
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    text-decoration: none;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+}
+
+.btn-enhanced::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform 0.5s, opacity 0.8s;
+}
+
+.btn-enhanced:active::after {
+    transform: scale(0, 0);
+    opacity: 0.3;
+    transition: 0s;
+}
+
+.btn-primary-enhanced {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+}
+
+.btn-primary-enhanced:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
+}
+
+.btn-secondary-enhanced {
+    background: white;
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    color: var(--text-primary);
+}
+
+.btn-secondary-enhanced:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+}
+
+.btn-danger-enhanced {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger-enhanced:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+}
+
+/* Quick Actions Grid */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.quick-action-card {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.05), rgba(96, 165, 250, 0.05));
+    border: 2px solid transparent;
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+}
+
+.quick-action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.quick-action-card:hover::before {
+    opacity: 1;
+}
+
+.quick-action-card:hover {
+    border-color: rgba(244, 114, 182, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px -8px rgba(244, 114, 182, 0.3);
+}
+
+.quick-action-icon {
+    width: 3rem;
+    height: 3rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.quick-action-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* Danger Zone Styling */
+.danger-zone {
+    border: 2px solid rgba(239, 68, 68, 0.2) !important;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.03), rgba(220, 38, 38, 0.03)) !important;
+}
+
+.danger-zone::before {
+    background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+}
+
+.danger-zone .card-title {
+    color: #dc2626;
+}
+
+.danger-action-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(220, 38, 38, 0.05));
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.danger-action-card:hover {
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 8px 25px -8px rgba(239, 68, 68, 0.3);
+}
+
+/* Success States */
+.success-message {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    color: #15803d;
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+    margin-bottom: 2rem;
+    border-left: 4px solid #22c55e;
+    font-size: 0.95rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideInDown 0.5s ease-out;
+}
+
+.error-message {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: #dc2626;
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+    margin-bottom: 2rem;
+    border-left: 4px solid #ef4444;
+    font-size: 0.95rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: shakeX 0.5s ease-out;
+}
+
+/* Enhanced Animations */
+@keyframes fadeInDown {
+    from {
         opacity: 0;
-        width: 0;
-        height: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes shakeX {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .settings-container {
+        padding: 1rem;
     }
 
-    .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 34px;
+    .settings-title {
+        font-size: 2.25rem;
     }
 
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 26px;
-        width: 26px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
+    .settings-subtitle {
+        font-size: 1.125rem;
     }
 
-    input:checked + .slider {
-        background: linear-gradient(135deg, #f472b6, #ec4899);
+    .setting-card {
+        padding: 1.5rem;
     }
 
-    input:checked + .slider:before {
-        transform: translateX(26px);
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
     }
 
-    .nav-breadcrumb {
-        display: flex;
+    .card-title {
+        font-size: 1.25rem;
+    }
+
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .toggle-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .enhanced-toggle-switch {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+
+    .action-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .settings-navigation {
+        flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-        color: #6b7280;
-        font-size: 0.875rem;
     }
 
-    .nav-breadcrumb a {
-        color: #ec4899;
-        text-decoration: none;
-        transition: color 0.3s ease;
+    .nav-tab {
+        width: 100%;
+        max-width: 300px;
+        text-align: center;
     }
+}
 
-    .nav-breadcrumb a:hover {
-        color: #be185d;
+/* Focus indicators for accessibility */
+.floating-input:focus-visible,
+.enhanced-toggle-switch input:focus-visible + .enhanced-slider,
+.btn-enhanced:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .floating-input,
+    .toggle-container,
+    .action-card {
+        border-width: 3px;
     }
+    
+    .btn-enhanced {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="settings-container">
-    <!-- Breadcrumb Navigation -->
-    <div class="nav-breadcrumb">
-        <a href="{% url 'index' %}">Home</a>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-        <span>Settings</span>
+    <!-- Enhanced Header Section -->
+    <div class="settings-header">
+        <h1 class="settings-title">⚙️ Settings</h1>
+        <p class="settings-subtitle">
+            Customize your Euphorie experience and manage your account preferences
+        </p>
     </div>
 
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-4xl font-bold gradient-text mb-2">⚙️ Settings</h1>
-        <p class="text-gray-600 text-lg">Manage your account preferences and settings</p>
-    </div>
-
-    <!-- Profile Settings -->
-    <div class="setting-card">
-        <h2 class="text-2xl font-bold mb-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <!-- Enhanced Navigation Tabs -->
+    <div class="settings-navigation">
+        <a href="#profile" class="nav-tab active" data-section="profile">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            Profile Information
-        </h2>
-        
-        <form method="post" action="{% url 'user_settings' %}">
-            {% csrf_token %}
-            <input type="hidden" name="section" value="profile">
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                    <input type="text" id="username" name="username" 
-                           value="{{ user.username }}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                           readonly>
-                    <p class="text-xs text-gray-500 mt-1">Username cannot be changed</p>
-                </div>
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                    <input type="email" id="email" name="email" 
-                           value="{{ user.email }}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                    <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                    <input type="text" id="first_name" name="first_name" 
-                           value="{{ user.first_name }}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
-                </div>
-                <div>
-                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                    <input type="text" id="last_name" name="last_name" 
-                           value="{{ user.last_name }}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
-                </div>
-            </div>
-            
-            <div class="mt-6">
-                <button type="submit" class="btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Update Profile
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Privacy & Notifications -->
-    <div class="setting-card">
-        <h2 class="text-2xl font-bold mb-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM11 3H6a2 2 0 00-2 2v5m0 0v5a2 2 0 002 2h5m-6-7h2m2-2h2m2-2h2" />
-            </svg>
-            Privacy & Notifications
-        </h2>
-        
-        <form method="post" action="{% url 'user_settings' %}">
-            {% csrf_token %}
-            <input type="hidden" name="section" value="privacy">
-            
-            <div class="space-y-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-medium text-gray-900">Email Notifications</h3>
-                        <p class="text-sm text-gray-500">Receive notifications when someone sends you a message</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="email_notifications" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-medium text-gray-900">Friend Requests</h3>
-                        <p class="text-sm text-gray-500">Allow others to send you friend requests</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="allow_friend_requests" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-medium text-gray-900">Profile Visibility</h3>
-                        <p class="text-sm text-gray-500">Make your profile visible to other users</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="public_profile" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-medium text-gray-900">Room Invitations</h3>
-                        <p class="text-sm text-gray-500">Allow others to invite you to rooms</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="allow_room_invites" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="mt-6">
-                <button type="submit" class="btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Privacy Settings
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Account Security -->
-    <div class="setting-card">
-        <h2 class="text-2xl font-bold mb-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            Profile
+        </a>
+        <a href="#privacy" class="nav-tab" data-section="privacy">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            Account Security
-        </h2>
-        
-        <div class="space-y-4">
-            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                    <h3 class="font-medium text-gray-900">Change Password</h3>
-                    <p class="text-sm text-gray-500">Update your account password</p>
-                </div>
-                <a href="{% url 'account_change_password' %}" class="btn-secondary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                    Change Password
-                </a>
-            </div>
-            
-            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                    <h3 class="font-medium text-gray-900">Two-Factor Authentication</h3>
-                    <p class="text-sm text-gray-500">Add an extra layer of security to your account</p>
-                </div>
-                <button class="btn-secondary" onclick="alert('Two-factor authentication coming soon!')">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Enable 2FA
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="setting-card">
-        <h2 class="text-2xl font-bold mb-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            Privacy
+        </a>
+        <a href="#security" class="nav-tab" data-section="security">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Security
+        </a>
+        <a href="#actions" class="nav-tab" data-section="actions">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             Quick Actions
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="{% url 'user_profile' username=user.username %}" class="btn-secondary flex items-center justify-center p-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                View My Profile
-            </a>
-            
-            <a href="{% url 'dashboard' %}" class="btn-secondary flex items-center justify-center p-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                </svg>
-                Go to Dashboard
-            </a>
-            
-            <a href="{% url 'friends_list' %}" class="btn-secondary flex items-center justify-center p-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                Manage Friends
-            </a>
-            
-            <a href="{% url 'create_room' %}" class="btn-primary flex items-center justify-center p-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Create New Room
-            </a>
-        </div>
+        </a>
     </div>
 
-    <!-- Danger Zone -->
-    <div class="setting-card border-red-200">
-        <h2 class="text-2xl font-bold mb-4 flex items-center text-red-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            Danger Zone
-        </h2>
-        
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="font-medium text-red-900">Delete Account</h3>
-                    <p class="text-sm text-red-700">Permanently delete your account and all associated data</p>
+    <div class="settings-content">
+        <!-- Enhanced Success/Error Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags == 'success' %}success-message{% elif message.tags == 'error' %}error-message{% endif %}">
+                    {% if message.tags == 'success' %}
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    {% elif message.tags == 'error' %}
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    {% endif %}
+                    {{ message }}
                 </div>
-                <button onclick="alert('Account deletion will be available soon. Please contact support if you need immediate assistance.')" 
-                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            {% endfor %}
+        {% endif %}
+
+        <!-- Enhanced Profile Settings Section -->
+        <div id="profile-section" class="setting-card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        Profile Information
+                    </h2>
+                    <p class="card-description">
+                        Update your personal information and how others see you on Euphorie
+                    </p>
+                </div>
+            </div>
+            
+            <form method="post" action="{% url 'user_settings' %}" id="profile-form">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="profile">
+                
+                <div class="form-section">
+                    <!-- Enhanced Username Field -->
+                    <div class="floating-label-container">
+                        <input type="text" id="id_username" name="username" 
+                               value="{{ user.username }}"
+                               class="floating-input" 
+                               placeholder=" " 
+                               readonly>
+                        <label for="id_username" class="floating-label">Username</label>
+                        <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-tertiary);">
+                            ℹ️ Username cannot be changed for security reasons
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced Email Field -->
+                    <div class="floating-label-container">
+                        <input type="email" id="id_email" name="email" 
+                               value="{{ user.email }}"
+                               class="floating-input" 
+                               placeholder=" " 
+                               required>
+                        <label for="id_email" class="floating-label required">Email Address</label>
+                        <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-tertiary);">
+                            📧 Used for notifications and account recovery
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced First Name Field -->
+                    <div class="floating-label-container">
+                        <input type="text" id="id_first_name" name="first_name" 
+                               value="{{ user.first_name }}"
+                               class="floating-input" 
+                               placeholder=" ">
+                        <label for="id_first_name" class="floating-label">First Name</label>
+                    </div>
+                    
+                    <!-- Enhanced Last Name Field -->
+                    <div class="floating-label-container">
+                        <input type="text" id="id_last_name" name="last_name" 
+                               value="{{ user.last_name }}"
+                               class="floating-input" 
+                               placeholder=" ">
+                        <label for="id_last_name" class="floating-label">Last Name</label>
+                    </div>
+                </div>
+                
+                <div style="text-align: right; margin-top: 2rem;">
+                    <button type="submit" class="btn-enhanced btn-primary-enhanced">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Update Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Enhanced Privacy & Notifications Section -->
+        <div id="privacy-section" class="setting-card" style="display: none;">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        Privacy & Notifications
+                    </h2>
+                    <p class="card-description">
+                        Control your privacy settings and notification preferences
+                    </p>
+                </div>
+            </div>
+            
+            <form method="post" action="{% url 'user_settings' %}" id="privacy-form">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="privacy">
+                
+                <div class="form-section">
+                    <!-- Enhanced Toggle Switches -->
+                    <div class="toggle-container">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Email Notifications</div>
+                            <div class="toggle-description">Receive notifications when someone sends you a message or mentions you</div>
+                        </div>
+                        <label class="enhanced-toggle-switch">
+                            <input type="checkbox" name="email_notifications" checked>
+                            <span class="enhanced-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Friend Requests</div>
+                            <div class="toggle-description">Allow other users to send you friend requests</div>
+                        </div>
+                        <label class="enhanced-toggle-switch">
+                            <input type="checkbox" name="allow_friend_requests" checked>
+                            <span class="enhanced-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Profile Visibility</div>
+                            <div class="toggle-description">Make your profile visible to other users in search results</div>
+                        </div>
+                        <label class="enhanced-toggle-switch">
+                            <input type="checkbox" name="public_profile" checked>
+                            <span class="enhanced-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Room Invitations</div>
+                            <div class="toggle-description">Allow others to invite you to their rooms</div>
+                        </div>
+                        <label class="enhanced-toggle-switch">
+                            <input type="checkbox" name="allow_room_invites" checked>
+                            <span class="enhanced-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="text-align: right; margin-top: 2rem;">
+                    <button type="submit" class="btn-enhanced btn-primary-enhanced">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Privacy Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Enhanced Security Section -->
+        <div id="security-section" class="setting-card" style="display: none;">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        </div>
+                        Account Security
+                    </h2>
+                    <p class="card-description">
+                        Manage your account security settings and authentication methods
+                    </p>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <!-- Enhanced Security Actions -->
+                <div class="action-card">
+                    <div class="action-info">
+                        <div class="action-title">Change Password</div>
+                        <div class="action-description">Update your account password to keep your account secure</div>
+                    </div>
+                    <a href="{% url 'account_change_password' %}" class="btn-enhanced btn-secondary-enhanced">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Change Password
+                    </a>
+                </div>
+                
+                <div class="action-card">
+                    <div class="action-info">
+                        <div class="action-title">Two-Factor Authentication</div>
+                        <div class="action-description">Add an extra layer of security to your account with 2FA</div>
+                    </div>
+                    <button class="btn-enhanced btn-secondary-enhanced" onclick="showComingSoonToast('2FA')">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Enable 2FA
+                    </button>
+                </div>
+
+                <div class="action-card">
+                    <div class="action-info">
+                        <div class="action-title">Login Sessions</div>
+                        <div class="action-description">View and manage your active login sessions</div>
+                    </div>
+                    <button class="btn-enhanced btn-secondary-enhanced" onclick="showComingSoonToast('Session Management')">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Manage Sessions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Quick Actions Section -->
+        <div id="actions-section" class="setting-card" style="display: none;">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        Quick Actions
+                    </h2>
+                    <p class="card-description">
+                        Shortcuts to commonly used features and account management
+                    </p>
+                </div>
+            </div>
+            
+            <div class="quick-actions-grid">
+                <a href="{% url 'user_profile' username=user.username %}" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="quick-action-title">View Profile</h3>
+                </a>
+                
+                <a href="{% url 'dashboard' %}" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                    </div>
+                    <h3 class="quick-action-title">Dashboard</h3>
+                </a>
+                
+                <a href="{% url 'friends_list' %}" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="quick-action-title">Manage Friends</h3>
+                    {% if pending_friend_requests_count > 0 %}
+                    <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--primary); color: white; border-radius: 50%; width: 1.5rem; height: 1.5rem; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">
+                        {{ pending_friend_requests_count }}
+                    </div>
+                    {% endif %}
+                </a>
+                
+                <a href="{% url 'create_room' %}" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <h3 class="quick-action-title">Create New Room</h3>
+                </a>
+                
+                <a href="{% url 'explore_rooms' %}" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="quick-action-title">Explore Rooms</h3>
+                </a>
+                
+                <a href="{% url 'index' %}" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </div>
+                    <h3 class="quick-action-title">Home</h3>
+                </a>
+            </div>
+        </div>
+
+        <!-- Enhanced Danger Zone -->
+        <div class="setting-card danger-zone">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <div class="card-icon" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        Danger Zone
+                    </h2>
+                    <p class="card-description" style="color: #dc2626;">
+                        Irreversible and destructive actions. Proceed with extreme caution.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="action-card danger-action-card">
+                <div class="action-info">
+                    <div class="action-title" style="color: #dc2626;">Delete Account</div>
+                    <div class="action-description">Permanently delete your account and all associated data. This action cannot be undone.</div>
+                </div>
+                <button onclick="showDeleteAccountModal()" class="btn-enhanced btn-danger-enhanced">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                     Delete Account
                 </button>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- Enhanced Delete Account Modal -->
+<div id="delete-account-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: var(--radius-2xl); padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 4rem; height: 4rem; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white;">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #dc2626; margin-bottom: 0.5rem;">Delete Account</h3>
+            <p style="color: var(--text-secondary); line-height: 1.6;">This action cannot be undone. All your data, rooms, and conversations will be permanently deleted.</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button onclick="hideDeleteAccountModal()" class="btn-enhanced btn-secondary-enhanced">
+                Cancel
+            </button>
+            <button onclick="showComingSoonToast('Account Deletion')" class="btn-enhanced btn-danger-enhanced">
+                Yes, Delete My Account
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle form submissions with better feedback
-    const forms = document.querySelectorAll('form');
+    // Enhanced tab navigation
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const sections = document.querySelectorAll('.setting-card');
     
+    function showSection(sectionId) {
+        // Hide all sections
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Remove active class from all tabs
+        navTabs.forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Show target section
+        const targetSection = document.getElementById(sectionId + '-section');
+        if (targetSection) {
+            targetSection.style.display = 'block';
+            targetSection.style.animation = 'fadeInUp 0.5s ease-out';
+        }
+        
+        // Add active class to clicked tab
+        const activeTab = document.querySelector(`[data-section="${sectionId}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+        
+        // Update URL hash
+        window.location.hash = sectionId;
+    }
+    
+    // Tab click handlers
+    navTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sectionId = tab.dataset.section;
+            showSection(sectionId);
+        });
+    });
+    
+    // Handle initial hash or show profile by default
+    const initialHash = window.location.hash.substring(1);
+    if (initialHash && ['profile', 'privacy', 'security', 'actions'].includes(initialHash)) {
+        showSection(initialHash);
+    } else {
+        showSection('profile');
+    }
+    
+    // Enhanced form handling with loading states
+    const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
                 const originalText = submitBtn.innerHTML;
+                
+                // Add loading state
                 submitBtn.innerHTML = `
-                    <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <svg class="animate-spin" width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -416,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 submitBtn.disabled = true;
                 
-                // Re-enable after a short delay (in case form validation fails)
+                // Re-enable after delay (in case of validation errors)
                 setTimeout(() => {
                     if (submitBtn.disabled) {
                         submitBtn.innerHTML = originalText;
@@ -426,15 +1272,342 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-
-    // Add smooth transitions to toggle switches
-    const toggles = document.querySelectorAll('.toggle-switch input');
+    
+    // Enhanced toggle switches with immediate feedback
+    const toggles = document.querySelectorAll('.enhanced-toggle-switch input');
     toggles.forEach(toggle => {
         toggle.addEventListener('change', function() {
-            // You can add an API call here to save the setting immediately
+            // Add visual feedback
+            const slider = this.nextElementSibling;
+            slider.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                slider.style.transform = 'scale(1)';
+            }, 150);
+            
+            // Show toast notification
+            const settingName = this.closest('.toggle-container').querySelector('.toggle-title').textContent;
+            const status = this.checked ? 'enabled' : 'disabled';
+            
+            if (window.utils && window.utils.showToast) {
+                window.utils.showToast(`${settingName} ${status}`, 'info', 2000);
+            }
+            
             console.log(`Setting ${this.name} changed to:`, this.checked);
         });
     });
+    
+    // Enhanced floating label functionality
+    document.querySelectorAll('.floating-input').forEach(input => {
+        // Handle focus/blur events
+        input.addEventListener('focus', () => {
+            input.parentElement.classList.add('focused');
+        });
+        
+        input.addEventListener('blur', () => {
+            input.parentElement.classList.remove('focused');
+            
+            // Add validation feedback
+            if (input.hasAttribute('required') && !input.value.trim()) {
+                input.style.borderColor = 'var(--danger)';
+            } else if (input.value.trim()) {
+                input.style.borderColor = 'var(--success)';
+            } else {
+                input.style.borderColor = '';
+            }
+        });
+        
+        // Real-time validation
+        input.addEventListener('input', () => {
+            input.style.borderColor = '';
+            
+            if (input.type === 'email' && input.value) {
+                const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+                input.style.borderColor = isValidEmail ? 'var(--success)' : 'var(--warning)';
+            }
+        });
+    });
+    
+    // Smooth scrolling for hash changes
+    window.addEventListener('hashchange', () => {
+        const hash = window.location.hash.substring(1);
+        if (['profile', 'privacy', 'security', 'actions'].includes(hash)) {
+            showSection(hash);
+        }
+    });
+});
+
+// Enhanced modal functions
+function showDeleteAccountModal() {
+    const modal = document.getElementById('delete-account-modal');
+    modal.style.display = 'flex';
+    modal.style.animation = 'fadeIn 0.3s ease-out';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideDeleteAccountModal() {
+    const modal = document.getElementById('delete-account-modal');
+    modal.style.animation = 'fadeOut 0.3s ease-out';
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }, 300);
+}
+
+// Enhanced coming soon notifications
+function showComingSoonToast(feature) {
+    if (window.utils && window.utils.showToast) {
+        window.utils.showToast(`${feature} is coming soon! 🚀`, 'info', 3000);
+    } else {
+        alert(`${feature} will be available soon! Please contact support if you need immediate assistance.`);
+    }
+}
+
+// Enhanced ripple effects for buttons
+document.querySelectorAll('.btn-enhanced').forEach(button => {
+    button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        ripple.style.position = 'absolute';
+        ripple.style.borderRadius = '50%';
+        ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+        ripple.style.transform = 'scale(0)';
+        ripple.style.animation = 'ripple 0.6s linear';
+        ripple.style.pointerEvents = 'none';
+        
+        this.appendChild(ripple);
+        
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
+    });
+});
+
+// Enhanced keyboard navigation
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + S to save current form
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const activeSection = document.querySelector('.setting-card:not([style*="display: none"])');
+        if (activeSection) {
+            const form = activeSection.querySelector('form');
+            if (form) {
+                form.submit();
+            }
+        }
+    }
+    
+    // Escape to close modals
+    if (e.key === 'Escape') {
+        hideDeleteAccountModal();
+    }
+    
+    // Tab navigation with numbers
+    if (e.altKey && e.key >= '1' && e.key <= '4') {
+        e.preventDefault();
+        const sections = ['profile', 'privacy', 'security', 'actions'];
+        const sectionIndex = parseInt(e.key) - 1;
+        if (sections[sectionIndex]) {
+            const hash = sections[sectionIndex];
+            window.location.hash = hash;
+        }
+    }
+});
+
+// Enhanced animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+    }
+    
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Enhanced accessibility features
+document.querySelectorAll('.toggle-container').forEach(container => {
+    const toggle = container.querySelector('input[type="checkbox"]');
+    const title = container.querySelector('.toggle-title');
+    
+    if (toggle && title) {
+        // Add ARIA labels
+        toggle.setAttribute('aria-labelledby', title.textContent.toLowerCase().replace(/\s+/g, '-'));
+        
+        // Make the entire container clickable
+        container.addEventListener('click', (e) => {
+            if (e.target !== toggle) {
+                toggle.click();
+            }
+        });
+        
+        // Add keyboard support
+        container.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggle.click();
+            }
+        });
+        
+        // Make container focusable
+        container.setAttribute('tabindex', '0');
+    }
+});
+
+// Enhanced form validation
+function validateForm(form) {
+    let isValid = true;
+    const inputs = form.querySelectorAll('input[required]');
+    
+    inputs.forEach(input => {
+        const value = input.value.trim();
+        
+        if (!value) {
+            input.style.borderColor = 'var(--danger)';
+            isValid = false;
+        } else if (input.type === 'email') {
+            const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+            if (!isValidEmail) {
+                input.style.borderColor = 'var(--danger)';
+                isValid = false;
+            } else {
+                input.style.borderColor = 'var(--success)';
+            }
+        } else {
+            input.style.borderColor = 'var(--success)';
+        }
+    });
+    
+    return isValid;
+}
+
+// Enhanced auto-save functionality (optional)
+let autoSaveTimeout;
+function setupAutoSave() {
+    const inputs = document.querySelectorAll('.floating-input');
+    
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            clearTimeout(autoSaveTimeout);
+            
+            // Show auto-save indicator
+            let indicator = document.getElementById('auto-save-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'auto-save-indicator';
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 1rem;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, var(--primary), var(--secondary));
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: var(--radius-lg);
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    z-index: 1000;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                `;
+                document.body.appendChild(indicator);
+            }
+            
+            indicator.textContent = 'Auto-saving...';
+            indicator.style.opacity = '1';
+            
+            // Auto-save after 2 seconds of inactivity
+            autoSaveTimeout = setTimeout(() => {
+                indicator.textContent = 'Saved ✓';
+                setTimeout(() => {
+                    indicator.style.opacity = '0';
+                }, 1000);
+            }, 2000);
+        });
+    });
+}
+
+// Initialize auto-save (uncomment if needed)
+// setupAutoSave();
+
+// Enhanced loading states for quick actions
+document.querySelectorAll('.quick-action-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+        const icon = this.querySelector('.quick-action-icon');
+        const originalContent = icon.innerHTML;
+        
+        // Add loading spinner
+        icon.innerHTML = `
+            <svg class="animate-spin" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        `;
+        
+        // Reset after navigation
+        setTimeout(() => {
+            icon.innerHTML = originalContent;
+        }, 1000);
+    });
+});
+
+// Enhanced performance monitoring
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.animation = 'fadeInUp 0.6s ease-out';
+        }
+    });
+}, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+});
+
+// Observe all setting cards for scroll animations
+document.querySelectorAll('.setting-card').forEach(card => {
+    observer.observe(card);
 });
 </script>
 {% endblock %}
