@@ -362,26 +362,230 @@
     min-height: 160px;
 }
 
-/* Enhanced Select Styles */
-.form-select {
-    background: linear-gradient(white, white) padding-box,
-                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23f472b6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 1.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 4rem;
-    appearance: none;
-    cursor: pointer;
+/* Enhanced Custom Dropdown Styles */
+.custom-select-wrapper {
     position: relative;
+    width: 100%;
 }
 
-.form-select:hover {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ec4899' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+.custom-select-trigger {
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-2xl);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.2), rgba(96, 165, 250, 0.2)) border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    user-select: none;
 }
 
-.form-select:focus {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ec4899' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+.custom-select-trigger:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px);
+    box-shadow: 
+        0 8px 25px -8px rgba(244, 114, 182, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.1);
+}
+
+.custom-select-trigger.active {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    transform: translateY(-2px);
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
+}
+
+.custom-select-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.custom-select-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    background: rgba(244, 114, 182, 0.1);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.custom-select-text {
+    flex: 1;
+    text-align: left;
+}
+
+.custom-select-text.placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.custom-select-arrow {
+    width: 1.25rem;
+    height: 1.25rem;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--primary);
+}
+
+.custom-select-trigger.active .custom-select-arrow {
+    transform: rotate(180deg);
+}
+
+.custom-select-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(244, 114, 182, 0.2);
+    border-radius: var(--radius-2xl);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    max-height: 300px;
+    overflow: hidden;
+}
+
+.custom-select-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.custom-select-options {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.custom-select-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    border-radius: var(--radius-xl);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    margin-bottom: 0.25rem;
+}
+
+.custom-select-option:hover {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.15);
+}
+
+.custom-select-option.selected {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15));
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.custom-select-option.selected::after {
+    content: '✓';
+    position: absolute;
+    right: 1rem;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.custom-select-option-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    background: rgba(244, 114, 182, 0.1);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.custom-select-option:hover .custom-select-option-icon {
+    background: rgba(244, 114, 182, 0.2);
+    transform: scale(1.1);
+}
+
+.custom-select-option-content {
+    flex: 1;
+}
+
+.custom-select-option-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.custom-select-option-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.custom-select-search {
+    padding: 0.75rem 1rem;
+    margin: 0.5rem;
+    border: 1px solid rgba(244, 114, 182, 0.2);
+    border-radius: var(--radius-lg);
+    font-size: 0.9rem;
+    background: rgba(244, 114, 182, 0.05);
+    transition: all 0.3s ease;
+}
+
+.custom-select-search:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+}
+
+.custom-select-search::placeholder {
+    color: var(--text-tertiary);
+}
+
+.custom-select-no-results {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* Scrollbar for dropdown */
+.custom-select-options::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-select-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-select-options::-webkit-scrollbar-thumb {
+    background: rgba(244, 114, 182, 0.3);
+    border-radius: 10px;
+}
+
+.custom-select-options::-webkit-scrollbar-thumb:hover {
+    background: rgba(244, 114, 182, 0.5);
 }
 
 /* Success/Error States */
@@ -1021,12 +1225,89 @@
                     Category & Discovery
                 </h3>
 
-                <!-- Enhanced Category with Modern Select -->
+                <!-- Enhanced Category with Custom Dropdown -->
                 <div class="form-group">
-                    <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
-                    <div class="select-wrapper">
-                        {{ form.category }}
+                    <label class="form-label">Category</label>
+                    <div class="custom-select-wrapper" id="category-select-wrapper">
+                        <div class="custom-select-trigger" id="category-trigger">
+                            <div class="custom-select-content">
+                                <div class="custom-select-icon">📂</div>
+                                <div class="custom-select-text placeholder" id="category-selected-text">
+                                    Select a category (optional)
+                                </div>
+                            </div>
+                            <svg class="custom-select-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        
+                        <div class="custom-select-dropdown" id="category-dropdown">
+                            <input type="text" class="custom-select-search" placeholder="Search categories..." id="category-search">
+                            <div class="custom-select-options" id="category-options">
+                                <!-- Default option -->
+                                <div class="custom-select-option" data-value="" data-icon="📂" data-name="No Category" data-description="General discussion room">
+                                    <div class="custom-select-option-icon">📂</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">No Category</div>
+                                        <div class="custom-select-option-description">General discussion room</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Sample categories (replace with dynamic content) -->
+                                <div class="custom-select-option" data-value="general" data-icon="💬" data-name="General Discussion" data-description="Open discussions about any topic">
+                                    <div class="custom-select-option-icon">💬</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">General Discussion</div>
+                                        <div class="custom-select-option-description">Open discussions about any topic</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="gaming" data-icon="🎮" data-name="Gaming" data-description="Video games, board games, and gaming culture">
+                                    <div class="custom-select-option-icon">🎮</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Gaming</div>
+                                        <div class="custom-select-option-description">Video games, board games, and gaming culture</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="technology" data-icon="💻" data-name="Technology" data-description="Tech discussions, programming, and innovation">
+                                    <div class="custom-select-option-icon">💻</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Technology</div>
+                                        <div class="custom-select-option-description">Tech discussions, programming, and innovation</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="music" data-icon="🎵" data-name="Music & Arts" data-description="Music, visual arts, and creative expressions">
+                                    <div class="custom-select-option-icon">🎵</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Music & Arts</div>
+                                        <div class="custom-select-option-description">Music, visual arts, and creative expressions</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="sports" data-icon="⚽" data-name="Sports & Fitness" data-description="Sports discussions and fitness topics">
+                                    <div class="custom-select-option-icon">⚽</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Sports & Fitness</div>
+                                        <div class="custom-select-option-description">Sports discussions and fitness topics</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="education" data-icon="📚" data-name="Education & Learning" data-description="Learning, studying, and academic discussions">
+                                    <div class="custom-select-option-icon">📚</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Education & Learning</div>
+                                        <div class="custom-select-option-description">Learning, studying, and academic discussions</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    
+                    <!-- Hidden input for form submission -->
+                    <input type="hidden" name="category" id="category-hidden-input" value="">
+                    
                     {% if not categories_count or categories_count == 0 %}
                     <div class="help-text" style="color: var(--warning);">
                         No categories available yet. Your room will be assigned to "General Discussion" automatically.
@@ -1354,10 +1635,223 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initialize all enhancements
-    initializeInputEnhancements();
-    initializeTagsEnhancement();
-    initializeAutoGeneration();
+    // Enhanced custom dropdown functionality
+    function initializeCategoryDropdown() {
+        const wrapper = document.getElementById('category-select-wrapper');
+        const trigger = document.getElementById('category-trigger');
+        const dropdown = document.getElementById('category-dropdown');
+        const selectedText = document.getElementById('category-selected-text');
+        const hiddenInput = document.getElementById('category-hidden-input');
+        const searchInput = document.getElementById('category-search');
+        const optionsContainer = document.getElementById('category-options');
+        
+        if (!wrapper || !trigger || !dropdown) return;
+        
+        let isOpen = false;
+        let selectedOption = null;
+        
+        // Toggle dropdown
+        function toggleDropdown() {
+            isOpen = !isOpen;
+            
+            if (isOpen) {
+                openDropdown();
+            } else {
+                closeDropdown();
+            }
+        }
+        
+        function openDropdown() {
+            isOpen = true;
+            trigger.classList.add('active');
+            dropdown.classList.add('active');
+            searchInput.focus();
+            
+            // Close other dropdowns and overlays
+            document.addEventListener('click', handleOutsideClick);
+            document.addEventListener('keydown', handleKeyDown);
+        }
+        
+        function closeDropdown() {
+            isOpen = false;
+            trigger.classList.remove('active');
+            dropdown.classList.remove('active');
+            searchInput.value = '';
+            filterOptions('');
+            
+            document.removeEventListener('click', handleOutsideClick);
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+        
+        function handleOutsideClick(e) {
+            if (!wrapper.contains(e.target)) {
+                closeDropdown();
+            }
+        }
+        
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        }
+        
+        // Select option
+        function selectOption(optionElement) {
+            // Remove previous selection
+            document.querySelectorAll('.custom-select-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Select new option
+            optionElement.classList.add('selected');
+            selectedOption = optionElement;
+            
+            // Update display
+            const icon = optionElement.dataset.icon;
+            const name = optionElement.dataset.name;
+            const value = optionElement.dataset.value;
+            
+            selectedText.textContent = name;
+            selectedText.classList.remove('placeholder');
+            
+            // Update icon
+            const triggerIcon = trigger.querySelector('.custom-select-icon');
+            triggerIcon.textContent = icon;
+            
+            // Update hidden input
+            hiddenInput.value = value;
+            
+            // Close dropdown
+            closeDropdown();
+            
+            // Trigger change event for form validation
+            hiddenInput.dispatchEvent(new Event('change'));
+        }
+        
+        // Filter options based on search
+        function filterOptions(searchTerm) {
+            const options = optionsContainer.querySelectorAll('.custom-select-option');
+            let visibleCount = 0;
+            
+            options.forEach(option => {
+                const name = option.dataset.name.toLowerCase();
+                const description = option.dataset.description.toLowerCase();
+                const matches = name.includes(searchTerm.toLowerCase()) || 
+                              description.includes(searchTerm.toLowerCase());
+                
+                if (matches) {
+                    option.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no results message
+            let noResults = optionsContainer.querySelector('.custom-select-no-results');
+            if (visibleCount === 0 && searchTerm.trim()) {
+                if (!noResults) {
+                    noResults = document.createElement('div');
+                    noResults.className = 'custom-select-no-results';
+                    noResults.textContent = 'No categories found';
+                    optionsContainer.appendChild(noResults);
+                }
+                noResults.style.display = 'block';
+            } else if (noResults) {
+                noResults.style.display = 'none';
+            }
+        }
+        
+        // Event listeners
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+        
+        // Option selection
+        optionsContainer.addEventListener('click', (e) => {
+            const option = e.target.closest('.custom-select-option');
+            if (option) {
+                selectOption(option);
+            }
+        });
+        
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            filterOptions(e.target.value);
+        });
+        
+        // Prevent dropdown close when clicking inside
+        dropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        // Keyboard navigation
+        optionsContainer.addEventListener('keydown', (e) => {
+            const visibleOptions = [...optionsContainer.querySelectorAll('.custom-select-option')]
+                .filter(opt => opt.style.display !== 'none');
+            
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                // Implement keyboard navigation if needed
+            } else if (e.key === 'Enter') {
+                const focusedOption = document.activeElement.closest('.custom-select-option');
+                if (focusedOption) {
+                    selectOption(focusedOption);
+                }
+            }
+        });
+        
+        // Initialize with first option selected (optional)
+        // selectOption(optionsContainer.querySelector('.custom-select-option'));
+    }
+
+    // Add advanced animations and effects
+    function initializeAdvancedEffects() {
+        // Add hover effects to all interactive elements
+        document.querySelectorAll('.floating-input, .custom-select-trigger').forEach(element => {
+            element.addEventListener('mouseenter', () => {
+                element.style.transform = 'translateY(-1px)';
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                if (!element.classList.contains('active') && document.activeElement !== element) {
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        });
+        
+        // Add ripple effect to buttons
+        document.querySelectorAll('.btn-create, .btn-cancel').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.style.position = 'absolute';
+                ripple.style.borderRadius = '50%';
+                ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.animation = 'ripple 0.6s linear';
+                ripple.style.pointerEvents = 'none';
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+    }
+
+    // Initialize all enhanced features
+    initializeCategoryDropdown();
+    initializeAdvancedEffects();
 
     // Enhanced form submission with better feedback
     form.addEventListener('submit', function(e) {
