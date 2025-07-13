@@ -430,7 +430,7 @@
                 <div class="stat-label">Rooms Created</div>
             </div>
             <div class="stat-item">
-                <span class="stat-value">{{ max_rooms|sub:user_room_count }}</span>
+                <span class="stat-value" id="remaining-slots">{{ max_rooms }}</span>
                 <div class="stat-label">Remaining Slots</div>
             </div>
             <div class="stat-item">
@@ -439,6 +439,25 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        // Calculate remaining slots
+        document.addEventListener('DOMContentLoaded', function() {
+            const remainingElement = document.getElementById('remaining-slots');
+            const userRoomCount = {{ user_room_count|default:0 }};
+            const maxRooms = {{ max_rooms|default:10 }};
+            const remaining = Math.max(0, maxRooms - userRoomCount);
+            remainingElement.textContent = remaining;
+            
+            // Add visual warning if close to limit
+            if (remaining <= 2) {
+                remainingElement.style.color = 'var(--warning)';
+            }
+            if (remaining === 0) {
+                remainingElement.style.color = 'var(--danger)';
+            }
+        });
+    </script>
     {% endif %}
 
     <!-- Form Container -->
