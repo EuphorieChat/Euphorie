@@ -185,68 +185,227 @@
     font-weight: 900;
 }
 
+/* Enhanced Input Field Styles */
+.form-group {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .form-input, .form-textarea, .form-select {
     width: 100%;
-    padding: 1rem 1.25rem;
-    border: 2px solid var(--border);
-    border-radius: var(--radius-xl);
+    padding: 1.25rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-2xl);
     font-size: 1rem;
     font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.2), rgba(96, 165, 250, 0.2)) border-box;
     position: relative;
+    z-index: 1;
+}
+
+.form-input::placeholder, .form-textarea::placeholder {
+    color: var(--text-tertiary);
+    transition: all 0.3s ease;
+}
+
+.form-input:hover, .form-textarea:hover, .form-select:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px);
+    box-shadow: 
+        0 8px 25px -8px rgba(244, 114, 182, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.1);
 }
 
 .form-input:focus, .form-textarea:focus, .form-select:focus {
     outline: none;
-    border-color: var(--primary);
-    background: white;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    transform: translateY(-3px);
     box-shadow: 
-        0 0 0 4px rgba(244, 114, 182, 0.15),
-        0 10px 25px -3px rgba(244, 114, 182, 0.1);
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25),
+        0 5px 15px -5px rgba(244, 114, 182, 0.1);
+}
+
+.form-input:focus::placeholder, .form-textarea:focus::placeholder {
+    color: transparent;
+    transform: translateY(-20px);
+}
+
+/* Floating Label Effect */
+.floating-label-container {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.floating-label {
+    position: absolute;
+    left: 1.5rem;
+    top: 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    padding: 0 0.5rem;
+    border-radius: var(--radius-md);
+    transform-origin: left center;
+}
+
+.floating-label.required::after {
+    content: " *";
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.floating-input {
+    padding: 1.5rem 1.5rem 0.75rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-2xl);
+    font-size: 1rem;
+    font-weight: 500;
+    width: 100%;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-input:focus,
+.floating-input:not(:placeholder-shown) {
+    padding-top: 1.75rem;
+    padding-bottom: 0.5rem;
+}
+
+.floating-input:focus + .floating-label,
+.floating-input:not(:placeholder-shown) + .floating-label {
+    transform: translateY(-1.5rem) translateX(-0.25rem) scale(0.85);
+    color: var(--primary);
+    background: white;
+    font-weight: 600;
+}
+
+.floating-input:focus {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
     transform: translateY(-2px);
 }
 
-.form-input:focus + .input-icon {
-    color: var(--primary);
-    transform: translateY(-50%) scale(1.1);
-}
-
+/* Enhanced Icon Container */
 .input-icon-container {
     position: relative;
+    width: 100%;
 }
 
 .input-icon {
     position: absolute;
-    left: 1.25rem;
+    left: 1.5rem;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-tertiary);
-    width: 1.375rem;
-    height: 1.375rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 1.5rem;
+    height: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 2;
+    background: rgba(244, 114, 182, 0.05);
+    border-radius: var(--radius-md);
+    padding: 0.25rem;
 }
 
 .form-input.input-with-icon {
-    padding-left: 3.5rem;
+    padding-left: 4rem;
 }
 
+.floating-input.input-with-icon {
+    padding-left: 4rem;
+}
+
+.floating-input.input-with-icon:focus + .floating-label,
+.floating-input.input-with-icon:not(:placeholder-shown) + .floating-label {
+    left: 4rem;
+}
+
+.form-input:focus ~ .input-icon,
+.floating-input:focus ~ .input-icon {
+    color: var(--primary);
+    background: rgba(244, 114, 182, 0.15);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.form-input:hover ~ .input-icon,
+.floating-input:hover ~ .input-icon {
+    background: rgba(244, 114, 182, 0.1);
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Enhanced Textarea Styles */
 .form-textarea {
     resize: vertical;
-    min-height: 120px;
-    line-height: 1.6;
+    min-height: 140px;
+    line-height: 1.7;
+    font-family: inherit;
 }
 
+.form-textarea:focus {
+    min-height: 160px;
+}
+
+/* Enhanced Select Styles */
 .form-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23f472b6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 1rem center;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23f472b6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 1.5rem center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
-    padding-right: 3rem;
+    padding-right: 4rem;
     appearance: none;
     cursor: pointer;
+    position: relative;
+}
+
+.form-select:hover {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ec4899' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.form-select:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ec4899' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Success/Error States */
+.form-input.success, .form-textarea.success, .form-select.success {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(34, 197, 94, 0.3)) border-box;
+}
+
+.form-input.success:focus, .form-textarea.success:focus {
+    box-shadow: 
+        0 0 0 4px rgba(16, 185, 129, 0.2),
+        0 15px 35px -5px rgba(16, 185, 129, 0.15);
+}
+
+.form-input.error, .form-textarea.error, .form-select.error {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3)) border-box;
+    animation: shakeX 0.5s ease-out;
+}
+
+.form-input.error:focus, .form-textarea.error:focus {
+    box-shadow: 
+        0 0 0 4px rgba(239, 68, 68, 0.2),
+        0 15px 35px -5px rgba(239, 68, 68, 0.15);
 }
 
 .checkbox-group {
@@ -823,11 +982,11 @@
                     Basic Information
                 </h3>
 
-                <!-- Enhanced Room Name -->
-                <div class="form-group">
-                    <label for="{{ form.name.id_for_label }}" class="form-label required">Room Name</label>
+                <!-- Enhanced Room Name with Floating Label -->
+                <div class="floating-label-container">
                     <div class="input-icon-container">
-                        {{ form.name }}
+                        <input type="text" id="id_name" name="name" class="floating-input input-with-icon" placeholder=" " maxlength="100" required>
+                        <label for="id_name" class="floating-label required">Room Name</label>
                         <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
@@ -836,18 +995,18 @@
                     <div class="help-text">Choose a unique, memorable name. Only letters, numbers, spaces, hyphens, and underscores allowed.</div>
                 </div>
 
-                <!-- Enhanced Display Name -->
-                <div class="form-group">
-                    <label for="{{ form.display_name.id_for_label }}" class="form-label">Display Name</label>
-                    {{ form.display_name }}
+                <!-- Enhanced Display Name with Floating Label -->
+                <div class="floating-label-container">
+                    <input type="text" id="id_display_name" name="display_name" class="floating-input" placeholder=" " maxlength="255">
+                    <label for="id_display_name" class="floating-label">Display Name</label>
                     <div class="character-counter" id="display-name-counter">0 / 255</div>
                     <div class="help-text">Optional friendly name shown to users. Leave empty to use the room name.</div>
                 </div>
 
-                <!-- Enhanced Description -->
-                <div class="form-group">
-                    <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-                    {{ form.description }}
+                <!-- Enhanced Description with Floating Label -->
+                <div class="floating-label-container">
+                    <textarea id="id_description" name="description" class="floating-input form-textarea" placeholder=" " maxlength="500" rows="4"></textarea>
+                    <label for="id_description" class="floating-label">Description</label>
                     <div class="character-counter" id="description-counter">0 / 500</div>
                     <div class="help-text">Describe your room's purpose and what kind of conversations you'd like to foster.</div>
                 </div>
@@ -862,10 +1021,12 @@
                     Category & Discovery
                 </h3>
 
-                <!-- Enhanced Category -->
+                <!-- Enhanced Category with Modern Select -->
                 <div class="form-group">
                     <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
-                    {{ form.category }}
+                    <div class="select-wrapper">
+                        {{ form.category }}
+                    </div>
                     {% if not categories_count or categories_count == 0 %}
                     <div class="help-text" style="color: var(--warning);">
                         No categories available yet. Your room will be assigned to "General Discussion" automatically.
@@ -877,18 +1038,18 @@
 
                 <!-- Optional: Category Suggestion -->
                 {% if form.suggest_new_category %}
-                <div class="form-group">
-                    <label for="{{ form.suggest_new_category.id_for_label }}" class="form-label">Suggest New Category</label>
-                    {{ form.suggest_new_category }}
+                <div class="floating-label-container">
+                    <input type="text" id="id_suggest_new_category" name="suggest_new_category" class="floating-input" placeholder=" " maxlength="50">
+                    <label for="id_suggest_new_category" class="floating-label">Suggest New Category</label>
                     <div class="help-text">Don't see the right category? Suggest one for admin review!</div>
                 </div>
                 {% endif %}
 
-                <!-- Enhanced Tags -->
-                <div class="form-group">
-                    <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                <!-- Enhanced Tags with Floating Label -->
+                <div class="floating-label-container">
                     <div class="tags-input">
-                        {{ form.tags }}
+                        <input type="text" id="id_tags" name="tags" class="floating-input" placeholder=" " maxlength="200">
+                        <label for="id_tags" class="floating-label">Tags</label>
                         <div class="tags-preview" id="tags-preview">
                             <span style="color: var(--text-tertiary); font-style: italic;">No tags added yet</span>
                         </div>
@@ -908,10 +1069,10 @@
                     Room Settings
                 </h3>
 
-                <!-- Enhanced Max Users -->
-                <div class="form-group">
-                    <label for="{{ form.max_users.id_for_label }}" class="form-label">Maximum Users</label>
-                    {{ form.max_users }}
+                <!-- Enhanced Max Users with Floating Label -->
+                <div class="floating-label-container">
+                    <input type="number" id="id_max_users" name="max_users" class="floating-input" placeholder=" " min="2" max="100" value="50">
+                    <label for="id_max_users" class="floating-label">Maximum Users</label>
                     <div class="help-text">Set the maximum number of users (2-100). Consider your room's purpose when choosing.</div>
                 </div>
 
@@ -998,77 +1159,205 @@ document.addEventListener('DOMContentLoaded', function() {
         { input: 'id_tags', counter: 'tags-counter', max: 200 }
     ];
 
-    counters.forEach(({ input, counter, max, required }) => {
-        const inputElement = document.getElementById(input);
-        const counterElement = document.getElementById(counter);
+    // Enhanced input field interactions and validation
+    function initializeInputEnhancements() {
+        // Add floating label functionality to all floating inputs
+        document.querySelectorAll('.floating-input').forEach(input => {
+            const label = input.nextElementSibling;
+            
+            // Handle focus/blur events
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('focused');
+                
+                // Add validation classes
+                if (input.hasAttribute('required') && !input.value.trim()) {
+                    input.classList.add('error');
+                    input.classList.remove('success');
+                } else if (input.value.trim()) {
+                    input.classList.add('success');
+                    input.classList.remove('error');
+                } else {
+                    input.classList.remove('error', 'success');
+                }
+            });
+            
+            // Handle input events for real-time feedback
+            input.addEventListener('input', () => {
+                input.classList.remove('error');
+                
+                // Validate as user types
+                if (input.type === 'text' && input.name === 'name') {
+                    // Room name validation
+                    const value = input.value;
+                    input.value = value.replace(/[^a-zA-Z0-9\s\-_]/g, '');
+                    
+                    if (input.value.length >= 3) {
+                        input.classList.add('success');
+                    } else {
+                        input.classList.remove('success');
+                    }
+                } else if (input.value.trim()) {
+                    input.classList.add('success');
+                } else {
+                    input.classList.remove('success');
+                }
+            });
+        });
         
-        if (inputElement && counterElement) {
-            function updateCounter() {
-                const length = inputElement.value.length;
-                const percentage = (length / max) * 100;
-                
-                counterElement.textContent = `${length} / ${max}`;
-                
-                // Reset classes
-                counterElement.className = 'character-counter';
-                
-                // Add appropriate class based on percentage
-                if (percentage > 90) {
-                    counterElement.classList.add('danger');
-                } else if (percentage > 75) {
-                    counterElement.classList.add('warning');
+        // Enhanced character counting with smooth animations
+        const enhancedCounters = [
+            { input: 'id_name', counter: 'name-counter', max: 100, required: true },
+            { input: 'id_display_name', counter: 'display-name-counter', max: 255 },
+            { input: 'id_description', counter: 'description-counter', max: 500 },
+            { input: 'id_tags', counter: 'tags-counter', max: 200 }
+        ];
+
+        enhancedCounters.forEach(({ input, counter, max, required }) => {
+            const inputElement = document.getElementById(input);
+            const counterElement = document.getElementById(counter);
+            
+            if (inputElement && counterElement) {
+                function updateCounter() {
+                    const length = inputElement.value.length;
+                    const percentage = (length / max) * 100;
+                    
+                    // Animate the counter
+                    counterElement.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        counterElement.style.transform = 'scale(1)';
+                    }, 150);
+                    
+                    counterElement.textContent = `${length} / ${max}`;
+                    
+                    // Reset classes
+                    counterElement.className = 'character-counter';
+                    
+                    // Add appropriate class based on percentage
+                    if (percentage > 90) {
+                        counterElement.classList.add('danger');
+                    } else if (percentage > 75) {
+                        counterElement.classList.add('warning');
+                    }
+                    
+                    // Update progress
+                    updateProgress();
                 }
                 
-                // Update progress
+                inputElement.addEventListener('input', updateCounter);
+                inputElement.addEventListener('blur', updateProgress);
+                updateCounter(); // Initial update
+            }
+        });
+    }
+
+    // Enhanced tags with better UX
+    function initializeTagsEnhancement() {
+        const tagsInput = document.getElementById('id_tags');
+        const tagsPreview = document.getElementById('tags-preview');
+        
+        if (tagsInput && tagsPreview) {
+            function updateTagsPreview() {
+                const tags = tagsInput.value.split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag)
+                    .slice(0, 10); // Limit to 10 tags
+                
+                // Clear preview
+                tagsPreview.innerHTML = '';
+                
+                if (tags.length === 0) {
+                    tagsPreview.innerHTML = '<span style="color: var(--text-tertiary); font-style: italic;">Start typing tags separated by commas...</span>';
+                } else {
+                    tags.forEach((tag, index) => {
+                        const tagElement = document.createElement('span');
+                        tagElement.className = 'tag-item';
+                        tagElement.textContent = tag;
+                        tagElement.style.animationDelay = `${index * 0.1}s`;
+                        
+                        // Add click to remove functionality
+                        tagElement.style.cursor = 'pointer';
+                        tagElement.title = 'Click to remove';
+                        tagElement.addEventListener('click', () => {
+                            const allTags = tagsInput.value.split(',').map(t => t.trim());
+                            const newTags = allTags.filter(t => t !== tag);
+                            tagsInput.value = newTags.join(', ');
+                            updateTagsPreview();
+                        });
+                        
+                        tagsPreview.appendChild(tagElement);
+                    });
+                    
+                    if (tagsInput.value.split(',').length > 10) {
+                        const warningElement = document.createElement('span');
+                        warningElement.style.color = 'var(--warning)';
+                        warningElement.style.fontSize = '0.8rem';
+                        warningElement.style.fontStyle = 'italic';
+                        warningElement.textContent = '(Only first 10 tags shown)';
+                        tagsPreview.appendChild(warningElement);
+                    }
+                }
+                
                 updateProgress();
             }
             
-            inputElement.addEventListener('input', updateCounter);
-            inputElement.addEventListener('blur', updateProgress);
-            updateCounter(); // Initial update
-        }
-    });
-
-    // Enhanced tags preview with animations
-    const tagsInput = document.getElementById('id_tags');
-    const tagsPreview = document.getElementById('tags-preview');
-    
-    if (tagsInput && tagsPreview) {
-        function updateTagsPreview() {
-            const tags = tagsInput.value.split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag)
-                .slice(0, 10); // Limit to 10 tags
+            tagsInput.addEventListener('input', updateTagsPreview);
             
-            tagsPreview.innerHTML = '';
-            
-            if (tags.length === 0) {
-                tagsPreview.innerHTML = '<span style="color: var(--text-tertiary); font-style: italic;">No tags added yet</span>';
-            } else {
-                tags.forEach((tag, index) => {
-                    const tagElement = document.createElement('span');
-                    tagElement.className = 'tag-item';
-                    tagElement.textContent = tag;
-                    tagElement.style.animationDelay = `${index * 0.1}s`;
-                    tagsPreview.appendChild(tagElement);
-                });
-                
-                if (tagsInput.value.split(',').length > 10) {
-                    const warningElement = document.createElement('span');
-                    warningElement.style.color = 'var(--warning)';
-                    warningElement.style.fontSize = '0.8rem';
-                    warningElement.style.fontStyle = 'italic';
-                    warningElement.textContent = '(Only first 10 tags shown)';
-                    tagsPreview.appendChild(warningElement);
+            // Add Enter key support for tags
+            tagsInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const currentValue = tagsInput.value.trim();
+                    if (currentValue && !currentValue.endsWith(',')) {
+                        tagsInput.value = currentValue + ', ';
+                        updateTagsPreview();
+                    }
                 }
-            }
+            });
             
-            updateProgress();
+            updateTagsPreview(); // Initial update
         }
-        
-        tagsInput.addEventListener('input', updateTagsPreview);
-        updateTagsPreview(); // Initial update
     }
+
+    // Enhanced auto-generation with better UX
+    function initializeAutoGeneration() {
+        const nameInput = document.getElementById('id_name');
+        const displayNameInput = document.getElementById('id_display_name');
+        
+        if (nameInput && displayNameInput) {
+            let userHasTypedDisplayName = false;
+            
+            displayNameInput.addEventListener('input', () => {
+                userHasTypedDisplayName = displayNameInput.value.length > 0;
+            });
+            
+            nameInput.addEventListener('input', function() {
+                if (!userHasTypedDisplayName && this.value.length > 0) {
+                    // Generate a nicer display name with animation
+                    const displayName = this.value
+                        .split(/[\s\-_]+/)
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                        .join(' ');
+                    
+                    // Animate the change
+                    displayNameInput.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        displayNameInput.value = displayName;
+                        displayNameInput.style.transform = 'scale(1)';
+                        displayNameInput.dispatchEvent(new Event('input'));
+                    }, 100);
+                }
+            });
+        }
+    }
+
+    // Initialize all enhancements
+    initializeInputEnhancements();
+    initializeTagsEnhancement();
+    initializeAutoGeneration();
 
     // Enhanced form submission with better feedback
     form.addEventListener('submit', function(e) {
