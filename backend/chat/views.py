@@ -1305,7 +1305,7 @@ def admin_dashboard(request):
         'top_nationalities': top_nationalities,
     }
     
-    return render(request, 'chat/admin/dashboard.html', context)
+    return render(request, 'chat/admin_dashboard.html', context)
 
 # [REST OF THE ORIGINAL VIEWS REMAIN THE SAME - admin_rooms, admin_messages, etc.]
 # [I'll keep them unchanged to preserve your existing functionality]
