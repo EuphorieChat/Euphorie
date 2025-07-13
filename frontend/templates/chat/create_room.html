@@ -1253,7 +1253,21 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Sample categories (replace with dynamic content) -->
+                                <!-- Dynamic categories from Django -->
+                                {% for choice in form.category.field.queryset %}
+                                <div class="custom-select-option" 
+                                     data-value="{{ choice.id }}" 
+                                     data-icon="{{ choice.icon|default:'📁' }}" 
+                                     data-name="{{ choice.name }}" 
+                                     data-description="{{ choice.description|default:'No description available' }}">
+                                    <div class="custom-select-option-icon">{{ choice.icon|default:'📁' }}</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">{{ choice.name }}</div>
+                                        <div class="custom-select-option-description">{{ choice.description|default:'No description available' }}</div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <!-- Fallback categories if no categories exist -->
                                 <div class="custom-select-option" data-value="general" data-icon="💬" data-name="General Discussion" data-description="Open discussions about any topic">
                                     <div class="custom-select-option-icon">💬</div>
                                     <div class="custom-select-option-content">
@@ -1301,6 +1315,7 @@
                                         <div class="custom-select-option-description">Learning, studying, and academic discussions</div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
@@ -1310,7 +1325,7 @@
                     
                     {% if not categories_count or categories_count == 0 %}
                     <div class="help-text" style="color: var(--warning);">
-                        No categories available yet. Your room will be assigned to "General Discussion" automatically.
+                        ⚠️ No categories available yet. Your room will be assigned to "General Discussion" automatically.
                     </div>
                     {% else %}
                     <div class="help-text">Choose a category to help users discover your room. Defaults to General Discussion if none selected.</div>
