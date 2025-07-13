@@ -438,8 +438,8 @@ impl WebSocketServer {
 
                     let response = ServerMessage::SceneChange {
                         user_id: final_user_id,
-                        username: final_username,
-                        scene_preset,
+                        username: final_username.clone(),
+                        scene_preset: scene_preset.clone(),
                         scene_name,
                         change_data,
                         nationality,
@@ -475,8 +475,8 @@ impl WebSocketServer {
 
                     let response = ServerMessage::WeatherChange {
                         user_id: final_user_id,
-                        username: final_username,
-                        weather_type,
+                        username: final_username.clone(),
+                        weather_type: weather_type.clone(),
                         intensity: intensity.unwrap_or(1.0),
                         nationality,
                         timestamp: chrono::Utc::now().timestamp_millis(),
@@ -511,8 +511,8 @@ impl WebSocketServer {
 
                     let response = ServerMessage::TimeChange {
                         user_id: final_user_id,
-                        username: final_username,
-                        time_of_day,
+                        username: final_username.clone(),
+                        time_of_day: time_of_day.clone(),
                         hour,
                         nationality,
                         timestamp: chrono::Utc::now().timestamp_millis(),
