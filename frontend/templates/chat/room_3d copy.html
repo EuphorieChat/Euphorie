@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1265,6 +1266,11 @@
                         <div class="icon">👥</div>
                         <div>Friends</div>
                     </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showNationalitySelector && window.showNationalitySelector(); window.closeDesktopMenu && window.closeDesktopMenu();">
+                        <div class="icon">🌍</div>
+                        <div>Nationality</div>
+                    </button>
                 </div>
             </div>
             
@@ -1365,6 +1371,11 @@
                         <div class="icon">👥</div>
                         <div>Friends</div>
                     </button>
+                    <button class="mobile-action-btn" 
+                            onclick="window.showNationalitySelector && window.showNationalitySelector(); window.closeMobileMenu && window.closeMobileMenu();">
+                        <div class="icon">🌍</div>
+                        <div>Nationality</div>
+                    </button>
                 </div>
             </div>
             
@@ -1425,6 +1436,7 @@
                 // Fixed: Use request.user.id for authenticated users
                 userId: {% if request.user.is_authenticated %}'{{ request.user.id }}'{% else %}null{% endif %},
                 username: {% if request.user.is_authenticated %}'{{ request.user.username|escapejs }}'{% else %}'Guest_' + Math.random().toString(36).substr(2, 9){% endif %},
+                userNationality: '{{ user_nationality|default:"UN" }}',
                 isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
                 
                 maxUsers: {{ room.max_users|default:10 }},
@@ -1554,685 +1566,1010 @@
         }
     </script>
     
-    <!-- Enhanced WebSocket Manager - Improved Version -->
+    <!-- Enhanced WebSocket Manager - FIXED VERSION -->
     <script>
+        // Enhanced WebSocket Manager for Rust Server Integration - FIXED AVATAR CREATION
+        class EuphorieWebSocketManager {
+            constructor() {
+                this.socket = null;
+                this.connected = false;
+                this.authenticated = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.messageQueue = [];
+                this.typingTimer = null;
+                this.isTyping = false;
+                this.lastPingTime = 0;
+                this.connectedUsers = new Map(); // Track all connected users
+                
+                // Generate user ID if not provided
+                this.userId = (window.ROOM_CONFIG && window.ROOM_CONFIG.userId) || 'guest_' + Math.random().toString(36).substr(2, 9);
+                this.username = (window.ROOM_CONFIG && window.ROOM_CONFIG.username) || 'Guest';
+                this.roomId = (window.ROOM_CONFIG && window.ROOM_CONFIG.roomId) || 'default-room';
 
-    // Enhanced WebSocket Manager for Rust Server Integration - COMPLETE VERSION
-    class EuphorieWebSocketManager {
-        constructor() {
-            this.socket = null;
-            this.connected = false;
-            this.authenticated = false;
-            this.reconnectAttempts = 0;
-            this.maxReconnectAttempts = 5;
-            this.reconnectDelay = 1000;
-            this.messageQueue = [];
-            this.typingTimer = null;
-            this.isTyping = false;
-            this.lastPingTime = 0;
-            this.connectedUsers = new Map(); // Track all connected users
-            
-            // Generate user ID if not provided
-            this.userId = (window.ROOM_CONFIG && window.ROOM_CONFIG.userId) || 'guest_' + Math.random().toString(36).substr(2, 9);
-            this.username = (window.ROOM_CONFIG && window.ROOM_CONFIG.username) || 'Guest';
-            this.roomId = (window.ROOM_CONFIG && window.ROOM_CONFIG.roomId) || 'default-room';
-
-            // Double-check that ROOM_CONFIG exists
-            if (!window.ROOM_CONFIG) {
-                console.error('❌ ROOM_CONFIG not found, creating fallback');
-                window.ROOM_CONFIG = {
-                    userId: this.userId,
-                    username: this.username,
-                    roomId: this.roomId,
-                    rustWebSocketUrl: `wss://${window.location.hostname}/ws/`
-                };
-            }
-            // Bind methods
-            this.connect = this.connect.bind(this);
-            this.send = this.send.bind(this);
-            this.handleMessage = this.handleMessage.bind(this);
-            this.handleOpen = this.handleOpen.bind(this);
-            this.handleClose = this.handleClose.bind(this);
-            this.handleError = this.handleError.bind(this);
-            
-            console.log('🔌 WebSocket Manager initialized for user:', this.username);
-        }
-        
-        connect() {
-            if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
-                return;
-            }
-            
-            try {
-                const url = window.ROOM_CONFIG.rustWebSocketUrl;
-                console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
-                this.updateConnectionStatus('connecting');
-                
-                this.socket = new WebSocket(url);
-                this.socket.onopen = this.handleOpen;
-                this.socket.onmessage = this.handleMessage;
-                this.socket.onclose = this.handleClose;
-                this.socket.onerror = this.handleError;
-                
-            } catch (error) {
-                console.error('❌ WebSocket connection failed:', error);
-                this.scheduleReconnect();
-            }
-        }
-        
-        handleOpen(event) {
-            console.log('✅ Connected to Rust WebSocket server');
-            this.connected = true;
-            this.reconnectAttempts = 0;
-            this.updateConnectionStatus('connected');
-            
-            // Send authentication message
-            this.send({
-                type: 'auth',
-                user_id: this.userId,
-                room_id: this.roomId,
-                username: this.username,
-                timestamp: Date.now()
-            });
-            
-            // Send queued messages
-            while (this.messageQueue.length > 0) {
-                const message = this.messageQueue.shift();
-                this.send(message);
-            }
-            
-            // Start ping interval
-            this.startPingInterval();
-        }
-        
-        handleMessage(event) {
-            try {
-                const data = JSON.parse(event.data);
-                console.log('📨 Received message:', data);
-                
-                switch (data.type) {
-                    case 'auth_success':
-                        this.authenticated = true;
-                        console.log(`✅ Authentication successful for room: ${data.room_id}`);
-                        this.addSystemMessage(`Connected to ${data.room_info ? data.room_info.name : 'room'}`);
-                        this.enableChatInput();
-                        
-                        // Request current room state
-                        this.send({
-                            type: 'get_room_state',
-                            room_id: this.roomId
-                        });
-                        break;
-                        
-                    case 'auth_error':
-                        console.error(`❌ Authentication failed: ${data.error}`);
-                        this.addSystemMessage(`Authentication failed: ${data.error}`);
-                        break;
-                        
-                    case 'room_state':
-                        this.handleRoomState(data);
-                        break;
-                        
-                    case 'user_joined':
-                        this.handleUserJoined(data);
-                        break;
-                        
-                    case 'user_left':
-                        this.handleUserLeft(data);
-                        break;
-                        
-                    case 'chat_message':
-                        this.handleChatMessage(data);
-                        break;
-                        
-                    case 'user_position_update':
-                        this.handleUserPositionUpdate(data);
-                        break;
-                        
-                    case 'emotion':
-                        this.handleEmotion(data);
-                        break;
-                        
-                    case 'interaction':
-                        this.handleInteraction(data);
-                        break;
-                        
-                    case 'typing':
-                        this.handleTyping(data);
-                        break;
-                        
-                    case 'pong':
-                        const latency = Date.now() - this.lastPingTime;
-                        console.log(`🏓 Pong received (${latency}ms)`);
-                        break;
-                        
-                    case 'system':
-                        this.addSystemMessage(data.message);
-                        break;
-                        
-                    case 'error':
-                        console.error(`❌ Server error: ${data.error}`);
-                        this.addSystemMessage(`Error: ${data.error}`);
-                        break;
-                        
-                    default:
-                        console.log(`🔍 Unknown message type: ${data.type}`);
+                // Double-check that ROOM_CONFIG exists
+                if (!window.ROOM_CONFIG) {
+                    console.error('❌ ROOM_CONFIG not found, creating fallback');
+                    window.ROOM_CONFIG = {
+                        userId: this.userId,
+                        username: this.username,
+                        roomId: this.roomId,
+                        rustWebSocketUrl: `wss://${window.location.hostname}/ws/`
+                    };
                 }
                 
-            } catch (error) {
-                console.error('❌ Error parsing WebSocket message:', error);
+                // Bind methods
+                this.connect = this.connect.bind(this);
+                this.send = this.send.bind(this);
+                this.handleMessage = this.handleMessage.bind(this);
+                this.handleOpen = this.handleOpen.bind(this);
+                this.handleClose = this.handleClose.bind(this);
+                this.handleError = this.handleError.bind(this);
+                
+                console.log('🔌 WebSocket Manager initialized for user:', this.username);
+                console.log('🔍 User ID:', this.userId);
             }
-        }
-        
-        // NEW: Handle room state to sync all users
-        handleRoomState(data) {
-            console.log('🏠 Received room state:', data);
             
-            if (data.users) {
-                // Clear existing user tracking
+            connect() {
+                if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+                    return;
+                }
+                
+                try {
+                    const url = window.ROOM_CONFIG.rustWebSocketUrl;
+                    console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
+                    this.updateConnectionStatus('connecting');
+                    
+                    this.socket = new WebSocket(url);
+                    this.socket.onopen = this.handleOpen;
+                    this.socket.onmessage = this.handleMessage;
+                    this.socket.onclose = this.handleClose;
+                    this.socket.onerror = this.handleError;
+                    
+                } catch (error) {
+                    console.error('❌ WebSocket connection failed:', error);
+                    this.scheduleReconnect();
+                }
+            }
+            
+            handleOpen(event) {
+                console.log('✅ Connected to Rust WebSocket server');
+                this.connected = true;
+                this.reconnectAttempts = 0;
+                this.updateConnectionStatus('connected');
+                
+                // Send authentication message
+                this.send({
+                    type: 'auth',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    username: this.username,
+                    timestamp: Date.now()
+                });
+                
+                // Send queued messages
+                while (this.messageQueue.length > 0) {
+                    const message = this.messageQueue.shift();
+                    this.send(message);
+                }
+                
+                // Start ping interval
+                this.startPingInterval();
+            }
+            
+            handleMessage(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 Received message:', data);
+                    
+                    switch (data.type) {
+                        case 'auth_success':
+                            this.authenticated = true;
+                            console.log(`✅ Authentication successful for room: ${data.room_id}`);
+                            this.addSystemMessage(`Connected to ${data.room_info ? data.room_info.name : 'room'}`);
+                            this.enableChatInput();
+                            
+                            // Request current room state
+                            this.send({
+                                type: 'get_room_state',
+                                room_id: this.roomId
+                            });
+                            break;
+                            
+                        case 'auth_error':
+                            console.error(`❌ Authentication failed: ${data.error}`);
+                            this.addSystemMessage(`Authentication failed: ${data.error}`);
+                            break;
+                            
+                        case 'room_state':
+                            this.handleRoomState(data);
+                            break;
+                            
+                        case 'user_joined':
+                            this.handleUserJoined(data);
+                            break;
+                            
+                        case 'user_left':
+                            this.handleUserLeft(data);
+                            break;
+                            
+                        case 'chat_message':
+                            this.handleChatMessage(data);
+                            break;
+                            
+                        case 'user_position_update':
+                            this.handleUserPositionUpdate(data);
+                            break;
+                            
+                        case 'emotion':
+                            this.handleEmotion(data);
+                            break;
+                            
+                        case 'interaction':
+                            this.handleInteraction(data);
+                            break;
+                            
+                        case 'typing':
+                            this.handleTyping(data);
+                            break;
+                            
+                        case 'pong':
+                            const latency = Date.now() - this.lastPingTime;
+                            console.log(`🏓 Pong received (${latency}ms)`);
+                            break;
+                            
+                        case 'system':
+                            this.addSystemMessage(data.message);
+                            break;
+                            
+                        case 'error':
+                            console.error(`❌ Server error: ${data.error}`);
+                            this.addSystemMessage(`Error: ${data.error}`);
+                            break;
+                            
+                        default:
+                            console.log(`🔍 Unknown message type: ${data.type}`);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error parsing WebSocket message:', error);
+                }
+            }
+            
+            // FIXED: Handle room state to sync all users
+            handleRoomState(data) {
+                console.log('🏠 Received room state:', data);
+                
+                if (data.users) {
+                    // Clear existing user tracking
+                    this.connectedUsers.clear();
+                    
+                    // Add all users from room state, but DON'T create avatar for current user
+                    data.users.forEach(user => {
+                        console.log(`👤 Processing user: ${user.username} (${user.user_id})`);
+                        console.log(`🔍 Current user ID: ${this.userId}`);
+                        console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
+                        
+                        if (user.user_id !== this.userId) {
+                            console.log(`✅ Adding remote user: ${user.username}`);
+                            this.connectedUsers.set(user.user_id, user);
+                            this.createRemoteAvatar(user);
+                        } else {
+                            console.log(`⚠️ Skipping avatar creation for current user: ${user.username}`);
+                        }
+                    });
+                    
+                    console.log(`👥 Room has ${data.users.length} users total`);
+                    console.log(`🎭 Will create ${this.connectedUsers.size} remote avatars`);
+                    this.updateUserCount(data.users.length);
+                }
+            }
+            
+            // FIXED: Handle when a user joins
+            handleUserJoined(data) {
+                console.log(`👋 ${data.username} joined the room`);
+                console.log(`🔍 Joined user ID: ${data.user_id}`);
+                console.log(`🔍 Current user ID: ${this.userId}`);
+                console.log(`🔍 User ID comparison: "${data.user_id}" !== "${this.userId}" = ${data.user_id !== this.userId}`);
+                
+                this.addSystemMessage(`${data.username} joined the room`);
+                
+                // CRITICAL: Don't create avatar for ourselves
+                if (data.user_id !== this.userId) {
+                    console.log(`✅ Creating remote avatar for: ${data.username}`);
+                    this.connectedUsers.set(data.user_id, data);
+                    this.createRemoteAvatar(data);
+                } else {
+                    console.log(`⚠️ Skipping avatar creation for current user: ${data.username}`);
+                }
+                
+                this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
+            }
+            
+            // FIXED: Handle when a user leaves
+            handleUserLeft(data) {
+                console.log(`👋 ${data.username} left the room`);
+                this.addSystemMessage(`${data.username} left the room`);
+                
+                // Remove their avatar
+                if (data.user_id !== this.userId) {
+                    this.removeRemoteAvatar(data.user_id);
+                    this.connectedUsers.delete(data.user_id);
+                }
+                
+                this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
+            }
+            
+            // FIXED: Create avatar for remote user - uses the actual loaded systems
+            async createRemoteAvatar(userData) {
+                console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id})`);
+                
+                // Double-check we're not creating avatar for current user
+                if (userData.user_id === this.userId) {
+                    console.warn(`❌ Attempted to create avatar for current user - skipping`);
+                    return;
+                }
+                
+                // Strategy 1: Use AvatarSystem.createAvatar with the user ID as the avatar ID
+                if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
+                    try {
+                        console.log(`📋 Using AvatarSystem.createAvatar for ${userData.username}`);
+                        
+                        // Generate a consistent position based on user ID
+                        const hash = userData.user_id.split('').reduce((a, b) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                        }, 0);
+                        
+                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                        const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius
+                        
+                        const position = {
+                            x: Math.cos(angle) * radius,
+                            y: 0,
+                            z: Math.sin(angle) * radius
+                        };
+                        
+                        // Use existing position if available
+                        if (userData.position) {
+                            position.x = userData.position.x;
+                            position.y = userData.position.y;
+                            position.z = userData.position.z;
+                        }
+                        
+                        // Create avatar using the user ID as avatar ID
+                        const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
+                            name: userData.username,
+                            position: position,
+                            // Use random customization if available
+                            ...(window.AvatarSystem.getRandomCustomization ? window.AvatarSystem.getRandomCustomization() : {})
+                        });
+                        
+                        if (avatar) {
+                            console.log(`✅ Created avatar for ${userData.username} using AvatarSystem.createAvatar`);
+                            return avatar;
+                        }
+                        
+                    } catch (error) {
+                        console.error(`❌ Error creating avatar with AvatarSystem.createAvatar:`, error);
+                    }
+                }
+                
+                // Strategy 2: Use the scene and THREE from the SceneManager
+                if (window.SceneManager && window.SceneManager.scene && window.THREE) {
+                    try {
+                        console.log(`📋 Using SceneManager.scene for ${userData.username}`);
+                        
+                        // Create a simple colored box as avatar
+                        const geometry = new THREE.BoxGeometry(1, 2, 1);
+                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+                        const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+                        const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
+                        const avatar = new THREE.Mesh(geometry, material);
+                        
+                        // Position avatar
+                        const hash = userData.user_id.split('').reduce((a, b) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                        }, 0);
+                        
+                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                        const radius = 3 + (Math.abs(hash) % 4);
+                        
+                        avatar.position.set(
+                            Math.cos(angle) * radius,
+                            1, // Height above ground
+                            Math.sin(angle) * radius
+                        );
+                        
+                        // Add username label with nationality flag
+                        const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                        avatar.add(nametagGroup);
+                        
+                        // Store user ID for removal
+                        avatar.userData = { userId: userData.user_id, username: userData.username };
+                        
+                        window.SceneManager.scene.add(avatar);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} using SceneManager.scene`);
+                        
+                        return avatar;
+                        
+                    } catch (error) {
+                        console.error(`❌ Error creating Three.js avatar with SceneManager:`, error);
+                    }
+                }
+                
+                // Strategy 3: Try to get the scene from the AvatarSystem
+                if (window.AvatarSystem && window.AvatarSystem.scene && window.THREE) {
+                    try {
+                        console.log(`📋 Using AvatarSystem.scene for ${userData.username}`);
+                        
+                        // Create a simple colored box as avatar
+                        const geometry = new THREE.BoxGeometry(1, 2, 1);
+                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+                        const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+                        const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
+                        const avatar = new THREE.Mesh(geometry, material);
+                        
+                        // Position avatar
+                        const hash = userData.user_id.split('').reduce((a, b) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                        }, 0);
+                        
+                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                        const radius = 3 + (Math.abs(hash) % 4);
+                        
+                        avatar.position.set(
+                            Math.cos(angle) * radius,
+                            1, // Height above ground
+                            Math.sin(angle) * radius
+                        );
+                        
+                        // Add username label with nationality flag
+                        const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                        avatar.add(nametagGroup);
+                        
+                        // Store user ID for removal
+                        avatar.userData = { userId: userData.user_id, username: userData.username };
+                        
+                        window.AvatarSystem.scene.add(avatar);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} using AvatarSystem.scene`);
+                        
+                        return avatar;
+                        
+                    } catch (error) {
+                        console.error(`❌ Error creating Three.js avatar with AvatarSystem.scene:`, error);
+                    }
+                }
+                
+                // Strategy 4: Wait for systems to be ready and try again
+                console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
+                
+                setTimeout(() => {
+                    console.log(`🔄 Retrying avatar creation for ${userData.username}...`);
+                    this.createRemoteAvatar(userData);
+                }, 2000);
+                
+                console.error(`❌ Failed to create avatar for ${userData.username} - will retry in 2 seconds`);
+                
+                // Show notification to user
+                this.showNotification(`⏳ Creating avatar for ${userData.username}...`);
+            }
+            
+            // Create enhanced nametag with nationality flag
+            async createEnhancedNametagWithFlag(userData) {
+                const nationality = userData.nationality || 'UN';
+                
+                // Create nametag canvas
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 320;
+                canvas.height = 90;
+                
+                // Background with gradient
+                const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+                context.fillStyle = gradient;
+                this.roundRect(context, 0, 0, canvas.width, canvas.height, 10);
+                context.fill();
+                
+                // Border
+                context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                context.lineWidth = 2;
+                context.stroke();
+                
+                // Username
+                context.fillStyle = 'white';
+                context.font = 'bold 20px Arial';
+                context.textAlign = 'center';
+                context.fillText(userData.username, canvas.width / 2, 35);
+                
+                // Country name
+                const countryNames = {
+                    'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
+                    'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
+                    'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+                    'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
+                    'UN': 'Unknown'
+                };
+                
+                const countryName = countryNames[nationality] || 'Unknown';
+                context.fillStyle = '#4CAF50';
+                context.font = '14px Arial';
+                context.fillText(countryName, canvas.width / 2, 60);
+                
+                // Create nametag mesh
+                const labelTexture = new THREE.CanvasTexture(canvas);
+                const labelMaterial = new THREE.MeshBasicMaterial({ 
+                    map: labelTexture, 
+                    transparent: true 
+                });
+                const labelGeometry = new THREE.PlaneGeometry(3.2, 0.9);
+                const nametagMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+                nametagMesh.position.set(0, 2.8, 0);
+                
+                // Create flag mesh
+                const nametagGroup = new THREE.Group();
+                nametagGroup.add(nametagMesh);
+                
+                try {
+                    const flagTexture = await this.loadFlagTexture(nationality);
+                    if (flagTexture) {
+                        const flagMaterial = new THREE.MeshBasicMaterial({ 
+                            map: flagTexture, 
+                            transparent: true 
+                        });
+                        const flagGeometry = new THREE.PlaneGeometry(0.6, 0.4);
+                        const flagMesh = new THREE.Mesh(flagGeometry, flagMaterial);
+                        flagMesh.position.set(-1.2, 3.5, 0.01);
+                        nametagGroup.add(flagMesh);
+                    }
+                } catch (error) {
+                    console.warn(`Could not load flag for ${nationality}:`, error);
+                }
+                
+                return nametagGroup;
+            }
+            
+            // Load flag texture from CDN
+            async loadFlagTexture(countryCode) {
+                try {
+                    const flagUrl = `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
+                    const texture = new THREE.TextureLoader().load(flagUrl);
+                    texture.minFilter = THREE.LinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    return texture;
+                } catch (error) {
+                    console.warn(`Failed to load flag for ${countryCode}:`, error);
+                    return null;
+                }
+            }
+            
+            // Helper function for rounded rectangles
+            roundRect(ctx, x, y, width, height, radius) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+            }
+            
+            // FIXED: Remove avatar for remote user - handles multiple scene sources
+            removeRemoteAvatar(userId) {
+                console.log('🗑️ Removing remote avatar for user:', userId);
+                
+                // Strategy 1: Use AvatarSystem.removeAvatar
+                if (window.AvatarSystem && window.AvatarSystem.removeAvatar) {
+                    try {
+                        window.AvatarSystem.removeAvatar(userId);
+                        console.log(`✅ Removed avatar for user ${userId} using AvatarSystem.removeAvatar`);
+                    } catch (error) {
+                        console.error('Error removing avatar with AvatarSystem.removeAvatar:', error);
+                    }
+                }
+                
+                // Strategy 2: Manual removal from SceneManager.scene
+                if (window.SceneManager && window.SceneManager.scene) {
+                    try {
+                        const avatarsToRemove = [];
+                        window.SceneManager.scene.traverse((child) => {
+                            if (child.userData && child.userData.userId === userId) {
+                                avatarsToRemove.push(child);
+                            }
+                        });
+                        
+                        avatarsToRemove.forEach(avatar => {
+                            // Dispose of geometry and materials
+                            if (avatar.geometry) avatar.geometry.dispose();
+                            if (avatar.material) {
+                                if (Array.isArray(avatar.material)) {
+                                    avatar.material.forEach(material => material.dispose());
+                                } else {
+                                    avatar.material.dispose();
+                                }
+                            }
+                            
+                            window.SceneManager.scene.remove(avatar);
+                            console.log(`✅ Manually removed avatar for user ${userId} from SceneManager.scene`);
+                        });
+                        
+                    } catch (error) {
+                        console.error('Error manually removing avatar from SceneManager.scene:', error);
+                    }
+                }
+                
+                // Strategy 3: Manual removal from AvatarSystem.scene
+                if (window.AvatarSystem && window.AvatarSystem.scene) {
+                    try {
+                        const avatarsToRemove = [];
+                        window.AvatarSystem.scene.traverse((child) => {
+                            if (child.userData && child.userData.userId === userId) {
+                                avatarsToRemove.push(child);
+                            }
+                        });
+                        
+                        avatarsToRemove.forEach(avatar => {
+                            // Dispose of geometry and materials
+                            if (avatar.geometry) avatar.geometry.dispose();
+                            if (avatar.material) {
+                                if (Array.isArray(avatar.material)) {
+                                    avatar.material.forEach(material => material.dispose());
+                                } else {
+                                    avatar.material.dispose();
+                                }
+                            }
+                            
+                            window.AvatarSystem.scene.remove(avatar);
+                            console.log(`✅ Manually removed avatar for user ${userId} from AvatarSystem.scene`);
+                        });
+                        
+                    } catch (error) {
+                        console.error('Error manually removing avatar from AvatarSystem.scene:', error);
+                    }
+                }
+                
+                // Also remove their chat bubbles
+                if (window.ChatBubbleSystem && window.ChatBubbleSystem.removeUserBubbles) {
+                    try {
+                        window.ChatBubbleSystem.removeUserBubbles(userId);
+                    } catch (error) {
+                        console.warn('Error removing user bubbles:', error);
+                    }
+                }
+            }
+            
+            // Helper method to show notifications
+            showNotification(message) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, rgba(255, 107, 53, 0.95), rgba(255, 152, 0, 0.95));
+                    backdrop-filter: blur(15px);
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    z-index: 10000;
+                    font-weight: 600;
+                    font-size: 13px;
+                    transform: translateX(400px);
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(400px)';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+            
+            // Handle position updates from other users
+            handleUserPositionUpdate(data) {
+                if (data.user_id !== this.userId && window.AvatarSystem) {
+                    try {
+                        window.AvatarSystem.updateAvatarPosition(data.user_id, data.position);
+                        
+                        // Also update chat bubble positions
+                        if (window.ChatBubbleSystem?.updateBubblePositions) {
+                            const pos = new THREE.Vector3(data.position.x, data.position.y, data.position.z);
+                            window.ChatBubbleSystem.updateBubblePositions(data.user_id, pos);
+                        }
+                    } catch (error) {
+                        console.warn('Error updating remote avatar position:', error);
+                    }
+                }
+            }
+            
+            handleChatMessage(data) {
+                const isOwn = data.user_id === this.userId;
+                this.addMessageToChat(data.username, data.message, isOwn);
+                
+                // Create 3D chat bubble if enabled and system is available
+                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                    try {
+                        // Use the safe wrapper method
+                        if (window.ChatBubbleSystem.createBubbleFromMessageSafe) {
+                            window.ChatBubbleSystem.createBubbleFromMessageSafe(data);
+                        } else if (window.ChatBubbleSystem.createBubbleFromMessage) {
+                            window.ChatBubbleSystem.createBubbleFromMessage(data);
+                        }
+                    } catch (error) {
+                        console.warn('Error creating chat bubble:', error);
+                    }
+                }
+                
+                // Update bubble count
+                this.updateBubbleCount();
+            }
+            
+            handleEmotion(data) {
+                console.log(`🎭 ${data.user_id} is feeling ${data.emotion}`);
+                this.addSystemMessage(`${data.username || data.user_id} is feeling ${data.emotion} 🎭`);
+                
+                // Trigger 3D emotion if system is available
+                if (window.EmotionSystem && window.EmotionSystem.showRemoteEmotion) {
+                    window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
+                }
+            }
+            
+            handleInteraction(data) {
+                console.log(`🤝 Interaction: ${data.user_id} -> ${data.interaction_type}`);
+                this.addSystemMessage(`${data.username || data.user_id} ${data.interaction_type} 🤝`);
+                
+                // Trigger 3D interaction if system is available
+                if (window.InteractionSystem && window.InteractionSystem.handleRemoteInteraction) {
+                    window.InteractionSystem.handleRemoteInteraction(data);
+                }
+            }
+            
+            handleTyping(data) {
+                this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
+            }
+            
+            handleClose(event) {
+                console.log('🔌 WebSocket connection closed:', event);
+                this.connected = false;
+                this.authenticated = false;
+                this.updateConnectionStatus('disconnected');
+                this.disableChatInput();
+                
+                // Clear remote avatars
+                this.connectedUsers.forEach((userData, userId) => {
+                    this.removeRemoteAvatar(userId);
+                });
                 this.connectedUsers.clear();
                 
-                // Add all users from room state
-                data.users.forEach(user => {
-                    if (user.user_id !== this.userId) {
-                        this.connectedUsers.set(user.user_id, user);
-                        this.createRemoteAvatar(user);
+                if (!event.wasClean) {
+                    this.scheduleReconnect();
+                }
+            }
+            
+            handleError(error) {
+                console.error('❌ WebSocket error:', error);
+                this.updateConnectionStatus('disconnected');
+            }
+            
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+                    
+                    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                    this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                } else {
+                    console.error('❌ Max reconnection attempts reached');
+                    this.updateConnectionStatus('disconnected');
+                    this.addSystemMessage('Connection failed. Please refresh the page.');
+                }
+            }
+            
+            send(data) {
+                if (this.connected && this.socket.readyState === WebSocket.OPEN) {
+                    try {
+                        this.socket.send(JSON.stringify(data));
+                        console.log('📤 Sent message:', data.type);
+                    } catch (error) {
+                        console.error('❌ Error sending message:', error);
+                    }
+                } else {
+                    console.log('📦 Queuing message (not connected):', data.type);
+                    this.messageQueue.push(data);
+                }
+            }
+            
+            sendChatMessage(message) {
+                if (!this.authenticated) {
+                    console.warn('❌ Not authenticated');
+                    return;
+                }
+                
+                this.send({
+                    type: 'chat_message',
+                    message: message,
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    timestamp: Date.now()
+                });
+            }
+            
+            // Send position updates to other users
+            sendPositionUpdate(position) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'position_update',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    position: position,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendEmotion(emotion) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'emotion',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    emotion: emotion,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendInteraction(interactionType, targetUserId = null, data = null) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'interaction',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    target_user_id: targetUserId,
+                    interaction_type: interactionType,
+                    data: data,
+                    timestamp: Date.now()
+                });
+            }
+            
+            sendTyping(isTyping) {
+                if (!this.authenticated) return;
+                
+                this.send({
+                    type: 'typing',
+                    user_id: this.userId,
+                    room_id: this.roomId,
+                    is_typing: isTyping
+                });
+            }
+            
+            startPingInterval() {
+                setInterval(() => {
+                    if (this.connected) {
+                        this.lastPingTime = Date.now();
+                        this.send({
+                            type: 'ping',
+                            timestamp: this.lastPingTime
+                        });
+                    }
+                }, 30000); // Ping every 30 seconds
+            }
+            
+            updateConnectionStatus(status) {
+                const indicators = ['connection-indicator', 'connection-indicator-mobile'];
+                
+                indicators.forEach(id => {
+                    const indicator = document.getElementById(id);
+                    if (indicator) {
+                        indicator.className = `connection-indicator ${status}`;
+                        
+                        switch (status) {
+                            case 'connected':
+                                indicator.textContent = '✅ Connected';
+                                break;
+                            case 'connecting':
+                                indicator.textContent = '🔄 Connecting';
+                                break;
+                            case 'disconnected':
+                                indicator.textContent = '❌ Disconnected';
+                                break;
+                        }
+                    }
+                });
+            }
+            
+            enableChatInput() {
+                const inputs = ['chat-input', 'chat-input-mobile'];
+                const buttons = ['send-btn', 'send-btn-mobile'];
+                
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.disabled = false;
+                        input.placeholder = 'Type a message...';
                     }
                 });
                 
-                console.log(`👥 Room has ${data.users.length} users total`);
-                this.updateUserCount(data.users.length);
-            }
-        }
-        
-        // NEW: Handle when a user joins
-        handleUserJoined(data) {
-            console.log(`👋 ${data.username} joined the room`);
-            this.addSystemMessage(`${data.username} joined the room`);
-            
-            // Don't create avatar for ourselves
-            if (data.user_id !== this.userId) {
-                this.connectedUsers.set(data.user_id, data);
-                this.createRemoteAvatar(data);
-            }
-            
-            this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
-        }
-        
-        // NEW: Handle when a user leaves
-        handleUserLeft(data) {
-            console.log(`👋 ${data.username} left the room`);
-            this.addSystemMessage(`${data.username} left the room`);
-            
-            // Remove their avatar
-            if (data.user_id !== this.userId) {
-                this.removeRemoteAvatar(data.user_id);
-                this.connectedUsers.delete(data.user_id);
-            }
-            
-            this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
-        }
-        
-        // NEW: Create avatar for remote user
-        createRemoteAvatar(userData) {
-            console.log('👤 Creating remote avatar for:', userData.username);
-            
-            if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
-                try {
-                    // Generate a consistent position based on user ID
-                    const hash = userData.user_id.split('').reduce((a, b) => {
-                        a = ((a << 5) - a) + b.charCodeAt(0);
-                        return a & a;
-                    }, 0);
-                    
-                    const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-                    const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius
-                    
-                    const position = {
-                        x: Math.cos(angle) * radius,
-                        y: 0,
-                        z: Math.sin(angle) * radius
-                    };
-                    
-                    // Use existing position if available
-                    if (userData.position) {
-                        position.x = userData.position.x;
-                        position.y = userData.position.y;
-                        position.z = userData.position.z;
+                buttons.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.disabled = false;
                     }
-                    
-                    const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
-                        name: userData.username,
-                        position: position,
-                        ...window.AvatarSystem.getRandomCustomization()
-                    });
-                    
-                    if (avatar) {
-                        console.log(`✅ Created avatar for ${userData.username} at`, position);
-                    }
-                    
-                } catch (error) {
-                    console.error('Error creating remote avatar:', error);
-                }
-            } else {
-                console.warn('AvatarSystem not available for creating remote avatar');
-            }
-        }
-        
-        // NEW: Remove avatar for remote user
-        removeRemoteAvatar(userId) {
-            console.log('🗑️ Removing remote avatar for user:', userId);
-            
-            if (window.AvatarSystem && window.AvatarSystem.removeAvatar) {
-                try {
-                    window.AvatarSystem.removeAvatar(userId);
-                    console.log(`✅ Removed avatar for user ${userId}`);
-                } catch (error) {
-                    console.error('Error removing remote avatar:', error);
-                }
+                });
             }
             
-            // Also remove their chat bubbles
-            if (window.ChatBubbleSystem && window.ChatBubbleSystem.removeUserBubbles) {
-                try {
-                    window.ChatBubbleSystem.removeUserBubbles(userId);
-                } catch (error) {
-                    console.warn('Error removing user bubbles:', error);
-                }
-            }
-        }
-        
-        // NEW: Handle position updates from other users
-        handleUserPositionUpdate(data) {
-            if (data.user_id !== this.userId && window.AvatarSystem) {
-                try {
-                    window.AvatarSystem.updateAvatarPosition(data.user_id, data.position);
-                    
-                    // Also update chat bubble positions
-                    if (window.ChatBubbleSystem?.updateBubblePositions) {
-                        const pos = new THREE.Vector3(data.position.x, data.position.y, data.position.z);
-                        window.ChatBubbleSystem.updateBubblePositions(data.user_id, pos);
-                    }
-                } catch (error) {
-                    console.warn('Error updating remote avatar position:', error);
-                }
-            }
-        }
-        
-        handleChatMessage(data) {
-            const isOwn = data.user_id === this.userId;
-            this.addMessageToChat(data.username, data.message, isOwn);
-            
-            // Create 3D chat bubble if enabled and system is available
-            if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                try {
-                    // Use the safe wrapper method
-                    if (window.ChatBubbleSystem.createBubbleFromMessageSafe) {
-                        window.ChatBubbleSystem.createBubbleFromMessageSafe(data);
-                    } else if (window.ChatBubbleSystem.createBubbleFromMessage) {
-                        window.ChatBubbleSystem.createBubbleFromMessage(data);
-                    }
-                } catch (error) {
-                    console.warn('Error creating chat bubble:', error);
-                }
-            }
-            
-            // Update bubble count
-            this.updateBubbleCount();
-        }
-        
-        handleEmotion(data) {
-            console.log(`🎭 ${data.user_id} is feeling ${data.emotion}`);
-            this.addSystemMessage(`${data.username || data.user_id} is feeling ${data.emotion} 🎭`);
-            
-            // Trigger 3D emotion if system is available
-            if (window.EmotionSystem && window.EmotionSystem.showRemoteEmotion) {
-                window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
-            }
-        }
-        
-        handleInteraction(data) {
-            console.log(`🤝 Interaction: ${data.user_id} -> ${data.interaction_type}`);
-            this.addSystemMessage(`${data.username || data.user_id} ${data.interaction_type} 🤝`);
-            
-            // Trigger 3D interaction if system is available
-            if (window.InteractionSystem && window.InteractionSystem.handleRemoteInteraction) {
-                window.InteractionSystem.handleRemoteInteraction(data);
-            }
-        }
-        
-        handleTyping(data) {
-            this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
-        }
-        
-        handleClose(event) {
-            console.log('🔌 WebSocket connection closed:', event);
-            this.connected = false;
-            this.authenticated = false;
-            this.updateConnectionStatus('disconnected');
-            this.disableChatInput();
-            
-            // Clear remote avatars
-            this.connectedUsers.forEach((userData, userId) => {
-                this.removeRemoteAvatar(userId);
-            });
-            this.connectedUsers.clear();
-            
-            if (!event.wasClean) {
-                this.scheduleReconnect();
-            }
-        }
-        
-        handleError(error) {
-            console.error('❌ WebSocket error:', error);
-            this.updateConnectionStatus('disconnected');
-        }
-        
-        scheduleReconnect() {
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                this.reconnectAttempts++;
-                const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+            disableChatInput() {
+                const inputs = ['chat-input', 'chat-input-mobile'];
+                const buttons = ['send-btn', 'send-btn-mobile'];
                 
-                console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.disabled = true;
+                        input.placeholder = 'Connecting...';
+                    }
+                });
                 
-                setTimeout(() => {
-                    this.connect();
-                }, delay);
-            } else {
-                console.error('❌ Max reconnection attempts reached');
-                this.updateConnectionStatus('disconnected');
-                this.addSystemMessage('Connection failed. Please refresh the page.');
-            }
-        }
-        
-        send(data) {
-            if (this.connected && this.socket.readyState === WebSocket.OPEN) {
-                try {
-                    this.socket.send(JSON.stringify(data));
-                    console.log('📤 Sent message:', data.type);
-                } catch (error) {
-                    console.error('❌ Error sending message:', error);
-                }
-            } else {
-                console.log('📦 Queuing message (not connected):', data.type);
-                this.messageQueue.push(data);
-            }
-        }
-        
-        sendChatMessage(message) {
-            if (!this.authenticated) {
-                console.warn('❌ Not authenticated');
-                return;
+                buttons.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.disabled = true;
+                    }
+                });
             }
             
-            this.send({
-                type: 'chat_message',
-                message: message,
-                user_id: this.userId,
-                room_id: this.roomId,
-                timestamp: Date.now()
-            });
-        }
-        
-        // NEW: Send position updates to other users
-        sendPositionUpdate(position) {
-            if (!this.authenticated) return;
-            
-            this.send({
-                type: 'position_update',
-                user_id: this.userId,
-                room_id: this.roomId,
-                position: position,
-                timestamp: Date.now()
-            });
-        }
-        
-        sendEmotion(emotion) {
-            if (!this.authenticated) return;
-            
-            this.send({
-                type: 'emotion',
-                user_id: this.userId,
-                room_id: this.roomId,
-                emotion: emotion,
-                timestamp: Date.now()
-            });
-        }
-        
-        sendInteraction(interactionType, targetUserId = null, data = null) {
-            if (!this.authenticated) return;
-            
-            this.send({
-                type: 'interaction',
-                user_id: this.userId,
-                room_id: this.roomId,
-                target_user_id: targetUserId,
-                interaction_type: interactionType,
-                data: data,
-                timestamp: Date.now()
-            });
-        }
-        
-        sendTyping(isTyping) {
-            if (!this.authenticated) return;
-            
-            this.send({
-                type: 'typing',
-                user_id: this.userId,
-                room_id: this.roomId,
-                is_typing: isTyping
-            });
-        }
-        
-        startPingInterval() {
-            setInterval(() => {
-                if (this.connected) {
-                    this.lastPingTime = Date.now();
-                    this.send({
-                        type: 'ping',
-                        timestamp: this.lastPingTime
-                    });
-                }
-            }, 30000); // Ping every 30 seconds
-        }
-        
-        updateConnectionStatus(status) {
-            const indicators = ['connection-indicator', 'connection-indicator-mobile'];
-            
-            indicators.forEach(id => {
-                const indicator = document.getElementById(id);
-                if (indicator) {
-                    indicator.className = `connection-indicator ${status}`;
+            addMessageToChat(username, message, isOwn = false) {
+                const chatContainers = ['chat-messages', 'chat-messages-mobile'];
+                
+                chatContainers.forEach(containerId => {
+                    const chatMessages = document.getElementById(containerId);
+                    if (!chatMessages) return;
                     
-                    switch (status) {
-                        case 'connected':
-                            indicator.textContent = '✅ Connected';
-                            break;
-                        case 'connecting':
-                            indicator.textContent = '🔄 Connecting';
-                            break;
-                        case 'disconnected':
-                            indicator.textContent = '❌ Disconnected';
-                            break;
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+                    
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    messageDiv.innerHTML = `
+                        <div class="username">${this.escapeHtml(username)}</div>
+                        <div class="timestamp">${timestamp}</div>
+                        <div class="text">${this.escapeHtml(message)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    // Keep only last 50 messages for performance
+                    while (chatMessages.children.length > 50) {
+                        chatMessages.removeChild(chatMessages.firstChild);
+                    }
+                });
+            }
+            
+            addSystemMessage(message) {
+                const chatContainers = ['chat-messages', 'chat-messages-mobile'];
+                
+                chatContainers.forEach(containerId => {
+                    const chatMessages = document.getElementById(containerId);
+                    if (!chatMessages) return;
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message system';
+                    
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    messageDiv.innerHTML = `
+                        <div class="username">System</div>
+                        <div class="timestamp">${timestamp}</div>
+                        <div class="text">${this.escapeHtml(message)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+            }
+            
+            updateTypingIndicator(userId, username, isTyping) {
+                const containers = ['typing-indicators', 'typing-indicators-mobile'];
+                
+                containers.forEach(containerId => {
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
+                    
+                    const indicatorId = `typing-${userId}-${containerId}`;
+                    let indicator = document.getElementById(indicatorId);
+                    
+                    if (isTyping && userId !== this.userId) {
+                        if (!indicator) {
+                            indicator = document.createElement('div');
+                            indicator.id = indicatorId;
+                            indicator.className = 'typing-indicator';
+                            indicator.innerHTML = `
+                                <span>${this.escapeHtml(username)} is typing</span>
+                                <div class="typing-dots">
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                </div>
+                            `;
+                            container.appendChild(indicator);
+                        }
+                    } else {
+                        if (indicator) {
+                            indicator.remove();
+                        }
+                    }
+                });
+            }
+            
+            updateBubbleCount() {
+                let count = 0;
+                if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
+                    try {
+                        count = window.ChatBubbleSystem.getActiveBubbleCount();
+                    } catch (error) {
+                        console.warn('Error getting bubble count:', error);
                     }
                 }
-            });
-        }
-        
-        enableChatInput() {
-            const inputs = ['chat-input', 'chat-input-mobile'];
-            const buttons = ['send-btn', 'send-btn-mobile'];
-            
-            inputs.forEach(id => {
-                const input = document.getElementById(id);
-                if (input) {
-                    input.disabled = false;
-                    input.placeholder = 'Type a message...';
-                }
-            });
-            
-            buttons.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.disabled = false;
-                }
-            });
-        }
-        
-        disableChatInput() {
-            const inputs = ['chat-input', 'chat-input-mobile'];
-            const buttons = ['send-btn', 'send-btn-mobile'];
-            
-            inputs.forEach(id => {
-                const input = document.getElementById(id);
-                if (input) {
-                    input.disabled = true;
-                    input.placeholder = 'Connecting...';
-                }
-            });
-            
-            buttons.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.disabled = true;
-                }
-            });
-        }
-        
-        addMessageToChat(username, message, isOwn = false) {
-            const chatContainers = ['chat-messages', 'chat-messages-mobile'];
-            
-            chatContainers.forEach(containerId => {
-                const chatMessages = document.getElementById(containerId);
-                if (!chatMessages) return;
                 
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
-                
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                messageDiv.innerHTML = `
-                    <div class="username">${this.escapeHtml(username)}</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
-                `;
-                
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                
-                // Keep only last 50 messages for performance
-                while (chatMessages.children.length > 50) {
-                    chatMessages.removeChild(chatMessages.firstChild);
-                }
-            });
-        }
-        
-        addSystemMessage(message) {
-            const chatContainers = ['chat-messages', 'chat-messages-mobile'];
-            
-            chatContainers.forEach(containerId => {
-                const chatMessages = document.getElementById(containerId);
-                if (!chatMessages) return;
-                
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message system';
-                
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                messageDiv.innerHTML = `
-                    <div class="username">System</div>
-                    <div class="timestamp">${timestamp}</div>
-                    <div class="text">${this.escapeHtml(message)}</div>
-                `;
-                
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            });
-        }
-        
-        updateTypingIndicator(userId, username, isTyping) {
-            const containers = ['typing-indicators', 'typing-indicators-mobile'];
-            
-            containers.forEach(containerId => {
-                const container = document.getElementById(containerId);
-                if (!container) return;
-                
-                const indicatorId = `typing-${userId}-${containerId}`;
-                let indicator = document.getElementById(indicatorId);
-                
-                if (isTyping && userId !== this.userId) {
-                    if (!indicator) {
-                        indicator = document.createElement('div');
-                        indicator.id = indicatorId;
-                        indicator.className = 'typing-indicator';
-                        indicator.innerHTML = `
-                            <span>${this.escapeHtml(username)} is typing</span>
-                            <div class="typing-dots">
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                            </div>
-                        `;
-                        container.appendChild(indicator);
-                    }
-                } else {
-                    if (indicator) {
-                        indicator.remove();
-                    }
-                }
-            });
-        }
-        
-        updateBubbleCount() {
-            let count = 0;
-            if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
-                try {
-                    count = window.ChatBubbleSystem.getActiveBubbleCount();
-                } catch (error) {
-                    console.warn('Error getting bubble count:', error);
+                const bubbleCountElement = document.getElementById('bubble-count');
+                if (bubbleCountElement) {
+                    bubbleCountElement.textContent = count;
                 }
             }
             
-            const bubbleCountElement = document.getElementById('bubble-count');
-            if (bubbleCountElement) {
-                bubbleCountElement.textContent = count;
+            // Update user count in UI
+            updateUserCount(count) {
+                const userCountElement = document.getElementById('user-count');
+                if (userCountElement) {
+                    const maxUsers = window.ROOM_CONFIG?.maxUsers || 10;
+                    userCountElement.textContent = `${count}/${maxUsers}`;
+                }
+            }
+            
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+            
+            // Get connected users
+            getConnectedUsers() {
+                return Array.from(this.connectedUsers.values());
+            }
+            
+            // Check if user is connected
+            isUserConnected(userId) {
+                return this.connectedUsers.has(userId);
             }
         }
-        
-        // NEW: Update user count in UI
-        updateUserCount(count) {
-            const userCountElement = document.getElementById('user-count');
-            if (userCountElement) {
-                const maxUsers = window.ROOM_CONFIG?.maxUsers || 10;
-                userCountElement.textContent = `${count}/${maxUsers}`;
-            }
-        }
-        
-        escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-        
-        // NEW: Get connected users
-        getConnectedUsers() {
-            return Array.from(this.connectedUsers.values());
-        }
-        
-        // NEW: Check if user is connected
-        isUserConnected(userId) {
-            return this.connectedUsers.has(userId);
-        }
-    }
 
-    // Initialize WebSocket Manager
-    window.WebSocketManager = null;
+        // Initialize WebSocket Manager
+        window.WebSocketManager = null;
     </script>
 
     <!-- Fixed Chat Bubble System Integration -->
@@ -2417,6 +2754,157 @@
                 window.WebSocketManager.sendInteraction(type, targetId, data);
             }
         };
+        
+        // Add avatar systems debug function
+        window.debugAvatarSystems = function() {
+            console.log('🔍 === AVATAR SYSTEMS DEBUG ===');
+            console.log('window.AvatarSystem:', !!window.AvatarSystem);
+            if (window.AvatarSystem) {
+                console.log('  - createAvatar:', typeof window.AvatarSystem.createAvatar);
+                console.log('  - createRemoteAvatar:', typeof window.AvatarSystem.createRemoteAvatar);
+                console.log('  - removeAvatar:', typeof window.AvatarSystem.removeAvatar);
+                console.log('  - scene:', !!window.AvatarSystem.scene);
+                console.log('  - getRandomCustomization:', typeof window.AvatarSystem.getRandomCustomization);
+            }
+            
+            console.log('window.SceneManager:', !!window.SceneManager);
+            if (window.SceneManager) {
+                console.log('  - scene:', !!window.SceneManager.scene);
+            }
+            
+            console.log('window.THREE:', !!window.THREE);
+            console.log('window.scene:', !!window.scene);
+            console.log('================================');
+        };
+        
+        // Initialize Nationality System
+        window.showNationalitySelector = function() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 500px;
+                width: 90%;
+                color: white;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            `;
+            
+            const countries = {
+                'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
+                'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
+                'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+                'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
+                'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland',
+                'DK': 'Denmark', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
+                'UN': 'Unknown'
+            };
+            
+            content.innerHTML = `
+                <h2 style="margin-top: 0; color: #4CAF50;">🌍 Select Your Nationality</h2>
+                <p style="margin-bottom: 20px; color: #ccc;">Choose your country to display your flag on your nametag:</p>
+                
+                <select id="nationality-select" style="
+                    width: 100%;
+                    padding: 12px;
+                    border-radius: 8px;
+                    border: 1px solid #555;
+                    background: #333;
+                    color: white;
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                ">
+                    ${Object.entries(countries).map(([code, name]) => 
+                        `<option value="${code}" ${code === window.ROOM_CONFIG.userNationality ? 'selected' : ''}>${name}</option>`
+                    ).join('')}
+                </select>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="cancel-nationality" style="
+                        padding: 10px 20px;
+                        background: #666;
+                        border: none;
+                        border-radius: 8px;
+                        color: white;
+                        cursor: pointer;
+                    ">Cancel</button>
+                    <button id="save-nationality" style="
+                        padding: 10px 20px;
+                        background: #4CAF50;
+                        border: none;
+                        border-radius: 8px;
+                        color: white;
+                        cursor: pointer;
+                    ">Save</button>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Event handlers
+            document.getElementById('cancel-nationality').onclick = () => {
+                document.body.removeChild(modal);
+            };
+            
+            document.getElementById('save-nationality').onclick = async () => {
+                const selectedNationality = document.getElementById('nationality-select').value;
+                
+                // Update local config
+                window.ROOM_CONFIG.userNationality = selectedNationality;
+                
+                // Show success notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #4CAF50, #45a049);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    z-index: 10001;
+                    font-weight: 600;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    transform: translateX(400px);
+                    transition: all 0.3s ease;
+                `;
+                notification.textContent = `🏳️ Nationality updated to ${countries[selectedNationality]}`;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(400px)';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+                
+                document.body.removeChild(modal);
+            };
+            
+            // Close on background click
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+        };
     </script>
 
     <!-- Enhanced Modular System - Fixed for ChatBubbleSystem -->
@@ -2463,7 +2951,7 @@
                     'room-core': '/static/js/room-core.js'
                 };
                 
-                // FIXED: Updated module objects to handle new ChatBubbleSystem pattern
+                // Updated module objects to handle new ChatBubbleSystem pattern
                 this.moduleObjects = {
                     'globals': () => window.Euphorie,
                     'event-bus': () => window.EventBus,
@@ -2482,7 +2970,7 @@
                 this.initializationCallbacks.set('chat-bubble-system', () => this.initializeChatBubbleSystem());
             }
             
-            // CRITICAL FIX: Smart ChatBubbleSystem instance getter
+            // Smart ChatBubbleSystem instance getter
             getChatBubbleSystemInstance() {
                 // Try multiple patterns to get the ChatBubbleSystem
                 
@@ -2510,7 +2998,7 @@
                 return null;
             }
             
-            // CRITICAL FIX: Special initialization for ChatBubbleSystem
+            // Special initialization for ChatBubbleSystem
             async initializeChatBubbleSystem() {
                 console.log('🔧 Initializing ChatBubbleSystem...');
                 
@@ -3127,13 +3615,8 @@
             }
             
             getActiveUserCount() {
-                const avatarSystem = this.loader?.getModuleObject('avatar-system');
-                if (avatarSystem && avatarSystem.getAllAvatars) {
-                    try {
-                        return avatarSystem.getAllAvatars().length;
-                    } catch (error) {
-                        return 1;
-                    }
+                if (window.WebSocketManager && window.WebSocketManager.connectedUsers) {
+                    return window.WebSocketManager.connectedUsers.size + 1; // +1 for self
                 }
                 return 1;
             }
@@ -3206,7 +3689,6 @@
 
         console.log('🎮 Euphorie 3D JavaScript system loaded and ready!');
     </script>
-
 
 </body>
 </html>
