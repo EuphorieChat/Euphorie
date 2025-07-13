@@ -4907,69 +4907,105 @@
                 }
             }
             
-            // NEW: Enhance scene system with synchronization capabilities
+            // NEW: Enhance scene system with synchronization capabilities - FIXED VERSION
             enhanceSceneSystemWithSync(sceneSystem) {
                 console.log('🔄 Enhancing Scene System with synchronization...');
+                
+                // Add synchronization state tracking
+                sceneSystem._syncInProgress = false;
                 
                 // Wrap scene change methods to include WebSocket sync
                 if (sceneSystem.applyScenePreset) {
                     const originalApplyScenePreset = sceneSystem.applyScenePreset.bind(sceneSystem);
                     
                     sceneSystem.applyScenePreset = function(preset, data = {}) {
-                        console.log(`🔄 Synchronized scene preset: ${preset}`);
+                        console.log(`🔄 Scene preset change: ${preset}, fromRemote: ${!!data.fromRemote}, syncInProgress: ${this._syncInProgress}`);
+                        
+                        // Prevent infinite loops
+                        if (this._syncInProgress && data.fromRemote) {
+                            console.log('⚠️ Skipping scene sync - already in progress');
+                            return;
+                        }
                         
                         // Apply locally first
                         const result = originalApplyScenePreset(preset, data);
                         
-                        // Send to other users if not already synchronized
-                        if (!data.synchronized && window.sendSceneChange) {
+                        // Send to other users ONLY if this is a local user action
+                        if (!data.fromRemote && !this._syncInProgress && window.sendSceneChange) {
+                            this._syncInProgress = true;
                             const sceneName = this.getScenePresetName ? this.getScenePresetName(preset) : preset;
-                            window.sendSceneChange(preset, sceneName, { ...data, synchronized: true });
+                            
+                            setTimeout(() => {
+                                window.sendSceneChange(preset, sceneName, { ...data, fromLocal: true });
+                                setTimeout(() => { this._syncInProgress = false; }, 1000);
+                            }, 100);
                         }
                         
                         return result;
                     };
                 }
                 
-                // Wrap weather change methods
+                // Wrap weather change methods - FIXED VERSION
                 if (sceneSystem.setWeather) {
                     const originalSetWeather = sceneSystem.setWeather.bind(sceneSystem);
                     
                     sceneSystem.setWeather = function(weatherType, intensity = 1.0, data = {}) {
-                        console.log(`🔄 Synchronized weather: ${weatherType}`);
+                        console.log(`🔄 Weather change: ${weatherType}, fromRemote: ${!!data.fromRemote}, syncInProgress: ${this._syncInProgress}`);
+                        
+                        // Prevent infinite loops
+                        if (this._syncInProgress && data.fromRemote) {
+                            console.log('⚠️ Skipping weather sync - already in progress');
+                            return;
+                        }
                         
                         // Apply locally first
                         const result = originalSetWeather(weatherType, intensity, data);
                         
-                        // Send to other users if not already synchronized
-                        if (!data.synchronized && window.sendWeatherChange) {
-                            window.sendWeatherChange(weatherType, intensity);
+                        // Send to other users ONLY if this is a local user action
+                        if (!data.fromRemote && !this._syncInProgress && window.sendWeatherChange) {
+                            this._syncInProgress = true;
+                            
+                            setTimeout(() => {
+                                window.sendWeatherChange(weatherType, intensity);
+                                setTimeout(() => { this._syncInProgress = false; }, 1000);
+                            }, 100);
                         }
                         
                         return result;
                     };
                 }
                 
-                // Wrap time change methods
+                // Wrap time change methods - FIXED VERSION
                 if (sceneSystem.setTimeOfDay) {
                     const originalSetTimeOfDay = sceneSystem.setTimeOfDay.bind(sceneSystem);
                     
                     sceneSystem.setTimeOfDay = function(timeOfDay, hour = null, data = {}) {
-                        console.log(`🔄 Synchronized time: ${timeOfDay}`);
+                        console.log(`🔄 Time change: ${timeOfDay}, fromRemote: ${!!data.fromRemote}, syncInProgress: ${this._syncInProgress}`);
+                        
+                        // Prevent infinite loops
+                        if (this._syncInProgress && data.fromRemote) {
+                            console.log('⚠️ Skipping time sync - already in progress');
+                            return;
+                        }
                         
                         // Apply locally first
                         const result = originalSetTimeOfDay(timeOfDay, hour, data);
                         
-                        // Send to other users if not already synchronized
-                        if (!data.synchronized && window.sendTimeChange) {
-                            window.sendTimeChange(timeOfDay, hour);
+                        // Send to other users ONLY if this is a local user action
+                        if (!data.fromRemote && !this._syncInProgress && window.sendTimeChange) {
+                            this._syncInProgress = true;
+                            
+                            setTimeout(() => {
+                                window.sendTimeChange(timeOfDay, hour);
+                                setTimeout(() => { this._syncInProgress = false; }, 1000);
+                            }, 100);
                         }
                         
                         return result;
                     };
                 }
                 
-                console.log('✅ Scene System enhanced with synchronization');
+                console.log('✅ Scene System enhanced with synchronization (loop-safe)');
             }
             
             // Safe initialization wrapper
