@@ -1,0 +1,703 @@
+{% extends 'chat/base.html' %}
+{% load static %}
+
+{% block title %}Create New Room - Euphorie{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Create Room Specific Styles */
+.create-room-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.create-room-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.create-room-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.create-room-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.form-container {
+    background: white;
+    border-radius: var(--radius-2xl);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+}
+
+.form-section {
+    margin-bottom: 2.5rem;
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--primary);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-label.required::after {
+    content: " *";
+    color: var(--danger);
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-lg);
+    font-size: 0.95rem;
+    transition: all var(--duration-normal) var(--ease);
+    background: var(--surface);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.1);
+}
+
+.form-input.input-with-icon {
+    padding-left: 3rem;
+}
+
+.input-icon-container {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    width: 1.25rem;
+    height: 1.25rem;
+    transition: color var(--duration-normal) var(--ease);
+}
+
+.form-input:focus ~ .input-icon {
+    color: var(--primary);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    appearance: none;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--surface-hover);
+    border-radius: var(--radius-lg);
+    transition: background var(--duration-normal) var(--ease);
+}
+
+.checkbox-group:hover {
+    background: var(--primary-light);
+}
+
+.checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    appearance: none;
+    position: relative;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease);
+}
+
+.checkbox:checked {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.checkbox-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex: 1;
+}
+
+.checkbox-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.tags-input {
+    position: relative;
+}
+
+.tags-preview {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-height: 2rem;
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--primary);
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    margin-top: 0.5rem;
+}
+
+.user-stats {
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.form-actions {
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn-create {
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease-spring);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-create::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-create:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-create:hover::before {
+    left: 100%;
+}
+
+.btn-create:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-cancel {
+    padding: 0.875rem 2rem;
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-cancel:hover {
+    background: white;
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.error-message {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: var(--danger);
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--danger);
+    font-size: 0.9rem;
+}
+
+.error-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.error-list li {
+    margin-bottom: 0.5rem;
+}
+
+.character-counter {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    text-align: right;
+    margin-top: 0.25rem;
+}
+
+.character-counter.warning {
+    color: var(--warning);
+}
+
+.character-counter.danger {
+    color: var(--danger);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+    .create-room-container {
+        padding: 1rem;
+    }
+
+    .form-container {
+        padding: 1.5rem;
+    }
+
+    .create-room-title {
+        font-size: 2rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-create,
+    .btn-cancel {
+        width: 100%;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Loading Animation */
+.btn-create.loading {
+    pointer-events: none;
+}
+
+.btn-create.loading::after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    margin: auto;
+    border: 2px solid white;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-room-container">
+    <!-- Header Section -->
+    <div class="create-room-header">
+        <h1 class="create-room-title">Create Your Room</h1>
+        <p class="create-room-subtitle">
+            Build a space where conversations come alive in 3D. Customize everything from the name to the theme.
+        </p>
+    </div>
+
+    <!-- User Stats Section -->
+    {% if user_room_count is not None %}
+    <div class="user-stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-value">{{ user_room_count }}</span>
+                <div class="stat-label">Rooms Created</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ max_rooms|sub:user_room_count }}</span>
+                <div class="stat-label">Remaining Slots</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ max_rooms }}</span>
+                <div class="stat-label">Total Allowed</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form Container -->
+    <div class="form-container">
+        <form method="post" id="create-room-form" novalidate>
+            {% csrf_token %}
+
+            <!-- Display Form Errors -->
+            {% if form.errors %}
+            <div class="error-message">
+                <strong>Please correct the following errors:</strong>
+                <ul class="error-list">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Basic Information Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Basic Information
+                </h3>
+
+                <!-- Room Name -->
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}" class="form-label required">Room Name</label>
+                    <div class="input-icon-container">
+                        {{ form.name|add_class:"form-input input-with-icon" }}
+                        <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <div class="character-counter" id="name-counter">0 / 100</div>
+                    <div class="help-text">Choose a unique name for your room. Only letters, numbers, spaces, hyphens, and underscores allowed.</div>
+                </div>
+
+                <!-- Display Name -->
+                <div class="form-group">
+                    <label for="{{ form.display_name.id_for_label }}" class="form-label">Display Name</label>
+                    {{ form.display_name|add_class:"form-input" }}
+                    <div class="character-counter" id="display-name-counter">0 / 255</div>
+                    <div class="help-text">Optional friendly name shown to users (defaults to room name if empty)</div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                    {{ form.description|add_class:"form-input form-textarea" }}
+                    <div class="character-counter" id="description-counter">0 / 500</div>
+                    <div class="help-text">Describe what your room is about to help others discover it</div>
+                </div>
+            </div>
+
+            <!-- Category & Discovery Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    Category & Discovery
+                </h3>
+
+                <!-- Category -->
+                <div class="form-group">
+                    <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                    {{ form.category|add_class:"form-input form-select" }}
+                    {% if not categories_count or categories_count == 0 %}
+                    <div class="help-text" style="color: var(--warning);">
+                        ⚠️ No categories available yet. Your room will be assigned to "General Discussion" automatically.
+                    </div>
+                    {% else %}
+                    <div class="help-text">Choose a category to help users find your room (optional - defaults to General Discussion)</div>
+                    {% endif %}
+                </div>
+
+                <!-- Optional: Category Suggestion -->
+                {% if form.suggest_new_category %}
+                <div class="form-group">
+                    <label for="{{ form.suggest_new_category.id_for_label }}" class="form-label">Suggest New Category</label>
+                    {{ form.suggest_new_category|add_class:"form-input" }}
+                    <div class="help-text">Don't see the right category? Suggest one for admin review!</div>
+                </div>
+                {% endif %}
+
+                <!-- Tags -->
+                <div class="form-group">
+                    <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                    <div class="tags-input">
+                        {{ form.tags|add_class:"form-input" }}
+                        <div class="tags-preview" id="tags-preview"></div>
+                    </div>
+                    <div class="character-counter" id="tags-counter">0 / 200</div>
+                    <div class="help-text">Comma-separated tags (e.g., gaming, music, art). Maximum 10 tags, 20 characters each.</div>
+                </div>
+            </div>
+
+            <!-- Room Settings Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Room Settings
+                </h3>
+
+                <!-- Max Users -->
+                <div class="form-group">
+                    <label for="{{ form.max_users.id_for_label }}" class="form-label">Maximum Users</label>
+                    {{ form.max_users|add_class:"form-input" }}
+                    <div class="help-text">Maximum number of users allowed in the room (2-100)</div>
+                </div>
+
+                <!-- Public Room -->
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.is_public|add_class:"checkbox" }}
+                        <label for="{{ form.is_public.id_for_label }}" class="checkbox-label">
+                            Public Room
+                            <div class="checkbox-description">
+                                Allow anyone to discover and join this room. Private rooms are only accessible via direct link.
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'index' %}" class="btn-cancel">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                </a>
+                <button type="submit" class="btn-create" id="submit-btn">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span id="submit-text">Create Room</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('create-room-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+
+    // Character counters
+    const counters = [
+        { input: 'id_name', counter: 'name-counter', max: 100 },
+        { input: 'id_display_name', counter: 'display-name-counter', max: 255 },
+        { input: 'id_description', counter: 'description-counter', max: 500 },
+        { input: 'id_tags', counter: 'tags-counter', max: 200 }
+    ];
+
+    counters.forEach(({ input, counter, max }) => {
+        const inputElement = document.getElementById(input);
+        const counterElement = document.getElementById(counter);
+        
+        if (inputElement && counterElement) {
+            function updateCounter() {
+                const length = inputElement.value.length;
+                counterElement.textContent = `${length} / ${max}`;
+                
+                counterElement.className = 'character-counter';
+                if (length > max * 0.8) {
+                    counterElement.classList.add('warning');
+                }
+                if (length >= max) {
+                    counterElement.classList.add('danger');
+                }
+            }
+            
+            inputElement.addEventListener('input', updateCounter);
+            updateCounter(); // Initial update
+        }
+    });
+
+    // Tags preview
+    const tagsInput = document.getElementById('id_tags');
+    const tagsPreview = document.getElementById('tags-preview');
+    
+    if (tagsInput && tagsPreview) {
+        function updateTagsPreview() {
+            const tags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+            tagsPreview.innerHTML = '';
+            
+            tags.forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag-item';
+                tagElement.textContent = tag;
+                tagsPreview.appendChild(tagElement);
+            });
+            
+            if (tags.length === 0) {
+                tagsPreview.innerHTML = '<span style="color: var(--text-tertiary); font-style: italic;">No tags added yet</span>';
+            }
+        }
+        
+        tagsInput.addEventListener('input', updateTagsPreview);
+        updateTagsPreview(); // Initial update
+    }
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+        submitText.textContent = 'Creating Room...';
+        
+        // If there are validation errors, re-enable the button
+        setTimeout(() => {
+            if (document.querySelector('.error-message')) {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+                submitText.textContent = 'Create Room';
+            }
+        }, 1000);
+    });
+
+    // Real-time validation
+    const nameInput = document.getElementById('id_name');
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            const value = this.value;
+            
+            // Remove invalid characters
+            this.value = value.replace(/[^a-zA-Z0-9\s\-_]/g, '');
+            
+            // Basic validation feedback
+            if (this.value.length < 3) {
+                this.style.borderColor = 'var(--warning)';
+            } else if (this.value.length >= 3) {
+                this.style.borderColor = 'var(--success)';
+            }
+        });
+    }
+
+    // Auto-generate display name from room name
+    const displayNameInput = document.getElementById('id_display_name');
+    if (nameInput && displayNameInput) {
+        nameInput.addEventListener('input', function() {
+            if (!displayNameInput.value) {
+                displayNameInput.value = this.value;
+                displayNameInput.dispatchEvent(new Event('input'));
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
