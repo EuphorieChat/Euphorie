@@ -1050,36 +1050,11 @@ main {
                 </span>
             </a>
 
-            <!-- Center Section: Navigation + Search (Desktop) -->
+            <!-- Center Section: Search (Desktop) -->
             <div class="hidden lg:flex flex-1 items-center justify-center max-w-2xl mx-8">
-                <!-- Enhanced Navigation Menu (Desktop) - Centered -->
-                {% if user.is_authenticated %}
-                <nav class="flex items-center space-x-1 mr-6">
-                    {% block nav_links %}
-                    <a href="{% url 'index' %}" class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        <span>Home</span>
-                    </a>
-                    <a href="{% url 'explore_rooms' %}" class="nav-link {% if request.resolver_match.url_name == 'explore_rooms' %}active{% endif %}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <span>Explore</span>
-                    </a>
-                    <a href="{% url 'friends_list' %}" class="nav-link {% if request.resolver_match.url_name == 'friends_list' %}active{% endif %}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        <span>Friends</span>
-                    </a>
-                    {% endblock %}
-                </nav>
-                {% endif %}
-
-                <!-- FIXED: Enhanced Search Box (Desktop - Centered) -->
+                <!-- Enhanced Search Box (Desktop - Centered) -->
                 {% block header_search %}
+                {% if user.is_authenticated %}
                 <div class="relative flex-1 max-w-md">
                     <form method="get" action="{% url 'explore_rooms' %}" class="relative group">
                         <input
@@ -1101,6 +1076,7 @@ main {
                         </button>
                     </form>
                 </div>
+                {% endif %}
                 {% endblock %}
             </div>
 
@@ -1109,12 +1085,14 @@ main {
                 <!-- Room Info for 3D rooms -->
                 {% block room_info %}{% endblock %}
 
-                <!-- FIXED: Mobile Search Button -->
+                <!-- Mobile Search Button -->
+                {% if user.is_authenticated %}
                 <button id="mobile-search-toggle" class="search-btn lg:hidden" aria-label="Search">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </button>
+                {% endif %}
                 
                 <!-- User Menu or Auth Buttons -->
                 {% if user.is_authenticated %}
