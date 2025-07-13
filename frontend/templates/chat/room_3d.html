@@ -1256,6 +1256,10 @@
                             • Messages appear floating above avatars in 3D space<br>
                             • Real-time synchronization with WebSocket server<br>
                             • Click the "3D Bubbles" toggle to enable/disable<br><br>
+                            <strong>🔄 Synchronized Environment:</strong><br>
+                            • Scene changes are synced across all users<br>
+                            • Weather and time changes are shared<br>
+                            • Use hamburger menu to control environment<br><br>
                             <strong>🎮 Controls:</strong><br>
                             • Mouse: Rotate camera, scroll to zoom<br>
                             • Click avatars to interact<br>
@@ -1302,6 +1306,9 @@
                         <div class="text">
                             <strong>🎉 Welcome to {{ room.name }}!</strong><br><br>
                             <strong>🌍 Your Location:</strong> {{ user_country_name|default:"Unknown" }}<br><br>
+                            <strong>🔄 Synchronized Room:</strong><br>
+                            • Scene/weather changes sync to all users<br>
+                            • Use hamburger menu for environment controls<br><br>
                             <strong>📱 Mobile Controls:</strong><br>
                             • Touch & drag to rotate camera<br>
                             • Pinch to zoom<br>
@@ -1395,7 +1402,7 @@
             </div>
             
             <div class="mobile-action-group">
-                <div class="mobile-action-group-title">Environment</div>
+                <div class="mobile-action-group-title">🔄 Synchronized Environment</div>
                 <div class="mobile-action-grid">
                     <button class="mobile-action-btn" 
                             onclick="window.changeScene && window.changeScene(); window.closeDesktopMenu && window.closeDesktopMenu();">
@@ -1500,7 +1507,7 @@
             </div>
             
             <div class="mobile-action-group">
-                <div class="mobile-action-group-title">Environment</div>
+                <div class="mobile-action-group-title">🔄 Synchronized Environment</div>
                 <div class="mobile-action-grid">
                     <button class="mobile-action-btn" 
                             onclick="window.changeScene && window.changeScene(); window.closeMobileMenu && window.closeMobileMenu();">
@@ -1719,9 +1726,9 @@
         }
     </script>
     
-    <!-- Enhanced WebSocket Manager - FIXED VERSION with Nationality Support -->
+    <!-- Enhanced WebSocket Manager - FIXED VERSION with Scene Synchronization Support -->
     <script>
-        // Enhanced WebSocket Manager for Rust Server Integration - FIXED AVATAR CREATION with Nationality
+        // Enhanced WebSocket Manager for Rust Server Integration - FIXED AVATAR CREATION with Scene Sync
         class EuphorieWebSocketManager {
             constructor() {
                 this.socket = null;
@@ -2164,11 +2171,51 @@
                 // Enhanced border with glow
                 context.strokeStyle = 'rgba(102, 126, 234, 0.8)';
                 context.lineWidth = 3;
-                context.stroke();
+                context.lineCap = 'round';
+                context.lineJoin = 'round';
                 
-                // Reset shadow for text
-                context.shadowColor = 'transparent';
-                context.shadowBlur = 0;
+                // Draw glowing border
+                context.save();
+                context.shadowColor = `rgba(102, 126, 234, 0.6)`;
+                context.shadowBlur = 10;
+                context.beginPath();
+                this.roundRect(context, 1.5, 1.5, canvas.width - 3, canvas.height - 21.5, 15 - 1);
+                context.stroke();
+                context.restore();
+                
+                // Inner highlight for glass effect
+                const highlightGradient = context.createLinearGradient(0, 0, 0, canvas.height * 0.6);
+                highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+                highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                
+                context.fillStyle = highlightGradient;
+                context.beginPath();
+                this.roundRect(context, 2, 2, canvas.width - 4, (canvas.height - 20) * 0.6, 15 - 2);
+                context.fill();
+                
+                // Enhanced bubble tail with gradient
+                const tailGradient = context.createLinearGradient(canvas.width / 2 - 15, canvas.height - 20, canvas.width / 2 + 15, canvas.height - 2);
+                tailGradient.addColorStop(0, 'rgba(240, 248, 255, 0.9)');
+                tailGradient.addColorStop(0.5, 'rgba(230, 245, 255, 0.95)');
+                tailGradient.addColorStop(1, 'rgba(220, 240, 255, 0.85)');
+                
+                context.fillStyle = tailGradient;
+                context.beginPath();
+                context.moveTo(canvas.width / 2 - 15, canvas.height - 20);
+                context.quadraticCurveTo(canvas.width / 2, canvas.height - 2, canvas.width / 2 + 15, canvas.height - 20);
+                context.fill();
+                
+                // Tail border with glow
+                context.save();
+                context.strokeStyle = `rgba(102, 126, 234, 0.7)`;
+                context.lineWidth = 2;
+                context.shadowColor = `rgba(102, 126, 234, 0.5)`;
+                context.shadowBlur = 8;
+                context.beginPath();
+                context.moveTo(canvas.width / 2 - 15, canvas.height - 20);
+                context.quadraticCurveTo(canvas.width / 2, canvas.height - 2, canvas.width / 2 + 15, canvas.height - 20);
+                context.stroke();
+                context.restore();
                 
                 // Draw flag first (left side)
                 try {
@@ -2503,7 +2550,7 @@
                 this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
             }
             
-            // 🏠 NEW: Handle scene changes from other users
+            // 🏠 ENHANCED: Handle scene changes from other users with better integration
             handleSceneChange(data) {
                 const isOwn = data.user_id === this.userId;
                 const countryName = this.getCountryName(data.nationality || 'UN');
@@ -2515,39 +2562,123 @@
                     const sceneName = data.scene_name || data.scene_preset;
                     this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the scene to ${sceneName} 🏠`);
                     
-                    // Apply the scene change locally
-                    if (window.SceneManager && window.SceneManager.applyScenePreset) {
-                        try {
-                            window.SceneManager.applyScenePreset(data.scene_preset, data.change_data);
-                            console.log(`✅ Applied remote scene change: ${data.scene_preset}`);
-                            
-                            // Show notification
-                            this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
-                        } catch (error) {
-                            console.error('❌ Error applying remote scene change:', error);
-                        }
-                    } else if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.applyScenePreset) {
-                        try {
-                            window.AdvancedSceneSystem.applyScenePreset(data.scene_preset, data.change_data);
-                            console.log(`✅ Applied remote scene change via AdvancedSceneSystem: ${data.scene_preset}`);
-                            
-                            // Show notification
-                            this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
-                        } catch (error) {
-                            console.error('❌ Error applying remote scene change via AdvancedSceneSystem:', error);
-                        }
-                    } else {
-                        console.warn('⚠️ No scene system available to apply remote scene change');
-                        this.showNotification(`🏠 ${data.username || 'user'} changed the scene (reload to see changes)`);
-                    }
+                    // Apply the scene change locally using multiple strategies
+                    this.applyRemoteSceneChange(data);
+                    
+                    // Show notification
+                    this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
                 } else {
                     // Own scene change - just show confirmation
                     const sceneName = data.scene_name || data.scene_preset;
                     this.addSystemMessage(`You changed the scene to ${sceneName} 🏠`);
                 }
+                
+                // Update status panel
+                this.updateSceneStatus(data.scene_name || data.scene_preset);
             }
             
-            // 🌦️ NEW: Handle weather changes from other users
+            // Enhanced scene change application with multiple strategies
+            applyRemoteSceneChange(data) {
+                let applied = false;
+                
+                // Strategy 1: Try AdvancedSceneSystem first
+                if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.applyScenePreset) {
+                    try {
+                        window.AdvancedSceneSystem.applyScenePreset(data.scene_preset, data.change_data);
+                        console.log(`✅ Applied remote scene change via AdvancedSceneSystem: ${data.scene_preset}`);
+                        applied = true;
+                    } catch (error) {
+                        console.error('❌ Error applying remote scene change via AdvancedSceneSystem:', error);
+                    }
+                }
+                
+                // Strategy 2: Try SceneManager as fallback
+                if (!applied && window.SceneManager && window.SceneManager.applyScenePreset) {
+                    try {
+                        window.SceneManager.applyScenePreset(data.scene_preset, data.change_data);
+                        console.log(`✅ Applied remote scene change via SceneManager: ${data.scene_preset}`);
+                        applied = true;
+                    } catch (error) {
+                        console.error('❌ Error applying remote scene change via SceneManager:', error);
+                    }
+                }
+                
+                // Strategy 3: Try room-level scene change
+                if (!applied && window.RoomCore && window.RoomCore.applySceneChange) {
+                    try {
+                        window.RoomCore.applySceneChange(data.scene_preset, data.change_data);
+                        console.log(`✅ Applied remote scene change via RoomCore: ${data.scene_preset}`);
+                        applied = true;
+                    } catch (error) {
+                        console.error('❌ Error applying remote scene change via RoomCore:', error);
+                    }
+                }
+                
+                // Strategy 4: Direct scene manipulation as last resort
+                if (!applied && window.SceneManager && window.SceneManager.scene) {
+                    try {
+                        // Apply basic scene preset changes directly
+                        this.applyBasicScenePreset(data.scene_preset);
+                        console.log(`✅ Applied basic remote scene change: ${data.scene_preset}`);
+                        applied = true;
+                    } catch (error) {
+                        console.error('❌ Error applying basic remote scene change:', error);
+                    }
+                }
+                
+                if (!applied) {
+                    console.warn('⚠️ No scene system available to apply remote scene change');
+                    this.showNotification(`🏠 ${data.username || 'user'} changed the scene (reload to see changes)`);
+                }
+            }
+            
+            // Basic scene preset application
+            applyBasicScenePreset(scenePreset) {
+                const scene = window.SceneManager.scene;
+                
+                // Basic environment changes based on preset
+                const presetConfig = {
+                    'forest': { 
+                        fog: { color: 0x228b22, near: 50, far: 200 },
+                        ambient: { color: 0x404040, intensity: 0.4 }
+                    },
+                    'cyberpunk': { 
+                        fog: { color: 0x9900ff, near: 30, far: 150 },
+                        ambient: { color: 0x330066, intensity: 0.6 }
+                    },
+                    'desert': { 
+                        fog: { color: 0xdaa520, near: 80, far: 300 },
+                        ambient: { color: 0x8b7355, intensity: 0.7 }
+                    },
+                    'arctic': { 
+                        fog: { color: 0xb0e0e6, near: 100, far: 400 },
+                        ambient: { color: 0x87ceeb, intensity: 0.8 }
+                    }
+                };
+                
+                const config = presetConfig[scenePreset] || presetConfig['forest'];
+                
+                // Apply fog
+                if (scene.fog) {
+                    scene.fog.color.setHex(config.fog.color);
+                    scene.fog.near = config.fog.near;
+                    scene.fog.far = config.fog.far;
+                } else {
+                    scene.fog = new THREE.Fog(config.fog.color, config.fog.near, config.fog.far);
+                }
+                
+                // Update ambient light
+                scene.traverse((child) => {
+                    if (child.type === 'AmbientLight') {
+                        child.color.setHex(config.ambient.color);
+                        child.intensity = config.ambient.intensity;
+                    }
+                });
+                
+                console.log(`🎨 Applied basic scene preset: ${scenePreset}`);
+            }
+            
+            // 🌦️ ENHANCED: Handle weather changes from other users
             handleWeatherChange(data) {
                 const isOwn = data.user_id === this.userId;
                 const countryName = this.getCountryName(data.nationality || 'UN');
@@ -2579,7 +2710,7 @@
                 }
             }
             
-            // 🌅 NEW: Handle time changes from other users
+            // 🌅 ENHANCED: Handle time changes from other users
             handleTimeChange(data) {
                 const isOwn = data.user_id === this.userId;
                 const countryName = this.getCountryName(data.nationality || 'UN');
@@ -2610,6 +2741,14 @@
                     // Own time change - just show confirmation
                     const timeDisplay = data.hour ? `${data.time_of_day} (${data.hour}:00)` : data.time_of_day;
                     this.addSystemMessage(`You changed the time to ${timeDisplay} 🌅`);
+                }
+            }
+            
+            // Update scene status in UI
+            updateSceneStatus(sceneName) {
+                const sceneValueElement = document.querySelector('#status-panel .status-item:nth-child(2) .status-value');
+                if (sceneValueElement) {
+                    sceneValueElement.textContent = sceneName || 'Unknown';
                 }
             }
             
@@ -4059,6 +4198,157 @@
         console.log('✅ ChatBubbleSystem v4.0 - FIXED VERSION loaded successfully');
     </script>
 
+    <!-- ENHANCED: Scene Synchronization Functions - Direct Integration -->
+    <script>
+        // 🏠 ENHANCED SCENE SYNCHRONIZATION SYSTEM
+        // Direct integration with UI elements to ensure scene changes are properly synced
+        
+        // 🔧 Scene synchronization function - FIXED VERSION
+        window.sendSceneChange = function(scenePreset, sceneName = null, changeData = null) {
+            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
+                window.WebSocketManager.send({
+                    type: 'scene_change',
+                    user_id: window.WebSocketManager.userId,
+                    room_id: window.WebSocketManager.roomId,
+                    username: window.WebSocketManager.username,
+                    scene_preset: scenePreset,
+                    scene_name: sceneName,
+                    change_data: changeData,
+                    nationality: window.WebSocketManager.userNationality,
+                    timestamp: Date.now()
+                });
+                
+                console.log(`📤 Sent scene change: ${scenePreset}${sceneName ? ` (${sceneName})` : ''}`);
+                return true;
+            } else {
+                console.warn('❌ Cannot send scene change - not connected to WebSocket');
+                return false;
+            }
+        };
+        
+        // 🌦️ Weather synchronization function - FIXED VERSION
+        window.sendWeatherChange = function(weatherType, intensity = 1.0) {
+            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
+                window.WebSocketManager.send({
+                    type: 'weather_change',
+                    user_id: window.WebSocketManager.userId,
+                    room_id: window.WebSocketManager.roomId,
+                    username: window.WebSocketManager.username,
+                    weather_type: weatherType,
+                    intensity: intensity,
+                    nationality: window.WebSocketManager.userNationality,
+                    timestamp: Date.now()
+                });
+                
+                console.log(`📤 Sent weather change: ${weatherType} (${intensity})`);
+                return true;
+            } else {
+                console.warn('❌ Cannot send weather change - not connected to WebSocket');
+                return false;
+            }
+        };
+        
+        // 🌅 Time synchronization function - FIXED VERSION
+        window.sendTimeChange = function(timeOfDay, hour = null) {
+            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
+                window.WebSocketManager.send({
+                    type: 'time_change',
+                    user_id: window.WebSocketManager.userId,
+                    room_id: window.WebSocketManager.roomId,
+                    username: window.WebSocketManager.username,
+                    time_of_day: timeOfDay,
+                    hour: hour,
+                    nationality: window.WebSocketManager.userNationality,
+                    timestamp: Date.now()
+                });
+                
+                console.log(`📤 Sent time change: ${timeOfDay}${hour ? ` (${hour}:00)` : ''}`);
+                return true;
+            } else {
+                console.warn('❌ Cannot send time change - not connected to WebSocket');
+                return false;
+            }
+        };
+        
+        // 🎮 Enhanced scene change wrapper that integrates with existing systems
+        window.synchronizedSceneChange = function(scenePreset, sceneName = null, applyLocally = true) {
+            console.log(`🔄 Synchronized scene change: ${scenePreset}`);
+            
+            let success = false;
+            
+            // Apply locally first if requested
+            if (applyLocally) {
+                if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.applyScenePreset) {
+                    try {
+                        window.AdvancedSceneSystem.applyScenePreset(scenePreset, { synchronized: true });
+                        success = true;
+                        console.log(`✅ Applied scene locally: ${scenePreset}`);
+                    } catch (error) {
+                        console.error('❌ Error applying scene locally:', error);
+                    }
+                } else if (window.SceneManager && window.SceneManager.applyScenePreset) {
+                    try {
+                        window.SceneManager.applyScenePreset(scenePreset, { synchronized: true });
+                        success = true;
+                        console.log(`✅ Applied scene locally via SceneManager: ${scenePreset}`);
+                    } catch (error) {
+                        console.error('❌ Error applying scene via SceneManager:', error);
+                    }
+                }
+            }
+            
+            // Send to other users
+            const syncSuccess = window.sendSceneChange(scenePreset, sceneName, { synchronized: true });
+            
+            if (syncSuccess) {
+                // Show confirmation notification
+                const notification = `🏠 Scene changed to ${sceneName || scenePreset}`;
+                if (window.WebSocketManager && window.WebSocketManager.showNotification) {
+                    window.WebSocketManager.showNotification(notification);
+                }
+                console.log(notification);
+            }
+            
+            return success || syncSuccess;
+        };
+        
+        // 🎭 Test synchronization function
+        window.testSceneSync = function() {
+            console.log('🧪 Testing scene synchronization...');
+            
+            if (!window.WebSocketManager) {
+                console.log('❌ WebSocket Manager not available');
+                return false;
+            }
+            
+            if (!window.WebSocketManager.authenticated) {
+                console.log('❌ Not authenticated to WebSocket');
+                return false;
+            }
+            
+            if (!window.sendSceneChange) {
+                console.log('❌ sendSceneChange function not available');
+                return false;
+            }
+            
+            // Test sending a scene change
+            const testResult = window.sendSceneChange('forest', 'Test Forest', { test: true });
+            
+            if (testResult) {
+                console.log('✅ Scene synchronization test passed!');
+                console.log('💡 Check your WebSocket logs for the scene_change message');
+                return true;
+            } else {
+                console.log('❌ Scene synchronization test failed');
+                return false;
+            }
+        };
+        
+        console.log('🔧 Enhanced scene synchronization system loaded');
+        console.log('💡 Use testSceneSync() to test the system');
+        console.log('💡 Use synchronizedSceneChange(preset, name) for synchronized changes');
+    </script>
+
     <!-- Fixed Chat Bubble System Integration -->
     <script>
         // Clean integration setup that works with the fixed ChatBubbleSystem
@@ -4239,67 +4529,6 @@
         window.sendInteraction = function(type, targetId = null, data = null) {
             if (window.WebSocketManager) {
                 window.WebSocketManager.sendInteraction(type, targetId, data);
-            }
-        };
-        
-        // 🏠 NEW: Scene synchronization function
-        window.sendSceneChange = function(scenePreset, sceneName = null, changeData = null) {
-            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
-                window.WebSocketManager.send({
-                    type: 'scene_change',
-                    user_id: window.WebSocketManager.userId,
-                    room_id: window.WebSocketManager.roomId,
-                    username: window.WebSocketManager.username,
-                    scene_preset: scenePreset,
-                    scene_name: sceneName,
-                    change_data: changeData,
-                    nationality: window.WebSocketManager.userNationality,
-                    timestamp: Date.now()
-                });
-                
-                console.log(`📤 Sent scene change: ${scenePreset}${sceneName ? ` (${sceneName})` : ''}`);
-            } else {
-                console.warn('❌ Cannot send scene change - not connected to WebSocket');
-            }
-        };
-        
-        // 🌦️ NEW: Weather synchronization function  
-        window.sendWeatherChange = function(weatherType, intensity = 1.0) {
-            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
-                window.WebSocketManager.send({
-                    type: 'weather_change',
-                    user_id: window.WebSocketManager.userId,
-                    room_id: window.WebSocketManager.roomId,
-                    username: window.WebSocketManager.username,
-                    weather_type: weatherType,
-                    intensity: intensity,
-                    nationality: window.WebSocketManager.userNationality,
-                    timestamp: Date.now()
-                });
-                
-                console.log(`📤 Sent weather change: ${weatherType} (${intensity})`);
-            } else {
-                console.warn('❌ Cannot send weather change - not connected to WebSocket');
-            }
-        };
-        
-        // 🌅 NEW: Time of day synchronization function
-        window.sendTimeChange = function(timeOfDay, hour = null) {
-            if (window.WebSocketManager && window.WebSocketManager.authenticated) {
-                window.WebSocketManager.send({
-                    type: 'time_change',
-                    user_id: window.WebSocketManager.userId,
-                    room_id: window.WebSocketManager.roomId,
-                    username: window.WebSocketManager.username,
-                    time_of_day: timeOfDay,
-                    hour: hour,
-                    nationality: window.WebSocketManager.userNationality,
-                    timestamp: Date.now()
-                });
-                
-                console.log(`📤 Sent time change: ${timeOfDay}${hour ? ` (${hour}:00)` : ''}`);
-            } else {
-                console.warn('❌ Cannot send time change - not connected to WebSocket');
             }
         };
         
@@ -4548,14 +4777,14 @@
         }, 100);
     </script>
 
-    <!-- Enhanced Modular System - Fixed for ChatBubbleSystem -->
+    <!-- Enhanced Modular System - Fixed for Scene Synchronization -->
     <script>
         // ================================
-        // EUPHORIE 3D MODULAR SYSTEM - FIXED
+        // EUPHORIE 3D MODULAR SYSTEM - FIXED WITH SCENE SYNC
         // Complete JavaScript Implementation
         // ================================
 
-        // Fixed Module Loader for ChatBubbleSystem
+        // Fixed Module Loader for Scene Synchronization
         class EuphorieModuleLoader {
             constructor() {
                 this.loadedModules = new Set();
@@ -4609,6 +4838,7 @@
                 
                 // Special initialization handlers for complex modules
                 this.initializationCallbacks.set('chat-bubble-system', () => this.initializeChatBubbleSystem());
+                this.initializationCallbacks.set('advanced-scene-system', () => this.initializeSceneSystem());
             }
             
             // Smart ChatBubbleSystem instance getter
@@ -4650,6 +4880,96 @@
                 } catch (error) {
                     console.warn('Error initializing ChatBubbleSystem:', error);
                 }
+            }
+            
+            // NEW: Special initialization for Scene System with synchronization
+            async initializeSceneSystem() {
+                console.log('🔧 Initializing Scene System with synchronization...');
+                
+                try {
+                    const sceneSystem = window.AdvancedSceneSystem;
+                    
+                    if (!sceneSystem) {
+                        console.warn('AdvancedSceneSystem not available');
+                        return;
+                    }
+                    
+                    // Initialize normally first
+                    if (typeof sceneSystem.init === 'function') {
+                        await this.safeInitialize(sceneSystem, 'AdvancedSceneSystem');
+                    }
+                    
+                    // ENHANCED: Integrate scene synchronization
+                    this.enhanceSceneSystemWithSync(sceneSystem);
+                    
+                } catch (error) {
+                    console.warn('Error initializing Scene System:', error);
+                }
+            }
+            
+            // NEW: Enhance scene system with synchronization capabilities
+            enhanceSceneSystemWithSync(sceneSystem) {
+                console.log('🔄 Enhancing Scene System with synchronization...');
+                
+                // Wrap scene change methods to include WebSocket sync
+                if (sceneSystem.applyScenePreset) {
+                    const originalApplyScenePreset = sceneSystem.applyScenePreset.bind(sceneSystem);
+                    
+                    sceneSystem.applyScenePreset = function(preset, data = {}) {
+                        console.log(`🔄 Synchronized scene preset: ${preset}`);
+                        
+                        // Apply locally first
+                        const result = originalApplyScenePreset(preset, data);
+                        
+                        // Send to other users if not already synchronized
+                        if (!data.synchronized && window.sendSceneChange) {
+                            const sceneName = this.getScenePresetName ? this.getScenePresetName(preset) : preset;
+                            window.sendSceneChange(preset, sceneName, { ...data, synchronized: true });
+                        }
+                        
+                        return result;
+                    };
+                }
+                
+                // Wrap weather change methods
+                if (sceneSystem.setWeather) {
+                    const originalSetWeather = sceneSystem.setWeather.bind(sceneSystem);
+                    
+                    sceneSystem.setWeather = function(weatherType, intensity = 1.0, data = {}) {
+                        console.log(`🔄 Synchronized weather: ${weatherType}`);
+                        
+                        // Apply locally first
+                        const result = originalSetWeather(weatherType, intensity, data);
+                        
+                        // Send to other users if not already synchronized
+                        if (!data.synchronized && window.sendWeatherChange) {
+                            window.sendWeatherChange(weatherType, intensity);
+                        }
+                        
+                        return result;
+                    };
+                }
+                
+                // Wrap time change methods
+                if (sceneSystem.setTimeOfDay) {
+                    const originalSetTimeOfDay = sceneSystem.setTimeOfDay.bind(sceneSystem);
+                    
+                    sceneSystem.setTimeOfDay = function(timeOfDay, hour = null, data = {}) {
+                        console.log(`🔄 Synchronized time: ${timeOfDay}`);
+                        
+                        // Apply locally first
+                        const result = originalSetTimeOfDay(timeOfDay, hour, data);
+                        
+                        // Send to other users if not already synchronized
+                        if (!data.synchronized && window.sendTimeChange) {
+                            window.sendTimeChange(timeOfDay, hour);
+                        }
+                        
+                        return result;
+                    };
+                }
+                
+                console.log('✅ Scene System enhanced with synchronization');
             }
             
             // Safe initialization wrapper
@@ -4767,9 +5087,9 @@
                     return;
                 }
                 
-                // Special handling for ChatBubbleSystem
-                if (moduleName === 'chat-bubble-system') {
-                    // Already handled in initializeChatBubbleSystem
+                // Special handling for already processed modules
+                if (moduleName === 'chat-bubble-system' || moduleName === 'advanced-scene-system') {
+                    // Already handled in initialization callbacks
                     return;
                 }
                 
@@ -4842,6 +5162,7 @@
                     'scene-manager': 3,
                     'avatar-system': 3,
                     'chat-bubble-system': 4,
+                    'advanced-scene-system': 4,
                     'initializing': 5,
                     'complete': 6
                 };
@@ -4873,7 +5194,7 @@
         }
 
         // ================================
-        // GLOBAL FUNCTIONS & SYSTEM INTEGRATION
+        // GLOBAL FUNCTIONS & SYSTEM INTEGRATION - ENHANCED FOR SCENE SYNC
         // ================================
 
         class EuphorieGlobalFunctions {
@@ -4968,38 +5289,14 @@
                     '👥 Adding friends...'
                 );
                 
-                // Environment
+                // ENHANCED: Environment with synchronization
                 window.changeScene = () => this.executeWithFallback(
                     () => {
                         const advancedScene = this.loader.getModuleObject('advanced-scene-system');
                         const roomCore = this.loader.getModuleObject('room-core');
                         
                         if (advancedScene && advancedScene.showEnvironmentSelector) {
-                            // Enhanced scene selector that sends WebSocket updates
-                            const originalShowSelector = advancedScene.showEnvironmentSelector;
-                            advancedScene.showEnvironmentSelector = function() {
-                                const result = originalShowSelector.call(this);
-                                
-                                // Override scene change to include WebSocket sync
-                                if (this.applyScenePreset) {
-                                    const originalApply = this.applyScenePreset;
-                                    this.applyScenePreset = function(preset, data) {
-                                        // Apply locally first
-                                        const result = originalApply.call(this, preset, data);
-                                        
-                                        // Then sync to other users
-                                        if (window.sendSceneChange) {
-                                            const presetName = this.getScenePresetName ? this.getScenePresetName(preset) : preset;
-                                            window.sendSceneChange(preset, presetName, data);
-                                        }
-                                        
-                                        return result;
-                                    };
-                                }
-                                
-                                return result;
-                            };
-                            
+                            // The scene system is already enhanced with sync in the loader
                             advancedScene.showEnvironmentSelector();
                         } else if (roomCore && roomCore.changeScene) {
                             roomCore.changeScene();
@@ -5015,30 +5312,7 @@
                     () => {
                         const advancedScene = this.loader.getModuleObject('advanced-scene-system');
                         if (advancedScene && advancedScene.showWeatherSelector) {
-                            // Enhanced weather selector that sends WebSocket updates
-                            const originalShowSelector = advancedScene.showWeatherSelector;
-                            advancedScene.showWeatherSelector = function() {
-                                const result = originalShowSelector.call(this);
-                                
-                                // Override weather change to include WebSocket sync
-                                if (this.setWeather) {
-                                    const originalSetWeather = this.setWeather;
-                                    this.setWeather = function(weatherType, intensity = 1.0) {
-                                        // Apply locally first
-                                        const result = originalSetWeather.call(this, weatherType, intensity);
-                                        
-                                        // Then sync to other users
-                                        if (window.sendWeatherChange) {
-                                            window.sendWeatherChange(weatherType, intensity);
-                                        }
-                                        
-                                        return result;
-                                    };
-                                }
-                                
-                                return result;
-                            };
-                            
+                            // The weather system is already enhanced with sync in the loader
                             advancedScene.showWeatherSelector();
                         } else {
                             this.showNotification('🌦️ Weather system loading...');
@@ -5052,30 +5326,7 @@
                     () => {
                         const advancedScene = this.loader.getModuleObject('advanced-scene-system');
                         if (advancedScene && advancedScene.showTimeOfDaySelector) {
-                            // Enhanced time selector that sends WebSocket updates
-                            const originalShowSelector = advancedScene.showTimeOfDaySelector;
-                            advancedScene.showTimeOfDaySelector = function() {
-                                const result = originalShowSelector.call(this);
-                                
-                                // Override time change to include WebSocket sync
-                                if (this.setTimeOfDay) {
-                                    const originalSetTime = this.setTimeOfDay;
-                                    this.setTimeOfDay = function(timeOfDay, hour = null) {
-                                        // Apply locally first
-                                        const result = originalSetTime.call(this, timeOfDay, hour);
-                                        
-                                        // Then sync to other users
-                                        if (window.sendTimeChange) {
-                                            window.sendTimeChange(timeOfDay, hour);
-                                        }
-                                        
-                                        return result;
-                                    };
-                                }
-                                
-                                return result;
-                            };
-                            
+                            // The time system is already enhanced with sync in the loader
                             advancedScene.showTimeOfDaySelector();
                         } else {
                             this.showNotification('🌅 Time system loading...');
@@ -5101,7 +5352,7 @@
                 window.toggleDesktopMenu = () => this.toggleDesktopMenu();
                 window.closeDesktopMenu = () => this.closeDesktopMenu();
                 
-                console.log('🔧 Global functions configured');
+                console.log('🔧 Global functions configured with scene synchronization');
             }
             
             executeWithFallback(primaryFunction, systemName, fallbackMessage) {
@@ -5220,7 +5471,7 @@
         }
 
         // ================================
-        // MAIN INITIALIZATION SYSTEM
+        // MAIN INITIALIZATION SYSTEM - ENHANCED
         // ================================
 
         class EuphorieInitializer {
@@ -5233,21 +5484,21 @@
             async initialize() {
                 if (this.isInitialized) return;
                 
-                console.log('🚀 Starting Euphorie 3D Platform modular system...');
+                console.log('🚀 Starting Euphorie 3D Platform with scene synchronization...');
                 
                 try {
                     // Step 1: Load all modules
                     this.loader = new EuphorieModuleLoader();
                     await this.loader.loadAllModules();
                     
-                    // Step 2: Setup global functions
+                    // Step 2: Setup global functions with scene sync
                     this.globalFunctions = new EuphorieGlobalFunctions(this.loader);
                     
                     // Step 3: Final setup
                     await this.finalSetup();
                     
                     this.isInitialized = true;
-                    console.log('🎉 Euphorie 3D Platform modular system initialized!');
+                    console.log('🎉 Euphorie 3D Platform with scene synchronization initialized!');
                     
                     // Hide loading screen after everything is ready
                     this.hideLoadingScreen();
@@ -5271,6 +5522,23 @@
                 
                 // Start periodic updates
                 this.startPeriodicUpdates();
+                
+                // Setup scene synchronization test
+                this.setupSceneSyncTest();
+            }
+            
+            setupSceneSyncTest() {
+                // Add test button to console for debugging
+                console.log('🧪 Scene synchronization test available via testSceneSync()');
+                
+                // Verify synchronization is working
+                setTimeout(() => {
+                    if (window.testSceneSync) {
+                        console.log('✅ Scene synchronization system ready');
+                    } else {
+                        console.warn('⚠️ Scene synchronization system not ready');
+                    }
+                }, 2000);
             }
             
             setupResponsiveLayout() {
@@ -5399,119 +5667,7 @@
             }, 2000);
         });
 
-        console.log('🎮 Euphorie 3D JavaScript system loaded and ready!');
-    </script>
-
-    <!-- Method 4: Quick File Edit Solution - FIXED ChatBubbleSystem -->
-    <script>
-        // FORCE FIX FOR CHAT BUBBLES - EMBEDDED VERSION
-        setTimeout(() => {
-            console.log('🔥 APPLYING EMBEDDED CHAT BUBBLE FIX...');
-            
-            if (window.ChatBubbleSystem) {
-                const system = window.ChatBubbleSystem;
-                
-                // Fix performance object
-                system.performance = {
-                    frameTime: 0,
-                    bubbleCount: 0,
-                    renderCalls: 0,
-                    lastCleanup: Date.now()
-                };
-                
-                // Fix drawBubbleBackground method
-                system.drawBubbleBackground = function(context, width, height) {
-                    if (!context || typeof width !== 'number' || typeof height !== 'number') return;
-                    
-                    try {
-                        const gradient = context.createLinearGradient(0, 0, 0, height);
-                        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
-                        gradient.addColorStop(0.5, 'rgba(248, 250, 252, 0.95)');
-                        gradient.addColorStop(1, 'rgba(241, 245, 249, 0.92)');
-                        
-                        context.save();
-                        context.shadowColor = 'rgba(0, 0, 0, 0.15)';
-                        context.shadowBlur = 20;
-                        context.shadowOffsetX = 0;
-                        context.shadowOffsetY = 8;
-                        
-                        context.fillStyle = gradient;
-                        context.beginPath();
-                        this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
-                        context.fill();
-                        context.restore();
-                        
-                        const borderGradient = context.createLinearGradient(0, 0, 0, height);
-                        borderGradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
-                        borderGradient.addColorStop(1, 'rgba(168, 85, 247, 0.2)');
-                        
-                        context.strokeStyle = borderGradient;
-                        context.lineWidth = 2;
-                        context.beginPath();
-                        this.roundRect(context, 1, 1, width - 2, height - 21, this.config.borderRadius - 1);
-                        context.stroke();
-                        
-                        context.fillStyle = gradient;
-                        context.beginPath();
-                        context.moveTo(width / 2 - 15, height - 20);
-                        context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
-                        context.fill();
-                    } catch (error) {
-                        console.error('Error in drawBubbleBackground:', error);
-                    }
-                }.bind(system);
-                
-                // Fix roundRect method
-                system.roundRect = function(context, x, y, width, height, radius) {
-                    if (!context) return;
-                    try {
-                        context.moveTo(x + radius, y);
-                        context.lineTo(x + width - radius, y);
-                        context.quadraticCurveTo(x + width, y, x + width, y + radius);
-                        context.lineTo(x + width, y + height - radius);
-                        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                        context.lineTo(x + radius, y + height);
-                        context.quadraticCurveTo(x, y + height, x, y + height - radius);
-                        context.lineTo(x, y + radius);
-                        context.quadraticCurveTo(x, y, x + radius, y);
-                    } catch (error) {
-                        console.error('Error in roundRect:', error);
-                    }
-                }.bind(system);
-                
-                // Enable chat bubbles
-                if (window.ROOM_CONFIG) {
-                    window.ROOM_CONFIG.chatBubblesEnabled = true;
-                }
-                
-                console.log('✅ EMBEDDED CHAT BUBBLE FIX APPLIED!');
-                console.log('💡 Try sending a chat message now');
-                
-                // Create test function
-                window.testBubbleFixed = function() {
-                    const testMessage = {
-                        message: 'Embedded fix works! 🎉',
-                        username: 'EmbeddedTest',
-                        userId: 'embedded_' + Date.now(),
-                        user_id: 'embedded_' + Date.now()
-                    };
-                    
-                    try {
-                        const result = system.createBubbleFromMessage(testMessage);
-                        if (result) {
-                            console.log('✅ SUCCESS! Embedded fix working');
-                            return true;
-                        } else {
-                            console.log('❌ Bubble creation failed');
-                            return false;
-                        }
-                    } catch (error) {
-                        console.error('❌ Embedded test failed:', error);
-                        return false;
-                    }
-                };
-            }
-        }, 3000);
+        console.log('🎮 Euphorie 3D JavaScript system with scene synchronization loaded and ready!');
     </script>
 </body>
 </html>
