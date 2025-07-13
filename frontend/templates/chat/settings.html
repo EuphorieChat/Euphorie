@@ -5,7 +5,156 @@
 
 {% block extra_css %}
 <style>
-/* Enhanced Settings Styles with Modern UX */
+    /* Enhanced Messages Styles */
+    .message-toast {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(16px);
+        border-radius: var(--radius-xl);
+        box-shadow: 
+            0 10px 25px -3px rgba(0, 0, 0, 0.1),
+            0 4px 6px -2px rgba(0, 0, 0, 0.05),
+            0 0 0 1px rgba(255, 255, 255, 0.1);
+        border-left: 4px solid var(--primary);
+        min-width: 300px;
+        max-width: 400px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .message-toast::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        opacity: 0.8;
+    }
+
+    .message-icon {
+        flex-shrink: 0;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.125rem;
+    }
+
+    .message-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .message-text {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.4;
+        color: var(--text-primary);
+        word-wrap: break-word;
+    }
+
+    .message-close {
+        flex-shrink: 0;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 0.125rem;
+    }
+
+    .message-close:hover {
+        background: rgba(0, 0, 0, 0.1);
+        color: var(--text-primary);
+        transform: scale(1.1);
+    }
+
+    /* Message Type Styles */
+    .message-success {
+        border-left-color: var(--success);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(34, 197, 94, 0.02));
+    }
+
+    .message-success .message-icon {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+    }
+
+    .message-success::before {
+        background: linear-gradient(90deg, #10b981, #22c55e);
+    }
+
+    .message-error,
+    .message-danger {
+        border-left-color: var(--danger);
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(220, 38, 38, 0.02));
+    }
+
+    .message-error .message-icon,
+    .message-danger .message-icon {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+    }
+
+    .message-error::before,
+    .message-danger::before {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    .message-warning {
+        border-left-color: var(--warning);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.02));
+    }
+
+    .message-warning .message-icon {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+    }
+
+    .message-warning::before {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+
+    .message-info {
+        border-left-color: var(--info);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.02));
+    }
+
+    .message-info .message-icon {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--info);
+    }
+
+    .message-info::before {
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+    }
+
+    /* Animation Classes */
+    .message-toast.show {
+        opacity: 1 !important;
+        transform: translateX(0) !important;
+    }
+
+    .message-toast.hide {
+        opacity: 0 !important;
+        transform: translateX(100%) scale(0.95) !important;
+    }
+
+    /* Enhanced Settings Styles with Modern UX */
 .settings-container {
     max-width: 1000px;
     margin: 0 auto;
@@ -1194,7 +1343,194 @@
 </div>
 
 <script>
+// Enhanced Messages Management System
+class EuphorieMessagesManager {
+    constructor() {
+        this.messages = new Map();
+        this.autoHideDelay = 5000; // 5 seconds
+        this.init();
+    }
+    
+    init() {
+        // Show all messages with staggered animation
+        const messageElements = document.querySelectorAll('.message-toast');
+        messageElements.forEach((element, index) => {
+            const messageId = element.dataset.messageId;
+            
+            // Store reference
+            this.messages.set(messageId, element);
+            
+            // Show with staggered animation
+            setTimeout(() => {
+                this.showMessage(messageId);
+            }, index * 150);
+            
+            // Auto-hide non-error messages
+            const messageType = this.getMessageType(element);
+            if (messageType !== 'error' && messageType !== 'danger') {
+                setTimeout(() => {
+                    this.hideMessage(messageId);
+                }, this.autoHideDelay + (index * 150));
+            }
+        });
+        
+        // Set up intersection observer for scroll-triggered dismissal
+        this.setupScrollDismissal();
+    }
+    
+    showMessage(messageId) {
+        const element = this.messages.get(messageId);
+        if (element) {
+            element.classList.add('show');
+            
+            // Add accessibility announcement
+            this.announceToScreenReader(element.querySelector('.message-text').textContent);
+        }
+    }
+    
+    hideMessage(messageId) {
+        const element = this.messages.get(messageId);
+        if (element && !element.classList.contains('hide')) {
+            element.classList.add('hide');
+            
+            // Remove from DOM after animation
+            setTimeout(() => {
+                if (element.parentNode) {
+                    element.remove();
+                }
+                this.messages.delete(messageId);
+            }, 300);
+        }
+    }
+    
+    dismissMessage(messageId) {
+        this.hideMessage(messageId);
+    }
+    
+    getMessageType(element) {
+        const classes = element.classList;
+        if (classes.contains('message-success')) return 'success';
+        if (classes.contains('message-error')) return 'error';
+        if (classes.contains('message-danger')) return 'danger';
+        if (classes.contains('message-warning')) return 'warning';
+        return 'info';
+    }
+    
+    announceToScreenReader(message) {
+        const announcement = document.createElement('div');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.setAttribute('aria-atomic', 'true');
+        announcement.style.position = 'absolute';
+        announcement.style.left = '-10000px';
+        announcement.style.width = '1px';
+        announcement.style.height = '1px';
+        announcement.style.overflow = 'hidden';
+        announcement.textContent = message;
+        
+        document.body.appendChild(announcement);
+        
+        setTimeout(() => {
+            document.body.removeChild(announcement);
+        }, 1000);
+    }
+    
+    setupScrollDismissal() {
+        let scrollTimer;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                // Auto-dismiss info messages on scroll
+                this.messages.forEach((element, messageId) => {
+                    const messageType = this.getMessageType(element);
+                    if (messageType === 'info' || messageType === 'success') {
+                        this.hideMessage(messageId);
+                    }
+                });
+            }, 1000);
+        });
+    }
+    
+    // Public method to add new messages programmatically
+    addMessage(text, type = 'info', autoHide = true) {
+        const messageId = 'msg-' + Date.now();
+        const container = document.getElementById('messages-container');
+        
+        if (!container) return;
+        
+        const messageElement = document.createElement('div');
+        messageElement.className = `message-toast message-${type} opacity-0 transform translate-x-full transition-all duration-300 ease-out`;
+        messageElement.dataset.messageId = messageId;
+        messageElement.setAttribute('role', 'alert');
+        messageElement.setAttribute('aria-live', 'polite');
+        
+        const icons = {
+            success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
+            error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />',
+            warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
+            info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
+        };
+        
+        messageElement.innerHTML = `
+            <div class="message-icon">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    ${icons[type] || icons.info}
+                </svg>
+            </div>
+            <div class="message-content">
+                <p class="message-text">${text}</p>
+            </div>
+            <button class="message-close" onclick="window.messagesManager?.dismissMessage('${messageId}')" aria-label="Dismiss message">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        `;
+        
+        container.appendChild(messageElement);
+        this.messages.set(messageId, messageElement);
+        
+        // Show immediately
+        setTimeout(() => this.showMessage(messageId), 100);
+        
+        // Auto-hide if requested
+        if (autoHide && type !== 'error' && type !== 'danger') {
+            setTimeout(() => this.hideMessage(messageId), this.autoHideDelay);
+        }
+        
+        return messageId;
+    }
+    
+    // Clear all messages
+    clearAll() {
+        this.messages.forEach((element, messageId) => {
+            this.hideMessage(messageId);
+        });
+    }
+}
+
+// Global function for dismissing messages (called from onclick)
+function dismissMessage(messageId) {
+    if (window.messagesManager) {
+        window.messagesManager.dismissMessage(messageId);
+    }
+}
+
+// Enhanced tab navigation
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize messages manager first
+    window.messagesManager = new EuphorieMessagesManager();
+    
+    // Add to global utils if available
+    if (window.utils) {
+        window.utils.addMessage = (text, type, autoHide) => {
+            return window.messagesManager.addMessage(text, type, autoHide);
+        };
+        
+        window.utils.clearMessages = () => {
+            window.messagesManager.clearAll();
+        };
+    }
+
     // Enhanced tab navigation
     const navTabs = document.querySelectorAll('.nav-tab');
     const sections = document.querySelectorAll('.setting-card');
