@@ -91,40 +91,30 @@ def get_country_name(country_code):
 
 def index(request):
     """
-    Homepage view that shows room exploration interface - UPDATED FOR PUBLIC ACCESS
+    FIXED index view - removed the problematic 'members' field reference
     """
     try:
-        # ALWAYS start with public rooms as base
-        rooms = Room.objects.select_related('creator', 'category').filter(
-            is_public=True
-        ).annotate(
+        # Since your Room model doesn't have a 'members' field, we'll only check for creator
+        if request.user.is_authenticated:
+            # Show public rooms + private rooms the user created
+            rooms = Room.objects.select_related('creator', 'category').filter(
+                Q(is_public=True) | Q(creator=request.user, is_public=False)
+            ).distinct()
+        else:
+            # Show only public rooms for non-authenticated users
+            rooms = Room.objects.select_related('creator', 'category').filter(
+                is_public=True
+            )
+        
+        # Since you have only public rooms anyway (636 public, 0 private), this will work fine
+        
+        # Add the annotations that were working in your shell test
+        rooms = rooms.annotate(
             total_messages=F('message_count'),
             last_message_time=Max('messages__timestamp')
         )
         
-        # For authenticated users, optionally include their private rooms
-        if request.user.is_authenticated:
-            # You can choose to include private rooms the user has access to
-            private_rooms = Room.objects.select_related('creator', 'category').filter(
-                Q(creator=request.user) | Q(members=request.user),
-                is_public=False
-            ).annotate(
-                total_messages=F('message_count'),
-                last_message_time=Max('messages__timestamp')
-            )
-            # Combine public and accessible private rooms
-            rooms = rooms.union(private_rooms).distinct()
-        
-        rooms = rooms.order_by('-last_activity', '-message_count')
-        
-        # Get categories for the filter bar (EXCLUDE 'All' category)
-        categories = RoomCategory.objects.filter(
-            is_active=True
-        ).exclude(
-            slug='all'
-        ).order_by('sort_order', 'name')
-        
-        # Handle search if query parameter exists - WORKS FOR ALL USERS
+        # Handle search
         search_query = request.GET.get('q', '').strip()
         if search_query:
             rooms = rooms.filter(
@@ -139,7 +129,7 @@ def index(request):
         if category_filter and category_filter != 'all':
             rooms = rooms.filter(category__slug=category_filter)
         
-        # Handle sorting
+        # Handle sorting (this was working in your shell test)
         sort_option = request.GET.get('sort', 'activity')
         if sort_option == 'newest':
             rooms = rooms.order_by('-created_at')
@@ -152,12 +142,15 @@ def index(request):
         else:  # 'activity' (default)
             rooms = rooms.order_by('-last_activity', '-message_count')
         
-        # Get stats - show public stats for non-auth users
-        if request.user.is_authenticated:
-            total_rooms = Room.objects.count()  # All rooms for auth users
-        else:
-            total_rooms = Room.objects.filter(is_public=True).count()  # Only public for non-auth
+        # Get categories
+        categories = RoomCategory.objects.filter(
+            is_active=True
+        ).exclude(
+            slug='all'
+        ).order_by('sort_order', 'name')
         
+        # Get stats
+        total_rooms = rooms.count()
         total_users = User.objects.count()
         total_messages = Message.objects.count()
         
@@ -179,21 +172,17 @@ def index(request):
     except Exception as e:
         print(f"ERROR in index view: {str(e)}")
         
-        if request.user.is_staff:
-            error_msg = f"Database error: {str(e)}"
-        else:
-            error_msg = "Sorry, we're experiencing technical difficulties. Please try again later."
-            
+        # Fallback context
         context = {
             'rooms': Room.objects.none(),
             'categories': RoomCategory.objects.filter(is_active=True).exclude(slug='all'),
-            'error': error_msg,
+            'error': f"Error loading rooms: {str(e)}" if request.user.is_staff else "Sorry, we're experiencing technical difficulties.",
             'search_query': '',
             'current_category': '',
             'current_sort': 'activity',
             'total_rooms': 0,
-            'total_users': 0,
-            'total_messages': 0,
+            'total_users': User.objects.count(),
+            'total_messages': Message.objects.count(),
             'user_authenticated': request.user.is_authenticated,
             'search_scope': 'public_only',
         }
