@@ -5,7 +5,18 @@
 
 {% block extra_css %}
 <style>
-/* Enhanced Modern Dashboard Styles */
+/* Smooth Scrolling Optimizations */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 2rem;
+}
+
+body {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+/* Enhanced Modern Dashboard Styles with Scroll Optimization */
 .dashboard-container {
     min-height: 100vh;
     background: linear-gradient(135deg, 
@@ -14,12 +25,14 @@
         rgba(139, 92, 246, 0.02) 100%
     );
     position: relative;
-    overflow-x: hidden;
+    /* Removed overflow-x: hidden to prevent scroll issues */
+    will-change: scroll-position;
+    transform: translateZ(0); /* Force GPU acceleration */
 }
 
 .dashboard-container::before {
     content: '';
-    position: absolute;
+    position: fixed; /* Changed from absolute to fixed for better performance */
     top: 0;
     left: 0;
     right: 0;
@@ -27,11 +40,41 @@
     background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f472b6' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     animation: patternFloat 30s linear infinite;
     pointer-events: none;
+    z-index: -1; /* Ensure it stays behind content */
 }
 
 @keyframes patternFloat {
     0% { transform: translateX(0) translateY(0); }
     100% { transform: translateX(60px) translateY(60px); }
+}
+
+/* Scroll Container Optimization */
+.scroll-container {
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+}
+
+/* Custom Scrollbar for Better UX */
+.scroll-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+    background: rgba(244, 114, 182, 0.05);
+    border-radius: 10px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(96, 165, 250, 0.3));
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.5), rgba(96, 165, 250, 0.5));
 }
 
 /* Enhanced Header Section */
@@ -47,6 +90,7 @@
     position: relative;
     overflow: hidden;
     animation: fadeInDown 0.8s ease-out;
+    transform: translateZ(0); /* GPU acceleration */
 }
 
 .dashboard-header::before {
@@ -62,7 +106,7 @@
 }
 
 .dashboard-header:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: 
         0 35px 60px -12px rgba(0, 0, 0, 0.12),
         0 0 0 1px rgba(244, 114, 182, 0.2);
@@ -102,7 +146,7 @@
     animation: pulse 3s ease-in-out infinite;
 }
 
-/* Enhanced Stat Cards */
+/* Enhanced Stat Cards with GPU Optimization */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -120,6 +164,8 @@
     position: relative;
     overflow: hidden;
     animation: fadeInUp 0.8s ease-out;
+    transform: translateZ(0); /* GPU acceleration */
+    will-change: transform; /* Optimize for animations */
 }
 
 .stat-card::before {
@@ -135,7 +181,7 @@
 }
 
 .stat-card:hover {
-    transform: translateY(-8px) scale(1.02);
+    transform: translateY(-8px) scale(1.02) translateZ(0);
     border-color: rgba(244, 114, 182, 0.3);
     box-shadow: 
         0 25px 50px rgba(244, 114, 182, 0.15),
@@ -158,10 +204,11 @@
     align-items: center;
     justify-content: center;
     transition: all 0.4s ease;
+    transform: translateZ(0);
 }
 
 .stat-card:hover .stat-icon-container {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.1) rotate(5deg) translateZ(0);
     background: linear-gradient(135deg, rgba(244, 114, 182, 0.2), rgba(96, 165, 250, 0.2));
 }
 
@@ -223,7 +270,7 @@
     color: #991b1b;
 }
 
-/* Enhanced Content Sections */
+/* Enhanced Content Sections with Scroll Optimization */
 .content-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -239,12 +286,13 @@
     overflow: hidden;
     transition: all 0.4s ease;
     animation: fadeInUp 0.8s ease-out;
+    transform: translateZ(0);
 }
 
 .content-section:hover {
     border-color: rgba(244, 114, 182, 0.2);
     box-shadow: 0 15px 35px rgba(244, 114, 182, 0.1);
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
 }
 
 .section-header {
@@ -281,11 +329,12 @@
     border-radius: 0.75rem;
     background: rgba(244, 114, 182, 0.05);
     border: 1px solid rgba(244, 114, 182, 0.2);
+    transform: translateZ(0);
 }
 
 .section-action:hover {
     background: rgba(244, 114, 182, 0.1);
-    transform: translateY(-1px);
+    transform: translateY(-1px) translateZ(0);
     text-decoration: none;
     color: var(--primary);
 }
@@ -294,6 +343,28 @@
     padding: 2rem;
     max-height: 400px;
     overflow-y: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Optimized Section Content Scrollbar */
+.section-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.section-content::-webkit-scrollbar-track {
+    background: rgba(244, 114, 182, 0.1);
+    border-radius: 10px;
+}
+
+.section-content::-webkit-scrollbar-thumb {
+    background: rgba(244, 114, 182, 0.3);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.section-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(244, 114, 182, 0.5);
 }
 
 /* Enhanced Room Items */
@@ -314,12 +385,13 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     color: inherit;
+    transform: translateZ(0);
 }
 
 .room-item:hover {
     background: rgba(244, 114, 182, 0.08);
     border-color: rgba(244, 114, 182, 0.2);
-    transform: translateX(4px);
+    transform: translateX(4px) translateZ(0);
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.1);
     text-decoration: none;
     color: inherit;
@@ -338,10 +410,11 @@
     font-size: 1.1rem;
     flex-shrink: 0;
     transition: all 0.3s ease;
+    transform: translateZ(0);
 }
 
 .room-item:hover .room-avatar {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.1) rotate(5deg) translateZ(0);
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
 }
 
@@ -393,12 +466,13 @@
     border-radius: 1rem;
     transition: all 0.3s ease;
     animation: slideInLeft 0.5s ease-out;
+    transform: translateZ(0);
 }
 
 .activity-item:hover {
     background: rgba(244, 114, 182, 0.08);
     border-color: rgba(244, 114, 182, 0.2);
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.1);
 }
 
@@ -414,6 +488,7 @@
     font-weight: 700;
     font-size: 0.875rem;
     flex-shrink: 0;
+    transform: translateZ(0);
 }
 
 .activity-content {
@@ -468,6 +543,7 @@
     border: 1px solid rgba(244, 114, 182, 0.1);
     overflow: hidden;
     animation: fadeInUp 0.8s ease-out;
+    transform: translateZ(0);
 }
 
 .actions-grid {
@@ -487,6 +563,8 @@
     color: inherit;
     position: relative;
     overflow: hidden;
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 .action-card::before {
@@ -502,7 +580,7 @@
 }
 
 .action-card:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-4px) scale(1.02) translateZ(0);
     box-shadow: 0 15px 35px rgba(244, 114, 182, 0.15);
     text-decoration: none;
     color: inherit;
@@ -523,10 +601,11 @@
     transition: all 0.4s ease;
     position: relative;
     z-index: 1;
+    transform: translateZ(0);
 }
 
 .action-card:hover .action-icon-wrapper {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.1) rotate(5deg) translateZ(0);
 }
 
 .action-icon {
@@ -562,7 +641,7 @@
 }
 
 .action-card:hover .action-arrow {
-    transform: translateX(4px);
+    transform: translateX(4px) translateZ(0);
 }
 
 /* Action Card Colors */
@@ -632,46 +711,47 @@
     font-weight: 600;
     text-decoration: none;
     transition: all 0.3s ease;
+    transform: translateZ(0);
 }
 
 .empty-state-action:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
     text-decoration: none;
     color: white;
 }
 
-/* Animations */
+/* Optimized Animations */
 @keyframes fadeInDown {
     from {
         opacity: 0;
-        transform: translateY(-30px);
+        transform: translateY(-30px) translateZ(0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) translateZ(0);
     }
 }
 
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(30px) translateZ(0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) translateZ(0);
     }
 }
 
 @keyframes slideInLeft {
     from {
         opacity: 0;
-        transform: translateX(-20px);
+        transform: translateX(-20px) translateZ(0);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateX(0) translateZ(0);
     }
 }
 
@@ -687,15 +767,15 @@
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateZ(0);
     }
     50% {
         opacity: 0.8;
-        transform: scale(1.02);
+        transform: scale(1.02) translateZ(0);
     }
 }
 
-/* Responsive Design */
+/* Responsive Design with Scroll Optimization */
 @media (max-width: 1024px) {
     .content-grid {
         grid-template-columns: 1fr;
@@ -756,302 +836,309 @@
     }
 }
 
-/* Custom Scrollbar */
-.section-content::-webkit-scrollbar {
-    width: 6px;
+/* Performance Optimizations */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
-.section-content::-webkit-scrollbar-track {
-    background: rgba(244, 114, 182, 0.1);
-    border-radius: 10px;
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .stat-card,
+    .content-section,
+    .action-card {
+        border-width: 2px;
+    }
 }
 
-.section-content::-webkit-scrollbar-thumb {
-    background: rgba(244, 114, 182, 0.3);
-    border-radius: 10px;
-}
-
-.section-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(244, 114, 182, 0.5);
+/* Smooth scroll anchor behavior */
+.scroll-anchor {
+    scroll-margin-top: 2rem;
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    <div class="container mx-auto px-4 py-6">
-        <!-- Enhanced Header -->
-        <div class="dashboard-header p-6 mb-8">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div>
-                    <h1 class="dashboard-title">Welcome Back!</h1>
-                    <p class="dashboard-subtitle">
-                        Ready to dive into conversations, {{ user.username }}? Here's what's happening in your world.
-                    </p>
-                </div>
-                
-                <div class="welcome-badge">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <span>{{ messages_today|default:0 }} messages today</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Enhanced Stats Grid -->
-        <div class="stats-grid" style="animation-delay: 0.2s;">
-            <div class="stat-card" style="animation-delay: 0.3s;">
-                <div class="stat-icon-container">
-                    <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Your Rooms</div>
-                    <div class="stat-value">{{ user_rooms_count|default:0 }}</div>
-                    <div class="stat-description">Active conversations</div>
-                    {% if user_rooms_count > 0 %}
-                    <div class="stat-trend trend-up">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                        </svg>
-                        Active
+    <div class="scroll-container">
+        <div class="container mx-auto px-4 py-6">
+            <!-- Enhanced Header -->
+            <div class="dashboard-header p-6 mb-8 scroll-anchor" id="header">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div>
+                        <h1 class="dashboard-title">Welcome Back!</h1>
+                        <p class="dashboard-subtitle">
+                            Ready to dive into conversations, {{ user.username }}? Here's what's happening in your world.
+                        </p>
                     </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="stat-card" style="animation-delay: 0.4s;">
-                <div class="stat-icon-container">
-                    <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Messages Sent</div>
-                    <div class="stat-value">{{ user_messages_count|default:0 }}</div>
-                    <div class="stat-description">Total contributions</div>
-                    {% if messages_today > 0 %}
-                    <div class="stat-trend trend-up">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    
+                    <div class="welcome-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        +{{ messages_today }} today
+                        <span>{{ messages_today|default:0 }} messages today</span>
                     </div>
-                    {% endif %}
                 </div>
             </div>
 
-            <div class="stat-card" style="animation-delay: 0.5s;">
-                <div class="stat-icon-container">
-                    <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Online Users</div>
-                    <div class="stat-value">{{ online_users_count|default:0 }}</div>
-                    <div class="stat-description">Currently chatting</div>
-                    {% if online_users_count > 0 %}
-                    <div class="stat-trend trend-up">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                        </svg>
-                        Live now
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="stat-card" style="animation-delay: 0.6s;">
-                <div class="stat-icon-container">
-                    <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Today's Activity</div>
-                    <div class="stat-value">{{ messages_today|default:0 }}</div>
-                    <div class="stat-description">Messages today</div>
-                    {% if messages_today > 0 %}
-                    <div class="stat-trend trend-up">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                        </svg>
-                        Active day
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Content Grid -->
-        <div class="content-grid" style="animation-delay: 0.7s;">
-            <!-- Your Rooms -->
-            <div class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <!-- Enhanced Stats Grid -->
+            <div class="stats-grid scroll-anchor" id="stats" style="animation-delay: 0.2s;">
+                <div class="stat-card" style="animation-delay: 0.3s;">
+                    <div class="stat-icon-container">
+                        <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                        Your Rooms
-                    </h2>
-                    <a href="{% url 'create_room' %}" class="section-action">
-                        + New Room
-                    </a>
-                </div>
-
-                <div class="section-content">
-                    {% if user_rooms %}
-                    <div class="rooms-list">
-                        {% for room in user_rooms %}
-                        <a href="{% url 'room' room_name=room.name %}" class="room-item" style="animation-delay: {{ forloop.counter|add:7 }}00ms;">
-                            <div class="room-avatar">
-                                {{ room.name|slice:":1"|upper }}
-                            </div>
-                            <div class="room-info">
-                                <div class="room-name">{{ room.display_name|default:room.name }}</div>
-                                <div class="room-meta">
-                                    <span class="room-badge">
-                                        {{ room.message_count|default:0 }} messages
-                                    </span>
-                                    <span>{{ room.last_activity|timesince|default:"Unknown" }} ago</span>
-                                </div>
-                            </div>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                        {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="empty-state">
-                        <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <h3 class="empty-state-title">No rooms yet</h3>
-                        <p class="empty-state-text">Create your first room to start connecting with others!</p>
-                        <a href="{% url 'create_room' %}" class="empty-state-action">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    <div class="stat-content">
+                        <div class="stat-label">Your Rooms</div>
+                        <div class="stat-value">{{ user_rooms_count|default:0 }}</div>
+                        <div class="stat-description">Active conversations</div>
+                        {% if user_rooms_count > 0 %}
+                        <div class="stat-trend trend-up">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
                             </svg>
-                            Create Room
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Recent Activity -->
-            <div class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        Recent Activity
-                    </h2>
-                    <span class="text-sm text-gray-500">Last 24 hours</span>
-                </div>
-
-                <div class="section-content">
-                    {% if recent_messages %}
-                    <div class="activity-feed">
-                        {% for message in recent_messages %}
-                        <div class="activity-item" style="animation-delay: {{ forloop.counter|add:10 }}00ms;">
-                            <div class="activity-avatar">
-                                {{ message.user.username|slice:":1"|upper }}
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-header">
-                                    <span class="activity-username">{{ message.user.username }}</span>
-                                    <span class="activity-time">{{ message.timestamp|timesince }} ago</span>
-                                    <span class="text-gray-300">•</span>
-                                    <a href="{% url 'room' room_name=message.room.name %}" class="activity-room-link">
-                                        {{ message.room.display_name|default:message.room.name }}
-                                    </a>
-                                </div>
-                                <div class="activity-message">{{ message.content|striptags|truncatechars:120 }}</div>
-                            </div>
+                            Active
                         </div>
-                        {% endfor %}
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="empty-state">
-                        <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                </div>
+
+                <div class="stat-card" style="animation-delay: 0.4s;">
+                    <div class="stat-icon-container">
+                        <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                         </svg>
-                        <h3 class="empty-state-title">No recent activity</h3>
-                        <p class="empty-state-text">Join a room and start chatting to see activity here!</p>
-                        <a href="{% url 'index' %}" class="empty-state-action">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            Browse Rooms
-                        </a>
                     </div>
-                    {% endif %}
+                    <div class="stat-content">
+                        <div class="stat-label">Messages Sent</div>
+                        <div class="stat-value">{{ user_messages_count|default:0 }}</div>
+                        <div class="stat-description">Total contributions</div>
+                        {% if messages_today > 0 %}
+                        <div class="stat-trend trend-up">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                            </svg>
+                            +{{ messages_today }} today
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="stat-card" style="animation-delay: 0.5s;">
+                    <div class="stat-icon-container">
+                        <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Online Users</div>
+                        <div class="stat-value">{{ online_users_count|default:0 }}</div>
+                        <div class="stat-description">Currently chatting</div>
+                        {% if online_users_count > 0 %}
+                        <div class="stat-trend trend-up">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                            </svg>
+                            Live now
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="stat-card" style="animation-delay: 0.6s;">
+                    <div class="stat-icon-container">
+                        <svg class="stat-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Today's Activity</div>
+                        <div class="stat-value">{{ messages_today|default:0 }}</div>
+                        <div class="stat-description">Messages today</div>
+                        {% if messages_today > 0 %}
+                        <div class="stat-trend trend-up">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                            </svg>
+                            Active day
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Enhanced Quick Actions -->
-        <div class="quick-actions" style="animation-delay: 0.9s;">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Quick Actions
-                </h2>
+            <!-- Content Grid -->
+            <div class="content-grid scroll-anchor" id="content" style="animation-delay: 0.7s;">
+                <!-- Your Rooms -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            Your Rooms
+                        </h2>
+                        <a href="{% url 'create_room' %}" class="section-action">
+                            + New Room
+                        </a>
+                    </div>
+
+                    <div class="section-content">
+                        {% if user_rooms %}
+                        <div class="rooms-list">
+                            {% for room in user_rooms %}
+                            <a href="{% url 'room' room_name=room.name %}" class="room-item" style="animation-delay: {{ forloop.counter|add:7 }}00ms;">
+                                <div class="room-avatar">
+                                    {{ room.name|slice:":1"|upper }}
+                                </div>
+                                <div class="room-info">
+                                    <div class="room-name">{{ room.display_name|default:room.name }}</div>
+                                    <div class="room-meta">
+                                        <span class="room-badge">
+                                            {{ room.message_count|default:0 }} messages
+                                        </span>
+                                        <span>{{ room.last_activity|timesince|default:"Unknown" }} ago</span>
+                                    </div>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <h3 class="empty-state-title">No rooms yet</h3>
+                            <p class="empty-state-text">Create your first room to start connecting with others!</p>
+                            <a href="{% url 'create_room' %}" class="empty-state-action">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Create Room
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            Recent Activity
+                        </h2>
+                        <span class="text-sm text-gray-500">Last 24 hours</span>
+                    </div>
+
+                    <div class="section-content">
+                        {% if recent_messages %}
+                        <div class="activity-feed">
+                            {% for message in recent_messages %}
+                            <div class="activity-item" style="animation-delay: {{ forloop.counter|add:10 }}00ms;">
+                                <div class="activity-avatar">
+                                    {{ message.user.username|slice:":1"|upper }}
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-header">
+                                        <span class="activity-username">{{ message.user.username }}</span>
+                                        <span class="activity-time">{{ message.timestamp|timesince }} ago</span>
+                                        <span class="text-gray-300">•</span>
+                                        <a href="{% url 'room' room_name=message.room.name %}" class="activity-room-link">
+                                            {{ message.room.display_name|default:message.room.name }}
+                                        </a>
+                                    </div>
+                                    <div class="activity-message">{{ message.content|striptags|truncatechars:120 }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                            <h3 class="empty-state-title">No recent activity</h3>
+                            <p class="empty-state-text">Join a room and start chatting to see activity here!</p>
+                            <a href="{% url 'index' %}" class="empty-state-action">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Browse Rooms
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
-            <div class="actions-grid">
-                <a href="{% url 'create_room' %}" class="action-card action-create">
-                    <div class="action-icon-wrapper">
-                        <svg class="action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <!-- Enhanced Quick Actions -->
+            <div class="quick-actions scroll-anchor" id="actions" style="animation-delay: 0.9s;">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                    </div>
-                    <div class="action-info">
-                        <div class="action-title">Create Room</div>
-                        <div class="action-description">Start a new conversation space with custom themes and settings</div>
-                    </div>
-                    <svg class="action-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                </a>
+                        Quick Actions
+                    </h2>
+                </div>
 
-                <a href="{% url 'index' %}" class="action-card action-browse">
-                    <div class="action-icon-wrapper">
-                        <svg class="action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <div class="actions-grid">
+                    <a href="{% url 'create_room' %}" class="action-card action-create">
+                        <div class="action-icon-wrapper">
+                            <svg class="action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                        </div>
+                        <div class="action-info">
+                            <div class="action-title">Create Room</div>
+                            <div class="action-description">Start a new conversation space with custom themes and settings</div>
+                        </div>
+                        <svg class="action-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                    </div>
-                    <div class="action-info">
-                        <div class="action-title">Browse Rooms</div>
-                        <div class="action-description">Discover active conversations and join communities that interest you</div>
-                    </div>
-                    <svg class="action-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                </a>
+                    </a>
 
-                <a href="{% url 'user_profile' username=user.username %}" class="action-card action-profile">
-                    <div class="action-icon-wrapper">
-                        <svg class="action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <a href="{% url 'index' %}" class="action-card action-browse">
+                        <div class="action-icon-wrapper">
+                            <svg class="action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <div class="action-info">
+                            <div class="action-title">Browse Rooms</div>
+                            <div class="action-description">Discover active conversations and join communities that interest you</div>
+                        </div>
+                        <svg class="action-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                    </div>
-                    <div class="action-info">
-                        <div class="action-title">Your Profile</div>
-                        <div class="action-description">Customize your avatar, update settings, and manage your presence</div>
-                    </div>
-                    <svg class="action-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                </a>
+                    </a>
+
+                    <a href="{% url 'user_profile' username=user.username %}" class="action-card action-profile">
+                        <div class="action-icon-wrapper">
+                            <svg class="action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        <div class="action-info">
+                            <div class="action-title">Your Profile</div>
+                            <div class="action-description">Customize your avatar, update settings, and manage your presence</div>
+                        </div>
+                        <svg class="action-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -1061,69 +1148,126 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Enhanced Euphorie dashboard loaded successfully');
+    console.log('Enhanced Euphorie dashboard with smooth scroll loaded successfully');
     
-    // Add enhanced hover effects to stat cards
-    const statCards = document.querySelectorAll('.stat-card');
-    statCards.forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            card.style.transform = 'translateY(-8px) scale(1.02)';
-        });
+    // Optimize scroll performance
+    let ticking = false;
+    
+    function requestTick() {
+        if (!ticking) {
+            requestAnimationFrame(updateElements);
+            ticking = true;
+        }
+    }
+    
+    function updateElements() {
+        ticking = false;
+        // Any scroll-based updates can go here
+    }
+    
+    // Throttled scroll event listener
+    const scrollContainer = document.querySelector('.scroll-container');
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', requestTick, { passive: true });
+    }
+    
+    // Enhanced hover effects with performance optimization
+    const cards = document.querySelectorAll('.stat-card, .content-section, .action-card');
+    
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.willChange = 'transform, box-shadow';
+        }, { passive: true });
         
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = 'translateY(0) scale(1)';
-        });
+        card.addEventListener('mouseleave', function() {
+            this.style.willChange = 'auto';
+        }, { passive: true });
     });
     
-    // Add ripple effect to action cards
+    // Optimized ripple effect for action cards
     const actionCards = document.querySelectorAll('.action-card');
     actionCards.forEach(card => {
         card.addEventListener('click', function(e) {
+            // Create ripple only if not already present
+            if (this.querySelector('.ripple')) return;
+            
             const ripple = document.createElement('span');
             const rect = this.getBoundingClientRect();
             const size = Math.max(rect.width, rect.height);
             const x = e.clientX - rect.left - size / 2;
             const y = e.clientY - rect.top - size / 2;
             
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = x + 'px';
-            ripple.style.top = y + 'px';
-            ripple.style.position = 'absolute';
-            ripple.style.borderRadius = '50%';
-            ripple.style.background = 'rgba(255, 255, 255, 0.6)';
-            ripple.style.transform = 'scale(0)';
-            ripple.style.animation = 'ripple 0.6s linear';
-            ripple.style.pointerEvents = 'none';
+            ripple.className = 'ripple';
+            ripple.style.cssText = `
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}px;
+                top: ${y}px;
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.6);
+                transform: scale(0);
+                animation: ripple 0.6s linear;
+                pointer-events: none;
+                z-index: 0;
+            `;
             
             this.appendChild(ripple);
             
             setTimeout(() => {
-                ripple.remove();
+                if (ripple.parentNode) {
+                    ripple.remove();
+                }
             }, 600);
         });
     });
     
-    // Add smooth scroll for any anchor links
+    // Smooth scroll for anchor links with enhanced performance
+    function smoothScrollTo(target, duration = 800) {
+        const targetPosition = target.offsetTop - 100; // Account for padding
+        const startPosition = scrollContainer ? scrollContainer.scrollTop : window.pageYOffset;
+        const distance = targetPosition - startPosition;
+        let startTime = null;
+        
+        function animation(currentTime) {
+            if (startTime === null) startTime = currentTime;
+            const timeElapsed = currentTime - startTime;
+            const run = easeInOutQuad(timeElapsed, startPosition, distance, duration);
+            
+            if (scrollContainer) {
+                scrollContainer.scrollTop = run;
+            } else {
+                window.scrollTo(0, run);
+            }
+            
+            if (timeElapsed < duration) {
+                requestAnimationFrame(animation);
+            }
+        }
+        
+        function easeInOutQuad(t, b, c, d) {
+            t /= d / 2;
+            if (t < 1) return c / 2 * t * t + b;
+            t--;
+            return -c / 2 * (t * (t - 2) - 1) + b;
+        }
+        
+        requestAnimationFrame(animation);
+    }
+    
+    // Handle anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
+            const targetId = this.getAttribute('href').substring(1);
+            const target = document.getElementById(targetId);
             if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+                smoothScrollTo(target);
             }
         });
     });
     
-    // Auto-refresh stats every 30 seconds (optional)
-    setInterval(() => {
-        // You could add AJAX calls here to update stats
-        console.log('Stats refresh interval (add AJAX here if needed)');
-    }, 30000);
-    
-    // Add entrance animations for late-loading content
+    // Intersection Observer for animations with performance optimization
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -1133,24 +1277,91 @@ document.addEventListener('DOMContentLoaded', function() {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+                entry.target.style.transform = 'translateY(0) translateZ(0)';
+                observer.unobserve(entry.target); // Stop observing once animated
             }
         });
     }, observerOptions);
     
-    // Observe elements that might load later
+    // Observe elements that need animation
     document.querySelectorAll('.room-item, .activity-item, .action-card').forEach(el => {
+        // Set initial state for elements
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px) translateZ(0)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
         observer.observe(el);
     });
+    
+    // Keyboard navigation enhancement
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            // Ensure focused elements are visible
+            setTimeout(() => {
+                const focused = document.activeElement;
+                if (focused && focused.scrollIntoView) {
+                    focused.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'nearest'
+                    });
+                }
+            }, 100);
+        }
+    });
+    
+    // Performance monitoring (optional)
+    if ('performance' in window) {
+        const perfObserver = new PerformanceObserver((list) => {
+            list.getEntries().forEach((entry) => {
+                if (entry.name === 'first-contentful-paint') {
+                    console.log('First Contentful Paint:', entry.startTime);
+                }
+            });
+        });
+        
+        try {
+            perfObserver.observe({ entryTypes: ['paint'] });
+        } catch (e) {
+            // Performance observer not supported
+        }
+    }
+    
+    console.log('Dashboard optimizations loaded');
 });
 
-// Add ripple animation CSS
+// Add enhanced ripple animation CSS
 const style = document.createElement('style');
 style.textContent = `
     @keyframes ripple {
         to {
             transform: scale(4);
             opacity: 0;
+        }
+    }
+    
+    /* Optimize transforms for better performance */
+    .stat-card, .content-section, .action-card {
+        backface-visibility: hidden;
+        perspective: 1000px;
+    }
+    
+    /* Smooth focus indicators */
+    *:focus {
+        outline: 2px solid rgba(244, 114, 182, 0.5);
+        outline-offset: 2px;
+        transition: outline 0.2s ease;
+    }
+    
+    /* Reduce motion for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .scroll-container {
+            scroll-behavior: auto !important;
+        }
+        
+        * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
         }
     }
 `;
