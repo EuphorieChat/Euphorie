@@ -1324,19 +1324,362 @@ def dashboard(request):
 
 @login_required
 def user_settings(request):
+    """Enhanced user settings view with full functionality"""
     user = request.user
+    user_profile, created = UserProfile.objects.get_or_create(user=user)
     
-    # You can add logic here to handle form submissions
+    # Get pending friend requests count for the template
+    pending_friend_requests_count = FriendRequest.objects.filter(
+        to_user=user, status='pending'
+    ).count()
+    
     if request.method == 'POST':
-        # Handle settings updates
-        pass
+        section = request.POST.get('section', 'profile')
+        
+        try:
+            if section == 'profile':
+                # Handle profile updates
+                email = request.POST.get('email', '').strip()
+                first_name = request.POST.get('first_name', '').strip()
+                last_name = request.POST.get('last_name', '').strip()
+                
+                # Validate email
+                if not email:
+                    messages.error(request, 'Email is required.')
+                    return redirect('user_settings')
+                
+                # Check if email is already taken by another user
+                if User.objects.filter(email=email).exclude(id=user.id).exists():
+                    messages.error(request, 'This email is already in use by another account.')
+                    return redirect('user_settings')
+                
+                # Update user fields
+                user.email = email
+                user.first_name = first_name
+                user.last_name = last_name
+                user.save()
+                
+                # Update profile fields if they exist in the form
+                display_name = request.POST.get('display_name', '').strip()
+                bio = request.POST.get('bio', '').strip()
+                location = request.POST.get('location', '').strip()
+                website = request.POST.get('website', '').strip()
+                
+                if display_name:
+                    user_profile.display_name = display_name
+                if bio:
+                    user_profile.bio = bio
+                if location:
+                    user_profile.location = location
+                if website:
+                    user_profile.website = website
+                
+                user_profile.save()
+                
+                # Log activity
+                UserActivity.objects.create(
+                    user=user,
+                    activity_type='updated_profile',
+                    description="Updated profile information"
+                )
+                
+                messages.success(request, 'Profile updated successfully!')
+                
+            elif section == 'privacy':
+                # Handle privacy settings
+                email_notifications = request.POST.get('email_notifications') == 'on'
+                allow_friend_requests = request.POST.get('allow_friend_requests') == 'on'
+                public_profile = request.POST.get('public_profile') == 'on'
+                allow_room_invites = request.POST.get('allow_room_invites') == 'on'
+                show_online_status = request.POST.get('show_online_status') == 'on'
+                show_nationality = request.POST.get('show_nationality') == 'on'
+                
+                # Update profile privacy settings
+                user_profile.allow_friend_requests = allow_friend_requests
+                user_profile.show_online_status = show_online_status
+                user_profile.show_nationality = show_nationality
+                
+                # Set profile visibility
+                if public_profile:
+                    user_profile.profile_visibility = 'public'
+                else:
+                    user_profile.profile_visibility = 'private'
+                
+                user_profile.save()
+                
+                # Store notification preferences (you might want to create a separate model for this)
+                # For now, we'll store in the profile or create a simple preference system
+                
+                # Log activity
+                UserActivity.objects.create(
+                    user=user,
+                    activity_type='updated_privacy',
+                    description="Updated privacy settings"
+                )
+                
+                messages.success(request, 'Privacy settings updated successfully!')
+                
+            elif section == 'security':
+                # Handle security settings (placeholder for now)
+                messages.info(request, 'Security settings will be available soon!')
+                
+            elif section == 'account_deletion':
+                # Handle account deletion request
+                confirmation = request.POST.get('deletion_confirmation', '').strip()
+                if confirmation.lower() == 'delete my account':
+                    # In a real implementation, you might want to:
+                    # 1. Send a confirmation email
+                    # 2. Set account for deletion after a grace period
+                    # 3. Anonymize data instead of hard delete
+                    
+                    # For now, just log the attempt
+                    UserActivity.objects.create(
+                        user=user,
+                        activity_type='deletion_requested',
+                        description="Requested account deletion"
+                    )
+                    
+                    messages.warning(request, 'Account deletion request logged. Please contact support to complete this process.')
+                else:
+                    messages.error(request, 'Incorrect confirmation text. Account not deleted.')
+            
+            else:
+                messages.error(request, 'Invalid section specified.')
+                
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+            print(f"Settings error: {e}")  # For debugging
+        
+        return redirect('user_settings')
     
+    # GET request - render the settings page
     context = {
         'user': user,
-        # Add any other context you need
+        'user_profile': user_profile,
+        'pending_friend_requests_count': pending_friend_requests_count,
+        
+        # User stats for display
+        'user_stats': {
+            'rooms_created': Room.objects.filter(creator=user).count(),
+            'messages_sent': Message.objects.filter(user=user).count(),
+            'friends_count': Friendship.objects.filter(user=user, status='accepted').count(),
+            'join_date': user.date_joined,
+            'last_seen': user_profile.last_seen,
+        },
+        
+        # Privacy settings current state
+        'privacy_settings': {
+            'email_notifications': True,  # You might want to store this in a separate model
+            'allow_friend_requests': user_profile.allow_friend_requests,
+            'public_profile': user_profile.profile_visibility == 'public',
+            'allow_room_invites': True,  # You might want to add this field to UserProfile
+            'show_online_status': user_profile.show_online_status,
+            'show_nationality': user_profile.show_nationality,
+        },
+        
+        # Security info
+        'security_info': {
+            'has_2fa': False,  # Implement when 2FA is ready
+            'last_password_change': None,  # Track this if needed
+            'active_sessions': 1,  # Implement session tracking
+        },
     }
     
     return render(request, 'chat/settings.html', context)
+
+@login_required
+@require_POST
+def ajax_update_setting(request):
+    """AJAX endpoint for quick setting updates"""
+    try:
+        data = json.loads(request.body)
+        setting_type = data.get('type')
+        setting_value = data.get('value')
+        
+        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        if setting_type == 'show_nationality':
+            user_profile.show_nationality = bool(setting_value)
+            user_profile.save()
+            return JsonResponse({'success': True, 'message': 'Nationality visibility updated'})
+            
+        elif setting_type == 'allow_friend_requests':
+            user_profile.allow_friend_requests = bool(setting_value)
+            user_profile.save()
+            return JsonResponse({'success': True, 'message': 'Friend request setting updated'})
+            
+        elif setting_type == 'show_online_status':
+            user_profile.show_online_status = bool(setting_value)
+            user_profile.save()
+            return JsonResponse({'success': True, 'message': 'Online status visibility updated'})
+            
+        elif setting_type == 'profile_visibility':
+            user_profile.profile_visibility = 'public' if setting_value else 'private'
+            user_profile.save()
+            return JsonResponse({'success': True, 'message': 'Profile visibility updated'})
+            
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid setting type'})
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+@login_required
+def download_user_data(request):
+    """Download user data (GDPR compliance)"""
+    try:
+        user = request.user
+        user_profile = getattr(user, 'profile', None)
+        
+        # Collect user data
+        user_data = {
+            'account_info': {
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'date_joined': user.date_joined.isoformat(),
+                'last_login': user.last_login.isoformat() if user.last_login else None,
+            },
+            'profile_info': {},
+            'rooms_created': [],
+            'messages': [],
+            'friends': [],
+            'activities': []
+        }
+        
+        if user_profile:
+            user_data['profile_info'] = {
+                'display_name': user_profile.display_name,
+                'bio': user_profile.bio,
+                'location': user_profile.location,
+                'website': user_profile.website,
+                'nationality': user_profile.nationality,
+                'theme': user_profile.theme,
+                'status': user_profile.status,
+                'created_at': user_profile.created_at.isoformat(),
+            }
+        
+        # Get user's rooms
+        rooms = Room.objects.filter(creator=user)
+        for room in rooms:
+            user_data['rooms_created'].append({
+                'name': room.name,
+                'display_name': room.display_name,
+                'description': room.description,
+                'created_at': room.created_at.isoformat(),
+                'is_public': room.is_public,
+            })
+        
+        # Get user's messages (limit to recent 1000 for performance)
+        messages = Message.objects.filter(user=user).order_by('-timestamp')[:1000]
+        for message in messages:
+            user_data['messages'].append({
+                'content': message.content,
+                'room': message.room.name,
+                'timestamp': message.timestamp.isoformat(),
+                'message_type': message.message_type,
+            })
+        
+        # Get user's friends
+        friendships = Friendship.objects.filter(user=user, status='accepted')
+        for friendship in friendships:
+            user_data['friends'].append({
+                'friend_username': friendship.friend.username,
+                'created_at': friendship.created_at.isoformat(),
+                'nickname': friendship.nickname,
+            })
+        
+        # Get user activities (recent 100)
+        activities = UserActivity.objects.filter(user=user).order_by('-created_at')[:100]
+        for activity in activities:
+            user_data['activities'].append({
+                'activity_type': activity.activity_type,
+                'description': activity.description,
+                'created_at': activity.created_at.isoformat(),
+            })
+        
+        # Create JSON response
+        response = HttpResponse(
+            json.dumps(user_data, indent=2),
+            content_type='application/json'
+        )
+        response['Content-Disposition'] = f'attachment; filename="euphorie_user_data_{user.username}_{timezone.now().strftime("%Y%m%d")}.json"'
+        
+        # Log the data download
+        UserActivity.objects.create(
+            user=user,
+            activity_type='data_downloaded',
+            description="Downloaded personal data export"
+        )
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error generating data export: {str(e)}')
+        return redirect('user_settings')
+
+
+@login_required
+@require_POST
+def clear_user_activities(request):
+    """Clear user's activity history"""
+    try:
+        count = UserActivity.objects.filter(user=request.user).count()
+        UserActivity.objects.filter(user=request.user).delete()
+        
+        # Log the clearing action
+        UserActivity.objects.create(
+            user=request.user,
+            activity_type='activities_cleared',
+            description=f"Cleared {count} activity records"
+        )
+        
+        messages.success(request, f'Successfully cleared {count} activity records.')
+        
+    except Exception as e:
+        messages.error(request, f'Error clearing activities: {str(e)}')
+    
+    return redirect('user_settings')
+
+
+@login_required
+@require_POST
+def deactivate_account(request):
+    """Deactivate user account (soft delete)"""
+    try:
+        confirmation = request.POST.get('confirmation', '').strip()
+        
+        if confirmation.lower() != 'deactivate':
+            messages.error(request, 'Incorrect confirmation. Account not deactivated.')
+            return redirect('user_settings')
+        
+        # Deactivate the account
+        user = request.user
+        user.is_active = False
+        user.save()
+        
+        # Log the deactivation
+        UserActivity.objects.create(
+            user=user,
+            activity_type='account_deactivated',
+            description="Account deactivated by user"
+        )
+        
+        # Logout the user
+        from django.contrib.auth import logout
+        logout(request)
+        
+        messages.success(request, 'Your account has been deactivated. Contact support to reactivate.')
+        return redirect('index')
+        
+    except Exception as e:
+        messages.error(request, f'Error deactivating account: {str(e)}')
+        return redirect('user_settings')
+
+
+
 
 # ==================== ADMIN VIEWS ====================
 

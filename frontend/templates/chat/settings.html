@@ -84,6 +84,7 @@
         backdrop-filter: blur(10px);
         position: relative;
         overflow: hidden;
+        cursor: pointer;
     }
 
     .nav-tab:hover {
@@ -181,7 +182,7 @@
         line-height: 1.5;
     }
 
-    /* FIXED: Enhanced Form Groups */
+    /* Enhanced Form Groups */
     .form-section {
         margin-bottom: 2.5rem;
     }
@@ -191,7 +192,6 @@
         position: relative;
     }
 
-    /* FIXED: Simple input field styling without complex floating labels */
     .input-group {
         margin-bottom: 1.5rem;
     }
@@ -220,6 +220,7 @@
         background: white;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         color: var(--text-primary);
+        box-sizing: border-box;
     }
 
     .form-input:focus {
@@ -229,7 +230,7 @@
         background: white;
     }
 
-    .form-input:hover {
+    .form-input:hover:not([readonly]) {
         border-color: #cbd5e1;
     }
 
@@ -237,15 +238,6 @@
         background-color: #f8fafc;
         color: var(--text-secondary);
         cursor: not-allowed;
-    }
-
-    .input-helper {
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: var(--text-tertiary);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
     }
 
     .form-input.error {
@@ -256,6 +248,15 @@
     .form-input.success {
         border-color: var(--success);
         box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    }
+
+    .input-helper {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-tertiary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     /* Enhanced Toggle Switches */
@@ -411,6 +412,13 @@
         box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
     }
 
+    .btn-enhanced:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
     /* Quick Actions Grid */
     .quick-actions-grid {
         display: grid;
@@ -557,6 +565,52 @@
         animation: shakeX 0.5s ease-out;
     }
 
+    .warning-message {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        color: #d97706;
+        padding: 1.5rem;
+        border-radius: var(--radius-xl);
+        margin-bottom: 2rem;
+        border-left: 4px solid #f59e0b;
+        font-size: 0.95rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        animation: slideInDown 0.5s ease-out;
+    }
+
+    .info-message {
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        color: #1d4ed8;
+        padding: 1.5rem;
+        border-radius: var(--radius-xl);
+        margin-bottom: 2rem;
+        border-left: 4px solid #3b82f6;
+        font-size: 0.95rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        animation: slideInDown 0.5s ease-out;
+    }
+
+    /* Loading State */
+    .loading-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .loading-spinner {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
     /* Enhanced Animations */
     @keyframes fadeInDown {
         from {
@@ -610,6 +664,11 @@
         20%, 40%, 60%, 80% {
             transform: translateX(5px);
         }
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 
     /* Mobile Optimizations */
@@ -677,8 +736,14 @@
     /* Focus indicators for accessibility */
     .form-input:focus-visible,
     .enhanced-toggle-switch input:focus-visible + .enhanced-slider,
-    .btn-enhanced:focus-visible {
+    .btn-enhanced:focus-visible,
+    .nav-tab:focus-visible {
         outline: 3px solid var(--primary);
+        outline-offset: 2px;
+    }
+
+    .toggle-container:focus-visible {
+        outline: 2px solid var(--primary);
         outline-offset: 2px;
     }
 </style>
@@ -696,37 +761,43 @@
 
     <!-- Enhanced Navigation Tabs -->
     <div class="settings-navigation">
-        <a href="#profile" class="nav-tab active" data-section="profile">
+        <div class="nav-tab active" data-section="profile" tabindex="0">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             Profile
-        </a>
-        <a href="#privacy" class="nav-tab" data-section="privacy">
+        </div>
+        <div class="nav-tab" data-section="privacy" tabindex="0">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             Privacy
-        </a>
-        <a href="#security" class="nav-tab" data-section="security">
+        </div>
+        <div class="nav-tab" data-section="security" tabindex="0">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
             Security
-        </a>
-        <a href="#actions" class="nav-tab" data-section="actions">
+        </div>
+        <div class="nav-tab" data-section="actions" tabindex="0">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right: 0.5rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             Quick Actions
-        </a>
+        </div>
     </div>
 
     <div class="settings-content">
         <!-- Enhanced Success/Error Messages -->
         {% if messages %}
             {% for message in messages %}
-                <div class="{% if message.tags == 'success' %}success-message{% elif message.tags == 'error' %}error-message{% endif %}">
+                <div class="
+                    {% if message.tags == 'success' %}success-message
+                    {% elif message.tags == 'error' %}error-message
+                    {% elif message.tags == 'warning' %}warning-message
+                    {% elif message.tags == 'info' %}info-message
+                    {% endif %}
+                " role="alert">
                     {% if message.tags == 'success' %}
                         <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -735,13 +806,21 @@
                         <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
+                    {% elif message.tags == 'warning' %}
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    {% elif message.tags == 'info' %}
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                     {% endif %}
                     {{ message }}
                 </div>
             {% endfor %}
         {% endif %}
 
-        <!-- FIXED: Profile Settings Section -->
+        <!-- Profile Settings Section -->
         <div id="profile-section" class="setting-card">
             <div class="card-header">
                 <div>
@@ -759,12 +838,12 @@
                 </div>
             </div>
             
-            <form method="post" action="{% url 'user_settings' %}" id="profile-form">
+            <form method="post" action="{% url 'user_settings' %}" id="profile-form" novalidate>
                 {% csrf_token %}
                 <input type="hidden" name="section" value="profile">
                 
                 <div class="form-section">
-                    <!-- Fixed Username Field -->
+                    <!-- Username Field -->
                     <div class="input-group">
                         <label for="id_username" class="input-label">Username</label>
                         <input 
@@ -774,13 +853,14 @@
                             value="{{ user.username }}"
                             class="form-input" 
                             readonly
+                            aria-describedby="username-help"
                         >
-                        <div class="input-helper">
+                        <div class="input-helper" id="username-help">
                             ℹ️ Username cannot be changed for security reasons
                         </div>
                     </div>
                     
-                    <!-- Fixed Email Field -->
+                    <!-- Email Field -->
                     <div class="input-group">
                         <label for="id_email" class="input-label required">Email Address</label>
                         <input 
@@ -790,39 +870,102 @@
                             value="{{ user.email }}"
                             class="form-input" 
                             required
+                            aria-describedby="email-help"
                         >
-                        <div class="input-helper">
+                        <div class="input-helper" id="email-help">
                             📧 Used for notifications and account recovery
                         </div>
                     </div>
                     
-                    <!-- Fixed First Name Field -->
+                    <!-- First Name Field -->
                     <div class="input-group">
                         <label for="id_first_name" class="input-label">First Name</label>
                         <input 
                             type="text" 
                             id="id_first_name" 
                             name="first_name" 
-                            value="{{ user.first_name }}"
+                            value="{{ user.first_name|default:'' }}"
                             class="form-input"
+                            maxlength="150"
                         >
                     </div>
                     
-                    <!-- Fixed Last Name Field -->
+                    <!-- Last Name Field -->
                     <div class="input-group">
                         <label for="id_last_name" class="input-label">Last Name</label>
                         <input 
                             type="text" 
                             id="id_last_name" 
                             name="last_name" 
-                            value="{{ user.last_name }}"
+                            value="{{ user.last_name|default:'' }}"
                             class="form-input"
+                            maxlength="150"
                         >
                     </div>
+
+                    <!-- Additional Profile Fields -->
+                    {% if user.profile %}
+                    <div class="input-group">
+                        <label for="id_display_name" class="input-label">Display Name</label>
+                        <input 
+                            type="text" 
+                            id="id_display_name" 
+                            name="display_name" 
+                            value="{{ user.profile.display_name|default:'' }}"
+                            class="form-input"
+                            maxlength="100"
+                            aria-describedby="display-name-help"
+                        >
+                        <div class="input-helper" id="display-name-help">
+                            👤 How your name appears to other users
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="id_bio" class="input-label">Bio</label>
+                        <textarea 
+                            id="id_bio" 
+                            name="bio" 
+                            class="form-input"
+                            rows="3"
+                            maxlength="500"
+                            placeholder="Tell others about yourself..."
+                            aria-describedby="bio-help"
+                        >{{ user.profile.bio|default:'' }}</textarea>
+                        <div class="input-helper" id="bio-help">
+                            ✍️ A short description about yourself (max 500 characters)
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="id_location" class="input-label">Location</label>
+                        <input 
+                            type="text" 
+                            id="id_location" 
+                            name="location" 
+                            value="{{ user.profile.location|default:'' }}"
+                            class="form-input"
+                            maxlength="100"
+                            placeholder="City, Country"
+                        >
+                    </div>
+
+                    <div class="input-group">
+                        <label for="id_website" class="input-label">Website</label>
+                        <input 
+                            type="url" 
+                            id="id_website" 
+                            name="website" 
+                            value="{{ user.profile.website|default:'' }}"
+                            class="form-input"
+                            placeholder="https://example.com"
+                        >
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <div style="text-align: right; margin-top: 2rem;">
-                    <button type="submit" class="btn-enhanced btn-primary-enhanced">
+                    <button type="submit" class="btn-enhanced btn-primary-enhanced" id="profile-submit">
                         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
@@ -832,7 +975,7 @@
             </form>
         </div>
 
-        <!-- Enhanced Privacy & Notifications Section -->
+        <!-- Privacy & Notifications Section -->
         <div id="privacy-section" class="setting-card" style="display: none;">
             <div class="card-header">
                 <div>
@@ -856,53 +999,81 @@
                 
                 <div class="form-section">
                     <!-- Enhanced Toggle Switches -->
-                    <div class="toggle-container">
+                    <div class="toggle-container" tabindex="0">
                         <div class="toggle-info">
                             <div class="toggle-title">Email Notifications</div>
                             <div class="toggle-description">Receive notifications when someone sends you a message or mentions you</div>
                         </div>
                         <label class="enhanced-toggle-switch">
-                            <input type="checkbox" name="email_notifications" checked>
+                            <input type="checkbox" name="email_notifications" 
+                                {% if privacy_settings.email_notifications %}checked{% endif %}>
                             <span class="enhanced-slider"></span>
                         </label>
                     </div>
                     
-                    <div class="toggle-container">
+                    <div class="toggle-container" tabindex="0">
                         <div class="toggle-info">
                             <div class="toggle-title">Friend Requests</div>
                             <div class="toggle-description">Allow other users to send you friend requests</div>
                         </div>
                         <label class="enhanced-toggle-switch">
-                            <input type="checkbox" name="allow_friend_requests" checked>
+                            <input type="checkbox" name="allow_friend_requests" 
+                                {% if privacy_settings.allow_friend_requests %}checked{% endif %}>
                             <span class="enhanced-slider"></span>
                         </label>
                     </div>
                     
-                    <div class="toggle-container">
+                    <div class="toggle-container" tabindex="0">
                         <div class="toggle-info">
                             <div class="toggle-title">Profile Visibility</div>
                             <div class="toggle-description">Make your profile visible to other users in search results</div>
                         </div>
                         <label class="enhanced-toggle-switch">
-                            <input type="checkbox" name="public_profile" checked>
+                            <input type="checkbox" name="public_profile" 
+                                {% if privacy_settings.public_profile %}checked{% endif %}>
                             <span class="enhanced-slider"></span>
                         </label>
                     </div>
                     
-                    <div class="toggle-container">
+                    <div class="toggle-container" tabindex="0">
                         <div class="toggle-info">
                             <div class="toggle-title">Room Invitations</div>
                             <div class="toggle-description">Allow others to invite you to their rooms</div>
                         </div>
                         <label class="enhanced-toggle-switch">
-                            <input type="checkbox" name="allow_room_invites" checked>
+                            <input type="checkbox" name="allow_room_invites" 
+                                {% if privacy_settings.allow_room_invites %}checked{% endif %}>
+                            <span class="enhanced-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-container" tabindex="0">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Show Online Status</div>
+                            <div class="toggle-description">Let others see when you're online</div>
+                        </div>
+                        <label class="enhanced-toggle-switch">
+                            <input type="checkbox" name="show_online_status" 
+                                {% if privacy_settings.show_online_status %}checked{% endif %}>
+                            <span class="enhanced-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-container" tabindex="0">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Show Nationality</div>
+                            <div class="toggle-description">Display your nationality on your profile</div>
+                        </div>
+                        <label class="enhanced-toggle-switch">
+                            <input type="checkbox" name="show_nationality" 
+                                {% if privacy_settings.show_nationality %}checked{% endif %}>
                             <span class="enhanced-slider"></span>
                         </label>
                     </div>
                 </div>
                 
                 <div style="text-align: right; margin-top: 2rem;">
-                    <button type="submit" class="btn-enhanced btn-primary-enhanced">
+                    <button type="submit" class="btn-enhanced btn-primary-enhanced" id="privacy-submit">
                         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
@@ -912,7 +1083,7 @@
             </form>
         </div>
 
-        <!-- Enhanced Security Section -->
+        <!-- Security Section -->
         <div id="security-section" class="setting-card" style="display: none;">
             <div class="card-header">
                 <div>
@@ -931,7 +1102,7 @@
             </div>
             
             <div class="form-section">
-                <!-- Enhanced Security Actions -->
+                <!-- Security Actions -->
                 <div class="action-card">
                     <div class="action-info">
                         <div class="action-title">Change Password</div>
@@ -970,10 +1141,23 @@
                         Manage Sessions
                     </button>
                 </div>
+
+                <div class="action-card">
+                    <div class="action-info">
+                        <div class="action-title">Download Your Data</div>
+                        <div class="action-description">Download a copy of all your data from Euphorie</div>
+                    </div>
+                    <a href="{% url 'download_user_data' %}" class="btn-enhanced btn-secondary-enhanced">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        </svg>
+                        Download Data
+                    </a>
+                </div>
             </div>
         </div>
 
-        <!-- Enhanced Quick Actions Section -->
+        <!-- Quick Actions Section -->
         <div id="actions-section" class="setting-card" style="display: none;">
             <div class="card-header">
                 <div>
@@ -1012,7 +1196,7 @@
                     <h3 class="quick-action-title">Dashboard</h3>
                 </a>
                 
-                <a href="{% url 'friends_list' %}" class="quick-action-card">
+                <a href="{% url 'friends_list' %}" class="quick-action-card" style="position: relative;">
                     <div class="quick-action-icon">
                         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -1055,7 +1239,43 @@
             </div>
         </div>
 
-        <!-- Enhanced Danger Zone -->
+        <!-- Account Management Section -->
+        <div class="setting-card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        Account Management
+                    </h2>
+                    <p class="card-description">
+                        Manage your account data and activity
+                    </p>
+                </div>
+            </div>
+            
+            <div class="action-card">
+                <div class="action-info">
+                    <div class="action-title">Clear Activity History</div>
+                    <div class="action-description">Remove your activity history and logs</div>
+                </div>
+                <form method="post" action="{% url 'clear_user_activities' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-enhanced btn-secondary-enhanced" onclick="return confirm('Are you sure you want to clear your activity history? This cannot be undone.')">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Clear History
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
         <div class="setting-card danger-zone">
             <div class="card-header">
                 <div>
@@ -1075,6 +1295,19 @@
             
             <div class="action-card danger-action-card">
                 <div class="action-info">
+                    <div class="action-title" style="color: #dc2626;">Deactivate Account</div>
+                    <div class="action-description">Temporarily deactivate your account. You can reactivate it later by contacting support.</div>
+                </div>
+                <button onclick="showDeactivateModal()" class="btn-enhanced btn-danger-enhanced">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                    </svg>
+                    Deactivate Account
+                </button>
+            </div>
+
+            <div class="action-card danger-action-card">
+                <div class="action-info">
                     <div class="action-title" style="color: #dc2626;">Delete Account</div>
                     <div class="action-description">Permanently delete your account and all associated data. This action cannot be undone.</div>
                 </div>
@@ -1089,6 +1322,38 @@
     </div>
 </div>
 
+<!-- Enhanced Deactivate Account Modal -->
+<div id="deactivate-account-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 25000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: var(--radius-2xl); padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 4rem; height: 4rem; background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white;">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                </svg>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #ea580c; margin-bottom: 0.5rem;">Deactivate Account</h3>
+            <p style="color: var(--text-secondary); line-height: 1.6;">Your account will be temporarily disabled. You can reactivate it later by contacting support.</p>
+        </div>
+        
+        <form method="post" action="{% url 'deactivate_account' %}" style="margin-bottom: 1rem;">
+            {% csrf_token %}
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Type "deactivate" to confirm:</label>
+                <input type="text" name="confirmation" required style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: var(--radius-lg); font-size: 1rem;" placeholder="deactivate">
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button type="button" onclick="hideDeactivateModal()" class="btn-enhanced btn-secondary-enhanced">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-enhanced" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
+                    Deactivate Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Enhanced Delete Account Modal -->
 <div id="delete-account-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 25000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: var(--radius-2xl); padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
@@ -1100,6 +1365,17 @@
             </div>
             <h3 style="font-size: 1.5rem; font-weight: 800; color: #dc2626; margin-bottom: 0.5rem;">Delete Account</h3>
             <p style="color: var(--text-secondary); line-height: 1.6;">This action cannot be undone. All your data, rooms, and conversations will be permanently deleted.</p>
+        </div>
+        
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="color: #dc2626; font-weight: 700; margin-bottom: 0.5rem;">⚠️ What will be deleted:</h4>
+            <ul style="color: #7f1d1d; font-size: 0.9rem; margin: 0; padding-left: 1.5rem;">
+                <li>Your profile and account information</li>
+                <li>All messages and conversations</li>
+                <li>Rooms you created</li>
+                <li>Friend connections</li>
+                <li>Activity history</li>
+            </ul>
         </div>
         
         <div style="display: flex; gap: 1rem; justify-content: center;">
@@ -1121,8 +1397,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const sections = document.querySelectorAll('.setting-card');
     
     function showSection(sectionId) {
-        // Hide all sections
-        sections.forEach(section => {
+        // Hide all sections except account management and danger zone which are always visible
+        document.querySelectorAll('#profile-section, #privacy-section, #security-section, #actions-section').forEach(section => {
             section.style.display = 'none';
         });
         
@@ -1155,6 +1431,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const sectionId = tab.dataset.section;
             showSection(sectionId);
         });
+
+        // Keyboard navigation for tabs
+        tab.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const sectionId = tab.dataset.section;
+                showSection(sectionId);
+            }
+        });
     });
     
     // Handle initial hash or show profile by default
@@ -1165,17 +1450,21 @@ document.addEventListener('DOMContentLoaded', function() {
         showSection('profile');
     }
 
-    // FIXED: Enhanced form input handling
+    // Enhanced form input handling
     const formInputs = document.querySelectorAll('.form-input');
     
     formInputs.forEach(input => {
         // Handle focus events
         input.addEventListener('focus', () => {
-            input.parentElement.classList.add('focused');
+            if (input.parentElement) {
+                input.parentElement.classList.add('focused');
+            }
         });
         
         input.addEventListener('blur', () => {
-            input.parentElement.classList.remove('focused');
+            if (input.parentElement) {
+                input.parentElement.classList.remove('focused');
+            }
             validateInput(input);
         });
         
@@ -1189,6 +1478,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     input.classList.add('success');
                     input.classList.remove('error');
                 } else {
+                    input.classList.add('error');
+                    input.classList.remove('success');
+                }
+            } else if (input.type === 'url' && input.value) {
+                try {
+                    new URL(input.value);
+                    input.classList.add('success');
+                    input.classList.remove('error');
+                } catch {
                     input.classList.add('error');
                     input.classList.remove('success');
                 }
@@ -1211,6 +1509,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     input.classList.add('error');
                     return false;
                 }
+            } else if (input.type === 'url') {
+                try {
+                    new URL(input.value);
+                    input.classList.add('success');
+                } catch {
+                    input.classList.add('error');
+                    return false;
+                }
             } else {
                 input.classList.add('success');
             }
@@ -1227,7 +1533,7 @@ document.addEventListener('DOMContentLoaded', function() {
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
             // Validate all required fields
-            const requiredInputs = this.querySelectorAll('input[required]');
+            const requiredInputs = this.querySelectorAll('input[required], textarea[required]');
             let isValid = true;
             
             requiredInputs.forEach(input => {
@@ -1248,11 +1554,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Add loading state
                 submitBtn.innerHTML = `
-                    <svg class="animate-spin" width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving...
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        Saving...
+                    </div>
                 `;
                 submitBtn.disabled = true;
                 
@@ -1275,6 +1580,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Make the entire container clickable
         container.addEventListener('click', (e) => {
             if (e.target !== toggle && e.target.closest('.enhanced-toggle-switch') === null) {
+                e.preventDefault();
                 toggle.click();
             }
         });
@@ -1287,17 +1593,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Make container focusable
-        container.setAttribute('tabindex', '0');
-        
-        // Toggle change handler
+        // Toggle change handler with feedback
         toggle.addEventListener('change', function() {
             // Add visual feedback
             const slider = this.nextElementSibling;
-            slider.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                slider.style.transform = 'scale(1)';
-            }, 150);
+            if (slider) {
+                slider.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    slider.style.transform = 'scale(1)';
+                }, 150);
+            }
             
             // Show feedback
             const settingName = container.querySelector('.toggle-title').textContent;
@@ -1305,6 +1610,52 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast(`${settingName} ${status}`, 'info', 2000);
         });
     });
+    
+    // Character counter for textareas
+    const textareas = document.querySelectorAll('textarea[maxlength]');
+    textareas.forEach(textarea => {
+        const maxLength = parseInt(textarea.getAttribute('maxlength'));
+        const helper = textarea.parentElement.querySelector('.input-helper');
+        
+        function updateCounter() {
+            const currentLength = textarea.value.length;
+            const remaining = maxLength - currentLength;
+            
+            if (helper) {
+                const originalText = helper.textContent;
+                const baseText = originalText.replace(/ \(\d+\/\d+\)$/, '');
+                helper.textContent = `${baseText} (${currentLength}/${maxLength})`;
+                
+                if (remaining < 50) {
+                    helper.style.color = '#dc2626';
+                } else if (remaining < 100) {
+                    helper.style.color = '#f59e0b';
+                } else {
+                    helper.style.color = '';
+                }
+            }
+        }
+        
+        textarea.addEventListener('input', updateCounter);
+        updateCounter(); // Initialize
+    });
+    
+    // Auto-save functionality for privacy settings
+    const privacyForm = document.getElementById('privacy-form');
+    if (privacyForm) {
+        const toggles = privacyForm.querySelectorAll('input[type="checkbox"]');
+        let autoSaveTimeout;
+        
+        toggles.forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                clearTimeout(autoSaveTimeout);
+                autoSaveTimeout = setTimeout(() => {
+                    // Auto-save privacy settings via AJAX
+                    autoSavePrivacySettings();
+                }, 1000);
+            });
+        });
+    }
     
     // Smooth scrolling for hash changes
     window.addEventListener('hashchange', () => {
@@ -1315,7 +1666,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Auto-save privacy settings
+function autoSavePrivacySettings() {
+    const form = document.getElementById('privacy-form');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    
+    fetch('{% url "ajax_update_setting" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            section: 'privacy',
+            settings: Object.fromEntries(formData)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Privacy settings auto-saved', 'success', 2000);
+        }
+    })
+    .catch(error => {
+        console.log('Auto-save failed:', error);
+    });
+}
+
 // Enhanced modal functions
+function showDeactivateModal() {
+    const modal = document.getElementById('deactivate-account-modal');
+    modal.style.display = 'flex';
+    modal.style.animation = 'fadeIn 0.3s ease-out';
+    document.body.style.overflow = 'hidden';
+    
+    // Focus the input field
+    setTimeout(() => {
+        const input = modal.querySelector('input[name="confirmation"]');
+        if (input) input.focus();
+    }, 100);
+}
+
+function hideDeactivateModal() {
+    const modal = document.getElementById('deactivate-account-modal');
+    modal.style.animation = 'fadeOut 0.3s ease-out';
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }, 300);
+}
+
 function showDeleteAccountModal() {
     const modal = document.getElementById('delete-account-modal');
     modal.style.display = 'flex';
@@ -1337,16 +1739,68 @@ function showComingSoonToast(feature) {
     showToast(`${feature} is coming soon! 🚀`, 'info', 3000);
 }
 
-// Simple toast function
+// Enhanced toast function with better integration
 function showToast(message, type = 'info', duration = 3000) {
+    // Try multiple toast systems
     if (window.utils && window.utils.showToast) {
         window.utils.showToast(message, type, duration);
-    } else if (window.toastManager) {
+    } else if (window.toastManager && window.toastManager.show) {
         window.toastManager.show(message, type, duration);
+    } else if (window.showToast) {
+        window.showToast(message, type, duration);
     } else {
-        // Fallback alert
-        alert(message);
+        // Fallback: create a simple toast
+        createSimpleToast(message, type, duration);
     }
+}
+
+// Simple fallback toast implementation
+function createSimpleToast(message, type, duration) {
+    const toast = document.createElement('div');
+    toast.className = `simple-toast toast-${type}`;
+    toast.textContent = message;
+    
+    // Style the toast
+    Object.assign(toast.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        color: 'white',
+        fontWeight: '500',
+        zIndex: '50000',
+        transform: 'translateX(100%)',
+        transition: 'transform 0.3s ease-out',
+        maxWidth: '400px',
+        wordWrap: 'break-word'
+    });
+    
+    // Set background color based on type
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    toast.style.backgroundColor = colors[type] || colors.info;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Animate out and remove
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, duration);
 }
 
 // Enhanced keyboard navigation
@@ -1354,9 +1808,10 @@ document.addEventListener('keydown', function(e) {
     // Escape to close modals
     if (e.key === 'Escape') {
         hideDeleteAccountModal();
+        hideDeactivateModal();
     }
     
-    // Tab navigation with numbers
+    // Tab navigation with numbers (Alt + 1-4)
     if (e.altKey && e.key >= '1' && e.key <= '4') {
         e.preventDefault();
         const sections = ['profile', 'privacy', 'security', 'actions'];
@@ -1366,9 +1821,22 @@ document.addEventListener('keydown', function(e) {
             window.location.hash = hash;
         }
     }
+    
+    // Quick save shortcut (Ctrl/Cmd + S)
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const activeSection = document.querySelector('.setting-card[style*="display: block"], .setting-card:not([style*="display: none"])');
+        if (activeSection) {
+            const form = activeSection.querySelector('form');
+            if (form) {
+                form.requestSubmit();
+                showToast('Saving...', 'info', 1000);
+            }
+        }
+    }
 });
 
-// Add required animations
+// Add required animations CSS
 const style = document.createElement('style');
 style.textContent = `
     @keyframes fadeIn {
@@ -1381,13 +1849,29 @@ style.textContent = `
         to { opacity: 0; transform: scale(0.95); }
     }
     
-    .animate-spin {
+    .loading-state {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .loading-spinner {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
         animation: spin 1s linear infinite;
     }
     
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
+    }
+
+    .simple-toast {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
     }
 `;
 document.head.appendChild(style);

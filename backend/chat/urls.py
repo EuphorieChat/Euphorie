@@ -18,6 +18,10 @@ urlpatterns = [
     path('profile/<str:username>/', views.user_profile, name='user_profile'),
     path('profile/<str:username>/edit/', views.edit_profile, name='edit_profile'),
     path('settings/', views.user_settings, name='user_settings'),
+    path('settings/ajax-update/', views.ajax_update_setting, name='ajax_update_setting'),
+    path('settings/download-data/', views.download_user_data, name='download_user_data'),
+    path('settings/clear-activities/', views.clear_user_activities, name='clear_user_activities'),
+    path('settings/deactivate/', views.deactivate_account, name='deactivate_account'),
     
     # ==================== FRIEND URLS ====================
     path('friends/', views.friends_list, name='friends_list'),
