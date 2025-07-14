@@ -5,18 +5,75 @@
 
 {% block extra_css %}
 <style>
-/* Enhanced Admin Users Styles with Modern UX */
+/* Smooth Scrolling Optimizations */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 2rem;
+}
+
+body {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Enhanced Admin Users Styles with Modern UX - Scoped to Admin Container */
 .admin-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
     min-height: 100vh;
+    background: linear-gradient(135deg, 
+        rgba(244, 114, 182, 0.02) 0%, 
+        rgba(96, 165, 250, 0.02) 50%, 
+        rgba(139, 92, 246, 0.02) 100%
+    );
+    position: relative;
+    will-change: scroll-position;
+    transform: translateZ(0);
+}
+
+.admin-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f472b6' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    animation: patternFloat 30s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes patternFloat {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(60px) translateY(60px); }
 }
 
 .admin-header {
     text-align: center;
     margin-bottom: 3rem;
     animation: fadeInDown 0.6s ease-out;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 2rem;
+    border: 1px solid rgba(244, 114, 182, 0.15);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+}
+
+.admin-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
 }
 
 .admin-title {
@@ -48,14 +105,15 @@
     flex-wrap: wrap;
 }
 
-.btn-enhanced {
+/* Enhanced Buttons - Scoped to Admin Container Only */
+.admin-container .btn-enhanced {
     position: relative;
     overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    border-radius: var(--radius-xl);
+    border-radius: 1.5rem;
     padding: 0.875rem 2rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
@@ -64,9 +122,12 @@
     text-decoration: none;
     font-size: 0.9rem;
     gap: 0.5rem;
+    min-height: 2.75rem;
+    transform: translateZ(0);
+    will-change: transform;
 }
 
-.btn-enhanced::after {
+.admin-container .btn-enhanced::after {
     content: '';
     position: absolute;
     width: 100%;
@@ -82,75 +143,75 @@
     transition: transform 0.5s, opacity 0.8s;
 }
 
-.btn-enhanced:active::after {
+.admin-container .btn-enhanced:active::after {
     transform: scale(0, 0);
     opacity: 0.3;
     transition: 0s;
 }
 
-.btn-primary-enhanced {
+.admin-container .btn-primary-enhanced {
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
 }
 
-.btn-primary-enhanced:hover {
-    transform: translateY(-3px);
+.admin-container .btn-primary-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
     box-shadow: 0 15px 40px rgba(244, 114, 182, 0.4);
     color: white;
     text-decoration: none;
 }
 
-.btn-secondary-enhanced {
+.admin-container .btn-secondary-enhanced {
     background: rgba(255, 255, 255, 0.9);
     border: 2px solid rgba(244, 114, 182, 0.2);
     color: var(--text-primary);
     backdrop-filter: blur(10px);
 }
 
-.btn-secondary-enhanced:hover {
+.admin-container .btn-secondary-enhanced:hover {
     border-color: var(--primary);
-    background: var(--primary-light);
+    background: rgba(244, 114, 182, 0.05);
     color: var(--primary);
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
     text-decoration: none;
 }
 
-.btn-danger-enhanced {
+.admin-container .btn-danger-enhanced {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: white;
     box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
 }
 
-.btn-danger-enhanced:hover {
-    transform: translateY(-3px);
+.admin-container .btn-danger-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
     box-shadow: 0 15px 40px rgba(239, 68, 68, 0.4);
     color: white;
     text-decoration: none;
 }
 
-.btn-success-enhanced {
+.admin-container .btn-success-enhanced {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
     box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
 }
 
-.btn-success-enhanced:hover {
-    transform: translateY(-3px);
+.admin-container .btn-success-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
     box-shadow: 0 15px 40px rgba(16, 185, 129, 0.4);
     color: white;
     text-decoration: none;
 }
 
-.btn-warning-enhanced {
+.admin-container .btn-warning-enhanced {
     background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
     box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
 }
 
-.btn-warning-enhanced:hover {
-    transform: translateY(-3px);
+.admin-container .btn-warning-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
     box-shadow: 0 15px 40px rgba(245, 158, 11, 0.4);
     color: white;
     text-decoration: none;
@@ -170,7 +231,7 @@
 .stat-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: var(--radius-2xl);
+    border-radius: 1.5rem;
     padding: 2rem;
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.1),
@@ -179,6 +240,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    transform: translateZ(0);
 }
 
 .stat-card::before {
@@ -194,7 +256,7 @@
 }
 
 .stat-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-6px) translateZ(0);
     box-shadow: 
         0 35px 70px -12px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(244, 114, 182, 0.2);
@@ -211,17 +273,18 @@
     width: 3rem;
     height: 3rem;
     background: linear-gradient(135deg, var(--primary-light), rgba(96, 165, 250, 0.1));
-    border-radius: var(--radius-lg);
+    border-radius: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--primary);
     font-size: 1.5rem;
     transition: all 0.3s ease;
+    transform: translateZ(0);
 }
 
 .stat-card:hover .stat-icon {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.1) rotate(5deg) translateZ(0);
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
 }
@@ -255,7 +318,7 @@
 .filters-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: var(--radius-2xl);
+    border-radius: 1.5rem;
     padding: 2rem;
     margin-bottom: 3rem;
     box-shadow: 
@@ -265,6 +328,7 @@
     animation: fadeInUp 0.6s ease-out 0.4s both;
     position: relative;
     overflow: hidden;
+    transform: translateZ(0);
 }
 
 .filters-section::before {
@@ -307,12 +371,13 @@
 .form-input {
     padding: 1rem 1.25rem;
     border: 2px solid transparent;
-    border-radius: var(--radius-xl);
+    border-radius: 1.5rem;
     font-size: 0.9rem;
     font-weight: 500;
     background: linear-gradient(white, white) padding-box,
                 linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateZ(0);
 }
 
 .form-input:focus {
@@ -322,20 +387,20 @@
     box-shadow: 
         0 0 0 4px rgba(244, 114, 182, 0.2),
         0 15px 35px -5px rgba(244, 114, 182, 0.25);
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
 }
 
 .form-input:hover {
     background: linear-gradient(white, white) padding-box,
                 linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
-    transform: translateY(-1px);
+    transform: translateY(-1px) translateZ(0);
     box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.15);
 }
 
 .users-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: var(--radius-2xl);
+    border-radius: 1.5rem;
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.1),
         0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -343,6 +408,7 @@
     overflow: hidden;
     animation: fadeInUp 0.6s ease-out 0.6s both;
     position: relative;
+    transform: translateZ(0);
 }
 
 .users-section::before {
@@ -387,6 +453,8 @@
 .users-list {
     max-height: 70vh;
     overflow-y: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 .users-list::-webkit-scrollbar {
@@ -400,6 +468,7 @@
 .users-list::-webkit-scrollbar-thumb {
     background: rgba(244, 114, 182, 0.3);
     border-radius: 10px;
+    transition: background 0.3s ease;
 }
 
 .users-list::-webkit-scrollbar-thumb:hover {
@@ -411,6 +480,7 @@
     border-bottom: 1px solid rgba(244, 114, 182, 0.05);
     transition: all 0.3s ease;
     position: relative;
+    transform: translateZ(0);
 }
 
 .user-item::before {
@@ -427,7 +497,7 @@
 
 .user-item:hover {
     background: rgba(244, 114, 182, 0.03);
-    transform: translateX(4px);
+    transform: translateX(4px) translateZ(0);
 }
 
 .user-item:hover::before {
@@ -459,10 +529,11 @@
     font-weight: 700;
     font-size: 1.125rem;
     transition: all 0.3s ease;
+    transform: translateZ(0);
 }
 
 .user-item:hover .user-avatar {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.1) rotate(5deg) translateZ(0);
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
 }
 
@@ -541,10 +612,11 @@
     opacity: 1;
 }
 
-.action-btn {
+/* Scoped Action Buttons */
+.admin-container .action-btn {
     padding: 0.375rem 0.75rem;
-    border: none;
-    border-radius: var(--radius-lg);
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    border-radius: 0.75rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -553,65 +625,79 @@
     font-size: 0.75rem;
     font-weight: 600;
     text-decoration: none;
+    min-height: 2rem;
+    transform: translateZ(0);
+    background: white;
 }
 
-.action-btn:hover {
-    transform: translateY(-2px);
+.admin-container .action-btn:hover {
+    transform: translateY(-2px) translateZ(0);
     text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.action-btn.view {
+.admin-container .action-btn.view {
     background: rgba(59, 130, 246, 0.1);
     color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.2);
 }
 
-.action-btn.view:hover {
+.admin-container .action-btn.view:hover {
     background: #3b82f6;
     color: white;
+    border-color: #3b82f6;
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
 }
 
-.action-btn.activate {
+.admin-container .action-btn.activate {
     background: rgba(16, 185, 129, 0.1);
     color: var(--success);
+    border-color: rgba(16, 185, 129, 0.2);
 }
 
-.action-btn.activate:hover {
+.admin-container .action-btn.activate:hover {
     background: var(--success);
     color: white;
+    border-color: var(--success);
     box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
 }
 
-.action-btn.deactivate {
+.admin-container .action-btn.deactivate {
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning);
+    border-color: rgba(245, 158, 11, 0.2);
 }
 
-.action-btn.deactivate:hover {
+.admin-container .action-btn.deactivate:hover {
     background: var(--warning);
     color: white;
+    border-color: var(--warning);
     box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
 }
 
-.action-btn.staff {
+.admin-container .action-btn.staff {
     background: rgba(139, 92, 246, 0.1);
     color: #8b5cf6;
+    border-color: rgba(139, 92, 246, 0.2);
 }
 
-.action-btn.staff:hover {
+.admin-container .action-btn.staff:hover {
     background: #8b5cf6;
     color: white;
+    border-color: #8b5cf6;
     box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
 }
 
-.action-btn.delete {
+.admin-container .action-btn.delete {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.2);
 }
 
-.action-btn.delete:hover {
+.admin-container .action-btn.delete:hover {
     background: var(--danger);
     color: white;
+    border-color: var(--danger);
     box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
 }
 
@@ -674,13 +760,14 @@
     height: 2.5rem;
     padding: 0 0.75rem;
     border: 2px solid rgba(244, 114, 182, 0.2);
-    border-radius: var(--radius-lg);
+    border-radius: 0.75rem;
     background: rgba(255, 255, 255, 0.8);
     color: var(--text-primary);
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
+    transform: translateZ(0);
 }
 
 .pagination-link:hover {
@@ -688,7 +775,7 @@
     border-color: var(--primary);
     color: white;
     text-decoration: none;
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
 }
 
@@ -729,7 +816,7 @@
 
 .modal-content {
     background: white;
-    border-radius: var(--radius-2xl);
+    border-radius: 1.5rem;
     padding: 2rem;
     max-width: 600px;
     width: 90%;
@@ -813,7 +900,7 @@
 .activity-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: var(--radius-2xl);
+    border-radius: 1.5rem;
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.1),
         0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -822,6 +909,7 @@
     animation: fadeInUp 0.6s ease-out 0.8s both;
     position: relative;
     margin-top: 2rem;
+    transform: translateZ(0);
 }
 
 .activity-section::before {
@@ -840,6 +928,7 @@
     padding: 1rem 2rem;
     border-bottom: 1px solid rgba(244, 114, 182, 0.05);
     transition: all 0.3s ease;
+    transform: translateZ(0);
 }
 
 .activity-item:hover {
@@ -891,22 +980,22 @@
 @keyframes fadeInDown {
     from {
         opacity: 0;
-        transform: translateY(-30px);
+        transform: translateY(-30px) translateZ(0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) translateZ(0);
     }
 }
 
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(30px) translateZ(0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) translateZ(0);
     }
 }
 
@@ -925,12 +1014,16 @@
     }
 }
 
+/* Ripple Effect Animation */
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
 /* Mobile Optimizations */
 @media (max-width: 768px) {
-    .admin-container {
-        padding: 1rem;
-    }
-
     .admin-title {
         font-size: 2.5rem;
     }
@@ -970,7 +1063,7 @@
         align-items: center;
     }
 
-    .btn-enhanced {
+    .admin-container .btn-enhanced {
         width: 100%;
         max-width: 300px;
         justify-content: center;
@@ -1001,6 +1094,16 @@
     }
 }
 
+/* Performance Optimizations */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
     .stat-card,
@@ -1010,358 +1113,356 @@
         border-width: 3px;
     }
     
-    .btn-enhanced {
+    .admin-container .btn-enhanced {
         border: 2px solid currentColor;
     }
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+/* Smooth scroll anchor behavior */
+.scroll-anchor {
+    scroll-margin-top: 2rem;
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="admin-container">
-    <!-- Enhanced Header Section -->
-    <div class="admin-header">
-        <h1 class="admin-title">👥 User Management</h1>
-        <p class="admin-subtitle">
-            Manage users, permissions, and monitor user activity across your platform. Maintain community standards and user engagement.
-        </p>
-        <div class="admin-actions">
-            <a href="{% url 'admin_messages' %}" class="btn-enhanced btn-primary-enhanced">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
-                </svg>
-                View Messages
-            </a>
-            <a href="{% url 'admin_dashboard' %}" class="btn-enhanced btn-secondary-enhanced">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
-                </svg>
-                Back to Dashboard
-            </a>
-        </div>
-    </div>
-
-    <!-- Enhanced Stats Section -->
-    <div class="stats-section">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">👥</div>
-                </div>
-                <div class="stat-title">Total Users</div>
-                <div class="stat-value">{{ total_users|default:"0" }}</div>
-                <div class="stat-description">All registered users</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">✅</div>
-                </div>
-                <div class="stat-title">Active Users</div>
-                <div class="stat-value">{{ active_users|default:"0" }}</div>
-                <div class="stat-description">Currently active accounts</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">🛡️</div>
-                </div>
-                <div class="stat-title">Staff Users</div>
-                <div class="stat-value">{{ staff_users|default:"0" }}</div>
-                <div class="stat-description">Administrative accounts</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">📊</div>
-                </div>
-                <div class="stat-title">Regular Users</div>
-                <div class="stat-value">{{ total_users|add:"-1"|default:"0" }}</div>
-                <div class="stat-description">Standard user accounts</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced Filters Section -->
-    <div class="filters-section">
-        <form method="get" class="filters-form">
-            <div class="form-group">
-                <label for="search" class="form-label">Search Users</label>
-                <input
-                    type="search"
-                    id="search"
-                    name="search"
-                    value="{{ search_query }}"
-                    placeholder="Search by username, email, name..."
-                    class="form-input"
-                >
-            </div>
-            <div class="form-group">
-                <label for="type" class="form-label">User Type</label>
-                <select name="type" id="type" class="form-input">
-                    <option value="">All Users</option>
-                    <option value="active" {% if user_type == 'active' %}selected{% endif %}>Active Users</option>
-                    <option value="inactive" {% if user_type == 'inactive' %}selected{% endif %}>Inactive Users</option>
-                    <option value="staff" {% if user_type == 'staff' %}selected{% endif %}>Staff Users</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="sort" class="form-label">Sort By</label>
-                <select name="sort" id="sort" class="form-input">
-                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
-                    <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest First</option>
-                    <option value="username" {% if sort_by == 'username' %}selected{% endif %}>Username A-Z</option>
-                    <option value="messages" {% if sort_by == 'messages' %}selected{% endif %}>Most Messages</option>
-                </select>
-            </div>
-        </form>
-        
-        <div class="filters-form-row">
-            <div style="display: flex; gap: 0.5rem;">
-                <button type="submit" form="user-filter-form" class="btn-enhanced btn-primary-enhanced">Apply Filters</button>
-                <a href="{% url 'admin_users' %}" class="btn-enhanced btn-secondary-enhanced">Clear All</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced Users Section -->
-    <div class="users-section">
-        <div class="section-header">
-            <div>
-                <h2 class="section-title">Users Directory</h2>
-            </div>
-            <div class="section-meta">
-                {% if page_obj %}
-                    {{ page_obj.paginator.count }} total users
-                    {% if search_query %} • Filtered results{% endif %}
-                {% else %}
-                    0 total users
-                {% endif %}
+    <div class="container mx-auto px-4 py-6">
+        <!-- Enhanced Header Section -->
+        <div class="admin-header scroll-anchor" id="header">
+            <h1 class="admin-title">👥 User Management</h1>
+            <p class="admin-subtitle">
+                Manage users, permissions, and monitor user activity across your platform. Maintain community standards and user engagement.
+            </p>
+            <div class="admin-actions">
+                <a href="{% url 'admin_messages' %}" class="btn-enhanced btn-primary-enhanced">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                    </svg>
+                    View Messages
+                </a>
+                <a href="{% url 'admin_dashboard' %}" class="btn-enhanced btn-secondary-enhanced">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    Back to Dashboard
+                </a>
             </div>
         </div>
 
-        <div class="users-list">
-            {% for user_obj in page_obj %}
-            <div class="user-item">
-                <div class="user-header">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            {{ user_obj.username|slice:":1"|upper }}
-                        </div>
-                        <div class="user-details">
-                            <h3>{{ user_obj.username }}</h3>
-                            <p>{{ user_obj.email|default:"No email provided" }}</p>
-                            
-                            <div class="user-badges">
-                                {% if user_obj.is_staff %}
-                                <span class="badge badge-staff">Staff</span>
-                                {% endif %}
+        <!-- Enhanced Stats Section -->
+        <div class="stats-section scroll-anchor" id="stats">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">👥</div>
+                    </div>
+                    <div class="stat-title">Total Users</div>
+                    <div class="stat-value">{{ total_users|default:"0" }}</div>
+                    <div class="stat-description">All registered users</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">✅</div>
+                    </div>
+                    <div class="stat-title">Active Users</div>
+                    <div class="stat-value">{{ active_users|default:"0" }}</div>
+                    <div class="stat-description">Currently active accounts</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">🛡️</div>
+                    </div>
+                    <div class="stat-title">Staff Users</div>
+                    <div class="stat-value">{{ staff_users|default:"0" }}</div>
+                    <div class="stat-description">Administrative accounts</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">📊</div>
+                    </div>
+                    <div class="stat-title">Regular Users</div>
+                    <div class="stat-value">{{ total_users|add:"-1"|default:"0" }}</div>
+                    <div class="stat-description">Standard user accounts</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Filters Section -->
+        <div class="filters-section scroll-anchor" id="filters">
+            <form method="get" class="filters-form">
+                <div class="form-group">
+                    <label for="search" class="form-label">Search Users</label>
+                    <input
+                        type="search"
+                        id="search"
+                        name="search"
+                        value="{{ search_query }}"
+                        placeholder="Search by username, email, name..."
+                        class="form-input"
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="type" class="form-label">User Type</label>
+                    <select name="type" id="type" class="form-input">
+                        <option value="">All Users</option>
+                        <option value="active" {% if user_type == 'active' %}selected{% endif %}>Active Users</option>
+                        <option value="inactive" {% if user_type == 'inactive' %}selected{% endif %}>Inactive Users</option>
+                        <option value="staff" {% if user_type == 'staff' %}selected{% endif %}>Staff Users</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sort" class="form-label">Sort By</label>
+                    <select name="sort" id="sort" class="form-input">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+                        <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest First</option>
+                        <option value="username" {% if sort_by == 'username' %}selected{% endif %}>Username A-Z</option>
+                        <option value="messages" {% if sort_by == 'messages' %}selected{% endif %}>Most Messages</option>
+                    </select>
+                </div>
+            </form>
+            
+            <div class="filters-form-row">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" form="user-filter-form" class="btn-enhanced btn-primary-enhanced">Apply Filters</button>
+                    <a href="{% url 'admin_users' %}" class="btn-enhanced btn-secondary-enhanced">Clear All</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Users Section -->
+        <div class="users-section scroll-anchor" id="users">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Users Directory</h2>
+                </div>
+                <div class="section-meta">
+                    {% if page_obj %}
+                        {{ page_obj.paginator.count }} total users
+                        {% if search_query %} • Filtered results{% endif %}
+                    {% else %}
+                        0 total users
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="users-list">
+                {% for user_obj in page_obj %}
+                <div class="user-item">
+                    <div class="user-header">
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                {{ user_obj.username|slice:":1"|upper }}
+                            </div>
+                            <div class="user-details">
+                                <h3>{{ user_obj.username }}</h3>
+                                <p>{{ user_obj.email|default:"No email provided" }}</p>
                                 
-                                {% if user_obj.is_active %}
-                                <span class="badge badge-active">Active</span>
-                                {% else %}
-                                <span class="badge badge-inactive">Inactive</span>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="user-stats">
-                                <div class="user-stat">
-                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Joined {{ user_obj.date_joined|date:"M d, Y" }}
+                                <div class="user-badges">
+                                    {% if user_obj.is_staff %}
+                                    <span class="badge badge-staff">Staff</span>
+                                    {% endif %}
+                                    
+                                    {% if user_obj.is_active %}
+                                    <span class="badge badge-active">Active</span>
+                                    {% else %}
+                                    <span class="badge badge-inactive">Inactive</span>
+                                    {% endif %}
                                 </div>
-                                <div class="user-stat">
-                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    {{ user_obj.message_count|default:"0" }} messages
-                                </div>
-                                <div class="user-stat">
-                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2v4h2V6H4zm4 0v4h2V6H8zm4 0v4h2V6h-2zm-4 6v2h2v-2H8zm4 0v2h2v-2h-2z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    {{ user_obj.room_count|default:"0" }} rooms
+                                
+                                <div class="user-stats">
+                                    <div class="user-stat">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Joined {{ user_obj.date_joined|date:"M d, Y" }}
+                                    </div>
+                                    <div class="user-stat">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        {{ user_obj.message_count|default:"0" }} messages
+                                    </div>
+                                    <div class="user-stat">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2v4h2V6H4zm4 0v4h2V6H8zm4 0v4h2V6h-2zm-4 6v2h2v-2H8zm4 0v2h2v-2h-2z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        {{ user_obj.room_count|default:"0" }} rooms
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    {% if user_obj != user %}
-                    <div class="user-actions">
-                        <!-- View Messages -->
-                        <a href="{% url 'admin_messages' %}?user={{ user_obj.id }}" class="action-btn view">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
-                            </svg>
-                            Messages
-                        </a>
                         
-                        <!-- Toggle Active -->
-                        <form method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="toggle_active">
-                            <input type="hidden" name="user_id" value="{{ user_obj.id }}">
-                            <button type="submit" class="action-btn {% if user_obj.is_active %}deactivate{% else %}activate{% endif %}">
-                                {% if user_obj.is_active %}
-                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Deactivate
-                                {% else %}
-                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Activate
-                                {% endif %}
+                        {% if user_obj != user %}
+                        <div class="user-actions">
+                            <!-- View Messages -->
+                            <a href="{% url 'admin_messages' %}?user={{ user_obj.id }}" class="action-btn view">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                                </svg>
+                                Messages
+                            </a>
+                            
+                            <!-- Toggle Active -->
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_active">
+                                <input type="hidden" name="user_id" value="{{ user_obj.id }}">
+                                <button type="submit" class="action-btn {% if user_obj.is_active %}deactivate{% else %}activate{% endif %}">
+                                    {% if user_obj.is_active %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Deactivate
+                                    {% else %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Activate
+                                    {% endif %}
+                                </button>
+                            </form>
+                            
+                            <!-- Toggle Staff -->
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_staff">
+                                <input type="hidden" name="user_id" value="{{ user_obj.id }}">
+                                <button type="submit" class="action-btn staff">
+                                    {% if user_obj.is_staff %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Remove Staff
+                                    {% else %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a3 3 0 01-3-3V6z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Make Staff
+                                    {% endif %}
+                                </button>
+                            </form>
+                            
+                            <!-- Delete User -->
+                            <button onclick="confirmDelete({{ user_obj.id }}, '{{ user_obj.username|escapejs }}')" class="action-btn delete">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                Delete
                             </button>
-                        </form>
-                        
-                        <!-- Toggle Staff -->
-                        <form method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="toggle_staff">
-                            <input type="hidden" name="user_id" value="{{ user_obj.id }}">
-                            <button type="submit" class="action-btn staff">
-                                {% if user_obj.is_staff %}
-                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Remove Staff
-                                {% else %}
-                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a3 3 0 01-3-3V6z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Make Staff
-                                {% endif %}
-                            </button>
-                        </form>
-                        
-                        <!-- Delete User -->
-                        <button onclick="confirmDelete({{ user_obj.id }}, '{{ user_obj.username|escapejs }}')" class="action-btn delete">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </div>
+                        {% else %}
+                        <div style="display: flex; align-items: center; padding: 0.5rem 1rem; background: rgba(244, 114, 182, 0.1); border-radius: 0.75rem; color: var(--primary); font-weight: 600; font-size: 0.875rem;">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 0.5rem;">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                             </svg>
-                            Delete
-                        </button>
+                            Current User
+                        </div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div style="display: flex; align-items: center; padding: 0.5rem 1rem; background: rgba(244, 114, 182, 0.1); border-radius: var(--radius-lg); color: var(--primary); font-weight: 600; font-size: 0.875rem;">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 0.5rem;">
-                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    <h3 class="empty-title">No users found</h3>
+                    <p class="empty-description">
+                        {% if search_query %}
+                            No users match your search criteria. Try adjusting your search terms or clearing the filters.
+                        {% else %}
+                            There are no users to display. Users will appear here as they register.
+                        {% endif %}
+                    </p>
+                    {% if search_query %}
+                        <a href="{% url 'admin_users' %}" class="btn-enhanced btn-primary-enhanced">Clear Search</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Enhanced Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} users
+                </div>
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                       class="pagination-link">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                         </svg>
-                        Current User
-                    </div>
+                        Previous
+                    </a>
+                    {% else %}
+                    <span class="pagination-link disabled">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Previous
+                    </span>
+                    {% endif %}
+                    
+                    <span class="pagination-link active">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                       class="pagination-link">
+                        Next
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </a>
+                    {% else %}
+                    <span class="pagination-link disabled">
+                        Next
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </span>
                     {% endif %}
                 </div>
             </div>
-            {% empty %}
-            <div class="empty-state">
-                <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                </svg>
-                <h3 class="empty-title">No users found</h3>
-                <p class="empty-description">
-                    {% if search_query %}
-                        No users match your search criteria. Try adjusting your search terms or clearing the filters.
-                    {% else %}
-                        There are no users to display. Users will appear here as they register.
-                    {% endif %}
-                </p>
-                {% if search_query %}
-                    <a href="{% url 'admin_users' %}" class="btn-enhanced btn-primary-enhanced">Clear Search</a>
-                {% endif %}
-            </div>
-            {% endfor %}
+            {% endif %}
         </div>
 
-        <!-- Enhanced Pagination -->
-        {% if page_obj.has_other_pages %}
-        <div class="pagination-container">
-            <div class="pagination-info">
-                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} users
+        <!-- Recent Activity Section -->
+        {% if recent_activities %}
+        <div class="activity-section scroll-anchor" id="activity">
+            <div class="section-header">
+                <h2 class="section-title">Recent User Activity</h2>
             </div>
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
-                   class="pagination-link">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                    </svg>
-                    Previous
-                </a>
-                {% else %}
-                <span class="pagination-link disabled">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                    </svg>
-                    Previous
-                </span>
-                {% endif %}
-                
-                <span class="pagination-link active">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-                
-                {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
-                   class="pagination-link">
-                    Next
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                    </svg>
-                </a>
-                {% else %}
-                <span class="pagination-link disabled">
-                    Next
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                    </svg>
-                </span>
-                {% endif %}
+            
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for activity in recent_activities %}
+                <div class="activity-item">
+                    <div class="activity-content">
+                        <div class="activity-user">
+                            <div class="activity-avatar">
+                                {{ activity.user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="activity-details">
+                                <div class="activity-user-name">{{ activity.user.username }}</div>
+                                <div class="activity-description">{{ activity.description }}</div>
+                            </div>
+                        </div>
+                        <div class="activity-time">
+                            {{ activity.created_at|timesince }} ago
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
     </div>
-
-    <!-- Recent Activity Section -->
-    {% if recent_activities %}
-    <div class="activity-section">
-        <div class="section-header">
-            <h2 class="section-title">Recent User Activity</h2>
-        </div>
-        
-        <div style="max-height: 400px; overflow-y: auto;">
-            {% for activity in recent_activities %}
-            <div class="activity-item">
-                <div class="activity-content">
-                    <div class="activity-user">
-                        <div class="activity-avatar">
-                            {{ activity.user.username|slice:":1"|upper }}
-                        </div>
-                        <div class="activity-details">
-                            <div class="activity-user-name">{{ activity.user.username }}</div>
-                            <div class="activity-description">{{ activity.description }}</div>
-                        </div>
-                    </div>
-                    <div class="activity-time">
-                        {{ activity.created_at|timesince }} ago
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -1407,6 +1508,26 @@
 {% block javascript %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Enhanced Euphorie Admin User Management with smooth scrolling loaded successfully');
+    
+    // Optimize scroll performance
+    let ticking = false;
+    
+    function requestTick() {
+        if (!ticking) {
+            requestAnimationFrame(updateElements);
+            ticking = true;
+        }
+    }
+    
+    function updateElements() {
+        ticking = false;
+        // Any scroll-based updates can go here
+    }
+    
+    // Throttled scroll event listener
+    window.addEventListener('scroll', requestTick, { passive: true });
+
     // Enhanced filter form submission
     const filterInputs = document.querySelectorAll('#search, #type, #sort');
     const filterForm = document.getElementById('user-filter-form');
@@ -1454,6 +1575,74 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+    });
+
+    // Enhanced hover effects with performance optimization
+    const cards = document.querySelectorAll('.stat-card, .filters-section, .users-section, .activity-section');
+    
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.willChange = 'transform, box-shadow';
+        }, { passive: true });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.willChange = 'auto';
+        }, { passive: true });
+    });
+
+    // Enhanced ripple effects for buttons - scoped to admin container
+    const adminButtons = document.querySelectorAll('.admin-container .btn-enhanced, .admin-container .action-btn');
+    adminButtons.forEach(button => {
+        if (!button.hasAttribute('data-ripple-added')) {
+            button.setAttribute('data-ripple-added', 'true');
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.style.position = 'absolute';
+                ripple.style.borderRadius = '50%';
+                ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.animation = 'ripple 0.6s linear';
+                ripple.style.pointerEvents = 'none';
+                ripple.style.zIndex = '0';
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    if (ripple.parentNode) {
+                        ripple.remove();
+                    }
+                }, 600);
+            });
+        }
+    });
+
+    // Intersection Observer for animations with performance optimization
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+                observer.unobserve(entry.target); // Stop observing once animated
+            }
+        });
+    }, observerOptions);
+
+    // Observe elements with animations
+    document.querySelectorAll('[class*="fadeIn"]').forEach(el => {
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
     });
 });
 
@@ -1516,33 +1705,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Enhanced button ripple effects
-document.querySelectorAll('.btn-enhanced').forEach(button => {
-    button.addEventListener('click', function(e) {
-        const ripple = document.createElement('span');
-        const rect = this.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        
-        ripple.style.width = ripple.style.height = size + 'px';
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-        ripple.style.position = 'absolute';
-        ripple.style.borderRadius = '50%';
-        ripple.style.background = 'rgba(255, 255, 255, 0.6)';
-        ripple.style.transform = 'scale(0)';
-        ripple.style.animation = 'ripple 0.6s linear';
-        ripple.style.pointerEvents = 'none';
-        
-        this.appendChild(ripple);
-        
-        setTimeout(() => {
-            ripple.remove();
-        }, 600);
-    });
-});
-
 // Enhanced user interactions
 document.querySelectorAll('.user-item').forEach(item => {
     item.addEventListener('mouseenter', function() {
@@ -1576,28 +1738,8 @@ if (searchInput) {
     });
 }
 
-// Enhanced scroll-triggered animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.animationPlayState = 'running';
-        }
-    });
-}, observerOptions);
-
-// Observe animated elements
-document.querySelectorAll('[class*="fadeIn"]').forEach(el => {
-    el.style.animationPlayState = 'paused';
-    observer.observe(el);
-});
-
 // Enhanced action button feedback
-document.querySelectorAll('.action-btn').forEach(button => {
+document.querySelectorAll('.admin-container .action-btn').forEach(button => {
     button.addEventListener('click', function(e) {
         // Add visual feedback for form submissions
         if (this.type === 'submit') {
@@ -1669,8 +1811,6 @@ if (activitySection) {
         item.style.transform = 'translateY(20px)';
         item.style.transition = 'all 0.3s ease';
         
-        observer.observe(item);
-        
         // When item becomes visible, animate it in
         const itemObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -1688,18 +1828,6 @@ if (activitySection) {
     });
 }
 
-console.log('🚀 Enhanced Euphorie Admin User Management loaded successfully');
-
-// Add ripple animation CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes ripple {
-        to {
-            transform: scale(4);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
+console.log('Admin user management optimizations loaded');
 </script>
 {% endblock %}
