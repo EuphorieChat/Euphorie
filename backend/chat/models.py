@@ -215,12 +215,21 @@ class RoomCategory(models.Model):
 
 
 class Room(models.Model):
-    """Enhanced room model with better discovery features"""
+    """Enhanced room model with membership support and better discovery features"""
     
     name = models.CharField(max_length=255, unique=True)
     display_name = models.CharField(max_length=255, blank=True)
     category = models.ForeignKey(RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_rooms')
+    
+    # Room Membership - Many-to-Many relationship with users
+    members = models.ManyToManyField(
+        User, 
+        through='RoomMembership', 
+        related_name='joined_rooms',
+        blank=True,
+        help_text="Users who are members of this room"
+    )
     
     # Room Settings
     description = models.TextField(max_length=500, blank=True)
@@ -291,6 +300,154 @@ class Room(models.Model):
                     nationalities[nationality] = nationalities.get(nationality, 0) + 1
         
         return nationalities
+    
+    def user_can_access(self, user):
+        """Check if a user can access this room"""
+        if self.is_public:
+            return True
+        
+        if not user.is_authenticated:
+            return False
+        
+        # Creator always has access
+        if self.creator == user:
+            return True
+        
+        # Check if user is a member
+        return self.roommembership_set.filter(user=user, is_active=True).exists()
+    
+    def user_can_join(self, user):
+        """Check if a user can join this room"""
+        if not user.is_authenticated:
+            return False
+        
+        # Already a member
+        if self.user_can_access(user):
+            return False
+        
+        # Check if room is at capacity
+        if self.roommembership_set.filter(is_active=True).count() >= self.max_users:
+            return False
+        
+        return True
+    
+    def add_member(self, user, role='member', added_by=None):
+        """Add a user as a member of this room"""
+        membership, created = RoomMembership.objects.get_or_create(
+            room=self,
+            user=user,
+            defaults={
+                'role': role,
+                'added_by': added_by or self.creator,
+                'is_active': True
+            }
+        )
+        
+        if not created and not membership.is_active:
+            # Reactivate existing membership
+            membership.is_active = True
+            membership.role = role
+            membership.rejoined_at = timezone.now()
+            membership.save()
+        
+        return membership
+    
+    def remove_member(self, user, removed_by=None):
+        """Remove a user from room membership"""
+        try:
+            membership = self.roommembership_set.get(user=user, is_active=True)
+            membership.is_active = False
+            membership.left_at = timezone.now()
+            membership.removed_by = removed_by
+            membership.save()
+            return True
+        except RoomMembership.DoesNotExist:
+            return False
+    
+    def get_active_members(self):
+        """Get all active members of this room"""
+        return User.objects.filter(
+            roommembership__room=self,
+            roommembership__is_active=True
+        ).select_related('profile')
+    
+    def get_member_count(self):
+        """Get count of active members"""
+        return self.roommembership_set.filter(is_active=True).count()
+
+
+class RoomMembership(models.Model):
+    """Through model for Room-User membership with additional metadata"""
+    
+    ROLE_CHOICES = [
+        ('member', 'Member'),
+        ('moderator', 'Moderator'),
+        ('admin', 'Admin'),
+    ]
+    
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+    
+    # Membership status
+    is_active = models.BooleanField(default=True)
+    is_banned = models.BooleanField(default=False)
+    
+    # Membership metadata
+    added_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='added_memberships'
+    )
+    removed_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='removed_memberships'
+    )
+    
+    # Custom settings for this member in this room
+    nickname = models.CharField(max_length=50, blank=True, help_text="Custom nickname in this room")
+    notification_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('all', 'All Messages'),
+            ('mentions', 'Mentions Only'),
+            ('none', 'None'),
+        ],
+        default='all'
+    )
+    
+    # Timestamps
+    joined_at = models.DateTimeField(auto_now_add=True)
+    left_at = models.DateTimeField(null=True, blank=True)
+    rejoined_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['room', 'user']
+        ordering = ['-joined_at']
+    
+    def __str__(self):
+        status = "Active" if self.is_active else "Inactive"
+        return f"{self.user.username} in {self.room.name} ({self.role}, {status})"
+    
+    @property
+    def display_name(self):
+        """Get display name for this user in this room"""
+        if self.nickname:
+            return self.nickname
+        return self.user.profile.display_username if hasattr(self.user, 'profile') else self.user.username
+    
+    def can_moderate(self):
+        """Check if this member can moderate the room"""
+        return self.role in ['moderator', 'admin'] and self.is_active
+    
+    def can_admin(self):
+        """Check if this member can admin the room"""
+        return self.role == 'admin' and self.is_active
 
 
 class Message(models.Model):

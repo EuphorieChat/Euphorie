@@ -91,24 +91,23 @@ def get_country_name(country_code):
 
 def index(request):
     """
-    FIXED index view - removed the problematic 'members' field reference
+    FINAL FIXED index view with proper room membership support
     """
     try:
-        # Since your Room model doesn't have a 'members' field, we'll only check for creator
         if request.user.is_authenticated:
-            # Show public rooms + private rooms the user created
+            # For authenticated users: show public rooms + private rooms they have access to
             rooms = Room.objects.select_related('creator', 'category').filter(
-                Q(is_public=True) | Q(creator=request.user, is_public=False)
+                Q(is_public=True) | 
+                Q(creator=request.user, is_public=False) |
+                Q(members=request.user, is_public=False)  # Now this will work!
             ).distinct()
         else:
-            # Show only public rooms for non-authenticated users
+            # For non-authenticated users: only public rooms
             rooms = Room.objects.select_related('creator', 'category').filter(
                 is_public=True
             )
         
-        # Since you have only public rooms anyway (636 public, 0 private), this will work fine
-        
-        # Add the annotations that were working in your shell test
+        # Add annotations (these were working in your shell test)
         rooms = rooms.annotate(
             total_messages=F('message_count'),
             last_message_time=Max('messages__timestamp')
@@ -129,7 +128,7 @@ def index(request):
         if category_filter and category_filter != 'all':
             rooms = rooms.filter(category__slug=category_filter)
         
-        # Handle sorting (this was working in your shell test)
+        # Handle sorting
         sort_option = request.GET.get('sort', 'activity')
         if sort_option == 'newest':
             rooms = rooms.order_by('-created_at')
