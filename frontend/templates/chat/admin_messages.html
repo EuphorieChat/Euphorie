@@ -5,12 +5,63 @@
 
 {% block extra_css %}
 <style>
+    /* CRITICAL FIX: Ensure dropdown z-index is higher than admin content */
+    .user-menu-dropdown {
+        z-index: 10000 !important; /* Much higher than any admin content */
+        position: fixed !important; /* Ensure it's not constrained by parent containers */
+    }
+    
+    .user-menu-button {
+        z-index: 10001 !important; /* Even higher for the button */
+        position: relative !important;
+    }
+    
+    /* Ensure menu overlay doesn't interfere */
+    #menu-overlay {
+        z-index: 9999 !important;
+    }
+    
+    /* CRITICAL: Ensure header elements stay on top */
+    .app-header {
+        z-index: 10002 !important;
+        position: relative !important;
+    }
+    
+    /* CRITICAL FIX: Match avatar sizes with settings.html and admin_rooms.html */
+    .user-avatar {
+        width: 1.75rem !important; /* Reduced from 2rem to match settings */
+        height: 1.75rem !important;
+        font-size: 0.7rem !important; /* Smaller font to match settings */
+    }
+    
+    /* Override the admin page user-avatar styles to match base.html compact style */
+    .message-user .user-avatar {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* Fix for any potential transform issues that create new stacking contexts */
+    .admin-container,
+    .admin-container * {
+        transform: none !important;
+    }
+    
+    /* Ensure no backdrop-filter interferes with dropdown clicks */
+    .stat-card,
+    .filters-section,
+    .messages-section {
+        backdrop-filter: blur(10px) !important; /* Reduced blur to prevent interference */
+    }
+
 /* Enhanced Admin Messages Styles with Modern UX - Improved Layout */
 .admin-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
     min-height: 100vh;
+    position: relative; /* IMPORTANT: Establish stacking context */
+    z-index: 1; /* Lower than header dropdown */
 }
 
 .admin-header {
@@ -46,6 +97,8 @@
     justify-content: center;
     gap: 1rem;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 10; /* Higher than admin content but lower than dropdown */
 }
 
 .btn-enhanced {
@@ -136,6 +189,8 @@
     gap: 2rem;
     margin-bottom: 2rem;
     animation: fadeInUp 0.6s ease-out 0.2s both;
+    position: relative;
+    z-index: 5; /* Lower than navigation */
 }
 
 .stats-section {
@@ -156,6 +211,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    z-index: auto; /* Allow natural stacking */
 }
 
 .stat-card::before {
@@ -170,8 +226,11 @@
     animation: gradientShift 4s ease infinite;
 }
 
+/* Override any problematic transforms in hover states */
 .stat-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(0px) !important; /* Remove the translateY that might affect stacking */
+    margin-top: -4px; /* Use margin instead of transform for the hover effect */
+    margin-bottom: calc(2rem + 4px);
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(244, 114, 182, 0.2);
@@ -240,6 +299,7 @@
     border: 1px solid rgba(244, 114, 182, 0.1);
     position: relative;
     overflow: hidden;
+    z-index: auto; /* Allow natural stacking */
 }
 
 .filters-section::before {
@@ -319,6 +379,7 @@
     overflow: hidden;
     animation: fadeInUp 0.6s ease-out 0.4s both;
     position: relative;
+    z-index: auto; /* Allow natural stacking */
 }
 
 .messages-section::before {
@@ -484,8 +545,8 @@
 }
 
 .user-avatar {
-    width: 2rem;
-    height: 2rem;
+    width: 1.75rem; /* Reduced to match settings.html compact style */
+    height: 1.75rem;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
@@ -493,7 +554,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.7rem; /* Smaller font to match settings */
     transition: all 0.3s ease;
 }
 
@@ -700,7 +761,7 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
-    z-index: 9999;
+    z-index: 20000; /* Higher than dropdown */
     opacity: 0;
     transition: all 0.3s ease;
 }
@@ -961,7 +1022,7 @@
                     <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
                 </svg>
                 Back to Dashboard
-            </button>
+            </a>
         </div>
     </div>
 
@@ -1352,8 +1413,17 @@
 {% block javascript %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // IMPORTANT: Don't interfere with global menu management
-    // The header dropdown is handled by the global EuphorieMenuManager in base.html
+    // CRITICAL FIX: Ensure dropdown menu manager is available
+    // Wait for base.html scripts to load
+    setTimeout(() => {
+        if (window.menuManager) {
+            console.log('✅ Menu manager from base.html is available');
+        } else {
+            console.warn('⚠️ Menu manager not found, implementing fallback');
+            // Fallback dropdown functionality
+            initializeFallbackDropdown();
+        }
+    }, 100);
     
     // Enhanced selection management
     const selectAllCheckbox = document.getElementById('select-all');
@@ -1654,6 +1724,107 @@ document.querySelectorAll('[class*="fadeIn"]').forEach(el => {
     el.style.animationPlayState = 'paused';
     observer.observe(el);
 });
+
+// CRITICAL FIX: Fallback dropdown functionality for admin page
+function initializeFallbackDropdown() {
+    console.log('🔧 Initializing fallback dropdown for admin messages page');
+    
+    const userButton = document.getElementById('user-menu-button');
+    const userDropdown = document.getElementById('user-dropdown');
+    const overlay = document.getElementById('menu-overlay');
+    
+    if (!userButton || !userDropdown) {
+        console.warn('❌ User menu elements not found');
+        return;
+    }
+    
+    let isOpen = false;
+    
+    function openDropdown() {
+        isOpen = true;
+        userDropdown.classList.add('show');
+        userButton.setAttribute('aria-expanded', 'true');
+        
+        // Show overlay
+        if (overlay) {
+            overlay.classList.remove('opacity-0', 'invisible');
+            overlay.classList.add('opacity-100', 'visible');
+        }
+        
+        // Update button icon
+        const icon = userButton.querySelector('svg');
+        if (icon) {
+            icon.style.transform = 'rotate(180deg)';
+        }
+        
+        console.log('✅ Dropdown opened');
+    }
+    
+    function closeDropdown() {
+        isOpen = false;
+        userDropdown.classList.remove('show');
+        userButton.setAttribute('aria-expanded', 'false');
+        
+        // Hide overlay
+        if (overlay) {
+            overlay.classList.remove('opacity-100', 'visible');
+            overlay.classList.add('opacity-0', 'invisible');
+        }
+        
+        // Reset button icon
+        const icon = userButton.querySelector('svg');
+        if (icon) {
+            icon.style.transform = 'rotate(0deg)';
+        }
+        
+        console.log('✅ Dropdown closed');
+    }
+    
+    function toggleDropdown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    }
+    
+    // Event listeners
+    userButton.addEventListener('click', toggleDropdown);
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userButton.contains(e.target) && !userDropdown.contains(e.target)) {
+            if (isOpen) {
+                closeDropdown();
+            }
+        }
+    });
+    
+    // Close dropdown when clicking overlay
+    if (overlay) {
+        overlay.addEventListener('click', closeDropdown);
+    }
+    
+    // Close dropdown on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen) {
+            closeDropdown();
+        }
+    });
+    
+    // Prevent dropdown items from closing the dropdown accidentally
+    userDropdown.addEventListener('click', (e) => {
+        // Allow form submissions and links to work
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') {
+            closeDropdown();
+        }
+    });
+    
+    console.log('✅ Fallback dropdown initialized successfully');
+}
 
 console.log('🚀 Enhanced Euphorie Admin Messages Management loaded successfully');
 console.log('✅ Global header dropdown functionality preserved');
