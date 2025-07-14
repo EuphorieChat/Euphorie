@@ -7,16 +7,35 @@
 <style>
     /* CRITICAL FIX: Ensure dropdown z-index is higher than settings content */
     .user-menu-dropdown {
-        z-index: 2000 !important; /* Higher than any settings content */
+        z-index: 10000 !important; /* Much higher than any settings content */
+        position: fixed !important; /* Ensure it's not constrained by parent containers */
     }
     
     .user-menu-button {
-        z-index: 2001 !important; /* Even higher for the button */
+        z-index: 10001 !important; /* Even higher for the button */
+        position: relative !important;
     }
     
     /* Ensure menu overlay doesn't interfere */
     #menu-overlay {
-        z-index: 1999 !important;
+        z-index: 9999 !important;
+    }
+    
+    /* CRITICAL: Ensure header elements stay on top */
+    .app-header {
+        z-index: 10002 !important;
+        position: relative !important;
+    }
+    
+    /* Fix for any potential transform issues that create new stacking contexts */
+    .settings-container,
+    .settings-container * {
+        transform: none !important;
+    }
+    
+    /* Ensure no backdrop-filter interferes with dropdown clicks */
+    .setting-card {
+        backdrop-filter: blur(10px) !important; /* Reduced blur to prevent interference */
     }
 
     /* Enhanced Messages Styles */
@@ -855,7 +874,22 @@
 
     /* CRITICAL FIX: Modal z-index layering */
     #delete-account-modal {
-        z-index: 2500 !important; /* Higher than everything */
+        z-index: 20000 !important; /* Higher than everything */
+    }
+    
+    /* Additional fix: Ensure no CSS transforms create new stacking contexts */
+    .settings-navigation,
+    .settings-content,
+    .form-section,
+    .setting-card:hover {
+        transform: none !important;
+    }
+    
+    /* Override any problematic transforms in hover states */
+    .setting-card:hover {
+        transform: translateY(0px) !important; /* Remove the translateY that might affect stacking */
+        margin-top: -4px; /* Use margin instead of transform for the hover effect */
+        margin-bottom: calc(2rem + 4px);
     }
 
     /* Mobile Optimizations */
@@ -1544,6 +1578,18 @@ function dismissMessage(messageId) {
 
 // Enhanced tab navigation
 document.addEventListener('DOMContentLoaded', function() {
+    // CRITICAL FIX: Ensure dropdown menu manager is available
+    // Wait for base.html scripts to load
+    setTimeout(() => {
+        if (window.menuManager) {
+            console.log('✅ Menu manager from base.html is available');
+        } else {
+            console.warn('⚠️ Menu manager not found, implementing fallback');
+            // Fallback dropdown functionality
+            initializeFallbackDropdown();
+        }
+    }, 100);
+    
     // Initialize messages manager first
     window.messagesManager = new EuphorieMessagesManager();
     
@@ -1925,5 +1971,133 @@ const observer = new IntersectionObserver((entries) => {
 document.querySelectorAll('.setting-card').forEach(card => {
     observer.observe(card);
 });
+
+// CRITICAL FIX: Fallback dropdown functionality for settings page
+function initializeFallbackDropdown() {
+    console.log('🔧 Initializing fallback dropdown for settings page');
+    
+    const userButton = document.getElementById('user-menu-button');
+    const userDropdown = document.getElementById('user-dropdown');
+    const overlay = document.getElementById('menu-overlay');
+    
+    if (!userButton || !userDropdown) {
+        console.warn('❌ User menu elements not found');
+        return;
+    }
+    
+    let isOpen = false;
+    
+    function openDropdown() {
+        isOpen = true;
+        userDropdown.classList.add('show');
+        userButton.setAttribute('aria-expanded', 'true');
+        
+        // Show overlay
+        if (overlay) {
+            overlay.classList.remove('opacity-0', 'invisible');
+            overlay.classList.add('opacity-100', 'visible');
+        }
+        
+        // Update button icon
+        const icon = userButton.querySelector('svg');
+        if (icon) {
+            icon.style.transform = 'rotate(180deg)';
+        }
+        
+        console.log('✅ Dropdown opened');
+    }
+    
+    function closeDropdown() {
+        isOpen = false;
+        userDropdown.classList.remove('show');
+        userButton.setAttribute('aria-expanded', 'false');
+        
+        // Hide overlay
+        if (overlay) {
+            overlay.classList.remove('opacity-100', 'visible');
+            overlay.classList.add('opacity-0', 'invisible');
+        }
+        
+        // Reset button icon
+        const icon = userButton.querySelector('svg');
+        if (icon) {
+            icon.style.transform = 'rotate(0deg)';
+        }
+        
+        console.log('✅ Dropdown closed');
+    }
+    
+    function toggleDropdown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    }
+    
+    // Event listeners
+    userButton.addEventListener('click', toggleDropdown);
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userButton.contains(e.target) && !userDropdown.contains(e.target)) {
+            if (isOpen) {
+                closeDropdown();
+            }
+        }
+    });
+    
+    // Close dropdown when clicking overlay
+    if (overlay) {
+        overlay.addEventListener('click', closeDropdown);
+    }
+    
+    // Close dropdown on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen) {
+            closeDropdown();
+        }
+    });
+    
+    // Prevent dropdown items from closing the dropdown accidentally
+    userDropdown.addEventListener('click', (e) => {
+        // Allow form submissions and links to work
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') {
+            closeDropdown();
+        }
+    });
+    
+    console.log('✅ Fallback dropdown initialized successfully');
+}
+
+// Additional debug function to check dropdown state
+function debugDropdown() {
+    const userButton = document.getElementById('user-menu-button');
+    const userDropdown = document.getElementById('user-dropdown');
+    
+    console.log('🔍 Dropdown Debug Info:');
+    console.log('Button exists:', !!userButton);
+    console.log('Dropdown exists:', !!userDropdown);
+    
+    if (userButton) {
+        const rect = userButton.getBoundingClientRect();
+        console.log('Button position:', rect);
+        console.log('Button z-index:', window.getComputedStyle(userButton).zIndex);
+    }
+    
+    if (userDropdown) {
+        const rect = userDropdown.getBoundingClientRect();
+        console.log('Dropdown position:', rect);
+        console.log('Dropdown z-index:', window.getComputedStyle(userDropdown).zIndex);
+        console.log('Dropdown visibility:', window.getComputedStyle(userDropdown).visibility);
+        console.log('Dropdown opacity:', window.getComputedStyle(userDropdown).opacity);
+    }
+}
+
+// Expose debug function globally for testing
+window.debugDropdown = debugDropdown;
 </script>
 {% endblock %}
