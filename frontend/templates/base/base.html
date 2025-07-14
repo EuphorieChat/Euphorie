@@ -1050,17 +1050,16 @@ main {
                 </span>
             </a>
 
-            <!-- Center Section: Search (Desktop) -->
+            <!-- Center Section: Search (Desktop) - NOW AVAILABLE FOR ALL USERS -->
             <div class="hidden lg:flex flex-1 items-center justify-center max-w-2xl mx-8">
                 <!-- Enhanced Search Box (Desktop - Centered) -->
                 {% block header_search %}
-                {% if user.is_authenticated %}
                 <div class="relative flex-1 max-w-md">
                     <form method="get" action="{% url 'explore_rooms' %}" class="relative group">
                         <input
                             type="text"
                             name="q"
-                            placeholder="Search rooms, users..."
+                            placeholder="{% if user.is_authenticated %}Search rooms, users...{% else %}Search public rooms...{% endif %}"
                             value="{{ request.GET.q|default:'' }}"
                             class="w-full px-10 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm hover:shadow-md"
                         />
@@ -1076,7 +1075,6 @@ main {
                         </button>
                     </form>
                 </div>
-                {% endif %}
                 {% endblock %}
             </div>
 
@@ -1085,14 +1083,12 @@ main {
                 <!-- Room Info for 3D rooms -->
                 {% block room_info %}{% endblock %}
 
-                <!-- Mobile Search Button -->
-                {% if user.is_authenticated %}
+                <!-- Mobile Search Button - NOW AVAILABLE FOR ALL USERS -->
                 <button id="mobile-search-toggle" class="search-btn lg:hidden" aria-label="Search">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </button>
-                {% endif %}
                 
                 <!-- User Menu or Auth Buttons -->
                 {% if user.is_authenticated %}
@@ -1211,10 +1207,10 @@ main {
                 {% else %}
                     <!-- Enhanced Authentication Buttons - Edge aligned -->
                     <div class="flex items-center gap-1.5">
-                        <a href="{% url 'login' %}" class="btn btn-secondary">
+                        <a href="{% url 'account_login' %}" class="btn btn-secondary">
                             Login
                         </a>
-                        <a href="{% url 'signup' %}" class="btn btn-primary">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary">
                             Sign up
                         </a>
                     </div>
@@ -1224,7 +1220,7 @@ main {
     </header>
     {% endblock %}
 
-    <!-- FIXED: Enhanced Search Modal -->
+    <!-- Enhanced Search Modal - NOW AVAILABLE FOR ALL USERS -->
     {% block search_modal %}
     <div id="search-modal" class="search-modal">
         <div class="search-modal-content">
@@ -1233,7 +1229,7 @@ main {
                     <input
                         type="text"
                         id="modal-search-input"
-                        placeholder="Search rooms, users, or topics..."
+                        placeholder="{% if user.is_authenticated %}Search rooms, users, or topics...{% else %}Search public rooms...{% endif %}"
                         class="search-input"
                         autofocus
                     />
@@ -1249,12 +1245,31 @@ main {
             </div>
 
             <div class="search-modal-body" id="search-results">
+                {% if not user.is_authenticated %}
+                <!-- Show signup CTA for non-authenticated users -->
+                <div class="p-6 bg-gradient-to-br from-pink-50 to-purple-50 border-b border-gray-200">
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Discover more with an account</h3>
+                        <p class="text-sm text-gray-600 mb-4">Join Euphorie to search users, private rooms, and unlock the full experience!</p>
+                        <div class="flex gap-2 justify-center">
+                            <a href="{% url 'account_signup' %}" class="btn btn-primary">Sign up free</a>
+                            <a href="{% url 'account_login' %}" class="btn btn-secondary">Login</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
                 <div class="p-8 text-center text-gray-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <p class="font-medium">Start typing to search...</p>
-                    <p class="text-sm mt-1">Find rooms, users, or topics</p>
+                    <p class="text-sm mt-1">{% if user.is_authenticated %}Find rooms, users, or topics{% else %}Discover public rooms and topics{% endif %}</p>
                 </div>
             </div>
         </div>
@@ -1374,7 +1389,7 @@ main {
 
     {% endblock %}
 
-    <!-- FIXED: Enhanced Global JavaScript -->
+    <!-- Enhanced Global JavaScript -->
     <script>
         window.CHAT_CONFIG = {
             user: {% if user.is_authenticated %}{
@@ -1411,7 +1426,7 @@ main {
                     this.toggleMenu('user-dropdown', userDropdown);
                 });
 
-                // FIXED: Mobile search toggle
+                // Mobile search toggle - NOW AVAILABLE FOR ALL USERS
                 const mobileSearchToggle = document.getElementById('mobile-search-toggle');
                 mobileSearchToggle?.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1585,12 +1600,13 @@ main {
             }
         }
 
-        // FIXED: Enhanced Search System
+        // Enhanced Search System - Updated for Public Access
         class EuphorieSearchManager {
             constructor() {
                 this.searchInput = document.getElementById('modal-search-input');
                 this.searchResults = document.getElementById('search-results');
                 this.debounceTimer = null;
+                this.isAuthenticated = window.CHAT_CONFIG?.user?.isAuthenticated || false;
                 this.init();
             }
 
@@ -1600,7 +1616,7 @@ main {
                         this.debounceSearch(e.target.value);
                     });
 
-                    // FIXED: Handle Enter key to perform search
+                    // Handle Enter key to perform search
                     this.searchInput.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
@@ -1621,7 +1637,7 @@ main {
                 }, 300);
             }
 
-            performSearch(query) {
+            async performSearch(query) {
                 if (!query.trim()) {
                     this.showEmptyState();
                     return;
@@ -1630,49 +1646,74 @@ main {
                 // Show loading state
                 this.showLoadingState();
 
-                // FIXED: Simulate search with better room detection
-                setTimeout(() => {
-                    this.showResults(query);
-                }, 500);
-            }
-
-            showEmptyState() {
-                if (this.searchResults) {
-                    this.searchResults.innerHTML = `
-                        <div class="p-8 text-center text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <p class="font-medium">Start typing to search...</p>
-                            <p class="text-sm mt-1">Find rooms, users, or topics</p>
-                        </div>
-                    `;
+                try {
+                    // Try to fetch from API if available
+                    const response = await fetch(`/api/search/?q=${encodeURIComponent(query)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.showAPIResults(data, query);
+                    } else {
+                        // Fallback to DOM search
+                        this.performDOMSearch(query);
+                    }
+                } catch (error) {
+                    // Fallback to DOM search
+                    this.performDOMSearch(query);
                 }
             }
 
-            showLoadingState() {
-                if (this.searchResults) {
-                    this.searchResults.innerHTML = `
-                        <div class="p-8 text-center">
-                            <div class="loading-spinner mx-auto mb-4"></div>
-                            <p class="text-gray-500">Searching...</p>
-                        </div>
-                    `;
-                }
-            }
-
-            showResults(query) {
-                // FIXED: Better search logic for rooms
-                const roomCards = document.querySelectorAll('.room-card, .room-list-item');
+            performDOMSearch(query) {
+                // Search for rooms in the current page DOM
+                const roomCards = document.querySelectorAll('.room-card, .room-list-item, [data-room-name]');
                 const matchingRooms = Array.from(roomCards).filter(card => {
                     const roomTitle = card.querySelector('.room-title, .room-name, .list-title')?.textContent.toLowerCase();
                     const roomCategory = card.querySelector('.room-category, .badge')?.textContent.toLowerCase();
+                    const roomDescription = card.querySelector('.room-description, .text-gray-500')?.textContent.toLowerCase();
                     const searchTerm = query.toLowerCase();
                     
                     return (roomTitle && roomTitle.includes(searchTerm)) || 
-                           (roomCategory && roomCategory.includes(searchTerm));
+                           (roomCategory && roomCategory.includes(searchTerm)) ||
+                           (roomDescription && roomDescription.includes(searchTerm));
                 });
 
+                this.showDOMResults(matchingRooms, query);
+            }
+
+            showAPIResults(data, query) {
+                if (!data.results || data.results.length === 0) {
+                    this.showNoResults(query);
+                    return;
+                }
+
+                let resultsHTML = '<div class="p-4 space-y-2">';
+                
+                data.results.slice(0, 8).forEach(result => {
+                    const resultType = result.type || 'room';
+                    const icon = resultType === 'user' ? '👤' : '🏠';
+                    const typeLabel = resultType === 'user' ? 'User' : 'Room';
+                    
+                    resultsHTML += `
+                        <a href="${result.url}" class="block p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center group">
+                            <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex-shrink-0 flex items-center justify-center text-white mr-3 group-hover:scale-105 transition-transform">
+                                <span class="text-sm">${icon}</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 group-hover:text-primary transition-colors">${result.name}</h4>
+                                <p class="text-sm text-gray-500">${typeLabel}${result.category ? ' • ' + result.category : ''}</p>
+                            </div>
+                            <div class="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </a>
+                    `;
+                });
+
+                this.addSearchAllOption(resultsHTML, query, data.total_count || data.results.length);
+            }
+
+            showDOMResults(matchingRooms, query) {
                 if (matchingRooms.length === 0) {
                     this.showNoResults(query);
                     return;
@@ -1682,7 +1723,7 @@ main {
                 
                 matchingRooms.slice(0, 8).forEach(room => {
                     const roomTitle = room.querySelector('.room-title, .room-name, .list-title')?.textContent || 'Unknown Room';
-                    const roomUrl = room.getAttribute('href') || '#';
+                    const roomUrl = room.getAttribute('href') || room.querySelector('a')?.getAttribute('href') || '#';
                     const roomCategory = room.querySelector('.room-category, .badge')?.textContent || 'General';
                     const roomAvatar = roomTitle.charAt(0).toUpperCase();
                     
@@ -1704,25 +1745,29 @@ main {
                     `;
                 });
 
-                if (matchingRooms.length > 8) {
+                this.addSearchAllOption(resultsHTML, query, matchingRooms.length);
+            }
+
+            addSearchAllOption(resultsHTML, query, totalCount) {
+                if (totalCount > 8) {
                     resultsHTML += `
                         <div class="pt-3 border-t text-center">
                             <p class="text-sm text-gray-500">
-                                Showing 8 of ${matchingRooms.length} results
+                                Showing 8 of ${totalCount} results
                                 <a href="/explore/?q=${encodeURIComponent(query)}" class="text-primary hover:underline ml-1">View all</a>
                             </p>
                         </div>
                     `;
                 }
 
-                // FIXED: Add "Search all rooms" option
+                // Add "Search all rooms" option
                 resultsHTML += `
                     <div class="pt-3 border-t">
                         <a href="/explore/?q=${encodeURIComponent(query)}" class="flex items-center justify-center p-3 text-primary hover:bg-primary/10 rounded-lg transition-colors group">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                            <span class="font-medium">Search all rooms for "${query}"</span>
+                            <span class="font-medium">Search all ${this.isAuthenticated ? 'content' : 'public rooms'} for "${query}"</span>
                         </a>
                     </div>
                 `;
@@ -1734,21 +1779,84 @@ main {
                 }
             }
 
+            showEmptyState() {
+                if (this.searchResults) {
+                    const authContent = this.isAuthenticated ? `
+                        <p class="font-medium">Start typing to search...</p>
+                        <p class="text-sm mt-1">Find rooms, users, or topics</p>
+                    ` : `
+                        <p class="font-medium">Start typing to search...</p>
+                        <p class="text-sm mt-1">Discover public rooms and topics</p>
+                        <p class="text-xs mt-2 text-primary">
+                            <a href="/signup/" class="hover:underline">Sign up</a> to search users and private content
+                        </p>
+                    `;
+
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            ${authContent}
+                        </div>
+                    `;
+                }
+            }
+
+            showLoadingState() {
+                if (this.searchResults) {
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center">
+                            <div class="loading-spinner mx-auto mb-4"></div>
+                            <p class="text-gray-500">Searching ${this.isAuthenticated ? 'all content' : 'public rooms'}...</p>
+                        </div>
+                    `;
+                }
+            }
+
             showNoResults(query) {
                 if (this.searchResults) {
                     this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
                         <div class="p-8 text-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             <h3 class="font-semibold text-gray-900 mb-2">No results found</h3>
-                            <p class="text-gray-500 mb-4">We couldn't find anything matching "${query}" on this page</p>
+                            <p class="text-gray-500 mb-4">We couldn't find anything matching "${query}" ${this.isAuthenticated ? '' : 'in public rooms'}</p>
                             <a href="/explore/?q=${encodeURIComponent(query)}" class="btn btn-primary">
-                                Search all rooms
+                                Search all ${this.isAuthenticated ? 'content' : 'public rooms'}
                             </a>
+                            ${!this.isAuthenticated ? `
+                                <p class="text-sm text-gray-500 mt-3">
+                                    <a href="/signup/" class="text-primary hover:underline">Sign up</a> to access more search results
+                                </p>
+                            ` : ''}
                         </div>
                     `;
                 }
+            }
+
+            getSignupCTA() {
+                return `
+                    <div class="p-6 bg-gradient-to-br from-pink-50 to-purple-50 border-b border-gray-200">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Discover more with an account</h3>
+                            <p class="text-sm text-gray-600 mb-4">Join Euphorie to search users, private rooms, and unlock the full experience!</p>
+                            <div class="flex gap-2 justify-center">
+                                <a href="/signup/" class="btn btn-primary">Sign up free</a>
+                                <a href="/login/" class="btn btn-secondary">Login</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
         }
 
@@ -1852,7 +1960,7 @@ main {
             // Initialize header scroll effect
             initHeaderScroll();
 
-            // Mobile profile nav handler
+            // Mobile profile nav handler (for authenticated users)
             const profileNav = document.getElementById('profile-nav');
             const userMenuButton = document.getElementById('user-menu-button');
             if (profileNav && userMenuButton) {
