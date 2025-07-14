@@ -1,0 +1,90 @@
+# configs/load-test.yml
+config:
+  target: 'https://euphorie.com'
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 15
+      name: "Normal load"
+    - duration: 180
+      arrivalRate: 30
+      name: "Peak load"
+    - duration: 60
+      arrivalRate: 10
+      name: "Cool down"
+  defaults:
+    headers:
+      User-Agent: "Artillery Load Test - Euphorie"
+  processor: "../processors.js"
+
+scenarios:
+  - name: "User registration and login flow"
+    weight: 20
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+      - think: 2
+      - get:
+          url: "/account/login/"
+          expect:
+            - statusCode: 200
+      - think: 3
+      - get:
+          url: "/account/signup/"
+          expect:
+            - statusCode: 200
+
+  - name: "Chat and room navigation"
+    weight: 40
+    flow:
+      - get:
+          url: "/chat/dashboard/"
+          expect:
+            - statusCode: [200, 302]  # 302 if redirect to login
+      - think: 2
+      - get:
+          url: "/chat/room_list/"
+          expect:
+            - statusCode: [200, 302]
+      - think: 3
+      - get:
+          url: "/chat/explore/"
+          expect:
+            - statusCode: [200, 302]
+
+  - name: "3D Room features"
+    weight: 25
+    flow:
+      - get:
+          url: "/chat/room_3d/"
+          expect:
+            - statusCode: [200, 302]
+      - think: 5
+      - get:
+          url: "/static/js/room-core.js"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/static/css/room-3d.css"
+          expect:
+            - statusCode: 200
+
+  - name: "Static assets load test"
+    weight: 15
+    flow:
+      - get:
+          url: "/static/css/emotion-system.css"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/static/js/systems/avatar-system.js"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/static/js/systems/chat-bubble-system.js"
+          expect:
+            - statusCode: 200
