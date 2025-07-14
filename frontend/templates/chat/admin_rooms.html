@@ -5,12 +5,49 @@
 
 {% block extra_css %}
 <style>
+    /* CRITICAL FIX: Ensure dropdown z-index is higher than admin content */
+    .user-menu-dropdown {
+        z-index: 10000 !important; /* Much higher than any admin content */
+        position: fixed !important; /* Ensure it's not constrained by parent containers */
+    }
+    
+    .user-menu-button {
+        z-index: 10001 !important; /* Even higher for the button */
+        position: relative !important;
+    }
+    
+    /* Ensure menu overlay doesn't interfere */
+    #menu-overlay {
+        z-index: 9999 !important;
+    }
+    
+    /* CRITICAL: Ensure header elements stay on top */
+    .app-header {
+        z-index: 10002 !important;
+        position: relative !important;
+    }
+    
+    /* Fix for any potential transform issues that create new stacking contexts */
+    .admin-container,
+    .admin-container * {
+        transform: none !important;
+    }
+    
+    /* Ensure no backdrop-filter interferes with dropdown clicks */
+    .stat-card,
+    .search-section,
+    .rooms-section {
+        backdrop-filter: blur(10px) !important; /* Reduced blur to prevent interference */
+    }
+
 /* Enhanced Admin Rooms Styles with Modern UX */
 .admin-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 2rem 1rem;
     min-height: 100vh;
+    position: relative; /* IMPORTANT: Establish stacking context */
+    z-index: 1; /* Lower than header dropdown */
 }
 
 .admin-header {
@@ -46,6 +83,8 @@
     justify-content: center;
     gap: 1rem;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 10; /* Higher than admin content but lower than dropdown */
 }
 
 .btn-enhanced {
@@ -120,6 +159,8 @@
 .stats-section {
     margin-bottom: 3rem;
     animation: fadeInUp 0.6s ease-out 0.2s both;
+    position: relative;
+    z-index: 5; /* Lower than navigation */
 }
 
 .stats-grid {
@@ -140,6 +181,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    z-index: auto; /* Allow natural stacking */
 }
 
 .stat-card::before {
@@ -154,8 +196,11 @@
     animation: gradientShift 4s ease infinite;
 }
 
+/* Override any problematic transforms in hover states */
 .stat-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(0px) !important; /* Remove the translateY that might affect stacking */
+    margin-top: -6px; /* Use margin instead of transform for the hover effect */
+    margin-bottom: calc(3rem + 6px);
     box-shadow: 
         0 35px 70px -12px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(244, 114, 182, 0.2);
@@ -226,6 +271,7 @@
     animation: fadeInUp 0.6s ease-out 0.4s both;
     position: relative;
     overflow: hidden;
+    z-index: auto; /* Allow natural stacking */
 }
 
 .search-section::before {
@@ -298,6 +344,7 @@
     overflow: hidden;
     animation: fadeInUp 0.6s ease-out 0.6s both;
     position: relative;
+    z-index: auto; /* Allow natural stacking */
 }
 
 .rooms-section::before {
@@ -1142,8 +1189,17 @@
 {% block javascript %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // IMPORTANT: Don't interfere with global menu management
-    // The header dropdown is handled by the global EuphorieMenuManager in base.html
+    // CRITICAL FIX: Ensure dropdown menu manager is available
+    // Wait for base.html scripts to load
+    setTimeout(() => {
+        if (window.menuManager) {
+            console.log('✅ Menu manager from base.html is available');
+        } else {
+            console.warn('⚠️ Menu manager not found, implementing fallback');
+            // Fallback dropdown functionality
+            initializeFallbackDropdown();
+        }
+    }, 100);
     
     // Enhanced confirmation dialogs with better UX
     const clearRoomBtns = document.querySelectorAll('.clear-room-btn');
@@ -1350,6 +1406,107 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Enhanced Euphorie Admin Rooms Management loaded successfully');
     console.log('✅ Global header dropdown functionality preserved');
 });
+
+// CRITICAL FIX: Fallback dropdown functionality for admin page
+function initializeFallbackDropdown() {
+    console.log('🔧 Initializing fallback dropdown for admin page');
+    
+    const userButton = document.getElementById('user-menu-button');
+    const userDropdown = document.getElementById('user-dropdown');
+    const overlay = document.getElementById('menu-overlay');
+    
+    if (!userButton || !userDropdown) {
+        console.warn('❌ User menu elements not found');
+        return;
+    }
+    
+    let isOpen = false;
+    
+    function openDropdown() {
+        isOpen = true;
+        userDropdown.classList.add('show');
+        userButton.setAttribute('aria-expanded', 'true');
+        
+        // Show overlay
+        if (overlay) {
+            overlay.classList.remove('opacity-0', 'invisible');
+            overlay.classList.add('opacity-100', 'visible');
+        }
+        
+        // Update button icon
+        const icon = userButton.querySelector('svg');
+        if (icon) {
+            icon.style.transform = 'rotate(180deg)';
+        }
+        
+        console.log('✅ Dropdown opened');
+    }
+    
+    function closeDropdown() {
+        isOpen = false;
+        userDropdown.classList.remove('show');
+        userButton.setAttribute('aria-expanded', 'false');
+        
+        // Hide overlay
+        if (overlay) {
+            overlay.classList.remove('opacity-100', 'visible');
+            overlay.classList.add('opacity-0', 'invisible');
+        }
+        
+        // Reset button icon
+        const icon = userButton.querySelector('svg');
+        if (icon) {
+            icon.style.transform = 'rotate(0deg)';
+        }
+        
+        console.log('✅ Dropdown closed');
+    }
+    
+    function toggleDropdown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    }
+    
+    // Event listeners
+    userButton.addEventListener('click', toggleDropdown);
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userButton.contains(e.target) && !userDropdown.contains(e.target)) {
+            if (isOpen) {
+                closeDropdown();
+            }
+        }
+    });
+    
+    // Close dropdown when clicking overlay
+    if (overlay) {
+        overlay.addEventListener('click', closeDropdown);
+    }
+    
+    // Close dropdown on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen) {
+            closeDropdown();
+        }
+    });
+    
+    // Prevent dropdown items from closing the dropdown accidentally
+    userDropdown.addEventListener('click', (e) => {
+        // Allow form submissions and links to work
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') {
+            closeDropdown();
+        }
+    });
+    
+    console.log('✅ Fallback dropdown initialized successfully');
+}
 
 // Add ripple animation CSS (only if not already present)
 if (!document.querySelector('style[data-admin-ripple]')) {
