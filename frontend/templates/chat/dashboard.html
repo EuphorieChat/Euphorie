@@ -12,8 +12,8 @@ html {
 }
 
 body {
-    overflow-x: hidden;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
 }
 
 /* Enhanced Modern Dashboard Styles with Scroll Optimization */
@@ -25,7 +25,6 @@ body {
         rgba(139, 92, 246, 0.02) 100%
     );
     position: relative;
-    /* Removed overflow-x: hidden to prevent scroll issues */
     will-change: scroll-position;
     transform: translateZ(0); /* Force GPU acceleration */
 }
@@ -46,35 +45,6 @@ body {
 @keyframes patternFloat {
     0% { transform: translateX(0) translateY(0); }
     100% { transform: translateX(60px) translateY(60px); }
-}
-
-/* Scroll Container Optimization */
-.scroll-container {
-    height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
-}
-
-/* Custom Scrollbar for Better UX */
-.scroll-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.scroll-container::-webkit-scrollbar-track {
-    background: rgba(244, 114, 182, 0.05);
-    border-radius: 10px;
-}
-
-.scroll-container::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(96, 165, 250, 0.3));
-    border-radius: 10px;
-    transition: background 0.3s ease;
-}
-
-.scroll-container::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, rgba(244, 114, 182, 0.5), rgba(96, 165, 250, 0.5));
 }
 
 /* Enhanced Header Section */
@@ -864,8 +834,7 @@ body {
 
 {% block content %}
 <div class="dashboard-container">
-    <div class="scroll-container">
-        <div class="container mx-auto px-4 py-6">
+    <div class="container mx-auto px-4 py-6">
             <!-- Enhanced Header -->
             <div class="dashboard-header p-6 mb-8 scroll-anchor" id="header">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -1165,11 +1134,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Any scroll-based updates can go here
     }
     
-    // Throttled scroll event listener
-    const scrollContainer = document.querySelector('.scroll-container');
-    if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', requestTick, { passive: true });
-    }
+    // Throttled scroll event listener for the main document
+    window.addEventListener('scroll', requestTick, { passive: true });
     
     // Enhanced hover effects with performance optimization
     const cards = document.querySelectorAll('.stat-card, .content-section, .action-card');
@@ -1225,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Smooth scroll for anchor links with enhanced performance
     function smoothScrollTo(target, duration = 800) {
         const targetPosition = target.offsetTop - 100; // Account for padding
-        const startPosition = scrollContainer ? scrollContainer.scrollTop : window.pageYOffset;
+        const startPosition = window.pageYOffset;
         const distance = targetPosition - startPosition;
         let startTime = null;
         
@@ -1234,11 +1200,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const timeElapsed = currentTime - startTime;
             const run = easeInOutQuad(timeElapsed, startPosition, distance, duration);
             
-            if (scrollContainer) {
-                scrollContainer.scrollTop = run;
-            } else {
-                window.scrollTo(0, run);
-            }
+            window.scrollTo(0, run);
             
             if (timeElapsed < duration) {
                 requestAnimationFrame(animation);
@@ -1354,7 +1316,7 @@ style.textContent = `
     
     /* Reduce motion for accessibility */
     @media (prefers-reduced-motion: reduce) {
-        .scroll-container {
+        html, body {
             scroll-behavior: auto !important;
         }
         
