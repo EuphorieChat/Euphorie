@@ -1409,16 +1409,17 @@
 </div>
 
 <script>
-// Settings page JavaScript - Fixed to not interfere with base template dropdown
+// Settings page JavaScript - Fixed to work with base template menu system
 document.addEventListener('DOMContentLoaded', function() {
-    // Ensure we don't interfere with base template menu management
+    // CRITICAL: Don't initialize any menu management here - let base template handle it
+    // This was the main conflict causing the dropdown to stop working
+    
     const settingsContainer = document.querySelector('.settings-container');
     
-    // Only initialize settings functionality if not already handled by base template
+    // Only initialize settings-specific functionality
     if (settingsContainer) {
-        // Tab navigation
+        // Tab navigation - simplified without menu interference
         const navTabs = document.querySelectorAll('.nav-tab');
-        const sections = document.querySelectorAll('.setting-card');
         
         function showSection(sectionId) {
             // Hide all sections except account management and danger zone which are always visible
@@ -1448,11 +1449,10 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.hash = sectionId;
         }
         
-        // Tab click handlers - avoid interfering with header elements
+        // Tab click handlers - simplified without stopPropagation
         navTabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Prevent event bubbling
                 const sectionId = tab.dataset.section;
                 showSection(sectionId);
             });
@@ -1461,7 +1461,6 @@ document.addEventListener('DOMContentLoaded', function() {
             tab.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    e.stopPropagation();
                     const sectionId = tab.dataset.section;
                     showSection(sectionId);
                 }
@@ -1598,21 +1597,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         
-        // Enhanced toggle switches - avoid interfering with header dropdown
+        // Enhanced toggle switches - simplified without menu interference
         const toggleContainers = document.querySelectorAll('.toggle-container');
         toggleContainers.forEach(container => {
             const toggle = container.querySelector('input[type="checkbox"]');
             
             // Make the entire container clickable
             container.addEventListener('click', (e) => {
-                // Don't interfere with header elements
-                if (e.target.closest('.app-header') || e.target.closest('.user-menu-dropdown')) {
-                    return;
-                }
-                
                 if (e.target !== toggle && e.target.closest('.enhanced-toggle-switch') === null) {
                     e.preventDefault();
-                    e.stopPropagation();
                     toggle.click();
                 }
             });
@@ -1621,7 +1614,6 @@ document.addEventListener('DOMContentLoaded', function() {
             container.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    e.stopPropagation();
                     toggle.click();
                 }
             });
@@ -1775,11 +1767,11 @@ function showComingSoonToast(feature) {
 
 // Enhanced toast function with better integration
 function showToast(message, type = 'info', duration = 3000) {
-    // Try multiple toast systems
-    if (window.utils && window.utils.showToast) {
-        window.utils.showToast(message, type, duration);
-    } else if (window.toastManager && window.toastManager.show) {
+    // Use the base template's toast system
+    if (window.toastManager && window.toastManager.show) {
         window.toastManager.show(message, type, duration);
+    } else if (window.utils && window.utils.showToast) {
+        window.utils.showToast(message, type, duration);
     } else if (window.showToast) {
         window.showToast(message, type, duration);
     } else {
@@ -1837,13 +1829,8 @@ function createSimpleToast(message, type, duration) {
     }, duration);
 }
 
-// Enhanced keyboard navigation - avoid interfering with base template
+// Keyboard navigation - simplified
 document.addEventListener('keydown', function(e) {
-    // Don't interfere with base template functionality
-    if (e.target.closest('.app-header') || e.target.closest('.user-menu-dropdown')) {
-        return;
-    }
-    
     // Escape to close modals
     if (e.key === 'Escape') {
         hideDeleteAccountModal();
