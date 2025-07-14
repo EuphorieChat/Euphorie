@@ -91,17 +91,23 @@ def get_country_name(country_code):
 
 def index(request):
     """
-    Homepage view that shows room exploration interface
+    Homepage view that shows room exploration interface - FIXED VERSION
     """
     try:
-        # Get all rooms with related data for better performance
-        rooms = Room.objects.select_related('creator', 'category').annotate(
+        # Get all PUBLIC rooms with related data for better performance
+        rooms = Room.objects.select_related('creator', 'category').filter(
+            is_public=True  # ✅ Only show public rooms
+        ).annotate(
             total_messages=F('message_count'),  # Use existing message_count field
             last_message_time=Max('messages__timestamp')  # Use messages (plural)
         ).order_by('-last_activity', '-message_count')
         
-        # Get categories for the filter bar
-        categories = RoomCategory.objects.filter(is_active=True).order_by('sort_order', 'name')
+        # Get categories for the filter bar (EXCLUDE 'All' category)
+        categories = RoomCategory.objects.filter(
+            is_active=True
+        ).exclude(
+            slug='all'  # ✅ Exclude 'All' since we hardcode it in template
+        ).order_by('sort_order', 'name')
         
         # Handle search if query parameter exists
         search_query = request.GET.get('q', '').strip()
@@ -131,32 +137,42 @@ def index(request):
         else:  # 'activity' (default)
             rooms = rooms.order_by('-last_activity', '-message_count')
         
-        # Limit results for performance
-        rooms = rooms[:50]
+        # ✅ DON'T LIMIT ROOMS - Let frontend handle display
+        # rooms = rooms[:50]  # ❌ REMOVE THIS LINE
+        
+        # Get stats
+        total_rooms = Room.objects.filter(is_public=True).count()
+        total_users = User.objects.count()
+        total_messages = Message.objects.count()
+        
+        # ✅ Add debug print
+        print(f"DEBUG: Passing {rooms.count()} rooms to template")
         
         context = {
-            'rooms': rooms,
-            'categories': categories,
+            'rooms': rooms,  # ✅ All rooms, not limited
+            'categories': categories,  # ✅ Excludes 'All' category
             'search_query': search_query,
             'current_category': category_filter,
             'current_sort': sort_option,
-            'total_rooms': Room.objects.filter(is_public=True).count(),
-            'total_users': User.objects.count(),
-            'total_messages': Message.objects.count(),  # More efficient than sum
+            'total_rooms': total_rooms,
+            'total_users': total_users,
+            'total_messages': total_messages,
         }
         
         return render(request, 'chat/room_list.html', context)
         
     except Exception as e:
-        # Enhanced error handling
+        # Enhanced error handling with debug
+        print(f"ERROR in index view: {str(e)}")  # ✅ Debug line
+        
         if request.user.is_staff:
             error_msg = f"Database error: {str(e)}"
         else:
             error_msg = "Sorry, we're experiencing technical difficulties. Please try again later."
             
         context = {
-            'rooms': [],
-            'categories': [],
+            'rooms': Room.objects.none(),  # ✅ Empty queryset instead of empty list
+            'categories': RoomCategory.objects.filter(is_active=True).exclude(slug='all'),
             'error': error_msg,
             'search_query': '',
             'current_category': '',
