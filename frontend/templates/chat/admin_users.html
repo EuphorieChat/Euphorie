@@ -77,7 +77,7 @@ body {
 }
 
 .admin-title {
-    font-size: 3.5rem;
+    font-size: var(--title-xl);
     font-weight: 900;
     background: linear-gradient(135deg, var(--primary), var(--secondary), #8b5cf6);
     background-size: 200% 200%;
@@ -105,26 +105,29 @@ body {
     flex-wrap: wrap;
 }
 
-/* Enhanced Buttons - Scoped to Admin Container Only */
+/* Enhanced Buttons - Using Base System */
 .admin-container .btn-enhanced {
+    /* Inherit from base btn system but add admin-specific styling */
     position: relative;
     overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    border-radius: 1.5rem;
-    padding: 0.875rem 2rem;
+    border-radius: var(--radius-xl);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: none;
     font-family: inherit;
     text-decoration: none;
-    font-size: 0.9rem;
     gap: 0.5rem;
-    min-height: 2.75rem;
     transform: translateZ(0);
     will-change: transform;
+    
+    /* Use consistent button sizing */
+    height: var(--btn-height-md);
+    padding: var(--btn-padding-md);
+    font-size: var(--btn-font-md);
 }
 
 .admin-container .btn-enhanced::after {
@@ -231,8 +234,8 @@ body {
 .stat-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: 1.5rem;
-    padding: 2rem;
+    border-radius: var(--radius-xl);
+    padding: var(--card-padding-lg);
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.1),
         0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -270,10 +273,10 @@ body {
 }
 
 .stat-icon {
-    width: 3rem;
-    height: 3rem;
+    width: var(--icon-xl);
+    height: var(--icon-xl);
     background: linear-gradient(135deg, var(--primary-light), rgba(96, 165, 250, 0.1));
-    border-radius: 1rem;
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -318,8 +321,8 @@ body {
 .filters-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: 1.5rem;
-    padding: 2rem;
+    border-radius: var(--radius-xl);
+    padding: var(--card-padding-lg);
     margin-bottom: 3rem;
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.1),
@@ -363,16 +366,18 @@ body {
 }
 
 .form-label {
-    font-size: 0.875rem;
+    font-size: var(--btn-font-md);
     font-weight: 700;
     color: var(--text-primary);
 }
 
-.form-input {
-    padding: 1rem 1.25rem;
+/* Use consistent form input sizing */
+.admin-container .form-input {
+    height: var(--input-height-md);
+    padding: 0 1.25rem;
     border: 2px solid transparent;
-    border-radius: 1.5rem;
-    font-size: 0.9rem;
+    border-radius: var(--radius-xl);
+    font-size: var(--btn-font-md);
     font-weight: 500;
     background: linear-gradient(white, white) padding-box,
                 linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
@@ -380,7 +385,7 @@ body {
     transform: translateZ(0);
 }
 
-.form-input:focus {
+.admin-container .form-input:focus {
     outline: none;
     background: linear-gradient(white, white) padding-box,
                 linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
@@ -390,7 +395,7 @@ body {
     transform: translateY(-2px) translateZ(0);
 }
 
-.form-input:hover {
+.admin-container .form-input:hover {
     background: linear-gradient(white, white) padding-box,
                 linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
     transform: translateY(-1px) translateZ(0);
@@ -400,7 +405,7 @@ body {
 .users-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: 1.5rem;
+    border-radius: var(--radius-xl);
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.1),
         0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -424,7 +429,7 @@ body {
 }
 
 .section-header {
-    padding: 2rem;
+    padding: var(--card-padding-lg);
     border-bottom: 1px solid rgba(244, 114, 182, 0.1);
     display: flex;
     justify-content: space-between;
@@ -434,7 +439,7 @@ body {
 }
 
 .section-title {
-    font-size: 1.5rem;
+    font-size: var(--title-sm);
     font-weight: 800;
     color: var(--text-primary);
     margin: 0;
@@ -445,7 +450,7 @@ body {
     color: var(--primary);
     padding: 0.5rem 1rem;
     border-radius: 9999px;
-    font-size: 0.875rem;
+    font-size: var(--btn-font-md);
     font-weight: 700;
     border: 1px solid rgba(244, 114, 182, 0.2);
 }
@@ -476,7 +481,7 @@ body {
 }
 
 .user-item {
-    padding: 1.5rem 2rem;
+    padding: 1.5rem var(--card-padding-lg);
     border-bottom: 1px solid rgba(244, 114, 182, 0.05);
     transition: all 0.3s ease;
     position: relative;
@@ -517,9 +522,13 @@ body {
     gap: 1rem;
 }
 
-.user-avatar {
-    width: 3rem;
-    height: 3rem;
+/* CRITICAL FIX: Use base avatar system instead of custom sizing */
+.admin-container .user-avatar {
+    /* Remove custom sizing, use base system */
+    /* OLD: width: 3rem; height: 3rem; */
+    /* Use consistent large avatar size */
+    width: var(--avatar-lg);
+    height: var(--avatar-lg);
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
@@ -527,12 +536,13 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 1.125rem;
+    font-size: 1rem;
     transition: all 0.3s ease;
     transform: translateZ(0);
+    flex-shrink: 0;
 }
 
-.user-item:hover .user-avatar {
+.user-item:hover .admin-container .user-avatar {
     transform: scale(1.1) rotate(5deg) translateZ(0);
     box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
 }
@@ -547,7 +557,7 @@ body {
 
 .user-details p {
     margin: 0;
-    font-size: 0.875rem;
+    font-size: var(--btn-font-md);
     color: var(--text-secondary);
 }
 
@@ -612,20 +622,20 @@ body {
     opacity: 1;
 }
 
-/* Scoped Action Buttons */
+/* Action Buttons - Use smaller consistent size */
 .admin-container .action-btn {
-    padding: 0.375rem 0.75rem;
+    height: var(--btn-height-sm);
+    padding: var(--btn-padding-sm);
     border: 2px solid rgba(244, 114, 182, 0.2);
-    border-radius: 0.75rem;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.25rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 0.75rem;
+    font-size: var(--btn-font-sm);
     font-weight: 600;
     text-decoration: none;
-    min-height: 2rem;
     transform: translateZ(0);
     background: white;
 }
@@ -715,7 +725,7 @@ body {
 }
 
 .empty-title {
-    font-size: 1.75rem;
+    font-size: var(--title-sm);
     font-weight: 800;
     color: var(--text-primary);
     margin: 0 0 1rem 0;
@@ -732,7 +742,7 @@ body {
 
 .pagination-container {
     background: rgba(244, 114, 182, 0.02);
-    padding: 2rem;
+    padding: var(--card-padding-lg);
     border-top: 1px solid rgba(244, 114, 182, 0.1);
     display: flex;
     justify-content: space-between;
@@ -743,7 +753,7 @@ body {
 
 .pagination-info {
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: var(--btn-font-md);
     font-weight: 500;
 }
 
@@ -756,15 +766,16 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.5rem;
-    height: 2.5rem;
+    height: var(--btn-height-sm);
+    min-width: var(--btn-height-sm);
     padding: 0 0.75rem;
     border: 2px solid rgba(244, 114, 182, 0.2);
-    border-radius: 0.75rem;
+    border-radius: var(--radius-lg);
     background: rgba(255, 255, 255, 0.8);
     color: var(--text-primary);
     text-decoration: none;
     font-weight: 600;
+    font-size: var(--btn-font-sm);
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     transform: translateZ(0);
@@ -816,8 +827,8 @@ body {
 
 .modal-content {
     background: white;
-    border-radius: 1.5rem;
-    padding: 2rem;
+    border-radius: var(--radius-xl);
+    padding: var(--card-padding-lg);
     max-width: 600px;
     width: 90%;
     max-height: 90vh;
@@ -841,15 +852,15 @@ body {
 }
 
 .modal-title {
-    font-size: 1.5rem;
+    font-size: var(--title-sm);
     font-weight: 800;
     color: var(--text-primary);
     margin: 0;
 }
 
 .modal-close {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: var(--btn-height-sm);
+    height: var(--btn-height-sm);
     border: none;
     border-radius: 50%;
     background: rgba(239, 68, 68, 0.1);
@@ -900,7 +911,7 @@ body {
 .activity-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: 1.5rem;
+    border-radius: var(--radius-xl);
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.1),
         0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -925,7 +936,7 @@ body {
 }
 
 .activity-item {
-    padding: 1rem 2rem;
+    padding: 1rem var(--card-padding-lg);
     border-bottom: 1px solid rgba(244, 114, 182, 0.05);
     transition: all 0.3s ease;
     transform: translateZ(0);
@@ -947,9 +958,10 @@ body {
     gap: 0.75rem;
 }
 
+/* Activity Avatar - Use consistent small size */
 .activity-avatar {
-    width: 2rem;
-    height: 2rem;
+    width: var(--avatar-sm);
+    height: var(--avatar-sm);
     border-radius: 50%;
     background: linear-gradient(135deg, #3b82f6, #8b5cf6);
     color: white;
@@ -958,6 +970,7 @@ body {
     justify-content: center;
     font-weight: 600;
     font-size: 0.75rem;
+    flex-shrink: 0;
 }
 
 .activity-details .activity-user-name {
@@ -967,7 +980,7 @@ body {
 }
 
 .activity-details .activity-description {
-    font-size: 0.875rem;
+    font-size: var(--btn-font-md);
     color: var(--text-secondary);
 }
 
@@ -1025,7 +1038,7 @@ body {
 /* Mobile Optimizations */
 @media (max-width: 768px) {
     .admin-title {
-        font-size: 2.5rem;
+        font-size: var(--title-lg);
     }
 
     .admin-subtitle {
@@ -1070,7 +1083,7 @@ body {
     }
 
     .stat-card {
-        padding: 1.5rem;
+        padding: var(--card-padding-sm);
     }
 
     .stat-value {
@@ -1091,6 +1104,12 @@ body {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.5rem;
+    }
+
+    /* Ensure avatars stay consistent on mobile */
+    .admin-container .user-avatar {
+        width: var(--avatar-md);
+        height: var(--avatar-md);
     }
 }
 
@@ -1508,7 +1527,7 @@ body {
 {% block javascript %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Enhanced Euphorie Admin User Management with smooth scrolling loaded successfully');
+    console.log('Enhanced Euphorie Admin User Management with consistent sizing loaded successfully');
     
     // Optimize scroll performance
     let ticking = false;
@@ -1828,6 +1847,6 @@ if (activitySection) {
     });
 }
 
-console.log('Admin user management optimizations loaded');
+console.log('Admin user management with consistent sizing optimizations loaded');
 </script>
 {% endblock %}
