@@ -225,7 +225,8 @@ class Room(models.Model):
     # Room Membership - Many-to-Many relationship with users
     members = models.ManyToManyField(
         User, 
-        through='RoomMembership', 
+        through='RoomMembership',
+        through_fields=('room', 'user'),  # Specify which fields to use
         related_name='joined_rooms',
         blank=True,
         help_text="Users who are members of this room"
