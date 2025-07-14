@@ -22,6 +22,7 @@ urlpatterns = [
     path('settings/download-data/', views.download_user_data, name='download_user_data'),
     path('settings/clear-activities/', views.clear_user_activities, name='clear_user_activities'),
     path('settings/deactivate/', views.deactivate_account, name='deactivate_account'),
+    path('api/user-profile-extended/', views.api_user_profile_extended, name='api_user_profile_extended'),
     
     # ==================== FRIEND URLS ====================
     path('friends/', views.friends_list, name='friends_list'),

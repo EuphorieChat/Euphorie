@@ -12,29 +12,28 @@ import json
 import requests
 
 class UserProfile(models.Model):
-    """Enhanced user profile with 3D avatar customization and nationality"""
-    
+    """Enhanced user profile with 3D avatar customization, nationality, and privacy settings"""
+
     THEME_CHOICES = [
         ('light', 'Light'),
         ('dark', 'Dark'),
         ('auto', 'Auto'),
         ('high_contrast', 'High Contrast'),
     ]
-    
+
     STATUS_CHOICES = [
         ('online', 'Online'),
         ('away', 'Away'),
         ('busy', 'Busy'),
         ('invisible', 'Invisible'),
     ]
-    
+
     PRIVACY_CHOICES = [
         ('public', 'Public'),
         ('friends', 'Friends Only'),
         ('private', 'Private'),
     ]
-    
-    # Common country codes for validation
+
     COUNTRY_CHOICES = [
         ('US', 'United States'), ('CA', 'Canada'), ('GB', 'United Kingdom'),
         ('DE', 'Germany'), ('FR', 'France'), ('JP', 'Japan'), ('AU', 'Australia'),
@@ -53,122 +52,127 @@ class UserProfile(models.Model):
         ('PH', 'Philippines'), ('ID', 'Indonesia'), ('MY', 'Malaysia'), ('SG', 'Singapore'),
         ('UN', 'Unknown'),
     ]
-    
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    
+
     # Avatar & Appearance
-    avatar_customization = models.JSONField(
-        default=dict,
-        help_text="3D avatar appearance settings"
-    )
+    avatar_customization = models.JSONField(default=dict, help_text="3D avatar appearance settings")
     display_name = models.CharField(max_length=50, blank=True)
-    
+
     # Nationality & Location
     nationality = models.CharField(
-        max_length=2, 
+        max_length=2,
         choices=COUNTRY_CHOICES,
-        blank=True, 
+        blank=True,
         null=True,
         help_text="User-selected nationality (2-letter country code)"
     )
     auto_detected_country = models.CharField(
-        max_length=2, 
+        max_length=2,
         choices=COUNTRY_CHOICES,
-        blank=True, 
+        blank=True,
         null=True,
         help_text="Auto-detected country from IP address"
     )
     location = models.CharField(max_length=100, blank=True)
     show_nationality = models.BooleanField(default=True, help_text="Show nationality flag on avatar")
-    
+
     # Profile Information
     bio = models.TextField(max_length=300, blank=True)
     website = models.URLField(blank=True, validators=[URLValidator()])
-    
+
     # Preferences
     theme = models.CharField(max_length=20, choices=THEME_CHOICES, default='light')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='online')
     status_message = models.CharField(max_length=100, blank=True)
-    
+
     # Privacy Settings
-    profile_visibility = models.CharField(max_length=20, choices=PRIVACY_CHOICES, default='public')
+    profile_visibility = models.CharField(
+        max_length=20,
+        choices=PRIVACY_CHOICES,
+        default='public',
+        help_text="Control who can see your profile"
+    )
     show_online_status = models.BooleanField(default=True)
     allow_friend_requests = models.BooleanField(default=True)
-    
+    email_notifications = models.BooleanField(
+        default=True,
+        help_text="Receive email notifications for messages and mentions"
+    )
+    allow_room_invites = models.BooleanField(
+        default=True,
+        help_text="Allow others to invite you to rooms"
+    )
+
     # Activity Tracking
     total_messages = models.PositiveIntegerField(default=0)
     rooms_created = models.PositiveIntegerField(default=0)
     last_seen = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     # Achievements
     achievements = models.JSONField(default=list, help_text="List of earned achievements")
-    
+
     def __str__(self):
         return f"{self.user.username}'s Profile"
-    
+
+    def save(self, *args, **kwargs):
+        if not self.last_seen:
+            self.last_seen = timezone.now()
+        super().save(*args, **kwargs)
+
     @property
     def display_username(self):
-        """Return display name if set, otherwise username"""
         return self.display_name or self.user.username
-    
+
     def get_display_nationality(self):
-        """Returns user-set nationality or auto-detected as fallback"""
         if self.show_nationality:
             return self.nationality or self.auto_detected_country or 'UN'
         return None
-    
+
     def get_country_name(self):
-        """Get full country name from nationality code"""
         country_dict = dict(self.COUNTRY_CHOICES)
         nationality = self.get_display_nationality()
         return country_dict.get(nationality, 'Unknown') if nationality else None
-    
+
     def get_flag_url(self):
-        """Get flag image URL for the user's nationality"""
         nationality = self.get_display_nationality()
         if nationality and nationality != 'UN':
             return f"https://flagcdn.com/w40/{nationality.lower()}.png"
         return None
-    
+
     def update_nationality(self, nationality):
-        """Update user's nationality and save"""
         if nationality in dict(self.COUNTRY_CHOICES):
             self.nationality = nationality
             self.save(update_fields=['nationality'])
             return True
         return False
-    
+
     def auto_detect_country(self, ip_address):
-        """Auto-detect country from IP address"""
         try:
-            # Check cache first
             cached_country = cache.get(f'country_{ip_address}')
             if cached_country:
                 self.auto_detected_country = cached_country
                 self.save(update_fields=['auto_detected_country'])
                 return cached_country
-            
-            # Try external API
+
             response = requests.get(f'https://ipapi.co/{ip_address}/country_code/', timeout=5)
             if response.status_code == 200:
                 country = response.text.strip().upper()
                 if country in dict(self.COUNTRY_CHOICES):
                     self.auto_detected_country = country
                     self.save(update_fields=['auto_detected_country'])
-                    cache.set(f'country_{ip_address}', country, 86400)  # Cache for 24 hours
+                    cache.set(f'country_{ip_address}', country, 86400)
                     return country
         except:
             pass
-        
-        # Fallback to unknown
+
         self.auto_detected_country = 'UN'
         self.save(update_fields=['auto_detected_country'])
         return 'UN'
-    
+
     def get_avatar_settings(self):
-        """Get avatar customization with defaults"""
         defaults = {
             'hair_style': 'short',
             'hair_color': '#8B4513',
@@ -178,14 +182,13 @@ class UserProfile(models.Model):
             'eye_color': '#4A90E2',
         }
         settings = {**defaults, **self.avatar_customization}
-        
-        # Add nationality info for avatar system
+
         nationality = self.get_display_nationality()
         if nationality:
             settings['nationality'] = nationality
             settings['country_name'] = self.get_country_name()
             settings['flag_url'] = self.get_flag_url()
-        
+
         return settings
 
 
