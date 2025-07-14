@@ -9,8 +9,8 @@ urlpatterns = [
     path('room/<str:room_name>/', views.room, name='room'),
     path('quickstart/', views.index, name='home'),  # Original homepage moved to quickstart
     path('create-room/', views.create_room, name='create_room'),
-    path('search/', views.search_rooms, name='search_rooms'),
-    path('explore/', views.explore_rooms, name='explore_rooms'),
+    path('search/', views.search_rooms, name='search_rooms'),  # ✅ Now available to all users
+    path('explore/', views.explore_rooms, name='explore_rooms'),  # ✅ Now available to all users
     path('dashboard/', views.dashboard, name='dashboard'),
     
     # ==================== PROFILE URLS ====================
@@ -54,8 +54,9 @@ urlpatterns = [
     path('api/profile/', views.api_user_profile, name='api_user_profile'),
     path('api/avatar/update/', views.api_update_avatar, name='api_update_avatar'),
     path('api/friends/online/', views.api_friends_online, name='api_friends_online'),
-    path('api/rooms/load-more/', views.api_load_more_rooms, name='api_load_more_rooms'),
-    path('api/search/rooms/', views.api_search_rooms, name='api_search_rooms'),
+    path('api/rooms/load-more/', views.api_load_more_rooms, name='api_load_more_rooms'),  # ✅ Now available to all users
+    path('api/search/rooms/', views.api_search_rooms, name='api_search_rooms'),  # ✅ Now available to all users
+    path('api/public-search/', views.public_search_api, name='public_search_api'),  # ✅ NEW: Public-only search endpoint
     
     # ==================== NATIONALITY API ENDPOINTS ====================
     path('api/user-country/', views.api_get_user_country, name='api_get_user_country'),

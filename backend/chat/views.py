@@ -91,32 +91,47 @@ def get_country_name(country_code):
 
 def index(request):
     """
-    Homepage view that shows room exploration interface - FIXED VERSION
+    Homepage view that shows room exploration interface - UPDATED FOR PUBLIC ACCESS
     """
     try:
-        # Get all PUBLIC rooms with related data for better performance
+        # ALWAYS start with public rooms as base
         rooms = Room.objects.select_related('creator', 'category').filter(
-            is_public=True  # ✅ Only show public rooms
+            is_public=True
         ).annotate(
-            total_messages=F('message_count'),  # Use existing message_count field
-            last_message_time=Max('messages__timestamp')  # Use messages (plural)
-        ).order_by('-last_activity', '-message_count')
+            total_messages=F('message_count'),
+            last_message_time=Max('messages__timestamp')
+        )
+        
+        # For authenticated users, optionally include their private rooms
+        if request.user.is_authenticated:
+            # You can choose to include private rooms the user has access to
+            private_rooms = Room.objects.select_related('creator', 'category').filter(
+                Q(creator=request.user) | Q(members=request.user),
+                is_public=False
+            ).annotate(
+                total_messages=F('message_count'),
+                last_message_time=Max('messages__timestamp')
+            )
+            # Combine public and accessible private rooms
+            rooms = rooms.union(private_rooms).distinct()
+        
+        rooms = rooms.order_by('-last_activity', '-message_count')
         
         # Get categories for the filter bar (EXCLUDE 'All' category)
         categories = RoomCategory.objects.filter(
             is_active=True
         ).exclude(
-            slug='all'  # ✅ Exclude 'All' since we hardcode it in template
+            slug='all'
         ).order_by('sort_order', 'name')
         
-        # Handle search if query parameter exists
+        # Handle search if query parameter exists - WORKS FOR ALL USERS
         search_query = request.GET.get('q', '').strip()
         if search_query:
             rooms = rooms.filter(
                 Q(name__icontains=search_query) |
                 Q(display_name__icontains=search_query) |
                 Q(description__icontains=search_query) |
-                Q(tags__icontains=search_query)  # Added tags search
+                Q(tags__icontains=search_query)
             )
         
         # Handle category filter
@@ -137,33 +152,32 @@ def index(request):
         else:  # 'activity' (default)
             rooms = rooms.order_by('-last_activity', '-message_count')
         
-        # ✅ DON'T LIMIT ROOMS - Let frontend handle display
-        # rooms = rooms[:50]  # ❌ REMOVE THIS LINE
+        # Get stats - show public stats for non-auth users
+        if request.user.is_authenticated:
+            total_rooms = Room.objects.count()  # All rooms for auth users
+        else:
+            total_rooms = Room.objects.filter(is_public=True).count()  # Only public for non-auth
         
-        # Get stats
-        total_rooms = Room.objects.filter(is_public=True).count()
         total_users = User.objects.count()
         total_messages = Message.objects.count()
         
-        # ✅ Add debug print
-        print(f"DEBUG: Passing {rooms.count()} rooms to template")
-        
         context = {
-            'rooms': rooms,  # ✅ All rooms, not limited
-            'categories': categories,  # ✅ Excludes 'All' category
+            'rooms': rooms,
+            'categories': categories,
             'search_query': search_query,
             'current_category': category_filter,
             'current_sort': sort_option,
             'total_rooms': total_rooms,
             'total_users': total_users,
             'total_messages': total_messages,
+            'user_authenticated': request.user.is_authenticated,
+            'search_scope': 'public_and_private' if request.user.is_authenticated else 'public_only',
         }
         
         return render(request, 'chat/room_list.html', context)
         
     except Exception as e:
-        # Enhanced error handling with debug
-        print(f"ERROR in index view: {str(e)}")  # ✅ Debug line
+        print(f"ERROR in index view: {str(e)}")
         
         if request.user.is_staff:
             error_msg = f"Database error: {str(e)}"
@@ -171,7 +185,7 @@ def index(request):
             error_msg = "Sorry, we're experiencing technical difficulties. Please try again later."
             
         context = {
-            'rooms': Room.objects.none(),  # ✅ Empty queryset instead of empty list
+            'rooms': Room.objects.none(),
             'categories': RoomCategory.objects.filter(is_active=True).exclude(slug='all'),
             'error': error_msg,
             'search_query': '',
@@ -180,6 +194,8 @@ def index(request):
             'total_rooms': 0,
             'total_users': 0,
             'total_messages': 0,
+            'user_authenticated': request.user.is_authenticated,
+            'search_scope': 'public_only',
         }
         return render(request, 'chat/room_list.html', context)
 
@@ -398,15 +414,22 @@ def create_room(request):
     return render(request, 'chat/create_room.html', context)
 
 def search_rooms(request):
-    """Enhanced search rooms with better filtering"""
+    """Enhanced search rooms with better filtering - NOW SUPPORTS NON-AUTH USERS"""
     query = request.GET.get('q', '').strip()
     category = request.GET.get('category', '')
     
     if not query:
         return JsonResponse({'rooms': []})
     
-    # Build search query
+    # Build search query - ALWAYS filter for public rooms first
     rooms = Room.objects.filter(is_public=True).select_related('category', 'creator')
+    
+    # For authenticated users, also include their private rooms
+    if request.user.is_authenticated:
+        private_rooms = Room.objects.filter(
+            Q(creator=request.user) | Q(members=request.user)
+        ).select_related('category', 'creator')
+        rooms = rooms.union(private_rooms).distinct()
     
     # Search in multiple fields
     search_filter = (
@@ -436,15 +459,70 @@ def search_rooms(request):
         'message_count': room.total_messages,
         'tags': room.get_tags_list(),
         'url': reverse('room', kwargs={'room_name': room.name}),
+        'is_public': room.is_public,  # Add this for frontend differentiation
     } for room in rooms]
     
+    # Add metadata about search scope
+    response_data = {
+        'rooms': rooms_data,
+        'search_scope': 'public_and_private' if request.user.is_authenticated else 'public_only',
+        'total_results': len(rooms_data),
+        'query': query,
+        'user_authenticated': request.user.is_authenticated,
+    }
+    
     if request.headers.get('Content-Type') == 'application/json':
-        return JsonResponse({'rooms': rooms_data})
+        return JsonResponse(response_data)
     
     return render(request, 'chat/search_results.html', {
         'rooms': rooms,
-        'query': query
+        'query': query,
+        'search_scope': response_data['search_scope']
     })
+
+# NEW: Add a specific public search endpoint
+def public_search_api(request):
+    """Public search API endpoint that works for non-authenticated users"""
+    query = request.GET.get('q', '').strip()
+    
+    if not query:
+        return JsonResponse({'results': [], 'message': 'No search query provided'})
+    
+    # Search only in public rooms for this endpoint
+    rooms = Room.objects.filter(
+        is_public=True
+    ).filter(
+        Q(name__icontains=query) |
+        Q(display_name__icontains=query) |
+        Q(description__icontains=query) |
+        Q(tags__icontains=query)
+    ).select_related('category', 'creator').order_by('-message_count')[:10]
+    
+    results = [{
+        'name': room.name,
+        'display_name': room.display_name,
+        'description': room.description or '',
+        'category': room.category.name if room.category else 'General',
+        'creator': room.creator.username,
+        'url': reverse('room', kwargs={'room_name': room.name}),
+        'message_count': room.message_count,
+        'tags': room.get_tags_list(),
+        'is_public': True,
+    } for room in rooms]
+    
+    return JsonResponse({
+        'results': results,
+        'total': len(results),
+        'query': query,
+        'scope': 'public_only',
+        'user_authenticated': request.user.is_authenticated,
+    })
+
+def explore_rooms(request):
+    """Dedicated room exploration page - SUPPORTS ALL USERS"""
+    # Redirect to index since they serve the same purpose now
+    # but you could customize this differently if needed
+    return index(request)
 
 # ==================== NATIONALITY API ENDPOINTS ====================
 
@@ -1323,9 +1401,7 @@ def admin_dashboard(request):
     
     return render(request, 'chat/admin_dashboard.html', context)
 
-# [REST OF THE ORIGINAL VIEWS REMAIN THE SAME - admin_rooms, admin_messages, etc.]
-# [I'll keep them unchanged to preserve your existing functionality]
-
+# [REST OF THE ADMIN VIEWS REMAIN THE SAME]
 @staff_member_required
 def admin_rooms(request):
     """
@@ -1913,12 +1989,21 @@ def api_friends_online(request):
     return JsonResponse({'friends': friends_data})
 
 def api_load_more_rooms(request):
-    """Load more rooms for infinite scroll"""
+    """Load more rooms for infinite scroll - SUPPORTS NON-AUTH USERS"""
     page = int(request.GET.get('page', 1))
     category = request.GET.get('category', 'all')
     sort_by = request.GET.get('sort', 'activity')
     
+    # Always start with public rooms
     rooms = Room.objects.filter(is_public=True).select_related('category', 'creator')
+    
+    # For authenticated users, include their accessible private rooms
+    if request.user.is_authenticated:
+        private_rooms = Room.objects.filter(
+            Q(creator=request.user) | Q(members=request.user),
+            is_public=False
+        ).select_related('category', 'creator')
+        rooms = rooms.union(private_rooms).distinct()
     
     if category != 'all':
         rooms = rooms.filter(category__slug=category)
@@ -1944,6 +2029,7 @@ def api_load_more_rooms(request):
         'active_users': room.active_users_count,
         'tags': room.get_tags_list(),
         'url': reverse('room', kwargs={'room_name': room.name}),
+        'is_public': room.is_public,
     } for room in page_obj]
     
     return JsonResponse({
@@ -1951,10 +2037,11 @@ def api_load_more_rooms(request):
         'has_next': page_obj.has_next(),
         'next_page': page_obj.next_page_number() if page_obj.has_next() else None,
         'total_pages': paginator.num_pages,
+        'search_scope': 'public_and_private' if request.user.is_authenticated else 'public_only',
     })
 
 def api_search_rooms(request):
-    """API endpoint for room search"""
+    """API endpoint for room search - supports both auth and non-auth users"""
     return search_rooms(request)
 
 # ==================== UTILITY VIEWS ====================
@@ -2162,10 +2249,3 @@ def debug_rooms(request):
             'message_count': room.message_count,
         } for room in sample_rooms]
     }, json_dumps_params={'indent': 2})
-
-# ==================== EXPLORE ROOMS ====================
-
-def explore_rooms(request):
-    """Dedicated room exploration page with enhanced features"""
-    # This is essentially the same as index but can be customized differently
-    return index(request)
