@@ -8,7 +8,7 @@
     /* CRITICAL FIX: Ensure dropdown z-index is higher than settings content */
     .user-menu-dropdown {
         z-index: 10000 !important;
-        position: fixed !important;
+        position: absolute !important;
     }
     
     .user-menu-button {
@@ -69,7 +69,7 @@
         flex-wrap: wrap;
         animation: fadeInUp 0.6s ease-out 0.2s both;
         position: relative;
-        z-index: 10;
+        z-index: 2;
     }
 
     .nav-tab {
@@ -85,6 +85,7 @@
         position: relative;
         overflow: hidden;
         cursor: pointer;
+        z-index: auto;
     }
 
     .nav-tab:hover {
@@ -106,7 +107,7 @@
         flex: 1;
         animation: fadeInUp 0.6s ease-out 0.4s both;
         position: relative;
-        z-index: 5;
+        z-index: 1;
     }
 
     .setting-card {
@@ -221,6 +222,8 @@
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         color: var(--text-primary);
         box-sizing: border-box;
+        z-index: auto;
+        position: relative;
     }
 
     .form-input:focus {
@@ -273,6 +276,7 @@
         position: relative;
         overflow: hidden;
         cursor: pointer;
+        z-index: auto;
     }
 
     .toggle-container:hover {
@@ -374,6 +378,8 @@
         text-decoration: none;
         font-size: 0.9rem;
         gap: 0.5rem;
+        z-index: auto;
+        position: relative;
     }
 
     .btn-primary-enhanced {
@@ -442,6 +448,7 @@
         align-items: center;
         text-align: center;
         gap: 1rem;
+        z-index: auto;
     }
 
     .quick-action-card:hover {
@@ -485,6 +492,7 @@
         margin-bottom: 1rem;
         position: relative;
         overflow: hidden;
+        z-index: auto;
     }
 
     .action-card:hover {
@@ -669,6 +677,17 @@
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
+    }
+
+    /* Fix for modal z-index issues */
+    #deactivate-account-modal,
+    #delete-account-modal {
+        z-index: 9999;
+    }
+
+    /* Ensure menu overlay doesn't interfere */
+    #menu-overlay {
+        z-index: 50 !important;
     }
 
     /* Mobile Optimizations */
@@ -1323,7 +1342,7 @@
 </div>
 
 <!-- Enhanced Deactivate Account Modal -->
-<div id="deactivate-account-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 25000; align-items: center; justify-content: center;">
+<div id="deactivate-account-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: var(--radius-2xl); padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
         <div style="text-align: center; margin-bottom: 2rem;">
             <div style="width: 4rem; height: 4rem; background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white;">
@@ -1355,7 +1374,7 @@
 </div>
 
 <!-- Enhanced Delete Account Modal -->
-<div id="delete-account-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 25000; align-items: center; justify-content: center;">
+<div id="delete-account-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: var(--radius-2xl); padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
         <div style="text-align: center; margin-bottom: 2rem;">
             <div style="width: 4rem; height: 4rem; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white;">
@@ -1390,280 +1409,295 @@
 </div>
 
 <script>
-// Enhanced tab navigation and form handling
+// Settings page JavaScript - Fixed to not interfere with base template dropdown
 document.addEventListener('DOMContentLoaded', function() {
-    // Tab navigation
-    const navTabs = document.querySelectorAll('.nav-tab');
-    const sections = document.querySelectorAll('.setting-card');
+    // Ensure we don't interfere with base template menu management
+    const settingsContainer = document.querySelector('.settings-container');
     
-    function showSection(sectionId) {
-        // Hide all sections except account management and danger zone which are always visible
-        document.querySelectorAll('#profile-section, #privacy-section, #security-section, #actions-section').forEach(section => {
-            section.style.display = 'none';
-        });
+    // Only initialize settings functionality if not already handled by base template
+    if (settingsContainer) {
+        // Tab navigation
+        const navTabs = document.querySelectorAll('.nav-tab');
+        const sections = document.querySelectorAll('.setting-card');
         
-        // Remove active class from all tabs
+        function showSection(sectionId) {
+            // Hide all sections except account management and danger zone which are always visible
+            document.querySelectorAll('#profile-section, #privacy-section, #security-section, #actions-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Remove active class from all tabs
+            navTabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show target section
+            const targetSection = document.getElementById(sectionId + '-section');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                targetSection.style.animation = 'fadeInUp 0.5s ease-out';
+            }
+            
+            // Add active class to clicked tab
+            const activeTab = document.querySelector(`[data-section="${sectionId}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
+            // Update URL hash
+            window.location.hash = sectionId;
+        }
+        
+        // Tab click handlers - avoid interfering with header elements
         navTabs.forEach(tab => {
-            tab.classList.remove('active');
-        });
-        
-        // Show target section
-        const targetSection = document.getElementById(sectionId + '-section');
-        if (targetSection) {
-            targetSection.style.display = 'block';
-            targetSection.style.animation = 'fadeInUp 0.5s ease-out';
-        }
-        
-        // Add active class to clicked tab
-        const activeTab = document.querySelector(`[data-section="${sectionId}"]`);
-        if (activeTab) {
-            activeTab.classList.add('active');
-        }
-        
-        // Update URL hash
-        window.location.hash = sectionId;
-    }
-    
-    // Tab click handlers
-    navTabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            e.preventDefault();
-            const sectionId = tab.dataset.section;
-            showSection(sectionId);
-        });
-
-        // Keyboard navigation for tabs
-        tab.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+            tab.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent event bubbling
                 const sectionId = tab.dataset.section;
                 showSection(sectionId);
-            }
-        });
-    });
-    
-    // Handle initial hash or show profile by default
-    const initialHash = window.location.hash.substring(1);
-    if (initialHash && ['profile', 'privacy', 'security', 'actions'].includes(initialHash)) {
-        showSection(initialHash);
-    } else {
-        showSection('profile');
-    }
+            });
 
-    // Enhanced form input handling
-    const formInputs = document.querySelectorAll('.form-input');
-    
-    formInputs.forEach(input => {
-        // Handle focus events
-        input.addEventListener('focus', () => {
-            if (input.parentElement) {
-                input.parentElement.classList.add('focused');
-            }
+            // Keyboard navigation for tabs
+            tab.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const sectionId = tab.dataset.section;
+                    showSection(sectionId);
+                }
+            });
         });
         
-        input.addEventListener('blur', () => {
-            if (input.parentElement) {
-                input.parentElement.classList.remove('focused');
-            }
-            validateInput(input);
-        });
+        // Handle initial hash or show profile by default
+        const initialHash = window.location.hash.substring(1);
+        if (initialHash && ['profile', 'privacy', 'security', 'actions'].includes(initialHash)) {
+            showSection(initialHash);
+        } else {
+            showSection('profile');
+        }
+
+        // Enhanced form input handling
+        const formInputs = document.querySelectorAll('.form-input');
         
-        // Real-time validation
-        input.addEventListener('input', () => {
+        formInputs.forEach(input => {
+            // Handle focus events
+            input.addEventListener('focus', () => {
+                if (input.parentElement) {
+                    input.parentElement.classList.add('focused');
+                }
+            });
+            
+            input.addEventListener('blur', () => {
+                if (input.parentElement) {
+                    input.parentElement.classList.remove('focused');
+                }
+                validateInput(input);
+            });
+            
+            // Real-time validation
+            input.addEventListener('input', () => {
+                clearValidationState(input);
+                
+                if (input.type === 'email' && input.value) {
+                    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+                    if (isValidEmail) {
+                        input.classList.add('success');
+                        input.classList.remove('error');
+                    } else {
+                        input.classList.add('error');
+                        input.classList.remove('success');
+                    }
+                } else if (input.type === 'url' && input.value) {
+                    try {
+                        new URL(input.value);
+                        input.classList.add('success');
+                        input.classList.remove('error');
+                    } catch {
+                        input.classList.add('error');
+                        input.classList.remove('success');
+                    }
+                }
+            });
+        });
+
+        function validateInput(input) {
             clearValidationState(input);
             
-            if (input.type === 'email' && input.value) {
-                const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
-                if (isValidEmail) {
-                    input.classList.add('success');
-                    input.classList.remove('error');
-                } else {
-                    input.classList.add('error');
-                    input.classList.remove('success');
-                }
-            } else if (input.type === 'url' && input.value) {
-                try {
-                    new URL(input.value);
-                    input.classList.add('success');
-                    input.classList.remove('error');
-                } catch {
-                    input.classList.add('error');
-                    input.classList.remove('success');
-                }
-            }
-        });
-    });
-
-    function validateInput(input) {
-        clearValidationState(input);
-        
-        if (input.hasAttribute('required') && !input.value.trim()) {
-            input.classList.add('error');
-            return false;
-        } else if (input.value.trim()) {
-            if (input.type === 'email') {
-                const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
-                if (isValidEmail) {
-                    input.classList.add('success');
-                } else {
-                    input.classList.add('error');
-                    return false;
-                }
-            } else if (input.type === 'url') {
-                try {
-                    new URL(input.value);
-                    input.classList.add('success');
-                } catch {
-                    input.classList.add('error');
-                    return false;
-                }
-            } else {
-                input.classList.add('success');
-            }
-        }
-        return true;
-    }
-
-    function clearValidationState(input) {
-        input.classList.remove('error', 'success');
-    }
-    
-    // Enhanced form handling with loading states
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            // Validate all required fields
-            const requiredInputs = this.querySelectorAll('input[required], textarea[required]');
-            let isValid = true;
-            
-            requiredInputs.forEach(input => {
-                if (!validateInput(input)) {
-                    isValid = false;
-                }
-            });
-            
-            if (!isValid) {
-                e.preventDefault();
-                showToast('Please fix the errors in the form', 'error');
-                return;
-            }
-            
-            const submitBtn = this.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                const originalText = submitBtn.innerHTML;
-                
-                // Add loading state
-                submitBtn.innerHTML = `
-                    <div class="loading-state">
-                        <div class="loading-spinner"></div>
-                        Saving...
-                    </div>
-                `;
-                submitBtn.disabled = true;
-                
-                // Re-enable after delay (in case of validation errors)
-                setTimeout(() => {
-                    if (submitBtn.disabled) {
-                        submitBtn.innerHTML = originalText;
-                        submitBtn.disabled = false;
+            if (input.hasAttribute('required') && !input.value.trim()) {
+                input.classList.add('error');
+                return false;
+            } else if (input.value.trim()) {
+                if (input.type === 'email') {
+                    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+                    if (isValidEmail) {
+                        input.classList.add('success');
+                    } else {
+                        input.classList.add('error');
+                        return false;
                     }
-                }, 5000);
-            }
-        });
-    });
-    
-    // Enhanced toggle switches
-    const toggleContainers = document.querySelectorAll('.toggle-container');
-    toggleContainers.forEach(container => {
-        const toggle = container.querySelector('input[type="checkbox"]');
-        
-        // Make the entire container clickable
-        container.addEventListener('click', (e) => {
-            if (e.target !== toggle && e.target.closest('.enhanced-toggle-switch') === null) {
-                e.preventDefault();
-                toggle.click();
-            }
-        });
-        
-        // Add keyboard support
-        container.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggle.click();
-            }
-        });
-        
-        // Toggle change handler with feedback
-        toggle.addEventListener('change', function() {
-            // Add visual feedback
-            const slider = this.nextElementSibling;
-            if (slider) {
-                slider.style.transform = 'scale(1.05)';
-                setTimeout(() => {
-                    slider.style.transform = 'scale(1)';
-                }, 150);
-            }
-            
-            // Show feedback
-            const settingName = container.querySelector('.toggle-title').textContent;
-            const status = this.checked ? 'enabled' : 'disabled';
-            showToast(`${settingName} ${status}`, 'info', 2000);
-        });
-    });
-    
-    // Character counter for textareas
-    const textareas = document.querySelectorAll('textarea[maxlength]');
-    textareas.forEach(textarea => {
-        const maxLength = parseInt(textarea.getAttribute('maxlength'));
-        const helper = textarea.parentElement.querySelector('.input-helper');
-        
-        function updateCounter() {
-            const currentLength = textarea.value.length;
-            const remaining = maxLength - currentLength;
-            
-            if (helper) {
-                const originalText = helper.textContent;
-                const baseText = originalText.replace(/ \(\d+\/\d+\)$/, '');
-                helper.textContent = `${baseText} (${currentLength}/${maxLength})`;
-                
-                if (remaining < 50) {
-                    helper.style.color = '#dc2626';
-                } else if (remaining < 100) {
-                    helper.style.color = '#f59e0b';
+                } else if (input.type === 'url') {
+                    try {
+                        new URL(input.value);
+                        input.classList.add('success');
+                    } catch {
+                        input.classList.add('error');
+                        return false;
+                    }
                 } else {
-                    helper.style.color = '';
+                    input.classList.add('success');
                 }
             }
+            return true;
+        }
+
+        function clearValidationState(input) {
+            input.classList.remove('error', 'success');
         }
         
-        textarea.addEventListener('input', updateCounter);
-        updateCounter(); // Initialize
-    });
-    
-    // Auto-save functionality for privacy settings
-    const privacyForm = document.getElementById('privacy-form');
-    if (privacyForm) {
-        const toggles = privacyForm.querySelectorAll('input[type="checkbox"]');
-        let autoSaveTimeout;
-        
-        toggles.forEach(toggle => {
-            toggle.addEventListener('change', function() {
-                clearTimeout(autoSaveTimeout);
-                autoSaveTimeout = setTimeout(() => {
-                    // Auto-save privacy settings via AJAX
-                    autoSavePrivacySettings();
-                }, 1000);
+        // Enhanced form handling with loading states
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                // Validate all required fields
+                const requiredInputs = this.querySelectorAll('input[required], textarea[required]');
+                let isValid = true;
+                
+                requiredInputs.forEach(input => {
+                    if (!validateInput(input)) {
+                        isValid = false;
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    showToast('Please fix the errors in the form', 'error');
+                    return;
+                }
+                
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    const originalText = submitBtn.innerHTML;
+                    
+                    // Add loading state
+                    submitBtn.innerHTML = `
+                        <div class="loading-state">
+                            <div class="loading-spinner"></div>
+                            Saving...
+                        </div>
+                    `;
+                    submitBtn.disabled = true;
+                    
+                    // Re-enable after delay (in case of validation errors)
+                    setTimeout(() => {
+                        if (submitBtn.disabled) {
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                        }
+                    }, 5000);
+                }
             });
         });
-    }
-    
-    // Smooth scrolling for hash changes
-    window.addEventListener('hashchange', () => {
-        const hash = window.location.hash.substring(1);
-        if (['profile', 'privacy', 'security', 'actions'].includes(hash)) {
-            showSection(hash);
+        
+        // Enhanced toggle switches - avoid interfering with header dropdown
+        const toggleContainers = document.querySelectorAll('.toggle-container');
+        toggleContainers.forEach(container => {
+            const toggle = container.querySelector('input[type="checkbox"]');
+            
+            // Make the entire container clickable
+            container.addEventListener('click', (e) => {
+                // Don't interfere with header elements
+                if (e.target.closest('.app-header') || e.target.closest('.user-menu-dropdown')) {
+                    return;
+                }
+                
+                if (e.target !== toggle && e.target.closest('.enhanced-toggle-switch') === null) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggle.click();
+                }
+            });
+            
+            // Add keyboard support
+            container.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggle.click();
+                }
+            });
+            
+            // Toggle change handler with feedback
+            toggle.addEventListener('change', function() {
+                // Add visual feedback
+                const slider = this.nextElementSibling;
+                if (slider) {
+                    slider.style.transform = 'scale(1.05)';
+                    setTimeout(() => {
+                        slider.style.transform = 'scale(1)';
+                    }, 150);
+                }
+                
+                // Show feedback
+                const settingName = container.querySelector('.toggle-title').textContent;
+                const status = this.checked ? 'enabled' : 'disabled';
+                showToast(`${settingName} ${status}`, 'info', 2000);
+            });
+        });
+        
+        // Character counter for textareas
+        const textareas = document.querySelectorAll('textarea[maxlength]');
+        textareas.forEach(textarea => {
+            const maxLength = parseInt(textarea.getAttribute('maxlength'));
+            const helper = textarea.parentElement.querySelector('.input-helper');
+            
+            function updateCounter() {
+                const currentLength = textarea.value.length;
+                const remaining = maxLength - currentLength;
+                
+                if (helper) {
+                    const originalText = helper.textContent;
+                    const baseText = originalText.replace(/ \(\d+\/\d+\)$/, '');
+                    helper.textContent = `${baseText} (${currentLength}/${maxLength})`;
+                    
+                    if (remaining < 50) {
+                        helper.style.color = '#dc2626';
+                    } else if (remaining < 100) {
+                        helper.style.color = '#f59e0b';
+                    } else {
+                        helper.style.color = '';
+                    }
+                }
+            }
+            
+            textarea.addEventListener('input', updateCounter);
+            updateCounter(); // Initialize
+        });
+        
+        // Auto-save functionality for privacy settings
+        const privacyForm = document.getElementById('privacy-form');
+        if (privacyForm) {
+            const toggles = privacyForm.querySelectorAll('input[type="checkbox"]');
+            let autoSaveTimeout;
+            
+            toggles.forEach(toggle => {
+                toggle.addEventListener('change', function() {
+                    clearTimeout(autoSaveTimeout);
+                    autoSaveTimeout = setTimeout(() => {
+                        // Auto-save privacy settings via AJAX
+                        autoSavePrivacySettings();
+                    }, 1000);
+                });
+            });
         }
-    });
+        
+        // Smooth scrolling for hash changes
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.substring(1);
+            if (['profile', 'privacy', 'security', 'actions'].includes(hash)) {
+                showSection(hash);
+            }
+        });
+    }
 });
 
 // Auto-save privacy settings
@@ -1803,8 +1837,13 @@ function createSimpleToast(message, type, duration) {
     }, duration);
 }
 
-// Enhanced keyboard navigation
+// Enhanced keyboard navigation - avoid interfering with base template
 document.addEventListener('keydown', function(e) {
+    // Don't interfere with base template functionality
+    if (e.target.closest('.app-header') || e.target.closest('.user-menu-dropdown')) {
+        return;
+    }
+    
     // Escape to close modals
     if (e.key === 'Escape') {
         hideDeleteAccountModal();
