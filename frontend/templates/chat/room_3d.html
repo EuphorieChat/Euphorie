@@ -2595,7 +2595,7 @@
             if (data.user_id !== this.userId) {
                 console.log(`✅ Creating remote avatar for: ${data.username} (${data.nationality || 'UN'})`);
                 this.connectedUsers.set(data.user_id, data);
-                this.createRemoteAvatar(data);
+                this.createRemoteAvatar(data); // Create avatar for ALL users
             } else {
                 console.log(`⚠️ Skipping avatar creation for current user: ${data.username}`);
             }
@@ -2621,11 +2621,33 @@
         async createRemoteAvatar(userData) {
             console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
             
-            // Double-check we're not creating avatar for current user
-            if (userData.user_id === this.userId) {
-                console.warn(`❌ Attempted to create avatar for current user - skipping`);
-                return;
-            }
+        // Create avatar for ALL users (including self)
+        console.log(`👤 Creating avatar for: ${userData.username} (${userData.user_id})`);
+
+        if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
+            // Generate position for the user
+            const hash = userData.user_id.split('').reduce((a, b) => {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a;
+            }, 0);
+            
+            const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+            const radius = userData.user_id === this.userId ? 0 : (3 + (Math.abs(hash) % 4)); // Current user at center
+            
+            const position = {
+                x: Math.cos(angle) * radius,
+                y: 0,
+                z: Math.sin(angle) * radius
+            };
+            
+            const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
+                name: userData.username,
+                nationality: userData.nationality || 'UN',
+                position: position
+            });
+            
+            return avatar;
+        }
             
             // Strategy 1: Use AvatarSystem.createAvatar with the user ID as the avatar ID
             if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
