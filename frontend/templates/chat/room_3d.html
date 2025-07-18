@@ -2262,14 +2262,13 @@
     </script>
 
     <script>
-    // Add this BEFORE your WebSocket manager script
     window.AvatarSystem = {
         avatars: new Map(),
         scene: null,
         
         init() {
             this.scene = window.SceneManager?.scene;
-            console.log('🤖 AvatarSystem initialized');
+            console.log('🤖 Enhanced AvatarSystem initialized');
         },
         
         createAvatar(userId, config) {
@@ -2279,31 +2278,84 @@
                 return null;
             }
             
-            // Create simple colored box avatar
-            const geometry = new THREE.BoxGeometry(1, 2, 1);
-            const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
-            const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-            const material = new THREE.MeshLambertMaterial({ color: colors[colorIndex] });
-            const avatar = new THREE.Mesh(geometry, material);
+            // Create advanced avatar group
+            const avatarGroup = new THREE.Group();
+            
+            // Create body (main torso)
+            const bodyGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.4);
+            const bodyColors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+            const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % bodyColors.length;
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: bodyColors[colorIndex] });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.6;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            avatarGroup.add(body);
+            
+            // Create head
+            const headGeometry = new THREE.SphereGeometry(0.3, 8, 6);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.5;
+            head.castShadow = true;
+            avatarGroup.add(head);
+            
+            // Create eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 6);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.1, 1.55, 0.25);
+            avatarGroup.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.1, 1.55, 0.25);
+            avatarGroup.add(rightEye);
+            
+            // Create arms
+            const armGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.3);
+            const armMaterial = new THREE.MeshLambertMaterial({ color: bodyColors[colorIndex] });
+            
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-0.65, 0.6, 0);
+            leftArm.castShadow = true;
+            avatarGroup.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(0.65, 0.6, 0);
+            rightArm.castShadow = true;
+            avatarGroup.add(rightArm);
+            
+            // Create legs
+            const legGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.3);
+            const legMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+            
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.set(-0.25, -0.4, 0);
+            leftLeg.castShadow = true;
+            avatarGroup.add(leftLeg);
+            
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.set(0.25, -0.4, 0);
+            rightLeg.castShadow = true;
+            avatarGroup.add(rightLeg);
             
             // Position avatar
-            avatar.position.copy(config.position);
-            avatar.position.y = 1; // Ensure it's above ground
-            avatar.castShadow = true;
-            avatar.receiveShadow = true;
+            avatarGroup.position.copy(config.position);
+            avatarGroup.position.y = 0; // Ensure it's on ground
             
             // Store user data
-            avatar.userData = {
+            avatarGroup.userData = {
                 userId: userId,
                 username: config.name || 'User',
                 nationality: config.nationality || 'UN'
             };
             
-            scene.add(avatar);
-            this.avatars.set(userId, avatar);
+            scene.add(avatarGroup);
+            this.avatars.set(userId, avatarGroup);
             
-            console.log(`✅ Created avatar for ${config.name} at position:`, config.position);
-            return avatar;
+            console.log(`✅ Created enhanced avatar for ${config.name} at position:`, config.position);
+            return avatarGroup;
         },
         
         removeAvatar(userId) {
@@ -2320,18 +2372,6 @@
             return avatar ? avatar.position.clone() : null;
         }
     };
-
-    // Initialize AvatarSystem when SceneManager is ready
-    const initAvatarSystem = () => {
-        if (window.SceneManager?.scene) {
-            window.AvatarSystem.init();
-        } else {
-            setTimeout(initAvatarSystem, 500);
-        }
-    };
-    setTimeout(initAvatarSystem, 1000);
-
-    console.log('🤖 AvatarSystem script loaded');
     </script>
 
     <script>
@@ -6630,8 +6670,6 @@
         
         // Final initialization message
         console.log('🎮 Euphorie 3D Room HTML fully loaded');
-        // Test avatar creation function window.testAvatar = function() { console.log('🧪 Testing avatar creation...'); if (!window.SceneManager?.scene) { console.error('❌ No scene available'); return; } if (!window.AvatarSystem) { console.error('❌ No AvatarSystem available'); return; } // Create test avatar at origin const testAvatar = window.AvatarSystem.createAvatar('test_user', { name: 'Test User', position: new THREE.Vector3(0, 0, 0), nationality: 'US' }); if (testAvatar) { console.log('✅ Test avatar created successfully!'); console.log('🎯 Look for a colored box at the center of the scene'); } else { console.error('❌ Test avatar creation failed'); } }; // Auto-test after 3 seconds setTimeout(() => { console.log('🚀 Auto-testing avatar creation...'); window.testAvatar(); }, 3000);
-        
         console.log('📱 Mobile optimized:', window.innerWidth <= 768);
         console.log('🔧 WebSocket URL:', window.ROOM_CONFIG?.rustWebSocketUrl);
         console.log('🌍 User nationality:', window.ROOM_CONFIG?.userNationality);
