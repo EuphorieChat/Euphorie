@@ -848,6 +848,7 @@ class EuphorieScreenSharingSystem {
     showScreenShareUI() {
         // Create dedicated screen share UI
         const modal = document.createElement('div');
+        modal.id = 'screen-share-modal';
         modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -874,6 +875,14 @@ class EuphorieScreenSharingSystem {
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         `;
         
+        // Close modal function
+        const closeModal = () => {
+            const existingModal = document.getElementById('screen-share-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+        };
+        
         content.innerHTML = `
             <h2 style="margin-top: 0; color: #4CAF50;">🖥️ Screen Sharing</h2>
             <p style="margin-bottom: 30px; color: #ccc;">
@@ -882,21 +891,21 @@ class EuphorieScreenSharingSystem {
             </p>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 30px;">
-                <div onclick="window.ScreenSharingSystem.projectionMode = 'ceiling'; window.ScreenSharingSystem.startScreenShare(); document.body.removeChild(modal);" 
+                <div class="projection-option" data-mode="ceiling" 
                      style="padding: 20px; background: #333; border-radius: 10px; cursor: pointer; transition: all 0.3s;">
                     <div style="font-size: 2em; margin-bottom: 10px;">📺</div>
                     <div style="font-weight: bold;">Ceiling</div>
                     <div style="font-size: 12px; opacity: 0.7;">Above everyone</div>
                 </div>
                 
-                <div onclick="window.ScreenSharingSystem.projectionMode = 'wall'; window.ScreenSharingSystem.startScreenShare(); document.body.removeChild(modal);" 
+                <div class="projection-option" data-mode="wall" 
                      style="padding: 20px; background: #333; border-radius: 10px; cursor: pointer; transition: all 0.3s;">
                     <div style="font-size: 2em; margin-bottom: 10px;">🖼️</div>
                     <div style="font-weight: bold;">Wall</div>
                     <div style="font-size: 12px; opacity: 0.7;">On the wall</div>
                 </div>
                 
-                <div onclick="window.ScreenSharingSystem.projectionMode = 'floating'; window.ScreenSharingSystem.startScreenShare(); document.body.removeChild(modal);" 
+                <div class="projection-option" data-mode="floating" 
                      style="padding: 20px; background: #333; border-radius: 10px; cursor: pointer; transition: all 0.3s;">
                     <div style="font-size: 2em; margin-bottom: 10px;">✨</div>
                     <div style="font-weight: bold;">Floating</div>
@@ -905,7 +914,7 @@ class EuphorieScreenSharingSystem {
             </div>
             
             <div style="display: flex; gap: 15px; justify-content: center;">
-                <button onclick="document.body.removeChild(modal)" 
+                <button id="cancel-screen-share" 
                         style="padding: 12px 24px; background: #666; border: none; border-radius: 8px; 
                                color: white; cursor: pointer;">
                     Cancel
@@ -916,9 +925,10 @@ class EuphorieScreenSharingSystem {
         modal.appendChild(content);
         document.body.appendChild(modal);
         
-        // Add hover effects
-        const options = content.querySelectorAll('div[onclick]');
-        options.forEach(option => {
+        // Add event listeners
+        const projectionOptions = content.querySelectorAll('.projection-option');
+        projectionOptions.forEach(option => {
+            // Hover effects
             option.addEventListener('mouseenter', () => {
                 option.style.background = '#444';
                 option.style.transform = 'scale(1.05)';
@@ -927,7 +937,35 @@ class EuphorieScreenSharingSystem {
                 option.style.background = '#333';
                 option.style.transform = 'scale(1)';
             });
+            
+            // Click handler
+            option.addEventListener('click', () => {
+                const mode = option.dataset.mode;
+                this.projectionMode = mode;
+                closeModal();
+                this.startScreenShare();
+            });
         });
+        
+        // Cancel button
+        const cancelButton = content.querySelector('#cancel-screen-share');
+        cancelButton.addEventListener('click', closeModal);
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Close on Escape key
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
     }
     
     showNotification(message) {
