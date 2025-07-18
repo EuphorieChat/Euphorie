@@ -5229,22 +5229,24 @@
                 if (sceneSystem.setTimeOfDay) {
                     const originalSetTimeOfDay = sceneSystem.setTimeOfDay.bind(sceneSystem);
                     
-                    sceneSystem.setTimeOfDay = function(timeOfDay, hour = null, data = {}) {
-                        console.log(`🔄 Time change:bleCount() {
-                let count = 0;
-                if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
-                    try {
-                        count = window.ChatBubbleSystem.getActiveBubbleCount();
-                    } catch (error) {
-                        console.warn('Error getting bubble count:', error);
+                sceneSystem.setTimeOfDay = function(timeOfDay, hour = null, data = {}) {
+                    console.log(`🔄 Time change: ${timeOfDay}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
+                    
+                    // Apply locally first
+                    const result = originalSetTimeOfDay(timeOfDay, hour, data);
+                    
+                    // Send to other users ONLY if this is a local user action AND sync is not blocked
+                    if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendTimeChange) {
+                        this._syncInProgress = true;
+                        
+                        setTimeout(() => {
+                            window.sendTimeChange(timeOfDay, hour);
+                            setTimeout(() => { this._syncInProgress = false; }, 1000);
+                        }, 100);
                     }
-                }
-                
-                const bubbleCountElement = document.getElementById('bubble-count');
-                if (bubbleCountElement) {
-                    bubbleCountElement.textContent = count;
-                }
-            }
+                    
+                    return result;
+                };
             
             // Update user count in UI
             updateUserCount(count) {
