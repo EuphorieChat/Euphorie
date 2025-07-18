@@ -43,6 +43,9 @@ class EuphorieScreenSharingSystem {
             enableControls: true
         };
         
+        // Add default camera facing
+        this.cameraFacing = 'environment'; // Default to back camera
+        
         // Bind methods with safe binding
         this.bindMethods();
         
@@ -286,28 +289,47 @@ class EuphorieScreenSharingSystem {
     
     async startScreenShare() {
         if (this.isSharing) {
-            console.log('Already sharing screen');
+            console.log('Already sharing');
             return;
         }
         
         try {
-            console.log('🖥️ Starting screen share...');
+            console.log('🖥️ Starting screen/camera share...');
             
             // Check if someone else is already sharing
             if (this.currentSharer && this.currentSharer !== window.WebSocketManager?.userId) {
-                this.showNotification('❌ Someone else is already sharing their screen');
+                this.showNotification('❌ Someone else is already sharing');
                 return;
             }
             
-            // Request screen capture
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    width: { ideal: 1920, max: 1920 },
-                    height: { ideal: 1080, max: 1080 },
-                    frameRate: { ideal: this.config.frameRate }
-                },
-                audio: false // We'll handle audio separately if needed
-            });
+            let stream;
+            
+            if (this.isMobile()) {
+                // Mobile: Use camera instead of screen sharing
+                console.log('📱 Mobile detected, using camera share');
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280, max: 1920 },
+                        height: { ideal: 720, max: 1080 },
+                        frameRate: { ideal: 30 },
+                        facingMode: this.cameraFacing || 'environment'
+                    },
+                    audio: false
+                });
+                this.showNotification('📱 Camera sharing started (Mobile mode)');
+            } else {
+                // Desktop: Use screen sharing
+                console.log('🖥️ Desktop detected, using screen share');
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        width: { ideal: 1920, max: 1920 },
+                        height: { ideal: 1080, max: 1080 },
+                        frameRate: { ideal: this.config.frameRate }
+                    },
+                    audio: false
+                });
+                this.showNotification('🖥️ Screen sharing started');
+            }
             
             this.localStream = stream;
             this.mediaStream = stream;
@@ -321,7 +343,7 @@ class EuphorieScreenSharingSystem {
                 this.animateProjectionIn();
             }
             
-            // Handle stream ended (user stops sharing)
+            // Handle stream ended
             stream.getVideoTracks()[0].addEventListener('ended', () => {
                 this.stopScreenShare();
             });
@@ -336,9 +358,10 @@ class EuphorieScreenSharingSystem {
                     projection_mode: this.projectionMode,
                     quality: this.config.quality,
                     sharer_id: window.WebSocketManager.userId,
-                    sharer_name: window.WebSocketManager.username
+                    sharer_name: window.WebSocketManager.username,
+                    share_type: this.isMobile() ? 'camera' : 'screen'
                 });
-                console.log('📡 Screen sharing notification sent via WebSocket');
+                console.log('📡 Share notification sent via WebSocket');
             }
             
             // Try to setup WebRTC connections (optional)
@@ -351,12 +374,18 @@ class EuphorieScreenSharingSystem {
             // Show sharing controls
             this.showSharingControls();
             
-            this.showNotification('✅ Screen sharing started!');
-            console.log('✅ Screen sharing started');
+            console.log('✅ Sharing started successfully');
             
         } catch (error) {
-            console.error('❌ Error starting screen share:', error);
-            this.showNotification('❌ Could not start screen sharing');
+            console.error('❌ Error starting share:', error);
+            
+            if (error.name === 'NotAllowedError') {
+                this.showNotification('❌ Camera/screen access denied');
+            } else if (error.name === 'NotSupportedError') {
+                this.showNotification('❌ Sharing not supported on this device');
+            } else {
+                this.showNotification('❌ Could not start sharing');
+            }
         }
     }
     
@@ -847,18 +876,6 @@ class EuphorieScreenSharingSystem {
     }
     
     showScreenShareUI() {
-        // Check if screen sharing is supported
-        if (!this.isScreenSharingSupported()) {
-            this.showNotification('❌ Screen sharing is not supported on this device');
-            return;
-        }
-        
-        // Check if on mobile
-        if (this.isMobile()) {
-            this.showNotification('❌ Screen sharing is only available on desktop browsers');
-            return;
-        }
-        
         // Create dedicated screen share UI
         const modal = document.createElement('div');
         modal.id = 'screen-share-modal';
@@ -896,10 +913,16 @@ class EuphorieScreenSharingSystem {
             }
         };
         
+        const isMobile = this.isMobile();
+        const shareType = isMobile ? 'Camera' : 'Screen';
+        const shareDescription = isMobile ? 
+            'Share your camera view with everyone in the room.' : 
+            'Share your screen with everyone in the room.';
+        
         content.innerHTML = `
-            <h2 style="margin-top: 0; color: #4CAF50;">🖥️ Screen Sharing</h2>
+            <h2 style="margin-top: 0; color: #4CAF50;">${isMobile ? '📱' : '🖥️'} ${shareType} Sharing</h2>
             <p style="margin-bottom: 30px; color: #ccc;">
-                Share your screen with everyone in the room. 
+                ${shareDescription}
                 Choose where to display it:
             </p>
             
@@ -925,6 +948,20 @@ class EuphorieScreenSharingSystem {
                     <div style="font-size: 12px; opacity: 0.7;">In the air</div>
                 </div>
             </div>
+            
+            ${isMobile ? `
+                <div style="margin-bottom: 20px; padding: 15px; background: rgba(74, 144, 226, 0.1); border-radius: 8px; border: 1px solid rgba(74, 144, 226, 0.3);">
+                    <div style="font-size: 14px; color: #4a90e2; margin-bottom: 8px;">📱 Mobile Camera Options</div>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button id="front-camera" style="padding: 8px 16px; background: #4a90e2; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 12px;">
+                            🤳 Front Camera
+                        </button>
+                        <button id="back-camera" style="padding: 8px 16px; background: #4a90e2; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 12px;">
+                            📷 Back Camera
+                        </button>
+                    </div>
+                </div>
+            ` : ''}
             
             <div style="display: flex; gap: 15px; justify-content: center;">
                 <button id="cancel-screen-share" 
@@ -959,6 +996,28 @@ class EuphorieScreenSharingSystem {
                 this.startScreenShare();
             });
         });
+        
+        // Mobile camera selection
+        if (isMobile) {
+            const frontCameraBtn = content.querySelector('#front-camera');
+            const backCameraBtn = content.querySelector('#back-camera');
+            
+            frontCameraBtn.addEventListener('click', () => {
+                this.cameraFacing = 'user';
+                frontCameraBtn.style.background = '#4CAF50';
+                backCameraBtn.style.background = '#4a90e2';
+            });
+            
+            backCameraBtn.addEventListener('click', () => {
+                this.cameraFacing = 'environment';
+                backCameraBtn.style.background = '#4CAF50';
+                frontCameraBtn.style.background = '#4a90e2';
+            });
+            
+            // Set default
+            this.cameraFacing = 'environment';
+            backCameraBtn.style.background = '#4CAF50';
+        }
         
         // Cancel button
         const cancelButton = content.querySelector('#cancel-screen-share');
