@@ -5033,209 +5033,190 @@
         }, 100);
     </script>
 
-    <!-- Enhanced Modular System - Fixed for Scene Synchronization -->
     <script>
-        // ================================
-        // EUPHORIE 3D MODULAR SYSTEM - FIXED WITH SCENE SYNC
-        // Complete JavaScript Implementation
-        // ================================
+    // ================================
+    // EUPHORIE 3D MODULAR SYSTEM - COMPLETELY FIXED
+    // ================================
 
-        // Fixed Module Loader for Scene Synchronization
-        class EuphorieModuleLoader {
-            constructor() {
-                this.loadedModules = new Set();
-                this.loadingPromises = new Map();
-                this.initializationCallbacks = new Map();
+    class EuphorieModuleLoader {
+        constructor() {
+            this.loadedModules = new Set();
+            this.loadingPromises = new Map();
+            this.initializationCallbacks = new Map();
+            
+            // Define system dependencies
+            this.dependencies = {
+                'globals': [],
+                'event-bus': ['globals'],
+                'scene-manager': ['globals', 'event-bus'],
+                'avatar-system': ['globals', 'event-bus', 'scene-manager'],
+                'chat-bubble-system': ['globals', 'event-bus', 'scene-manager', 'avatar-system'],
+                'interaction-system': ['globals', 'event-bus', 'avatar-system'],
+                'emotion-system': ['globals', 'event-bus', 'avatar-system'],
+                'pet-system': ['globals', 'event-bus', 'scene-manager', 'avatar-system'],
+                'group-interaction-system': ['globals', 'event-bus', 'avatar-system', 'interaction-system'],
+                'advanced-scene-system': ['globals', 'event-bus', 'scene-manager'],
+                'room-core': ['globals', 'event-bus', 'scene-manager', 'avatar-system', 'interaction-system']
+            };
+            
+            // Map module names to file paths
+            this.modulePaths = {
+                'globals': '/static/js/core/globals.js',
+                'event-bus': '/static/js/core/event-bus.js',
+                'scene-manager': '/static/js/systems/scene-manager.js',
+                'avatar-system': '/static/js/systems/avatar-system.js',
+                'chat-bubble-system': '/static/js/systems/chat-bubble-system.js?v=' + Date.now(),
+                'interaction-system': '/static/js/systems/interaction-system.js',
+                'emotion-system': '/static/js/systems/emotion-system.js',
+                'pet-system': '/static/js/systems/pet-system.js',
+                'group-interaction-system': '/static/js/systems/group-interaction-system.js',
+                'advanced-scene-system': '/static/js/systems/advanced-scene-system.js',
+                'room-core': '/static/js/room-core.js'
+            };
+            
+            // Updated module objects to handle new ChatBubbleSystem pattern
+            this.moduleObjects = {
+                'globals': () => window.Euphorie,
+                'event-bus': () => window.EventBus,
+                'scene-manager': () => window.SceneManager,
+                'avatar-system': () => window.AvatarSystem,
+                'chat-bubble-system': () => this.getChatBubbleSystemInstance(),
+                'interaction-system': () => window.InteractionSystem,
+                'emotion-system': () => window.EmotionSystem,
+                'pet-system': () => window.PetSystem,
+                'group-interaction-system': () => window.GroupInteractionSystem,
+                'advanced-scene-system': () => window.AdvancedSceneSystem,
+                'room-core': () => window.RoomCore
+            };
+            
+            // Special initialization handlers for complex modules
+            this.initializationCallbacks.set('chat-bubble-system', () => this.initializeChatBubbleSystem());
+            this.initializationCallbacks.set('advanced-scene-system', () => this.initializeSceneSystem());
+        }
+        
+        // Smart ChatBubbleSystem instance getter
+        getChatBubbleSystemInstance() {
+            if (window.ChatBubbleSystem && typeof window.ChatBubbleSystem.init === 'function') {
+                return window.ChatBubbleSystem;
+            }
+            console.warn('No ChatBubbleSystem implementation found');
+            return null;
+        }
+        
+        // Special initialization for ChatBubbleSystem
+        async initializeChatBubbleSystem() {
+            console.log('🔧 Initializing ChatBubbleSystem...');
+            
+            try {
+                const chatSystem = this.getChatBubbleSystemInstance();
                 
-                // Define system dependencies
-                this.dependencies = {
-                    'globals': [],
-                    'event-bus': ['globals'],
-                    'scene-manager': ['globals', 'event-bus'],
-                    'avatar-system': ['globals', 'event-bus', 'scene-manager'],
-                    'chat-bubble-system': ['globals', 'event-bus', 'scene-manager', 'avatar-system'],
-                    'interaction-system': ['globals', 'event-bus', 'avatar-system'],
-                    'emotion-system': ['globals', 'event-bus', 'avatar-system'],
-                    'pet-system': ['globals', 'event-bus', 'scene-manager', 'avatar-system'],
-                    'group-interaction-system': ['globals', 'event-bus', 'avatar-system', 'interaction-system'],
-                    'advanced-scene-system': ['globals', 'event-bus', 'scene-manager'],
-                    'room-core': ['globals', 'event-bus', 'scene-manager', 'avatar-system', 'interaction-system']
+                if (!chatSystem) {
+                    console.warn('ChatBubbleSystem not available for initialization');
+                    return;
+                }
+                
+                if (chatSystem.isInitialized) {
+                    console.log('✅ ChatBubbleSystem already initialized');
+                    return;
+                }
+                
+                if (typeof chatSystem.init === 'function') {
+                    await this.safeInitialize(chatSystem, 'ChatBubbleSystem');
+                } else {
+                    console.warn('ChatBubbleSystem has no init method');
+                }
+                
+            } catch (error) {
+                console.warn('Error initializing ChatBubbleSystem:', error);
+            }
+        }
+        
+        // Special initialization for Scene System with synchronization
+        async initializeSceneSystem() {
+            console.log('🔧 Initializing Scene System with synchronization...');
+            
+            try {
+                const sceneSystem = window.AdvancedSceneSystem;
+                
+                if (!sceneSystem) {
+                    console.warn('AdvancedSceneSystem not available');
+                    return;
+                }
+                
+                if (typeof sceneSystem.init === 'function') {
+                    await this.safeInitialize(sceneSystem, 'AdvancedSceneSystem');
+                }
+                
+                this.enhanceSceneSystemWithSync(sceneSystem);
+                this.setupLateSceneEnhancement();
+                
+            } catch (error) {
+                console.warn('Error initializing Scene System:', error);
+                this.setupLateSceneEnhancement();
+            }
+        }
+        
+        // Enhanced scene system integration
+        enhanceSceneSystemWithSync(sceneSystem) {
+            console.log('🔄 Enhancing Scene System with synchronization...');
+            
+            sceneSystem._syncInProgress = false;
+            sceneSystem._blockSync = false;
+            
+            // Wrap scene change methods
+            if (sceneSystem.applyScenePreset) {
+                const originalApplyScenePreset = sceneSystem.applyScenePreset.bind(sceneSystem);
+                
+                sceneSystem.applyScenePreset = function(preset, data = {}) {
+                    console.log(`🔄 Scene preset change: ${preset}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
+                    
+                    const result = originalApplyScenePreset(preset, data);
+                    
+                    if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendSceneChange) {
+                        this._syncInProgress = true;
+                        const sceneName = this.getScenePresetName ? this.getScenePresetName(preset) : preset;
+                        
+                        setTimeout(() => {
+                            window.sendSceneChange(preset, sceneName, { ...data, fromLocal: true });
+                            setTimeout(() => { this._syncInProgress = false; }, 1000);
+                        }, 100);
+                    }
+                    
+                    return result;
                 };
+            }
+            
+            // Wrap weather change methods
+            if (sceneSystem.setWeather) {
+                const originalSetWeather = sceneSystem.setWeather.bind(sceneSystem);
                 
-                // Map module names to file paths
-                this.modulePaths = {
-                    'globals': '/static/js/core/globals.js',
-                    'event-bus': '/static/js/core/event-bus.js',
-                    'scene-manager': '/static/js/systems/scene-manager.js',
-                    'avatar-system': '/static/js/systems/avatar-system.js',
-                    'chat-bubble-system': '/static/js/systems/chat-bubble-system.js?v=' + Date.now(),
-                    'interaction-system': '/static/js/systems/interaction-system.js',
-                    'emotion-system': '/static/js/systems/emotion-system.js',
-                    'pet-system': '/static/js/systems/pet-system.js',
-                    'group-interaction-system': '/static/js/systems/group-interaction-system.js',
-                    'advanced-scene-system': '/static/js/systems/advanced-scene-system.js',
-                    'room-core': '/static/js/room-core.js'
+                sceneSystem.setWeather = function(weatherType, intensity = 1.0, data = {}) {
+                    console.log(`🔄 Weather change: ${weatherType}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
+                    
+                    const result = originalSetWeather(weatherType, intensity, data);
+                    
+                    if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendWeatherChange) {
+                        this._syncInProgress = true;
+                        
+                        setTimeout(() => {
+                            window.sendWeatherChange(weatherType, intensity);
+                            setTimeout(() => { this._syncInProgress = false; }, 1000);
+                        }, 100);
+                    }
+                    
+                    return result;
                 };
-                
-                // Updated module objects to handle new ChatBubbleSystem pattern
-                this.moduleObjects = {
-                    'globals': () => window.Euphorie,
-                    'event-bus': () => window.EventBus,
-                    'scene-manager': () => window.SceneManager,
-                    'avatar-system': () => window.AvatarSystem,
-                    'chat-bubble-system': () => this.getChatBubbleSystemInstance(),
-                    'interaction-system': () => window.InteractionSystem,
-                    'emotion-system': () => window.EmotionSystem,
-                    'pet-system': () => window.PetSystem,
-                    'group-interaction-system': () => window.GroupInteractionSystem,
-                    'advanced-scene-system': () => window.AdvancedSceneSystem,
-                    'room-core': () => window.RoomCore
-                };
-                
-                // Special initialization handlers for complex modules
-                this.initializationCallbacks.set('chat-bubble-system', () => this.initializeChatBubbleSystem());
-                this.initializationCallbacks.set('advanced-scene-system', () => this.initializeSceneSystem());
             }
             
-            // Smart ChatBubbleSystem instance getter
-            getChatBubbleSystemInstance() {
-                // The embedded version is now available as window.ChatBubbleSystem
-                if (window.ChatBubbleSystem && typeof window.ChatBubbleSystem.init === 'function') {
-                    return window.ChatBubbleSystem;
-                }
+            // Wrap time change methods
+            if (sceneSystem.setTimeOfDay) {
+                const originalSetTimeOfDay = sceneSystem.setTimeOfDay.bind(sceneSystem);
                 
-                console.warn('No ChatBubbleSystem implementation found');
-                return null;
-            }
-            
-            // Special initialization for ChatBubbleSystem
-            async initializeChatBubbleSystem() {
-                console.log('🔧 Initializing ChatBubbleSystem...');
-                
-                try {
-                    const chatSystem = this.getChatBubbleSystemInstance();
-                    
-                    if (!chatSystem) {
-                        console.warn('ChatBubbleSystem not available for initialization');
-                        return;
-                    }
-                    
-                    // Check if already initialized
-                    if (chatSystem.isInitialized) {
-                        console.log('✅ ChatBubbleSystem already initialized');
-                        return;
-                    }
-                    
-                    // Try to initialize with proper error handling
-                    if (typeof chatSystem.init === 'function') {
-                        await this.safeInitialize(chatSystem, 'ChatBubbleSystem');
-                    } else {
-                        console.warn('ChatBubbleSystem has no init method');
-                    }
-                    
-                } catch (error) {
-                    console.warn('Error initializing ChatBubbleSystem:', error);
-                }
-            }
-            
-            // NEW: Special initialization for Scene System with synchronization
-            async initializeSceneSystem() {
-                console.log('🔧 Initializing Scene System with synchronization...');
-                
-                try {
-                    const sceneSystem = window.AdvancedSceneSystem;
-                    
-                    if (!sceneSystem) {
-                        console.warn('AdvancedSceneSystem not available');
-                        return;
-                    }
-                    
-                    // Initialize normally first
-                    if (typeof sceneSystem.init === 'function') {
-                        await this.safeInitialize(sceneSystem, 'AdvancedSceneSystem');
-                    }
-                    
-                    // ENHANCED: Integrate scene synchronization
-                    this.enhanceSceneSystemWithSync(sceneSystem);
-                    
-                    // Also setup late enhancement as backup
-                    this.setupLateSceneEnhancement();
-                    
-                } catch (error) {
-                    console.warn('Error initializing Scene System:', error);
-                    // Setup late enhancement as fallback
-                    this.setupLateSceneEnhancement();
-                }
-            }
-            
-            // NEW: Enhanced scene system integration that works after the system loads
-            enhanceSceneSystemWithSync(sceneSystem) {
-                console.log('🔄 Enhancing Scene System with synchronization...');
-                
-                // Add synchronization state tracking
-                sceneSystem._syncInProgress = false;
-                sceneSystem._blockSync = false;
-                
-                // Wrap scene change methods to include WebSocket sync
-                if (sceneSystem.applyScenePreset) {
-                    const originalApplyScenePreset = sceneSystem.applyScenePreset.bind(sceneSystem);
-                    
-                    sceneSystem.applyScenePreset = function(preset, data = {}) {
-                        console.log(`🔄 Scene preset change: ${preset}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
-                        
-                        // Apply locally first
-                        const result = originalApplyScenePreset(preset, data);
-                        
-                        // Send to other users ONLY if this is a local user action
-                        if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendSceneChange) {
-                            this._syncInProgress = true;
-                            const sceneName = this.getScenePresetName ? this.getScenePresetName(preset) : preset;
-                            
-                            setTimeout(() => {
-                                window.sendSceneChange(preset, sceneName, { ...data, fromLocal: true });
-                                setTimeout(() => { this._syncInProgress = false; }, 1000);
-                            }, 100);
-                        }
-                        
-                        return result;
-                    };
-                }
-                
-                // Wrap weather change methods - ENHANCED VERSION WITH BLOCK
-                if (sceneSystem.setWeather) {
-                    const originalSetWeather = sceneSystem.setWeather.bind(sceneSystem);
-                    
-                    sceneSystem.setWeather = function(weatherType, intensity = 1.0, data = {}) {
-                        console.log(`🔄 Weather change: ${weatherType}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
-                        
-                        // Apply locally first
-                        const result = originalSetWeather(weatherType, intensity, data);
-                        
-                        // Send to other users ONLY if this is a local user action AND sync is not blocked
-                        if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendWeatherChange) {
-                            this._syncInProgress = true;
-                            
-                            setTimeout(() => {
-                                window.sendWeatherChange(weatherType, intensity);
-                                setTimeout(() => { this._syncInProgress = false; }, 1000);
-                            }, 100);
-                        }
-                        
-                        return result;
-                    };
-                }
-                
-                // Wrap time change methods - ENHANCED VERSION WITH BLOCK
-                if (sceneSystem.setTimeOfDay) {
-                    const originalSetTimeOfDay = sceneSystem.setTimeOfDay.bind(sceneSystem);
-                    
                 sceneSystem.setTimeOfDay = function(timeOfDay, hour = null, data = {}) {
                     console.log(`🔄 Time change: ${timeOfDay}, fromRemote: ${!!data.fromRemote}, blockSync: ${this._blockSync}`);
                     
-                    // Apply locally first
                     const result = originalSetTimeOfDay(timeOfDay, hour, data);
                     
-                    // Send to other users ONLY if this is a local user action AND sync is not blocked
                     if (!data.fromRemote && !this._blockSync && !this._syncInProgress && window.sendTimeChange) {
                         this._syncInProgress = true;
                         
@@ -5247,40 +5228,36 @@
                     
                     return result;
                 };
+            }
             
-            // Update user count in UI
-            updateUserCount(count) {
-                const userCountElement = document.getElementById('user-count');
-                if (userCountElement) {
-                    const maxUsers = window.ROOM_CONFIG?.maxUsers || 10;
-                    userCountElement.textContent = `${count}/${maxUsers}`;
+            console.log('✅ Scene system enhanced with synchronization');
+        }
+        
+        // Missing method implementations
+        async safeInitialize(system, name) {
+            try {
+                if (system && typeof system.init === 'function') {
+                    await system.init();
+                    console.log(`✅ ${name} initialized successfully`);
                 }
-            }
-            
-            escapeHtml(text) {
-                const map = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                };
-                return text.replace(/[&<>"']/g, m => map[m]);
-            }
-            
-            // Get connected users
-            getConnectedUsers() {
-                return Array.from(this.connectedUsers.values());
-            }
-            
-            // Check if user is connected
-            isUserConnected(userId) {
-                return this.connectedUsers.has(userId);
+            } catch (error) {
+                console.warn(`❌ Error initializing ${name}:`, error);
             }
         }
+        
+        setupLateSceneEnhancement() {
+            // Setup backup enhancement for scene system
+            setTimeout(() => {
+                if (window.AdvancedSceneSystem && !window.AdvancedSceneSystem._syncInProgress) {
+                    this.enhanceSceneSystemWithSync(window.AdvancedSceneSystem);
+                }
+            }, 3000);
+        }
+    }
 
-        // Initialize WebSocket Manager
-        window.WebSocketManager = null;
+    // Initialize the module loader
+    window.EuphorieModuleLoader = new EuphorieModuleLoader();
+    console.log('✅ Modular System initialized successfully');
     </script>
 
     <!-- FIXED: ChatBubbleSystem v4.0 - Fully Working Version -->
