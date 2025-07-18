@@ -47,7 +47,7 @@ class EuphorieScreenSharingSystem {
         this.init = this.init.bind(this);
         this.startScreenShare = this.startScreenShare.bind(this);
         this.stopScreenShare = this.stopScreenShare.bind(this);
-        this.handleRemoteScreenShare = this.handleRemoteScreenShare.bind(this);
+        this.handleScreenShareMessage = this.handleScreenShareMessage.bind(this);
         this.createProjectionSurface = this.createProjectionSurface.bind(this);
         this.updateProjectionSurface = this.updateProjectionSurface.bind(this);
         this.showScreenShareUI = this.showScreenShareUI.bind(this);
