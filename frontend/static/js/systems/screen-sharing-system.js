@@ -50,22 +50,8 @@ class EuphorieScreenSharingSystem {
     }
     
     bindMethods() {
-        // Safe method binding with existence checks
-        const methodsToBind = [
-            'init',
-            'startScreenShare',
-            'stopScreenShare',
-            'createProjectionSurface',
-            'updateProjectionSurface',
-            'showScreenShareUI',
-            'handleScreenShareMessage'
-        ];
-        
-        methodsToBind.forEach(methodName => {
-            if (typeof this[methodName] === 'function') {
-                this[methodName] = this[methodName].bind(this);
-            }
-        });
+        // Remove all method binding - not needed for this class
+        console.log('✅ Method binding skipped - methods work without binding');
     }
     
     async init() {
