@@ -2334,8 +2334,6 @@
     console.log('🤖 AvatarSystem script loaded');
     </script>
 
-
-    <!-- Enhanced WebSocket Manager - FIXED VERSION with Scene Synchronization Support -->
     <script>
         // Enhanced WebSocket Manager for Rust Server Integration - FIXED AVATAR CREATION with Scene Sync
         class EuphorieWebSocketManager {
@@ -2382,18 +2380,7 @@
                 console.log('🔍 User ID:', this.userId);
                 console.log('🌍 User Nationality:', this.userNationality);
             }
-
-            escapeHtml(text) {
-                const map = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                };
-                return text.replace(/[&<>"']/g, m => map[m]);
-            }
-
+            
             connect() {
                 if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
                     return;
@@ -2509,14 +2496,6 @@
                         case 'time_change':
                             this.handleTimeChange(data);
                             break;
-
-                        case 'screen_share_started':
-                            this.handleScreenShareStarted(data);
-                            break;
-                            
-                        case 'screen_share_stopped':
-                            this.handleScreenShareStopped(data);
-                            break;
                             
                         case 'pong':
                             const latency = Date.now() - this.lastPingTime;
@@ -2540,19 +2519,6 @@
                     console.error('❌ Error parsing WebSocket message:', error);
                 }
             }
-
-            // Screen sharing handlers
-            handleScreenShareStarted(data) {
-                if (data.user_id !== this.userId && window.screenSharingSystem) {
-                    window.screenSharingSystem.handleRemoteScreenShareStart(data);
-                }
-            }
-            
-            handleScreenShareStopped(data) {
-                if (data.user_id !== this.userId && window.screenSharingSystem) {
-                    window.screenSharingSystem.handleRemoteScreenShareStop(data);
-                }
-            }
             
             // FIXED: Handle room state to sync all users with nationality
             handleRoomState(data) {
@@ -2562,19 +2528,24 @@
                     // Clear existing user tracking
                     this.connectedUsers.clear();
                     
-                    // Add all users from room state, INCLUDING current user
+                    // Add all users from room state, but DON'T create avatar for current user
                     data.users.forEach(user => {
                         console.log(`👤 Processing user: ${user.username} (${user.user_id})`);
                         console.log(`🌍 User nationality: ${user.nationality || 'UN'}`);
+                        console.log(`🔍 Current user ID: ${this.userId}`);
+                        console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
                         
-                        // CREATE AVATAR FOR ALL USERS (including self)
-                        console.log(`✅ Adding user: ${user.username} from ${user.nationality || 'UN'}`);
-                        this.connectedUsers.set(user.user_id, user);
-                        this.createRemoteAvatar(user);
+                        if (user.user_id !== this.userId) {
+                            console.log(`✅ Adding remote user: ${user.username} from ${user.nationality || 'UN'}`);
+                            this.connectedUsers.set(user.user_id, user);
+                            this.createRemoteAvatar(user);
+                        } else {
+                            console.log(`⚠️ Skipping avatar creation for current user: ${user.username}`);
+                        }
                     });
                     
                     console.log(`👥 Room has ${data.users.length} users total`);
-                    console.log(`🎭 Created ${this.connectedUsers.size} avatars`);
+                    console.log(`🎭 Will create ${this.connectedUsers.size} remote avatars`);
                     this.updateUserCount(data.users.length);
                 }
             }
@@ -2584,17 +2555,22 @@
                 console.log(`👋 ${data.username} joined from ${data.nationality || 'UN'}`);
                 console.log(`🔍 Joined user ID: ${data.user_id}`);
                 console.log(`🔍 Current user ID: ${this.userId}`);
+                console.log(`🔍 User ID comparison: "${data.user_id}" !== "${this.userId}" = ${data.user_id !== this.userId}`);
                 
                 this.addSystemMessage(`${data.username} joined from ${this.getCountryName(data.nationality || 'UN')}`);
                 
-                // CREATE AVATAR FOR ALL USERS (including self)
-                console.log(`✅ Creating avatar for: ${data.username} (${data.nationality || 'UN'})`);
-                this.connectedUsers.set(data.user_id, data);
-                this.createRemoteAvatar(data);
+                // CRITICAL: Don't create avatar for ourselves
+                if (data.user_id !== this.userId) {
+                    console.log(`✅ Creating remote avatar for: ${data.username} (${data.nationality || 'UN'})`);
+                    this.connectedUsers.set(data.user_id, data);
+                    this.createRemoteAvatar(data);
+                } else {
+                    console.log(`⚠️ Skipping avatar creation for current user: ${data.username}`);
+                }
                 
-                this.updateUserCount(this.connectedUsers.size);
-            },
-
+                this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
+            }
+            
             // FIXED: Handle when a user leaves
             handleUserLeft(data) {
                 console.log(`👋 ${data.username} left the room`);
@@ -3006,21 +2982,17 @@
             
             // Helper function for rounded rectangles
             roundRect(ctx, x, y, width, height, radius) {
-                if (!ctx) return;
-                
-                try {
-                    ctx.moveTo(x + radius, y);
-                    ctx.lineTo(x + width - radius, y);
-                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-                    ctx.lineTo(x + width, y + height - radius);
-                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                    ctx.lineTo(x + radius, y + height);
-                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-                    ctx.lineTo(x, y + radius);
-                    ctx.quadraticCurveTo(x, y, x + radius, y);
-                } catch (error) {
-                    console.error('Error in roundRect:', error);
-                }
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
             }
             
             // FIXED: Remove avatar for remote user - handles multiple scene sources
@@ -3510,34 +3482,6 @@
                     is_typing: isTyping
                 });
             }
-
-            // Screen sharing methods
-            sendScreenShareStart(streamData) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'screen_share_started',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    username: this.username,
-                    nationality: this.userNationality,
-                    stream_data: streamData,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendScreenShareStop() {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'screen_share_stopped',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    username: this.username,
-                    nationality: this.userNationality,
-                    timestamp: Date.now()
-                });
-            }
             
             startPingInterval() {
                 setInterval(() => {
@@ -3706,141 +3650,55 @@
                 });
             }
             
-            updateBubblePositions(userId, newPosition) {
-                if (!this.bubbles.has(userId) || !newPosition) return;
-                
-                try {
-                    const userBubbles = this.bubbles.get(userId);
-                    userBubbles.forEach((bubble, index) => {
-                        if (bubble.userData.isVisible) {
-                            const bubblePosition = newPosition.clone();
-                            bubblePosition.y += this.config.yOffset;
-                            bubblePosition.x += index * 0.6;
-                            bubblePosition.y += index * 0.4;
-                            
-                            bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
-                        }
-                    });
-                } catch (error) {
-                    console.error('Error updating bubble positions:', error);
-                }
-            }
-            
-            handleResize() {
-                try {
-                    if (this.isMobile) {
-                        const isLandscape = window.innerWidth > window.innerHeight;
-                        this.config.maxBubbles = isLandscape ? 18 : 12;
-                    }
-                } catch (error) {
-                    console.error('Error handling resize:', error);
-                }
-            }
-            
-            startUpdateLoop() {
-                const update = () => {
+            updateBubbleCount() {
+                let count = 0;
+                if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
                     try {
-                        if (this.isInitialized) {
-                            this.updateSafe(); // Use safe wrapper
-                        }
+                        count = window.ChatBubbleSystem.getActiveBubbleCount();
                     } catch (error) {
-                        console.error('Error in update loop:', error);
+                        console.warn('Error getting bubble count:', error);
                     }
-                    requestAnimationFrame(update);
-                };
-                update();
-            }
-            
-            clearAllBubbles() {
-                try {
-                    const bubblesToRemove = this.activeBubbles.slice();
-                    bubblesToRemove.forEach(bubble => {
-                        this.removeBubble(bubble);
-                    });
-                    
-                    this.activeBubbles = [];
-                    this.bubbles.clear();
-                    
-                    console.log('💬 All chat bubbles cleared');
-                } catch (error) {
-                    console.error('Error clearing bubbles:', error);
-                }
-            }
-            
-            // Public API methods
-            getActiveBubbleCount() {
-                return this.activeBubbles.length;
-            }
-            
-            getUserBubbleCount(userId) {
-                return this.bubbles.has(userId) ? this.bubbles.get(userId).length : 0;
-            }
-            
-            setDebugMode(enabled) {
-                this.config.enableDebug = enabled;
-                console.log(`💬 ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
-            }
-            
-            getPerformanceStats() {
-                this._ensurePerformanceObject();
-                return {
-                    ...this.performance,
-                    visibleBubbles: this.activeBubbles.filter(b => b.userData.isVisible).length,
-                    userCount: this.bubbles.size,
-                    memoryUsage: this.activeBubbles.length * 2048,
-                    isMobile: this.isMobile
-                };
-            }
-            
-            createTestBubble(message = "Test message! 🚀", username = "TestUser") {
-                if (!window.THREE) {
-                    console.warn('THREE.js not available for test bubble');
-                    return null;
                 }
                 
-                const position = new THREE.Vector3(
-                    (Math.random() - 0.5) * 15,
-                    3,
-                    (Math.random() - 0.5) * 15
-                );
-                
-                return this.createBubble(message, username, position, 'test_' + Date.now());
-            }
-            
-            updateConfig(newConfig) {
-                Object.assign(this.config, newConfig);
-                console.log('💬 ChatBubbleSystem config updated:', newConfig);
-            }
-            
-            dispose() {
-                try {
-                    this.clearAllBubbles();
-                    window.removeEventListener('resize', this.handleResize);
-                    console.log('💬 ChatBubbleSystem disposed');
-                } catch (error) {
-                    console.error('Error disposing ChatBubbleSystem:', error);
+                const bubbleCountElement = document.getElementById('bubble-count');
+                if (bubbleCountElement) {
+                    bubbleCountElement.textContent = count;
                 }
             }
             
-            // Static method to get singleton instance
-            static getInstance() {
-                if (!ChatBubbleSystem._instance) {
-                    ChatBubbleSystem._instance = new ChatBubbleSystem();
+            // Update user count in UI
+            updateUserCount(count) {
+                const userCountElement = document.getElementById('user-count');
+                if (userCountElement) {
+                    const maxUsers = window.ROOM_CONFIG?.maxUsers || 10;
+                    userCountElement.textContent = `${count}/${maxUsers}`;
                 }
-                return ChatBubbleSystem._instance;
+            }
+            
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+            
+            // Get connected users
+            getConnectedUsers() {
+                return Array.from(this.connectedUsers.values());
+            }
+            
+            // Check if user is connected
+            isUserConnected(userId) {
+                return this.connectedUsers.has(userId);
             }
         }
 
-        // Export both class and instance for compatibility
-        window.ChatBubbleSystemClass = ChatBubbleSystem;
-        window.ChatBubbleSystem = ChatBubbleSystem.getInstance();
-
-        // Export for module systems
-        if (typeof module !== 'undefined' && module.exports) {
-            module.exports = ChatBubbleSystem;
-        }
-
-        console.log('✅ ChatBubbleSystem v4.0 - FIXED VERSION loaded successfully');
+        // Initialize WebSocket Manager
+        window.WebSocketManager = null;
     </script>
 
     <!-- ENHANCED: Scene Synchronization Functions - Direct Integration -->
