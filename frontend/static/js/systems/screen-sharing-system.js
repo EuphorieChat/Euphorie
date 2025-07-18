@@ -71,10 +71,7 @@ class EuphorieScreenSharingSystem {
             // Create projection surface
             this.createProjectionSurface();
             
-            // Setup UI controls
-            this.setupUIControls();
-            
-            // Setup global functions
+            // Setup global functions (but don't add UI buttons)
             this.setupGlobalFunctions();
             
             this.isInitialized = true;
@@ -333,16 +330,23 @@ class EuphorieScreenSharingSystem {
             this.isSharing = true;
             this.currentSharer = window.WebSocketManager?.userId;
             
-            // Notify other users
+            // Notify other users via WebSocket
             if (window.WebSocketManager?.sendScreenShareStart) {
                 window.WebSocketManager.sendScreenShareStart({
                     projection_mode: this.projectionMode,
-                    quality: this.config.quality
+                    quality: this.config.quality,
+                    sharer_id: window.WebSocketManager.userId,
+                    sharer_name: window.WebSocketManager.username
                 });
+                console.log('📡 Screen sharing notification sent via WebSocket');
             }
             
-            // Setup WebRTC connections to other users
-            this.setupWebRTCConnections();
+            // Try to setup WebRTC connections (optional)
+            try {
+                await this.setupWebRTCConnections();
+            } catch (error) {
+                console.log('⚠️ WebRTC setup failed, continuing with WebSocket-only sharing:', error);
+            }
             
             // Show sharing controls
             this.showSharingControls();
@@ -359,13 +363,35 @@ class EuphorieScreenSharingSystem {
     async setupWebRTCConnections() {
         if (!this.localStream || !window.WebSocketManager) return;
         
-        // Get connected users
-        const connectedUsers = window.WebSocketManager.getConnectedUsers();
+        console.log('🔗 Setting up WebRTC connections...');
+        
+        // Get connected users - try multiple approaches
+        let connectedUsers = [];
+        
+        // Method 1: Check if getConnectedUsers exists
+        if (typeof window.WebSocketManager.getConnectedUsers === 'function') {
+            connectedUsers = window.WebSocketManager.getConnectedUsers();
+            console.log('📡 Found connected users via getConnectedUsers:', connectedUsers);
+        } else {
+            console.log('⚠️ getConnectedUsers method not found, using alternative approach');
+            
+            // Method 2: Use room state or other available data
+            // For now, we'll skip WebRTC setup and rely on WebSocket-only sharing
+            console.log('📡 WebRTC peer connections not available, screen sharing will use WebSocket only');
+            return;
+        }
+        
+        if (!connectedUsers || connectedUsers.length === 0) {
+            console.log('📡 No connected users found for WebRTC setup');
+            return;
+        }
         
         for (const userData of connectedUsers) {
             if (userData.user_id === window.WebSocketManager.userId) continue;
             
             try {
+                console.log(`🔗 Setting up WebRTC connection to ${userData.user_id}`);
+                
                 // Create peer connection
                 const pc = new RTCPeerConnection({
                     iceServers: [
@@ -390,6 +416,11 @@ class EuphorieScreenSharingSystem {
                     }
                 };
                 
+                // Handle connection state changes
+                pc.onconnectionstatechange = () => {
+                    console.log(`🔗 WebRTC connection to ${userData.user_id}: ${pc.connectionState}`);
+                };
+                
                 // Create offer
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
@@ -402,9 +433,10 @@ class EuphorieScreenSharingSystem {
                 );
                 
                 this.peerConnections.set(userData.user_id, pc);
+                console.log(`✅ WebRTC setup initiated for ${userData.user_id}`);
                 
             } catch (error) {
-                console.error(`Error setting up WebRTC connection to ${userData.user_id}:`, error);
+                console.error(`❌ Error setting up WebRTC connection to ${userData.user_id}:`, error);
             }
         }
     }
@@ -793,40 +825,6 @@ class EuphorieScreenSharingSystem {
         // TODO: Implement control request system
     }
     
-    setupUIControls() {
-        // Add screen sharing button to existing UI
-        const addScreenShareButton = (container, className) => {
-            const button = document.createElement('button');
-            button.className = `mobile-action-btn ${className}`;
-            button.innerHTML = `
-                <div class="icon">🖥️</div>
-                <div>Share Screen</div>
-            `;
-            button.onclick = () => {
-                this.startScreenShare();
-                // Close menus
-                if (window.closeMobileMenu) window.closeMobileMenu();
-                if (window.closeDesktopMenu) window.closeDesktopMenu();
-            };
-            
-            if (container) {
-                container.appendChild(button);
-            }
-        };
-        
-        // Add to mobile menu
-        const mobileMenu = document.querySelector('.mobile-actions-menu .mobile-action-grid');
-        if (mobileMenu) {
-            addScreenShareButton(mobileMenu, 'full-width');
-        }
-        
-        // Add to desktop menu
-        const desktopMenu = document.querySelector('.desktop-actions-menu .mobile-action-grid');
-        if (desktopMenu) {
-            addScreenShareButton(desktopMenu, '');
-        }
-    }
-    
     setupGlobalFunctions() {
         // Make system available globally
         window.ScreenSharingSystem = this;
@@ -842,10 +840,25 @@ class EuphorieScreenSharingSystem {
             }
         };
         
+        // Add the showScreenShareUI function for the existing button
+        window.showScreenShareUI = () => this.showScreenShareUI();
+        
         console.log('✅ Screen sharing global functions setup');
     }
     
     showScreenShareUI() {
+        // Check if screen sharing is supported
+        if (!this.isScreenSharingSupported()) {
+            this.showNotification('❌ Screen sharing is not supported on this device');
+            return;
+        }
+        
+        // Check if on mobile
+        if (this.isMobile()) {
+            this.showNotification('❌ Screen sharing is only available on desktop browsers');
+            return;
+        }
+        
         // Create dedicated screen share UI
         const modal = document.createElement('div');
         modal.id = 'screen-share-modal';
@@ -1002,6 +1015,11 @@ class EuphorieScreenSharingSystem {
     // Debug and utility methods
     isScreenSharingSupported() {
         return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+    }
+    
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad detection
     }
     
     getCurrentSharer() {
