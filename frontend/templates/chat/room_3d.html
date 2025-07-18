@@ -2567,13 +2567,9 @@
                     console.log(`🔍 Current user ID: ${this.userId}`);
                     console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
                     
-                    if (user.user_id !== this.userId) {
-                        console.log(`✅ Adding remote user: ${user.username} from ${user.nationality || 'UN'}`);
-                        this.connectedUsers.set(user.user_id, user);
-                        this.createRemoteAvatar(user);
-                    } else {
-                        console.log(`⚠️ Skipping avatar creation for current user: ${user.username}`);
-                    }
+                    console.log(`✅ Adding user: ${user.username} from ${user.nationality || 'UN'}`);
+                    this.connectedUsers.set(user.user_id, user);
+                    this.createRemoteAvatar(user);
                 });
                 
                 console.log(`👥 Room has ${data.users.length} users total`);
@@ -2591,14 +2587,10 @@
             
             this.addSystemMessage(`${data.username} joined from ${this.getCountryName(data.nationality || 'UN')}`);
             
-            // CRITICAL: Don't create avatar for ourselves
-            if (data.user_id !== this.userId) {
-                console.log(`✅ Creating remote avatar for: ${data.username} (${data.nationality || 'UN'})`);
-                this.connectedUsers.set(data.user_id, data);
-                this.createRemoteAvatar(data); // Create avatar for ALL users
-            } else {
-                console.log(`⚠️ Skipping avatar creation for current user: ${data.username}`);
-            }
+            // Create avatar for ALL users (including self)
+            console.log(`✅ Creating avatar for: ${data.username} (${data.nationality || 'UN'})`);
+            this.connectedUsers.set(data.user_id, data);
+            this.createRemoteAvatar(data);
             
             this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
         }
