@@ -1979,6 +1979,288 @@
         setTimeout(createStandaloneSceneManager, 100);
     </script>
 
+    <!-- AVATAR SYSTEM FIX -->
+    <script>
+        function createLocalAvatar() {
+            console.log('👤 Creating local avatar for current user...');
+            
+            if (!window.SceneManager?.scene || !window.THREE) {
+                console.warn('Scene or THREE.js not ready for avatar creation');
+                return;
+            }
+            
+            try {
+                const scene = window.SceneManager.scene;
+                const userId = window.ROOM_CONFIG.userId;
+                const username = window.ROOM_CONFIG.username;
+                const nationality = window.ROOM_CONFIG.userNationality || 'UN';
+                
+                console.log(`Creating avatar for: ${username} (${userId}) from ${nationality}`);
+                
+                // Create avatar group
+                const avatarGroup = new THREE.Group();
+                avatarGroup.userData = {
+                    userId: userId,
+                    username: username,
+                    nationality: nationality,
+                    isLocalPlayer: true
+                };
+                
+                // Create simple avatar body
+                const bodyGeometry = new THREE.CapsuleGeometry(0.3, 1.5, 4, 8);
+                const bodyMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x4a90e2 // Nice blue color
+                });
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.position.y = 1;
+                body.castShadow = true;
+                avatarGroup.add(body);
+                
+                // Create head
+                const headGeometry = new THREE.SphereGeometry(0.25, 8, 6);
+                const headMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xffdbac // Skin tone
+                });
+                const head = new THREE.Mesh(headGeometry, headMaterial);
+                head.position.y = 1.9;
+                head.castShadow = true;
+                avatarGroup.add(head);
+                
+                // Create simple face (eyes)
+                const eyeGeometry = new THREE.SphereGeometry(0.03, 4, 4);
+                const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.08, 1.95, 0.2);
+                avatarGroup.add(leftEye);
+                
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.08, 1.95, 0.2);
+                avatarGroup.add(rightEye);
+                
+                // Position avatar at origin
+                avatarGroup.position.set(0, 0, 0);
+                
+                // Add to scene
+                scene.add(avatarGroup);
+                
+                // Store reference for avatar system
+                if (!window.AvatarSystem) {
+                    window.AvatarSystem = {
+                        avatars: new Map(),
+                        localAvatar: avatarGroup
+                    };
+                } else {
+                    window.AvatarSystem.localAvatar = avatarGroup;
+                }
+                
+                window.AvatarSystem.avatars.set(userId, avatarGroup);
+                
+                console.log('✅ Local avatar created successfully');
+                return avatarGroup;
+                
+            } catch (error) {
+                console.error('❌ Error creating local avatar:', error);
+                return null;
+            }
+        }
+
+        // Enhanced avatar position getter for chat bubbles
+        function enhanceAvatarSystem() {
+            if (!window.AvatarSystem) {
+                window.AvatarSystem = {
+                    avatars: new Map(),
+                    localAvatar: null
+                };
+            }
+            
+            // Add getAvatarPosition method if missing
+            if (!window.AvatarSystem.getAvatarPosition) {
+                window.AvatarSystem.getAvatarPosition = function(userId) {
+                    try {
+                        // Check if it's the local user
+                        if (userId === window.ROOM_CONFIG?.userId) {
+                            if (this.localAvatar) {
+                                return this.localAvatar.position.clone();
+                            }
+                            // Return origin for local user
+                            return new THREE.Vector3(0, 0, 0);
+                        }
+                        
+                        // Check stored avatars
+                        if (this.avatars.has(userId)) {
+                            const avatar = this.avatars.get(userId);
+                            return avatar.position.clone();
+                        }
+                        
+                        // Find avatar in scene by userData
+                        if (window.SceneManager?.scene) {
+                            let foundAvatar = null;
+                            window.SceneManager.scene.traverse((child) => {
+                                if (child.userData?.userId === userId) {
+                                    foundAvatar = child;
+                                }
+                            });
+                            
+                            if (foundAvatar) {
+                                return foundAvatar.position.clone();
+                            }
+                        }
+                        
+                        // Return null if not found - ChatBubbleSystem will handle fallback
+                        return null;
+                        
+                    } catch (error) {
+                        console.error('Error in getAvatarPosition:', error);
+                        return new THREE.Vector3(0, 0, 0);
+                    }
+                };
+            }
+            
+            // Add createAvatar method for remote users
+            if (!window.AvatarSystem.createAvatar) {
+                window.AvatarSystem.createAvatar = function(userId, options = {}) {
+                    try {
+                        if (!window.SceneManager?.scene || !window.THREE) {
+                            console.warn('Cannot create avatar - scene not ready');
+                            return null;
+                        }
+                        
+                        const scene = window.SceneManager.scene;
+                        const username = options.name || 'User';
+                        const nationality = options.nationality || 'UN';
+                        const position = options.position || { x: 0, y: 0, z: 0 };
+                        
+                        console.log(`🎭 Creating remote avatar: ${username} from ${nationality}`);
+                        
+                        // Create avatar group
+                        const avatarGroup = new THREE.Group();
+                        avatarGroup.userData = {
+                            userId: userId,
+                            username: username,
+                            nationality: nationality,
+                            isRemoteUser: true
+                        };
+                        
+                        // Create body with random color
+                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+                        const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+                        
+                        const bodyGeometry = new THREE.CapsuleGeometry(0.3, 1.5, 4, 8);
+                        const bodyMaterial = new THREE.MeshLambertMaterial({ 
+                            color: colors[colorIndex]
+                        });
+                        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                        body.position.y = 1;
+                        body.castShadow = true;
+                        avatarGroup.add(body);
+                        
+                        // Create head
+                        const headGeometry = new THREE.SphereGeometry(0.25, 8, 6);
+                        const headMaterial = new THREE.MeshLambertMaterial({ 
+                            color: 0xffdbac
+                        });
+                        const head = new THREE.Mesh(headGeometry, headMaterial);
+                        head.position.y = 1.9;
+                        head.castShadow = true;
+                        avatarGroup.add(head);
+                        
+                        // Create eyes
+                        const eyeGeometry = new THREE.SphereGeometry(0.03, 4, 4);
+                        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                        
+                        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                        leftEye.position.set(-0.08, 1.95, 0.2);
+                        avatarGroup.add(leftEye);
+                        
+                        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                        rightEye.position.set(0.08, 1.95, 0.2);
+                        avatarGroup.add(rightEye);
+                        
+                        // Position avatar
+                        avatarGroup.position.set(position.x, position.y, position.z);
+                        
+                        // Add to scene
+                        scene.add(avatarGroup);
+                        
+                        // Store reference
+                        this.avatars.set(userId, avatarGroup);
+                        
+                        console.log(`✅ Remote avatar created for ${username}`);
+                        return avatarGroup;
+                        
+                    } catch (error) {
+                        console.error('❌ Error creating remote avatar:', error);
+                        return null;
+                    }
+                };
+            }
+            
+            // Add removeAvatar method
+            if (!window.AvatarSystem.removeAvatar) {
+                window.AvatarSystem.removeAvatar = function(userId) {
+                    try {
+                        if (this.avatars.has(userId)) {
+                            const avatar = this.avatars.get(userId);
+                            if (avatar.parent) {
+                                avatar.parent.remove(avatar);
+                            }
+                            
+                            // Dispose geometry and materials
+                            avatar.traverse((child) => {
+                                if (child.geometry) child.geometry.dispose();
+                                if (child.material) {
+                                    if (Array.isArray(child.material)) {
+                                        child.material.forEach(mat => mat.dispose());
+                                    } else {
+                                        child.material.dispose();
+                                    }
+                                }
+                            });
+                            
+                            this.avatars.delete(userId);
+                            console.log(`🗑️ Removed avatar for user ${userId}`);
+                        }
+                    } catch (error) {
+                        console.error('Error removing avatar:', error);
+                    }
+                };
+            }
+        }
+
+        // Initialize avatar system
+        function initializeAvatarSystem() {
+            console.log('🎭 Initializing Avatar System...');
+            
+            // Ensure avatar system exists and has methods
+            enhanceAvatarSystem();
+            
+            // Create local avatar after short delay
+            setTimeout(() => {
+                if (window.ROOM_CONFIG?.userId) {
+                    createLocalAvatar();
+                }
+            }, 1000);
+            
+            console.log('✅ Avatar System initialized');
+        }
+
+        // Call this after SceneManager is ready
+        if (window.SceneManager?.scene) {
+            initializeAvatarSystem();
+        } else {
+            // Wait for SceneManager
+            const checkForScene = () => {
+                if (window.SceneManager?.scene) {
+                    initializeAvatarSystem();
+                } else {
+                    setTimeout(checkForScene, 100);
+                }
+            };
+            checkForScene();
+        }
+    </script>
+
     <!-- Core Configuration Script -->
     <script>
         // DJANGO DEBUG: Check what Django is outputting
