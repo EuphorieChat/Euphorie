@@ -2075,7 +2075,7 @@
                     0.1, 
                     1000
                 );
-                this.camera.position.set(0, 5, 10);
+                this.camera.position.set(0, 8, 15); // Better view for avatars
                 
                 // Create renderer
                 this.renderer = new THREE.WebGLRenderer({ 
@@ -2261,7 +2261,7 @@
     console.log('🎬 SceneManager loaded');
     </script>
 
-
+<script> // Simple AvatarSystem for avatar creation window.AvatarSystem = { avatars: new Map(), scene: null, init() { this.scene = window.SceneManager?.scene; console.log('🤖 AvatarSystem initialized'); }, createAvatar(userId, config) { const scene = this.scene || window.SceneManager?.scene; if (!scene) { console.warn('❌ No scene available for avatar creation'); return null; } // Create simple colored box avatar const geometry = new THREE.BoxGeometry(1, 2, 1); const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3]; const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length; const material = new THREE.MeshLambertMaterial({ color: colors[colorIndex] }); const avatar = new THREE.Mesh(geometry, material); // Position avatar avatar.position.copy(config.position); avatar.position.y = 1; // Ensure it's above ground avatar.castShadow = true; avatar.receiveShadow = true; // Store user data avatar.userData = { userId: userId, username: config.name || 'User', nationality: config.nationality || 'UN' }; scene.add(avatar); this.avatars.set(userId, avatar); console.log(`✅ Created avatar for ${config.name} at position:`, config.position); return avatar; }, removeAvatar(userId) { const avatar = this.avatars.get(userId); if (avatar && avatar.parent) { avatar.parent.remove(avatar); this.avatars.delete(userId); console.log(`🗑️ Removed avatar for user: ${userId}`); } }, getAvatarPosition(userId) { const avatar = this.avatars.get(userId); return avatar ? avatar.position.clone() : null; } }; // Initialize AvatarSystem when SceneManager is ready const initAvatarSystem = () => { if (window.SceneManager?.scene) { window.AvatarSystem.init(); } else { setTimeout(initAvatarSystem, 500); } }; setTimeout(initAvatarSystem, 1000); console.log('🤖 AvatarSystem script loaded'); </script>
 
     <!-- Enhanced WebSocket Manager - FIXED VERSION with Scene Synchronization Support -->
     <script>
@@ -2479,24 +2479,21 @@
                     // Clear existing user tracking
                     this.connectedUsers.clear();
                     
-                    // Add all users from room state, but DON'T create avatar for current user
+                    // Add all users from room state, INCLUDING current user for testing
                     data.users.forEach(user => {
                         console.log(`👤 Processing user: ${user.username} (${user.user_id})`);
                         console.log(`🌍 User nationality: ${user.nationality || 'UN'}`);
                         console.log(`🔍 Current user ID: ${this.userId}`);
                         console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
                         
-                        if (user.user_id !== this.userId) {
-                            console.log(`✅ Adding remote user: ${user.username} from ${user.nationality || 'UN'}`);
-                            this.connectedUsers.set(user.user_id, user);
-                            this.createRemoteAvatar(user);
-                        } else {
-                            console.log(`⚠️ Skipping avatar creation for current user: ${user.username}`);
-                        }
+                        // CREATE AVATAR FOR ALL USERS (including self for testing)
+                        console.log(`✅ Adding user: ${user.username} from ${user.nationality || 'UN'}`);
+                        this.connectedUsers.set(user.user_id, user);
+                        this.createRemoteAvatar(user);
                     });
                     
                     console.log(`👥 Room has ${data.users.length} users total`);
-                    console.log(`🎭 Will create ${this.connectedUsers.size} remote avatars`);
+                    console.log(`🎭 Created ${this.connectedUsers.size} avatars`);
                     this.updateUserCount(data.users.length);
                 }
             }
@@ -2510,14 +2507,10 @@
                 
                 this.addSystemMessage(`${data.username} joined from ${this.getCountryName(data.nationality || 'UN')}`);
                 
-                // CRITICAL: Don't create avatar for ourselves
-                if (data.user_id !== this.userId) {
-                    console.log(`✅ Creating remote avatar for: ${data.username} (${data.nationality || 'UN'})`);
-                    this.connectedUsers.set(data.user_id, data);
-                    this.createRemoteAvatar(data);
-                } else {
-                    console.log(`⚠️ Skipping avatar creation for current user: ${data.username}`);
-                }
+                // CREATE AVATAR FOR ALL USERS (including self for testing)
+                console.log(`✅ Creating avatar for: ${data.username} (${data.nationality || 'UN'})`);
+                this.connectedUsers.set(data.user_id, data);
+                this.createRemoteAvatar(data);
                 
                 this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
             }
@@ -6547,6 +6540,8 @@
         
         // Final initialization message
         console.log('🎮 Euphorie 3D Room HTML fully loaded');
+        // Test avatar creation function window.testAvatar = function() { console.log('🧪 Testing avatar creation...'); if (!window.SceneManager?.scene) { console.error('❌ No scene available'); return; } if (!window.AvatarSystem) { console.error('❌ No AvatarSystem available'); return; } // Create test avatar at origin const testAvatar = window.AvatarSystem.createAvatar('test_user', { name: 'Test User', position: new THREE.Vector3(0, 0, 0), nationality: 'US' }); if (testAvatar) { console.log('✅ Test avatar created successfully!'); console.log('🎯 Look for a colored box at the center of the scene'); } else { console.error('❌ Test avatar creation failed'); } }; // Auto-test after 3 seconds setTimeout(() => { console.log('🚀 Auto-testing avatar creation...'); window.testAvatar(); }, 3000);
+        
         console.log('📱 Mobile optimized:', window.innerWidth <= 768);
         console.log('🔧 WebSocket URL:', window.ROOM_CONFIG?.rustWebSocketUrl);
         console.log('🌍 User nationality:', window.ROOM_CONFIG?.userNationality);
