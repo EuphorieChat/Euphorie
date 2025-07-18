@@ -1,0 +1,24 @@
+config:
+  target: 'ws://euphorie.com:8000'  # Direct to Django/Daphne
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: "Django WebSocket test"
+  defaults:
+    headers:
+      User-Agent: "Artillery Django WebSocket Test"
+
+scenarios:
+  - name: "Django Channels WebSocket test"
+    engine: ws
+    weight: 100
+    flow:
+      - connect:
+          url: "/ws/chat/"  # Typical Django Channels path
+      - think: 2
+      - send:
+          data: '{"type": "join_room", "room": "test"}'
+      - think: 3
+      - send:
+          data: '{"type": "message", "content": "Django test message"}'
+      - think: 2

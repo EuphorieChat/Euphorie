@@ -1,56 +1,27 @@
-# configs/websocket-test.yml
 config:
-  target: 'wss://euphorie.com'
+  target: 'wss://euphorie.com'  # Your main domain
   phases:
     - duration: 30
-      arrivalRate: 5
+      arrivalRate: 3
       name: "WebSocket warm up"
     - duration: 60
-      arrivalRate: 15
+      arrivalRate: 8
       name: "Chat connections"
-    - duration: 90
-      arrivalRate: 25
-      name: "Peak chat activity"
   defaults:
     headers:
-      User-Agent: "Artillery WebSocket Test - Euphorie Chat"
+      User-Agent: "Artillery WebSocket Test - Euphorie"
 
 scenarios:
-  - name: "Chat room WebSocket connection"
+  - name: "Rust WebSocket server test"
     engine: ws
+    weight: 100
     flow:
       - connect:
-          url: "/ws/chat/"
-      - think: 1
-      - send:
-          data: '{"type": "join_room", "room_id": "general"}'
+          url: "/ws/"  # This should route to your Rust server via nginx
       - think: 2
       - send:
-          data: '{"type": "chat_message", "message": "Hello from Artillery test!", "room": "general"}'
+          data: '{"type": "auth", "user_id": "test_user", "room_id": "test_room", "username": "LoadTestUser"}'
       - think: 3
       - send:
-          data: '{"type": "user_typing", "room": "general", "typing": true}'
-      - think: 1
-      - send:
-          data: '{"type": "user_typing", "room": "general", "typing": false}'
-      - think: 5
-      - send:
-          data: '{"type": "leave_room", "room_id": "general"}'
-
-  - name: "3D room WebSocket interactions"
-    engine: ws
-    flow:
-      - connect:
-          url: "/ws/room3d/"
-      - think: 1
-      - send:
-          data: '{"type": "avatar_position", "x": 0, "y": 0, "z": 0}'
+          data: '{"type": "chat_message", "message": "Hello from Artillery!", "room_id": "test_room"}'
       - think: 2
-      - send:
-          data: '{"type": "avatar_emotion", "emotion": "happy"}'
-      - think: 3
-      - send:
-          data: '{"type": "interaction", "target": "object_1", "action": "click"}'
-      - think: 4
-      - send:
-          data: '{"type": "disconnect"}'
