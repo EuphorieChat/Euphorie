@@ -2261,7 +2261,79 @@
     console.log('🎬 SceneManager loaded');
     </script>
 
-<script> // Simple AvatarSystem for avatar creation window.AvatarSystem = { avatars: new Map(), scene: null, init() { this.scene = window.SceneManager?.scene; console.log('🤖 AvatarSystem initialized'); }, createAvatar(userId, config) { const scene = this.scene || window.SceneManager?.scene; if (!scene) { console.warn('❌ No scene available for avatar creation'); return null; } // Create simple colored box avatar const geometry = new THREE.BoxGeometry(1, 2, 1); const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3]; const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length; const material = new THREE.MeshLambertMaterial({ color: colors[colorIndex] }); const avatar = new THREE.Mesh(geometry, material); // Position avatar avatar.position.copy(config.position); avatar.position.y = 1; // Ensure it's above ground avatar.castShadow = true; avatar.receiveShadow = true; // Store user data avatar.userData = { userId: userId, username: config.name || 'User', nationality: config.nationality || 'UN' }; scene.add(avatar); this.avatars.set(userId, avatar); console.log(`✅ Created avatar for ${config.name} at position:`, config.position); return avatar; }, removeAvatar(userId) { const avatar = this.avatars.get(userId); if (avatar && avatar.parent) { avatar.parent.remove(avatar); this.avatars.delete(userId); console.log(`🗑️ Removed avatar for user: ${userId}`); } }, getAvatarPosition(userId) { const avatar = this.avatars.get(userId); return avatar ? avatar.position.clone() : null; } }; // Initialize AvatarSystem when SceneManager is ready const initAvatarSystem = () => { if (window.SceneManager?.scene) { window.AvatarSystem.init(); } else { setTimeout(initAvatarSystem, 500); } }; setTimeout(initAvatarSystem, 1000); console.log('🤖 AvatarSystem script loaded'); </script>
+    <script>
+    // Add this BEFORE your WebSocket manager script
+    window.AvatarSystem = {
+        avatars: new Map(),
+        scene: null,
+        
+        init() {
+            this.scene = window.SceneManager?.scene;
+            console.log('🤖 AvatarSystem initialized');
+        },
+        
+        createAvatar(userId, config) {
+            const scene = this.scene || window.SceneManager?.scene;
+            if (!scene) {
+                console.warn('❌ No scene available for avatar creation');
+                return null;
+            }
+            
+            // Create simple colored box avatar
+            const geometry = new THREE.BoxGeometry(1, 2, 1);
+            const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+            const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+            const material = new THREE.MeshLambertMaterial({ color: colors[colorIndex] });
+            const avatar = new THREE.Mesh(geometry, material);
+            
+            // Position avatar
+            avatar.position.copy(config.position);
+            avatar.position.y = 1; // Ensure it's above ground
+            avatar.castShadow = true;
+            avatar.receiveShadow = true;
+            
+            // Store user data
+            avatar.userData = {
+                userId: userId,
+                username: config.name || 'User',
+                nationality: config.nationality || 'UN'
+            };
+            
+            scene.add(avatar);
+            this.avatars.set(userId, avatar);
+            
+            console.log(`✅ Created avatar for ${config.name} at position:`, config.position);
+            return avatar;
+        },
+        
+        removeAvatar(userId) {
+            const avatar = this.avatars.get(userId);
+            if (avatar && avatar.parent) {
+                avatar.parent.remove(avatar);
+                this.avatars.delete(userId);
+                console.log(`🗑️ Removed avatar for user: ${userId}`);
+            }
+        },
+        
+        getAvatarPosition(userId) {
+            const avatar = this.avatars.get(userId);
+            return avatar ? avatar.position.clone() : null;
+        }
+    };
+
+    // Initialize AvatarSystem when SceneManager is ready
+    const initAvatarSystem = () => {
+        if (window.SceneManager?.scene) {
+            window.AvatarSystem.init();
+        } else {
+            setTimeout(initAvatarSystem, 500);
+        }
+    };
+    setTimeout(initAvatarSystem, 1000);
+
+    console.log('🤖 AvatarSystem script loaded');
+    </script>
+
 
     <!-- Enhanced WebSocket Manager - FIXED VERSION with Scene Synchronization Support -->
     <script>
@@ -2310,7 +2382,18 @@
                 console.log('🔍 User ID:', this.userId);
                 console.log('🌍 User Nationality:', this.userNationality);
             }
-            
+
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+
             connect() {
                 if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
                     return;
@@ -2479,14 +2562,12 @@
                     // Clear existing user tracking
                     this.connectedUsers.clear();
                     
-                    // Add all users from room state, INCLUDING current user for testing
+                    // Add all users from room state, INCLUDING current user
                     data.users.forEach(user => {
                         console.log(`👤 Processing user: ${user.username} (${user.user_id})`);
                         console.log(`🌍 User nationality: ${user.nationality || 'UN'}`);
-                        console.log(`🔍 Current user ID: ${this.userId}`);
-                        console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
                         
-                        // CREATE AVATAR FOR ALL USERS (including self for testing)
+                        // CREATE AVATAR FOR ALL USERS (including self)
                         console.log(`✅ Adding user: ${user.username} from ${user.nationality || 'UN'}`);
                         this.connectedUsers.set(user.user_id, user);
                         this.createRemoteAvatar(user);
@@ -2503,18 +2584,17 @@
                 console.log(`👋 ${data.username} joined from ${data.nationality || 'UN'}`);
                 console.log(`🔍 Joined user ID: ${data.user_id}`);
                 console.log(`🔍 Current user ID: ${this.userId}`);
-                console.log(`🔍 User ID comparison: "${data.user_id}" !== "${this.userId}" = ${data.user_id !== this.userId}`);
                 
                 this.addSystemMessage(`${data.username} joined from ${this.getCountryName(data.nationality || 'UN')}`);
                 
-                // CREATE AVATAR FOR ALL USERS (including self for testing)
+                // CREATE AVATAR FOR ALL USERS (including self)
                 console.log(`✅ Creating avatar for: ${data.username} (${data.nationality || 'UN'})`);
                 this.connectedUsers.set(data.user_id, data);
                 this.createRemoteAvatar(data);
                 
-                this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
-            }
-            
+                this.updateUserCount(this.connectedUsers.size);
+            },
+
             // FIXED: Handle when a user leaves
             handleUserLeft(data) {
                 console.log(`👋 ${data.username} left the room`);
