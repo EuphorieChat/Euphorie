@@ -44,12 +44,25 @@ class EuphorieScreenSharingSystem {
         };
         
         // Bind methods
+        console.log('Binding init:', typeof this.init);
         this.init = this.init.bind(this);
+
+        console.log('Binding startScreenShare:', typeof this.startScreenShare);
         this.startScreenShare = this.startScreenShare.bind(this);
+
+        console.log('Binding stopScreenShare:', typeof this.stopScreenShare);
         this.stopScreenShare = this.stopScreenShare.bind(this);
+
+        console.log('Binding createProjectionSurface:', typeof this.createProjectionSurface);
         this.createProjectionSurface = this.createProjectionSurface.bind(this);
+
+        console.log('Binding updateProjectionSurface:', typeof this.updateProjectionSurface);
         this.updateProjectionSurface = this.updateProjectionSurface.bind(this);
+
+        console.log('Binding showScreenShareUI:', typeof this.showScreenShareUI);
         this.showScreenShareUI = this.showScreenShareUI.bind(this);
+
+        console.log('Binding handleScreenShareMessage:', typeof this.handleScreenShareMessage);
         this.handleScreenShareMessage = this.handleScreenShareMessage.bind(this);
         
         console.log('✅ Screen Sharing System created');
