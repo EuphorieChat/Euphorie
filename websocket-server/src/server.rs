@@ -1,4 +1,4 @@
-// UPDATED: src/server.rs - Added Scene Synchronization Handlers
+// UPDATED: src/server.rs - Fixed version with proper screen sharing integration
 use std::sync::Arc;
 
 use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo};
@@ -6,6 +6,7 @@ use crate::room::Room;
 use crate::user::User;
 use crate::rate_limiter::{RateLimiter, RateLimiterConfig};
 use crate::message_history::{MessageHistory, MessageHistoryConfig};
+use crate::screen_sharing::{ScreenSharingManager, ScreenSharingConfig, ScreenShareMessage};
 
 use dashmap::DashMap;
 use tokio::net::{TcpListener, TcpStream};
@@ -23,6 +24,7 @@ pub struct Config {
     pub max_users_per_room: usize,
     pub rate_limiter: RateLimiterConfig,
     pub message_history: MessageHistoryConfig,
+    pub screen_sharing: ScreenSharingConfig,  // NEW: Added screen sharing config
 }
 
 impl Config {
@@ -41,6 +43,7 @@ impl Default for Config {
             max_users_per_room: 100,
             rate_limiter: RateLimiterConfig::default(),
             message_history: MessageHistoryConfig::default(),
+            screen_sharing: ScreenSharingConfig::default(),  // NEW: Default screen sharing config
         }
     }
 }
@@ -51,6 +54,7 @@ pub struct WebSocketServer {
     pub config: Config,
     pub rate_limiter: RateLimiter,
     pub message_history: MessageHistory,
+    pub screen_sharing_manager: Arc<ScreenSharingManager>,  // NEW: Screen sharing manager
 }
 
 #[derive(Debug)]
@@ -64,8 +68,9 @@ impl WebSocketServer {
     pub async fn new(config: Config) -> Result<Self> {
         let rate_limiter = RateLimiter::new(config.rate_limiter.clone());
         let message_history = MessageHistory::new(config.message_history.clone());
+        let screen_sharing_manager = Arc::new(ScreenSharingManager::new(config.screen_sharing.clone()));
 
-        // Start periodic cleanup task for rate limiter
+        // Start periodic cleanup tasks
         let cleanup_rate_limiter = rate_limiter.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(300)); // Every 5 minutes
@@ -75,12 +80,26 @@ impl WebSocketServer {
             }
         });
 
+        // NEW: Screen sharing cleanup task
+        let cleanup_screen_sharing = screen_sharing_manager.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60)); // Every minute
+            loop {
+                interval.tick().await;
+                let expired_rooms = cleanup_screen_sharing.cleanup_expired_shares().await;
+                if !expired_rooms.is_empty() {
+                    tracing::info!("🧹 Cleaned up {} expired screen shares", expired_rooms.len());
+                }
+            }
+        });
+
         Ok(Self {
             connections: Arc::new(DashMap::new()),
             rooms: Arc::new(DashMap::new()),
             config,
             rate_limiter,
             message_history,
+            screen_sharing_manager,
         })
     }
 
@@ -160,6 +179,12 @@ impl WebSocketServer {
     }
 
     async fn handle_message(&self, connection_id: &str, text: &str) -> Result<()> {
+        // NEW: Try to parse as screen sharing message first
+        if let Ok(screen_share_msg) = serde_json::from_str::<ScreenShareMessage>(text) {
+            return self.handle_screen_share_message(screen_share_msg, connection_id).await;
+        }
+
+        // Parse as regular message
         let message: ClientMessage = serde_json::from_str(text)?;
         
         // Apply rate limiting to most message types (except ping/auth)
@@ -169,9 +194,9 @@ impl WebSocketServer {
             ClientMessage::Emotion { .. } |
             ClientMessage::Interaction { .. } |
             ClientMessage::Typing { .. } |
-            ClientMessage::SceneChange { .. } |     // NEW: Rate limit scene changes
-            ClientMessage::WeatherChange { .. } |   // NEW: Rate limit weather changes
-            ClientMessage::TimeChange { .. }        // NEW: Rate limit time changes
+            ClientMessage::SceneChange { .. } |
+            ClientMessage::WeatherChange { .. } |
+            ClientMessage::TimeChange { .. }
         );
 
         if should_rate_limit && !self.rate_limiter.check_rate_limit(connection_id) {
@@ -210,7 +235,7 @@ impl WebSocketServer {
                     username: final_username.clone(),
                     position: Position { x: 0.0, y: 0.0, z: 0.0 },
                     room_id: Some(room_id.clone()),
-                    nationality: nationality.clone(), // NEW: Store nationality
+                    nationality: nationality.clone(),
                     connected_at: chrono::Utc::now(),
                 };
 
@@ -238,7 +263,7 @@ impl WebSocketServer {
                         user_id: final_user_id.clone(),
                         username: final_username,
                         avatar: Some(AvatarInfo::default()),
-                        nationality: nationality, // NEW: Include nationality
+                        nationality: nationality,
                     };
                     
                     // Store and broadcast user joined message
@@ -273,7 +298,7 @@ impl WebSocketServer {
                                 user_id: final_user_id,
                                 username,
                                 message: msg,
-                                nationality, // NEW: Include nationality
+                                nationality,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             
@@ -295,7 +320,7 @@ impl WebSocketServer {
                             let response = ServerMessage::UserPositionUpdate {
                                 user_id: final_user_id,
                                 position,
-                                nationality, // NEW: Include nationality
+                                nationality,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             };
                             self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
@@ -322,13 +347,11 @@ impl WebSocketServer {
                         user_id: final_user_id,
                         username,
                         emotion,
-                        nationality, // NEW: Include nationality
+                        nationality,
                         timestamp: chrono::Utc::now().timestamp_millis(),
                     };
                     
-                    // Store emotion in history
                     self.message_history.add_message(&room_id, response.clone()).await;
-                    
                     self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
                 }
             }
@@ -353,13 +376,11 @@ impl WebSocketServer {
                         target_user_id,
                         interaction_type,
                         data,
-                        nationality, // NEW: Include nationality
+                        nationality,
                         timestamp: chrono::Utc::now().timestamp_millis(),
                     };
                     
-                    // Store interaction in history
                     self.message_history.add_message(&room_id, response.clone()).await;
-                    
                     self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
                 }
             }
@@ -384,7 +405,6 @@ impl WebSocketServer {
                         is_typing,
                     };
                     
-                    // Don't store typing indicators in history
                     self.broadcast_to_room(&room_id, &response, Some(&conn.user_id)).await?;
                 }
             }
@@ -397,7 +417,7 @@ impl WebSocketServer {
                         position: Some(u.position),
                         avatar: Some(AvatarInfo::default()),
                         is_typing: false,
-                        nationality: u.nationality, // NEW: Include nationality
+                        nationality: u.nationality,
                         last_seen: chrono::Utc::now().timestamp_millis(),
                     }).collect();
 
@@ -414,7 +434,6 @@ impl WebSocketServer {
                 self.send_to_connection(connection_id, &response).await?;
             }
 
-            // 🆕 NEW: Scene Change Handler
             ClientMessage::SceneChange { user_id: scene_user_id, room_id, username, scene_preset, scene_name, change_data, nationality, .. } => {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = scene_user_id.unwrap_or_else(|| conn.user_id.clone());
@@ -431,7 +450,6 @@ impl WebSocketServer {
                         "User".to_string()
                     };
 
-                    // Update room's scene preset
                     if let Some(room) = self.rooms.get(&room_id) {
                         room.update_scene_preset(scene_preset.clone()).await;
                     }
@@ -447,16 +465,11 @@ impl WebSocketServer {
                     };
                     
                     tracing::info!("🏠 Scene change: {} -> {}", final_username, scene_preset);
-                    
-                    // Store scene change in history
                     self.message_history.add_message(&room_id, response.clone()).await;
-                    
-                    // Broadcast to all users in room (including sender for confirmation)
                     self.broadcast_to_room(&room_id, &response, None).await?;
                 }
             }
 
-            // 🆕 NEW: Weather Change Handler
             ClientMessage::WeatherChange { user_id: weather_user_id, room_id, username, weather_type, intensity, nationality, .. } => {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = weather_user_id.unwrap_or_else(|| conn.user_id.clone());
@@ -483,16 +496,11 @@ impl WebSocketServer {
                     };
                     
                     tracing::info!("🌦️ Weather change: {} -> {}", final_username, weather_type);
-                    
-                    // Store weather change in history
                     self.message_history.add_message(&room_id, response.clone()).await;
-                    
-                    // Broadcast to all users in room
                     self.broadcast_to_room(&room_id, &response, None).await?;
                 }
             }
 
-            // 🆕 NEW: Time Change Handler
             ClientMessage::TimeChange { user_id: time_user_id, room_id, username, time_of_day, hour, nationality, .. } => {
                 if let Some(conn) = self.connections.get(connection_id) {
                     let final_user_id = time_user_id.unwrap_or_else(|| conn.user_id.clone());
@@ -519,11 +527,7 @@ impl WebSocketServer {
                     };
                     
                     tracing::info!("🌅 Time change: {} -> {}", final_username, time_of_day);
-                    
-                    // Store time change in history
                     self.message_history.add_message(&room_id, response.clone()).await;
-                    
-                    // Broadcast to all users in room
                     self.broadcast_to_room(&room_id, &response, None).await?;
                 }
             }
@@ -532,11 +536,101 @@ impl WebSocketServer {
         Ok(())
     }
 
+    // NEW: Handle screen sharing messages
+    async fn handle_screen_share_message(&self, message: ScreenShareMessage, connection_id: &str) -> Result<()> {
+        if let Some(conn) = self.connections.get(connection_id) {
+            let user_id = &conn.user_id;
+            
+            match message {
+                ScreenShareMessage::Started { user_id: msg_user_id, room_id, username, nationality, share_data, .. } => {
+                    let final_user_id = msg_user_id;
+                    
+                    match self.screen_sharing_manager.start_screen_share(
+                        final_user_id.clone(),
+                        room_id.clone(),
+                        username.clone(),
+                        nationality.clone(),
+                        share_data.clone(),
+                    ).await {
+                        Ok(session_id) => {
+                            let broadcast_message = ScreenShareMessage::Started {
+                                user_id: final_user_id,
+                                room_id: room_id.clone(),
+                                username,
+                                nationality,
+                                share_data,
+                                timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                            };
+                            
+                            self.broadcast_screen_share_message(&room_id, &broadcast_message, Some(user_id)).await?;
+                            tracing::info!("🖥️ Screen share started in room: {} (session: {})", room_id, session_id);
+                        }
+                        Err(e) => {
+                            tracing::warn!("❌ Screen share start failed: {}", e);
+                        }
+                    }
+                }
+
+                ScreenShareMessage::Stopped { user_id: msg_user_id, room_id, username, nationality, .. } => {
+                    if let Some(_stopped_share) = self.screen_sharing_manager.stop_screen_share(&msg_user_id).await {
+                        let broadcast_message = ScreenShareMessage::Stopped {
+                            user_id: msg_user_id,
+                            room_id: room_id.clone(),
+                            username,
+                            nationality,
+                            timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                        };
+                        
+                        self.broadcast_screen_share_message(&room_id, &broadcast_message, Some(user_id)).await?;
+                        tracing::info!("🖥️ Screen share stopped in room: {}", room_id);
+                    }
+                }
+
+                ScreenShareMessage::WebRTCOffer { target_user_id, .. } |
+                ScreenShareMessage::WebRTCAnswer { target_user_id, .. } |
+                ScreenShareMessage::WebRTCCandidate { target_user_id, .. } => {
+                    // Send WebRTC signaling messages directly to target user
+                    self.send_screen_share_message_to_user(&target_user_id, &message).await?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    // NEW: Helper methods for screen sharing
+    async fn broadcast_screen_share_message(&self, room_id: &str, message: &ScreenShareMessage, exclude_user: Option<&str>) -> Result<()> {
+        let json = serde_json::to_string(message)?;
+        
+        for conn in self.connections.iter() {
+            if let Some(ref conn_room_id) = conn.room_id {
+                if conn_room_id == room_id {
+                    if exclude_user.map_or(false, |exclude| conn.user_id == exclude) {
+                        continue;
+                    }
+                    let _ = conn.sender.send(Message::Text(json.clone()));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn send_screen_share_message_to_user(&self, user_id: &str, message: &ScreenShareMessage) -> Result<()> {
+        let json = serde_json::to_string(message)?;
+        
+        for conn in self.connections.iter() {
+            if conn.user_id == user_id {
+                let _ = conn.sender.send(Message::Text(json));
+                break;
+            }
+        }
+        Ok(())
+    }
+
     async fn get_or_create_room(&self, room_id: &str) -> Result<Arc<Room>> {
         if let Some(room) = self.rooms.get(room_id) {
             Ok(room.value().clone())
         } else {
-            // Check room limits
             if self.rooms.len() >= self.config.max_rooms {
                 return Err(anyhow::anyhow!("Maximum number of rooms reached"));
             }
@@ -576,18 +670,29 @@ impl WebSocketServer {
 
     async fn cleanup_user(&self, connection_id: &str) {
         if let Some((_, conn)) = self.connections.remove(connection_id) {
+            // NEW: Handle screen sharing cleanup
+            if let Some(room_id) = self.screen_sharing_manager.user_disconnected(&conn.user_id).await {
+                let broadcast_message = ScreenShareMessage::Stopped {
+                    user_id: conn.user_id.clone(),
+                    room_id: room_id.clone(),
+                    username: "Unknown".to_string(),
+                    nationality: None,
+                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                };
+                
+                let _ = self.broadcast_screen_share_message(&room_id, &broadcast_message, None).await;
+            }
+
             if let Some(room_id) = conn.room_id {
                 if let Some(room) = self.rooms.get(&room_id) {
                     if let Some(removed_user) = room.remove_user(&conn.user_id).await {
                         let response = ServerMessage::UserLeft {
                             user_id: removed_user.user_id.clone(),
                             username: removed_user.username.clone(),
-                            nationality: removed_user.nationality.clone(), // NEW: Include nationality
+                            nationality: removed_user.nationality.clone(),
                         };
                         
-                        // Store user left message in history
                         self.message_history.add_message(&room_id, response.clone()).await;
-                        
                         let _ = self.broadcast_to_room(&room_id, &response, None).await;
                     }
                 }
@@ -604,6 +709,7 @@ impl Clone for WebSocketServer {
             config: self.config.clone(),
             rate_limiter: self.rate_limiter.clone(),
             message_history: self.message_history.clone(),
+            screen_sharing_manager: self.screen_sharing_manager.clone(),
         }
     }
 }

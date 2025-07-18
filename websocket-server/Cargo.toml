@@ -3,7 +3,7 @@ name = "euphorie-websocket"
 version = "1.0.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
-description = "High-performance WebSocket server for Euphorie 3D multi-user rooms with rate limiting and message history"
+description = "High-performance WebSocket server for Euphorie 3D multi-user rooms with screen sharing, rate limiting and message history"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/yourusername/euphorie-websocket"
 
@@ -44,8 +44,25 @@ uuid = { version = "1.6", features = ["v4", "serde"] }
 # Additional utilities
 arc-swap = "1.6"  # For atomic updates to shared data
 
+# Screen sharing dependencies
+tokio-util = { version = "0.7", features = ["rt"] }  # For additional async utilities
+bytes = "1.5"  # For efficient byte handling in WebRTC signaling
+base64 = "0.21"  # For encoding WebRTC data if needed
+
+# Optional: HTTP client for API integration (if needed)
+reqwest = { version = "0.11", features = ["json"], optional = true }
+
+# Optional: Database integration (if you want to store screen share sessions)
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"], optional = true }
+
 [dev-dependencies]
 tokio-test = "0.4"
+
+[features]
+default = []
+api-integration = ["reqwest"]
+database = ["sqlx"]
+full = ["api-integration", "database"]
 
 [profile.release]
 lto = true
