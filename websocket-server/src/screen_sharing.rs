@@ -5,7 +5,7 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 // Screen sharing configuration
 #[derive(Debug, Clone)]

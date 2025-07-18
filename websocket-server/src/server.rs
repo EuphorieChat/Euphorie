@@ -586,11 +586,11 @@ impl WebSocketServer {
                     }
                 }
 
-                ScreenShareMessage::WebRTCOffer { target_user_id, .. } |
-                ScreenShareMessage::WebRTCAnswer { target_user_id, .. } |
-                ScreenShareMessage::WebRTCCandidate { target_user_id, .. } => {
+                ScreenShareMessage::WebRTCOffer { ref target_user_id, .. } |
+                ScreenShareMessage::WebRTCAnswer { ref target_user_id, .. } |
+                ScreenShareMessage::WebRTCCandidate { ref target_user_id, .. } => {
                     // Send WebRTC signaling messages directly to target user
-                    self.send_screen_share_message_to_user(&target_user_id, &message).await?;
+                    self.send_screen_share_message_to_user(target_user_id, &message).await?;
                 }
             }
         }
