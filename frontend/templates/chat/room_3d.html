@@ -2335,653 +2335,792 @@
     </script>
 
     <script>
-        // Enhanced WebSocket Manager for Rust Server Integration - FIXED AVATAR CREATION with Scene Sync
-        class EuphorieWebSocketManager {
-            constructor() {
-                this.socket = null;
-                this.connected = false;
-                this.authenticated = false;
-                this.reconnectAttempts = 0;
-                this.maxReconnectAttempts = 5;
-                this.reconnectDelay = 1000;
-                this.messageQueue = [];
-                this.typingTimer = null;
-                this.isTyping = false;
-                this.lastPingTime = 0;
-                this.connectedUsers = new Map(); // Track all connected users
-                
-                // Generate user ID if not provided
-                this.userId = (window.ROOM_CONFIG && window.ROOM_CONFIG.userId) || 'guest_' + Math.random().toString(36).substr(2, 9);
-                this.username = (window.ROOM_CONFIG && window.ROOM_CONFIG.username) || 'Guest';
-                this.userNationality = (window.ROOM_CONFIG && window.ROOM_CONFIG.userNationality) || 'UN';
-                this.roomId = (window.ROOM_CONFIG && window.ROOM_CONFIG.roomId) || 'default-room';
+    // Enhanced WebSocket Manager for Rust Server Integration - FIXED CORS VERSION
+    class EuphorieWebSocketManager {
+        constructor() {
+            this.socket = null;
+            this.connected = false;
+            this.authenticated = false;
+            this.reconnectAttempts = 0;
+            this.maxReconnectAttempts = 5;
+            this.reconnectDelay = 1000;
+            this.messageQueue = [];
+            this.typingTimer = null;
+            this.isTyping = false;
+            this.lastPingTime = 0;
+            this.connectedUsers = new Map(); // Track all connected users
+            
+            // Generate user ID if not provided
+            this.userId = (window.ROOM_CONFIG && window.ROOM_CONFIG.userId) || 'guest_' + Math.random().toString(36).substr(2, 9);
+            this.username = (window.ROOM_CONFIG && window.ROOM_CONFIG.username) || 'Guest';
+            this.userNationality = (window.ROOM_CONFIG && window.ROOM_CONFIG.userNationality) || 'UN';
+            this.roomId = (window.ROOM_CONFIG && window.ROOM_CONFIG.roomId) || 'default-room';
 
-                // Double-check that ROOM_CONFIG exists
-                if (!window.ROOM_CONFIG) {
-                    console.error('❌ ROOM_CONFIG not found, creating fallback');
-                    window.ROOM_CONFIG = {
-                        userId: this.userId,
-                        username: this.username,
-                        userNationality: this.userNationality,
-                        roomId: this.roomId,
-                        rustWebSocketUrl: `wss://${window.location.hostname}/ws/`
-                    };
-                }
-                
-                // Bind methods
-                this.connect = this.connect.bind(this);
-                this.send = this.send.bind(this);
-                this.handleMessage = this.handleMessage.bind(this);
-                this.handleOpen = this.handleOpen.bind(this);
-                this.handleClose = this.handleClose.bind(this);
-                this.handleError = this.handleError.bind(this);
-                
-                console.log('🔌 WebSocket Manager initialized for user:', this.username);
-                console.log('🔍 User ID:', this.userId);
-                console.log('🌍 User Nationality:', this.userNationality);
-            }
-            
-            connect() {
-                if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
-                    return;
-                }
-                
-                try {
-                    const url = window.ROOM_CONFIG.rustWebSocketUrl;
-                    console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
-                    this.updateConnectionStatus('connecting');
-                    
-                    this.socket = new WebSocket(url);
-                    this.socket.onopen = this.handleOpen;
-                    this.socket.onmessage = this.handleMessage;
-                    this.socket.onclose = this.handleClose;
-                    this.socket.onerror = this.handleError;
-                    
-                } catch (error) {
-                    console.error('❌ WebSocket connection failed:', error);
-                    this.scheduleReconnect();
-                }
-            }
-            
-            handleOpen(event) {
-                console.log('✅ Connected to Rust WebSocket server');
-                this.connected = true;
-                this.reconnectAttempts = 0;
-                this.updateConnectionStatus('connected');
-                
-                // Send authentication message with nationality
-                this.send({
-                    type: 'auth',
-                    user_id: this.userId,
-                    room_id: this.roomId,
+            // Double-check that ROOM_CONFIG exists
+            if (!window.ROOM_CONFIG) {
+                console.error('❌ ROOM_CONFIG not found, creating fallback');
+                window.ROOM_CONFIG = {
+                    userId: this.userId,
                     username: this.username,
-                    nationality: this.userNationality,
-                    timestamp: Date.now()
+                    userNationality: this.userNationality,
+                    roomId: this.roomId,
+                    rustWebSocketUrl: `wss://${window.location.hostname}/ws/`
+                };
+            }
+            
+            // Bind methods
+            this.connect = this.connect.bind(this);
+            this.send = this.send.bind(this);
+            this.handleMessage = this.handleMessage.bind(this);
+            this.handleOpen = this.handleOpen.bind(this);
+            this.handleClose = this.handleClose.bind(this);
+            this.handleError = this.handleError.bind(this);
+            
+            console.log('🔌 WebSocket Manager initialized for user:', this.username);
+            console.log('🔍 User ID:', this.userId);
+            console.log('🌍 User Nationality:', this.userNationality);
+        }
+
+        escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        connect() {
+            if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+                return;
+            }
+            
+            try {
+                const url = window.ROOM_CONFIG.rustWebSocketUrl;
+                console.log(`🔌 Connecting to Rust WebSocket: ${url}`);
+                this.updateConnectionStatus('connecting');
+                
+                this.socket = new WebSocket(url);
+                this.socket.onopen = this.handleOpen;
+                this.socket.onmessage = this.handleMessage;
+                this.socket.onclose = this.handleClose;
+                this.socket.onerror = this.handleError;
+                
+            } catch (error) {
+                console.error('❌ WebSocket connection failed:', error);
+                this.scheduleReconnect();
+            }
+        }
+        
+        handleOpen(event) {
+            console.log('✅ Connected to Rust WebSocket server');
+            this.connected = true;
+            this.reconnectAttempts = 0;
+            this.updateConnectionStatus('connected');
+            
+            // Send authentication message with nationality
+            this.send({
+                type: 'auth',
+                user_id: this.userId,
+                room_id: this.roomId,
+                username: this.username,
+                nationality: this.userNationality,
+                timestamp: Date.now()
+            });
+            
+            // Send queued messages
+            while (this.messageQueue.length > 0) {
+                const message = this.messageQueue.shift();
+                this.send(message);
+            }
+            
+            // Start ping interval
+            this.startPingInterval();
+        }
+        
+        handleMessage(event) {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('📨 Received message:', data);
+                
+                switch (data.type) {
+                    case 'auth_success':
+                        this.authenticated = true;
+                        console.log(`✅ Authentication successful for room: ${data.room_id}`);
+                        this.addSystemMessage(`Connected to ${data.room_info ? data.room_info.name : 'room'}`);
+                        this.enableChatInput();
+                        
+                        // Request current room state
+                        this.send({
+                            type: 'get_room_state',
+                            room_id: this.roomId
+                        });
+                        break;
+                        
+                    case 'auth_error':
+                        console.error(`❌ Authentication failed: ${data.error}`);
+                        this.addSystemMessage(`Authentication failed: ${data.error}`);
+                        break;
+                        
+                    case 'room_state':
+                        this.handleRoomState(data);
+                        break;
+                        
+                    case 'user_joined':
+                        this.handleUserJoined(data);
+                        break;
+                        
+                    case 'user_left':
+                        this.handleUserLeft(data);
+                        break;
+                        
+                    case 'chat_message':
+                        this.handleChatMessage(data);
+                        break;
+                        
+                    case 'user_position_update':
+                        this.handleUserPositionUpdate(data);
+                        break;
+                        
+                    case 'emotion':
+                        this.handleEmotion(data);
+                        break;
+                        
+                    case 'interaction':
+                        this.handleInteraction(data);
+                        break;
+                        
+                    case 'typing':
+                        this.handleTyping(data);
+                        break;
+                        
+                    case 'scene_change':
+                        this.handleSceneChange(data);
+                        break;
+                        
+                    case 'weather_change':
+                        this.handleWeatherChange(data);
+                        break;
+                        
+                    case 'time_change':
+                        this.handleTimeChange(data);
+                        break;
+
+                    case 'screen_share_started':
+                        this.handleScreenShareStarted(data);
+                        break;
+                        
+                    case 'screen_share_stopped':
+                        this.handleScreenShareStopped(data);
+                        break;
+                        
+                    case 'pong':
+                        const latency = Date.now() - this.lastPingTime;
+                        console.log(`🏓 Pong received (${latency}ms)`);
+                        break;
+                        
+                    case 'system':
+                        this.addSystemMessage(data.message);
+                        break;
+                        
+                    case 'error':
+                        console.error(`❌ Server error: ${data.error}`);
+                        this.addSystemMessage(`Error: ${data.error}`);
+                        break;
+                        
+                    default:
+                        console.log(`🔍 Unknown message type: ${data.type}`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error parsing WebSocket message:', error);
+            }
+        }
+
+        // Screen sharing handlers
+        handleScreenShareStarted(data) {
+            if (data.user_id !== this.userId && window.screenSharingSystem) {
+                window.screenSharingSystem.handleRemoteScreenShareStart(data);
+            }
+        }
+        
+        handleScreenShareStopped(data) {
+            if (data.user_id !== this.userId && window.screenSharingSystem) {
+                window.screenSharingSystem.handleRemoteScreenShareStop(data);
+            }
+        }
+        
+        // FIXED: Handle room state to sync all users with nationality
+        handleRoomState(data) {
+            console.log('🏠 Received room state:', data);
+            
+            if (data.users) {
+                // Clear existing user tracking
+                this.connectedUsers.clear();
+                
+                // Add all users from room state, but DON'T create avatar for current user
+                data.users.forEach(user => {
+                    console.log(`👤 Processing user: ${user.username} (${user.user_id})`);
+                    console.log(`🌍 User nationality: ${user.nationality || 'UN'}`);
+                    console.log(`🔍 Current user ID: ${this.userId}`);
+                    console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
+                    
+                    if (user.user_id !== this.userId) {
+                        console.log(`✅ Adding remote user: ${user.username} from ${user.nationality || 'UN'}`);
+                        this.connectedUsers.set(user.user_id, user);
+                        this.createRemoteAvatar(user);
+                    } else {
+                        console.log(`⚠️ Skipping avatar creation for current user: ${user.username}`);
+                    }
                 });
                 
-                // Send queued messages
-                while (this.messageQueue.length > 0) {
-                    const message = this.messageQueue.shift();
-                    this.send(message);
-                }
-                
-                // Start ping interval
-                this.startPingInterval();
+                console.log(`👥 Room has ${data.users.length} users total`);
+                console.log(`🎭 Will create ${this.connectedUsers.size} remote avatars`);
+                this.updateUserCount(data.users.length);
+            }
+        }
+        
+        // FIXED: Handle when a user joins with nationality
+        handleUserJoined(data) {
+            console.log(`👋 ${data.username} joined from ${data.nationality || 'UN'}`);
+            console.log(`🔍 Joined user ID: ${data.user_id}`);
+            console.log(`🔍 Current user ID: ${this.userId}`);
+            console.log(`🔍 User ID comparison: "${data.user_id}" !== "${this.userId}" = ${data.user_id !== this.userId}`);
+            
+            this.addSystemMessage(`${data.username} joined from ${this.getCountryName(data.nationality || 'UN')}`);
+            
+            // CRITICAL: Don't create avatar for ourselves
+            if (data.user_id !== this.userId) {
+                console.log(`✅ Creating remote avatar for: ${data.username} (${data.nationality || 'UN'})`);
+                this.connectedUsers.set(data.user_id, data);
+                this.createRemoteAvatar(data);
+            } else {
+                console.log(`⚠️ Skipping avatar creation for current user: ${data.username}`);
             }
             
-            handleMessage(event) {
+            this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
+        }
+        
+        // FIXED: Handle when a user leaves
+        handleUserLeft(data) {
+            console.log(`👋 ${data.username} left the room`);
+            this.addSystemMessage(`${data.username} left the room`);
+            
+            // Remove their avatar
+            if (data.user_id !== this.userId) {
+                this.removeRemoteAvatar(data.user_id);
+                this.connectedUsers.delete(data.user_id);
+            }
+            
+            this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
+        }
+        
+        // FIXED: Create avatar for remote user with nationality flag - CORS ISSUE RESOLVED
+        async createRemoteAvatar(userData) {
+            console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
+            
+            // Double-check we're not creating avatar for current user
+            if (userData.user_id === this.userId) {
+                console.warn(`❌ Attempted to create avatar for current user - skipping`);
+                return;
+            }
+            
+            // Strategy 1: Use AvatarSystem.createAvatar with the user ID as the avatar ID
+            if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
                 try {
-                    const data = JSON.parse(event.data);
-                    console.log('📨 Received message:', data);
+                    console.log(`📋 Using AvatarSystem.createAvatar for ${userData.username}`);
                     
-                    switch (data.type) {
-                        case 'auth_success':
-                            this.authenticated = true;
-                            console.log(`✅ Authentication successful for room: ${data.room_id}`);
-                            this.addSystemMessage(`Connected to ${data.room_info ? data.room_info.name : 'room'}`);
-                            this.enableChatInput();
-                            
-                            // Request current room state
-                            this.send({
-                                type: 'get_room_state',
-                                room_id: this.roomId
-                            });
-                            break;
-                            
-                        case 'auth_error':
-                            console.error(`❌ Authentication failed: ${data.error}`);
-                            this.addSystemMessage(`Authentication failed: ${data.error}`);
-                            break;
-                            
-                        case 'room_state':
-                            this.handleRoomState(data);
-                            break;
-                            
-                        case 'user_joined':
-                            this.handleUserJoined(data);
-                            break;
-                            
-                        case 'user_left':
-                            this.handleUserLeft(data);
-                            break;
-                            
-                        case 'chat_message':
-                            this.handleChatMessage(data);
-                            break;
-                            
-                        case 'user_position_update':
-                            this.handleUserPositionUpdate(data);
-                            break;
-                            
-                        case 'emotion':
-                            this.handleEmotion(data);
-                            break;
-                            
-                        case 'interaction':
-                            this.handleInteraction(data);
-                            break;
-                            
-                        case 'typing':
-                            this.handleTyping(data);
-                            break;
-                            
-                        case 'scene_change':
-                            this.handleSceneChange(data);
-                            break;
-                            
-                        case 'weather_change':
-                            this.handleWeatherChange(data);
-                            break;
-                            
-                        case 'time_change':
-                            this.handleTimeChange(data);
-                            break;
-                            
-                        case 'pong':
-                            const latency = Date.now() - this.lastPingTime;
-                            console.log(`🏓 Pong received (${latency}ms)`);
-                            break;
-                            
-                        case 'system':
-                            this.addSystemMessage(data.message);
-                            break;
-                            
-                        case 'error':
-                            console.error(`❌ Server error: ${data.error}`);
-                            this.addSystemMessage(`Error: ${data.error}`);
-                            break;
-                            
-                        default:
-                            console.log(`🔍 Unknown message type: ${data.type}`);
+                    // Generate a consistent position based on user ID
+                    const hash = userData.user_id.split('').reduce((a, b) => {
+                        a = ((a << 5) - a) + b.charCodeAt(0);
+                        return a & a;
+                    }, 0);
+                    
+                    const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                    const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius
+                    
+                    const position = {
+                        x: Math.cos(angle) * radius,
+                        y: 0,
+                        z: Math.sin(angle) * radius
+                    };
+                    
+                    // Use existing position if available
+                    if (userData.position) {
+                        position.x = userData.position.x;
+                        position.y = userData.position.y;
+                        position.z = userData.position.z;
                     }
                     
-                } catch (error) {
-                    console.error('❌ Error parsing WebSocket message:', error);
-                }
-            }
-            
-            // FIXED: Handle room state to sync all users with nationality
-            handleRoomState(data) {
-                console.log('🏠 Received room state:', data);
-                
-                if (data.users) {
-                    // Clear existing user tracking
-                    this.connectedUsers.clear();
-                    
-                    // Add all users from room state, but DON'T create avatar for current user
-                    data.users.forEach(user => {
-                        console.log(`👤 Processing user: ${user.username} (${user.user_id})`);
-                        console.log(`🌍 User nationality: ${user.nationality || 'UN'}`);
-                        console.log(`🔍 Current user ID: ${this.userId}`);
-                        console.log(`🔍 User ID comparison: "${user.user_id}" !== "${this.userId}" = ${user.user_id !== this.userId}`);
-                        
-                        if (user.user_id !== this.userId) {
-                            console.log(`✅ Adding remote user: ${user.username} from ${user.nationality || 'UN'}`);
-                            this.connectedUsers.set(user.user_id, user);
-                            this.createRemoteAvatar(user);
-                        } else {
-                            console.log(`⚠️ Skipping avatar creation for current user: ${user.username}`);
-                        }
+                    // Create avatar using the user ID as avatar ID with nationality
+                    const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
+                        name: userData.username,
+                        nationality: userData.nationality || 'UN',
+                        position: position,
+                        // Use random customization if available
+                        ...(window.AvatarSystem.getRandomCustomization ? window.AvatarSystem.getRandomCustomization() : {})
                     });
                     
-                    console.log(`👥 Room has ${data.users.length} users total`);
-                    console.log(`🎭 Will create ${this.connectedUsers.size} remote avatars`);
-                    this.updateUserCount(data.users.length);
-                }
-            }
-            
-            // FIXED: Handle when a user joins with nationality
-            handleUserJoined(data) {
-                console.log(`👋 ${data.username} joined from ${data.nationality || 'UN'}`);
-                console.log(`🔍 Joined user ID: ${data.user_id}`);
-                console.log(`🔍 Current user ID: ${this.userId}`);
-                console.log(`🔍 User ID comparison: "${data.user_id}" !== "${this.userId}" = ${data.user_id !== this.userId}`);
-                
-                this.addSystemMessage(`${data.username} joined from ${this.getCountryName(data.nationality || 'UN')}`);
-                
-                // CRITICAL: Don't create avatar for ourselves
-                if (data.user_id !== this.userId) {
-                    console.log(`✅ Creating remote avatar for: ${data.username} (${data.nationality || 'UN'})`);
-                    this.connectedUsers.set(data.user_id, data);
-                    this.createRemoteAvatar(data);
-                } else {
-                    console.log(`⚠️ Skipping avatar creation for current user: ${data.username}`);
-                }
-                
-                this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
-            }
-            
-            // FIXED: Handle when a user leaves
-            handleUserLeft(data) {
-                console.log(`👋 ${data.username} left the room`);
-                this.addSystemMessage(`${data.username} left the room`);
-                
-                // Remove their avatar
-                if (data.user_id !== this.userId) {
-                    this.removeRemoteAvatar(data.user_id);
-                    this.connectedUsers.delete(data.user_id);
-                }
-                
-                this.updateUserCount(this.connectedUsers.size + 1); // +1 for self
-            }
-            
-            // FIXED: Create avatar for remote user with nationality flag - ENHANCED FOR BETTER NAMETAG VISIBILITY
-            async createRemoteAvatar(userData) {
-                console.log(`👤 Creating remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
-                
-                // Double-check we're not creating avatar for current user
-                if (userData.user_id === this.userId) {
-                    console.warn(`❌ Attempted to create avatar for current user - skipping`);
-                    return;
-                }
-                
-                // Strategy 1: Use AvatarSystem.createAvatar with the user ID as the avatar ID
-                if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
-                    try {
-                        console.log(`📋 Using AvatarSystem.createAvatar for ${userData.username}`);
+                    if (avatar) {
+                        console.log(`✅ Created avatar for ${userData.username} using AvatarSystem.createAvatar`);
                         
-                        // Generate a consistent position based on user ID
-                        const hash = userData.user_id.split('').reduce((a, b) => {
-                            a = ((a << 5) - a) + b.charCodeAt(0);
-                            return a & a;
-                        }, 0);
-                        
-                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-                        const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius
-                        
-                        const position = {
-                            x: Math.cos(angle) * radius,
-                            y: 0,
-                            z: Math.sin(angle) * radius
-                        };
-                        
-                        // Use existing position if available
-                        if (userData.position) {
-                            position.x = userData.position.x;
-                            position.y = userData.position.y;
-                            position.z = userData.position.z;
-                        }
-                        
-                        // Create avatar using the user ID as avatar ID with nationality
-                        const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
-                            name: userData.username,
-                            nationality: userData.nationality || 'UN',
-                            position: position,
-                            // Use random customization if available
-                            ...(window.AvatarSystem.getRandomCustomization ? window.AvatarSystem.getRandomCustomization() : {})
-                        });
-                        
-                        if (avatar) {
-                            console.log(`✅ Created avatar for ${userData.username} using AvatarSystem.createAvatar`);
-                            
-                            // CRITICAL: Add the enhanced nametag with flag after avatar creation
-                            setTimeout(async () => {
-                                try {
-                                    const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
-                                    if (nametagGroup && avatar) {
-                                        // For AvatarSystem avatars, try to access the avatar group/object properly
-                                        if (avatar.add && typeof avatar.add === 'function') {
-                                            // Remove any existing nametag first
-                                            const existingNametag = avatar.getObjectByName ? avatar.getObjectByName('nametag') : null;
-                                            if (existingNametag) {
-                                                avatar.remove(existingNametag);
-                                            }
-                                            
-                                            nametagGroup.name = 'nametag';
-                                            avatar.add(nametagGroup);
-                                            console.log(`🏳️ Added enhanced nametag with flag to ${userData.username}`);
-                                        } else {
-                                            console.warn(`Avatar for ${userData.username} doesn't support .add() method`);
+                        // CRITICAL: Add the enhanced nametag with flag after avatar creation
+                        setTimeout(async () => {
+                            try {
+                                const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                                if (nametagGroup && avatar) {
+                                    // For AvatarSystem avatars, try to access the avatar group/object properly
+                                    if (avatar.add && typeof avatar.add === 'function') {
+                                        // Remove any existing nametag first
+                                        const existingNametag = avatar.getObjectByName ? avatar.getObjectByName('nametag') : null;
+                                        if (existingNametag) {
+                                            avatar.remove(existingNametag);
                                         }
+                                        
+                                        nametagGroup.name = 'nametag';
+                                        avatar.add(nametagGroup);
+                                        console.log(`🏳️ Added enhanced nametag with flag to ${userData.username}`);
+                                    } else {
+                                        console.warn(`Avatar for ${userData.username} doesn't support .add() method`);
                                     }
-                                } catch (error) {
-                                    console.warn(`Could not add enhanced nametag to ${userData.username}:`, error);
                                 }
-                            }, 100);
-                            
-                            return avatar;
-                        }
-                        
-                    } catch (error) {
-                        console.error(`❌ Error creating avatar with AvatarSystem.createAvatar:`, error);
-                    }
-                }
-                
-                // Strategy 2: Create simple THREE.js avatar with enhanced nametag
-                if (this.getAvailableScene() && window.THREE) {
-                    try {
-                        const scene = this.getAvailableScene();
-                        console.log(`📋 Using direct Three.js scene for ${userData.username}`);
-                        
-                        // Create a simple colored box as avatar
-                        const geometry = new THREE.BoxGeometry(1, 2, 1);
-                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
-                        const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-                        const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
-                        const avatar = new THREE.Mesh(geometry, material);
-                        
-                        // Position avatar
-                        const hash = userData.user_id.split('').reduce((a, b) => {
-                            a = ((a << 5) - a) + b.charCodeAt(0);
-                            return a & a;
-                        }, 0);
-                        
-                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-                        const radius = 3 + (Math.abs(hash) % 4);
-                        
-                        avatar.position.set(
-                            Math.cos(angle) * radius,
-                            1, // Height above ground
-                            Math.sin(angle) * radius
-                        );
-                        
-                        // Add enhanced username label with nationality flag
-                        const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
-                        if (nametagGroup) {
-                            nametagGroup.name = 'nametag';
-                            avatar.add(nametagGroup);
-                        }
-                        
-                        // Store user ID for removal
-                        avatar.userData = { 
-                            userId: userData.user_id, 
-                            username: userData.username,
-                            nationality: userData.nationality || 'UN'
-                        };
-                        
-                        scene.add(avatar);
-                        console.log(`✅ Created Three.js avatar for ${userData.username} with enhanced nametag`);
+                            } catch (error) {
+                                console.warn(`Could not add enhanced nametag to ${userData.username}:`, error);
+                            }
+                        }, 100);
                         
                         return avatar;
-                        
-                    } catch (error) {
-                        console.error(`❌ Error creating Three.js avatar:`, error);
                     }
-                }
-                
-                // Strategy 3: Wait for systems to be ready and try again
-                console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
-                
-                setTimeout(() => {
-                    console.log(`🔄 Retrying avatar creation for ${userData.username}...`);
-                    this.createRemoteAvatar(userData);
-                }, 2000);
-                
-                console.error(`❌ Failed to create avatar for ${userData.username} - will retry in 2 seconds`);
-                
-                // Show notification to user
-                this.showNotification(`⏳ Creating avatar for ${userData.username} from ${this.getCountryName(userData.nationality || 'UN')}...`);
-            }
-            
-            // Helper to get available scene
-            getAvailableScene() {
-                if (window.SceneManager && window.SceneManager.scene) {
-                    return window.SceneManager.scene;
-                }
-                if (window.AvatarSystem && window.AvatarSystem.scene) {
-                    return window.AvatarSystem.scene;
-                }
-                if (window.scene) {
-                    return window.scene;
-                }
-                return null;
-            }
-            
-            // ENHANCED: Create enhanced nametag with nationality flag - IMPROVED VISIBILITY
-            async createEnhancedNametagWithFlag(userData) {
-                const nationality = userData.nationality || 'UN';
-                
-                // Create nametag canvas with larger size for better visibility
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width = 400;
-                canvas.height = 120;
-                
-                // Clear canvas
-                context.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Enhanced background with gradient and glow effect
-                const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
-                gradient.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
-                gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.9)');
-                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
-                context.fillStyle = gradient;
-                this.roundRect(context, 5, 5, canvas.width - 10, canvas.height - 10, 15);
-                context.fill();
-                
-                // Outer glow effect
-                context.shadowColor = 'rgba(102, 126, 234, 0.6)';
-                context.shadowBlur = 20;
-                context.shadowOffsetX = 0;
-                context.shadowOffsetY = 0;
-                
-                // Enhanced border with glow
-                context.strokeStyle = 'rgba(102, 126, 234, 0.8)';
-                context.lineWidth = 3;
-                context.lineCap = 'round';
-                context.lineJoin = 'round';
-                
-                // Draw glowing border
-                context.save();
-                context.shadowColor = `rgba(102, 126, 234, 0.6)`;
-                context.shadowBlur = 10;
-                context.beginPath();
-                this.roundRect(context, 1.5, 1.5, canvas.width - 3, canvas.height - 21.5, 15 - 1);
-                context.stroke();
-                context.restore();
-                
-                // Inner highlight for glass effect
-                const highlightGradient = context.createLinearGradient(0, 0, 0, canvas.height * 0.6);
-                highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
-                highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                
-                context.fillStyle = highlightGradient;
-                context.beginPath();
-                this.roundRect(context, 2, 2, canvas.width - 4, (canvas.height - 20) * 0.6, 15 - 2);
-                context.fill();
-                
-                // Enhanced bubble tail with gradient
-                const tailGradient = context.createLinearGradient(canvas.width / 2 - 15, canvas.height - 20, canvas.width / 2 + 15, canvas.height - 2);
-                tailGradient.addColorStop(0, 'rgba(240, 248, 255, 0.9)');
-                tailGradient.addColorStop(0.5, 'rgba(230, 245, 255, 0.95)');
-                tailGradient.addColorStop(1, 'rgba(220, 240, 255, 0.85)');
-                
-                context.fillStyle = tailGradient;
-                context.beginPath();
-                context.moveTo(canvas.width / 2 - 15, canvas.height - 20);
-                context.quadraticCurveTo(canvas.width / 2, canvas.height - 2, canvas.width / 2 + 15, canvas.height - 20);
-                context.fill();
-                
-                // Tail border with glow
-                context.save();
-                context.strokeStyle = `rgba(102, 126, 234, 0.7)`;
-                context.lineWidth = 2;
-                context.shadowColor = `rgba(102, 126, 234, 0.5)`;
-                context.shadowBlur = 8;
-                context.beginPath();
-                context.moveTo(canvas.width / 2 - 15, canvas.height - 20);
-                context.quadraticCurveTo(canvas.width / 2, canvas.height - 2, canvas.width / 2 + 15, canvas.height - 20);
-                context.stroke();
-                context.restore();
-                
-                // Draw flag first (left side)
-                try {
-                    const flagCanvas = document.createElement('canvas');
-                    const flagContext = flagCanvas.getContext('2d');
-                    flagCanvas.width = 48;
-                    flagCanvas.height = 32;
                     
-                    // Try to load and draw flag
-                    if (nationality !== 'UN') {
-                        const flagImg = new Image();
-                        flagImg.crossOrigin = 'anonymous';
-                        
-                        await new Promise((resolve, reject) => {
-                            flagImg.onload = () => {
-                                flagContext.drawImage(flagImg, 0, 0, 48, 32);
-                                
-                                // Draw flag on main canvas
-                                context.drawImage(flagCanvas, 20, 20);
-                                
-                                // Flag border
-                                context.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-                                context.lineWidth = 1;
-                                context.strokeRect(20, 20, 48, 32);
-                                
-                                resolve();
-                            };
-                            flagImg.onerror = () => resolve(); // Continue without flag
-                            flagImg.src = `https://flagcdn.com/w48/${nationality.toLowerCase()}.png`;
-                        });
-                    } else {
-                        // Draw globe icon for unknown nationality
-                        context.font = '24px Arial';
-                        context.textAlign = 'center';
-                        context.textBaseline = 'middle';
-                        context.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                        context.fillText('🌍', 44, 36);
-                    }
                 } catch (error) {
-                    console.warn('Could not draw flag:', error);
-                    // Draw fallback globe icon
-                    context.font = '24px Arial';
-                    context.textAlign = 'center';
-                    context.textBaseline = 'middle';
-                    context.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                    context.fillText('🌍', 44, 36);
+                    console.error(`❌ Error creating avatar with AvatarSystem.createAvatar:`, error);
                 }
-                
-                // Username with enhanced styling
-                context.font = 'bold 24px Arial';
-                context.textAlign = 'left';
-                context.textBaseline = 'top';
-                context.fillStyle = 'white';
-                
-                // Text shadow for username
-                context.shadowColor = 'rgba(0, 0, 0, 0.8)';
-                context.shadowBlur = 4;
-                context.shadowOffsetX = 2;
-                context.shadowOffsetY = 2;
-                
-                context.fillText(userData.username, 85, 20);
-                
-                // Country name with enhanced styling
-                const countryName = this.getCountryName(nationality);
-                context.font = '16px Arial';
-                context.fillStyle = '#4CAF50';
-                context.shadowColor = 'rgba(0, 0, 0, 0.6)';
-                context.shadowBlur = 2;
-                context.shadowOffsetX = 1;
-                context.shadowOffsetY = 1;
-                
-                context.fillText(countryName, 85, 55);
-                
-                // Online indicator (green dot)
-                context.shadowColor = 'transparent';
-                context.shadowBlur = 0;
-                context.fillStyle = '#4CAF50';
-                context.beginPath();
-                context.arc(canvas.width - 25, 25, 8, 0, Math.PI * 2);
-                context.fill();
-                
-                // Online indicator glow
-                context.shadowColor = '#4CAF50';
-                context.shadowBlur = 10;
-                context.fill();
-                
-                // Create nametag mesh with higher resolution
-                const labelTexture = new THREE.CanvasTexture(canvas);
-                labelTexture.minFilter = THREE.LinearFilter;
-                labelTexture.magFilter = THREE.LinearFilter;
-                
-                const labelMaterial = new THREE.MeshBasicMaterial({ 
-                    map: labelTexture, 
-                    transparent: true,
-                    alphaTest: 0.01,
-                    side: THREE.DoubleSide
-                });
-                
-                const labelGeometry = new THREE.PlaneGeometry(4, 1.2);
-                const nametagMesh = new THREE.Mesh(labelGeometry, labelMaterial);
-                
-                // Position nametag higher above avatar
-                nametagMesh.position.set(0, 3.5, 0);
-                
-                // Make nametag always face camera
-                nametagMesh.lookAt = function(camera) {
-                    if (camera) {
-                        this.lookAt(camera.position);
+            }
+            
+            // Strategy 2: Create simple THREE.js avatar with enhanced nametag
+            if (this.getAvailableScene() && window.THREE) {
+                try {
+                    const scene = this.getAvailableScene();
+                    console.log(`📋 Using direct Three.js scene for ${userData.username}`);
+                    
+                    // Create a simple colored box as avatar
+                    const geometry = new THREE.BoxGeometry(1, 2, 1);
+                    const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+                    const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+                    const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
+                    const avatar = new THREE.Mesh(geometry, material);
+                    
+                    // Position avatar
+                    const hash = userData.user_id.split('').reduce((a, b) => {
+                        a = ((a << 5) - a) + b.charCodeAt(0);
+                        return a & a;
+                    }, 0);
+                    
+                    const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                    const radius = 3 + (Math.abs(hash) % 4);
+                    
+                    avatar.position.set(
+                        Math.cos(angle) * radius,
+                        1, // Height above ground
+                        Math.sin(angle) * radius
+                    );
+                    
+                    // Add enhanced username label with nationality flag
+                    const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                    if (nametagGroup) {
+                        nametagGroup.name = 'nametag';
+                        avatar.add(nametagGroup);
                     }
-                };
-                
-                // Create group for nametag
-                const nametagGroup = new THREE.Group();
-                nametagGroup.add(nametagMesh);
-                nametagGroup.name = 'nametag';
-                
-                // Store user data
-                nametagGroup.userData = {
-                    userId: userData.user_id,
-                    username: userData.username,
-                    nationality: nationality
-                };
-                
-                // Update nametag to always face camera
-                if (window.SceneManager && window.SceneManager.camera) {
-                    nametagGroup.lookAt(window.SceneManager.camera.position);
+                    
+                    // Store user ID for removal
+                    avatar.userData = { 
+                        userId: userData.user_id, 
+                        username: userData.username,
+                        nationality: userData.nationality || 'UN'
+                    };
+                    
+                    scene.add(avatar);
+                    console.log(`✅ Created Three.js avatar for ${userData.username} with enhanced nametag`);
+                    
+                    return avatar;
+                    
+                } catch (error) {
+                    console.error(`❌ Error creating Three.js avatar:`, error);
                 }
-                
-                console.log(`🏳️ Created enhanced nametag for ${userData.username} from ${countryName}`);
-                
-                return nametagGroup;
             }
             
-            // Get country name from code
-            getCountryName(countryCode) {
-                const countryNames = {
-                    'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
-                    'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
-                    'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
-                    'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
-                    'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland',
-                    'DK': 'Denmark', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
-                    'PL': 'Poland', 'TR': 'Turkey', 'GR': 'Greece', 'PT': 'Portugal',
-                    'IE': 'Ireland', 'CZ': 'Czech Republic', 'HU': 'Hungary', 'RO': 'Romania',
-                    'BG': 'Bulgaria', 'HR': 'Croatia', 'SK': 'Slovakia', 'SI': 'Slovenia',
-                    'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia', 'AR': 'Argentina',
-                    'CL': 'Chile', 'PE': 'Peru', 'CO': 'Colombia', 'VE': 'Venezuela',
-                    'UY': 'Uruguay', 'PY': 'Paraguay', 'BO': 'Bolivia', 'EC': 'Ecuador',
-                    'ZA': 'South Africa', 'EG': 'Egypt', 'MA': 'Morocco', 'NG': 'Nigeria',
-                    'KE': 'Kenya', 'GH': 'Ghana', 'TH': 'Thailand', 'VN': 'Vietnam',
-                    'PH': 'Philippines', 'ID': 'Indonesia', 'MY': 'Malaysia', 'SG': 'Singapore',
-                    'UN': 'Unknown'
-                };
-                
-                return countryNames[countryCode] || 'Unknown';
+            // Strategy 3: Wait for systems to be ready and try again
+            console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
+            
+            setTimeout(() => {
+                console.log(`🔄 Retrying avatar creation for ${userData.username}...`);
+                this.createRemoteAvatar(userData);
+            }, 2000);
+            
+            console.error(`❌ Failed to create avatar for ${userData.username} - will retry in 2 seconds`);
+            
+            // Show notification to user
+            this.showNotification(`⏳ Creating avatar for ${userData.username} from ${this.getCountryName(userData.nationality || 'UN')}...`);
+        }
+        
+        // Helper to get available scene
+        getAvailableScene() {
+            if (window.SceneManager && window.SceneManager.scene) {
+                return window.SceneManager.scene;
+            }
+            if (window.AvatarSystem && window.AvatarSystem.scene) {
+                return window.AvatarSystem.scene;
+            }
+            if (window.scene) {
+                return window.scene;
+            }
+            return null;
+        }
+        
+        // FIXED: Create enhanced nametag with nationality flag - CORS ISSUE RESOLVED
+        async createEnhancedNametagWithFlag(userData) {
+            const nationality = userData.nationality || 'UN';
+            
+            // Create nametag canvas with larger size for better visibility
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 400;
+            canvas.height = 120;
+            
+            // Clear canvas
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Enhanced background with gradient and glow effect
+            const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+            gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.9)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
+            context.fillStyle = gradient;
+            this.roundRect(context, 5, 5, canvas.width - 10, canvas.height - 10, 15);
+            context.fill();
+            
+            // Outer glow effect
+            context.shadowColor = 'rgba(102, 126, 234, 0.6)';
+            context.shadowBlur = 20;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 0;
+            
+            // Enhanced border with glow
+            context.strokeStyle = 'rgba(102, 126, 234, 0.8)';
+            context.lineWidth = 3;
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            
+            // Draw glowing border
+            context.save();
+            context.shadowColor = `rgba(102, 126, 234, 0.6)`;
+            context.shadowBlur = 10;
+            context.beginPath();
+            this.roundRect(context, 1.5, 1.5, canvas.width - 3, canvas.height - 21.5, 15 - 1);
+            context.stroke();
+            context.restore();
+            
+            // Inner highlight for glass effect
+            const highlightGradient = context.createLinearGradient(0, 0, 0, canvas.height * 0.6);
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            context.fillStyle = highlightGradient;
+            context.beginPath();
+            this.roundRect(context, 2, 2, canvas.width - 4, (canvas.height - 20) * 0.6, 15 - 2);
+            context.fill();
+            
+            // Enhanced bubble tail with gradient
+            const tailGradient = context.createLinearGradient(canvas.width / 2 - 15, canvas.height - 20, canvas.width / 2 + 15, canvas.height - 2);
+            tailGradient.addColorStop(0, 'rgba(240, 248, 255, 0.9)');
+            tailGradient.addColorStop(0.5, 'rgba(230, 245, 255, 0.95)');
+            tailGradient.addColorStop(1, 'rgba(220, 240, 255, 0.85)');
+            
+            context.fillStyle = tailGradient;
+            context.beginPath();
+            context.moveTo(canvas.width / 2 - 15, canvas.height - 20);
+            context.quadraticCurveTo(canvas.width / 2, canvas.height - 2, canvas.width / 2 + 15, canvas.height - 20);
+            context.fill();
+            
+            // Tail border with glow
+            context.save();
+            context.strokeStyle = `rgba(102, 126, 234, 0.7)`;
+            context.lineWidth = 2;
+            context.shadowColor = `rgba(102, 126, 234, 0.5)`;
+            context.shadowBlur = 8;
+            context.beginPath();
+            context.moveTo(canvas.width / 2 - 15, canvas.height - 20);
+            context.quadraticCurveTo(canvas.width / 2, canvas.height - 2, canvas.width / 2 + 15, canvas.height - 20);
+            context.stroke();
+            context.restore();
+            
+            // FIXED: Flag drawing with CORS handling and multiple fallbacks
+            try {
+                if (nationality !== 'UN') {
+                    // Strategy 1: Try multiple CDN endpoints with CORS support
+                    const flagUrls = [
+                        `https://flagicons.lipis.dev/flags/4x3/${nationality.toLowerCase()}.svg`,
+                        `https://purecatamphetamine.github.io/country-flag-icons/3x2/${nationality}.svg`,
+                        `https://hatscripts.github.io/circle-flags/flags/${nationality.toLowerCase()}.svg`,
+                        `https://flagcdn.com/${nationality.toLowerCase()}.svg`
+                    ];
+                    
+                    let flagLoaded = false;
+                    
+                    for (const flagUrl of flagUrls) {
+                        try {
+                            await new Promise((resolve, reject) => {
+                                const flagImg = new Image();
+                                // Don't set crossOrigin for SVGs - they handle CORS better
+                                if (!flagUrl.includes('.svg')) {
+                                    flagImg.crossOrigin = 'anonymous';
+                                }
+                                
+                                const timeout = setTimeout(() => {
+                                    reject(new Error('Timeout'));
+                                }, 3000);
+                                
+                                flagImg.onload = () => {
+                                    clearTimeout(timeout);
+                                    try {
+                                        // Create flag canvas
+                                        const flagCanvas = document.createElement('canvas');
+                                        const flagContext = flagCanvas.getContext('2d');
+                                        flagCanvas.width = 48;
+                                        flagCanvas.height = 32;
+                                        
+                                        // Draw flag to canvas
+                                        flagContext.drawImage(flagImg, 0, 0, 48, 32);
+                                        
+                                        // Draw flag on main canvas
+                                        context.drawImage(flagCanvas, 20, 20);
+                                        
+                                        // Flag border
+                                        context.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                                        context.lineWidth = 1;
+                                        context.strokeRect(20, 20, 48, 32);
+                                        
+                                        flagLoaded = true;
+                                        console.log(`✅ Flag loaded successfully from: ${flagUrl}`);
+                                        resolve();
+                                    } catch (drawError) {
+                                        reject(drawError);
+                                    }
+                                };
+                                
+                                flagImg.onerror = () => {
+                                    clearTimeout(timeout);
+                                    reject(new Error('Image load failed'));
+                                };
+                                
+                                flagImg.src = flagUrl;
+                            });
+                            
+                            if (flagLoaded) break;
+                            
+                        } catch (error) {
+                            console.warn(`❌ Failed to load flag from: ${flagUrl}`, error.message);
+                            continue;
+                        }
+                    }
+                    
+                    // Strategy 2: If no flag loaded, draw country code as styled fallback
+                    if (!flagLoaded) {
+                        console.warn(`⚠️ All flag sources failed for ${nationality}, using styled fallback`);
+                        this.drawFlagFallback(context, nationality);
+                    }
+                } else {
+                    // Draw globe icon for unknown nationality
+                    this.drawFlagFallback(context, 'UN');
+                }
+            } catch (error) {
+                console.warn('Flag loading error:', error);
+                this.drawFlagFallback(context, nationality);
             }
             
-            // Helper function for rounded rectangles
-            roundRect(ctx, x, y, width, height, radius) {
+            // Username with enhanced styling
+            context.font = 'bold 24px Arial';
+            context.textAlign = 'left';
+            context.textBaseline = 'top';
+            context.fillStyle = 'white';
+            
+            // Text shadow for username
+            context.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            context.shadowBlur = 4;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            
+            context.fillText(userData.username, 85, 20);
+            
+            // Country name with enhanced styling
+            const countryName = this.getCountryName(nationality);
+            context.font = '16px Arial';
+            context.fillStyle = '#4CAF50';
+            context.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            context.shadowBlur = 2;
+            context.shadowOffsetX = 1;
+            context.shadowOffsetY = 1;
+            
+            context.fillText(countryName, 85, 55);
+            
+            // Online indicator (green dot)
+            context.shadowColor = 'transparent';
+            context.shadowBlur = 0;
+            context.fillStyle = '#4CAF50';
+            context.beginPath();
+            context.arc(canvas.width - 25, 25, 8, 0, Math.PI * 2);
+            context.fill();
+            
+            // Online indicator glow
+            context.shadowColor = '#4CAF50';
+            context.shadowBlur = 10;
+            context.fill();
+            
+            // Create nametag mesh with higher resolution
+            const labelTexture = new THREE.CanvasTexture(canvas);
+            labelTexture.minFilter = THREE.LinearFilter;
+            labelTexture.magFilter = THREE.LinearFilter;
+            
+            const labelMaterial = new THREE.MeshBasicMaterial({ 
+                map: labelTexture, 
+                transparent: true,
+                alphaTest: 0.01,
+                side: THREE.DoubleSide
+            });
+            
+            const labelGeometry = new THREE.PlaneGeometry(4, 1.2);
+            const nametagMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+            
+            // Position nametag higher above avatar
+            nametagMesh.position.set(0, 3.5, 0);
+            
+            // Make nametag always face camera
+            nametagMesh.lookAt = function(camera) {
+                if (camera) {
+                    this.lookAt(camera.position);
+                }
+            };
+            
+            // Create group for nametag
+            const nametagGroup = new THREE.Group();
+            nametagGroup.add(nametagMesh);
+            nametagGroup.name = 'nametag';
+            
+            // Store user data
+            nametagGroup.userData = {
+                userId: userData.user_id,
+                username: userData.username,
+                nationality: nationality
+            };
+            
+            // Update nametag to always face camera
+            if (window.SceneManager && window.SceneManager.camera) {
+                nametagGroup.lookAt(window.SceneManager.camera.position);
+            }
+            
+            console.log(`🏳️ Created enhanced nametag for ${userData.username} from ${countryName}`);
+            
+            return nametagGroup;
+        }
+        
+        // NEW: Flag fallback drawing method with styled appearance
+        drawFlagFallback(context, nationality) {
+            // Create styled rectangle with country code
+            const flagColors = {
+                'KR': ['#CD2E3A', '#FFFFFF', '#003478'], // South Korea colors
+                'US': ['#B22234', '#FFFFFF', '#3C3B6E'], // USA colors
+                'CA': ['#FF0000', '#FFFFFF'], // Canada colors
+                'JP': ['#BC002D', '#FFFFFF'], // Japan colors
+                'DE': ['#000000', '#DD0000', '#FFCE00'], // Germany colors
+                'FR': ['#0055A4', '#FFFFFF', '#EF4135'], // France colors
+                'GB': ['#012169', '#FFFFFF', '#C8102E'], // UK colors
+                'AU': ['#012169', '#FFFFFF', '#FF0000'], // Australia colors
+                'BR': ['#009739', '#FEDD00', '#002776'], // Brazil colors
+                'IN': ['#FF9933', '#FFFFFF', '#138808'], // India colors
+                'CN': ['#DE2910', '#FFDE00'], // China colors
+                'RU': ['#FFFFFF', '#0039A6', '#D52B1E'], // Russia colors
+                'UN': ['#5B92E5', '#FFFFFF'] // Default blue
+            };
+            
+            const colors = flagColors[nationality] || flagColors['UN'];
+            
+            // Draw styled flag rectangle
+            const flagWidth = 48;
+            const flagHeight = 32;
+            const x = 20;
+            const y = 20;
+            
+            // Create gradient background
+            const flagGradient = context.createLinearGradient(x, y, x + flagWidth, y + flagHeight);
+            flagGradient.addColorStop(0, colors[0]);
+            flagGradient.addColorStop(0.5, colors[1] || colors[0]);
+            flagGradient.addColorStop(1, colors[2] || colors[0]);
+            
+            // Fill with gradient
+            context.fillStyle = flagGradient;
+            context.fillRect(x, y, flagWidth, flagHeight);
+            
+            // Add country code text
+            context.font = 'bold 14px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            
+            // Determine text color for visibility
+            const textColor = colors[1] || '#FFFFFF';
+            const strokeColor = colors[0];
+            
+            context.fillStyle = textColor;
+            context.strokeStyle = strokeColor;
+            context.lineWidth = 2;
+            
+            // Text with stroke for visibility
+            const text = nationality === 'UN' ? '🌍' : nationality;
+            context.strokeText(text, x + flagWidth/2, y + flagHeight/2);
+            context.fillText(text, x + flagWidth/2, y + flagHeight/2);
+            
+            // Enhanced border with double line
+            context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            context.lineWidth = 2;
+            context.strokeRect(x, y, flagWidth, flagHeight);
+            
+            context.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            context.lineWidth = 1;
+            context.strokeRect(x + 1, y + 1, flagWidth - 2, flagHeight - 2);
+            
+            console.log(`🎨 Drew styled fallback flag for ${nationality}`);
+        }
+        
+        // Get country name from code
+        getCountryName(countryCode) {
+            const countryNames = {
+                'US': 'United States', 'CA': 'Canada', 'GB': 'United Kingdom',
+                'DE': 'Germany', 'FR': 'France', 'JP': 'Japan', 'AU': 'Australia',
+                'BR': 'Brazil', 'IN': 'India', 'CN': 'China', 'KR': 'South Korea',
+                'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
+                'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland',
+                'DK': 'Denmark', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
+                'PL': 'Poland', 'TR': 'Turkey', 'GR': 'Greece', 'PT': 'Portugal',
+                'IE': 'Ireland', 'CZ': 'Czech Republic', 'HU': 'Hungary', 'RO': 'Romania',
+                'BG': 'Bulgaria', 'HR': 'Croatia', 'SK': 'Slovakia', 'SI': 'Slovenia',
+                'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia', 'AR': 'Argentina',
+                'CL': 'Chile', 'PE': 'Peru', 'CO': 'Colombia', 'VE': 'Venezuela',
+                'UY': 'Uruguay', 'PY': 'Paraguay', 'BO': 'Bolivia', 'EC': 'Ecuador',
+                'ZA': 'South Africa', 'EG': 'Egypt', 'MA': 'Morocco', 'NG': 'Nigeria',
+                'KE': 'Kenya', 'GH': 'Ghana', 'TH': 'Thailand', 'VN': 'Vietnam',
+                'PH': 'Philippines', 'ID': 'Indonesia', 'MY': 'Malaysia', 'SG': 'Singapore',
+                'UN': 'Unknown'
+            };
+            
+            return countryNames[countryCode] || 'Unknown';
+        }
+        
+        // Helper function for rounded rectangles
+        roundRect(ctx, x, y, width, height, radius) {
+            if (!ctx) return;
+            
+            try {
                 ctx.beginPath();
                 ctx.moveTo(x + radius, y);
                 ctx.lineTo(x + width - radius, y);
@@ -2993,712 +3132,732 @@
                 ctx.lineTo(x, y + radius);
                 ctx.quadraticCurveTo(x, y, x + radius, y);
                 ctx.closePath();
-            }
-            
-            // FIXED: Remove avatar for remote user - handles multiple scene sources
-            removeRemoteAvatar(userId) {
-                console.log('🗑️ Removing remote avatar for user:', userId);
-                
-                // Strategy 1: Use AvatarSystem.removeAvatar
-                if (window.AvatarSystem && window.AvatarSystem.removeAvatar) {
-                    try {
-                        window.AvatarSystem.removeAvatar(userId);
-                        console.log(`✅ Removed avatar for user ${userId} using AvatarSystem.removeAvatar`);
-                    } catch (error) {
-                        console.error('Error removing avatar with AvatarSystem.removeAvatar:', error);
-                    }
-                }
-                
-                // Strategy 2: Manual removal from available scenes
-                const scenes = [
-                    window.SceneManager?.scene,
-                    window.AvatarSystem?.scene,
-                    window.scene
-                ].filter(Boolean);
-                
-                scenes.forEach(scene => {
-                    try {
-                        const avatarsToRemove = [];
-                        scene.traverse((child) => {
-                            if (child.userData && child.userData.userId === userId) {
-                                avatarsToRemove.push(child);
-                            }
-                        });
-                        
-                        avatarsToRemove.forEach(avatar => {
-                            // Dispose of geometry and materials
-                            if (avatar.geometry) avatar.geometry.dispose();
-                            if (avatar.material) {
-                                if (Array.isArray(avatar.material)) {
-                                    avatar.material.forEach(material => material.dispose());
-                                } else {
-                                    avatar.material.dispose();
-                                }
-                            }
-                            
-                            scene.remove(avatar);
-                            console.log(`✅ Manually removed avatar for user ${userId} from scene`);
-                        });
-                        
-                    } catch (error) {
-                        console.error('Error manually removing avatar from scene:', error);
-                    }
-                });
-                
-                // Also remove their chat bubbles
-                if (window.ChatBubbleSystem && window.ChatBubbleSystem.removeUserBubbles) {
-                    try {
-                        window.ChatBubbleSystem.removeUserBubbles(userId);
-                    } catch (error) {
-                        console.warn('Error removing user bubbles:', error);
-                    }
-                }
-            }
-            
-            // Helper method to show notifications
-            showNotification(message) {
-                const notification = document.createElement('div');
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: linear-gradient(135deg, rgba(255, 107, 53, 0.95), rgba(255, 152, 0, 0.95));
-                    backdrop-filter: blur(15px);
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    z-index: 10000;
-                    font-weight: 600;
-                    font-size: 13px;
-                    transform: translateX(400px);
-                    transition: all 0.3s ease;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                `;
-                notification.textContent = message;
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    notification.style.transform = 'translateX(0)';
-                }, 10);
-                
-                setTimeout(() => {
-                    notification.style.transform = 'translateX(400px)';
-                    setTimeout(() => notification.remove(), 300);
-                }, 3000);
-            }
-            
-            // Handle position updates from other users
-            handleUserPositionUpdate(data) {
-                if (data.user_id !== this.userId && window.AvatarSystem) {
-                    try {
-                        window.AvatarSystem.updateAvatarPosition(data.user_id, data.position);
-                        
-                        // Also update chat bubble positions
-                        if (window.ChatBubbleSystem?.updateBubblePositions) {
-                            const pos = new THREE.Vector3(data.position.x, data.position.y, data.position.z);
-                            window.ChatBubbleSystem.updateBubblePositions(data.user_id, pos);
-                        }
-                    } catch (error) {
-                        console.warn('Error updating remote avatar position:', error);
-                    }
-                }
-            }
-            
-            handleChatMessage(data) {
-                const isOwn = data.user_id === this.userId;
-                
-                // Add nationality information to chat message display
-                const userNationality = data.nationality || 'UN';
-                const countryName = this.getCountryName(userNationality);
-                
-                this.addMessageToChat(data.username, data.message, isOwn, userNationality, countryName);
-                
-                // Create 3D chat bubble if enabled and system is available
-                if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
-                    try {
-                        // Use the safe wrapper method
-                        if (window.ChatBubbleSystem.createBubbleFromMessageSafe) {
-                            window.ChatBubbleSystem.createBubbleFromMessageSafe(data);
-                        } else if (window.ChatBubbleSystem.createBubbleFromMessage) {
-                            window.ChatBubbleSystem.createBubbleFromMessage(data);
-                        }
-                    } catch (error) {
-                        console.warn('Error creating chat bubble:', error);
-                    }
-                }
-                
-                // Update bubble count
-                this.updateBubbleCount();
-            }
-            
-            handleEmotion(data) {
-                const countryName = this.getCountryName(data.nationality || 'UN');
-                console.log(`🎭 ${data.user_id} from ${countryName} is feeling ${data.emotion}`);
-                this.addSystemMessage(`${data.username || data.user_id} from ${countryName} is feeling ${data.emotion} 🎭`);
-                
-                // Trigger 3D emotion if system is available
-                if (window.EmotionSystem && window.EmotionSystem.showRemoteEmotion) {
-                    window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
-                }
-            }
-            
-            handleInteraction(data) {
-                const countryName = this.getCountryName(data.nationality || 'UN');
-                console.log(`🤝 Interaction: ${data.user_id} from ${countryName} -> ${data.interaction_type}`);
-                this.addSystemMessage(`${data.username || data.user_id} from ${countryName} ${data.interaction_type} 🤝`);
-                
-                // Trigger 3D interaction if system is available
-                if (window.InteractionSystem && window.InteractionSystem.handleRemoteInteraction) {
-                    window.InteractionSystem.handleRemoteInteraction(data);
-                }
-            }
-            
-            handleTyping(data) {
-                this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
-            }
-            
-            // 🏠 ENHANCED: Handle scene changes from other users with better integration
-            handleSceneChange(data) {
-                const isOwn = data.user_id === this.userId;
-                const countryName = this.getCountryName(data.nationality || 'UN');
-                
-                console.log(`🏠 ${data.username || data.user_id} from ${countryName} changed scene to: ${data.scene_preset}`);
-                
-                if (!isOwn) {
-                    // Apply scene change from remote user
-                    const sceneName = data.scene_name || data.scene_preset;
-                    this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the scene to ${sceneName} 🏠`);
-                    
-                    // Apply the scene change locally using multiple strategies
-                    this.applyRemoteSceneChange(data);
-                    
-                    // Show notification
-                    this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
-                } else {
-                    // Own scene change - just show confirmation
-                    const sceneName = data.scene_name || data.scene_preset;
-                    this.addSystemMessage(`You changed the scene to ${sceneName} 🏠`);
-                }
-                
-                // Update status panel
-                this.updateSceneStatus(data.scene_name || data.scene_preset);
-            }
-            
-            // Enhanced scene change application with multiple strategies
-            applyRemoteSceneChange(data) {
-                let applied = false;
-                
-                // Strategy 1: Try AdvancedSceneSystem first
-                if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.applyScenePreset) {
-                    try {
-                        window.AdvancedSceneSystem.applyScenePreset(data.scene_preset, data.change_data);
-                        console.log(`✅ Applied remote scene change via AdvancedSceneSystem: ${data.scene_preset}`);
-                        applied = true;
-                    } catch (error) {
-                        console.error('❌ Error applying remote scene change via AdvancedSceneSystem:', error);
-                    }
-                }
-                
-                // Strategy 2: Try SceneManager as fallback
-                if (!applied && window.SceneManager && window.SceneManager.applyScenePreset) {
-                    try {
-                        window.SceneManager.applyScenePreset(data.scene_preset, data.change_data);
-                        console.log(`✅ Applied remote scene change via SceneManager: ${data.scene_preset}`);
-                        applied = true;
-                    } catch (error) {
-                        console.error('❌ Error applying remote scene change via SceneManager:', error);
-                    }
-                }
-                
-                // Strategy 3: Try room-level scene change
-                if (!applied && window.RoomCore && window.RoomCore.applySceneChange) {
-                    try {
-                        window.RoomCore.applySceneChange(data.scene_preset, data.change_data);
-                        console.log(`✅ Applied remote scene change via RoomCore: ${data.scene_preset}`);
-                        applied = true;
-                    } catch (error) {
-                        console.error('❌ Error applying remote scene change via RoomCore:', error);
-                    }
-                }
-                
-                // Strategy 4: Direct scene manipulation as last resort
-                if (!applied && window.SceneManager && window.SceneManager.scene) {
-                    try {
-                        // Apply basic scene preset changes directly
-                        this.applyBasicScenePreset(data.scene_preset);
-                        console.log(`✅ Applied basic remote scene change: ${data.scene_preset}`);
-                        applied = true;
-                    } catch (error) {
-                        console.error('❌ Error applying basic remote scene change:', error);
-                    }
-                }
-                
-                if (!applied) {
-                    console.warn('⚠️ No scene system available to apply remote scene change');
-                    this.showNotification(`🏠 ${data.username || 'user'} changed the scene (reload to see changes)`);
-                }
-            }
-            
-            // Basic scene preset application
-            applyBasicScenePreset(scenePreset) {
-                const scene = window.SceneManager.scene;
-                
-                // Basic environment changes based on preset
-                const presetConfig = {
-                    'forest': { 
-                        fog: { color: 0x228b22, near: 50, far: 200 },
-                        ambient: { color: 0x404040, intensity: 0.4 }
-                    },
-                    'cyberpunk': { 
-                        fog: { color: 0x9900ff, near: 30, far: 150 },
-                        ambient: { color: 0x330066, intensity: 0.6 }
-                    },
-                    'desert': { 
-                        fog: { color: 0xdaa520, near: 80, far: 300 },
-                        ambient: { color: 0x8b7355, intensity: 0.7 }
-                    },
-                    'arctic': { 
-                        fog: { color: 0xb0e0e6, near: 100, far: 400 },
-                        ambient: { color: 0x87ceeb, intensity: 0.8 }
-                    }
-                };
-                
-                const config = presetConfig[scenePreset] || presetConfig['forest'];
-                
-                // Apply fog
-                if (scene.fog) {
-                    scene.fog.color.setHex(config.fog.color);
-                    scene.fog.near = config.fog.near;
-                    scene.fog.far = config.fog.far;
-                } else {
-                    scene.fog = new THREE.Fog(config.fog.color, config.fog.near, config.fog.far);
-                }
-                
-                // Update ambient light
-                scene.traverse((child) => {
-                    if (child.type === 'AmbientLight') {
-                        child.color.setHex(config.ambient.color);
-                        child.intensity = config.ambient.intensity;
-                    }
-                });
-                
-                console.log(`🎨 Applied basic scene preset: ${scenePreset}`);
-            }
-            
-            // 🌦️ ENHANCED: Handle weather changes from other users
-            handleWeatherChange(data) {
-                const isOwn = data.user_id === this.userId;
-                const countryName = this.getCountryName(data.nationality || 'UN');
-                
-                console.log(`🌦️ ${data.username || data.user_id} from ${countryName} changed weather to: ${data.weather_type}`);
-                
-                if (!isOwn) {
-                    // Apply weather change from remote user
-                    this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the weather to ${data.weather_type} 🌦️`);
-                    
-                    // Apply the weather change locally
-                    if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.setWeather) {
-                        try {
-                            window.AdvancedSceneSystem.setWeather(data.weather_type, data.intensity);
-                            console.log(`✅ Applied remote weather change: ${data.weather_type}`);
-                            
-                            // Show notification
-                            this.showNotification(`🌦️ Weather changed to ${data.weather_type} by ${data.username || 'user'}`);
-                        } catch (error) {
-                            console.error('❌ Error applying remote weather change:', error);
-                        }
-                    } else {
-                        console.warn('⚠️ No weather system available to apply remote weather change');
-                        this.showNotification(`🌦️ ${data.username || 'user'} changed the weather`);
-                    }
-                } else {
-                    // Own weather change - just show confirmation
-                    this.addSystemMessage(`You changed the weather to ${data.weather_type} 🌦️`);
-                }
-            }
-            
-            // 🌅 ENHANCED: Handle time changes from other users
-            handleTimeChange(data) {
-                const isOwn = data.user_id === this.userId;
-                const countryName = this.getCountryName(data.nationality || 'UN');
-                
-                console.log(`🌅 ${data.username || data.user_id} from ${countryName} changed time to: ${data.time_of_day}`);
-                
-                if (!isOwn) {
-                    // Apply time change from remote user
-                    const timeDisplay = data.hour ? `${data.time_of_day} (${data.hour}:00)` : data.time_of_day;
-                    this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the time to ${timeDisplay} 🌅`);
-                    
-                    // Apply the time change locally
-                    if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.setTimeOfDay) {
-                        try {
-                            window.AdvancedSceneSystem.setTimeOfDay(data.time_of_day, data.hour);
-                            console.log(`✅ Applied remote time change: ${data.time_of_day}`);
-                            
-                            // Show notification
-                            this.showNotification(`🌅 Time changed to ${timeDisplay} by ${data.username || 'user'}`);
-                        } catch (error) {
-                            console.error('❌ Error applying remote time change:', error);
-                        }
-                    } else {
-                        console.warn('⚠️ No time system available to apply remote time change');
-                        this.showNotification(`🌅 ${data.username || 'user'} changed the time`);
-                    }
-                } else {
-                    // Own time change - just show confirmation
-                    const timeDisplay = data.hour ? `${data.time_of_day} (${data.hour}:00)` : data.time_of_day;
-                    this.addSystemMessage(`You changed the time to ${timeDisplay} 🌅`);
-                }
-            }
-            
-            // Update scene status in UI
-            updateSceneStatus(sceneName) {
-                const sceneValueElement = document.querySelector('#status-panel .status-item:nth-child(2) .status-value');
-                if (sceneValueElement) {
-                    sceneValueElement.textContent = sceneName || 'Unknown';
-                }
-            }
-            
-            handleClose(event) {
-                console.log('🔌 WebSocket connection closed:', event);
-                this.connected = false;
-                this.authenticated = false;
-                this.updateConnectionStatus('disconnected');
-                this.disableChatInput();
-                
-                // Clear remote avatars
-                this.connectedUsers.forEach((userData, userId) => {
-                    this.removeRemoteAvatar(userId);
-                });
-                this.connectedUsers.clear();
-                
-                if (!event.wasClean) {
-                    this.scheduleReconnect();
-                }
-            }
-            
-            handleError(error) {
-                console.error('❌ WebSocket error:', error);
-                this.updateConnectionStatus('disconnected');
-            }
-            
-            scheduleReconnect() {
-                if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.reconnectAttempts++;
-                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-                    
-                    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    
-                    setTimeout(() => {
-                        this.connect();
-                    }, delay);
-                } else {
-                    console.error('❌ Max reconnection attempts reached');
-                    this.updateConnectionStatus('disconnected');
-                    this.addSystemMessage('Connection failed. Please refresh the page.');
-                }
-            }
-            
-            send(data) {
-                if (this.connected && this.socket.readyState === WebSocket.OPEN) {
-                    try {
-                        this.socket.send(JSON.stringify(data));
-                        console.log('📤 Sent message:', data.type);
-                    } catch (error) {
-                        console.error('❌ Error sending message:', error);
-                    }
-                } else {
-                    console.log('📦 Queuing message (not connected):', data.type);
-                    this.messageQueue.push(data);
-                }
-            }
-            
-            sendChatMessage(message) {
-                if (!this.authenticated) {
-                    console.warn('❌ Not authenticated');
-                    return;
-                }
-                
-                this.send({
-                    type: 'chat_message',
-                    message: message,
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    nationality: this.userNationality,
-                    timestamp: Date.now()
-                });
-            }
-            
-            // Send position updates to other users
-            sendPositionUpdate(position) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'position_update',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    position: position,
-                    nationality: this.userNationality,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendEmotion(emotion) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'emotion',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    emotion: emotion,
-                    nationality: this.userNationality,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendInteraction(interactionType, targetUserId = null, data = null) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'interaction',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    target_user_id: targetUserId,
-                    interaction_type: interactionType,
-                    nationality: this.userNationality,
-                    data: data,
-                    timestamp: Date.now()
-                });
-            }
-            
-            sendTyping(isTyping) {
-                if (!this.authenticated) return;
-                
-                this.send({
-                    type: 'typing',
-                    user_id: this.userId,
-                    room_id: this.roomId,
-                    is_typing: isTyping
-                });
-            }
-            
-            startPingInterval() {
-                setInterval(() => {
-                    if (this.connected) {
-                        this.lastPingTime = Date.now();
-                        this.send({
-                            type: 'ping',
-                            timestamp: this.lastPingTime
-                        });
-                    }
-                }, 30000); // Ping every 30 seconds
-            }
-            
-            updateConnectionStatus(status) {
-                const indicators = ['connection-indicator', 'connection-indicator-mobile'];
-                
-                indicators.forEach(id => {
-                    const indicator = document.getElementById(id);
-                    if (indicator) {
-                        indicator.className = `connection-indicator ${status}`;
-                        
-                        switch (status) {
-                            case 'connected':
-                                indicator.textContent = '✅ Connected';
-                                break;
-                            case 'connecting':
-                                indicator.textContent = '🔄 Connecting';
-                                break;
-                            case 'disconnected':
-                                indicator.textContent = '❌ Disconnected';
-                                break;
-                        }
-                    }
-                });
-            }
-            
-            enableChatInput() {
-                const inputs = ['chat-input', 'chat-input-mobile'];
-                const buttons = ['send-btn', 'send-btn-mobile'];
-                
-                inputs.forEach(id => {
-                    const input = document.getElementById(id);
-                    if (input) {
-                        input.disabled = false;
-                        input.placeholder = 'Type a message...';
-                    }
-                });
-                
-                buttons.forEach(id => {
-                    const btn = document.getElementById(id);
-                    if (btn) {
-                        btn.disabled = false;
-                    }
-                });
-            }
-            
-            disableChatInput() {
-                const inputs = ['chat-input', 'chat-input-mobile'];
-                const buttons = ['send-btn', 'send-btn-mobile'];
-                
-                inputs.forEach(id => {
-                    const input = document.getElementById(id);
-                    if (input) {
-                        input.disabled = true;
-                        input.placeholder = 'Connecting...';
-                    }
-                });
-                
-                buttons.forEach(id => {
-                    const btn = document.getElementById(id);
-                    if (btn) {
-                        btn.disabled = true;
-                    }
-                });
-            }
-            
-            addMessageToChat(username, message, isOwn = false, nationality = 'UN', countryName = 'Unknown') {
-                const chatContainers = ['chat-messages', 'chat-messages-mobile'];
-                
-                chatContainers.forEach(containerId => {
-                    const chatMessages = document.getElementById(containerId);
-                    if (!chatMessages) return;
-                    
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
-                    
-                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    // Create flag image element
-                    const flagImg = nationality !== 'UN' ? 
-                        `<img src="https://flagcdn.com/w20/${nationality.toLowerCase()}.png" class="user-flag" alt="${countryName}" title="${countryName}">` : 
-                        '<span class="user-flag">🌍</span>';
-                    
-                    messageDiv.innerHTML = `
-                        <div class="username">
-                            ${flagImg}
-                            ${this.escapeHtml(username)}
-                        </div>
-                        <div class="timestamp">${timestamp}</div>
-                        <div class="text">${this.escapeHtml(message)}</div>
-                    `;
-                    
-                    chatMessages.appendChild(messageDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    
-                    // Keep only last 50 messages for performance
-                    while (chatMessages.children.length > 50) {
-                        chatMessages.removeChild(chatMessages.firstChild);
-                    }
-                });
-            }
-            
-            addSystemMessage(message) {
-                const chatContainers = ['chat-messages', 'chat-messages-mobile'];
-                
-                chatContainers.forEach(containerId => {
-                    const chatMessages = document.getElementById(containerId);
-                    if (!chatMessages) return;
-                    
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'chat-message system';
-                    
-                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    messageDiv.innerHTML = `
-                        <div class="username">System</div>
-                        <div class="timestamp">${timestamp}</div>
-                        <div class="text">${this.escapeHtml(message)}</div>
-                    `;
-                    
-                    chatMessages.appendChild(messageDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                });
-            }
-            
-            updateTypingIndicator(userId, username, isTyping) {
-                const containers = ['typing-indicators', 'typing-indicators-mobile'];
-                
-                containers.forEach(containerId => {
-                    const container = document.getElementById(containerId);
-                    if (!container) return;
-                    
-                    const indicatorId = `typing-${userId}-${containerId}`;
-                    let indicator = document.getElementById(indicatorId);
-                    
-                    if (isTyping && userId !== this.userId) {
-                        if (!indicator) {
-                            indicator = document.createElement('div');
-                            indicator.id = indicatorId;
-                            indicator.className = 'typing-indicator';
-                            indicator.innerHTML = `
-                                <span>${this.escapeHtml(username)} is typing</span>
-                                <div class="typing-dots">
-                                    <div class="typing-dot"></div>
-                                    <div class="typing-dot"></div>
-                                    <div class="typing-dot"></div>
-                                </div>
-                            `;
-                            container.appendChild(indicator);
-                        }
-                    } else {
-                        if (indicator) {
-                            indicator.remove();
-                        }
-                    }
-                });
-            }
-            
-            updateBubbleCount() {
-                let count = 0;
-                if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
-                    try {
-                        count = window.ChatBubbleSystem.getActiveBubbleCount();
-                    } catch (error) {
-                        console.warn('Error getting bubble count:', error);
-                    }
-                }
-                
-                const bubbleCountElement = document.getElementById('bubble-count');
-                if (bubbleCountElement) {
-                    bubbleCountElement.textContent = count;
-                }
-            }
-            
-            // Update user count in UI
-            updateUserCount(count) {
-                const userCountElement = document.getElementById('user-count');
-                if (userCountElement) {
-                    const maxUsers = window.ROOM_CONFIG?.maxUsers || 10;
-                    userCountElement.textContent = `${count}/${maxUsers}`;
-                }
-            }
-            
-            escapeHtml(text) {
-                const map = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                };
-                return text.replace(/[&<>"']/g, m => map[m]);
-            }
-            
-            // Get connected users
-            getConnectedUsers() {
-                return Array.from(this.connectedUsers.values());
-            }
-            
-            // Check if user is connected
-            isUserConnected(userId) {
-                return this.connectedUsers.has(userId);
+            } catch (error) {
+                console.error('Error in roundRect:', error);
             }
         }
+        
+        // FIXED: Remove avatar for remote user - handles multiple scene sources
+        removeRemoteAvatar(userId) {
+            console.log('🗑️ Removing remote avatar for user:', userId);
+            
+            // Strategy 1: Use AvatarSystem.removeAvatar
+            if (window.AvatarSystem && window.AvatarSystem.removeAvatar) {
+                try {
+                    window.AvatarSystem.removeAvatar(userId);
+                    console.log(`✅ Removed avatar for user ${userId} using AvatarSystem.removeAvatar`);
+                } catch (error) {
+                    console.error('Error removing avatar with AvatarSystem.removeAvatar:', error);
+                }
+            }
+            
+            // Strategy 2: Manual removal from available scenes
+            const scenes = [
+                window.SceneManager?.scene,
+                window.AvatarSystem?.scene,
+                window.scene
+            ].filter(Boolean);
+            
+            scenes.forEach(scene => {
+                try {
+                    const avatarsToRemove = [];
+                    scene.traverse((child) => {
+                        if (child.userData && child.userData.userId === userId) {
+                            avatarsToRemove.push(child);
+                        }
+                    });
+                    
+                    avatarsToRemove.forEach(avatar => {
+                        // Dispose of geometry and materials
+                        if (avatar.geometry) avatar.geometry.dispose();
+                        if (avatar.material) {
+                            if (Array.isArray(avatar.material)) {
+                                avatar.material.forEach(material => material.dispose());
+                            } else {
+                                avatar.material.dispose();
+                            }
+                        }
+                        
+                        scene.remove(avatar);
+                        console.log(`✅ Manually removed avatar for user ${userId} from scene`);
+                    });
+                    
+                } catch (error) {
+                    console.error('Error manually removing avatar from scene:', error);
+                }
+            });
+            
+            // Also remove their chat bubbles
+            if (window.ChatBubbleSystem && window.ChatBubbleSystem.removeUserBubbles) {
+                try {
+                    window.ChatBubbleSystem.removeUserBubbles(userId);
+                } catch (error) {
+                    console.warn('Error removing user bubbles:', error);
+                }
+            }
+        }
+        
+        // Helper method to show notifications
+        showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, rgba(255, 107, 53, 0.95), rgba(255, 152, 0, 0.95));
+                backdrop-filter: blur(15px);
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                z-index: 10000;
+                font-weight: 600;
+                font-size: 13px;
+                transform: translateX(400px);
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 10);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Handle position updates from other users
+        handleUserPositionUpdate(data) {
+            if (data.user_id !== this.userId && window.AvatarSystem) {
+                try {
+                    window.AvatarSystem.updateAvatarPosition(data.user_id, data.position);
+                    
+                    // Also update chat bubble positions
+                    if (window.ChatBubbleSystem?.updateBubblePositions) {
+                        const pos = new THREE.Vector3(data.position.x, data.position.y, data.position.z);
+                        window.ChatBubbleSystem.updateBubblePositions(data.user_id, pos);
+                    }
+                } catch (error) {
+                    console.warn('Error updating remote avatar position:', error);
+                }
+            }
+        }
+        
+        handleChatMessage(data) {
+            const isOwn = data.user_id === this.userId;
+            
+            // Add nationality information to chat message display
+            const userNationality = data.nationality || 'UN';
+            const countryName = this.getCountryName(userNationality);
+            
+            this.addMessageToChat(data.username, data.message, isOwn, userNationality, countryName);
+            
+            // Create 3D chat bubble if enabled and system is available
+            if (window.ROOM_CONFIG.chatBubblesEnabled && window.ChatBubbleSystem) {
+                try {
+                    // Use the safe wrapper method
+                    if (window.ChatBubbleSystem.createBubbleFromMessageSafe) {
+                        window.ChatBubbleSystem.createBubbleFromMessageSafe(data);
+                    } else if (window.ChatBubbleSystem.createBubbleFromMessage) {
+                        window.ChatBubbleSystem.createBubbleFromMessage(data);
+                    }
+                } catch (error) {
+                    console.warn('Error creating chat bubble:', error);
+                }
+            }
+            
+            // Update bubble count
+            this.updateBubbleCount();
+        }
+        
+        handleEmotion(data) {
+            const countryName = this.getCountryName(data.nationality || 'UN');
+            console.log(`🎭 ${data.user_id} from ${countryName} is feeling ${data.emotion}`);
+            this.addSystemMessage(`${data.username || data.user_id} from ${countryName} is feeling ${data.emotion} 🎭`);
+            
+            // Trigger 3D emotion if system is available
+            if (window.EmotionSystem && window.EmotionSystem.showRemoteEmotion) {
+                window.EmotionSystem.showRemoteEmotion(data.user_id, data.emotion);
+            }
+        }
+        
+        handleInteraction(data) {
+            const countryName = this.getCountryName(data.nationality || 'UN');
+            console.log(`🤝 Interaction: ${data.user_id} from ${countryName} -> ${data.interaction_type}`);
+            this.addSystemMessage(`${data.username || data.user_id} from ${countryName} ${data.interaction_type} 🤝`);
+            
+            // Trigger 3D interaction if system is available
+            if (window.InteractionSystem && window.InteractionSystem.handleRemoteInteraction) {
+                window.InteractionSystem.handleRemoteInteraction(data);
+            }
+        }
+        
+        handleTyping(data) {
+            this.updateTypingIndicator(data.user_id, data.username, data.is_typing);
+        }
+        
+        // 🏠 ENHANCED: Handle scene changes from other users with better integration
+        handleSceneChange(data) {
+            const isOwn = data.user_id === this.userId;
+            const countryName = this.getCountryName(data.nationality || 'UN');
+            
+            console.log(`🏠 ${data.username || data.user_id} from ${countryName} changed scene to: ${data.scene_preset}`);
+            
+            if (!isOwn) {
+                // Apply scene change from remote user
+                const sceneName = data.scene_name || data.scene_preset;
+                this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the scene to ${sceneName} 🏠`);
+                
+                // Apply the scene change locally using multiple strategies
+                this.applyRemoteSceneChange(data);
+                
+                // Show notification
+                this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
+            } else {
+                // Own scene change - just show confirmation
+                const sceneName = data.scene_name || data.scene_preset;
+                this.addSystemMessage(`You changed the scene to ${sceneName} 🏠`);
+            }
+            
+            // Update status panel
+            this.updateSceneStatus(data.scene_name || data.scene_preset);
+        }
+        
+        // Enhanced scene change application with multiple strategies
+        applyRemoteSceneChange(data) {
+            let applied = false;
+            
+            // Strategy 1: Try AdvancedSceneSystem first
+            if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.applyScenePreset) {
+                try {
+                    window.AdvancedSceneSystem.applyScenePreset(data.scene_preset, data.change_data);
+                    console.log(`✅ Applied remote scene change via AdvancedSceneSystem: ${data.scene_preset}`);
+                    applied = true;
+                } catch (error) {
+                    console.error('❌ Error applying remote scene change via AdvancedSceneSystem:', error);
+                }
+            }
+            
+            // Strategy 2: Try SceneManager as fallback
+            if (!applied && window.SceneManager && window.SceneManager.applyScenePreset) {
+                try {
+                    window.SceneManager.applyScenePreset(data.scene_preset, data.change_data);
+                    console.log(`✅ Applied remote scene change via SceneManager: ${data.scene_preset}`);
+                    applied = true;
+                } catch (error) {
+                    console.error('❌ Error applying remote scene change via SceneManager:', error);
+                }
+            }
+            
+            // Strategy 3: Try room-level scene change
+            if (!applied && window.RoomCore && window.RoomCore.applySceneChange) {
+                try {
+                    window.RoomCore.applySceneChange(data.scene_preset, data.change_data);
+                    console.log(`✅ Applied remote scene change via RoomCore: ${data.scene_preset}`);
+                    applied = true;
+                } catch (error) {
+                    console.error('❌ Error applying remote scene change via RoomCore:', error);
+                }
+            }
+            
+            // Strategy 4: Direct scene manipulation as last resort
+            if (!applied && window.SceneManager && window.SceneManager.scene) {
+                try {
+                    // Apply basic scene preset changes directly
+                    this.applyBasicScenePreset(data.scene_preset);
+                    console.log(`✅ Applied basic remote scene change: ${data.scene_preset}`);
+                    applied = true;
+                } catch (error) {
+                    console.error('❌ Error applying basic remote scene change:', error);
+                }
+            }
+            
+            if (!applied) {
+                console.warn('⚠️ No scene system available to apply remote scene change');
+                this.showNotification(`🏠 ${data.username || 'user'} changed the scene (reload to see changes)`);
+            }
+        }
+        
+        // Basic scene preset application
+        applyBasicScenePreset(scenePreset) {
+            const scene = window.SceneManager.scene;
+            
+            // Basic environment changes based on preset
+            const presetConfig = {
+                'forest': { 
+                    fog: { color: 0x228b22, near: 50, far: 200 },
+                    ambient: { color: 0x404040, intensity: 0.4 }
+                },
+                'cyberpunk': { 
+                    fog: { color: 0x9900ff, near: 30, far: 150 },
+                    ambient: { color: 0x330066, intensity: 0.6 }
+                },
+                'desert': { 
+                    fog: { color: 0xdaa520, near: 80, far: 300 },
+                    ambient: { color: 0x8b7355, intensity: 0.7 }
+                },
+                'arctic': { 
+                    fog: { color: 0xb0e0e6, near: 100, far: 400 },
+                    ambient: { color: 0x87ceeb, intensity: 0.8 }
+                }
+            };
+            
+            const config = presetConfig[scenePreset] || presetConfig['forest'];
+            
+            // Apply fog
+            if (scene.fog) {
+                scene.fog.color.setHex(config.fog.color);
+                scene.fog.near = config.fog.near;
+                scene.fog.far = config.fog.far;
+            } else {
+                scene.fog = new THREE.Fog(config.fog.color, config.fog.near, config.fog.far);
+            }
+            
+            // Update ambient light
+            scene.traverse((child) => {
+                if (child.type === 'AmbientLight') {
+                    child.color.setHex(config.ambient.color);
+                    child.intensity = config.ambient.intensity;
+                }
+            });
+            
+            console.log(`🎨 Applied basic scene preset: ${scenePreset}`);
+        }
+        
+        // 🌦️ ENHANCED: Handle weather changes from other users
+        handleWeatherChange(data) {
+            const isOwn = data.user_id === this.userId;
+            const countryName = this.getCountryName(data.nationality || 'UN');
+            
+            console.log(`🌦️ ${data.username || data.user_id} from ${countryName} changed weather to: ${data.weather_type}`);
+            
+            if (!isOwn) {
+                // Apply weather change from remote user
+                this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the weather to ${data.weather_type} 🌦️`);
+                
+                // Apply the weather change locally
+                if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.setWeather) {
+                    try {
+                        window.AdvancedSceneSystem.setWeather(data.weather_type, data.intensity);
+                        console.log(`✅ Applied remote weather change: ${data.weather_type}`);
+                        
+                        // Show notification
+                        this.showNotification(`🌦️ Weather changed to ${data.weather_type} by ${data.username || 'user'}`);
+                    } catch (error) {
+                        console.error('❌ Error applying remote weather change:', error);
+                    }
+                } else {
+                    console.warn('⚠️ No weather system available to apply remote weather change');
+                    this.showNotification(`🌦️ ${data.username || 'user'} changed the weather`);
+                }
+            } else {
+                // Own weather change - just show confirmation
+                this.addSystemMessage(`You changed the weather to ${data.weather_type} 🌦️`);
+            }
+        }
+        
+        // 🌅 ENHANCED: Handle time changes from other users
+        handleTimeChange(data) {
+            const isOwn = data.user_id === this.userId;
+            const countryName = this.getCountryName(data.nationality || 'UN');
+            
+            console.log(`🌅 ${data.username || data.user_id} from ${countryName} changed time to: ${data.time_of_day}`);
+            
+            if (!isOwn) {
+                // Apply time change from remote user
+                const timeDisplay = data.hour ? `${data.time_of_day} (${data.hour}:00)` : data.time_of_day;
+                this.addSystemMessage(`${data.username || data.user_id} from ${countryName} changed the time to ${timeDisplay} 🌅`);
+                
+                // Apply the time change locally
+                if (window.AdvancedSceneSystem && window.AdvancedSceneSystem.setTimeOfDay) {
+                    try {
+                        window.AdvancedSceneSystem.setTimeOfDay(data.time_of_day, data.hour);
+                        console.log(`✅ Applied remote time change: ${data.time_of_day}`);
+                        
+                        // Show notification
+                        this.showNotification(`🌅 Time changed to ${timeDisplay} by ${data.username || 'user'}`);
+                    } catch (error) {
+                        console.error('❌ Error applying remote time change:', error);
+                    }
+                } else {
+                    console.warn('⚠️ No time system available to apply remote time change');
+                    this.showNotification(`🌅 ${data.username || 'user'} changed the time`);
+                }
+            } else {
+                // Own time change - just show confirmation
+                const timeDisplay = data.hour ? `${data.time_of_day} (${data.hour}:00)` : data.time_of_day;
+                this.addSystemMessage(`You changed the time to ${timeDisplay} 🌅`);
+            }
+        }
+        
+        // Update scene status in UI
+        updateSceneStatus(sceneName) {
+            const sceneValueElement = document.querySelector('#status-panel .status-item:nth-child(2) .status-value');
+            if (sceneValueElement) {
+                sceneValueElement.textContent = sceneName || 'Unknown';
+            }
+        }
+        
+        handleClose(event) {
+            console.log('🔌 WebSocket connection closed:', event);
+            this.connected = false;
+            this.authenticated = false;
+            this.updateConnectionStatus('disconnected');
+            this.disableChatInput();
+            
+            // Clear remote avatars
+            this.connectedUsers.forEach((userData, userId) => {
+                this.removeRemoteAvatar(userId);
+            });
+            this.connectedUsers.clear();
+            
+            if (!event.wasClean) {
+                this.scheduleReconnect();
+            }
+        }
+        
+        handleError(error) {
+            console.error('❌ WebSocket error:', error);
+            this.updateConnectionStatus('disconnected');
+        }
+        
+        scheduleReconnect() {
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                this.reconnectAttempts++;
+                const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+                
+                console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                this.addSystemMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                
+                setTimeout(() => {
+                    this.connect();
+                }, delay);
+            } else {
+                console.error('❌ Max reconnection attempts reached');
+                this.updateConnectionStatus('disconnected');
+                this.addSystemMessage('Connection failed. Please refresh the page.');
+            }
+        }
+        
+        send(data) {
+            if (this.connected && this.socket.readyState === WebSocket.OPEN) {
+                try {
+                    this.socket.send(JSON.stringify(data));
+                    console.log('📤 Sent message:', data.type);
+                } catch (error) {
+                    console.error('❌ Error sending message:', error);
+                }
+            } else {
+                console.log('📦 Queuing message (not connected):', data.type);
+                this.messageQueue.push(data);
+            }
+        }
+        
+        sendChatMessage(message) {
+            if (!this.authenticated) {
+                console.warn('❌ Not authenticated');
+                return;
+            }
+            
+            this.send({
+                type: 'chat_message',
+                message: message,
+                user_id: this.userId,
+                room_id: this.roomId,
+                nationality: this.userNationality,
+                timestamp: Date.now()
+            });
+        }
+        
+        // Send position updates to other users
+        sendPositionUpdate(position) {
+            if (!this.authenticated) return;
+            
+            this.send({
+                type: 'position_update',
+                user_id: this.userId,
+                room_id: this.roomId,
+                position: position,
+                nationality: this.userNationality,
+                timestamp: Date.now()
+            });
+        }
+        
+        sendEmotion(emotion) {
+            if (!this.authenticated) return;
+            
+            this.send({
+                type: 'emotion',
+                user_id: this.userId,
+                room_id: this.roomId,
+                emotion: emotion,
+                nationality: this.userNationality,
+                timestamp: Date.now()
+            });
+        }
+        
+        sendInteraction(interactionType, targetUserId = null, data = null) {
+            if (!this.authenticated) return;
+            
+            this.send({
+                type: 'interaction',
+                user_id: this.userId,
+                room_id: this.roomId,
+                target_user_id: targetUserId,
+                interaction_type: interactionType,
+                nationality: this.userNationality,
+                data: data,
+                timestamp: Date.now()
+            });
+        }
+        
+        sendTyping(isTyping) {
+            if (!this.authenticated) return;
+            
+            this.send({
+                type: 'typing',
+                user_id: this.userId,
+                room_id: this.roomId,
+                is_typing: isTyping
+            });
+        }
 
-        // Initialize WebSocket Manager
-        window.WebSocketManager = null;
+        // Screen sharing methods
+        sendScreenShareStart(streamData) {
+            if (!this.authenticated) return;
+            
+            this.send({
+                type: 'screen_share_started',
+                user_id: this.userId,
+                room_id: this.roomId,
+                username: this.username,
+                nationality: this.userNationality,
+                stream_data: streamData,
+                timestamp: Date.now()
+            });
+        }
+        
+        sendScreenShareStop() {
+            if (!this.authenticated) return;
+            
+            this.send({
+                type: 'screen_share_stopped',
+                user_id: this.userId,
+                room_id: this.roomId,
+                username: this.username,
+                nationality: this.userNationality,
+                timestamp: Date.now()
+            });
+        }
+        
+        startPingInterval() {
+            setInterval(() => {
+                if (this.connected) {
+                    this.lastPingTime = Date.now();
+                    this.send({
+                        type: 'ping',
+                        timestamp: this.lastPingTime
+                    });
+                }
+            }, 30000); // Ping every 30 seconds
+        }
+        
+        updateConnectionStatus(status) {
+            const indicators = ['connection-indicator', 'connection-indicator-mobile'];
+            
+            indicators.forEach(id => {
+                const indicator = document.getElementById(id);
+                if (indicator) {
+                    indicator.className = `connection-indicator ${status}`;
+                    
+                    switch (status) {
+                        case 'connected':
+                            indicator.textContent = '✅ Connected';
+                            break;
+                        case 'connecting':
+                            indicator.textContent = '🔄 Connecting';
+                            break;
+                        case 'disconnected':
+                            indicator.textContent = '❌ Disconnected';
+                            break;
+                    }
+                }
+            });
+        }
+        
+        enableChatInput() {
+            const inputs = ['chat-input', 'chat-input-mobile'];
+            const buttons = ['send-btn', 'send-btn-mobile'];
+            
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.disabled = false;
+                    input.placeholder = 'Type a message...';
+                }
+            });
+            
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = false;
+                }
+            });
+        }
+        
+        disableChatInput() {
+            const inputs = ['chat-input', 'chat-input-mobile'];
+            const buttons = ['send-btn', 'send-btn-mobile'];
+            
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.disabled = true;
+                    input.placeholder = 'Connecting...';
+                }
+            });
+            
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = true;
+                }
+            });
+        }
+        
+        addMessageToChat(username, message, isOwn = false, nationality = 'UN', countryName = 'Unknown') {
+            const chatContainers = ['chat-messages', 'chat-messages-mobile'];
+            
+            chatContainers.forEach(containerId => {
+                const chatMessages = document.getElementById(containerId);
+                if (!chatMessages) return;
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+                
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                // Create flag image element
+                const flagImg = nationality !== 'UN' ? 
+                    `<img src="https://flagcdn.com/w20/${nationality.toLowerCase()}.png" class="user-flag" alt="${countryName}" title="${countryName}">` : 
+                    '<span class="user-flag">🌍</span>';
+                
+                messageDiv.innerHTML = `
+                    <div class="username">
+                        ${flagImg}
+                        ${this.escapeHtml(username)}
+                    </div>
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="text">${this.escapeHtml(message)}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Keep only last 50 messages for performance
+                while (chatMessages.children.length > 50) {
+                    chatMessages.removeChild(chatMessages.firstChild);
+                }
+            });
+        }
+        
+        addSystemMessage(message) {
+            const chatContainers = ['chat-messages', 'chat-messages-mobile'];
+            
+            chatContainers.forEach(containerId => {
+                const chatMessages = document.getElementById(containerId);
+                if (!chatMessages) return;
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message system';
+                
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.innerHTML = `
+                    <div class="username">System</div>
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="text">${this.escapeHtml(message)}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+        
+        updateTypingIndicator(userId, username, isTyping) {
+            const containers = ['typing-indicators', 'typing-indicators-mobile'];
+            
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                
+                const indicatorId = `typing-${userId}-${containerId}`;
+                let indicator = document.getElementById(indicatorId);
+                
+                if (isTyping && userId !== this.userId) {
+                    if (!indicator) {
+                        indicator = document.createElement('div');
+                        indicator.id = indicatorId;
+                        indicator.className = 'typing-indicator';
+                        indicator.innerHTML = `
+                            <span>${this.escapeHtml(username)} is typing</span>
+                            <div class="typing-dots">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        `;
+                        container.appendChild(indicator);
+                    }
+                } else {
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                }
+            });
+        }
+        
+        updateBubbleCount() {
+            let count = 0;
+            if (window.ChatBubbleSystem && window.ChatBubbleSystem.getActiveBubbleCount) {
+                try {
+                    count = window.ChatBubbleSystem.getActiveBubbleCount();
+                } catch (error) {
+                    console.warn('Error getting bubble count:', error);
+                }
+            }
+            
+            const bubbleCountElement = document.getElementById('bubble-count');
+            if (bubbleCountElement) {
+                bubbleCountElement.textContent = count;
+            }
+        }
+        
+        // Update user count in UI
+        updateUserCount(count) {
+            const userCountElement = document.getElementById('user-count');
+            if (userCountElement) {
+                const maxUsers = window.ROOM_CONFIG?.maxUsers || 10;
+                userCountElement.textContent = `${count}/${maxUsers}`;
+            }
+        }
+        
+        // Get connected users
+        getConnectedUsers() {
+            return Array.from(this.connectedUsers.values());
+        }
+        
+        // Check if user is connected
+        isUserConnected(userId) {
+            return this.connectedUsers.has(userId);
+        }
+    }
+
+    // Make WebSocketManager available globally
+    window.EuphorieWebSocketManager = EuphorieWebSocketManager;
     </script>
 
     <!-- ENHANCED: Scene Synchronization Functions - Direct Integration -->
