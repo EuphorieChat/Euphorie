@@ -295,6 +295,7 @@ class EuphorieScreenSharingSystem {
         
         try {
             console.log('🖥️ Starting screen/camera share...');
+            console.log('📱 Mobile detected:', this.isMobile());
             
             // Check if someone else is already sharing
             if (this.currentSharer && this.currentSharer !== window.WebSocketManager?.userId) {
@@ -306,20 +307,40 @@ class EuphorieScreenSharingSystem {
             
             if (this.isMobile()) {
                 // Mobile: Use camera instead of screen sharing
-                console.log('📱 Mobile detected, using camera share');
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 1280, max: 1920 },
-                        height: { ideal: 720, max: 1080 },
-                        frameRate: { ideal: 30 },
-                        facingMode: this.cameraFacing || 'environment'
-                    },
-                    audio: false
-                });
-                this.showNotification('📱 Camera sharing started (Mobile mode)');
+                console.log('📱 Mobile detected, requesting camera access...');
+                console.log('📱 Camera facing:', this.cameraFacing || 'environment');
+                
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280, max: 1920 },
+                            height: { ideal: 720, max: 1080 },
+                            frameRate: { ideal: 30 },
+                            facingMode: this.cameraFacing || 'environment'
+                        },
+                        audio: false
+                    });
+                    console.log('📱 Camera stream obtained successfully');
+                } catch (cameraError) {
+                    console.error('📱 Camera access failed:', cameraError);
+                    
+                    // Try with basic constraints if specific facing mode fails
+                    if (cameraError.name === 'OverconstrainedError' || cameraError.name === 'ConstraintNotSatisfiedError') {
+                        console.log('📱 Trying with basic camera constraints...');
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: true,
+                            audio: false
+                        });
+                        console.log('📱 Basic camera stream obtained');
+                    } else {
+                        throw cameraError;
+                    }
+                }
+                
+                this.showNotification('📱 Camera sharing started');
             } else {
                 // Desktop: Use screen sharing
-                console.log('🖥️ Desktop detected, using screen share');
+                console.log('🖥️ Desktop detected, requesting screen access...');
                 stream = await navigator.mediaDevices.getDisplayMedia({
                     video: {
                         width: { ideal: 1920, max: 1920 },
@@ -328,29 +349,40 @@ class EuphorieScreenSharingSystem {
                     },
                     audio: false
                 });
+                console.log('🖥️ Screen stream obtained successfully');
                 this.showNotification('🖥️ Screen sharing started');
             }
             
             this.localStream = stream;
             this.mediaStream = stream;
             
+            console.log('📹 Video tracks:', stream.getVideoTracks().length);
+            console.log('🎵 Audio tracks:', stream.getAudioTracks().length);
+            
             // Set up video element
             this.videoElement.srcObject = stream;
+            console.log('📺 Video element configured');
             
             // Show projection surface
             if (this.projectionSurface) {
                 this.projectionSurface.visible = true;
                 this.animateProjectionIn();
+                console.log('🎬 Projection surface shown');
+            } else {
+                console.warn('⚠️ Projection surface not available');
             }
             
             // Handle stream ended
             stream.getVideoTracks()[0].addEventListener('ended', () => {
+                console.log('📹 Stream ended by user');
                 this.stopScreenShare();
             });
             
             // Set sharing state
             this.isSharing = true;
             this.currentSharer = window.WebSocketManager?.userId;
+            
+            console.log('✅ Sharing state set successfully');
             
             // Notify other users via WebSocket
             if (window.WebSocketManager?.sendScreenShareStart) {
@@ -362,29 +394,41 @@ class EuphorieScreenSharingSystem {
                     share_type: this.isMobile() ? 'camera' : 'screen'
                 });
                 console.log('📡 Share notification sent via WebSocket');
+            } else {
+                console.warn('⚠️ WebSocket manager not available for notifications');
             }
             
             // Try to setup WebRTC connections (optional)
             try {
                 await this.setupWebRTCConnections();
+                console.log('🔗 WebRTC setup completed');
             } catch (error) {
                 console.log('⚠️ WebRTC setup failed, continuing with WebSocket-only sharing:', error);
             }
             
             // Show sharing controls
             this.showSharingControls();
+            console.log('🎮 Sharing controls displayed');
             
             console.log('✅ Sharing started successfully');
             
         } catch (error) {
             console.error('❌ Error starting share:', error);
+            console.error('❌ Error name:', error.name);
+            console.error('❌ Error message:', error.message);
             
             if (error.name === 'NotAllowedError') {
-                this.showNotification('❌ Camera/screen access denied');
+                this.showNotification('❌ Camera/screen permission denied. Please allow access and try again.');
+            } else if (error.name === 'NotFoundError') {
+                this.showNotification('❌ No camera found on this device');
             } else if (error.name === 'NotSupportedError') {
-                this.showNotification('❌ Sharing not supported on this device');
+                this.showNotification('❌ Camera/screen sharing not supported on this device');
+            } else if (error.name === 'NotReadableError') {
+                this.showNotification('❌ Camera is already in use by another app');
+            } else if (error.name === 'OverconstrainedError') {
+                this.showNotification('❌ Camera constraints not supported. Try with different settings.');
             } else {
-                this.showNotification('❌ Could not start sharing');
+                this.showNotification(`❌ Could not start sharing: ${error.message}`);
             }
         }
     }
@@ -872,7 +916,48 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
+        // Add debug functions
+        window.testCameraAccess = () => this.testCameraAccess();
+        window.debugScreenShare = () => this.debugScreenShare();
+        
         console.log('✅ Screen sharing global functions setup');
+    }
+    
+    // Debug functions
+    async testCameraAccess() {
+        console.log('🧪 Testing camera access...');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            console.log('✅ Camera access successful');
+            console.log('📹 Video tracks:', stream.getVideoTracks().length);
+            
+            // Stop the test stream
+            stream.getTracks().forEach(track => track.stop());
+            
+            this.showNotification('✅ Camera test successful');
+            return true;
+        } catch (error) {
+            console.error('❌ Camera test failed:', error);
+            this.showNotification(`❌ Camera test failed: ${error.message}`);
+            return false;
+        }
+    }
+    
+    debugScreenShare() {
+        console.log('🔍 Screen Share Debug Info:');
+        console.log('📱 Is Mobile:', this.isMobile());
+        console.log('🎥 getUserMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        console.log('🖥️ getDisplayMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia));
+        console.log('🔧 Is sharing:', this.isSharing);
+        console.log('👤 Current sharer:', this.currentSharer);
+        console.log('📹 Has video element:', !!this.videoElement);
+        console.log('🎬 Has projection surface:', !!this.projectionSurface);
+        console.log('🌐 WebSocket Manager:', !!window.WebSocketManager);
+        console.log('🎯 Projection mode:', this.projectionMode);
+        console.log('📱 Camera facing:', this.cameraFacing);
+        
+        // Test camera access
+        this.testCameraAccess();
     }
     
     showScreenShareUI() {
