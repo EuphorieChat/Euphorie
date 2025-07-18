@@ -6053,83 +6053,73 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function addScreenSharingToMenus() {
-    // Add to mobile menu
-    const mobileMenus = document.querySelectorAll('.mobile-actions-menu .mobile-action-grid');
-    mobileMenus.forEach(menu => {
-        if (!menu.querySelector('.screen-share-btn')) {
-            const screenShareBtn = document.createElement('button');
-            screenShareBtn.className = 'mobile-action-btn screen-share-menu-btn screen-share-btn';
-            screenShareBtn.innerHTML = `
-                <div class="icon">🖥️</div>
-                <div>Share Screen</div>
-            `;
-            screenShareBtn.onclick = () => {
-                if (window.ScreenSharingSystem) {
-                    if (window.ScreenSharingSystem.isSharing) {
-                        window.ScreenSharingSystem.stopScreenShare();
+    // Add to mobile menu - ONLY in Customization section
+    const mobileCustomizationGrids = document.querySelectorAll('.mobile-actions-menu .mobile-action-group');
+    mobileCustomizationGrids.forEach(group => {
+        const title = group.querySelector('.mobile-action-group-title');
+        if (title && title.textContent.includes('Customization')) {
+            const grid = group.querySelector('.mobile-action-grid');
+            if (grid && !grid.querySelector('.screen-share-btn')) {
+                const screenShareBtn = document.createElement('button');
+                screenShareBtn.className = 'mobile-action-btn screen-share-menu-btn screen-share-btn';
+                screenShareBtn.innerHTML = `
+                    <div class="icon">📺</div>
+                    <div>Screen Share</div>
+                `;
+                screenShareBtn.onclick = () => {
+                    if (window.ScreenSharingSystem) {
+                        if (window.ScreenSharingSystem.isSharing) {
+                            window.ScreenSharingSystem.stopScreenShare();
+                        } else {
+                            window.ScreenSharingSystem.showScreenShareUI();
+                        }
                     } else {
-                        window.ScreenSharingSystem.showScreenShareUI();
+                        showScreenShareNotification('Screen sharing system loading...');
                     }
-                } else {
-                    showScreenShareNotification('Screen sharing system loading...');
-                }
-                // Close menus
-                if (window.closeMobileMenu) window.closeMobileMenu();
-                if (window.closeDesktopMenu) window.closeDesktopMenu();
-            };
-            
-            // Add to the customization section
-            const customizationSection = menu.parentElement.querySelector('.mobile-action-group');
-            if (customizationSection) {
-                const grid = customizationSection.querySelector('.mobile-action-grid');
-                if (grid) {
-                    grid.appendChild(screenShareBtn);
-                }
-            } else {
-                menu.appendChild(screenShareBtn);
+                    // Close menus
+                    if (window.closeMobileMenu) window.closeMobileMenu();
+                    if (window.closeDesktopMenu) window.closeDesktopMenu();
+                };
+                
+                grid.appendChild(screenShareBtn);
             }
         }
     });
     
-    // Add to desktop menu
-    const desktopMenus = document.querySelectorAll('.desktop-actions-menu .mobile-action-grid');
-    desktopMenus.forEach(menu => {
-        if (!menu.querySelector('.screen-share-btn')) {
-            const screenShareBtn = document.createElement('button');
-            screenShareBtn.className = 'mobile-action-btn screen-share-menu-btn screen-share-btn';
-            screenShareBtn.innerHTML = `
-                <div class="icon">🖥️</div>
-                <div>Share Screen</div>
-            `;
-            screenShareBtn.onclick = () => {
-                if (window.ScreenSharingSystem) {
-                    if (window.ScreenSharingSystem.isSharing) {
-                        window.ScreenSharingSystem.stopScreenShare();
+    // Add to desktop menu - ONLY in Customization section  
+    const desktopCustomizationGrids = document.querySelectorAll('.desktop-actions-menu .mobile-action-group');
+    desktopCustomizationGrids.forEach(group => {
+        const title = group.querySelector('.mobile-action-group-title');
+        if (title && title.textContent.includes('Customization')) {
+            const grid = group.querySelector('.mobile-action-grid');
+            if (grid && !grid.querySelector('.screen-share-btn')) {
+                const screenShareBtn = document.createElement('button');
+                screenShareBtn.className = 'mobile-action-btn screen-share-menu-btn screen-share-btn';
+                screenShareBtn.innerHTML = `
+                    <div class="icon">📺</div>
+                    <div>Screen Share</div>
+                `;
+                screenShareBtn.onclick = () => {
+                    if (window.ScreenSharingSystem) {
+                        if (window.ScreenSharingSystem.isSharing) {
+                            window.ScreenSharingSystem.stopScreenShare();
+                        } else {
+                            window.ScreenSharingSystem.showScreenShareUI();
+                        }
                     } else {
-                        window.ScreenSharingSystem.showScreenShareUI();
+                        showScreenShareNotification('Screen sharing system loading...');
                     }
-                } else {
-                    showScreenShareNotification('Screen sharing system loading...');
-                }
-                // Close menus
-                if (window.closeMobileMenu) window.closeMobileMenu();
-                if (window.closeDesktopMenu) window.closeDesktopMenu();
-            };
-            
-            // Add to the customization section
-            const customizationSection = menu.parentElement.querySelector('.mobile-action-group');
-            if (customizationSection) {
-                const grid = customizationSection.querySelector('.mobile-action-grid');
-                if (grid) {
-                    grid.appendChild(screenShareBtn);
-                }
-            } else {
-                menu.appendChild(screenShareBtn);
+                    // Close menus
+                    if (window.closeMobileMenu) window.closeMobileMenu();
+                    if (window.closeDesktopMenu) window.closeDesktopMenu();
+                };
+                
+                grid.appendChild(screenShareBtn);
             }
         }
     });
     
-    console.log('✅ Screen sharing buttons added to menus');
+    console.log('✅ Screen sharing buttons added to Customization menus only');
 }
 
 // Screen sharing notification helper
