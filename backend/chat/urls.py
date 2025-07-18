@@ -79,11 +79,21 @@ urlpatterns = [
     path('api/friends/by-nationality/', views.api_friends_by_nationality, name='api_friends_by_nationality'),
     path('api/friends/suggestions/nationality/', views.api_nationality_friend_suggestions, name='api_nationality_friend_suggestions'),
     
+    # ==================== SCREEN SHARING ENDPOINTS ====================
+    # NOTE: These are commented out until the views are implemented
+    # Uncomment these when you add the screen sharing views to views.py
+    # path('api/screen-share/start/', views.start_screen_share, name='start_screen_share'),
+    # path('api/screen-share/stop/', views.stop_screen_share, name='stop_screen_share'),
+    # path('api/screen-share/join/', views.join_screen_share, name='join_screen_share'),
+    # path('api/screen-share/leave/', views.leave_screen_share, name='leave_screen_share'),
+    # path('api/screen-share/active/<int:room_id>/', views.get_active_screen_shares, name='get_active_screen_shares'),
+    # path('api/screen-share/stats/<int:room_id>/', views.screen_share_stats, name='screen_share_stats'),
+    
     # ==================== UTILITY PAGES ====================
     path('privacy/', views.privacy_policy, name='privacy_policy'),
     path('terms/', views.terms_of_service, name='terms_of_service'),
     
     # ==================== DEBUG ====================
     path('debug/rooms/', views.debug_rooms, name='debug_rooms'),
-    path('debug/nationality/', views.debug_nationality, name='debug_nationality'),  # New: nationality debugging
+    path('debug/nationality/', views.debug_nationality, name='debug_nationality')  # New: nationality debugging
 ]

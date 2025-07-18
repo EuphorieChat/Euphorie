@@ -2,12 +2,14 @@
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils import timezone
+from django.utils import timezone, text
 from django.core.validators import RegexValidator, URLValidator
 from django.core.exceptions import ValidationError
-from django.utils.text import slugify
 from django.db.models import Q
 from django.core.cache import cache
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 import json
 import requests
 
@@ -880,9 +882,7 @@ class NationalityStats(models.Model):
                     stats.save()
 
 
-# Signal to create UserProfile when User is created
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -904,3 +904,139 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+class ScreenShare(models.Model):
+    """Track active screen sharing sessions"""
+    
+    PROJECTION_MODES = [
+        ('ceiling', 'Ceiling'),
+        ('wall', 'Wall'),
+        ('floating', 'Floating'),
+    ]
+    
+    QUALITY_LEVELS = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('stopped', 'Stopped'),
+        ('paused', 'Paused'),
+    ]
+    
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='screen_shares')
+    sharer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='screen_shares')
+    
+    # Screen sharing configuration
+    projection_mode = models.CharField(max_length=20, choices=PROJECTION_MODES, default='ceiling')
+    quality = models.CharField(max_length=20, choices=QUALITY_LEVELS, default='medium')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    
+    # Session metadata
+    session_id = models.CharField(max_length=100, unique=True)
+    webrtc_room_id = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Viewer tracking
+    viewers = models.ManyToManyField(User, through='ScreenShareViewer', related_name='viewing_shares')
+    
+    # Timestamps
+    started_at = models.DateTimeField(auto_now_add=True)
+    stopped_at = models.DateTimeField(null=True, blank=True)
+    last_activity = models.DateTimeField(auto_now=True)
+    
+    # Statistics
+    total_viewers = models.PositiveIntegerField(default=0)
+    max_concurrent_viewers = models.PositiveIntegerField(default=0)
+    duration_seconds = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-started_at']
+        unique_together = ['room', 'status']  # Only one active share per room
+    
+    def __str__(self):
+        return f"{self.sharer.username} sharing in {self.room.name} ({self.status})"
+    
+    def get_active_viewers(self):
+        """Get currently active viewers"""
+        return self.viewers.filter(
+            screenshareviewer__is_active=True
+        ).count()
+    
+    def add_viewer(self, user):
+        """Add a viewer to the screen share"""
+        viewer, created = ScreenShareViewer.objects.get_or_create(
+            screen_share=self,
+            viewer=user,
+            defaults={'is_active': True}
+        )
+        if not created:
+            viewer.is_active = True
+            viewer.joined_at = timezone.now()
+            viewer.save()
+        
+        # Update statistics
+        current_viewers = self.get_active_viewers()
+        if current_viewers > self.max_concurrent_viewers:
+            self.max_concurrent_viewers = current_viewers
+            self.save()
+        
+        return viewer
+    
+    def remove_viewer(self, user):
+        """Remove a viewer from the screen share"""
+        try:
+            viewer = ScreenShareViewer.objects.get(
+                screen_share=self,
+                viewer=user,
+                is_active=True
+            )
+            viewer.is_active = False
+            viewer.left_at = timezone.now()
+            viewer.save()
+            return True
+        except ScreenShareViewer.DoesNotExist:
+            return False
+    
+    def stop_sharing(self):
+        """Stop the screen sharing session"""
+        self.status = 'stopped'
+        self.stopped_at = timezone.now()
+        
+        # Calculate duration
+        if self.started_at:
+            duration = self.stopped_at - self.started_at
+            self.duration_seconds = int(duration.total_seconds())
+        
+        self.save()
+        
+        # Deactivate all viewers
+        ScreenShareViewer.objects.filter(
+            screen_share=self,
+            is_active=True
+        ).update(is_active=False, left_at=timezone.now())
+
+
+class ScreenShareViewer(models.Model):
+    """Track viewers of screen sharing sessions"""
+    
+    screen_share = models.ForeignKey(ScreenShare, on_delete=models.CASCADE)
+    viewer = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    # Viewer state
+    is_active = models.BooleanField(default=True)
+    has_control = models.BooleanField(default=False)
+    
+    # Timestamps
+    joined_at = models.DateTimeField(auto_now_add=True)
+    left_at = models.DateTimeField(null=True, blank=True)
+    
+    # Quality settings for this viewer
+    quality_preference = models.CharField(max_length=20, default='auto')
+    
+    class Meta:
+        unique_together = ['screen_share', 'viewer']
+    
+    def __str__(self):
+        return f"{self.viewer.username} viewing {self.screen_share.sharer.username}'s share"

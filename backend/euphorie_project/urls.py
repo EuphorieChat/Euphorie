@@ -34,7 +34,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     
     # ==================== MAIN CHAT APPLICATION ====================
-    # All main functionality handled by chat app
+    # All main functionality handled by chat app (including screen sharing)
     path('', include('chat.urls')),
     
     # ==================== STATIC PAGES ====================

@@ -1,17 +1,16 @@
-# backend/chat/views.py
-
 import csv
 import json
 import logging
+import uuid
 from datetime import datetime, timedelta
+
+import requests  # Third-party
 
 # Django core
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.contrib.auth.decorators import (
-    login_required, user_passes_test
-)
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -19,22 +18,13 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db.models import Q, Count, F, Max
-from django.http import (
-    JsonResponse, HttpResponse, HttpResponseForbidden
-)
-from django.shortcuts import (
-    render, redirect, get_object_or_404
-)
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import (
-    require_http_methods, require_POST
-)
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import TemplateView
-
-# Third-party
-import requests
 
 # Local app
 from .models import (
@@ -2709,3 +2699,274 @@ def debug_rooms(request):
             'message_count': room.message_count,
         } for room in sample_rooms]
     }, json_dumps_params={'indent': 2})
+
+# ==================== Screen Share VIEW ====================
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def start_screen_share(request):
+    """Start a new screen sharing session"""
+    try:
+        data = json.loads(request.body)
+        room_id = data.get('room_id')
+        projection_mode = data.get('projection_mode', 'ceiling')
+        quality = data.get('quality', 'medium')
+        
+        # Get room
+        room = get_object_or_404(Room, id=room_id)
+        
+        # Check if user has permission to share in this room
+        if not room.user_can_access(request.user):
+            return JsonResponse({'error': 'No permission to share in this room'}, status=403)
+        
+        # Check if there's already an active share in this room
+        existing_share = ScreenShare.objects.filter(
+            room=room,
+            status='active'
+        ).first()
+        
+        if existing_share and existing_share.sharer != request.user:
+            return JsonResponse({
+                'error': 'Another user is already sharing in this room',
+                'current_sharer': existing_share.sharer.username
+            }, status=409)
+        
+        # Stop existing share if user is already sharing
+        if existing_share and existing_share.sharer == request.user:
+            existing_share.stop_sharing()
+        
+        # Create new screen share session
+        session_id = str(uuid.uuid4())
+        screen_share = ScreenShare.objects.create(
+            room=room,
+            sharer=request.user,
+            session_id=session_id,
+            projection_mode=projection_mode,
+            quality=quality,
+            status='active'
+        )
+        
+        # Create activity log
+        UserActivity.objects.create(
+            user=request.user,
+            room=room,
+            activity_type='started_screen_share',
+            description=f"Started screen sharing in {room.name}",
+            metadata={
+                'session_id': session_id,
+                'projection_mode': projection_mode,
+                'quality': quality
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'session_id': session_id,
+            'screen_share_id': screen_share.id,
+            'projection_mode': projection_mode,
+            'quality': quality
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def stop_screen_share(request):
+    """Stop an active screen sharing session"""
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        # Get screen share
+        screen_share = get_object_or_404(ScreenShare, session_id=session_id)
+        
+        # Check if user is the sharer
+        if screen_share.sharer != request.user:
+            return JsonResponse({'error': 'Not authorized to stop this share'}, status=403)
+        
+        # Stop the sharing session
+        screen_share.stop_sharing()
+        
+        # Create activity log
+        UserActivity.objects.create(
+            user=request.user,
+            room=screen_share.room,
+            activity_type='stopped_screen_share',
+            description=f"Stopped screen sharing in {screen_share.room.name}",
+            metadata={
+                'session_id': session_id,
+                'duration_seconds': screen_share.duration_seconds,
+                'total_viewers': screen_share.total_viewers,
+                'max_concurrent_viewers': screen_share.max_concurrent_viewers
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'session_id': session_id,
+            'duration_seconds': screen_share.duration_seconds,
+            'total_viewers': screen_share.total_viewers
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_active_screen_shares(request, room_id):
+    """Get active screen shares for a room"""
+    try:
+        room = get_object_or_404(Room, id=room_id)
+        
+        # Check if user has access to this room
+        if not room.user_can_access(request.user):
+            return JsonResponse({'error': 'No access to this room'}, status=403)
+        
+        # Get active screen shares
+        screen_shares = ScreenShare.objects.filter(
+            room=room,
+            status='active'
+        ).select_related('sharer')
+        
+        shares_data = []
+        for share in screen_shares:
+            shares_data.append({
+                'id': share.id,
+                'session_id': share.session_id,
+                'sharer': {
+                    'id': share.sharer.id,
+                    'username': share.sharer.username,
+                    'display_name': getattr(share.sharer.profile, 'display_name', '') if hasattr(share.sharer, 'profile') else ''
+                },
+                'projection_mode': share.projection_mode,
+                'quality': share.quality,
+                'started_at': share.started_at.isoformat(),
+                'active_viewers': share.get_active_viewers(),
+                'max_concurrent_viewers': share.max_concurrent_viewers
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'screen_shares': shares_data,
+            'total_active': len(shares_data)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def join_screen_share(request):
+    """Join a screen sharing session as a viewer"""
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        # Get screen share
+        screen_share = get_object_or_404(ScreenShare, session_id=session_id, status='active')
+        
+        # Check if user has access to the room
+        if not screen_share.room.user_can_access(request.user):
+            return JsonResponse({'error': 'No access to this room'}, status=403)
+        
+        # Add user as viewer
+        viewer = screen_share.add_viewer(request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'session_id': session_id,
+            'viewer_id': viewer.id,
+            'sharer': screen_share.sharer.username,
+            'projection_mode': screen_share.projection_mode,
+            'quality': screen_share.quality
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def leave_screen_share(request):
+    """Leave a screen sharing session"""
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        # Get screen share
+        screen_share = get_object_or_404(ScreenShare, session_id=session_id)
+        
+        # Remove user as viewer
+        removed = screen_share.remove_viewer(request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'session_id': session_id,
+            'removed': removed
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def screen_share_stats(request, room_id):
+    """Get screen sharing statistics for a room"""
+    try:
+        room = get_object_or_404(Room, id=room_id)
+        
+        # Check if user has access to this room
+        if not room.user_can_access(request.user):
+            return JsonResponse({'error': 'No access to this room'}, status=403)
+        
+        # Get statistics
+        total_shares = ScreenShare.objects.filter(room=room).count()
+        active_shares = ScreenShare.objects.filter(room=room, status='active').count()
+        
+        # Top sharers
+        top_sharers = ScreenShare.objects.filter(
+            room=room
+        ).values(
+            'sharer__username'
+        ).annotate(
+            share_count=Count('id'),
+            total_duration=Sum('duration_seconds')
+        ).order_by('-share_count')[:5]
+        
+        # Recent shares
+        recent_shares = ScreenShare.objects.filter(
+            room=room
+        ).select_related('sharer').order_by('-started_at')[:10]
+        
+        recent_data = []
+        for share in recent_shares:
+            recent_data.append({
+                'sharer': share.sharer.username,
+                'started_at': share.started_at.isoformat(),
+                'duration_seconds': share.duration_seconds,
+                'projection_mode': share.projection_mode,
+                'max_viewers': share.max_concurrent_viewers,
+                'status': share.status
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'stats': {
+                'total_shares': total_shares,
+                'active_shares': active_shares,
+                'top_sharers': list(top_sharers),
+                'recent_shares': recent_data
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
