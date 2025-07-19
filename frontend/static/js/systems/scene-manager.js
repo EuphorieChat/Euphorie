@@ -1,4 +1,5 @@
 // Enhanced 3D Scene Manager - Advanced Graphics with Post-Processing
+// FIXED: Doesn't interfere with chat bubble scales
 // Integrated with Advanced Scene System and Avatar System
 
 window.SceneManager = {
@@ -707,7 +708,13 @@ window.SceneManager = {
             const waveInterval = setInterval(() => {
                 wavePhase += 0.06;
                 wave.position.y += 0.04;
-                wave.scale.setScalar(1 + wavePhase * 1.5);
+                
+                // FIXED: Check if scale is valid before setting
+                const newScale = 1 + wavePhase * 1.5;
+                if (!isNaN(newScale) && isFinite(newScale)) {
+                    wave.scale.setScalar(newScale);
+                }
+                
                 wave.material.opacity = 0.7 - (wavePhase / 1.5);
                 wave.rotation.x += 0.08;
                 wave.rotation.y += 0.12;
@@ -867,27 +874,37 @@ window.SceneManager = {
         }
     },
     
+    // FIXED: updateAnimations function that doesn't break chat bubbles
     updateAnimations: function() {
         const time = Date.now() * 0.001;
         
-        // Animate floating orbs
+        // FIXED: Only animate specific named objects, never affect chat bubbles or unknown objects
         this.scene.traverse((child) => {
+            // Only animate floating orbs (specific name pattern)
             if (child.name && child.name.startsWith('floatingOrb')) {
                 child.position.y += Math.sin(time + child.position.x) * 0.005;
                 child.rotation.y = time * 0.5;
-                child.material.opacity = 0.4 + Math.sin(time * 2 + child.position.z) * 0.2;
+                if (child.material && child.material.opacity !== undefined) {
+                    child.material.opacity = 0.4 + Math.sin(time * 2 + child.position.z) * 0.2;
+                }
             }
             
-            // Animate energy particles rotation
-            if (child.name === 'energyParticles') {
+            // Only animate energy particles (specific name)
+            else if (child.name === 'energyParticles') {
                 child.rotation.y = time * 0.1;
             }
             
-            // Animate rim lights for dynamic feel
-            if (child.name && child.name.startsWith('rimLight')) {
-                const intensity = child.userData.originalIntensity || child.intensity;
+            // Only animate rim lights (specific name pattern)
+            else if (child.name && child.name.startsWith('rimLight')) {
+                if (!child.userData.originalIntensity) {
+                    child.userData.originalIntensity = child.intensity;
+                }
+                const intensity = child.userData.originalIntensity;
                 child.intensity = intensity * (0.8 + Math.sin(time * 2) * 0.2);
             }
+            
+            // IMPORTANT: Don't affect any other objects (including chat bubbles)
+            // Chat bubbles don't have specific names that match our patterns above
         });
         
         // Update directional light angle for day/night cycle
