@@ -2136,64 +2136,69 @@
                     return;
                 }
                 
-                // Strategy 1: Use AvatarSystem.createAvatar with the user ID as the avatar ID
+                // Strategy 1: Use AvatarSystem.createAvatar with proper ID consistency
                 if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
                     try {
                         console.log(`📋 Using AvatarSystem.createAvatar for ${userData.username}`);
                         
-                        // Generate a consistent position based on user ID
+                        // Calculate consistent ground position
                         const hash = userData.user_id.split('').reduce((a, b) => {
                             a = ((a << 5) - a) + b.charCodeAt(0);
                             return a & a;
                         }, 0);
                         
                         const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-                        const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius
+                        const radius = 3 + (Math.abs(hash) % 4);
                         
                         const position = {
                             x: Math.cos(angle) * radius,
-                            y: 0,
+                            y: 0, // Always on ground
                             z: Math.sin(angle) * radius
                         };
                         
-                        // Use existing position if available
+                        // Use provided position if available
                         if (userData.position) {
                             position.x = userData.position.x;
-                            position.y = userData.position.y;
+                            position.y = userData.position.y || 0; // Ensure Y is not undefined
                             position.z = userData.position.z;
                         }
                         
-                        // Create avatar using the user ID as avatar ID with nationality
+                        // Create avatar with CONSISTENT userData structure
                         const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
                             name: userData.username,
                             nationality: userData.nationality || 'UN',
                             position: position,
-                            // Use random customization if available
                             ...(window.AvatarSystem.getRandomCustomization ? window.AvatarSystem.getRandomCustomization() : {})
                         });
                         
                         if (avatar) {
-                            console.log(`✅ Created avatar for ${userData.username} using AvatarSystem.createAvatar`);
+                            // CRITICAL: Ensure userData has ALL the ID patterns our search uses
+                            if (avatar.userData) {
+                                avatar.userData.userId = userData.user_id;      // For pattern 1
+                                avatar.userData.id = userData.user_id;          // For pattern 2  
+                                avatar.userData.user_id = userData.user_id;     // For pattern 3
+                                avatar.userData.username = userData.username;   // For pattern 5
+                            }
                             
-                            // CRITICAL: Add the enhanced nametag with flag after avatar creation
+                            // Also set the name property
+                            avatar.name = userData.user_id; // For pattern 4
+                            
+                            console.log(`✅ Created avatar for ${userData.username} with consistent ID tracking`);
+                            
+                            // Add enhanced nametag after avatar creation
                             setTimeout(async () => {
                                 try {
                                     const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
-                                    if (nametagGroup && avatar) {
-                                        // For AvatarSystem avatars, try to access the avatar group/object properly
-                                        if (avatar.add && typeof avatar.add === 'function') {
-                                            // Remove any existing nametag first
-                                            const existingNametag = avatar.getObjectByName ? avatar.getObjectByName('nametag') : null;
-                                            if (existingNametag) {
-                                                avatar.remove(existingNametag);
-                                            }
-                                            
-                                            nametagGroup.name = 'nametag';
-                                            avatar.add(nametagGroup);
-                                            console.log(`🏳️ Added enhanced nametag with flag to ${userData.username}`);
-                                        } else {
-                                            console.warn(`Avatar for ${userData.username} doesn't support .add() method`);
+                                    if (nametagGroup && avatar && typeof avatar.add === 'function') {
+                                        // Remove existing nametag first
+                                        const existingNametag = avatar.getObjectByName ? avatar.getObjectByName('nametag') : null;
+                                        if (existingNametag) {
+                                            avatar.remove(existingNametag);
                                         }
+                                        
+                                        nametagGroup.name = 'nametag';
+                                        avatar.add(nametagGroup);
+                                        console.log(`🏳️ Added enhanced nametag with flag to ${userData.username}`);
                                     }
                                 } catch (error) {
                                     console.warn(`Could not add enhanced nametag to ${userData.username}:`, error);
@@ -2208,20 +2213,20 @@
                     }
                 }
                 
-                // Strategy 2: Create simple THREE.js avatar with enhanced nametag
+                // Strategy 2: Create simple THREE.js avatar if AvatarSystem not available
                 if (this.getAvailableScene() && window.THREE) {
                     try {
                         const scene = this.getAvailableScene();
                         console.log(`📋 Using direct Three.js scene for ${userData.username}`);
                         
-                        // Create a simple colored box as avatar
+                        // Create simple colored box avatar
                         const geometry = new THREE.BoxGeometry(1, 2, 1);
-                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+                        const colors = [0xff6b6b,0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
                         const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
                         const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
                         const avatar = new THREE.Mesh(geometry, material);
                         
-                        // Position avatar
+                        // Position avatar on ground
                         const hash = userData.user_id.split('').reduce((a, b) => {
                             a = ((a << 5) - a) + b.charCodeAt(0);
                             return a & a;
@@ -2232,9 +2237,21 @@
                         
                         avatar.position.set(
                             Math.cos(angle) * radius,
-                            1, // Height above ground
+                            1, // Height above ground (not random!)
                             Math.sin(angle) * radius
                         );
+                        
+                        // CRITICAL: Set ALL userData patterns for consistent ID tracking
+                        avatar.userData = { 
+                            userId: userData.user_id,          // Pattern 1
+                            id: userData.user_id,              // Pattern 2
+                            user_id: userData.user_id,         // Pattern 3  
+                            username: userData.username,       // Pattern 5
+                            nationality: userData.nationality || 'UN'
+                        };
+                        
+                        // Also set name for pattern 4
+                        avatar.name = userData.user_id;
                         
                         // Add enhanced username label with nationality flag
                         const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
@@ -2243,15 +2260,8 @@
                             avatar.add(nametagGroup);
                         }
                         
-                        // Store user ID for removal
-                        avatar.userData = { 
-                            userId: userData.user_id, 
-                            username: userData.username,
-                            nationality: userData.nationality || 'UN'
-                        };
-                        
                         scene.add(avatar);
-                        console.log(`✅ Created Three.js avatar for ${userData.username} with enhanced nametag`);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} with consistent ID tracking`);
                         
                         return avatar;
                         
@@ -2260,18 +2270,12 @@
                     }
                 }
                 
-                // Strategy 3: Wait for systems to be ready and try again
+                // Log that we're waiting and will retry
                 console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
-                
                 setTimeout(() => {
                     console.log(`🔄 Retrying avatar creation for ${userData.username}...`);
                     this.createRemoteAvatar(userData);
                 }, 2000);
-                
-                console.error(`❌ Failed to create avatar for ${userData.username} - will retry in 2 seconds`);
-                
-                // Show notification to user
-                this.showNotification(`⏳ Creating avatar for ${userData.username} from ${this.getCountryName(userData.nationality || 'UN')}...`);
             }
             
             // Helper to get available scene
@@ -3499,41 +3503,79 @@
             }
             
             getAvatarPosition(userId) {
+                console.log(`🔍 Getting avatar position for user: ${userId}`);
+                
                 try {
+                    // Strategy 1: Use AvatarSystem if available
                     if (window.AvatarSystem?.getAvatarPosition) {
-                        return window.AvatarSystem.getAvatarPosition(userId);
-                    }
-                    
-                    if (this.scene) {
-                        const avatar = this.scene.children.find(child => 
-                            child.userData?.userId === userId
-                        );
-                        if (avatar) {
-                            return avatar.position.clone();
+                        const pos = window.AvatarSystem.getAvatarPosition(userId);
+                        if (pos) {
+                            console.log(`✅ Found avatar position via AvatarSystem: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+                            return pos;
                         }
                     }
                     
-                    if (userId === window.ROOM_CONFIG?.userId) {
+                    // Strategy 2: Search scene for avatar with multiple ID patterns
+                    if (this.scene) {
+                        let avatar = null;
+                        
+                        // Try different userData patterns
+                        const searchPatterns = [
+                            child => child.userData?.userId === userId,
+                            child => child.userData?.id === userId,  
+                            child => child.userData?.user_id === userId,
+                            child => child.name === userId,
+                            child => child.userData?.username === userId
+                        ];
+                        
+                        for (const pattern of searchPatterns) {
+                            avatar = this.scene.children.find(pattern);
+                            if (avatar) {
+                                console.log(`✅ Found avatar in scene using pattern, position: (${avatar.position.x.toFixed(2)}, ${avatar.position.y.toFixed(2)}, ${avatar.position.z.toFixed(2)})`);
+                                return avatar.position.clone();
+                            }
+                        }
+                    }
+                    
+                    // Strategy 3: Check if this is the current user (place at origin)
+                    if (userId === this.userId || userId === window.ROOM_CONFIG?.userId) {
+                        console.log(`✅ Using origin position for current user: ${userId}`);
                         return new THREE.Vector3(0, 0, 0);
                     }
                     
-                    // Create consistent positions for users based on their ID
+                    // Strategy 4: Use stored avatar positions if we're tracking them
+                    if (this.connectedUsers && this.connectedUsers.has(userId)) {
+                        const userData = this.connectedUsers.get(userId);
+                        if (userData.position) {
+                            console.log(`✅ Using stored position for user: ${userId}`);
+                            return new THREE.Vector3(userData.position.x, userData.position.y, userData.position.z);
+                        }
+                    }
+                    
+                    // Strategy 5: Create GROUND-LEVEL consistent position (NOT random air position!)
+                    console.warn(`⚠️ No avatar found for user ${userId}, creating consistent ground position`);
+                    
+                    // Create consistent position based on user ID hash - ALWAYS ON GROUND
                     const hash = userId.split('').reduce((a, b) => {
                         a = ((a << 5) - a) + b.charCodeAt(0);
                         return a & a;
                     }, 0);
                     
-                    const angle = (hash % 360) * (Math.PI / 180);
-                    const radius = 5 + (Math.abs(hash) % 5);
+                    const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                    const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius from center
                     
-                    return new THREE.Vector3(
+                    const groundPosition = new THREE.Vector3(
                         Math.cos(angle) * radius,
-                        0,
+                        0, // ALWAYS on ground level (Y = 0)
                         Math.sin(angle) * radius
                     );
                     
+                    console.log(`🔧 Created consistent ground position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
+                    return groundPosition;
+                    
                 } catch (error) {
-                    console.error('Error getting avatar position:', error);
+                    console.error('❌ Error getting avatar position:', error);
+                    // Emergency fallback - still on ground
                     return new THREE.Vector3(0, 0, 0);
                 }
             }
