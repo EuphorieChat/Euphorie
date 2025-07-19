@@ -1,10 +1,9 @@
 // =============================================
-// EUPHORIE 3D CHAT BUBBLE SYSTEM v6.0 - REFACTORED
-// Extracted from room_3d.html into external chat-bubble-system.js
-// Fixed: No global Three.js overrides, targeted protection only
+// EUPHORIE 3D CHAT BUBBLE SYSTEM v6.1 - FIXED STACKING
+// Fixed: Consistent height positioning, no vertical stacking
 // =============================================
 
-console.log('🔥 LOADING ChatBubbleSystem v6.0 - Refactored External Version...');
+console.log('🔥 LOADING ChatBubbleSystem v6.1 - Fixed Stacking Version...');
 
 // 1. SAFE MATH UTILITIES - Prevent NaN in calculations
 const SafeMath = {
@@ -20,7 +19,6 @@ const SafeMath = {
         return Math.max(0, Math.min(1, isFinite(progress) ? progress : 0));
     },
     
-    // FIXED: More permissive scale validation - no global override
     safeScale: (value) => {
         if (value === undefined || value === null) return 1;
         if (!isFinite(value) || isNaN(value)) return 1;
@@ -37,16 +35,13 @@ const SafeMath = {
     }
 };
 
-// 2. TARGETED SCALE PROTECTION - Only for chat bubble objects (NO GLOBAL OVERRIDE)
+// 2. TARGETED SCALE PROTECTION - Only for chat bubble objects
 function createSafeScaleHelper() {
     return {
-        // Safe scale setting specifically for chat bubble objects ONLY
         setSafeBubbleScale: function(object, x, y, z) {
             if (!object || !object.scale) return;
             
-            // Only validate if this looks like a chat bubble object
             if (!this.isChatBubbleObject(object)) {
-                // For non-chat-bubble objects, use normal scaling (NO INTERFERENCE)
                 if (typeof x === 'number' && y === undefined && z === undefined) {
                     object.scale.setScalar(x);
                 } else {
@@ -55,7 +50,6 @@ function createSafeScaleHelper() {
                 return;
             }
             
-            // For chat bubble objects only, apply safe scaling
             const safeX = SafeMath.safeScale(x);
             const safeY = SafeMath.safeScale(y !== undefined ? y : x);
             const safeZ = SafeMath.safeScale(z !== undefined ? z : x);
@@ -75,27 +69,24 @@ function createSafeScaleHelper() {
             object.scale.setScalar(safeScalar);
         },
         
-        // Check if an object is a chat bubble (avoid interfering with other Three.js objects)
         isChatBubbleObject: function(object) {
             if (!object) return false;
             
-            // Check for chat bubble indicators
             return (
                 object.name?.includes('bubble') ||
                 object.userData?.isChatBubble ||
                 object.parent?.userData?.isChatBubble ||
-                object.material?.map?.image?.tagName === 'CANVAS' // Chat bubbles use canvas textures
+                object.material?.map?.image?.tagName === 'CANVAS'
             );
         }
     };
 }
 
-// 3. MAIN CHAT BUBBLE SYSTEM CLASS - REFACTORED VERSION
+// 3. MAIN CHAT BUBBLE SYSTEM CLASS - FIXED STACKING VERSION
 class ChatBubbleSystem {
     constructor() {
-        console.log('💬✨ ChatBubbleSystem v6.0 - Refactored external version starting...');
+        console.log('💬✨ ChatBubbleSystem v6.1 - Fixed Stacking version starting...');
         
-        // Create safe scale helper (NO GLOBAL OVERRIDE)
         this.safeScale = createSafeScaleHelper();
         
         // Core properties
@@ -112,22 +103,22 @@ class ChatBubbleSystem {
         this.texturePool = [];
         this._messageQueue = [];
         
-        // ENHANCED: Avatar position tracking
+        // Avatar position tracking
         this.avatarPositionCache = new Map();
         this.lastKnownPositions = new Map();
         
-        // Enhanced configuration
+        // FIXED: Configuration for consistent positioning
         this.config = {
-            maxBubbles: 25,
-            fadeTime: 6000, // Reduced fade time so old bubbles disappear faster
+            maxBubbles: 20,
+            fadeTime: 4000, // Faster fade out
             maxDistance: 60,
             fontSize: 18,
             maxWidth: 380,
             padding: 25,
             borderRadius: 20,
-            yOffset: 2.5, // Fixed height above avatar
+            yOffset: 2.8, // FIXED: Consistent height above avatar
             animationDuration: 600,
-            maxBubblesPerUser: 3, // Reduced to prevent too many bubbles
+            maxBubblesPerUser: 1, // FIXED: Only one bubble per user at a time
             enableDebug: false,
             enableShadows: true,
             cullingDistance: 100,
@@ -135,9 +126,10 @@ class ChatBubbleSystem {
             enableGlow: true,
             minHeight: 2.0,
             maxHeight: 15.0,
-            overlapOffset: 1.2, // Horizontal spacing between bubbles
-            replacePreviousBubble: true, // NEW: Replace instead of stack
-            groundY: 0
+            horizontalSpread: 1.5, // FIXED: Only horizontal spreading
+            replacePreviousBubble: true, // FIXED: Replace instead of stack
+            groundY: 0,
+            noVerticalStacking: true // FIXED: Disable vertical stacking completely
         };
         
         // Enhanced visual styles
@@ -168,7 +160,7 @@ class ChatBubbleSystem {
         // Setup resize handler
         window.addEventListener('resize', this.handleResize);
         
-        console.log('✅ ChatBubbleSystem v6.0 - Refactored external version created');
+        console.log('✅ ChatBubbleSystem v6.1 - Fixed Stacking version created');
     }
     
     bindMethods() {
@@ -232,7 +224,7 @@ class ChatBubbleSystem {
     }
     
     async init() {
-        console.log('🚀 Initializing ChatBubbleSystem v6.0...');
+        console.log('🚀 Initializing ChatBubbleSystem v6.1...');
         
         try {
             this._ensurePerformanceObject();
@@ -243,7 +235,6 @@ class ChatBubbleSystem {
                 return;
             }
             
-            // Wait for scene systems
             if (!window.SceneManager?.scene) {
                 console.log('💬 Waiting for SceneManager... retrying in 300ms');
                 setTimeout(() => this.init(), 300);
@@ -262,7 +253,7 @@ class ChatBubbleSystem {
             this._ensurePerformanceObject();
             this.isInitialized = true;
             
-            console.log('✅ ChatBubbleSystem v6.0 initialized successfully');
+            console.log('✅ ChatBubbleSystem v6.1 initialized successfully');
             
             this.startUpdateLoop();
             this.setupEventListeners();
@@ -312,7 +303,6 @@ class ChatBubbleSystem {
             return null;
         }
         
-        // Check if chat bubbles are enabled via ROOM_CONFIG
         if (window.ROOM_CONFIG && !window.ROOM_CONFIG.chatBubblesEnabled) {
             console.log('💬 Chat bubbles disabled in ROOM_CONFIG');
             return null;
@@ -351,23 +341,20 @@ class ChatBubbleSystem {
     }
     
     createGroundLevelFallbackPosition(userId) {
-        // Create a more intelligent fallback position
         const hash = userId.split('').reduce((a, b) => {
             a = ((a << 5) - a) + b.charCodeAt(0);
             return a & a;
         }, 0);
         
-        // Create positions in a circle around origin, but not random
         const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-        const radius = 4 + (Math.abs(hash) % 3); // 4-6 units from center
+        const radius = 4 + (Math.abs(hash) % 3);
         
         const groundPosition = new THREE.Vector3(
             Math.cos(angle) * radius,
-            this.config.groundY + 1, // 1 unit above ground minimum
+            this.config.groundY + this.config.yOffset, // FIXED: Use consistent yOffset
             Math.sin(angle) * radius
         );
         
-        // Store as last known position for this user
         this.lastKnownPositions.set(userId, groundPosition.clone());
         
         if (this.config.enableDebug) {
@@ -383,7 +370,7 @@ class ChatBubbleSystem {
         }
         
         try {
-            // Strategy 1: Check cache first (1 second cache for performance)
+            // Strategy 1: Check cache first
             if (this.avatarPositionCache.has(userId)) {
                 const cached = this.avatarPositionCache.get(userId);
                 if (Date.now() - cached.timestamp < 1000) {
@@ -413,7 +400,7 @@ class ChatBubbleSystem {
                 return avatarPosition;
             }
             
-            // Strategy 4: Check if this is the current user (camera-based position)
+            // Strategy 4: Check if this is the current user
             if (this.isCurrentUser(userId)) {
                 const cameraPosition = this.getCurrentUserPosition();
                 if (cameraPosition) {
@@ -459,41 +446,28 @@ class ChatBubbleSystem {
         }
     }
     
-    // ENHANCED: Comprehensive scene search for avatars
     searchSceneForAvatar(userId) {
         if (!this.scene) return null;
         
-        // Enhanced search patterns - more comprehensive
         const searchPatterns = [
-            // Direct userData patterns
             child => child.userData?.userId === userId,
             child => child.userData?.id === userId,  
             child => child.userData?.user_id === userId,
             child => child.userData?.playerId === userId,
             child => child.userData?.characterId === userId,
-            
-            // Name patterns
             child => child.name === userId,
             child => child.userData?.username === userId,
             child => child.userData?.displayName === userId,
-            
-            // Type-based detection with ID check
             child => (child.userData?.type === 'avatar' || child.userData?.isAvatar) && 
                      (child.userData?.userId === userId || child.userData?.id === userId),
-            
-            // Parent-child patterns (for complex avatar hierarchies)
             child => child.parent?.userData?.userId === userId,
             child => child.parent?.userData?.id === userId,
-            
-            // Group/container patterns
             child => child.userData?.owner === userId,
             child => child.userData?.belongsTo === userId
         ];
         
-        // Try each search pattern
         for (const pattern of searchPatterns) {
             try {
-                // Search through all scene children recursively
                 let foundAvatar = null;
                 this.scene.traverse(child => {
                     if (!foundAvatar && pattern(child)) {
@@ -508,7 +482,6 @@ class ChatBubbleSystem {
                     return foundAvatar.position.clone();
                 }
             } catch (error) {
-                // Continue to next pattern if this one fails
                 continue;
             }
         }
@@ -519,52 +492,42 @@ class ChatBubbleSystem {
         return null;
     }
     
-    // Check if position is valid (not NaN, not at origin unless intentional)
     isValidPosition(position) {
         if (!position) return false;
         if (typeof position.x !== 'number' || typeof position.y !== 'number' || typeof position.z !== 'number') return false;
         if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) return false;
         if (!isFinite(position.x) || !isFinite(position.y) || !isFinite(position.z)) return false;
-        
-        // Position is valid
         return true;
     }
     
-    // Check if this user ID belongs to the current user
     isCurrentUser(userId) {
         return userId === window.ROOM_CONFIG?.userId || 
                userId === window.WebSocketManager?.userId ||
                userId === this.getCurrentUserId();
     }
     
-    // Get current user ID from multiple sources
     getCurrentUserId() {
         return window.ROOM_CONFIG?.userId || 
                window.WebSocketManager?.userId || 
                window.Euphorie?.state?.userId;
     }
     
-    // Get current user position based on camera or spawn point
     getCurrentUserPosition() {
-        // Try to get camera position and place bubble nearby
         if (this.camera) {
             const cameraPos = this.camera.position.clone();
-            // Place bubble in front of camera at ground level
             const direction = new THREE.Vector3(0, 0, -1);
             direction.applyQuaternion(this.camera.quaternion);
             
             const bubblePos = cameraPos.clone();
-            bubblePos.add(direction.multiplyScalar(5)); // 5 units in front
-            bubblePos.y = Math.max(this.config.groundY, 1); // At least 1 unit above ground
+            bubblePos.add(direction.multiplyScalar(5));
+            bubblePos.y = Math.max(this.config.groundY, 1);
             
             return bubblePos;
         }
         
-        // Fallback to origin
-        return new THREE.Vector3(0, this.config.groundY + 1, 0);
+        return new THREE.Vector3(0, this.config.groundY + this.config.yOffset, 0);
     }
     
-    // Cache avatar position for performance
     cacheAvatarPosition(userId, position) {
         if (!this.avatarPositionCache) {
             this.avatarPositionCache = new Map();
@@ -575,13 +538,11 @@ class ChatBubbleSystem {
             timestamp: Date.now()
         });
         
-        // Also store as last known position
         if (!this.lastKnownPositions) {
             this.lastKnownPositions = new Map();
         }
         this.lastKnownPositions.set(userId, position.clone());
         
-        // Clean old cache entries (keep last 50)
         if (this.avatarPositionCache.size > 50) {
             const entries = Array.from(this.avatarPositionCache.entries());
             entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
@@ -593,7 +554,7 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Create bubble with proper targeted scale handling (no global override)
+    // FIXED: Create bubble with consistent positioning - NO STACKING
     createBubble(message, username, position, userId = null) {
         if (!this.isInitialized || !window.THREE) {
             console.warn('💬 ChatBubbleSystem not ready');
@@ -604,7 +565,6 @@ class ChatBubbleSystem {
             const bubbleGroup = new THREE.Group();
             const bubbleId = ++this.bubbleIdCounter;
             
-            // CRITICAL: Mark as chat bubble for targeted scaling
             bubbleGroup.userData = { isChatBubble: true };
             
             // Create canvas with high DPI
@@ -648,21 +608,18 @@ class ChatBubbleSystem {
             });
             
             const sprite = new THREE.Sprite(material);
-            
-            // CRITICAL: Mark sprite as chat bubble BEFORE scaling
             sprite.userData = { isChatBubble: true };
             
-            // FIXED: Use targeted safe scale helper for chat bubble scaling ONLY
             const scale = 0.008;
             this.safeScale.setSafeBubbleScale(sprite, bubbleWidth * scale, bubbleHeight * scale, 1);
             
             bubbleGroup.add(sprite);
             
-            // Calculate safe bubble position
-            const bubblePosition = this.calculateSafeBubblePosition(position, userId);
+            // FIXED: Calculate consistent bubble position - NO STACKING
+            const bubblePosition = this.calculateConsistentBubblePosition(position, userId);
             bubbleGroup.position.copy(bubblePosition);
             
-            // Set bubble data with chat bubble marker
+            // Set bubble data
             bubbleGroup.userData = {
                 id: bubbleId,
                 message: message,
@@ -672,10 +629,9 @@ class ChatBubbleSystem {
                 opacity: 1,
                 isVisible: true,
                 originalPosition: bubblePosition.clone(),
-                isChatBubble: true // IMPORTANT: Mark as chat bubble
+                isChatBubble: true
             };
             
-            // FIXED: Safe animation start using targeted scaling
             this.safeScale.setSafeBubbleScalar(bubbleGroup, 0);
             this.animateBubbleInSafe(bubbleGroup);
             
@@ -685,7 +641,7 @@ class ChatBubbleSystem {
             // Track bubble
             this.activeBubbles.push(bubbleGroup);
             
-            // IMPROVED: Better bubble management per user
+            // FIXED: Better bubble management - replace previous bubble
             if (userId) {
                 if (!this.bubbles.has(userId)) {
                     this.bubbles.set(userId, []);
@@ -693,16 +649,12 @@ class ChatBubbleSystem {
                 
                 const userBubbles = this.bubbles.get(userId);
                 
-                // OPTION 1: Replace previous bubble (recommended)
+                // REPLACE previous bubble instead of stacking
                 if (this.config.replacePreviousBubble && userBubbles.length > 0) {
-                    // Fade out the old bubble immediately
                     const oldBubble = userBubbles[userBubbles.length - 1];
                     this.animateBubbleOut(oldBubble);
-                    
-                    // Replace in array
                     userBubbles[userBubbles.length - 1] = bubbleGroup;
                 } else {
-                    // OPTION 2: Add to array and limit count
                     userBubbles.push(bubbleGroup);
                     
                     // Limit bubbles per user
@@ -727,10 +679,11 @@ class ChatBubbleSystem {
         }
     }
     
-    calculateSafeBubblePosition(basePosition, userId) {
+    // FIXED: Consistent positioning without vertical stacking
+    calculateConsistentBubblePosition(basePosition, userId) {
         const bubblePosition = basePosition.clone();
         
-        // Ensure minimum height above ground (consistent height, not stacking)
+        // FIXED: Always use the same height - NO STACKING
         bubblePosition.y = Math.max(
             this.config.minHeight, 
             basePosition.y + this.config.yOffset
@@ -739,24 +692,24 @@ class ChatBubbleSystem {
         // Ensure maximum height
         bubblePosition.y = Math.min(this.config.maxHeight, bubblePosition.y);
         
-        // FIXED: Only do horizontal spreading, not vertical stacking
+        // FIXED: Only small horizontal offset to prevent overlap, NO vertical offset
         if (userId && this.bubbles.has(userId)) {
             const userBubbles = this.bubbles.get(userId);
             const activeBubbleCount = userBubbles.filter(bubble => 
                 bubble.userData.animationPhase !== 'exiting'
             ).length;
             
-            // Only horizontal offset for multiple bubbles (no vertical stacking)
-            bubblePosition.x += activeBubbleCount * this.config.overlapOffset;
+            // Only tiny horizontal offset to prevent exact overlap
+            bubblePosition.x += activeBubbleCount * 0.1; // Very small offset
+            bubblePosition.z += activeBubbleCount * 0.05; // Tiny Z offset to prevent z-fighting
             
-            // Very small Z offset to prevent z-fighting (but no height change)
-            bubblePosition.z += activeBubbleCount * 0.05;
+            // NO HEIGHT CHANGE - bubblePosition.y stays the same!
         }
         
         return bubblePosition;
     }
     
-    // FIXED: Safe animation with targeted scale protection (no global interference)
+    // Rest of the methods remain the same...
     animateBubbleInSafe(bubble) {
         if (!bubble) return;
         
@@ -774,10 +727,8 @@ class ChatBubbleSystem {
                 const elapsed = Date.now() - startTime;
                 const progress = SafeMath.safeProgress(elapsed, duration);
                 
-                // Safe easing calculation
                 const easeProgress = SafeMath.safeEasing(progress);
                 
-                // Safe bounce calculation
                 let bounceScale = easeProgress;
                 if (progress > 0.8) {
                     const bouncePhase = (progress - 0.8) / 0.2;
@@ -785,14 +736,11 @@ class ChatBubbleSystem {
                     bounceScale = easeProgress + bounce;
                 }
                 
-                // Safe scale calculation
                 const rawScale = startScale + (endScale - startScale) * bounceScale;
                 const safeScale = SafeMath.safeScale(rawScale);
                 
-                // FIXED: Apply targeted safe scale only to chat bubble (no global interference)
                 this.safeScale.setSafeBubbleScalar(bubble, safeScale);
                 
-                // Safe rotation
                 const rotation = (1 - progress) * 0.2 * Math.sin(progress * Math.PI * 2);
                 bubble.rotation.z = isFinite(rotation) ? rotation : 0;
                 
@@ -801,7 +749,7 @@ class ChatBubbleSystem {
                 } else {
                     bubble.userData.animationPhase = 'stable';
                     bubble.rotation.z = 0;
-                    this.safeScale.setSafeBubbleScalar(bubble, 1); // Ensure final scale is exactly 1
+                    this.safeScale.setSafeBubbleScalar(bubble, 1);
                     
                     console.log('✅ Bubble animation completed safely:', bubble.userData?.message);
                     
@@ -812,7 +760,6 @@ class ChatBubbleSystem {
                 }
             } catch (error) {
                 console.error('❌ Error in safe bubble animation:', error);
-                // Fallback: set to stable state
                 this.safeScale.setSafeBubbleScalar(bubble, 1);
                 bubble.userData.animationPhase = 'stable';
             }
@@ -849,7 +796,6 @@ class ChatBubbleSystem {
                     bubble.userData.opacity = opacity;
                 }
                 
-                // FIXED: Use targeted safe scale helper (no global interference)
                 this.safeScale.setSafeBubbleScalar(bubble, scale);
                 
                 if (progress < 1) {
@@ -866,7 +812,6 @@ class ChatBubbleSystem {
         animate();
     }
     
-    // FIXED: Safe update method with targeted scaling only
     update() {
         if (!this.camera || !this.isInitialized) return;
         
@@ -879,7 +824,6 @@ class ChatBubbleSystem {
                 
                 const distance = bubble.position.distanceTo(this.camera.position);
                 
-                // Culling
                 if (distance > this.config.cullingDistance) {
                     bubble.visible = false;
                     bubble.userData.isVisible = false;
@@ -889,21 +833,19 @@ class ChatBubbleSystem {
                 bubble.visible = true;
                 bubble.userData.isVisible = true;
                 
-                // Face camera
                 bubble.lookAt(this.camera.position);
                 
-                // SAFE floating animation
+                // FIXED: Gentle floating animation without affecting base height
                 const time = Date.now() * 0.0008;
-                const floatAmount = 0.05;
+                const floatAmount = 0.03; // Reduced float amount
                 const floatOffset = Math.sin(time + bubble.userData.id * 0.7) * floatAmount;
                 
-                // Safe Y position calculation
                 const originalY = bubble.userData.originalPosition?.y || this.config.yOffset;
                 const newY = Math.max(this.config.minHeight, originalY + floatOffset);
                 bubble.position.y = isFinite(newY) ? newY : this.config.yOffset;
                 
-                // Safe swaying
-                const swayAmount = 0.02;
+                // Very gentle swaying
+                const swayAmount = 0.01;
                 const swaySpeed = time * 0.4;
                 const originalX = bubble.userData.originalPosition?.x || 0;
                 const originalZ = bubble.userData.originalPosition?.z || 0;
@@ -914,13 +856,11 @@ class ChatBubbleSystem {
                 bubble.position.x = originalX + (isFinite(swayX) ? swayX : 0);
                 bubble.position.z = originalZ + (isFinite(swayZ) ? swayZ : 0);
                 
-                // Safe rotation
                 if (bubble.userData.animationPhase === 'stable') {
-                    const rotationZ = Math.sin(time * 0.3 + bubble.userData.id) * 0.05;
+                    const rotationZ = Math.sin(time * 0.3 + bubble.userData.id) * 0.03;
                     bubble.rotation.z = isFinite(rotationZ) ? rotationZ : 0;
                 }
                 
-                // FIXED: Safe distance-based scaling with targeted protection
                 if (bubble.children[0]?.material) {
                     const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
                     const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * (bubble.userData.opacity || 1);
@@ -936,7 +876,6 @@ class ChatBubbleSystem {
             console.error('Error in safe update:', error);
         }
         
-        // Performance tracking
         this._ensurePerformanceObject();
         this.performance.frameTime = Date.now() - startTime;
         this.performance.bubbleCount = this.activeBubbles.length;
@@ -1268,7 +1207,6 @@ class ChatBubbleSystem {
         if (!this.bubbles.has(userId) || !newPosition) return;
         
         try {
-            // Update cached position
             this.cacheAvatarPosition(userId, newPosition);
             
             const userBubbles = this.bubbles.get(userId);
@@ -1276,14 +1214,13 @@ class ChatBubbleSystem {
                 if (bubble.userData.isVisible && bubble.userData.animationPhase !== 'exiting') {
                     const bubblePosition = newPosition.clone();
                     
-                    // Consistent height (no stacking)
+                    // FIXED: Consistent height only
                     bubblePosition.y = Math.max(this.config.minHeight, bubblePosition.y + this.config.yOffset);
                     
                     // Only horizontal spreading
-                    bubblePosition.x += index * this.config.overlapOffset;
-                    bubblePosition.z += index * 0.05; // Tiny Z offset only
+                    bubblePosition.x += index * this.config.horizontalSpread;
+                    bubblePosition.z += index * 0.05;
                     
-                    // Smooth transition to new position
                     bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
                 }
             });
@@ -1401,8 +1338,6 @@ class ChatBubbleSystem {
     enableDebugMode() {
         this.config.enableDebug = true;
         console.log('🔍 Chat Bubble positioning debug mode ENABLED');
-        
-        // Show all current avatar positions
         this.debugCurrentAvatars();
     }
     
@@ -1444,7 +1379,6 @@ class ChatBubbleSystem {
             console.log(`  ✅ Found ${avatarCount} avatars total`);
         }
         
-        // Also show cached positions
         console.log('💾 Cached avatar positions:');
         this.avatarPositionCache.forEach((data, userId) => {
             const pos = data.position;
@@ -1452,7 +1386,6 @@ class ChatBubbleSystem {
         });
     }
     
-    // Force position for a specific user (for testing)
     forceUserPosition(userId, x, y, z) {
         const position = new THREE.Vector3(x, y, z);
         this.cacheAvatarPosition(userId, position);
@@ -1465,7 +1398,6 @@ class ChatBubbleSystem {
             this.clearAllBubbles();
             window.removeEventListener('resize', this.handleResize);
             
-            // Clear caches
             if (this.avatarPositionCache) this.avatarPositionCache.clear();
             if (this.lastKnownPositions) this.lastKnownPositions.clear();
             
@@ -1498,9 +1430,9 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBubbleSystem;
 }
 
-console.log('✅ ChatBubbleSystem v6.0 - Refactored external version loaded successfully');
-console.log('🎯 Key improvement: NO global Three.js overrides - targeted protection only');
-console.log('📈 This eliminates console spam and improves performance');
+console.log('✅ ChatBubbleSystem v6.1 - Fixed Stacking version loaded successfully');
+console.log('🎯 Key fix: NO vertical stacking - consistent height positioning');
+console.log('📈 Bubbles now appear at consistent height above avatars');
 console.log('🔧 Ready for integration with room_3d.html');
 console.log('');
-console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("Hello Refactored World!");');
+console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("No more stacking!");');
