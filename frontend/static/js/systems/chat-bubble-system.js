@@ -1,11 +1,11 @@
-// Enhanced ChatBubbleSystem v4.1 - Improved Working Version
-// Builds on your stable v4.0 with additional features and optimizations
+// Fixed External ChatBubbleSystem v4.1 - Ground Level Positions
+// Fixes the binding issues and ensures proper ground-level positioning
 
-console.log('🔥 LOADING ENHANCED ChatBubbleSystem v4.1 - ' + Date.now());
+console.log('🔥 LOADING FIXED External ChatBubbleSystem v4.1 - ' + Date.now());
 
 class ChatBubbleSystem {
     constructor() {
-        console.log('💬✨ ChatBubbleSystem v4.1 - ENHANCED WORKING VERSION starting...');
+        console.log('💬✨ ChatBubbleSystem v4.1 - FIXED EXTERNAL VERSION starting...');
         
         // CRITICAL: Initialize performance object FIRST
         this.performance = {
@@ -38,19 +38,19 @@ class ChatBubbleSystem {
             maxWidth: 350, // Wider bubbles
             padding: 25, // More padding
             borderRadius: 18, // More rounded
-            yOffset: 3.5,
-            animationDuration: 500, // Smoother animations
-            maxBubblesPerUser: 4, // More bubbles per user
+            yOffset: 3.5, // FIXED: Always above ground
+            animationDuration: 500,
+            maxBubblesPerUser: 4,
             enableDebug: false,
             enableShadows: true,
             cullingDistance: 100,
-            enableGlow: true, // New glow effects
-            enableParticles: true, // Particle effects
-            floatIntensity: 0.04, // More floating movement
-            swayIntensity: 0.02 // More natural swaying
+            enableGlow: true,
+            enableParticles: true,
+            floatIntensity: 0.04,
+            swayIntensity: 0.02
         };
         
-        // Enhanced bubble styles with better visual design
+        // Enhanced bubble styles
         this.bubbleStyles = {
             background: 'rgba(255, 255, 255, 0.96)',
             borderColor: 'rgba(102, 126, 234, 0.4)',
@@ -64,35 +64,94 @@ class ChatBubbleSystem {
         
         this.isMobile = window.innerWidth <= 768;
         
-        // WORKING FIX: Bind methods using explicit binding (keep your working approach)
-        this.init = this.init.bind(this);
-        this.createBubble = this.createBubble.bind(this);
-        this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
-        this.update = this.update.bind(this);
-        this.drawBubbleBackground = this.drawBubbleBackground.bind(this);
-        this.roundRect = this.roundRect.bind(this);
-        this.calculateTextDimensions = this.calculateTextDimensions.bind(this);
-        this.wrapText = this.wrapText.bind(this);
-        this.animateBubbleIn = this.animateBubbleIn.bind(this);
-        this.animateBubbleOut = this.animateBubbleOut.bind(this);
-        this.removeBubble = this.removeBubble.bind(this);
-        this.getAvatarPosition = this.getAvatarPosition.bind(this);
-        this.performanceCleanup = this.performanceCleanup.bind(this);
-        this.startUpdateLoop = this.startUpdateLoop.bind(this);
-        this.handleResize = this.handleResize.bind(this);
-        this.updateBubblePositions = this.updateBubblePositions.bind(this);
-        this.removeUserBubbles = this.removeUserBubbles.bind(this);
-        this.clearAllBubbles = this.clearAllBubbles.bind(this);
-        this._ensurePerformanceObject = this._ensurePerformanceObject.bind(this);
-        this._processQueuedMessages = this._processQueuedMessages.bind(this);
-        this.setupEventListeners = this.setupEventListeners.bind(this);
+        // FIXED: Proper method binding - bind all methods that exist
+        this.bindMethods();
+        
+        // Setup resize handler
+        window.addEventListener('resize', this.handleResize.bind(this));
+        
+        console.log('✅ ChatBubbleSystem v4.1 - FIXED EXTERNAL VERSION created');
+    }
+    
+    // FIXED: Separate method binding to avoid undefined binding errors
+    bindMethods() {
+        // Core methods
+        if (typeof this.init === 'function') {
+            this.init = this.init.bind(this);
+        }
+        if (typeof this.createBubble === 'function') {
+            this.createBubble = this.createBubble.bind(this);
+        }
+        if (typeof this.createBubbleFromMessage === 'function') {
+            this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
+        }
+        if (typeof this.update === 'function') {
+            this.update = this.update.bind(this);
+        }
+        if (typeof this.drawBubbleBackground === 'function') {
+            this.drawBubbleBackground = this.drawBubbleBackground.bind(this);
+        }
+        if (typeof this.roundRect === 'function') {
+            this.roundRect = this.roundRect.bind(this);
+        }
+        if (typeof this.calculateTextDimensions === 'function') {
+            this.calculateTextDimensions = this.calculateTextDimensions.bind(this);
+        }
+        if (typeof this.wrapText === 'function') {
+            this.wrapText = this.wrapText.bind(this);
+        }
+        if (typeof this.animateBubbleIn === 'function') {
+            this.animateBubbleIn = this.animateBubbleIn.bind(this);
+        }
+        if (typeof this.animateBubbleOut === 'function') {
+            this.animateBubbleOut = this.animateBubbleOut.bind(this);
+        }
+        if (typeof this.removeBubble === 'function') {
+            this.removeBubble = this.removeBubble.bind(this);
+        }
+        if (typeof this.getAvatarPosition === 'function') {
+            this.getAvatarPosition = this.getAvatarPosition.bind(this);
+        }
+        if (typeof this.performanceCleanup === 'function') {
+            this.performanceCleanup = this.performanceCleanup.bind(this);
+        }
+        if (typeof this.startUpdateLoop === 'function') {
+            this.startUpdateLoop = this.startUpdateLoop.bind(this);
+        }
+        if (typeof this.handleResize === 'function') {
+            this.handleResize = this.handleResize.bind(this);
+        }
+        if (typeof this.updateBubblePositions === 'function') {
+            this.updateBubblePositions = this.updateBubblePositions.bind(this);
+        }
+        if (typeof this.removeUserBubbles === 'function') {
+            this.removeUserBubbles = this.removeUserBubbles.bind(this);
+        }
+        if (typeof this.clearAllBubbles === 'function') {
+            this.clearAllBubbles = this.clearAllBubbles.bind(this);
+        }
+        if (typeof this._ensurePerformanceObject === 'function') {
+            this._ensurePerformanceObject = this._ensurePerformanceObject.bind(this);
+        }
+        if (typeof this._processQueuedMessages === 'function') {
+            this._processQueuedMessages = this._processQueuedMessages.bind(this);
+        }
+        if (typeof this.setupEventListeners === 'function') {
+            this.setupEventListeners = this.setupEventListeners.bind(this);
+        }
         
         // Enhanced methods
-        this.createEnhancedBubbleBackground = this.createEnhancedBubbleBackground.bind(this);
-        this.addParticleEffects = this.addParticleEffects.bind(this);
-        this.createGlowEffect = this.createGlowEffect.bind(this);
+        if (typeof this.createEnhancedBubbleBackground === 'function') {
+            this.createEnhancedBubbleBackground = this.createEnhancedBubbleBackground.bind(this);
+        }
+        if (typeof this.addParticleEffects === 'function') {
+            this.addParticleEffects = this.addParticleEffects.bind(this);
+        }
+        if (typeof this.createGlowEffect === 'function') {
+            this.createGlowEffect = this.createGlowEffect.bind(this);
+        }
         
-        // Create safe wrapper methods (keep your working approach)
+        // Create safe wrapper methods
         this.createBubbleFromMessageSafe = (...args) => {
             try {
                 this._ensurePerformanceObject();
@@ -113,10 +172,7 @@ class ChatBubbleSystem {
             }
         };
         
-        // Setup resize handler
-        window.addEventListener('resize', this.handleResize);
-        
-        console.log('✅ ChatBubbleSystem v4.1 - ENHANCED WORKING VERSION created');
+        console.log('✅ Methods bound successfully');
     }
     
     _ensurePerformanceObject() {
@@ -139,7 +195,7 @@ class ChatBubbleSystem {
     }
     
     async init() {
-        console.log('🚀 Initializing Enhanced ChatBubbleSystem v4.1...');
+        console.log('🚀 Initializing Fixed External ChatBubbleSystem v4.1...');
         
         try {
             // Check for THREE.js
@@ -174,14 +230,14 @@ class ChatBubbleSystem {
             this._ensurePerformanceObject();
             this.isInitialized = true;
             
-            console.log('✅ Enhanced ChatBubbleSystem v4.1 initialized successfully');
+            console.log('✅ Fixed External ChatBubbleSystem v4.1 initialized successfully');
             
             this.startUpdateLoop();
             this.setupEventListeners();
             this._processQueuedMessages();
             
         } catch (error) {
-            console.error('❌ Error initializing Enhanced ChatBubbleSystem:', error);
+            console.error('❌ Error initializing Fixed External ChatBubbleSystem:', error);
             setTimeout(() => this.init(), 1000);
         }
     }
@@ -235,9 +291,10 @@ class ChatBubbleSystem {
             
             if (!avatarPosition) {
                 console.warn(`💬 No avatar found for user ${userId}`);
+                // FIXED: Fallback position that's always on or above ground
                 const fallbackPosition = new THREE.Vector3(
                     (Math.random() - 0.5) * 10,
-                    2,
+                    Math.max(0, 2), // Always at ground level or above
                     (Math.random() - 0.5) * 10
                 );
                 return this.createBubble(
@@ -257,7 +314,7 @@ class ChatBubbleSystem {
                 messageData.nationality
             );
             
-            console.log(`✅ Enhanced bubble created for ${messageData.username}: "${messageData.message}"`);
+            console.log(`✅ Fixed external bubble created for ${messageData.username}: "${messageData.message}"`);
             return bubble;
             
         } catch (error) {
@@ -271,12 +328,20 @@ class ChatBubbleSystem {
             // Enhanced avatar position detection
             if (window.AvatarSystem?.getAvatarPosition) {
                 const pos = window.AvatarSystem.getAvatarPosition(userId);
-                if (pos) return pos;
+                if (pos) {
+                    // FIXED: Ensure Y position is never below ground
+                    pos.y = Math.max(0, pos.y);
+                    return pos;
+                }
             }
             
             if (window.AvatarSystem?.getAvatarPositionSafe) {
                 const pos = window.AvatarSystem.getAvatarPositionSafe(userId);
-                if (pos) return pos;
+                if (pos) {
+                    // FIXED: Ensure Y position is never below ground
+                    pos.y = Math.max(0, pos.y);
+                    return pos;
+                }
             }
             
             // Check scene for avatar
@@ -287,17 +352,20 @@ class ChatBubbleSystem {
                     child.name === userId
                 );
                 if (avatar) {
-                    return avatar.position.clone();
+                    const pos = avatar.position.clone();
+                    // FIXED: Ensure Y position is never below ground
+                    pos.y = Math.max(0, pos.y);
+                    return pos;
                 }
             }
             
             // Check current user
             if (userId === window.ROOM_CONFIG?.userId || 
                 userId === window.WebSocketManager?.userId) {
-                return new THREE.Vector3(0, 0, 0);
+                return new THREE.Vector3(0, 0, 0); // Ground level origin
             }
             
-            // Create consistent positions for users based on their ID
+            // FIXED: Create consistent ground-level positions for users based on their ID
             const hash = userId.split('').reduce((a, b) => {
                 a = ((a << 5) - a) + b.charCodeAt(0);
                 return a & a;
@@ -308,13 +376,13 @@ class ChatBubbleSystem {
             
             return new THREE.Vector3(
                 Math.cos(angle) * radius,
-                0,
+                0, // FIXED: Always on ground level
                 Math.sin(angle) * radius
             );
             
         } catch (error) {
             console.error('Error getting avatar position:', error);
-            return new THREE.Vector3(0, 0, 0);
+            return new THREE.Vector3(0, 0, 0); // Safe ground-level fallback
         }
     }
     
@@ -474,7 +542,7 @@ class ChatBubbleSystem {
     
     createBubble(message, username, position, userId = null, nationality = null) {
         if (!this.isInitialized) {
-            console.warn('💬 Enhanced ChatBubbleSystem not initialized');
+            console.warn('💬 Fixed External ChatBubbleSystem not initialized');
             return null;
         }
         
@@ -601,10 +669,12 @@ class ChatBubbleSystem {
             // Add glow effect if enabled
             if (this.config.enableGlow) {
                 const glowEffect = this.createGlowEffect(bubbleWidth * scale, bubbleHeight * scale);
-                bubbleGroup.add(glowEffect);
+                if (glowEffect) {
+                    bubbleGroup.add(glowEffect);
+                }
             }
             
-            // FIXED: Better bubble positioning that stays above avatar
+            // FIXED: Better bubble positioning that stays above avatar and ground
             const bubblePosition = this.calculateOptimalBubblePosition(position, userId, bubbleHeight * scale);
             
             bubbleGroup.position.copy(bubblePosition);
@@ -661,17 +731,20 @@ class ChatBubbleSystem {
             return bubbleGroup;
             
         } catch (error) {
-            console.error('❌ Error creating enhanced bubble:', error);
+            console.error('❌ Error creating fixed external bubble:', error);
             return null;
         }
     }
     
-    // NEW: Calculate optimal bubble position to prevent random floating
+    // FIXED: Calculate optimal bubble position to prevent random floating and ensure ground clearance
     calculateOptimalBubblePosition(avatarPosition, userId, bubbleHeight) {
         const bubblePosition = avatarPosition.clone();
         
-        // Base position: directly above avatar
-        bubblePosition.y += this.config.yOffset;
+        // FIXED: Ensure base position is always at or above ground level
+        bubblePosition.y = Math.max(0, bubblePosition.y);
+        
+        // Base position: directly above avatar at safe height
+        bubblePosition.y += this.config.yOffset; // Already 3.5, ensures clearance above ground
         
         // If user has existing bubbles, stack them nicely
         if (userId && this.bubbles.has(userId)) {
@@ -690,10 +763,13 @@ class ChatBubbleSystem {
             bubblePosition.z += stackIndex * 0.05;
         }
         
+        // FINAL SAFETY CHECK: Ensure Y is never below ground
+        bubblePosition.y = Math.max(this.config.yOffset, bubblePosition.y);
+        
         return bubblePosition;
     }
     
-    // NEW: Reposition user bubbles to maintain beautiful stacking
+    // Reposition user bubbles to maintain beautiful stacking
     repositionUserBubbles(userId) {
         if (!this.bubbles.has(userId)) return;
         
@@ -708,6 +784,9 @@ class ChatBubbleSystem {
                 if (!bubble.userData.isVisible) return;
                 
                 const targetPosition = avatarPosition.clone();
+                
+                // FIXED: Ensure base position is always at or above ground
+                targetPosition.y = Math.max(0, targetPosition.y);
                 targetPosition.y += this.config.yOffset;
                 
                 // Stack from bottom to top
@@ -721,6 +800,9 @@ class ChatBubbleSystem {
                 // Slight depth offset
                 targetPosition.z += index * 0.05;
                 
+                // FINAL SAFETY CHECK: Ensure Y is never below minimum height
+                targetPosition.y = Math.max(this.config.yOffset, targetPosition.y);
+                
                 // Smooth transition to new position
                 this.animateBubbleToPosition(bubble, targetPosition);
             });
@@ -729,7 +811,7 @@ class ChatBubbleSystem {
         }
     }
     
-    // NEW: Smoothly animate bubble to new position
+    // Smoothly animate bubble to new position
     animateBubbleToPosition(bubble, targetPosition, duration = 800) {
         if (!bubble || !targetPosition) return;
         
@@ -748,12 +830,17 @@ class ChatBubbleSystem {
                 
                 // Interpolate position
                 const currentPosition = startPosition.clone().lerp(targetPosition, easeProgress);
+                
+                // FINAL SAFETY CHECK: Ensure Y is never below ground
+                currentPosition.y = Math.max(this.config.yOffset, currentPosition.y);
+                
                 bubble.userData.originalPosition.copy(currentPosition);
                 
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
-                    // Ensure final position is exact
+                    // Ensure final position is exact and safe
+                    targetPosition.y = Math.max(this.config.yOffset, targetPosition.y);
                     bubble.userData.originalPosition.copy(targetPosition);
                 }
             } catch (error) {
@@ -994,11 +1081,14 @@ class ChatBubbleSystem {
                 // Face camera
                 bubble.lookAt(this.camera.position);
                 
-                // Enhanced floating animation
+                // Enhanced floating animation with ground safety
                 const time = Date.now() * 0.0008;
                 const floatAmount = this.config.floatIntensity;
                 const floatOffset = Math.sin(time + bubble.userData.animationPhase) * floatAmount;
-                bubble.position.y = bubble.userData.originalPosition.y + floatOffset;
+                
+                // FIXED: Ensure floating never goes below minimum height
+                const newY = bubble.userData.originalPosition.y + floatOffset;
+                bubble.position.y = Math.max(this.config.yOffset, newY);
                 
                 // Enhanced gentle swaying with figure-8 pattern
                 const swayAmount = this.config.swayIntensity;
@@ -1132,9 +1222,15 @@ class ChatBubbleSystem {
             userBubbles.forEach((bubble, index) => {
                 if (bubble.userData.isVisible) {
                     const bubblePosition = newPosition.clone();
+                    
+                    // FIXED: Ensure position is always at or above ground
+                    bubblePosition.y = Math.max(0, bubblePosition.y);
                     bubblePosition.y += this.config.yOffset;
                     bubblePosition.x += index * 0.9;
                     bubblePosition.y += index * 0.6;
+                    
+                    // FINAL SAFETY CHECK
+                    bubblePosition.y = Math.max(this.config.yOffset, bubblePosition.y);
                     
                     bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
                 }
@@ -1186,7 +1282,7 @@ class ChatBubbleSystem {
             this.activeBubbles = [];
             this.bubbles.clear();
             
-            console.log('💬 All enhanced chat bubbles cleared');
+            console.log('💬 All fixed external chat bubbles cleared');
         } catch (error) {
             console.error('Error clearing bubbles:', error);
         }
@@ -1203,7 +1299,7 @@ class ChatBubbleSystem {
     
     setDebugMode(enabled) {
         this.config.enableDebug = enabled;
-        console.log(`💬 Enhanced ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
+        console.log(`💬 Fixed External ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
     }
     
     getPerformanceStats() {
@@ -1212,21 +1308,22 @@ class ChatBubbleSystem {
             ...this.performance,
             visibleBubbles: this.activeBubbles.filter(b => b.userData.isVisible).length,
             userCount: this.bubbles.size,
-            memoryUsage: this.activeBubbles.length * 3072, // Higher memory for enhanced bubbles
+            memoryUsage: this.activeBubbles.length * 3072,
             isMobile: this.isMobile,
-            version: '4.1'
+            version: '4.1-fixed-external'
         };
     }
     
-    createTestBubble(message = "Enhanced test message! ✨🚀", username = "TestUser") {
+    createTestBubble(message = "Fixed external test message! ✅🚀", username = "TestUser") {
         if (!window.THREE) {
             console.warn('THREE.js not available for test bubble');
             return null;
         }
         
+        // FIXED: Test position that's always on ground
         const position = new THREE.Vector3(
             (Math.random() - 0.5) * 15,
-            3,
+            0, // Ground level
             (Math.random() - 0.5) * 15
         );
         
@@ -1235,10 +1332,9 @@ class ChatBubbleSystem {
     
     updateConfig(newConfig) {
         Object.assign(this.config, newConfig);
-        console.log('💬 Enhanced ChatBubbleSystem config updated:', newConfig);
+        console.log('💬 Fixed External ChatBubbleSystem config updated:', newConfig);
     }
     
-    // New methods for enhanced functionality
     setBubbleStyle(styleName, value) {
         if (this.bubbleStyles.hasOwnProperty(styleName)) {
             this.bubbleStyles[styleName] = value;
@@ -1260,9 +1356,9 @@ class ChatBubbleSystem {
         try {
             this.clearAllBubbles();
             window.removeEventListener('resize', this.handleResize);
-            console.log('💬 Enhanced ChatBubbleSystem disposed');
+            console.log('💬 Fixed External ChatBubbleSystem disposed');
         } catch (error) {
-            console.error('Error disposing Enhanced ChatBubbleSystem:', error);
+            console.error('Error disposing Fixed External ChatBubbleSystem:', error);
         }
     }
     
@@ -1284,6 +1380,6 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBubbleSystem;
 }
 
-console.log('✅ Enhanced ChatBubbleSystem v4.1 - IMPROVED WORKING VERSION loaded successfully');
-console.log('🌟 New features: Enhanced visuals, glow effects, particles, better animations');
-console.log('🔧 All working v4.0 stability maintained with visual improvements');
+console.log('✅ Fixed External ChatBubbleSystem v4.1 - GROUND LEVEL ONLY loaded successfully');
+console.log('🌟 Fixed features: Proper method binding, ground-level positioning, enhanced error handling');
+console.log('🔧 All bubble positions are guaranteed to be at or above ground level (Y ≥ 0)');
