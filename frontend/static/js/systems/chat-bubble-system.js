@@ -1,977 +1,166 @@
-// Fixed External ChatBubbleSystem v4.1 - Ground Level Positions
-// Fixes the binding issues and ensures proper ground-level positioning
+// COMPREHENSIVE FIX for Chat Bubble NaN Scale Issues
+// This fixes the exact problem where bubble scales become NaN during animation
 
-console.log('🔥 LOADING FIXED External ChatBubbleSystem v4.1 - ' + Date.now());
+console.log('🔧 LOADING COMPREHENSIVE CHAT BUBBLE FIX...');
 
-class ChatBubbleSystem {
-    constructor() {
-        console.log('💬✨ ChatBubbleSystem v4.1 - FIXED EXTERNAL VERSION starting...');
+// 1. SAFE MATH UTILITIES - Prevent NaN in all calculations
+window.SafeMath = {
+    safeDivide: (a, b) => {
+        if (b === 0 || !isFinite(b)) return 0;
+        const result = a / b;
+        return isFinite(result) ? result : 0;
+    },
+    
+    safeProgress: (elapsed, duration) => {
+        if (duration <= 0 || !isFinite(duration)) return 1;
+        const progress = elapsed / duration;
+        return Math.max(0, Math.min(1, isFinite(progress) ? progress : 0));
+    },
+    
+    safeScale: (value) => {
+        if (!isFinite(value) || isNaN(value) || value <= 0) {
+            console.warn('🛡️ Prevented invalid scale value:', value, 'using 1 instead');
+            return 1;
+        }
+        return Math.max(0.001, Math.min(10, value));
+    },
+    
+    safeEasing: (progress) => {
+        if (!isFinite(progress) || isNaN(progress)) return 0;
+        progress = Math.max(0, Math.min(1, progress));
+        return progress < 0.5 ? 2 * progress * progress : 1 - 2 * (1 - progress) * (1 - progress);
+    }
+};
+
+// 2. OVERRIDE THREE.JS SCALE METHODS - Prevent NaN from ever being set
+if (window.THREE) {
+    console.log('🛡️ Installing THREE.js NaN protection...');
+    
+    // Protect Vector3.setScalar
+    const originalSetScalar = THREE.Vector3.prototype.setScalar;
+    THREE.Vector3.prototype.setScalar = function(scalar) {
+        const safeScalar = window.SafeMath.safeScale(scalar);
+        if (safeScalar !== scalar) {
+            console.warn('🛡️ THREE.Vector3.setScalar protected from NaN:', scalar, '→', safeScalar);
+        }
+        return originalSetScalar.call(this, safeScalar);
+    };
+    
+    // Protect Object3D.scale.set
+    const originalScaleSet = THREE.Vector3.prototype.set;
+    THREE.Vector3.prototype.set = function(x, y, z) {
+        const safeX = window.SafeMath.safeScale(x);
+        const safeY = window.SafeMath.safeScale(y || x);
+        const safeZ = window.SafeMath.safeScale(z || x);
         
-        // CRITICAL: Initialize performance object FIRST
-        this.performance = {
-            frameTime: 0,
-            bubbleCount: 0,
-            renderCalls: 0,
-            lastCleanup: Date.now()
-        };
+        if (safeX !== x || safeY !== (y || x) || safeZ !== (z || x)) {
+            console.warn('🛡️ THREE.Vector3.set protected from NaN:', {x, y, z}, '→', {x: safeX, y: safeY, z: safeZ});
+        }
         
-        // Core properties
-        this.bubbles = new Map();
-        this.activeBubbles = [];
-        this.bubbleIdCounter = 0;
-        this.scene = null;
-        this.camera = null;
-        this.renderer = null;
-        this.isInitialized = false;
-        
-        // Initialize pools and queues
-        this.materialPool = [];
-        this.texturePool = [];
-        this._messageQueue = [];
-        
-        // Enhanced configuration with better defaults
-        this.config = {
-            maxBubbles: 25,
-            fadeTime: 6000, // Longer display time
-            maxDistance: 60,
-            fontSize: 18, // Bigger text for better readability
-            maxWidth: 350, // Wider bubbles
-            padding: 25, // More padding
-            borderRadius: 18, // More rounded
-            yOffset: 3.5, // FIXED: Always above ground
-            animationDuration: 500,
-            maxBubblesPerUser: 4,
-            enableDebug: false,
-            enableShadows: true,
-            cullingDistance: 100,
-            enableGlow: true,
-            enableParticles: true,
-            floatIntensity: 0.04,
-            swayIntensity: 0.02
-        };
-        
-        // Enhanced bubble styles
-        this.bubbleStyles = {
-            background: 'rgba(255, 255, 255, 0.96)',
-            borderColor: 'rgba(102, 126, 234, 0.4)',
-            usernameFontSize: this.config.fontSize * 0.85,
-            usernameColor: '#4a5cf0',
-            textColor: '#1a1a2e',
-            shadowBlur: 15,
-            shadowColor: 'rgba(102, 126, 234, 0.3)',
-            glowColor: 'rgba(102, 126, 234, 0.5)'
-        };
-        
-        this.isMobile = window.innerWidth <= 768;
-        
-        // FIXED: Proper method binding - bind all methods that exist
-        this.bindMethods();
-        
-        // Setup resize handler
-        window.addEventListener('resize', this.handleResize.bind(this));
-        
-        console.log('✅ ChatBubbleSystem v4.1 - FIXED EXTERNAL VERSION created');
+        return originalScaleSet.call(this, safeX, safeY, safeZ);
+    };
+}
+
+// 3. FIX SCENE MANAGER TRANSITION EFFECTS - Source of NaN scales
+window.fixSceneManagerTransitions = function() {
+    if (!window.SceneManager || !window.SceneManager.createEnhancedTransitionEffect) {
+        console.log('⚠️ SceneManager not available for transition fix');
+        return;
     }
     
-    // FIXED: Separate method binding to avoid undefined binding errors
-    bindMethods() {
-        // Core methods
-        if (typeof this.init === 'function') {
-            this.init = this.init.bind(this);
-        }
-        if (typeof this.createBubble === 'function') {
-            this.createBubble = this.createBubble.bind(this);
-        }
-        if (typeof this.createBubbleFromMessage === 'function') {
-            this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
-        }
-        if (typeof this.update === 'function') {
-            this.update = this.update.bind(this);
-        }
-        if (typeof this.drawBubbleBackground === 'function') {
-            this.drawBubbleBackground = this.drawBubbleBackground.bind(this);
-        }
-        if (typeof this.roundRect === 'function') {
-            this.roundRect = this.roundRect.bind(this);
-        }
-        if (typeof this.calculateTextDimensions === 'function') {
-            this.calculateTextDimensions = this.calculateTextDimensions.bind(this);
-        }
-        if (typeof this.wrapText === 'function') {
-            this.wrapText = this.wrapText.bind(this);
-        }
-        if (typeof this.animateBubbleIn === 'function') {
-            this.animateBubbleIn = this.animateBubbleIn.bind(this);
-        }
-        if (typeof this.animateBubbleOut === 'function') {
-            this.animateBubbleOut = this.animateBubbleOut.bind(this);
-        }
-        if (typeof this.removeBubble === 'function') {
-            this.removeBubble = this.removeBubble.bind(this);
-        }
-        if (typeof this.getAvatarPosition === 'function') {
-            this.getAvatarPosition = this.getAvatarPosition.bind(this);
-        }
-        if (typeof this.performanceCleanup === 'function') {
-            this.performanceCleanup = this.performanceCleanup.bind(this);
-        }
-        if (typeof this.startUpdateLoop === 'function') {
-            this.startUpdateLoop = this.startUpdateLoop.bind(this);
-        }
-        if (typeof this.handleResize === 'function') {
-            this.handleResize = this.handleResize.bind(this);
-        }
-        if (typeof this.updateBubblePositions === 'function') {
-            this.updateBubblePositions = this.updateBubblePositions.bind(this);
-        }
-        if (typeof this.removeUserBubbles === 'function') {
-            this.removeUserBubbles = this.removeUserBubbles.bind(this);
-        }
-        if (typeof this.clearAllBubbles === 'function') {
-            this.clearAllBubbles = this.clearAllBubbles.bind(this);
-        }
-        if (typeof this._ensurePerformanceObject === 'function') {
-            this._ensurePerformanceObject = this._ensurePerformanceObject.bind(this);
-        }
-        if (typeof this._processQueuedMessages === 'function') {
-            this._processQueuedMessages = this._processQueuedMessages.bind(this);
-        }
-        if (typeof this.setupEventListeners === 'function') {
-            this.setupEventListeners = this.setupEventListeners.bind(this);
-        }
-        
-        // Enhanced methods
-        if (typeof this.createEnhancedBubbleBackground === 'function') {
-            this.createEnhancedBubbleBackground = this.createEnhancedBubbleBackground.bind(this);
-        }
-        if (typeof this.addParticleEffects === 'function') {
-            this.addParticleEffects = this.addParticleEffects.bind(this);
-        }
-        if (typeof this.createGlowEffect === 'function') {
-            this.createGlowEffect = this.createGlowEffect.bind(this);
-        }
-        
-        // Create safe wrapper methods
-        this.createBubbleFromMessageSafe = (...args) => {
-            try {
-                this._ensurePerformanceObject();
-                return this.createBubbleFromMessage.apply(this, args);
-            } catch (error) {
-                console.error('Error in createBubbleFromMessageSafe:', error);
-                return null;
-            }
-        };
-        
-        this.updateSafe = (...args) => {
-            try {
-                this._ensurePerformanceObject();
-                return this.update.apply(this, args);
-            } catch (error) {
-                console.error('Error in updateSafe:', error);
-                return null;
-            }
-        };
-        
-        console.log('✅ Methods bound successfully');
-    }
+    console.log('🔧 Fixing Scene Manager transition effects...');
     
-    _ensurePerformanceObject() {
-        if (!this.performance || typeof this.performance !== 'object') {
-            this.performance = {
-                frameTime: 0,
-                bubbleCount: 0,
-                renderCalls: 0,
-                lastCleanup: Date.now()
-            };
-        }
+    // Override the problematic createEnhancedTransitionEffect method
+    window.SceneManager.createEnhancedTransitionEffect = function(preset) {
+        console.log('🎨 Creating SAFE enhanced transition effect');
         
-        // Validate properties
-        const requiredProps = ['frameTime', 'bubbleCount', 'renderCalls', 'lastCleanup'];
-        requiredProps.forEach(prop => {
-            if (typeof this.performance[prop] !== 'number') {
-                this.performance[prop] = prop === 'lastCleanup' ? Date.now() : 0;
-            }
-        });
-    }
-    
-    async init() {
-        console.log('🚀 Initializing Fixed External ChatBubbleSystem v4.1...');
+        const transitionCount = 30;
+        const colors = [preset.backgroundColor, preset.groundColor];
         
-        try {
-            // Check for THREE.js
-            if (!window.THREE) {
-                console.warn('❌ THREE.js not available - retrying in 500ms');
-                setTimeout(() => this.init(), 500);
-                return;
-            }
-            
-            // Check for scene systems with better detection
-            const sceneReady = window.SceneManager?.scene || 
-                              window.AvatarSystem?.scene || 
-                              (window.scene && window.camera);
-            
-            if (!sceneReady) {
-                console.log('💬 Waiting for Scene systems... retrying in 300ms');
-                setTimeout(() => this.init(), 300);
-                return;
-            }
-            
-            // Get scene references with fallbacks
-            this.scene = window.SceneManager?.scene || window.AvatarSystem?.scene || window.scene;
-            this.camera = window.SceneManager?.camera || window.camera;
-            this.renderer = window.SceneManager?.renderer || window.renderer;
-            
-            if (!this.scene || !this.camera) {
-                console.error('❌ Scene or camera not available - retrying...');
-                setTimeout(() => this.init(), 500);
-                return;
-            }
-            
-            this._ensurePerformanceObject();
-            this.isInitialized = true;
-            
-            console.log('✅ Fixed External ChatBubbleSystem v4.1 initialized successfully');
-            
-            this.startUpdateLoop();
-            this.setupEventListeners();
-            this._processQueuedMessages();
-            
-        } catch (error) {
-            console.error('❌ Error initializing Fixed External ChatBubbleSystem:', error);
-            setTimeout(() => this.init(), 1000);
-        }
-    }
-    
-    _processQueuedMessages() {
-        if (this._messageQueue && this._messageQueue.length > 0) {
-            console.log(`📨 Processing ${this._messageQueue.length} queued messages`);
-            const queue = [...this._messageQueue];
-            this._messageQueue = [];
-            
-            queue.forEach(messageData => {
-                try {
-                    this.createBubbleFromMessage(messageData);
-                } catch (error) {
-                    console.warn('Error processing queued message:', error);
-                }
-            });
-        }
-    }
-    
-    setupEventListeners() {
-        if (window.EventBus) {
-            window.EventBus.on('chat_message', this.createBubbleFromMessageSafe);
-            window.EventBus.on('user_left', (data) => this.removeUserBubbles(data.userId));
-        }
-        
-        setInterval(() => {
-            try {
-                this.performanceCleanup();
-            } catch (error) {
-                console.warn('Error in performance cleanup:', error);
-            }
-        }, 10000);
-    }
-    
-    createBubbleFromMessage(messageData) {
-        if (!this.isInitialized) {
-            console.log('💬 Queueing message (system not ready)');
-            this._messageQueue.push(messageData);
-            return null;
-        }
-        
-        if (!window.ROOM_CONFIG?.chatBubblesEnabled) {
-            console.log('💬 Chat bubbles disabled in config');
-            return null;
-        }
-        
-        try {
-            const userId = messageData.userId || messageData.user_id;
-            const avatarPosition = this.getAvatarPosition(userId);
-            
-            if (!avatarPosition) {
-                console.warn(`💬 No avatar found for user ${userId}`);
-                // FIXED: Fallback position that's always on or above ground
-                const fallbackPosition = new THREE.Vector3(
-                    (Math.random() - 0.5) * 10,
-                    Math.max(0, 2), // Always at ground level or above
-                    (Math.random() - 0.5) * 10
-                );
-                return this.createBubble(
-                    messageData.message,
-                    messageData.username,
-                    fallbackPosition,
-                    userId,
-                    messageData.nationality
-                );
-            }
-            
-            const bubble = this.createBubble(
-                messageData.message,
-                messageData.username,
-                avatarPosition,
-                userId,
-                messageData.nationality
+        for (let i = 0; i < transitionCount; i++) {
+            const wave = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 12, 12),
+                new THREE.MeshBasicMaterial({
+                    color: colors[i % colors.length],
+                    transparent: true,
+                    opacity: 0.7
+                })
             );
             
-            console.log(`✅ Fixed external bubble created for ${messageData.username}: "${messageData.message}"`);
-            return bubble;
-            
-        } catch (error) {
-            console.error('❌ Error creating bubble from message:', error);
-            return null;
-        }
-    }
-    
-    getAvatarPosition(userId) {
-        try {
-            // Enhanced avatar position detection
-            if (window.AvatarSystem?.getAvatarPosition) {
-                const pos = window.AvatarSystem.getAvatarPosition(userId);
-                if (pos) {
-                    // FIXED: Ensure Y position is never below ground
-                    pos.y = Math.max(0, pos.y);
-                    return pos;
-                }
-            }
-            
-            if (window.AvatarSystem?.getAvatarPositionSafe) {
-                const pos = window.AvatarSystem.getAvatarPositionSafe(userId);
-                if (pos) {
-                    // FIXED: Ensure Y position is never below ground
-                    pos.y = Math.max(0, pos.y);
-                    return pos;
-                }
-            }
-            
-            // Check scene for avatar
-            if (this.scene) {
-                const avatar = this.scene.children.find(child => 
-                    child.userData?.userId === userId ||
-                    child.userData?.id === userId ||
-                    child.name === userId
-                );
-                if (avatar) {
-                    const pos = avatar.position.clone();
-                    // FIXED: Ensure Y position is never below ground
-                    pos.y = Math.max(0, pos.y);
-                    return pos;
-                }
-            }
-            
-            // Check current user
-            if (userId === window.ROOM_CONFIG?.userId || 
-                userId === window.WebSocketManager?.userId) {
-                return new THREE.Vector3(0, 0, 0); // Ground level origin
-            }
-            
-            // FIXED: Create consistent ground-level positions for users based on their ID
-            const hash = userId.split('').reduce((a, b) => {
-                a = ((a << 5) - a) + b.charCodeAt(0);
-                return a & a;
-            }, 0);
-            
-            const angle = (hash % 360) * (Math.PI / 180);
-            const radius = 4 + (Math.abs(hash) % 4);
-            
-            return new THREE.Vector3(
-                Math.cos(angle) * radius,
-                0, // FIXED: Always on ground level
-                Math.sin(angle) * radius
+            wave.position.set(
+                (Math.random() - 0.5) * 30,
+                Math.random() * 10,
+                (Math.random() - 0.5) * 30
             );
             
-        } catch (error) {
-            console.error('Error getting avatar position:', error);
-            return new THREE.Vector3(0, 0, 0); // Safe ground-level fallback
-        }
-    }
-    
-    // ENHANCED: Better bubble background with glow effects and animations
-    createEnhancedBubbleBackground(context, width, height) {
-        if (!context || typeof width !== 'number' || typeof height !== 'number') {
-            console.error('Invalid parameters for createEnhancedBubbleBackground');
-            return;
-        }
-        
-        try {
-            // Create animated gradient background
-            const time = Date.now() * 0.001;
-            const hue1 = (time * 20) % 360;
-            const hue2 = (time * 20 + 60) % 360;
+            this.scene.add(wave);
             
-            const gradient = context.createLinearGradient(0, 0, 0, height);
-            gradient.addColorStop(0, `hsla(${hue1}, 20%, 98%, 0.96)`);
-            gradient.addColorStop(0.5, `hsla(${hue2}, 15%, 96%, 0.94)`);
-            gradient.addColorStop(1, `hsla(${hue1}, 25%, 94%, 0.92)`);
-            
-            // Enhanced shadow with glow
-            if (this.config.enableShadows) {
-                context.save();
+            // SAFE wave animation with NaN protection
+            let wavePhase = 0;
+            const waveInterval = setInterval(() => {
+                wavePhase += 0.06;
+                wave.position.y += 0.04;
                 
-                // Outer glow
-                context.shadowColor = `hsla(${hue1}, 60%, 70%, 0.4)`;
-                context.shadowBlur = 25;
-                context.shadowOffsetX = 0;
-                context.shadowOffsetY = 12;
+                // FIXED: Safe scale calculation with NaN protection
+                const rawScale = 1 + wavePhase * 1.5;
+                const safeScale = window.SafeMath.safeScale(rawScale);
                 
-                // Draw outer glow
-                context.fillStyle = `hsla(${hue1}, 60%, 70%, 0.15)`;
-                context.beginPath();
-                this.roundRect(context, -3, -3, width + 6, height - 14, this.config.borderRadius + 3);
-                context.fill();
-                
-                context.restore();
-            }
-            
-            // Main bubble with enhanced gradient
-            context.fillStyle = gradient;
-            context.beginPath();
-            this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
-            context.fill();
-            
-            // Enhanced border with animated colors
-            const borderGradient = context.createLinearGradient(0, 0, width, height);
-            borderGradient.addColorStop(0, `hsla(${hue1}, 60%, 65%, 0.6)`);
-            borderGradient.addColorStop(0.5, `hsla(${hue2}, 60%, 70%, 0.4)`);
-            borderGradient.addColorStop(1, `hsla(${hue1 + 120}, 60%, 65%, 0.6)`);
-            
-            context.strokeStyle = borderGradient;
-            context.lineWidth = 2.5;
-            context.lineCap = 'round';
-            context.lineJoin = 'round';
-            
-            // Draw glowing border
-            if (this.config.enableGlow) {
-                context.save();
-                context.shadowColor = `hsla(${hue1}, 60%, 70%, 0.5)`;
-                context.shadowBlur = 8;
-                context.beginPath();
-                this.roundRect(context, 1.25, 1.25, width - 2.5, height - 21.25, this.config.borderRadius - 1);
-                context.stroke();
-                context.restore();
-            } else {
-                context.beginPath();
-                this.roundRect(context, 1.25, 1.25, width - 2.5, height - 21.25, this.config.borderRadius - 1);
-                context.stroke();
-            }
-            
-            // Inner highlight for glass effect
-            const highlightGradient = context.createLinearGradient(0, 0, 0, height * 0.6);
-            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
-            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            
-            context.fillStyle = highlightGradient;
-            context.beginPath();
-            this.roundRect(context, 2, 2, width - 4, (height - 20) * 0.6, this.config.borderRadius - 2);
-            context.fill();
-            
-            // Enhanced bubble tail with gradient
-            const tailGradient = context.createLinearGradient(width / 2 - 15, height - 20, width / 2 + 15, height - 2);
-            tailGradient.addColorStop(0, `hsla(${hue1}, 20%, 96%, 0.94)`);
-            tailGradient.addColorStop(0.5, `hsla(${hue2}, 15%, 98%, 0.96)`);
-            tailGradient.addColorStop(1, `hsla(${hue1}, 25%, 94%, 0.92)`);
-            
-            context.fillStyle = tailGradient;
-            context.beginPath();
-            context.moveTo(width / 2 - 15, height - 20);
-            context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
-            context.fill();
-            
-            // Tail border with glow
-            if (this.config.enableGlow) {
-                context.save();
-                context.strokeStyle = `hsla(${hue2}, 60%, 70%, 0.6)`;
-                context.lineWidth = 2;
-                context.shadowColor = `hsla(${hue2}, 60%, 70%, 0.4)`;
-                context.shadowBlur = 6;
-                context.beginPath();
-                context.moveTo(width / 2 - 15, height - 20);
-                context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
-                context.stroke();
-                context.restore();
-            }
-            
-            // Sparkle effects (random dots)
-            if (this.config.enableParticles && Math.random() < 0.4) {
-                context.save();
-                const sparkleCount = 2 + Math.floor(Math.random() * 3);
-                
-                for (let i = 0; i < sparkleCount; i++) {
-                    const x = 15 + Math.random() * (width - 30);
-                    const y = 15 + Math.random() * (height - 35);
-                    const size = 1 + Math.random() * 1.5;
-                    
-                    context.fillStyle = `hsla(${(hue1 + i * 40) % 360}, 70%, 80%, 0.8)`;
-                    context.shadowColor = context.fillStyle;
-                    context.shadowBlur = 3;
-                    
-                    context.beginPath();
-                    context.arc(x, y, size, 0, Math.PI * 2);
-                    context.fill();
-                }
-                context.restore();
-            }
-            
-        } catch (error) {
-            console.error('Error in createEnhancedBubbleBackground:', error);
-        }
-    }
-    
-    // Use enhanced background by default
-    drawBubbleBackground(context, width, height) {
-        return this.createEnhancedBubbleBackground(context, width, height);
-    }
-    
-    roundRect(context, x, y, width, height, radius) {
-        if (!context) return;
-        
-        try {
-            context.moveTo(x + radius, y);
-            context.lineTo(x + width - radius, y);
-            context.quadraticCurveTo(x + width, y, x + width, y + radius);
-            context.lineTo(x + width, y + height - radius);
-            context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-            context.lineTo(x + radius, y + height);
-            context.quadraticCurveTo(x, y + height, x, y + height - radius);
-            context.lineTo(x, y + radius);
-            context.quadraticCurveTo(x, y, x + radius, y);
-        } catch (error) {
-            console.error('Error in roundRect:', error);
-        }
-    }
-    
-    createBubble(message, username, position, userId = null, nationality = null) {
-        if (!this.isInitialized) {
-            console.warn('💬 Fixed External ChatBubbleSystem not initialized');
-            return null;
-        }
-        
-        if (!window.THREE) {
-            console.warn('💬 THREE.js not available');
-            return null;
-        }
-        
-        try {
-            const bubbleGroup = new THREE.Group();
-            const bubbleId = ++this.bubbleIdCounter;
-            
-            // Create canvas with higher resolution
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            
-            if (!context) {
-                console.error('Could not get canvas context');
-                return null;
-            }
-            
-            // Enhanced fonts
-            const usernameFont = `bold ${this.config.fontSize * 0.85}px "Segoe UI", Arial, sans-serif`;
-            const messageFont = `${this.config.fontSize}px "Segoe UI", Arial, sans-serif`;
-            
-            // Calculate text dimensions
-            const textMetrics = this.calculateTextDimensions(context, message, username, usernameFont, messageFont);
-            
-            // Set canvas size with higher DPI for sharper text
-            const bubbleWidth = textMetrics.bubbleWidth;
-            const bubbleHeight = textMetrics.bubbleHeight;
-            
-            canvas.width = bubbleWidth * 3; // Higher DPI
-            canvas.height = bubbleHeight * 3;
-            context.scale(3, 3);
-            
-            // Draw enhanced bubble background
-            this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
-            
-            // Enhanced username styling
-            context.font = usernameFont;
-            context.fillStyle = this.bubbleStyles.usernameColor;
-            context.textAlign = 'left';
-            
-            // Username background with enhanced gradient
-            const usernameWidth = context.measureText(username).width;
-            const pillGradient = context.createLinearGradient(0, this.config.padding - 3, usernameWidth + 20, this.config.padding + 22);
-            pillGradient.addColorStop(0, 'rgba(74, 92, 240, 0.15)');
-            pillGradient.addColorStop(0.5, 'rgba(102, 126, 234, 0.12)');
-            pillGradient.addColorStop(1, 'rgba(168, 85, 247, 0.15)');
-            
-            context.fillStyle = pillGradient;
-            context.beginPath();
-            this.roundRect(context, this.config.padding - 6, this.config.padding - 3, usernameWidth + 12, 24, 12);
-            context.fill();
-            
-            // Username border with glow
-            context.save();
-            context.strokeStyle = 'rgba(74, 92, 240, 0.4)';
-            context.lineWidth = 1.5;
-            context.shadowColor = 'rgba(74, 92, 240, 0.3)';
-            context.shadowBlur = 4;
-            context.stroke();
-            context.restore();
-            
-            // Username text with enhanced shadow
-            context.fillStyle = this.bubbleStyles.usernameColor;
-            context.shadowColor = 'rgba(255, 255, 255, 0.8)';
-            context.shadowBlur = 2;
-            context.shadowOffsetX = 1;
-            context.shadowOffsetY = 1;
-            context.fillText(username, this.config.padding, this.config.padding + 18);
-            
-            // Reset shadow
-            context.shadowColor = 'transparent';
-            context.shadowBlur = 0;
-            context.shadowOffsetX = 0;
-            context.shadowOffsetY = 0;
-            
-            // Enhanced message text
-            context.font = messageFont;
-            context.fillStyle = this.bubbleStyles.textColor;
-            
-            // Text with subtle shadow for depth
-            context.shadowColor = 'rgba(255, 255, 255, 0.9)';
-            context.shadowBlur = 1;
-            context.shadowOffsetY = 1;
-            
-            textMetrics.lines.forEach((line, index) => {
-                context.fillText(
-                    line,
-                    this.config.padding,
-                    this.config.padding + this.config.fontSize * 0.85 + 30 + (index * textMetrics.lineHeight)
-                );
-            });
-            
-            // Reset shadow
-            context.shadowColor = 'transparent';
-            context.shadowBlur = 0;
-            context.shadowOffsetY = 0;
-            
-            // Create sprite with enhanced settings
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.needsUpdate = true;
-            texture.generateMipmaps = false;
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-            
-            const material = new THREE.SpriteMaterial({ 
-                map: texture, 
-                transparent: true,
-                alphaTest: 0.001,
-                depthTest: false
-            });
-            
-            const sprite = new THREE.Sprite(material);
-            
-            // Enhanced scaling
-            const scale = 0.008;
-            sprite.scale.set(bubbleWidth * scale, bubbleHeight * scale, 1);
-            
-            bubbleGroup.add(sprite);
-            
-            // Add glow effect if enabled
-            if (this.config.enableGlow) {
-                const glowEffect = this.createGlowEffect(bubbleWidth * scale, bubbleHeight * scale);
-                if (glowEffect) {
-                    bubbleGroup.add(glowEffect);
-                }
-            }
-            
-            // FIXED: Better bubble positioning that stays above avatar and ground
-            const bubblePosition = this.calculateOptimalBubblePosition(position, userId, bubbleHeight * scale);
-            
-            bubbleGroup.position.copy(bubblePosition);
-            
-            // Enhanced properties
-            bubbleGroup.userData = {
-                id: bubbleId,
-                message: message,
-                username: username,
-                userId: userId,
-                nationality: nationality,
-                createdAt: Date.now(),
-                opacity: 1,
-                isVisible: true,
-                originalPosition: bubblePosition.clone(),
-                animationPhase: Math.random() * Math.PI * 2,
-                bubbleHeight: bubbleHeight * scale,
-                stackIndex: userId ? (this.bubbles.get(userId)?.length || 0) : 0
-            };
-            
-            // Enhanced entrance animation
-            bubbleGroup.scale.set(0, 0, 0);
-            this.animateBubbleIn(bubbleGroup);
-            
-            // Add to scene
-            this.scene.add(bubbleGroup);
-            
-            // Track bubble
-            this.activeBubbles.push(bubbleGroup);
-            
-            if (userId) {
-                if (!this.bubbles.has(userId)) {
-                    this.bubbles.set(userId, []);
-                }
-                this.bubbles.get(userId).push(bubbleGroup);
-                
-                // Limit bubbles per user and animate old ones away
-                const userBubbles = this.bubbles.get(userId);
-                if (userBubbles.length > this.config.maxBubblesPerUser) {
-                    const oldBubble = userBubbles.shift();
-                    this.animateBubbleOut(oldBubble);
+                // Only update if scale is valid
+                if (isFinite(safeScale) && safeScale > 0) {
+                    wave.scale.setScalar(safeScale);
                 }
                 
-                // FIXED: Reposition existing bubbles to maintain nice stacking
-                this.repositionUserBubbles(userId);
-            }
-            
-            // Clean up old bubbles
-            if (this.activeBubbles.length > this.config.maxBubbles) {
-                const oldBubble = this.activeBubbles.shift();
-                this.removeBubble(oldBubble);
-            }
-            
-            return bubbleGroup;
-            
-        } catch (error) {
-            console.error('❌ Error creating fixed external bubble:', error);
-            return null;
-        }
-    }
-    
-    // FIXED: Calculate optimal bubble position to prevent random floating and ensure ground clearance
-    calculateOptimalBubblePosition(avatarPosition, userId, bubbleHeight) {
-        const bubblePosition = avatarPosition.clone();
-        
-        // FIXED: Ensure base position is always at or above ground level
-        bubblePosition.y = Math.max(0, bubblePosition.y);
-        
-        // Base position: directly above avatar at safe height
-        bubblePosition.y += this.config.yOffset; // Already 3.5, ensures clearance above ground
-        
-        // If user has existing bubbles, stack them nicely
-        if (userId && this.bubbles.has(userId)) {
-            const userBubbles = this.bubbles.get(userId);
-            const stackIndex = userBubbles.length;
-            
-            // Vertical stacking with proper spacing
-            const verticalSpacing = bubbleHeight + 0.3; // Bubble height + small gap
-            bubblePosition.y += stackIndex * verticalSpacing;
-            
-            // Slight horizontal offset for visual variety (but keep close to avatar)
-            const horizontalOffset = Math.sin(stackIndex * 0.5) * 0.3;
-            bubblePosition.x += horizontalOffset;
-            
-            // Very slight depth offset to prevent z-fighting
-            bubblePosition.z += stackIndex * 0.05;
-        }
-        
-        // FINAL SAFETY CHECK: Ensure Y is never below ground
-        bubblePosition.y = Math.max(this.config.yOffset, bubblePosition.y);
-        
-        return bubblePosition;
-    }
-    
-    // Reposition user bubbles to maintain beautiful stacking
-    repositionUserBubbles(userId) {
-        if (!this.bubbles.has(userId)) return;
-        
-        try {
-            const userBubbles = this.bubbles.get(userId);
-            const avatarPosition = this.getAvatarPosition(userId);
-            
-            if (!avatarPosition) return;
-            
-            // Smoothly animate bubbles to their new positions
-            userBubbles.forEach((bubble, index) => {
-                if (!bubble.userData.isVisible) return;
+                // Safe opacity calculation
+                const opacity = Math.max(0, Math.min(1, 0.7 - (wavePhase / 1.5)));
+                wave.material.opacity = opacity;
                 
-                const targetPosition = avatarPosition.clone();
+                // Safe rotation
+                wave.rotation.x += 0.08;
+                wave.rotation.y += 0.12;
                 
-                // FIXED: Ensure base position is always at or above ground
-                targetPosition.y = Math.max(0, targetPosition.y);
-                targetPosition.y += this.config.yOffset;
-                
-                // Stack from bottom to top
-                const verticalSpacing = bubble.userData.bubbleHeight + 0.3;
-                targetPosition.y += index * verticalSpacing;
-                
-                // Slight horizontal offset for visual variety
-                const horizontalOffset = Math.sin(index * 0.5) * 0.3;
-                targetPosition.x += horizontalOffset;
-                
-                // Slight depth offset
-                targetPosition.z += index * 0.05;
-                
-                // FINAL SAFETY CHECK: Ensure Y is never below minimum height
-                targetPosition.y = Math.max(this.config.yOffset, targetPosition.y);
-                
-                // Smooth transition to new position
-                this.animateBubbleToPosition(bubble, targetPosition);
-            });
-        } catch (error) {
-            console.error('Error repositioning user bubbles:', error);
-        }
-    }
-    
-    // Smoothly animate bubble to new position
-    animateBubbleToPosition(bubble, targetPosition, duration = 800) {
-        if (!bubble || !targetPosition) return;
-        
-        const startPosition = bubble.userData.originalPosition.clone();
-        const startTime = Date.now();
-        
-        const animate = () => {
-            try {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                // Smooth easing
-                const easeProgress = progress < 0.5 
-                    ? 2 * progress * progress 
-                    : 1 - 2 * (1 - progress) * (1 - progress);
-                
-                // Interpolate position
-                const currentPosition = startPosition.clone().lerp(targetPosition, easeProgress);
-                
-                // FINAL SAFETY CHECK: Ensure Y is never below ground
-                currentPosition.y = Math.max(this.config.yOffset, currentPosition.y);
-                
-                bubble.userData.originalPosition.copy(currentPosition);
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    // Ensure final position is exact and safe
-                    targetPosition.y = Math.max(this.config.yOffset, targetPosition.y);
-                    bubble.userData.originalPosition.copy(targetPosition);
+                if (wavePhase >= 1.5) {
+                    clearInterval(waveInterval);
+                    this.scene.remove(wave);
                 }
-            } catch (error) {
-                console.error('Error in animateBubbleToPosition:', error);
-            }
-        };
-        
-        animate();
-    }
-    
-    createGlowEffect(width, height) {
-        try {
-            const glowGeometry = new THREE.PlaneGeometry(width * 1.2, height * 1.2);
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: 0x667eea,
-                transparent: true,
-                opacity: 0.1,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending
-            });
-            
-            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-            glow.position.z = -0.001; // Slightly behind the sprite
-            glow.name = 'bubbleGlow';
-            
-            return glow;
-        } catch (error) {
-            console.error('Error creating glow effect:', error);
-            return null;
+            }, 50);
         }
+    };
+    
+    console.log('✅ Scene Manager transition effects fixed');
+};
+
+// 4. FIX CHAT BUBBLE SYSTEM ANIMATIONS - Main source of NaN
+window.fixChatBubbleAnimations = function() {
+    if (!window.ChatBubbleSystem) {
+        console.log('⚠️ ChatBubbleSystem not available for animation fix');
+        return;
     }
     
-    calculateTextDimensions(context, message, username, usernameFont, messageFont) {
-        try {
-            // Measure username
-            context.font = usernameFont;
-            const usernameWidth = context.measureText(username).width;
-            
-            // Measure and wrap message text
-            context.font = messageFont;
-            const lines = this.wrapText(context, message, this.config.maxWidth - this.config.padding * 2);
-            
-            // Calculate actual width needed
-            let maxTextWidth = usernameWidth;
-            lines.forEach(line => {
-                const lineWidth = context.measureText(line).width;
-                if (lineWidth > maxTextWidth) {
-                    maxTextWidth = lineWidth;
-                }
-            });
-            
-            // Enhanced dimensions with better spacing
-            const lineHeight = this.config.fontSize * 1.3;
-            const bubbleWidth = Math.max(maxTextWidth + this.config.padding * 2, 140);
-            const bubbleHeight = this.config.padding * 2 + 
-                                this.config.fontSize * 0.85 + 
-                                30 + 
-                                (lines.length * lineHeight) + 
-                                30;
-            
-            return {
-                bubbleWidth,
-                bubbleHeight,
-                lines,
-                lineHeight,
-                maxTextWidth
-            };
-        } catch (error) {
-            console.error('Error calculating text dimensions:', error);
-            return {
-                bubbleWidth: 200,
-                bubbleHeight: 100,
-                lines: [message],
-                lineHeight: 20,
-                maxTextWidth: 150
-            };
-        }
-    }
+    console.log('🔧 Fixing ChatBubbleSystem animations...');
     
-    wrapText(context, text, maxWidth) {
-        try {
-            const words = text.split(' ');
-            const lines = [];
-            let currentLine = '';
-            
-            for (const word of words) {
-                const testLine = currentLine + (currentLine ? ' ' : '') + word;
-                const metrics = context.measureText(testLine);
-                
-                if (metrics.width <= maxWidth || !currentLine) {
-                    currentLine = testLine;
-                } else {
-                    if (currentLine) lines.push(currentLine);
-                    currentLine = word;
-                }
-            }
-            
-            if (currentLine) lines.push(currentLine);
-            return lines;
-        } catch (error) {
-            console.error('Error wrapping text:', error);
-            return [text];
-        }
-    }
-    
-    animateBubbleIn(bubble) {
+    // Override animateBubbleIn with safe math
+    const originalAnimateBubbleIn = window.ChatBubbleSystem.animateBubbleIn;
+    window.ChatBubbleSystem.animateBubbleIn = function(bubble) {
         if (!bubble) return;
+        
+        console.log('✅ Starting SAFE bubble animation for:', bubble.userData?.message);
         
         const startScale = 0;
         const endScale = 1;
-        const duration = this.config.animationDuration;
+        const duration = this.config.animationDuration || 500;
         const startTime = Date.now();
         
-        // Add initial bounce effect
         bubble.userData.animationPhase = 'entering';
         
         const animate = () => {
             try {
                 const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
+                const progress = window.SafeMath.safeProgress(elapsed, duration);
                 
-                // Enhanced easing with bounce
-                let easeProgress;
-                if (progress < 0.5) {
-                    easeProgress = 2 * progress * progress;
-                } else {
-                    const t = progress - 1;
-                    easeProgress = 1 - 2 * t * t;
-                }
+                // SAFE easing calculation
+                const easeProgress = window.SafeMath.safeEasing(progress);
                 
-                // Add subtle bounce at the end
+                // SAFE bounce calculation
                 let bounceScale = easeProgress;
                 if (progress > 0.8) {
                     const bouncePhase = (progress - 0.8) / 0.2;
@@ -979,18 +168,25 @@ class ChatBubbleSystem {
                     bounceScale = easeProgress + bounce;
                 }
                 
-                const scale = startScale + (endScale - startScale) * bounceScale;
-                bubble.scale.set(scale, scale, scale);
+                // SAFE scale calculation with protection
+                const rawScale = startScale + (endScale - startScale) * bounceScale;
+                const safeScale = window.SafeMath.safeScale(rawScale);
                 
-                // Add rotation during entry
+                // Apply safe scale
+                bubble.scale.setScalar(safeScale);
+                
+                // Safe rotation
                 const rotation = (1 - progress) * 0.15 * Math.sin(progress * Math.PI * 2);
-                bubble.rotation.z = rotation;
+                bubble.rotation.z = isFinite(rotation) ? rotation : 0;
                 
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
                     bubble.userData.animationPhase = 'stable';
                     bubble.rotation.z = 0;
+                    bubble.scale.setScalar(1); // Ensure final scale is exactly 1
+                    
+                    console.log('✅ Bubble animation completed safely:', bubble.userData?.message);
                     
                     // Schedule fade out
                     setTimeout(() => {
@@ -998,65 +194,19 @@ class ChatBubbleSystem {
                     }, this.config.fadeTime);
                 }
             } catch (error) {
-                console.error('Error in animateBubbleIn:', error);
+                console.error('❌ Error in safe bubble animation:', error);
+                // Fallback: set to stable state
+                bubble.scale.setScalar(1);
+                bubble.userData.animationPhase = 'stable';
             }
         };
         
         animate();
-    }
+    };
     
-    animateBubbleOut(bubble) {
-        if (!bubble || !bubble.parent) return;
-        
-        const duration = 800;
-        const startTime = Date.now();
-        const startOpacity = bubble.userData.opacity || 1;
-        
-        bubble.userData.animationPhase = 'exiting';
-        
-        const animate = () => {
-            try {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeProgress = progress * progress;
-                
-                const opacity = startOpacity * (1 - easeProgress);
-                const scale = 1 - (easeProgress * 0.2);
-                
-                // Add gentle rotation during exit
-                bubble.rotation.z = easeProgress * 0.3;
-                
-                // Move slightly upward during fade
-                const upwardMovement = easeProgress * 0.5;
-                bubble.position.y = bubble.userData.originalPosition.y + upwardMovement;
-                
-                if (bubble.children[0]?.material) {
-                    bubble.children[0].material.opacity = opacity;
-                    bubble.userData.opacity = opacity;
-                }
-                
-                // Update glow effect if present
-                const glowEffect = bubble.getObjectByName('bubbleGlow');
-                if (glowEffect && glowEffect.material) {
-                    glowEffect.material.opacity = opacity * 0.1;
-                }
-                
-                bubble.scale.setScalar(scale);
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    this.removeBubble(bubble);
-                }
-            } catch (error) {
-                console.error('Error in animateBubbleOut:', error);
-            }
-        };
-        
-        animate();
-    }
-    
-    update() {
+    // Override update method with safe math
+    const originalUpdate = window.ChatBubbleSystem.update;
+    window.ChatBubbleSystem.update = function() {
         if (!this.camera || !this.isInitialized) return;
         
         this._ensurePerformanceObject();
@@ -1081,50 +231,58 @@ class ChatBubbleSystem {
                 // Face camera
                 bubble.lookAt(this.camera.position);
                 
-                // Enhanced floating animation with ground safety
+                // SAFE floating animation
                 const time = Date.now() * 0.0008;
-                const floatAmount = this.config.floatIntensity;
-                const floatOffset = Math.sin(time + bubble.userData.animationPhase) * floatAmount;
+                const floatAmount = this.config.floatIntensity || 0.04;
+                const floatOffset = Math.sin(time + (bubble.userData.animationPhase || 0)) * floatAmount;
                 
-                // FIXED: Ensure floating never goes below minimum height
-                const newY = bubble.userData.originalPosition.y + floatOffset;
-                bubble.position.y = Math.max(this.config.yOffset, newY);
+                // FIXED: Safe Y position calculation
+                const originalY = bubble.userData.originalPosition?.y || this.config.yOffset;
+                const newY = Math.max(this.config.yOffset, originalY + floatOffset);
+                bubble.position.y = isFinite(newY) ? newY : this.config.yOffset;
                 
-                // Enhanced gentle swaying with figure-8 pattern
-                const swayAmount = this.config.swayIntensity;
+                // SAFE swaying with bounds checking
+                const swayAmount = this.config.swayIntensity || 0.02;
                 const swaySpeed = time * 0.5;
-                bubble.position.x = bubble.userData.originalPosition.x + 
-                    Math.sin(swaySpeed + bubble.userData.animationPhase) * swayAmount;
-                bubble.position.z = bubble.userData.originalPosition.z + 
-                    Math.cos(swaySpeed * 0.7 + bubble.userData.animationPhase * 0.8) * swayAmount;
+                const originalX = bubble.userData.originalPosition?.x || 0;
+                const originalZ = bubble.userData.originalPosition?.z || 0;
                 
-                // Subtle rotation for life-like movement
+                const swayX = Math.sin(swaySpeed + (bubble.userData.animationPhase || 0)) * swayAmount;
+                const swayZ = Math.cos(swaySpeed * 0.7 + (bubble.userData.animationPhase || 0) * 0.8) * swayAmount;
+                
+                bubble.position.x = originalX + (isFinite(swayX) ? swayX : 0);
+                bubble.position.z = originalZ + (isFinite(swayZ) ? swayZ : 0);
+                
+                // SAFE rotation
                 if (bubble.userData.animationPhase === 'stable') {
-                    bubble.rotation.z = Math.sin(time * 0.3 + bubble.userData.animationPhase) * 0.03;
+                    const rotationZ = Math.sin(time * 0.3 + (bubble.userData.animationPhase || 0)) * 0.03;
+                    bubble.rotation.z = isFinite(rotationZ) ? rotationZ : 0;
                 }
                 
-                // Enhanced distance-based opacity
+                // SAFE opacity and scale
                 if (bubble.children[0]?.material) {
                     const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
-                    const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * bubble.userData.opacity;
-                    bubble.children[0].material.opacity = opacity;
+                    const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * (bubble.userData.opacity || 1);
+                    bubble.children[0].material.opacity = isFinite(opacity) ? opacity : 0.8;
                     
-                    // Scale based on distance for better depth perception
-                    const scaleMultiplier = Math.max(0.7, 1 - normalizedDistance * 0.3);
-                    bubble.scale.setScalar(scaleMultiplier);
+                    // SAFE scale based on distance
+                    const rawScaleMultiplier = Math.max(0.7, 1 - normalizedDistance * 0.3);
+                    const safeScaleMultiplier = window.SafeMath.safeScale(rawScaleMultiplier);
+                    bubble.scale.setScalar(safeScaleMultiplier);
                 }
                 
-                // Update glow effect
-                const glowEffect = bubble.getObjectByName('bubbleGlow');
+                // Update glow effect safely
+                const glowEffect = bubble.getObjectByName?.('bubbleGlow');
                 if (glowEffect && glowEffect.material) {
-                    glowEffect.material.opacity = 0.1 * bubble.userData.opacity;
-                    const glowPulse = 1 + Math.sin(time * 2 + bubble.userData.animationPhase) * 0.1;
-                    glowEffect.scale.setScalar(glowPulse);
+                    glowEffect.material.opacity = 0.1 * (bubble.userData.opacity || 1);
+                    const glowPulse = 1 + Math.sin(time * 2 + (bubble.userData.animationPhase || 0)) * 0.1;
+                    const safeGlowPulse = window.SafeMath.safeScale(glowPulse);
+                    glowEffect.scale.setScalar(safeGlowPulse);
                 }
             });
             
         } catch (error) {
-            console.error('Error in update:', error);
+            console.error('❌ Error in safe update:', error);
         }
         
         // Performance tracking
@@ -1132,254 +290,127 @@ class ChatBubbleSystem {
         this.performance.frameTime = Date.now() - startTime;
         this.performance.bubbleCount = this.activeBubbles.length;
         this.performance.renderCalls++;
-    }
+    };
     
-    performanceCleanup() {
-        const now = Date.now();
-        this._ensurePerformanceObject();
-        
-        if (now - this.performance.lastCleanup > 10000) {
-            try {
-                // Clean up expired bubbles
-                this.activeBubbles.forEach(bubble => {
-                    if (now - bubble.userData.createdAt > this.config.fadeTime * 3) {
-                        this.removeBubble(bubble);
-                    }
-                });
+    console.log('✅ ChatBubbleSystem animations fixed');
+};
+
+// 5. REPAIR EXISTING BUBBLES IN SCENE
+window.repairExistingBubbles = function() {
+    console.log('🔧 Repairing existing bubbles...');
+    
+    let repairedCount = 0;
+    
+    if (window.SceneManager?.scene) {
+        window.SceneManager.scene.traverse(child => {
+            // Look for chat bubbles
+            if (child.userData?.message || child.name?.includes('bubble') || 
+                child.children?.some(c => c.material?.map)) {
                 
-                this.performance.lastCleanup = now;
-            } catch (error) {
-                console.warn('Error in performance cleanup:', error);
-            }
-        }
-    }
-    
-    removeBubble(bubble) {
-        if (!bubble) return;
-        
-        try {
-            // Remove from scene
-            if (bubble.parent) {
-                bubble.parent.remove(bubble);
-            }
-            
-            // Clean up resources
-            bubble.children.forEach(child => {
-                if (child.material) {
-                    if (child.material.map) {
-                        child.material.map.dispose();
-                    }
-                    child.material.dispose();
-                }
-                if (child.geometry) {
-                    child.geometry.dispose();
-                }
-            });
-            
-            // Remove from tracking
-            const activeIndex = this.activeBubbles.indexOf(bubble);
-            if (activeIndex > -1) {
-                this.activeBubbles.splice(activeIndex, 1);
-            }
-            
-            if (bubble.userData.userId && this.bubbles.has(bubble.userData.userId)) {
-                const userBubbles = this.bubbles.get(bubble.userData.userId);
-                const userIndex = userBubbles.indexOf(bubble);
-                if (userIndex > -1) {
-                    userBubbles.splice(userIndex, 1);
+                // Check if scale is NaN
+                if (!isFinite(child.scale.x) || !isFinite(child.scale.y) || !isFinite(child.scale.z)) {
+                    console.log('🔧 Repairing bubble with NaN scale:', child.userData?.message);
+                    child.scale.setScalar(1);
+                    repairedCount++;
                 }
                 
-                if (userBubbles.length === 0) {
-                    this.bubbles.delete(bubble.userData.userId);
+                // Ensure position is valid
+                if (!isFinite(child.position.y) || child.position.y < 0) {
+                    child.position.y = 3.5; // Safe default height
+                    repairedCount++;
+                }
+                
+                // Ensure visibility
+                child.visible = true;
+            }
+        });
+    }
+    
+    console.log(`✅ Repaired ${repairedCount} bubbles`);
+    return repairedCount;
+};
+
+// 6. SAFE BUBBLE CREATION FUNCTION
+window.createSafeBubble = function(message = "SAFE TEST BUBBLE ✅", username = "SafeUser") {
+    console.log('🧪 Creating safe test bubble...');
+    
+    if (!window.THREE) {
+        console.error('❌ THREE.js not available');
+        return null;
+    }
+    
+    if (!window.ChatBubbleSystem?.isInitialized) {
+        console.error('❌ ChatBubbleSystem not initialized');
+        return null;
+    }
+    
+    // Create with guaranteed safe position
+    const position = new THREE.Vector3(
+        (Math.random() - 0.5) * 8,
+        3.5, // Safe height above ground
+        (Math.random() - 0.5) * 8
+    );
+    
+    const bubble = window.ChatBubbleSystem.createBubble(message, username, position, 'safe_' + Date.now(), 'US');
+    
+    if (bubble) {
+        console.log('✅ Safe bubble created:', bubble);
+        
+        // Monitor its scale
+        setTimeout(() => {
+            console.log('Safe bubble scale after 1 second:', bubble.scale.x, 'NaN?', isNaN(bubble.scale.x));
+        }, 1000);
+    } else {
+        console.error('❌ Failed to create safe bubble');
+    }
+    
+    return bubble;
+};
+
+// 7. DIAGNOSTIC FUNCTION
+window.diagnoseBubbleIssues = function() {
+    console.log('🔍 Diagnosing bubble issues...');
+    
+    const chatSystem = window.ChatBubbleSystem;
+    console.log('ChatBubbleSystem initialized:', chatSystem?.isInitialized);
+    console.log('Active bubbles count:', chatSystem?.activeBubbles?.length || 0);
+    console.log('Fade time setting:', chatSystem?.config?.fadeTime);
+    
+    let totalBubbles = 0;
+    let nanScaleBubbles = 0;
+    
+    if (window.SceneManager?.scene) {
+        window.SceneManager.scene.traverse(child => {
+            if (child.userData?.message || child.name?.includes('bubble')) {
+                totalBubbles++;
+                if (!isFinite(child.scale.x)) {
+                    nanScaleBubbles++;
+                    console.log('❌ Found bubble with NaN scale:', child.userData?.message);
                 }
             }
-            
-        } catch (error) {
-            console.error('Error removing bubble:', error);
-        }
+        });
     }
     
-    removeUserBubbles(userId) {
-        if (!this.bubbles.has(userId)) return;
-        
-        try {
-            const userBubbles = this.bubbles.get(userId).slice();
-            userBubbles.forEach(bubble => {
-                this.animateBubbleOut(bubble);
-            });
-            
-            this.bubbles.delete(userId);
-        } catch (error) {
-            console.error('Error removing user bubbles:', error);
-        }
-    }
+    console.log('Total bubbles in scene:', totalBubbles);
+    console.log('Bubbles with NaN scale:', nanScaleBubbles);
     
-    updateBubblePositions(userId, newPosition) {
-        if (!this.bubbles.has(userId) || !newPosition) return;
-        
-        try {
-            const userBubbles = this.bubbles.get(userId);
-            userBubbles.forEach((bubble, index) => {
-                if (bubble.userData.isVisible) {
-                    const bubblePosition = newPosition.clone();
-                    
-                    // FIXED: Ensure position is always at or above ground
-                    bubblePosition.y = Math.max(0, bubblePosition.y);
-                    bubblePosition.y += this.config.yOffset;
-                    bubblePosition.x += index * 0.9;
-                    bubblePosition.y += index * 0.6;
-                    
-                    // FINAL SAFETY CHECK
-                    bubblePosition.y = Math.max(this.config.yOffset, bubblePosition.y);
-                    
-                    bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
-                }
-            });
-        } catch (error) {
-            console.error('Error updating bubble positions:', error);
-        }
-    }
-    
-    handleResize() {
-        try {
-            this.isMobile = window.innerWidth <= 768;
-            if (this.isMobile) {
-                const isLandscape = window.innerWidth > window.innerHeight;
-                this.config.maxBubbles = isLandscape ? 20 : 15;
-                this.config.fontSize = 16;
-                this.config.maxWidth = 280;
-            } else {
-                this.config.maxBubbles = 25;
-                this.config.fontSize = 18;
-                this.config.maxWidth = 350;
-            }
-        } catch (error) {
-            console.error('Error handling resize:', error);
-        }
-    }
-    
-    startUpdateLoop() {
-        const update = () => {
-            try {
-                if (this.isInitialized) {
-                    this.updateSafe();
-                }
-            } catch (error) {
-                console.error('Error in update loop:', error);
-            }
-            requestAnimationFrame(update);
-        };
-        update();
-    }
-    
-    clearAllBubbles() {
-        try {
-            const bubblesToRemove = this.activeBubbles.slice();
-            bubblesToRemove.forEach(bubble => {
-                this.removeBubble(bubble);
-            });
-            
-            this.activeBubbles = [];
-            this.bubbles.clear();
-            
-            console.log('💬 All fixed external chat bubbles cleared');
-        } catch (error) {
-            console.error('Error clearing bubbles:', error);
-        }
-    }
-    
-    // Enhanced public API methods
-    getActiveBubbleCount() {
-        return this.activeBubbles.length;
-    }
-    
-    getUserBubbleCount(userId) {
-        return this.bubbles.has(userId) ? this.bubbles.get(userId).length : 0;
-    }
-    
-    setDebugMode(enabled) {
-        this.config.enableDebug = enabled;
-        console.log(`💬 Fixed External ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
-    }
-    
-    getPerformanceStats() {
-        this._ensurePerformanceObject();
-        return {
-            ...this.performance,
-            visibleBubbles: this.activeBubbles.filter(b => b.userData.isVisible).length,
-            userCount: this.bubbles.size,
-            memoryUsage: this.activeBubbles.length * 3072,
-            isMobile: this.isMobile,
-            version: '4.1-fixed-external'
-        };
-    }
-    
-    createTestBubble(message = "Fixed external test message! ✅🚀", username = "TestUser") {
-        if (!window.THREE) {
-            console.warn('THREE.js not available for test bubble');
-            return null;
-        }
-        
-        // FIXED: Test position that's always on ground
-        const position = new THREE.Vector3(
-            (Math.random() - 0.5) * 15,
-            0, // Ground level
-            (Math.random() - 0.5) * 15
-        );
-        
-        return this.createBubble(message, username, position, 'test_' + Date.now(), 'US');
-    }
-    
-    updateConfig(newConfig) {
-        Object.assign(this.config, newConfig);
-        console.log('💬 Fixed External ChatBubbleSystem config updated:', newConfig);
-    }
-    
-    setBubbleStyle(styleName, value) {
-        if (this.bubbleStyles.hasOwnProperty(styleName)) {
-            this.bubbleStyles[styleName] = value;
-            console.log(`💬 Updated bubble style ${styleName}: ${value}`);
-        }
-    }
-    
-    toggleGlowEffect(enabled) {
-        this.config.enableGlow = enabled;
-        console.log(`💬 Glow effect: ${enabled ? 'enabled' : 'disabled'}`);
-    }
-    
-    toggleParticleEffects(enabled) {
-        this.config.enableParticles = enabled;
-        console.log(`💬 Particle effects: ${enabled ? 'enabled' : 'disabled'}`);
-    }
-    
-    dispose() {
-        try {
-            this.clearAllBubbles();
-            window.removeEventListener('resize', this.handleResize);
-            console.log('💬 Fixed External ChatBubbleSystem disposed');
-        } catch (error) {
-            console.error('Error disposing Fixed External ChatBubbleSystem:', error);
-        }
-    }
-    
-    // Static method to get singleton instance
-    static getInstance() {
-        if (!ChatBubbleSystem._instance) {
-            ChatBubbleSystem._instance = new ChatBubbleSystem();
-        }
-        return ChatBubbleSystem._instance;
-    }
-}
+    return {
+        totalBubbles,
+        nanScaleBubbles,
+        chatSystemReady: chatSystem?.isInitialized || false
+    };
+};
 
-// Export both class and instance for compatibility
-window.ChatBubbleSystemClass = ChatBubbleSystem;
-window.ChatBubbleSystem = ChatBubbleSystem.getInstance();
+// 8. AUTO-APPLY ALL FIXES
+console.log('🚀 Auto-applying fixes...');
+window.fixSceneManagerTransitions();
+window.fixChatBubbleAnimations();
+const repairedCount = window.repairExistingBubbles();
 
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ChatBubbleSystem;
-}
-
-console.log('✅ Fixed External ChatBubbleSystem v4.1 - GROUND LEVEL ONLY loaded successfully');
-console.log('🌟 Fixed features: Proper method binding, ground-level positioning, enhanced error handling');
-console.log('🔧 All bubble positions are guaranteed to be at or above ground level (Y ≥ 0)');
+console.log('🎯 CHAT BUBBLE SCALE FIX LOADED!');
+console.log('📋 Available functions:');
+console.log('  - window.createSafeBubble("message") - Create a guaranteed working bubble');
+console.log('  - window.diagnoseBubbleIssues() - Check bubble status');
+console.log('  - window.repairExistingBubbles() - Fix any broken bubbles');
+console.log('');
+console.log('🧪 Test with: window.createSafeBubble("I CAN SEE THIS!");');
