@@ -107,18 +107,18 @@ class ChatBubbleSystem {
         this.avatarPositionCache = new Map();
         this.lastKnownPositions = new Map();
         
-        // FIXED: Configuration for consistent positioning
+        // FIXED: Configuration for NO STACKING AT ALL
         this.config = {
             maxBubbles: 20,
-            fadeTime: 4000, // Faster fade out
+            fadeTime: 3000, // Even faster fade out
             maxDistance: 60,
             fontSize: 18,
             maxWidth: 380,
             padding: 25,
             borderRadius: 20,
-            yOffset: 2.8, // FIXED: Consistent height above avatar
+            yOffset: 2.8, // FIXED: Always this exact height above avatar
             animationDuration: 600,
-            maxBubblesPerUser: 1, // FIXED: Only one bubble per user at a time
+            maxBubblesPerUser: 1, // FIXED: Only ONE bubble per user EVER
             enableDebug: false,
             enableShadows: true,
             cullingDistance: 100,
@@ -126,10 +126,11 @@ class ChatBubbleSystem {
             enableGlow: true,
             minHeight: 2.0,
             maxHeight: 15.0,
-            horizontalSpread: 1.5, // FIXED: Only horizontal spreading
-            replacePreviousBubble: true, // FIXED: Replace instead of stack
+            horizontalSpread: 0, // FIXED: NO spreading at all
+            replacePreviousBubble: true, // FIXED: Always replace
             groundY: 0,
-            noVerticalStacking: true // FIXED: Disable vertical stacking completely
+            noVerticalStacking: true, // FIXED: Disabled completely
+            forceReplacement: true // FIXED: New - force immediate replacement
         };
         
         // Enhanced visual styles
@@ -641,7 +642,7 @@ class ChatBubbleSystem {
             // Track bubble
             this.activeBubbles.push(bubbleGroup);
             
-            // FIXED: Better bubble management - replace previous bubble
+            // FIXED: FORCE replacement - remove old bubble IMMEDIATELY
             if (userId) {
                 if (!this.bubbles.has(userId)) {
                     this.bubbles.set(userId, []);
@@ -649,20 +650,18 @@ class ChatBubbleSystem {
                 
                 const userBubbles = this.bubbles.get(userId);
                 
-                // REPLACE previous bubble instead of stacking
-                if (this.config.replacePreviousBubble && userBubbles.length > 0) {
-                    const oldBubble = userBubbles[userBubbles.length - 1];
-                    this.animateBubbleOut(oldBubble);
-                    userBubbles[userBubbles.length - 1] = bubbleGroup;
-                } else {
-                    userBubbles.push(bubbleGroup);
-                    
-                    // Limit bubbles per user
-                    if (userBubbles.length > this.config.maxBubblesPerUser) {
-                        const oldBubble = userBubbles.shift();
+                // FORCE REPLACEMENT: Always remove old bubbles immediately
+                if (userBubbles.length > 0) {
+                    // Remove ALL existing bubbles for this user
+                    userBubbles.forEach(oldBubble => {
                         this.removeBubble(oldBubble);
-                    }
+                    });
+                    // Clear the array
+                    userBubbles.length = 0;
                 }
+                
+                // Add the new bubble as the only bubble
+                userBubbles.push(bubbleGroup);
             }
             
             // Clean up old bubbles
@@ -679,11 +678,11 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Consistent positioning without vertical stacking
+    // FIXED: Consistent positioning - COMPLETELY NO STACKING
     calculateConsistentBubblePosition(basePosition, userId) {
         const bubblePosition = basePosition.clone();
         
-        // FIXED: Always use the same height - NO STACKING
+        // FIXED: Always use the EXACT same height - NO STACKING EVER
         bubblePosition.y = Math.max(
             this.config.minHeight, 
             basePosition.y + this.config.yOffset
@@ -692,19 +691,9 @@ class ChatBubbleSystem {
         // Ensure maximum height
         bubblePosition.y = Math.min(this.config.maxHeight, bubblePosition.y);
         
-        // FIXED: Only small horizontal offset to prevent overlap, NO vertical offset
-        if (userId && this.bubbles.has(userId)) {
-            const userBubbles = this.bubbles.get(userId);
-            const activeBubbleCount = userBubbles.filter(bubble => 
-                bubble.userData.animationPhase !== 'exiting'
-            ).length;
-            
-            // Only tiny horizontal offset to prevent exact overlap
-            bubblePosition.x += activeBubbleCount * 0.1; // Very small offset
-            bubblePosition.z += activeBubbleCount * 0.05; // Tiny Z offset to prevent z-fighting
-            
-            // NO HEIGHT CHANGE - bubblePosition.y stays the same!
-        }
+        // COMPLETELY REMOVED: No offset calculations based on existing bubbles
+        // Every bubble appears at the EXACT same position for the same user
+        // The replacement logic handles removing old bubbles
         
         return bubblePosition;
     }
@@ -1210,17 +1199,14 @@ class ChatBubbleSystem {
             this.cacheAvatarPosition(userId, newPosition);
             
             const userBubbles = this.bubbles.get(userId);
-            userBubbles.forEach((bubble, index) => {
+            userBubbles.forEach((bubble) => {
                 if (bubble.userData.isVisible && bubble.userData.animationPhase !== 'exiting') {
                     const bubblePosition = newPosition.clone();
                     
-                    // FIXED: Consistent height only
+                    // FIXED: EXACT same height calculation as creation
                     bubblePosition.y = Math.max(this.config.minHeight, bubblePosition.y + this.config.yOffset);
                     
-                    // Only horizontal spreading
-                    bubblePosition.x += index * this.config.horizontalSpread;
-                    bubblePosition.z += index * 0.05;
-                    
+                    // NO horizontal spreading - exact same position
                     bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
                 }
             });
