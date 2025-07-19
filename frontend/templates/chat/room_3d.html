@@ -3892,42 +3892,52 @@
             
             // Smart ChatBubbleSystem instance getter
             getChatBubbleSystemInstance() {
-                // The embedded version is now available as window.ChatBubbleSystem
+                // Look for the external ChatBubbleSystem
                 if (window.ChatBubbleSystem && typeof window.ChatBubbleSystem.init === 'function') {
+                    console.log('✅ Found external ChatBubbleSystem');
                     return window.ChatBubbleSystem;
                 }
                 
-                console.warn('No ChatBubbleSystem implementation found');
+                // Look for ChatBubbleSystemClass (alternative export pattern)
+                if (window.ChatBubbleSystemClass) {
+                    console.log('✅ Found ChatBubbleSystemClass, creating instance');
+                    return window.ChatBubbleSystemClass.getInstance ? 
+                        window.ChatBubbleSystemClass.getInstance() : 
+                        new window.ChatBubbleSystemClass();
+                }
+                
+                console.warn('❌ No ChatBubbleSystem implementation found');
                 return null;
             }
-            
+                        
             // Special initialization for ChatBubbleSystem
             async initializeChatBubbleSystem() {
-                console.log('🔧 Initializing ChatBubbleSystem...');
+                console.log('🔧 Initializing external ChatBubbleSystem...');
                 
                 try {
                     const chatSystem = this.getChatBubbleSystemInstance();
                     
                     if (!chatSystem) {
-                        console.warn('ChatBubbleSystem not available for initialization');
+                        console.warn('❌ External ChatBubbleSystem not available for initialization');
                         return;
                     }
                     
                     // Check if already initialized
                     if (chatSystem.isInitialized) {
-                        console.log('✅ ChatBubbleSystem already initialized');
+                        console.log('✅ External ChatBubbleSystem already initialized');
                         return;
                     }
                     
                     // Try to initialize with proper error handling
                     if (typeof chatSystem.init === 'function') {
-                        await this.safeInitialize(chatSystem, 'ChatBubbleSystem');
+                        await this.safeInitialize(chatSystem, 'External ChatBubbleSystem');
+                        console.log('✅ External ChatBubbleSystem initialized successfully');
                     } else {
-                        console.warn('ChatBubbleSystem has no init method');
+                        console.warn('❌ External ChatBubbleSystem has no init method');
                     }
                     
                 } catch (error) {
-                    console.warn('Error initializing ChatBubbleSystem:', error);
+                    console.warn('❌ Error initializing external ChatBubbleSystem:', error);
                 }
             }
             
@@ -4121,21 +4131,9 @@
                 const deps = this.dependencies[moduleName] || [];
                 await Promise.all(deps.map(dep => this.loadModule(dep)));
                 
-                // For chat-bubble-system, we already have the embedded version
-                if (moduleName === 'chat-bubble-system') {
-                    console.log('📦 Using embedded ChatBubbleSystem');
-                    this.loadedModules.add(moduleName);
-                    this.updateLoadingStep(moduleName);
-                    
-                    // Run initialization callback
-                    const callback = this.initializationCallbacks.get(moduleName);
-                    if (callback) {
-                        return callback();
-                    }
-                    return Promise.resolve();
-                }
+                // REMOVED: Special handling for chat-bubble-system - now load it like any other module
                 
-                // Create loading promise for external modules
+                // Create loading promise for ALL external modules (including chat-bubble-system)
                 const loadingPromise = this.loadScript(this.modulePaths[moduleName])
                     .then(() => {
                         this.loadedModules.add(moduleName);
@@ -4149,7 +4147,7 @@
                         }
                     })
                     .catch((error) => {
-                        console.warn(`⚠️ Could not load external module: ${moduleName}`);
+                        console.warn(`⚠️ Could not load external module: ${moduleName}`, error);
                         this.loadedModules.add(moduleName);
                         return Promise.resolve();
                     });
