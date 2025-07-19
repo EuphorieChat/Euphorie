@@ -119,15 +119,15 @@ class ChatBubbleSystem {
         // Enhanced configuration
         this.config = {
             maxBubbles: 25,
-            fadeTime: 8000,
+            fadeTime: 6000, // Reduced fade time so old bubbles disappear faster
             maxDistance: 60,
             fontSize: 18,
             maxWidth: 380,
             padding: 25,
             borderRadius: 20,
-            yOffset: 3.5,
+            yOffset: 2.5, // Fixed height above avatar
             animationDuration: 600,
-            maxBubblesPerUser: 4,
+            maxBubblesPerUser: 3, // Reduced to prevent too many bubbles
             enableDebug: false,
             enableShadows: true,
             cullingDistance: 100,
@@ -135,8 +135,8 @@ class ChatBubbleSystem {
             enableGlow: true,
             minHeight: 2.0,
             maxHeight: 15.0,
-            overlapOffset: 0.8,
-            heightIncrement: 0.5,
+            overlapOffset: 1.2, // Horizontal spacing between bubbles
+            replacePreviousBubble: true, // NEW: Replace instead of stack
             groundY: 0
         };
         
@@ -685,17 +685,31 @@ class ChatBubbleSystem {
             // Track bubble
             this.activeBubbles.push(bubbleGroup);
             
+            // IMPROVED: Better bubble management per user
             if (userId) {
                 if (!this.bubbles.has(userId)) {
                     this.bubbles.set(userId, []);
                 }
-                this.bubbles.get(userId).push(bubbleGroup);
                 
-                // Limit bubbles per user
                 const userBubbles = this.bubbles.get(userId);
-                if (userBubbles.length > this.config.maxBubblesPerUser) {
-                    const oldBubble = userBubbles.shift();
-                    this.removeBubble(oldBubble);
+                
+                // OPTION 1: Replace previous bubble (recommended)
+                if (this.config.replacePreviousBubble && userBubbles.length > 0) {
+                    // Fade out the old bubble immediately
+                    const oldBubble = userBubbles[userBubbles.length - 1];
+                    this.animateBubbleOut(oldBubble);
+                    
+                    // Replace in array
+                    userBubbles[userBubbles.length - 1] = bubbleGroup;
+                } else {
+                    // OPTION 2: Add to array and limit count
+                    userBubbles.push(bubbleGroup);
+                    
+                    // Limit bubbles per user
+                    if (userBubbles.length > this.config.maxBubblesPerUser) {
+                        const oldBubble = userBubbles.shift();
+                        this.removeBubble(oldBubble);
+                    }
                 }
             }
             
@@ -716,7 +730,7 @@ class ChatBubbleSystem {
     calculateSafeBubblePosition(basePosition, userId) {
         const bubblePosition = basePosition.clone();
         
-        // Ensure minimum height above ground
+        // Ensure minimum height above ground (consistent height, not stacking)
         bubblePosition.y = Math.max(
             this.config.minHeight, 
             basePosition.y + this.config.yOffset
@@ -725,19 +739,18 @@ class ChatBubbleSystem {
         // Ensure maximum height
         bubblePosition.y = Math.min(this.config.maxHeight, bubblePosition.y);
         
-        // Handle overlap prevention
+        // FIXED: Only do horizontal spreading, not vertical stacking
         if (userId && this.bubbles.has(userId)) {
             const userBubbles = this.bubbles.get(userId);
-            const bubbleIndex = userBubbles.length;
+            const activeBubbleCount = userBubbles.filter(bubble => 
+                bubble.userData.animationPhase !== 'exiting'
+            ).length;
             
-            // Horizontal offset for multiple bubbles
-            bubblePosition.x += bubbleIndex * this.config.overlapOffset;
+            // Only horizontal offset for multiple bubbles (no vertical stacking)
+            bubblePosition.x += activeBubbleCount * this.config.overlapOffset;
             
-            // Vertical stacking
-            bubblePosition.y += bubbleIndex * this.config.heightIncrement;
-            
-            // Small Z offset to prevent z-fighting
-            bubblePosition.z += bubbleIndex * 0.1;
+            // Very small Z offset to prevent z-fighting (but no height change)
+            bubblePosition.z += activeBubbleCount * 0.05;
         }
         
         return bubblePosition;
@@ -1260,11 +1273,15 @@ class ChatBubbleSystem {
             
             const userBubbles = this.bubbles.get(userId);
             userBubbles.forEach((bubble, index) => {
-                if (bubble.userData.isVisible) {
+                if (bubble.userData.isVisible && bubble.userData.animationPhase !== 'exiting') {
                     const bubblePosition = newPosition.clone();
+                    
+                    // Consistent height (no stacking)
                     bubblePosition.y = Math.max(this.config.minHeight, bubblePosition.y + this.config.yOffset);
+                    
+                    // Only horizontal spreading
                     bubblePosition.x += index * this.config.overlapOffset;
-                    bubblePosition.y += index * this.config.heightIncrement;
+                    bubblePosition.z += index * 0.05; // Tiny Z offset only
                     
                     // Smooth transition to new position
                     bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
