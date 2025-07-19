@@ -1,9 +1,10 @@
 // =============================================
-// EUPHORIE 3D CHAT BUBBLE SYSTEM v5.1 - FIXED
-// Fixed scale protection to only target chat bubbles, not all Three.js operations
+// EUPHORIE 3D CHAT BUBBLE SYSTEM v6.0 - REFACTORED
+// Extracted from room_3d.html into external chat-bubble-system.js
+// Fixed: No global Three.js overrides, targeted protection only
 // =============================================
 
-console.log('🔥 LOADING ChatBubbleSystem v5.1 - FIXED scale protection...');
+console.log('🔥 LOADING ChatBubbleSystem v6.0 - Refactored External Version...');
 
 // 1. SAFE MATH UTILITIES - Prevent NaN in calculations
 const SafeMath = {
@@ -19,7 +20,7 @@ const SafeMath = {
         return Math.max(0, Math.min(1, isFinite(progress) ? progress : 0));
     },
     
-    // FIXED: More permissive scale validation
+    // FIXED: More permissive scale validation - no global override
     safeScale: (value) => {
         if (value === undefined || value === null) return 1;
         if (!isFinite(value) || isNaN(value)) return 1;
@@ -36,16 +37,16 @@ const SafeMath = {
     }
 };
 
-// 2. TARGETED SCALE PROTECTION - Only for chat bubble objects
+// 2. TARGETED SCALE PROTECTION - Only for chat bubble objects (NO GLOBAL OVERRIDE)
 function createSafeScaleHelper() {
     return {
-        // Safe scale setting specifically for chat bubble objects
+        // Safe scale setting specifically for chat bubble objects ONLY
         setSafeBubbleScale: function(object, x, y, z) {
             if (!object || !object.scale) return;
             
             // Only validate if this looks like a chat bubble object
             if (!this.isChatBubbleObject(object)) {
-                // For non-chat-bubble objects, use normal scaling
+                // For non-chat-bubble objects, use normal scaling (NO INTERFERENCE)
                 if (typeof x === 'number' && y === undefined && z === undefined) {
                     object.scale.setScalar(x);
                 } else {
@@ -54,7 +55,7 @@ function createSafeScaleHelper() {
                 return;
             }
             
-            // For chat bubble objects, apply safe scaling
+            // For chat bubble objects only, apply safe scaling
             const safeX = SafeMath.safeScale(x);
             const safeY = SafeMath.safeScale(y !== undefined ? y : x);
             const safeZ = SafeMath.safeScale(z !== undefined ? z : x);
@@ -89,12 +90,12 @@ function createSafeScaleHelper() {
     };
 }
 
-// 3. MAIN CHAT BUBBLE SYSTEM CLASS - FIXED VERSION
+// 3. MAIN CHAT BUBBLE SYSTEM CLASS - REFACTORED VERSION
 class ChatBubbleSystem {
     constructor() {
-        console.log('💬✨ ChatBubbleSystem v5.1 - FIXED version starting...');
+        console.log('💬✨ ChatBubbleSystem v6.0 - Refactored external version starting...');
         
-        // Create safe scale helper
+        // Create safe scale helper (NO GLOBAL OVERRIDE)
         this.safeScale = createSafeScaleHelper();
         
         // Core properties
@@ -110,6 +111,10 @@ class ChatBubbleSystem {
         this.materialPool = [];
         this.texturePool = [];
         this._messageQueue = [];
+        
+        // ENHANCED: Avatar position tracking
+        this.avatarPositionCache = new Map();
+        this.lastKnownPositions = new Map();
         
         // Enhanced configuration
         this.config = {
@@ -163,7 +168,7 @@ class ChatBubbleSystem {
         // Setup resize handler
         window.addEventListener('resize', this.handleResize);
         
-        console.log('✅ ChatBubbleSystem v5.1 - FIXED version created');
+        console.log('✅ ChatBubbleSystem v6.0 - Refactored external version created');
     }
     
     bindMethods() {
@@ -227,7 +232,7 @@ class ChatBubbleSystem {
     }
     
     async init() {
-        console.log('🚀 Initializing ChatBubbleSystem v5.1...');
+        console.log('🚀 Initializing ChatBubbleSystem v6.0...');
         
         try {
             this._ensurePerformanceObject();
@@ -257,7 +262,7 @@ class ChatBubbleSystem {
             this._ensurePerformanceObject();
             this.isInitialized = true;
             
-            console.log('✅ ChatBubbleSystem v5.1 initialized successfully');
+            console.log('✅ ChatBubbleSystem v6.0 initialized successfully');
             
             this.startUpdateLoop();
             this.setupEventListeners();
@@ -307,8 +312,9 @@ class ChatBubbleSystem {
             return null;
         }
         
-        if (!window.ROOM_CONFIG?.chatBubblesEnabled) {
-            console.log('💬 Chat bubbles disabled in config');
+        // Check if chat bubbles are enabled via ROOM_CONFIG
+        if (window.ROOM_CONFIG && !window.ROOM_CONFIG.chatBubblesEnabled) {
+            console.log('💬 Chat bubbles disabled in ROOM_CONFIG');
             return null;
         }
         
@@ -345,76 +351,104 @@ class ChatBubbleSystem {
     }
     
     createGroundLevelFallbackPosition(userId) {
+        // Create a more intelligent fallback position
         const hash = userId.split('').reduce((a, b) => {
             a = ((a << 5) - a) + b.charCodeAt(0);
             return a & a;
         }, 0);
         
+        // Create positions in a circle around origin, but not random
         const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-        const radius = 3 + (Math.abs(hash) % 4);
+        const radius = 4 + (Math.abs(hash) % 3); // 4-6 units from center
         
         const groundPosition = new THREE.Vector3(
             Math.cos(angle) * radius,
-            this.config.groundY,
+            this.config.groundY + 1, // 1 unit above ground minimum
             Math.sin(angle) * radius
         );
         
-        console.log(`🔧 Created ground-level fallback position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
+        // Store as last known position for this user
+        this.lastKnownPositions.set(userId, groundPosition.clone());
+        
+        if (this.config.enableDebug) {
+            console.log(`🔧 Created consistent fallback position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
+        }
+        
         return groundPosition;
     }
     
     getAvatarPosition(userId) {
-        console.log(`🔍 Getting avatar position for user: ${userId}`);
+        if (this.config.enableDebug) {
+            console.log(`🔍 [DEBUG] Getting avatar position for user: ${userId}`);
+        }
         
         try {
-            // Strategy 1: Use AvatarSystem if available
+            // Strategy 1: Check cache first (1 second cache for performance)
+            if (this.avatarPositionCache.has(userId)) {
+                const cached = this.avatarPositionCache.get(userId);
+                if (Date.now() - cached.timestamp < 1000) {
+                    if (this.config.enableDebug) {
+                        console.log(`✅ [DEBUG] Using cached position for ${userId}`);
+                    }
+                    return cached.position.clone();
+                }
+            }
+            
+            // Strategy 2: Use AvatarSystem if available
             if (window.AvatarSystem?.getAvatarPosition) {
                 const pos = window.AvatarSystem.getAvatarPosition(userId);
-                if (pos) {
-                    console.log(`✅ Found avatar position via AvatarSystem: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+                if (pos && this.isValidPosition(pos)) {
+                    this.cacheAvatarPosition(userId, pos);
+                    if (this.config.enableDebug) {
+                        console.log(`✅ [DEBUG] Found via AvatarSystem: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+                    }
                     return pos;
                 }
             }
             
-            // Strategy 2: Search scene for avatar
-            if (this.scene) {
-                let avatar = null;
-                
-                const searchPatterns = [
-                    child => child.userData?.userId === userId,
-                    child => child.userData?.id === userId,  
-                    child => child.userData?.user_id === userId,
-                    child => child.name === userId,
-                    child => child.userData?.username === userId
-                ];
-                
-                for (const pattern of searchPatterns) {
-                    avatar = this.scene.children.find(pattern);
-                    if (avatar) {
-                        console.log(`✅ Found avatar in scene, position: (${avatar.position.x.toFixed(2)}, ${avatar.position.y.toFixed(2)}, ${avatar.position.z.toFixed(2)})`);
-                        return avatar.position.clone();
+            // Strategy 3: Comprehensive scene search
+            const avatarPosition = this.searchSceneForAvatar(userId);
+            if (avatarPosition) {
+                this.cacheAvatarPosition(userId, avatarPosition);
+                return avatarPosition;
+            }
+            
+            // Strategy 4: Check if this is the current user (camera-based position)
+            if (this.isCurrentUser(userId)) {
+                const cameraPosition = this.getCurrentUserPosition();
+                if (cameraPosition) {
+                    this.cacheAvatarPosition(userId, cameraPosition);
+                    if (this.config.enableDebug) {
+                        console.log(`✅ [DEBUG] Using camera position for current user: ${userId}`);
                     }
+                    return cameraPosition;
                 }
             }
             
-            // Strategy 3: Check if this is the current user
-            if (userId === window.ROOM_CONFIG?.userId || 
-                userId === window.WebSocketManager?.userId) {
-                console.log(`✅ Using origin position for current user: ${userId}`);
-                return new THREE.Vector3(0, this.config.groundY, 0);
-            }
-            
-            // Strategy 4: Use WebSocket Manager's user tracking
+            // Strategy 5: Use WebSocket Manager's user tracking
             if (window.WebSocketManager?.connectedUsers?.has(userId)) {
                 const userData = window.WebSocketManager.connectedUsers.get(userId);
-                if (userData.position) {
-                    console.log(`✅ Using WebSocket stored position for user: ${userId}`);
-                    return new THREE.Vector3(
+                if (userData.position && this.isValidPosition(userData.position)) {
+                    const wsPosition = new THREE.Vector3(
                         userData.position.x, 
                         userData.position.y || this.config.groundY, 
                         userData.position.z
                     );
+                    this.cacheAvatarPosition(userId, wsPosition);
+                    if (this.config.enableDebug) {
+                        console.log(`✅ [DEBUG] Using WebSocket stored position for user: ${userId}`);
+                    }
+                    return wsPosition;
                 }
+            }
+            
+            // Strategy 6: Use last known position if available
+            if (this.lastKnownPositions.has(userId)) {
+                const lastPos = this.lastKnownPositions.get(userId);
+                if (this.config.enableDebug) {
+                    console.log(`✅ [DEBUG] Using last known position for ${userId}`);
+                }
+                return lastPos.clone();
             }
             
             return null;
@@ -425,7 +459,141 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Create bubble with proper scale handling
+    // ENHANCED: Comprehensive scene search for avatars
+    searchSceneForAvatar(userId) {
+        if (!this.scene) return null;
+        
+        // Enhanced search patterns - more comprehensive
+        const searchPatterns = [
+            // Direct userData patterns
+            child => child.userData?.userId === userId,
+            child => child.userData?.id === userId,  
+            child => child.userData?.user_id === userId,
+            child => child.userData?.playerId === userId,
+            child => child.userData?.characterId === userId,
+            
+            // Name patterns
+            child => child.name === userId,
+            child => child.userData?.username === userId,
+            child => child.userData?.displayName === userId,
+            
+            // Type-based detection with ID check
+            child => (child.userData?.type === 'avatar' || child.userData?.isAvatar) && 
+                     (child.userData?.userId === userId || child.userData?.id === userId),
+            
+            // Parent-child patterns (for complex avatar hierarchies)
+            child => child.parent?.userData?.userId === userId,
+            child => child.parent?.userData?.id === userId,
+            
+            // Group/container patterns
+            child => child.userData?.owner === userId,
+            child => child.userData?.belongsTo === userId
+        ];
+        
+        // Try each search pattern
+        for (const pattern of searchPatterns) {
+            try {
+                // Search through all scene children recursively
+                let foundAvatar = null;
+                this.scene.traverse(child => {
+                    if (!foundAvatar && pattern(child)) {
+                        foundAvatar = child;
+                    }
+                });
+                
+                if (foundAvatar && this.isValidPosition(foundAvatar.position)) {
+                    if (this.config.enableDebug) {
+                        console.log(`✅ [DEBUG] Found avatar in scene via pattern search: (${foundAvatar.position.x.toFixed(2)}, ${foundAvatar.position.y.toFixed(2)}, ${foundAvatar.position.z.toFixed(2)})`);
+                    }
+                    return foundAvatar.position.clone();
+                }
+            } catch (error) {
+                // Continue to next pattern if this one fails
+                continue;
+            }
+        }
+        
+        if (this.config.enableDebug) {
+            console.log(`❌ [DEBUG] No avatar found in scene for user: ${userId}`);
+        }
+        return null;
+    }
+    
+    // Check if position is valid (not NaN, not at origin unless intentional)
+    isValidPosition(position) {
+        if (!position) return false;
+        if (typeof position.x !== 'number' || typeof position.y !== 'number' || typeof position.z !== 'number') return false;
+        if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) return false;
+        if (!isFinite(position.x) || !isFinite(position.y) || !isFinite(position.z)) return false;
+        
+        // Position is valid
+        return true;
+    }
+    
+    // Check if this user ID belongs to the current user
+    isCurrentUser(userId) {
+        return userId === window.ROOM_CONFIG?.userId || 
+               userId === window.WebSocketManager?.userId ||
+               userId === this.getCurrentUserId();
+    }
+    
+    // Get current user ID from multiple sources
+    getCurrentUserId() {
+        return window.ROOM_CONFIG?.userId || 
+               window.WebSocketManager?.userId || 
+               window.Euphorie?.state?.userId;
+    }
+    
+    // Get current user position based on camera or spawn point
+    getCurrentUserPosition() {
+        // Try to get camera position and place bubble nearby
+        if (this.camera) {
+            const cameraPos = this.camera.position.clone();
+            // Place bubble in front of camera at ground level
+            const direction = new THREE.Vector3(0, 0, -1);
+            direction.applyQuaternion(this.camera.quaternion);
+            
+            const bubblePos = cameraPos.clone();
+            bubblePos.add(direction.multiplyScalar(5)); // 5 units in front
+            bubblePos.y = Math.max(this.config.groundY, 1); // At least 1 unit above ground
+            
+            return bubblePos;
+        }
+        
+        // Fallback to origin
+        return new THREE.Vector3(0, this.config.groundY + 1, 0);
+    }
+    
+    // Cache avatar position for performance
+    cacheAvatarPosition(userId, position) {
+        if (!this.avatarPositionCache) {
+            this.avatarPositionCache = new Map();
+        }
+        
+        this.avatarPositionCache.set(userId, {
+            position: position.clone(),
+            timestamp: Date.now()
+        });
+        
+        // Also store as last known position
+        if (!this.lastKnownPositions) {
+            this.lastKnownPositions = new Map();
+        }
+        this.lastKnownPositions.set(userId, position.clone());
+        
+        // Clean old cache entries (keep last 50)
+        if (this.avatarPositionCache.size > 50) {
+            const entries = Array.from(this.avatarPositionCache.entries());
+            entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+            
+            this.avatarPositionCache.clear();
+            entries.slice(0, 50).forEach(([id, data]) => {
+                this.avatarPositionCache.set(id, data);
+            });
+        }
+    }
+    
+    // FIXED: Create bubble with proper targeted scale handling (no global override)
     createBubble(message, username, position, userId = null) {
         if (!this.isInitialized || !window.THREE) {
             console.warn('💬 ChatBubbleSystem not ready');
@@ -436,7 +604,7 @@ class ChatBubbleSystem {
             const bubbleGroup = new THREE.Group();
             const bubbleId = ++this.bubbleIdCounter;
             
-            // Mark as chat bubble for safe scaling
+            // CRITICAL: Mark as chat bubble for targeted scaling
             bubbleGroup.userData = { isChatBubble: true };
             
             // Create canvas with high DPI
@@ -481,7 +649,10 @@ class ChatBubbleSystem {
             
             const sprite = new THREE.Sprite(material);
             
-            // FIXED: Use safe scale helper for bubble scaling
+            // CRITICAL: Mark sprite as chat bubble BEFORE scaling
+            sprite.userData = { isChatBubble: true };
+            
+            // FIXED: Use targeted safe scale helper for chat bubble scaling ONLY
             const scale = 0.008;
             this.safeScale.setSafeBubbleScale(sprite, bubbleWidth * scale, bubbleHeight * scale, 1);
             
@@ -504,7 +675,7 @@ class ChatBubbleSystem {
                 isChatBubble: true // IMPORTANT: Mark as chat bubble
             };
             
-            // FIXED: Safe animation start
+            // FIXED: Safe animation start using targeted scaling
             this.safeScale.setSafeBubbleScalar(bubbleGroup, 0);
             this.animateBubbleInSafe(bubbleGroup);
             
@@ -572,7 +743,7 @@ class ChatBubbleSystem {
         return bubblePosition;
     }
     
-    // FIXED: Safe animation with targeted scale protection
+    // FIXED: Safe animation with targeted scale protection (no global interference)
     animateBubbleInSafe(bubble) {
         if (!bubble) return;
         
@@ -605,7 +776,7 @@ class ChatBubbleSystem {
                 const rawScale = startScale + (endScale - startScale) * bounceScale;
                 const safeScale = SafeMath.safeScale(rawScale);
                 
-                // FIXED: Apply safe scale only to chat bubble
+                // FIXED: Apply targeted safe scale only to chat bubble (no global interference)
                 this.safeScale.setSafeBubbleScalar(bubble, safeScale);
                 
                 // Safe rotation
@@ -665,7 +836,7 @@ class ChatBubbleSystem {
                     bubble.userData.opacity = opacity;
                 }
                 
-                // FIXED: Use safe scale helper
+                // FIXED: Use targeted safe scale helper (no global interference)
                 this.safeScale.setSafeBubbleScalar(bubble, scale);
                 
                 if (progress < 1) {
@@ -682,7 +853,7 @@ class ChatBubbleSystem {
         animate();
     }
     
-    // FIXED: Safe update method 
+    // FIXED: Safe update method with targeted scaling only
     update() {
         if (!this.camera || !this.isInitialized) return;
         
@@ -736,7 +907,7 @@ class ChatBubbleSystem {
                     bubble.rotation.z = isFinite(rotationZ) ? rotationZ : 0;
                 }
                 
-                // FIXED: Safe distance-based scaling
+                // FIXED: Safe distance-based scaling with targeted protection
                 if (bubble.children[0]?.material) {
                     const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
                     const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * (bubble.userData.opacity || 1);
@@ -1084,6 +1255,9 @@ class ChatBubbleSystem {
         if (!this.bubbles.has(userId) || !newPosition) return;
         
         try {
+            // Update cached position
+            this.cacheAvatarPosition(userId, newPosition);
+            
             const userBubbles = this.bubbles.get(userId);
             userBubbles.forEach((bubble, index) => {
                 if (bubble.userData.isVisible) {
@@ -1092,6 +1266,7 @@ class ChatBubbleSystem {
                     bubblePosition.x += index * this.config.overlapOffset;
                     bubblePosition.y += index * this.config.heightIncrement;
                     
+                    // Smooth transition to new position
                     bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
                 }
             });
@@ -1205,10 +1380,78 @@ class ChatBubbleSystem {
         console.log('💬 ChatBubbleSystem config updated:', newConfig);
     }
     
+    // Debug and testing methods
+    enableDebugMode() {
+        this.config.enableDebug = true;
+        console.log('🔍 Chat Bubble positioning debug mode ENABLED');
+        
+        // Show all current avatar positions
+        this.debugCurrentAvatars();
+    }
+    
+    disableDebugMode() {
+        this.config.enableDebug = false;
+        console.log('🔍 Chat Bubble positioning debug mode DISABLED');
+    }
+    
+    debugCurrentAvatars() {
+        console.log('🎭 Current avatars in scene:');
+        
+        if (!this.scene) {
+            console.log('❌ No scene available');
+            return;
+        }
+        
+        let avatarCount = 0;
+        this.scene.traverse(child => {
+            if (child.userData && (
+                child.userData.userId || 
+                child.userData.id || 
+                child.userData.user_id ||
+                child.userData.isAvatar ||
+                child.userData.type === 'avatar'
+            )) {
+                avatarCount++;
+                console.log(`  👤 Avatar ${avatarCount}:`, {
+                    name: child.name,
+                    userId: child.userData.userId || child.userData.id || child.userData.user_id,
+                    position: `(${child.position.x.toFixed(2)}, ${child.position.y.toFixed(2)}, ${child.position.z.toFixed(2)})`,
+                    userData: child.userData
+                });
+            }
+        });
+        
+        if (avatarCount === 0) {
+            console.log('  ❌ No avatars found in scene');
+        } else {
+            console.log(`  ✅ Found ${avatarCount} avatars total`);
+        }
+        
+        // Also show cached positions
+        console.log('💾 Cached avatar positions:');
+        this.avatarPositionCache.forEach((data, userId) => {
+            const pos = data.position;
+            console.log(`  👤 ${userId}: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}) [${Date.now() - data.timestamp}ms ago]`);
+        });
+    }
+    
+    // Force position for a specific user (for testing)
+    forceUserPosition(userId, x, y, z) {
+        const position = new THREE.Vector3(x, y, z);
+        this.cacheAvatarPosition(userId, position);
+        this.updateBubblePositions(userId, position);
+        console.log(`🎯 Forced position for ${userId}: (${x}, ${y}, ${z})`);
+    }
+    
     dispose() {
         try {
             this.clearAllBubbles();
             window.removeEventListener('resize', this.handleResize);
+            
+            // Clear caches
+            if (this.avatarPositionCache) this.avatarPositionCache.clear();
+            if (this.lastKnownPositions) this.lastKnownPositions.clear();
+            
             console.log('💬 ChatBubbleSystem disposed');
         } catch (error) {
             console.error('Error disposing ChatBubbleSystem:', error);
@@ -1238,8 +1481,9 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBubbleSystem;
 }
 
-console.log('✅ ChatBubbleSystem v5.1 - FIXED version loaded successfully');
-console.log('🎯 Key fix: Targeted scale protection only for chat bubbles');
-console.log('📈 This should eliminate the console spam and improve performance');
+console.log('✅ ChatBubbleSystem v6.0 - Refactored external version loaded successfully');
+console.log('🎯 Key improvement: NO global Three.js overrides - targeted protection only');
+console.log('📈 This eliminates console spam and improves performance');
+console.log('🔧 Ready for integration with room_3d.html');
 console.log('');
-console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("Hello Fixed World!");');
+console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("Hello Refactored World!");');
