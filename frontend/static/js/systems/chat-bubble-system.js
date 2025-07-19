@@ -20,12 +20,14 @@ const SafeMath = {
     },
     
     safeScale: (value) => {
-        if (!isFinite(value) || isNaN(value) || value <= 0) {
-            console.warn('🛡️ Prevented invalid scale value:', value, 'using 1 instead');
-            return 1;
-        }
-        return Math.max(0.001, Math.min(10, value));
-    },
+        if (value === undefined || value === null) return 1;
+        if (!isFinite(value) || isNaN(value)) return 1;
+        if (value === 0) return 0.001; // Prevent invisible objects
+        if (value < 0) return Math.abs(value); // Fix negative scales
+        if (value < 0.001) return 0.001;
+        if (value > 10) return 10;
+        return value;
+    }
     
     safeEasing: (progress) => {
         if (!isFinite(progress) || isNaN(progress)) return 0;
