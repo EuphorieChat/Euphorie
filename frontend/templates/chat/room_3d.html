@@ -3473,11 +3473,25 @@
                     const avatarPosition = this.getAvatarPosition(messageData.userId || messageData.user_id);
                     if (!avatarPosition) {
                         console.warn(`💬 No avatar found for user ${messageData.userId || messageData.user_id}`);
+                        
+                        // FIXED: Use ground-level fallback instead of random air position
+                        const userId = messageData.userId || messageData.user_id;
+                        const hash = userId.split('').reduce((a, b) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                        }, 0);
+                        
+                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                        const radius = 2 + (Math.abs(hash) % 3);
+                        
                         const fallbackPosition = new THREE.Vector3(
-                            (Math.random() - 0.5) * 10,
-                            2,
-                            (Math.random() - 0.5) * 10
+                            Math.cos(angle) * radius,
+                            0, // GROUND LEVEL - not random air!
+                            Math.sin(angle) * radius
                         );
+                        
+                        console.log(`🔧 Using ground-level fallback position for ${userId}: (${fallbackPosition.x.toFixed(2)}, ${fallbackPosition.y.toFixed(2)}, ${fallbackPosition.z.toFixed(2)})`);
+                        
                         return this.createBubble(
                             messageData.message,
                             messageData.username,
@@ -3538,17 +3552,18 @@
                     }
                     
                     // Strategy 3: Check if this is the current user (place at origin)
-                    if (userId === this.userId || userId === window.ROOM_CONFIG?.userId) {
+                    if (userId === window.ROOM_CONFIG?.userId || 
+                        userId === window.WebSocketManager?.userId) {
                         console.log(`✅ Using origin position for current user: ${userId}`);
                         return new THREE.Vector3(0, 0, 0);
                     }
                     
-                    // Strategy 4: Use stored avatar positions if we're tracking them
-                    if (this.connectedUsers && this.connectedUsers.has(userId)) {
-                        const userData = this.connectedUsers.get(userId);
+                    // Strategy 4: Use WebSocket Manager's user tracking
+                    if (window.WebSocketManager?.connectedUsers?.has(userId)) {
+                        const userData = window.WebSocketManager.connectedUsers.get(userId);
                         if (userData.position) {
-                            console.log(`✅ Using stored position for user: ${userId}`);
-                            return new THREE.Vector3(userData.position.x, userData.position.y, userData.position.z);
+                            console.log(`✅ Using WebSocket stored position for user: ${userId}`);
+                            return new THREE.Vector3(userData.position.x, userData.position.y || 0, userData.position.z);
                         }
                     }
                     
@@ -3566,7 +3581,7 @@
                     
                     const groundPosition = new THREE.Vector3(
                         Math.cos(angle) * radius,
-                        0, // ALWAYS on ground level (Y = 0)
+                        0, // ALWAYS on ground level (Y = 0) - NEVER random air!
                         Math.sin(angle) * radius
                     );
                     
@@ -3579,7 +3594,7 @@
                     return new THREE.Vector3(0, 0, 0);
                 }
             }
-            
+                        
             drawBubbleBackground(context, width, height) {
                 if (!context || typeof width !== 'number' || typeof height !== 'number') {
                     console.error('Invalid parameters for drawBubbleBackground');
