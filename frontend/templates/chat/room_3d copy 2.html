@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1125,6 +1126,152 @@
             will-change: transform;
         }
     </style>
+
+
+
+<!-- Add Screen Sharing CSS -->
+<style>
+/* Screen Sharing Controls */
+.screen-share-indicator {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: linear-gradient(135deg, #FF6B35, #ff8a50);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 1000;
+    display: none;
+    animation: pulse 2s infinite;
+}
+
+.screen-share-indicator.active {
+    display: block;
+}
+
+.screen-share-viewer-info {
+    position: fixed;
+    top: 120px;
+    right: 20px;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 11px;
+    z-index: 1000;
+    display: none;
+    max-width: 250px;
+}
+
+.screen-share-viewer-info.active {
+    display: block;
+}
+
+.screen-share-viewer-info .viewer-count {
+    color: #4CAF50;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+/* Screen Sharing Menu Button */
+.screen-share-menu-btn {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 152, 0, 0.3));
+    border: 2px solid rgba(255, 107, 53, 0.5);
+}
+
+.screen-share-menu-btn:hover, .screen-share-menu-btn:active {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.5), rgba(255, 152, 0, 0.5));
+    border-color: rgba(255, 107, 53, 0.7);
+}
+
+.screen-share-menu-btn.active {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.8), rgba(255, 152, 0, 0.8));
+    border-color: #FF6B35;
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+}
+
+/* Screen Sharing Quality Indicator */
+.screen-share-quality {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    z-index: 1001;
+}
+
+/* Mobile Screen Sharing Controls */
+@media (max-width: 768px) {
+    .screen-share-indicator {
+        top: 60px;
+        right: 10px;
+        font-size: 12px;
+        padding: 10px 16px;
+    }
+    
+    .screen-share-viewer-info {
+        top: 100px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}
+
+/* Projection Surface Animation */
+@keyframes projectionGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(102, 126, 234, 0.6); }
+}
+
+.projection-surface {
+    animation: projectionGlow 2s ease-in-out infinite;
+}
+
+/* Screen Share Loading Animation */
+.screen-share-loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    z-index: 10000;
+    display: none;
+}
+
+.screen-share-loading.active {
+    display: block;
+}
+
+.screen-share-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid #FF6B35;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+
 </head>
 <body>
     <div id="room-container">
@@ -1277,7 +1424,7 @@
             </div>
         </div>
 
-        <!-- Enhanced Mobile Chat Panel -->
+<!-- Enhanced Mobile Chat Panel -->
         <div id="mobile-chat-panel" class="ui-panel mobile">
             <button class="chat-toggle" onclick="window.toggleMobileChat && window.toggleMobileChat()">
                 💬 Tap to expand chat
@@ -1324,7 +1471,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Enhanced Desktop Hamburger Menu System -->
         <button class="desktop-hamburger" onclick="window.toggleDesktopMenu && window.toggleDesktopMenu()">
             ☰
@@ -1543,6 +1690,7 @@
     
     <!-- Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="{% static 'js/systems/screen-sharing-system.js' %}"></script>
 
     <script>
         // DJANGO DEBUG: Check what Django is outputting
@@ -1988,64 +2136,69 @@
                     return;
                 }
                 
-                // Strategy 1: Use AvatarSystem.createAvatar with the user ID as the avatar ID
+                // Strategy 1: Use AvatarSystem.createAvatar with proper ID consistency
                 if (window.AvatarSystem && window.AvatarSystem.createAvatar) {
                     try {
                         console.log(`📋 Using AvatarSystem.createAvatar for ${userData.username}`);
                         
-                        // Generate a consistent position based on user ID
+                        // Calculate consistent ground position
                         const hash = userData.user_id.split('').reduce((a, b) => {
                             a = ((a << 5) - a) + b.charCodeAt(0);
                             return a & a;
                         }, 0);
                         
                         const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-                        const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius
+                        const radius = 3 + (Math.abs(hash) % 4);
                         
                         const position = {
                             x: Math.cos(angle) * radius,
-                            y: 0,
+                            y: 0, // Always on ground
                             z: Math.sin(angle) * radius
                         };
                         
-                        // Use existing position if available
+                        // Use provided position if available
                         if (userData.position) {
                             position.x = userData.position.x;
-                            position.y = userData.position.y;
+                            position.y = userData.position.y || 0; // Ensure Y is not undefined
                             position.z = userData.position.z;
                         }
                         
-                        // Create avatar using the user ID as avatar ID with nationality
+                        // Create avatar with CONSISTENT userData structure
                         const avatar = window.AvatarSystem.createAvatar(userData.user_id, {
                             name: userData.username,
                             nationality: userData.nationality || 'UN',
                             position: position,
-                            // Use random customization if available
                             ...(window.AvatarSystem.getRandomCustomization ? window.AvatarSystem.getRandomCustomization() : {})
                         });
                         
                         if (avatar) {
-                            console.log(`✅ Created avatar for ${userData.username} using AvatarSystem.createAvatar`);
+                            // CRITICAL: Ensure userData has ALL the ID patterns our search uses
+                            if (avatar.userData) {
+                                avatar.userData.userId = userData.user_id;      // For pattern 1
+                                avatar.userData.id = userData.user_id;          // For pattern 2  
+                                avatar.userData.user_id = userData.user_id;     // For pattern 3
+                                avatar.userData.username = userData.username;   // For pattern 5
+                            }
                             
-                            // CRITICAL: Add the enhanced nametag with flag after avatar creation
+                            // Also set the name property
+                            avatar.name = userData.user_id; // For pattern 4
+                            
+                            console.log(`✅ Created avatar for ${userData.username} with consistent ID tracking`);
+                            
+                            // Add enhanced nametag after avatar creation
                             setTimeout(async () => {
                                 try {
                                     const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
-                                    if (nametagGroup && avatar) {
-                                        // For AvatarSystem avatars, try to access the avatar group/object properly
-                                        if (avatar.add && typeof avatar.add === 'function') {
-                                            // Remove any existing nametag first
-                                            const existingNametag = avatar.getObjectByName ? avatar.getObjectByName('nametag') : null;
-                                            if (existingNametag) {
-                                                avatar.remove(existingNametag);
-                                            }
-                                            
-                                            nametagGroup.name = 'nametag';
-                                            avatar.add(nametagGroup);
-                                            console.log(`🏳️ Added enhanced nametag with flag to ${userData.username}`);
-                                        } else {
-                                            console.warn(`Avatar for ${userData.username} doesn't support .add() method`);
+                                    if (nametagGroup && avatar && typeof avatar.add === 'function') {
+                                        // Remove existing nametag first
+                                        const existingNametag = avatar.getObjectByName ? avatar.getObjectByName('nametag') : null;
+                                        if (existingNametag) {
+                                            avatar.remove(existingNametag);
                                         }
+                                        
+                                        nametagGroup.name = 'nametag';
+                                        avatar.add(nametagGroup);
+                                        console.log(`🏳️ Added enhanced nametag with flag to ${userData.username}`);
                                     }
                                 } catch (error) {
                                     console.warn(`Could not add enhanced nametag to ${userData.username}:`, error);
@@ -2060,20 +2213,20 @@
                     }
                 }
                 
-                // Strategy 2: Create simple THREE.js avatar with enhanced nametag
+                // Strategy 2: Create simple THREE.js avatar if AvatarSystem not available
                 if (this.getAvailableScene() && window.THREE) {
                     try {
                         const scene = this.getAvailableScene();
                         console.log(`📋 Using direct Three.js scene for ${userData.username}`);
                         
-                        // Create a simple colored box as avatar
+                        // Create simple colored box avatar
                         const geometry = new THREE.BoxGeometry(1, 2, 1);
-                        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+                        const colors = [0xff6b6b,0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
                         const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
                         const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
                         const avatar = new THREE.Mesh(geometry, material);
                         
-                        // Position avatar
+                        // Position avatar on ground
                         const hash = userData.user_id.split('').reduce((a, b) => {
                             a = ((a << 5) - a) + b.charCodeAt(0);
                             return a & a;
@@ -2084,9 +2237,21 @@
                         
                         avatar.position.set(
                             Math.cos(angle) * radius,
-                            1, // Height above ground
+                            1, // Height above ground (not random!)
                             Math.sin(angle) * radius
                         );
+                        
+                        // CRITICAL: Set ALL userData patterns for consistent ID tracking
+                        avatar.userData = { 
+                            userId: userData.user_id,          // Pattern 1
+                            id: userData.user_id,              // Pattern 2
+                            user_id: userData.user_id,         // Pattern 3  
+                            username: userData.username,       // Pattern 5
+                            nationality: userData.nationality || 'UN'
+                        };
+                        
+                        // Also set name for pattern 4
+                        avatar.name = userData.user_id;
                         
                         // Add enhanced username label with nationality flag
                         const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
@@ -2095,15 +2260,8 @@
                             avatar.add(nametagGroup);
                         }
                         
-                        // Store user ID for removal
-                        avatar.userData = { 
-                            userId: userData.user_id, 
-                            username: userData.username,
-                            nationality: userData.nationality || 'UN'
-                        };
-                        
                         scene.add(avatar);
-                        console.log(`✅ Created Three.js avatar for ${userData.username} with enhanced nametag`);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} with consistent ID tracking`);
                         
                         return avatar;
                         
@@ -2112,18 +2270,12 @@
                     }
                 }
                 
-                // Strategy 3: Wait for systems to be ready and try again
+                // Log that we're waiting and will retry
                 console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
-                
                 setTimeout(() => {
                     console.log(`🔄 Retrying avatar creation for ${userData.username}...`);
                     this.createRemoteAvatar(userData);
                 }, 2000);
-                
-                console.error(`❌ Failed to create avatar for ${userData.username} - will retry in 2 seconds`);
-                
-                // Show notification to user
-                this.showNotification(`⏳ Creating avatar for ${userData.username} from ${this.getCountryName(userData.nationality || 'UN')}...`);
             }
             
             // Helper to get available scene
@@ -3321,11 +3473,25 @@
                     const avatarPosition = this.getAvatarPosition(messageData.userId || messageData.user_id);
                     if (!avatarPosition) {
                         console.warn(`💬 No avatar found for user ${messageData.userId || messageData.user_id}`);
+                        
+                        // FIXED: Use ground-level fallback instead of random air position
+                        const userId = messageData.userId || messageData.user_id;
+                        const hash = userId.split('').reduce((a, b) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                        }, 0);
+                        
+                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                        const radius = 2 + (Math.abs(hash) % 3);
+                        
                         const fallbackPosition = new THREE.Vector3(
-                            (Math.random() - 0.5) * 10,
-                            2,
-                            (Math.random() - 0.5) * 10
+                            Math.cos(angle) * radius,
+                            0, // GROUND LEVEL - not random air!
+                            Math.sin(angle) * radius
                         );
+                        
+                        console.log(`🔧 Using ground-level fallback position for ${userId}: (${fallbackPosition.x.toFixed(2)}, ${fallbackPosition.y.toFixed(2)}, ${fallbackPosition.z.toFixed(2)})`);
+                        
                         return this.createBubble(
                             messageData.message,
                             messageData.username,
@@ -3351,45 +3517,84 @@
             }
             
             getAvatarPosition(userId) {
+                console.log(`🔍 Getting avatar position for user: ${userId}`);
+                
                 try {
+                    // Strategy 1: Use AvatarSystem if available
                     if (window.AvatarSystem?.getAvatarPosition) {
-                        return window.AvatarSystem.getAvatarPosition(userId);
-                    }
-                    
-                    if (this.scene) {
-                        const avatar = this.scene.children.find(child => 
-                            child.userData?.userId === userId
-                        );
-                        if (avatar) {
-                            return avatar.position.clone();
+                        const pos = window.AvatarSystem.getAvatarPosition(userId);
+                        if (pos) {
+                            console.log(`✅ Found avatar position via AvatarSystem: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+                            return pos;
                         }
                     }
                     
-                    if (userId === window.ROOM_CONFIG?.userId) {
+                    // Strategy 2: Search scene for avatar with multiple ID patterns
+                    if (this.scene) {
+                        let avatar = null;
+                        
+                        // Try different userData patterns
+                        const searchPatterns = [
+                            child => child.userData?.userId === userId,
+                            child => child.userData?.id === userId,  
+                            child => child.userData?.user_id === userId,
+                            child => child.name === userId,
+                            child => child.userData?.username === userId
+                        ];
+                        
+                        for (const pattern of searchPatterns) {
+                            avatar = this.scene.children.find(pattern);
+                            if (avatar) {
+                                console.log(`✅ Found avatar in scene using pattern, position: (${avatar.position.x.toFixed(2)}, ${avatar.position.y.toFixed(2)}, ${avatar.position.z.toFixed(2)})`);
+                                return avatar.position.clone();
+                            }
+                        }
+                    }
+                    
+                    // Strategy 3: Check if this is the current user (place at origin)
+                    if (userId === window.ROOM_CONFIG?.userId || 
+                        userId === window.WebSocketManager?.userId) {
+                        console.log(`✅ Using origin position for current user: ${userId}`);
                         return new THREE.Vector3(0, 0, 0);
                     }
                     
-                    // Create consistent positions for users based on their ID
+                    // Strategy 4: Use WebSocket Manager's user tracking
+                    if (window.WebSocketManager?.connectedUsers?.has(userId)) {
+                        const userData = window.WebSocketManager.connectedUsers.get(userId);
+                        if (userData.position) {
+                            console.log(`✅ Using WebSocket stored position for user: ${userId}`);
+                            return new THREE.Vector3(userData.position.x, userData.position.y || 0, userData.position.z);
+                        }
+                    }
+                    
+                    // Strategy 5: Create GROUND-LEVEL consistent position (NOT random air position!)
+                    console.warn(`⚠️ No avatar found for user ${userId}, creating consistent ground position`);
+                    
+                    // Create consistent position based on user ID hash - ALWAYS ON GROUND
                     const hash = userId.split('').reduce((a, b) => {
                         a = ((a << 5) - a) + b.charCodeAt(0);
                         return a & a;
                     }, 0);
                     
-                    const angle = (hash % 360) * (Math.PI / 180);
-                    const radius = 5 + (Math.abs(hash) % 5);
+                    const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                    const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius from center
                     
-                    return new THREE.Vector3(
+                    const groundPosition = new THREE.Vector3(
                         Math.cos(angle) * radius,
-                        0,
+                        0, // ALWAYS on ground level (Y = 0) - NEVER random air!
                         Math.sin(angle) * radius
                     );
                     
+                    console.log(`🔧 Created consistent ground position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
+                    return groundPosition;
+                    
                 } catch (error) {
-                    console.error('Error getting avatar position:', error);
+                    console.error('❌ Error getting avatar position:', error);
+                    // Emergency fallback - still on ground
                     return new THREE.Vector3(0, 0, 0);
                 }
             }
-            
+                        
             drawBubbleBackground(context, width, height) {
                 if (!context || typeof width !== 'number' || typeof height !== 'number') {
                     console.error('Invalid parameters for drawBubbleBackground');
@@ -5727,5 +5932,381 @@
 
         console.log('🎮 Euphorie 3D JavaScript system with scene synchronization loaded and ready!');
     </script>
+
+
+
+<script>
+// Enhanced WebSocket Manager Extension for Screen Sharing
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for WebSocket Manager to be ready
+    const waitForWebSocketManager = () => {
+        if (window.WebSocketManager) {
+            setupScreenSharingWebSocketExtension();
+        } else {
+            setTimeout(waitForWebSocketManager, 500);
+        }
+    };
+    
+    setTimeout(waitForWebSocketManager, 2000);
+});
+
+function setupScreenSharingWebSocketExtension() {
+    console.log('🔌 Setting up screen sharing WebSocket extension...');
+    
+    // Extend WebSocket Manager with screen sharing methods
+    const originalHandleMessage = window.WebSocketManager.handleMessage;
+    
+    window.WebSocketManager.handleMessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            
+            // Handle screen sharing messages
+            if (data.type === 'screen_share_started') {
+                this.handleScreenShareStarted(data);
+                return;
+            } else if (data.type === 'screen_share_stopped') {
+                this.handleScreenShareStopped(data);
+                return;
+            } else if (data.type === 'screen_share_webrtc_offer') {
+                this.handleWebRTCOffer(data);
+                return;
+            } else if (data.type === 'screen_share_webrtc_answer') {
+                this.handleWebRTCAnswer(data);
+                return;
+            } else if (data.type === 'screen_share_webrtc_candidate') {
+                this.handleWebRTCCandidate(data);
+                return;
+            }
+            
+            // Call original handler for other messages
+            originalHandleMessage.call(this, event);
+        } catch (error) {
+            console.error('Error handling WebSocket message:', error);
+        }
+    };
+    
+    // Add screen sharing message handlers
+    window.WebSocketManager.handleScreenShareStarted = function(data) {
+        if (data.user_id !== this.userId) {
+            console.log(`📺 ${data.username} started screen sharing`);
+            
+            // Notify screen sharing system
+            if (window.ScreenSharingSystem) {
+                window.ScreenSharingSystem.handleScreenShareMessage(data);
+            }
+            
+            // Add system message
+            this.addSystemMessage(`${data.username} started screen sharing 📺`);
+        }
+    };
+    
+    window.WebSocketManager.handleScreenShareStopped = function(data) {
+        if (data.user_id !== this.userId) {
+            console.log(`📺 ${data.username} stopped screen sharing`);
+            
+            // Notify screen sharing system
+            if (window.ScreenSharingSystem) {
+                window.ScreenSharingSystem.handleScreenShareMessage(data);
+            }
+            
+            // Add system message
+            this.addSystemMessage(`${data.username} stopped screen sharing 📺`);
+        }
+    };
+    
+    window.WebSocketManager.handleWebRTCOffer = function(data) {
+        if (window.ScreenSharingSystem) {
+            window.ScreenSharingSystem.handleWebRTCOffer(data);
+        }
+    };
+    
+    window.WebSocketManager.handleWebRTCAnswer = function(data) {
+        if (window.ScreenSharingSystem) {
+            window.ScreenSharingSystem.handleWebRTCAnswer(data);
+        }
+    };
+    
+    window.WebSocketManager.handleWebRTCCandidate = function(data) {
+        if (window.ScreenSharingSystem) {
+            window.ScreenSharingSystem.handleWebRTCCandidate(data);
+        }
+    };
+    
+    // Add screen sharing WebSocket send methods
+    window.WebSocketManager.sendScreenShareStart = function(shareData) {
+        this.send({
+            type: 'screen_share_started',
+            user_id: this.userId,
+            room_id: this.roomId,
+            username: this.username,
+            nationality: this.userNationality,
+            share_data: shareData,
+            timestamp: Date.now()
+        });
+    };
+    
+    window.WebSocketManager.sendScreenShareStop = function() {
+        this.send({
+            type: 'screen_share_stopped',
+            user_id: this.userId,
+            room_id: this.roomId,
+            username: this.username,
+            nationality: this.userNationality,
+            timestamp: Date.now()
+        });
+    };
+    
+    window.WebSocketManager.sendWebRTCMessage = function(targetUserId, messageType, data) {
+        this.send({
+            type: messageType,
+            user_id: this.userId,
+            room_id: this.roomId,
+            target_user_id: targetUserId,
+            data: data,
+            timestamp: Date.now()
+        });
+    };
+    
+    console.log('✅ Screen sharing WebSocket extension ready');
+}
+</script>
+<!-- Update Mobile and Desktop Menus -->
+<script>
+// Update mobile and desktop menus to include screen sharing
+document.addEventListener('DOMContentLoaded', () => {
+    // Add screen sharing buttons to existing menus
+    setTimeout(() => {
+        addScreenSharingToMenus();
+    }, 3000);
+});
+
+function addScreenSharingToMenus() {
+    // Add to mobile menu - ONLY in Customization section
+    const mobileCustomizationGrids = document.querySelectorAll('.mobile-actions-menu .mobile-action-group');
+    mobileCustomizationGrids.forEach(group => {
+        const title = group.querySelector('.mobile-action-group-title');
+        if (title && title.textContent.includes('Customization')) {
+            const grid = group.querySelector('.mobile-action-grid');
+            if (grid && !grid.querySelector('.screen-share-btn')) {
+                const screenShareBtn = document.createElement('button');
+                screenShareBtn.className = 'mobile-action-btn screen-share-menu-btn screen-share-btn';
+                screenShareBtn.innerHTML = `
+                    <div class="icon">📺</div>
+                    <div>Screen Share</div>
+                `;
+                screenShareBtn.onclick = () => {
+                    if (window.ScreenSharingSystem) {
+                        if (window.ScreenSharingSystem.isSharing) {
+                            window.ScreenSharingSystem.stopScreenShare();
+                        } else {
+                            window.ScreenSharingSystem.showScreenShareUI();
+                        }
+                    } else {
+                        showScreenShareNotification('Screen sharing system loading...');
+                    }
+                    // Close menus
+                    if (window.closeMobileMenu) window.closeMobileMenu();
+                    if (window.closeDesktopMenu) window.closeDesktopMenu();
+                };
+                
+                grid.appendChild(screenShareBtn);
+            }
+        }
+    });
+    
+    // Add to desktop menu - ONLY in Customization section  
+    const desktopCustomizationGrids = document.querySelectorAll('.desktop-actions-menu .mobile-action-group');
+    desktopCustomizationGrids.forEach(group => {
+        const title = group.querySelector('.mobile-action-group-title');
+        if (title && title.textContent.includes('Customization')) {
+            const grid = group.querySelector('.mobile-action-grid');
+            if (grid && !grid.querySelector('.screen-share-btn')) {
+                const screenShareBtn = document.createElement('button');
+                screenShareBtn.className = 'mobile-action-btn screen-share-menu-btn screen-share-btn';
+                screenShareBtn.innerHTML = `
+                    <div class="icon">📺</div>
+                    <div>Screen Share</div>
+                `;
+                screenShareBtn.onclick = () => {
+                    if (window.ScreenSharingSystem) {
+                        if (window.ScreenSharingSystem.isSharing) {
+                            window.ScreenSharingSystem.stopScreenShare();
+                        } else {
+                            window.ScreenSharingSystem.showScreenShareUI();
+                        }
+                    } else {
+                        showScreenShareNotification('Screen sharing system loading...');
+                    }
+                    // Close menus
+                    if (window.closeMobileMenu) window.closeMobileMenu();
+                    if (window.closeDesktopMenu) window.closeDesktopMenu();
+                };
+                
+                grid.appendChild(screenShareBtn);
+            }
+        }
+    });
+    
+    console.log('✅ Screen sharing buttons added to Customization menus only');
+}
+
+// Screen sharing notification helper
+function showScreenShareNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, rgba(255, 107, 53, 0.95), rgba(255, 152, 0, 0.95));
+        backdrop-filter: blur(15px);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 600;
+        font-size: 13px;
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(400px)';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Global screen sharing status functions
+window.updateScreenShareStatus = function(isActive, sharerName = '', mode = '', viewers = 0) {
+    const indicator = document.getElementById('screen-share-indicator');
+    const viewerInfo = document.getElementById('screen-share-viewer-info');
+    
+    if (isActive) {
+        indicator.classList.add('active');
+        viewerInfo.classList.add('active');
+        
+        // Update viewer info
+        document.getElementById('screen-share-sharer').textContent = sharerName;
+        document.getElementById('screen-share-mode').textContent = mode;
+        document.getElementById('screen-share-viewers').textContent = viewers;
+        
+        // Update button states
+        document.querySelectorAll('.screen-share-btn').forEach(btn => {
+            btn.classList.add('active');
+            const text = btn.querySelector('div:last-child');
+            if (text) text.textContent = 'Stop Sharing';
+        });
+    } else {
+        indicator.classList.remove('active');
+        viewerInfo.classList.remove('active');
+        
+        // Update button states
+        document.querySelectorAll('.screen-share-btn').forEach(btn => {
+            btn.classList.remove('active');
+            const text = btn.querySelector('div:last-child');
+            if (text) text.textContent = 'Share Screen';
+        });
+    }
+};
+
+window.showScreenShareLoading = function(show) {
+    const loading = document.getElementById('screen-share-loading');
+    if (show) {
+        loading.classList.add('active');
+    } else {
+        loading.classList.remove('active');
+    }
+};
+
+// Keyboard shortcuts for screen sharing
+document.addEventListener('keydown', (e) => {
+    // Ctrl + Shift + S for screen sharing
+    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        if (window.ScreenSharingSystem) {
+            if (window.ScreenSharingSystem.isSharing) {
+                window.ScreenSharingSystem.stopScreenShare();
+            } else {
+                window.ScreenSharingSystem.showScreenShareUI();
+            }
+        }
+    }
+});
+
+// Update status panel with screen sharing info
+window.updateScreenShareStats = function() {
+    // Add screen sharing info to status panel if active
+    const statusPanel = document.getElementById('status-panel');
+    if (statusPanel && window.ScreenSharingSystem) {
+        const isSharing = window.ScreenSharingSystem.isSharing;
+        const currentSharer = window.ScreenSharingSystem.currentSharer;
+        
+        // Remove existing screen share status
+        const existingStatus = statusPanel.querySelector('.screen-share-status');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+        
+        // Add new status if sharing is active
+        if (isSharing || currentSharer) {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'status-item screen-share-status';
+            statusDiv.innerHTML = `
+                <span class="status-label">Screen Share:</span>
+                <span class="status-value">${isSharing ? 'Sharing' : 'Viewing'}</span>
+            `;
+            statusPanel.appendChild(statusDiv);
+        }
+    }
+};
+
+// Update screen share stats periodically
+setInterval(window.updateScreenShareStats, 2000);
+</script>
+
+<!-- Enhanced Module Loader Integration -->
+<script>
+// Add screen sharing to the enhanced module loader
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for the module loader to be ready
+    setTimeout(() => {
+        if (window.EuphorieModuleLoader) {
+            // Add screen sharing to global functions
+            const originalSetupGlobalFunctions = window.EuphorieGlobalFunctions.prototype.setupGlobalFunctions;
+            
+            window.EuphorieGlobalFunctions.prototype.setupGlobalFunctions = function() {
+                originalSetupGlobalFunctions.call(this);
+                
+                // Add screen sharing functions
+                window.startScreenShare = () => this.executeWithFallback(
+                    () => {
+                        if (window.ScreenSharingSystem) {
+                            if (window.ScreenSharingSystem.isSharing) {
+                                window.ScreenSharingSystem.stopScreenShare();
+                            } else {
+                                window.ScreenSharingSystem.showScreenShareUI();
+                            }
+                        }
+                    },
+                    'Screen sharing system',
+                    '🖥️ Screen sharing loading...'
+                );
+                
+                window.shareScreen = window.startScreenShare;
+                window.toggleScreenShare = window.startScreenShare;
+                
+                console.log('✅ Screen sharing functions added to global functions');
+            };
+        }
+    }, 3000);
+});
+</script>
+
 </body>
 </html>
