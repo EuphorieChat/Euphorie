@@ -1,11 +1,11 @@
 // =============================================
-// EUPHORIE 3D CHAT BUBBLE SYSTEM v5.0
-// Refactored from working template with comprehensive fixes
+// EUPHORIE 3D CHAT BUBBLE SYSTEM v5.1 - FIXED
+// Fixed scale protection to only target chat bubbles, not all Three.js operations
 // =============================================
 
-console.log('🔥 LOADING ChatBubbleSystem v5.0 - Refactored with fixes...');
+console.log('🔥 LOADING ChatBubbleSystem v5.1 - FIXED scale protection...');
 
-// 1. SAFE MATH UTILITIES - Prevent NaN in all calculations
+// 1. SAFE MATH UTILITIES - Prevent NaN in calculations
 const SafeMath = {
     safeDivide: (a, b) => {
         if (b === 0 || !isFinite(b)) return 0;
@@ -19,15 +19,15 @@ const SafeMath = {
         return Math.max(0, Math.min(1, isFinite(progress) ? progress : 0));
     },
     
+    // FIXED: More permissive scale validation
     safeScale: (value) => {
         if (value === undefined || value === null) return 1;
         if (!isFinite(value) || isNaN(value)) return 1;
         if (value === 0) return 0.001; // Prevent invisible objects
-        if (value < 0) return Math.abs(value); // Fix negative scales
-        if (value < 0.001) return 0.001;
-        if (value > 10) return 10;
-        return value;
-    }
+        if (value < -100) return 0.001; // Handle extreme negatives
+        if (value > 100) return 10; // Cap extreme positives
+        return Math.abs(value); // Always return positive scale
+    },
     
     safeEasing: (progress) => {
         if (!isFinite(progress) || isNaN(progress)) return 0;
@@ -36,44 +36,66 @@ const SafeMath = {
     }
 };
 
-// 2. PROTECT THREE.JS FROM NaN - Install safety hooks
-function installThreeJSProtection() {
-    if (!window.THREE) return;
-    
-    console.log('🛡️ Installing THREE.js NaN protection...');
-    
-    // Protect Vector3.setScalar
-    const originalSetScalar = THREE.Vector3.prototype.setScalar;
-    THREE.Vector3.prototype.setScalar = function(scalar) {
-        const safeScalar = SafeMath.safeScale(scalar);
-        if (safeScalar !== scalar) {
-            console.warn('🛡️ THREE.Vector3.setScalar protected from NaN:', scalar, '→', safeScalar);
-        }
-        return originalSetScalar.call(this, safeScalar);
-    };
-    
-    // Protect Object3D.scale.set
-    const originalScaleSet = THREE.Vector3.prototype.set;
-    THREE.Vector3.prototype.set = function(x, y, z) {
-        const safeX = SafeMath.safeScale(x);
-        const safeY = SafeMath.safeScale(y !== undefined ? y : x);
-        const safeZ = SafeMath.safeScale(z !== undefined ? z : x);
+// 2. TARGETED SCALE PROTECTION - Only for chat bubble objects
+function createSafeScaleHelper() {
+    return {
+        // Safe scale setting specifically for chat bubble objects
+        setSafeBubbleScale: function(object, x, y, z) {
+            if (!object || !object.scale) return;
+            
+            // Only validate if this looks like a chat bubble object
+            if (!this.isChatBubbleObject(object)) {
+                // For non-chat-bubble objects, use normal scaling
+                if (typeof x === 'number' && y === undefined && z === undefined) {
+                    object.scale.setScalar(x);
+                } else {
+                    object.scale.set(x, y !== undefined ? y : x, z !== undefined ? z : x);
+                }
+                return;
+            }
+            
+            // For chat bubble objects, apply safe scaling
+            const safeX = SafeMath.safeScale(x);
+            const safeY = SafeMath.safeScale(y !== undefined ? y : x);
+            const safeZ = SafeMath.safeScale(z !== undefined ? z : x);
+            
+            object.scale.set(safeX, safeY, safeZ);
+        },
         
-        if (safeX !== x || safeY !== (y !== undefined ? y : x) || safeZ !== (z !== undefined ? z : x)) {
-            console.warn('🛡️ THREE.Vector3.set protected from NaN:', {x, y, z}, '→', {x: safeX, y: safeY, z: safeZ});
-        }
+        setSafeBubbleScalar: function(object, scalar) {
+            if (!object || !object.scale) return;
+            
+            if (!this.isChatBubbleObject(object)) {
+                object.scale.setScalar(scalar);
+                return;
+            }
+            
+            const safeScalar = SafeMath.safeScale(scalar);
+            object.scale.setScalar(safeScalar);
+        },
         
-        return originalScaleSet.call(this, safeX, safeY, safeZ);
+        // Check if an object is a chat bubble (avoid interfering with other Three.js objects)
+        isChatBubbleObject: function(object) {
+            if (!object) return false;
+            
+            // Check for chat bubble indicators
+            return (
+                object.name?.includes('bubble') ||
+                object.userData?.isChatBubble ||
+                object.parent?.userData?.isChatBubble ||
+                object.material?.map?.image?.tagName === 'CANVAS' // Chat bubbles use canvas textures
+            );
+        }
     };
 }
 
-// 3. MAIN CHAT BUBBLE SYSTEM CLASS
+// 3. MAIN CHAT BUBBLE SYSTEM CLASS - FIXED VERSION
 class ChatBubbleSystem {
     constructor() {
-        console.log('💬✨ ChatBubbleSystem v5.0 - Refactored version starting...');
+        console.log('💬✨ ChatBubbleSystem v5.1 - FIXED version starting...');
         
-        // Install THREE.js protection first
-        installThreeJSProtection();
+        // Create safe scale helper
+        this.safeScale = createSafeScaleHelper();
         
         // Core properties
         this.bubbles = new Map();
@@ -89,7 +111,7 @@ class ChatBubbleSystem {
         this.texturePool = [];
         this._messageQueue = [];
         
-        // Enhanced configuration with positioning fixes
+        // Enhanced configuration
         this.config = {
             maxBubbles: 25,
             fadeTime: 8000,
@@ -98,7 +120,7 @@ class ChatBubbleSystem {
             maxWidth: 380,
             padding: 25,
             borderRadius: 20,
-            yOffset: 3.5, // FIXED: Consistent height above avatars
+            yOffset: 3.5,
             animationDuration: 600,
             maxBubblesPerUser: 4,
             enableDebug: false,
@@ -106,12 +128,11 @@ class ChatBubbleSystem {
             cullingDistance: 100,
             enableSparkles: true,
             enableGlow: true,
-            // POSITIONING FIXES
-            minHeight: 2.0, // Minimum height above ground
-            maxHeight: 15.0, // Maximum height
-            overlapOffset: 0.8, // Horizontal offset between bubbles
-            heightIncrement: 0.5, // Vertical stacking increment
-            groundY: 0 // Ground level reference
+            minHeight: 2.0,
+            maxHeight: 15.0,
+            overlapOffset: 0.8,
+            heightIncrement: 0.5,
+            groundY: 0
         };
         
         // Enhanced visual styles
@@ -142,11 +163,10 @@ class ChatBubbleSystem {
         // Setup resize handler
         window.addEventListener('resize', this.handleResize);
         
-        console.log('✅ ChatBubbleSystem v5.0 - Refactored version created');
+        console.log('✅ ChatBubbleSystem v5.1 - FIXED version created');
     }
     
     bindMethods() {
-        // Bind all methods to prevent context issues
         const methodNames = [
             'init', 'createBubble', 'createBubbleFromMessage', 'update',
             'drawBubbleBackground', 'roundRect', 'calculateTextDimensions',
@@ -207,7 +227,7 @@ class ChatBubbleSystem {
     }
     
     async init() {
-        console.log('🚀 Initializing ChatBubbleSystem v5.0...');
+        console.log('🚀 Initializing ChatBubbleSystem v5.1...');
         
         try {
             this._ensurePerformanceObject();
@@ -237,7 +257,7 @@ class ChatBubbleSystem {
             this._ensurePerformanceObject();
             this.isInitialized = true;
             
-            console.log('✅ ChatBubbleSystem v5.0 initialized successfully');
+            console.log('✅ ChatBubbleSystem v5.1 initialized successfully');
             
             this.startUpdateLoop();
             this.setupEventListeners();
@@ -297,7 +317,6 @@ class ChatBubbleSystem {
             if (!avatarPosition) {
                 console.warn(`💬 No avatar found for user ${messageData.userId || messageData.user_id}`);
                 
-                // FIXED: Use ground-level fallback instead of random air position
                 const userId = messageData.userId || messageData.user_id;
                 const fallbackPosition = this.createGroundLevelFallbackPosition(userId);
                 
@@ -325,7 +344,6 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Create consistent ground-level position
     createGroundLevelFallbackPosition(userId) {
         const hash = userId.split('').reduce((a, b) => {
             a = ((a << 5) - a) + b.charCodeAt(0);
@@ -337,7 +355,7 @@ class ChatBubbleSystem {
         
         const groundPosition = new THREE.Vector3(
             Math.cos(angle) * radius,
-            this.config.groundY, // Always on ground level
+            this.config.groundY,
             Math.sin(angle) * radius
         );
         
@@ -345,7 +363,6 @@ class ChatBubbleSystem {
         return groundPosition;
     }
     
-    // ENHANCED: Get avatar position with better fallback handling
     getAvatarPosition(userId) {
         console.log(`🔍 Getting avatar position for user: ${userId}`);
         
@@ -359,7 +376,7 @@ class ChatBubbleSystem {
                 }
             }
             
-            // Strategy 2: Search scene for avatar with multiple ID patterns
+            // Strategy 2: Search scene for avatar
             if (this.scene) {
                 let avatar = null;
                 
@@ -400,7 +417,6 @@ class ChatBubbleSystem {
                 }
             }
             
-            // Strategy 5: Return null - let caller handle fallback
             return null;
             
         } catch (error) {
@@ -409,7 +425,7 @@ class ChatBubbleSystem {
         }
     }
     
-    // ENHANCED: Create bubble with improved positioning
+    // FIXED: Create bubble with proper scale handling
     createBubble(message, username, position, userId = null) {
         if (!this.isInitialized || !window.THREE) {
             console.warn('💬 ChatBubbleSystem not ready');
@@ -419,6 +435,9 @@ class ChatBubbleSystem {
         try {
             const bubbleGroup = new THREE.Group();
             const bubbleId = ++this.bubbleIdCounter;
+            
+            // Mark as chat bubble for safe scaling
+            bubbleGroup.userData = { isChatBubble: true };
             
             // Create canvas with high DPI
             const canvas = document.createElement('canvas');
@@ -462,17 +481,17 @@ class ChatBubbleSystem {
             
             const sprite = new THREE.Sprite(material);
             
-            // Scale sprite
+            // FIXED: Use safe scale helper for bubble scaling
             const scale = 0.008;
-            sprite.scale.set(bubbleWidth * scale, bubbleHeight * scale, 1);
+            this.safeScale.setSafeBubbleScale(sprite, bubbleWidth * scale, bubbleHeight * scale, 1);
             
             bubbleGroup.add(sprite);
             
-            // FIXED: Calculate safe bubble position with overlap prevention
+            // Calculate safe bubble position
             const bubblePosition = this.calculateSafeBubblePosition(position, userId);
             bubbleGroup.position.copy(bubblePosition);
             
-            // Set bubble data
+            // Set bubble data with chat bubble marker
             bubbleGroup.userData = {
                 id: bubbleId,
                 message: message,
@@ -481,11 +500,12 @@ class ChatBubbleSystem {
                 createdAt: Date.now(),
                 opacity: 1,
                 isVisible: true,
-                originalPosition: bubblePosition.clone()
+                originalPosition: bubblePosition.clone(),
+                isChatBubble: true // IMPORTANT: Mark as chat bubble
             };
             
-            // Safe animation
-            bubbleGroup.scale.set(0, 0, 0);
+            // FIXED: Safe animation start
+            this.safeScale.setSafeBubbleScalar(bubbleGroup, 0);
             this.animateBubbleInSafe(bubbleGroup);
             
             // Add to scene
@@ -522,7 +542,6 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Calculate safe bubble position with proper overlap prevention
     calculateSafeBubblePosition(basePosition, userId) {
         const bubblePosition = basePosition.clone();
         
@@ -551,6 +570,193 @@ class ChatBubbleSystem {
         }
         
         return bubblePosition;
+    }
+    
+    // FIXED: Safe animation with targeted scale protection
+    animateBubbleInSafe(bubble) {
+        if (!bubble) return;
+        
+        console.log('✅ Starting SAFE bubble animation for:', bubble.userData?.message);
+        
+        const startScale = 0;
+        const endScale = 1;
+        const duration = this.config.animationDuration || 600;
+        const startTime = Date.now();
+        
+        bubble.userData.animationPhase = 'entering';
+        
+        const animate = () => {
+            try {
+                const elapsed = Date.now() - startTime;
+                const progress = SafeMath.safeProgress(elapsed, duration);
+                
+                // Safe easing calculation
+                const easeProgress = SafeMath.safeEasing(progress);
+                
+                // Safe bounce calculation
+                let bounceScale = easeProgress;
+                if (progress > 0.8) {
+                    const bouncePhase = (progress - 0.8) / 0.2;
+                    const bounce = Math.sin(bouncePhase * Math.PI * 4) * 0.1 * (1 - bouncePhase);
+                    bounceScale = easeProgress + bounce;
+                }
+                
+                // Safe scale calculation
+                const rawScale = startScale + (endScale - startScale) * bounceScale;
+                const safeScale = SafeMath.safeScale(rawScale);
+                
+                // FIXED: Apply safe scale only to chat bubble
+                this.safeScale.setSafeBubbleScalar(bubble, safeScale);
+                
+                // Safe rotation
+                const rotation = (1 - progress) * 0.2 * Math.sin(progress * Math.PI * 2);
+                bubble.rotation.z = isFinite(rotation) ? rotation : 0;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    bubble.userData.animationPhase = 'stable';
+                    bubble.rotation.z = 0;
+                    this.safeScale.setSafeBubbleScalar(bubble, 1); // Ensure final scale is exactly 1
+                    
+                    console.log('✅ Bubble animation completed safely:', bubble.userData?.message);
+                    
+                    // Schedule fade out
+                    setTimeout(() => {
+                        this.animateBubbleOut(bubble);
+                    }, this.config.fadeTime);
+                }
+            } catch (error) {
+                console.error('❌ Error in safe bubble animation:', error);
+                // Fallback: set to stable state
+                this.safeScale.setSafeBubbleScalar(bubble, 1);
+                bubble.userData.animationPhase = 'stable';
+            }
+        };
+        
+        animate();
+    }
+    
+    animateBubbleOut(bubble) {
+        if (!bubble || !bubble.parent) return;
+        
+        const duration = 800;
+        const startTime = Date.now();
+        const startOpacity = bubble.userData.opacity || 1;
+        
+        bubble.userData.animationPhase = 'exiting';
+        
+        const animate = () => {
+            try {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = progress * progress;
+                
+                const opacity = startOpacity * (1 - easeProgress);
+                const scale = SafeMath.safeScale(1 - (easeProgress * 0.2));
+                
+                bubble.rotation.z = easeProgress * 0.3;
+                
+                const upwardMovement = easeProgress * 0.5;
+                bubble.position.y = bubble.userData.originalPosition.y + upwardMovement;
+                
+                if (bubble.children[0]?.material) {
+                    bubble.children[0].material.opacity = opacity;
+                    bubble.userData.opacity = opacity;
+                }
+                
+                // FIXED: Use safe scale helper
+                this.safeScale.setSafeBubbleScalar(bubble, scale);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    this.removeBubble(bubble);
+                }
+            } catch (error) {
+                console.error('Error in animateBubbleOut:', error);
+                this.removeBubble(bubble);
+            }
+        };
+        
+        animate();
+    }
+    
+    // FIXED: Safe update method 
+    update() {
+        if (!this.camera || !this.isInitialized) return;
+        
+        this._ensurePerformanceObject();
+        const startTime = Date.now();
+        
+        try {
+            this.activeBubbles.forEach(bubble => {
+                if (!bubble || !bubble.parent) return;
+                
+                const distance = bubble.position.distanceTo(this.camera.position);
+                
+                // Culling
+                if (distance > this.config.cullingDistance) {
+                    bubble.visible = false;
+                    bubble.userData.isVisible = false;
+                    return;
+                }
+                
+                bubble.visible = true;
+                bubble.userData.isVisible = true;
+                
+                // Face camera
+                bubble.lookAt(this.camera.position);
+                
+                // SAFE floating animation
+                const time = Date.now() * 0.0008;
+                const floatAmount = 0.05;
+                const floatOffset = Math.sin(time + bubble.userData.id * 0.7) * floatAmount;
+                
+                // Safe Y position calculation
+                const originalY = bubble.userData.originalPosition?.y || this.config.yOffset;
+                const newY = Math.max(this.config.minHeight, originalY + floatOffset);
+                bubble.position.y = isFinite(newY) ? newY : this.config.yOffset;
+                
+                // Safe swaying
+                const swayAmount = 0.02;
+                const swaySpeed = time * 0.4;
+                const originalX = bubble.userData.originalPosition?.x || 0;
+                const originalZ = bubble.userData.originalPosition?.z || 0;
+                
+                const swayX = Math.sin(swaySpeed + bubble.userData.id) * swayAmount;
+                const swayZ = Math.cos(swaySpeed * 0.7 + bubble.userData.id * 0.5) * swayAmount;
+                
+                bubble.position.x = originalX + (isFinite(swayX) ? swayX : 0);
+                bubble.position.z = originalZ + (isFinite(swayZ) ? swayZ : 0);
+                
+                // Safe rotation
+                if (bubble.userData.animationPhase === 'stable') {
+                    const rotationZ = Math.sin(time * 0.3 + bubble.userData.id) * 0.05;
+                    bubble.rotation.z = isFinite(rotationZ) ? rotationZ : 0;
+                }
+                
+                // FIXED: Safe distance-based scaling
+                if (bubble.children[0]?.material) {
+                    const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
+                    const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * (bubble.userData.opacity || 1);
+                    bubble.children[0].material.opacity = isFinite(opacity) ? opacity : 0.8;
+                    
+                    const rawScaleMultiplier = Math.max(0.7, 1 - normalizedDistance * 0.3);
+                    const safeScaleMultiplier = SafeMath.safeScale(rawScaleMultiplier);
+                    this.safeScale.setSafeBubbleScalar(bubble, safeScaleMultiplier);
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error in safe update:', error);
+        }
+        
+        // Performance tracking
+        this._ensurePerformanceObject();
+        this.performance.frameTime = Date.now() - startTime;
+        this.performance.bubbleCount = this.activeBubbles.length;
+        this.performance.renderCalls++;
     }
     
     // Enhanced text drawing
@@ -607,7 +813,7 @@ class ChatBubbleSystem {
         context.shadowOffsetY = 0;
     }
     
-    // Enhanced bubble background with sparkle effects
+    // Enhanced bubble background
     drawBubbleBackground(context, width, height) {
         if (!context || typeof width !== 'number' || typeof height !== 'number') {
             console.error('Invalid parameters for drawBubbleBackground');
@@ -816,193 +1022,7 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Safe animation with comprehensive NaN protection
-    animateBubbleInSafe(bubble) {
-        if (!bubble) return;
-        
-        console.log('✅ Starting SAFE bubble animation for:', bubble.userData?.message);
-        
-        const startScale = 0;
-        const endScale = 1;
-        const duration = this.config.animationDuration || 600;
-        const startTime = Date.now();
-        
-        bubble.userData.animationPhase = 'entering';
-        
-        const animate = () => {
-            try {
-                const elapsed = Date.now() - startTime;
-                const progress = SafeMath.safeProgress(elapsed, duration);
-                
-                // Safe easing calculation
-                const easeProgress = SafeMath.safeEasing(progress);
-                
-                // Safe bounce calculation
-                let bounceScale = easeProgress;
-                if (progress > 0.8) {
-                    const bouncePhase = (progress - 0.8) / 0.2;
-                    const bounce = Math.sin(bouncePhase * Math.PI * 4) * 0.1 * (1 - bouncePhase);
-                    bounceScale = easeProgress + bounce;
-                }
-                
-                // Safe scale calculation
-                const rawScale = startScale + (endScale - startScale) * bounceScale;
-                const safeScale = SafeMath.safeScale(rawScale);
-                
-                // Apply safe scale
-                bubble.scale.setScalar(safeScale);
-                
-                // Safe rotation
-                const rotation = (1 - progress) * 0.2 * Math.sin(progress * Math.PI * 2);
-                bubble.rotation.z = isFinite(rotation) ? rotation : 0;
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    bubble.userData.animationPhase = 'stable';
-                    bubble.rotation.z = 0;
-                    bubble.scale.setScalar(1); // Ensure final scale is exactly 1
-                    
-                    console.log('✅ Bubble animation completed safely:', bubble.userData?.message);
-                    
-                    // Schedule fade out
-                    setTimeout(() => {
-                        this.animateBubbleOut(bubble);
-                    }, this.config.fadeTime);
-                }
-            } catch (error) {
-                console.error('❌ Error in safe bubble animation:', error);
-                // Fallback: set to stable state
-                bubble.scale.setScalar(1);
-                bubble.userData.animationPhase = 'stable';
-            }
-        };
-        
-        animate();
-    }
-    
-    animateBubbleOut(bubble) {
-        if (!bubble || !bubble.parent) return;
-        
-        const duration = 800;
-        const startTime = Date.now();
-        const startOpacity = bubble.userData.opacity || 1;
-        
-        bubble.userData.animationPhase = 'exiting';
-        
-        const animate = () => {
-            try {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeProgress = progress * progress;
-                
-                const opacity = startOpacity * (1 - easeProgress);
-                const scale = SafeMath.safeScale(1 - (easeProgress * 0.2));
-                
-                bubble.rotation.z = easeProgress * 0.3;
-                
-                const upwardMovement = easeProgress * 0.5;
-                bubble.position.y = bubble.userData.originalPosition.y + upwardMovement;
-                
-                if (bubble.children[0]?.material) {
-                    bubble.children[0].material.opacity = opacity;
-                    bubble.userData.opacity = opacity;
-                }
-                
-                bubble.scale.setScalar(scale);
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    this.removeBubble(bubble);
-                }
-            } catch (error) {
-                console.error('Error in animateBubbleOut:', error);
-                this.removeBubble(bubble);
-            }
-        };
-        
-        animate();
-    }
-    
-    // FIXED: Safe update method with comprehensive NaN protection
-    update() {
-        if (!this.camera || !this.isInitialized) return;
-        
-        this._ensurePerformanceObject();
-        const startTime = Date.now();
-        
-        try {
-            this.activeBubbles.forEach(bubble => {
-                if (!bubble || !bubble.parent) return;
-                
-                const distance = bubble.position.distanceTo(this.camera.position);
-                
-                // Culling
-                if (distance > this.config.cullingDistance) {
-                    bubble.visible = false;
-                    bubble.userData.isVisible = false;
-                    return;
-                }
-                
-                bubble.visible = true;
-                bubble.userData.isVisible = true;
-                
-                // Face camera
-                bubble.lookAt(this.camera.position);
-                
-                // SAFE floating animation
-                const time = Date.now() * 0.0008;
-                const floatAmount = 0.05;
-                const floatOffset = Math.sin(time + bubble.userData.id * 0.7) * floatAmount;
-                
-                // Safe Y position calculation
-                const originalY = bubble.userData.originalPosition?.y || this.config.yOffset;
-                const newY = Math.max(this.config.minHeight, originalY + floatOffset);
-                bubble.position.y = isFinite(newY) ? newY : this.config.yOffset;
-                
-                // Safe swaying
-                const swayAmount = 0.02;
-                const swaySpeed = time * 0.4;
-                const originalX = bubble.userData.originalPosition?.x || 0;
-                const originalZ = bubble.userData.originalPosition?.z || 0;
-                
-                const swayX = Math.sin(swaySpeed + bubble.userData.id) * swayAmount;
-                const swayZ = Math.cos(swaySpeed * 0.7 + bubble.userData.id * 0.5) * swayAmount;
-                
-                bubble.position.x = originalX + (isFinite(swayX) ? swayX : 0);
-                bubble.position.z = originalZ + (isFinite(swayZ) ? swayZ : 0);
-                
-                // Safe rotation
-                if (bubble.userData.animationPhase === 'stable') {
-                    const rotationZ = Math.sin(time * 0.3 + bubble.userData.id) * 0.05;
-                    bubble.rotation.z = isFinite(rotationZ) ? rotationZ : 0;
-                }
-                
-                // Safe distance-based opacity and scale
-                if (bubble.children[0]?.material) {
-                    const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
-                    const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * (bubble.userData.opacity || 1);
-                    bubble.children[0].material.opacity = isFinite(opacity) ? opacity : 0.8;
-                    
-                    const rawScaleMultiplier = Math.max(0.7, 1 - normalizedDistance * 0.3);
-                    const safeScaleMultiplier = SafeMath.safeScale(rawScaleMultiplier);
-                    bubble.scale.setScalar(safeScaleMultiplier);
-                }
-            });
-            
-        } catch (error) {
-            console.error('Error in safe update:', error);
-        }
-        
-        // Performance tracking
-        this._ensurePerformanceObject();
-        this.performance.frameTime = Date.now() - startTime;
-        this.performance.bubbleCount = this.activeBubbles.length;
-        this.performance.renderCalls++;
-    }
-    
-    // Utility methods
+    // Rest of the utility methods remain the same
     removeBubble(bubble) {
         if (!bubble) return;
         
@@ -1218,12 +1238,8 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBubbleSystem;
 }
 
-console.log('✅ ChatBubbleSystem v5.0 - Refactored version loaded successfully');
-console.log('🎯 Key improvements:');
-console.log('  - Fixed positioning system with ground-level fallbacks');
-console.log('  - Comprehensive NaN protection for all scale operations');
-console.log('  - Enhanced bubble overlap prevention');
-console.log('  - Safe animation system with error recovery');
-console.log('  - Improved performance and memory management');
+console.log('✅ ChatBubbleSystem v5.1 - FIXED version loaded successfully');
+console.log('🎯 Key fix: Targeted scale protection only for chat bubbles');
+console.log('📈 This should eliminate the console spam and improve performance');
 console.log('');
-console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("Hello World!");');
+console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("Hello Fixed World!");');
