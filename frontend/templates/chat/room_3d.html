@@ -3246,6 +3246,1162 @@
         window.WebSocketManager = null;
     </script>
 
+    <!-- FIXED: ChatBubbleSystem v4.0 - Fully Working Version -->
+    <script>
+        console.log('🔥 LOADING FIXED ChatBubbleSystem v4.0 - ' + Date.now());
+
+        class ChatBubbleSystem {
+            constructor() {
+                console.log('💬✨ ChatBubbleSystem v4.0 - FIXED VERSION starting...');
+                
+                // CRITICAL: Initialize performance object FIRST with proper structure
+                this.performance = {
+                    frameTime: 0,
+                    bubbleCount: 0,
+                    renderCalls: 0,
+                    lastCleanup: Date.now()
+                };
+                
+                // Core properties
+                this.bubbles = new Map();
+                this.activeBubbles = [];
+                this.bubbleIdCounter = 0;
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.isInitialized = false;
+                
+                // Initialize pools and queues
+                this.materialPool = [];
+                this.texturePool = [];
+                this._messageQueue = [];
+                
+                // Configuration with enhanced visual settings
+                this.config = {
+                    maxBubbles: 25,
+                    fadeTime: 8000, // Longer display time
+                    maxDistance: 60,
+                    fontSize: 18, // Bigger text
+                    maxWidth: 380, // Wider bubbles
+                    padding: 25, // More padding
+                    borderRadius: 20, // More rounded
+                    yOffset: 3.5,
+                    animationDuration: 600, // Smoother animations
+                    maxBubblesPerUser: 4, // More bubbles per user
+                    enableDebug: false,
+                    enableShadows: true,
+                    cullingDistance: 100,
+                    enableSparkles: true, // New sparkle effects
+                    enableGlow: true // New glow effects
+                };
+                
+                this.bubbleStyles = {
+                    background: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: 'rgba(102, 126, 234, 0.8)',
+                    usernameFontSize: this.config.fontSize * 0.85, // Slightly bigger username
+                    usernameColor: '#4a5cf0', // More vibrant blue
+                    textColor: '#1a1a2e', // Darker text for better contrast
+                    shadowBlur: 15, // More shadow
+                    shadowColor: 'rgba(102, 126, 234, 0.3)',
+                    glowColor: 'rgba(102, 126, 234, 0.6)'
+                };
+                
+                this.isMobile = window.innerWidth <= 768;
+                
+                // FIXED: Bind methods using explicit binding for performance object safety
+                this.init = this.init.bind(this);
+                this.createBubble = this.createBubble.bind(this);
+                this.createBubbleFromMessage = this.createBubbleFromMessage.bind(this);
+                this.update = this.update.bind(this);
+                this.drawBubbleBackground = this.drawBubbleBackground.bind(this);
+                this.roundRect = this.roundRect.bind(this);
+                this.calculateTextDimensions = this.calculateTextDimensions.bind(this);
+                this.wrapText = this.wrapText.bind(this);
+                this.animateBubbleIn = this.animateBubbleIn.bind(this);
+                this.animateBubbleOut = this.animateBubbleOut.bind(this);
+                this.removeBubble = this.removeBubble.bind(this);
+                this.getAvatarPosition = this.getAvatarPosition.bind(this);
+                this.performanceCleanup = this.performanceCleanup.bind(this);
+                this.startUpdateLoop = this.startUpdateLoop.bind(this);
+                this.handleResize = this.handleResize.bind(this);
+                this.updateBubblePositions = this.updateBubblePositions.bind(this);
+                this.removeUserBubbles = this.removeUserBubbles.bind(this);
+                this.clearAllBubbles = this.clearAllBubbles.bind(this);
+                this._ensurePerformanceObject = this._ensurePerformanceObject.bind(this);
+                this._processQueuedMessages = this._processQueuedMessages.bind(this);
+                this.setupEventListeners = this.setupEventListeners.bind(this);
+                
+                // Create safe wrapper methods that always check performance object
+                this.createBubbleFromMessageSafe = (...args) => {
+                    try {
+                        this._ensurePerformanceObject();
+                        return this.createBubbleFromMessage.apply(this, args);
+                    } catch (error) {
+                        console.error('Error in createBubbleFromMessageSafe:', error);
+                        return null;
+                    }
+                };
+                
+                this.updateSafe = (...args) => {
+                    try {
+                        this._ensurePerformanceObject();
+                        return this.update.apply(this, args);
+                    } catch (error) {
+                        console.error('Error in updateSafe:', error);
+                        return null;
+                    }
+                };
+                
+                // Setup resize handler
+                window.addEventListener('resize', this.handleResize);
+                
+                console.log('✅ ChatBubbleSystem v4.0 - FIXED VERSION created');
+            }
+            
+            _ensurePerformanceObject() {
+                // CRITICAL FIX: Always ensure performance object exists and has correct structure
+                if (!this.performance || typeof this.performance !== 'object') {
+                    console.warn('🔧 Recreating performance object');
+                    this.performance = {
+                        frameTime: 0,
+                        bubbleCount: 0,
+                        renderCalls: 0,
+                        lastCleanup: Date.now()
+                    };
+                    return;
+                }
+                
+                // Validate and fix properties
+                const requiredProps = ['frameTime', 'bubbleCount', 'renderCalls', 'lastCleanup'];
+                requiredProps.forEach(prop => {
+                    if (typeof this.performance[prop] !== 'number') {
+                        console.warn(`🔧 Fixing performance.${prop}`);
+                        this.performance[prop] = prop === 'lastCleanup' ? Date.now() : 0;
+                    }
+                });
+            }
+            
+            async init() {
+                console.log('🚀 Initializing ChatBubbleSystem v4.0...');
+                
+                try {
+                    // Ensure performance object is ready first
+                    this._ensurePerformanceObject();
+                    
+                    // Check for THREE.js
+                    if (!window.THREE) {
+                        console.warn('❌ THREE.js not available - retrying in 500ms');
+                        setTimeout(() => this.init(), 500);
+                        return;
+                    }
+                    
+                    // Check for scene systems
+                    if (!window.SceneManager?.scene) {
+                        console.log('💬 Waiting for SceneManager... retrying in 300ms');
+                        setTimeout(() => this.init(), 300);
+                        return;
+                    }
+                    
+                    this.scene = window.SceneManager.scene;
+                    this.camera = window.SceneManager.camera;
+                    this.renderer = window.SceneManager.renderer;
+                    
+                    if (!this.scene || !this.camera) {
+                        console.error('❌ Scene or camera not available');
+                        return;
+                    }
+                    
+                    this._ensurePerformanceObject();
+                    this.isInitialized = true;
+                    
+                    console.log('✅ ChatBubbleSystem v4.0 initialized successfully');
+                    
+                    this.startUpdateLoop();
+                    this.setupEventListeners();
+                    this._processQueuedMessages();
+                    
+                } catch (error) {
+                    console.error('❌ Error initializing ChatBubbleSystem:', error);
+                    setTimeout(() => this.init(), 1000);
+                }
+            }
+            
+            _processQueuedMessages() {
+                if (this._messageQueue && this._messageQueue.length > 0) {
+                    console.log(`📨 Processing ${this._messageQueue.length} queued messages`);
+                    const queue = [...this._messageQueue];
+                    this._messageQueue = [];
+                    
+                    queue.forEach(messageData => {
+                        try {
+                            this.createBubbleFromMessage(messageData);
+                        } catch (error) {
+                            console.warn('Error processing queued message:', error);
+                        }
+                    });
+                }
+            }
+            
+            setupEventListeners() {
+                if (window.EventBus) {
+                    window.EventBus.on('chat_message', this.createBubbleFromMessageSafe);
+                    window.EventBus.on('user_left', (data) => this.removeUserBubbles(data.userId));
+                }
+                
+                setInterval(() => {
+                    try {
+                        this.performanceCleanup();
+                    } catch (error) {
+                        console.warn('Error in performance cleanup:', error);
+                    }
+                }, 10000);
+            }
+            
+            createBubbleFromMessage(messageData) {
+                if (!this.isInitialized) {
+                    console.log('💬 Queueing message (system not ready)');
+                    this._messageQueue.push(messageData);
+                    return null;
+                }
+                
+                if (!window.ROOM_CONFIG?.chatBubblesEnabled) {
+                    console.log('💬 Chat bubbles disabled in config');
+                    return null;
+                }
+                
+                try {
+                    const avatarPosition = this.getAvatarPosition(messageData.userId || messageData.user_id);
+                    if (!avatarPosition) {
+                        console.warn(`💬 No avatar found for user ${messageData.userId || messageData.user_id}`);
+                        
+                        // FIXED: Use ground-level fallback instead of random air position
+                        const userId = messageData.userId || messageData.user_id;
+                        const hash = userId.split('').reduce((a, b) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                        }, 0);
+                        
+                        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                        const radius = 2 + (Math.abs(hash) % 3);
+                        
+                        const fallbackPosition = new THREE.Vector3(
+                            Math.cos(angle) * radius,
+                            0, // GROUND LEVEL - not random air!
+                            Math.sin(angle) * radius
+                        );
+                        
+                        console.log(`🔧 Using ground-level fallback position for ${userId}: (${fallbackPosition.x.toFixed(2)}, ${fallbackPosition.y.toFixed(2)}, ${fallbackPosition.z.toFixed(2)})`);
+                        
+                        return this.createBubble(
+                            messageData.message,
+                            messageData.username,
+                            fallbackPosition,
+                            messageData.userId || messageData.user_id
+                        );
+                    }
+                    
+                    const bubble = this.createBubble(
+                        messageData.message,
+                        messageData.username,
+                        avatarPosition,
+                        messageData.userId || messageData.user_id
+                    );
+                    
+                    console.log(`✅ Bubble created for ${messageData.username}: "${messageData.message}"`);
+                    return bubble;
+                    
+                } catch (error) {
+                    console.error('❌ Error creating bubble from message:', error);
+                    return null;
+                }
+            }
+            
+            getAvatarPosition(userId) {
+                console.log(`🔍 Getting avatar position for user: ${userId}`);
+                
+                try {
+                    // Strategy 1: Use AvatarSystem if available
+                    if (window.AvatarSystem?.getAvatarPosition) {
+                        const pos = window.AvatarSystem.getAvatarPosition(userId);
+                        if (pos) {
+                            console.log(`✅ Found avatar position via AvatarSystem: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+                            return pos;
+                        }
+                    }
+                    
+                    // Strategy 2: Search scene for avatar with multiple ID patterns
+                    if (this.scene) {
+                        let avatar = null;
+                        
+                        // Try different userData patterns
+                        const searchPatterns = [
+                            child => child.userData?.userId === userId,
+                            child => child.userData?.id === userId,  
+                            child => child.userData?.user_id === userId,
+                            child => child.name === userId,
+                            child => child.userData?.username === userId
+                        ];
+                        
+                        for (const pattern of searchPatterns) {
+                            avatar = this.scene.children.find(pattern);
+                            if (avatar) {
+                                console.log(`✅ Found avatar in scene using pattern, position: (${avatar.position.x.toFixed(2)}, ${avatar.position.y.toFixed(2)}, ${avatar.position.z.toFixed(2)})`);
+                                return avatar.position.clone();
+                            }
+                        }
+                    }
+                    
+                    // Strategy 3: Check if this is the current user (place at origin)
+                    if (userId === window.ROOM_CONFIG?.userId || 
+                        userId === window.WebSocketManager?.userId) {
+                        console.log(`✅ Using origin position for current user: ${userId}`);
+                        return new THREE.Vector3(0, 0, 0);
+                    }
+                    
+                    // Strategy 4: Use WebSocket Manager's user tracking
+                    if (window.WebSocketManager?.connectedUsers?.has(userId)) {
+                        const userData = window.WebSocketManager.connectedUsers.get(userId);
+                        if (userData.position) {
+                            console.log(`✅ Using WebSocket stored position for user: ${userId}`);
+                            return new THREE.Vector3(userData.position.x, userData.position.y || 0, userData.position.z);
+                        }
+                    }
+                    
+                    // Strategy 5: Create GROUND-LEVEL consistent position (NOT random air position!)
+                    console.warn(`⚠️ No avatar found for user ${userId}, creating consistent ground position`);
+                    
+                    // Create consistent position based on user ID hash - ALWAYS ON GROUND
+                    const hash = userId.split('').reduce((a, b) => {
+                        a = ((a << 5) - a) + b.charCodeAt(0);
+                        return a & a;
+                    }, 0);
+                    
+                    const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+                    const radius = 3 + (Math.abs(hash) % 4); // 3-7 radius from center
+                    
+                    const groundPosition = new THREE.Vector3(
+                        Math.cos(angle) * radius,
+                        0, // ALWAYS on ground level (Y = 0) - NEVER random air!
+                        Math.sin(angle) * radius
+                    );
+                    
+                    console.log(`🔧 Created consistent ground position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
+                    return groundPosition;
+                    
+                } catch (error) {
+                    console.error('❌ Error getting avatar position:', error);
+                    // Emergency fallback - still on ground
+                    return new THREE.Vector3(0, 0, 0);
+                }
+            }
+                        
+            drawBubbleBackground(context, width, height) {
+                if (!context || typeof width !== 'number' || typeof height !== 'number') {
+                    console.error('Invalid parameters for drawBubbleBackground');
+                    return;
+                }
+                
+                try {
+                    // 🌟 ENHANCED PRETTIER BUBBLE DESIGN 🌟
+                    
+                    // Create beautiful glassmorphism gradient background
+                    const gradient = context.createLinearGradient(0, 0, 0, height);
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+                    gradient.addColorStop(0.3, 'rgba(240, 248, 255, 0.9)');
+                    gradient.addColorStop(0.7, 'rgba(230, 245, 255, 0.88)');
+                    gradient.addColorStop(1, 'rgba(220, 240, 255, 0.85)');
+                    
+                    // Multiple shadow layers for dramatic depth
+                    if (this.config.enableShadows) {
+                        context.save();
+                        
+                        // Outer glow shadow
+                        context.shadowColor = 'rgba(102, 126, 234, 0.4)';
+                        context.shadowBlur = 25;
+                        context.shadowOffsetX = 0;
+                        context.shadowOffsetY = 12;
+                        
+                        // Draw outer glow
+                        context.fillStyle = 'rgba(102, 126, 234, 0.1)';
+                        context.beginPath();
+                        this.roundRect(context, -2, -2, width + 4, height - 16, this.config.borderRadius + 2);
+                        context.fill();
+                        
+                        context.restore();
+                        context.save();
+                        
+                        // Inner shadow for depth
+                        context.shadowColor = 'rgba(0, 0, 0, 0.25)';
+                        context.shadowBlur = 15;
+                        context.shadowOffsetX = 0;
+                        context.shadowOffsetY = 8;
+                    }
+                    
+                    // Main bubble with enhanced gradient
+                    context.fillStyle = gradient;
+                    context.beginPath();
+                    this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
+                    context.fill();
+                    
+                    if (this.config.enableShadows) {
+                        context.restore();
+                    }
+                    
+                    // Animated rainbow border gradient
+                    const time = Date.now() * 0.001;
+                    const hue1 = (time * 50) % 360;
+                    const hue2 = (time * 50 + 60) % 360;
+                    const hue3 = (time * 50 + 120) % 360;
+                    
+                    const borderGradient = context.createLinearGradient(0, 0, width, height);
+                    borderGradient.addColorStop(0, `hsla(${hue1}, 70%, 65%, 0.8)`);
+                    borderGradient.addColorStop(0.5, `hsla(${hue2}, 70%, 65%, 0.6)`);
+                    borderGradient.addColorStop(1, `hsla(${hue3}, 70%, 65%, 0.8)`);
+                    
+                    // Enhanced border with glow
+                    context.strokeStyle = borderGradient;
+                    context.lineWidth = 3;
+                    context.lineCap = 'round';
+                    context.lineJoin = 'round';
+                    
+                    // Draw glowing border
+                    context.save();
+                    context.shadowColor = `hsla(${hue1}, 70%, 65%, 0.6)`;
+                    context.shadowBlur = 10;
+                    context.beginPath();
+                    this.roundRect(context, 1.5, 1.5, width - 3, height - 21.5, this.config.borderRadius - 1);
+                    context.stroke();
+                    context.restore();
+                    
+                    // Inner highlight for glass effect
+                    const highlightGradient = context.createLinearGradient(0, 0, 0, height * 0.6);
+                    highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+                    highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    
+                    context.fillStyle = highlightGradient;
+                    context.beginPath();
+                    this.roundRect(context, 2, 2, width - 4, (height - 20) * 0.6, this.config.borderRadius - 2);
+                    context.fill();
+                    
+                    // Enhanced bubble tail with gradient
+                    const tailGradient = context.createLinearGradient(width / 2 - 15, height - 20, width / 2 + 15, height - 2);
+                    tailGradient.addColorStop(0, 'rgba(240, 248, 255, 0.9)');
+                    tailGradient.addColorStop(0.5, 'rgba(230, 245, 255, 0.95)');
+                    tailGradient.addColorStop(1, 'rgba(220, 240, 255, 0.85)');
+                    
+                    context.fillStyle = tailGradient;
+                    context.beginPath();
+                    context.moveTo(width / 2 - 15, height - 20);
+                    context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
+                    context.fill();
+                    
+                    // Tail border with glow
+                    context.save();
+                    context.strokeStyle = `hsla(${hue2}, 70%, 65%, 0.7)`;
+                    context.lineWidth = 2;
+                    context.shadowColor = `hsla(${hue2}, 70%, 65%, 0.5)`;
+                    context.shadowBlur = 8;
+                    context.beginPath();
+                    context.moveTo(width / 2 - 15, height - 20);
+                    context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
+                    context.stroke();
+                    context.restore();
+                    
+                    // Sparkle effects (random dots)
+                    if (Math.random() < 0.3) { // 30% chance for sparkles
+                        context.save();
+                        const sparkleCount = 3 + Math.floor(Math.random() * 4);
+                        
+                        for (let i = 0; i < sparkleCount; i++) {
+                            const x = 10 + Math.random() * (width - 20);
+                            const y = 10 + Math.random() * (height - 30);
+                            const size = 1 + Math.random() * 2;
+                            
+                            context.fillStyle = `hsla(${(hue1 + i * 30) % 360}, 80%, 80%, 0.8)`;
+                            context.shadowColor = context.fillStyle;
+                            context.shadowBlur = 4;
+                            
+                            context.beginPath();
+                            context.arc(x, y, size, 0, Math.PI * 2);
+                            context.fill();
+                        }
+                        context.restore();
+                    }
+                    
+                } catch (error) {
+                    console.error('Error in drawBubbleBackground:', error);
+                }
+            }
+            
+            roundRect(context, x, y, width, height, radius) {
+                if (!context) return;
+                
+                try {
+                    context.moveTo(x + radius, y);
+                    context.lineTo(x + width - radius, y);
+                    context.quadraticCurveTo(x + width, y, x + width, y + radius);
+                    context.lineTo(x + width, y + height - radius);
+                    context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                    context.lineTo(x + radius, y + height);
+                    context.quadraticCurveTo(x, y + height, x, y + height - radius);
+                    context.lineTo(x, y + radius);
+                    context.quadraticCurveTo(x, y, x + radius, y);
+                } catch (error) {
+                    console.error('Error in roundRect:', error);
+                }
+            }
+            
+            createBubble(message, username, position, userId = null) {
+                if (!this.isInitialized) {
+                    console.warn('💬 ChatBubbleSystem not initialized');
+                    return null;
+                }
+                
+                if (!window.THREE) {
+                    console.warn('💬 THREE.js not available');
+                    return null;
+                }
+                
+                try {
+                    const bubbleGroup = new THREE.Group();
+                    const bubbleId = ++this.bubbleIdCounter;
+                    
+                    // Create canvas
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    if (!context) {
+                        console.error('Could not get canvas context');
+                        return null;
+                    }
+                    
+                    // Fonts with better styling
+                    const usernameFont = `bold ${this.config.fontSize * 0.85}px "Segoe UI", Arial, sans-serif`;
+                    const messageFont = `${this.config.fontSize}px "Segoe UI", Arial, sans-serif`;
+                    
+                    // Calculate text dimensions
+                    const textMetrics = this.calculateTextDimensions(context, message, username, usernameFont, messageFont);
+                    
+                    // Set canvas size with higher resolution for crisp text
+                    const bubbleWidth = textMetrics.bubbleWidth;
+                    const bubbleHeight = textMetrics.bubbleHeight;
+                    
+                    canvas.width = bubbleWidth * 3; // Higher DPI for sharper text
+                    canvas.height = bubbleHeight * 3;
+                    context.scale(3, 3);
+                    
+                    // Draw bubble background
+                    this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
+                    
+                    // Enhanced username styling
+                    context.font = usernameFont;
+                    context.fillStyle = this.bubbleStyles.usernameColor;
+                    context.textAlign = 'left';
+                    
+                    // Username background with enhanced gradient
+                    const usernameWidth = context.measureText(username).width;
+                    const pillGradient = context.createLinearGradient(0, this.config.padding - 3, usernameWidth + 20, this.config.padding + 22);
+                    pillGradient.addColorStop(0, 'rgba(74, 92, 240, 0.15)');
+                    pillGradient.addColorStop(0.5, 'rgba(102, 126, 234, 0.12)');
+                    pillGradient.addColorStop(1, 'rgba(168, 85, 247, 0.15)');
+                    
+                    context.fillStyle = pillGradient;
+                    context.beginPath();
+                    this.roundRect(context, this.config.padding - 6, this.config.padding - 3, usernameWidth + 12, 24, 12);
+                    context.fill();
+                    
+                    // Username border with glow
+                    context.save();
+                    context.strokeStyle = 'rgba(74, 92, 240, 0.4)';
+                    context.lineWidth = 1.5;
+                    context.shadowColor = 'rgba(74, 92, 240, 0.3)';
+                    context.shadowBlur = 4;
+                    context.stroke();
+                    context.restore();
+                    
+                    // Username text with enhanced shadow
+                    context.fillStyle = this.bubbleStyles.usernameColor;
+                    context.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                    context.shadowBlur = 2;
+                    context.shadowOffsetX = 1;
+                    context.shadowOffsetY = 1;
+                    context.fillText(username, this.config.padding, this.config.padding + 18);
+                    
+                    // Reset shadow
+                    context.shadowColor = 'transparent';
+                    context.shadowBlur = 0;
+                    context.shadowOffsetX = 0;
+                    context.shadowOffsetY = 0;
+                    
+                    // Enhanced message text
+                    context.font = messageFont;
+                    context.fillStyle = this.bubbleStyles.textColor;
+                    
+                    // Text with subtle shadow for depth
+                    context.shadowColor = 'rgba(255, 255, 255, 0.9)';
+                    context.shadowBlur = 1;
+                    context.shadowOffsetY = 1;
+                    
+                    textMetrics.lines.forEach((line, index) => {
+                        context.fillText(
+                            line,
+                            this.config.padding,
+                            this.config.padding + this.config.fontSize * 0.85 + 30 + (index * textMetrics.lineHeight)
+                        );
+                    });
+                    
+                    // Reset shadow
+                    context.shadowColor = 'transparent';
+                    context.shadowBlur = 0;
+                    context.shadowOffsetY = 0;
+                    
+                    // Create sprite
+                    const texture = new THREE.CanvasTexture(canvas);
+                    texture.needsUpdate = true;
+                    texture.generateMipmaps = false;
+                    texture.minFilter = THREE.LinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    
+                    const material = new THREE.SpriteMaterial({ 
+                        map: texture, 
+                        transparent: true,
+                        alphaTest: 0.001,
+                        depthTest: false
+                    });
+                    
+                    const sprite = new THREE.Sprite(material);
+                    
+                    // Scale sprite
+                    const scale = 0.008;
+                    sprite.scale.set(bubbleWidth * scale, bubbleHeight * scale, 1);
+                    
+                    bubbleGroup.add(sprite);
+                    
+                    // Position bubble
+                    const bubblePosition = position.clone();
+                    bubblePosition.y += this.config.yOffset;
+                    
+                    // Overlap prevention
+                    if (userId && this.bubbles.has(userId)) {
+                        const userBubbles = this.bubbles.get(userId);
+                        bubblePosition.x += (userBubbles.length - 1) * 0.8;
+                        bubblePosition.y += userBubbles.length * 0.5;
+                        bubblePosition.z += userBubbles.length * 0.1;
+                    }
+                    
+                    bubbleGroup.position.copy(bubblePosition);
+                    
+                    // Add properties
+                    bubbleGroup.userData = {
+                        id: bubbleId,
+                        message: message,
+                        username: username,
+                        userId: userId,
+                        createdAt: Date.now(),
+                        opacity: 1,
+                        isVisible: true,
+                        originalPosition: bubblePosition.clone()
+                    };
+                    
+                    // Animation
+                    bubbleGroup.scale.set(0, 0, 0);
+                    this.animateBubbleIn(bubbleGroup);
+                    
+                    // Add to scene
+                    this.scene.add(bubbleGroup);
+                    
+                    // Track bubble
+                    this.activeBubbles.push(bubbleGroup);
+                    
+                    if (userId) {
+                        if (!this.bubbles.has(userId)) {
+                            this.bubbles.set(userId, []);
+                        }
+                        this.bubbles.get(userId).push(bubbleGroup);
+                        
+                        // Limit bubbles per user
+                        const userBubbles = this.bubbles.get(userId);
+                        if (userBubbles.length > this.config.maxBubblesPerUser) {
+                            const oldBubble = userBubbles.shift();
+                            this.removeBubble(oldBubble);
+                        }
+                    }
+                    
+                    // Clean up old bubbles
+                    if (this.activeBubbles.length > this.config.maxBubbles) {
+                        const oldBubble = this.activeBubbles.shift();
+                        this.removeBubble(oldBubble);
+                    }
+                    
+                    return bubbleGroup;
+                    
+                } catch (error) {
+                    console.error('❌ Error creating bubble:', error);
+                    return null;
+                }
+            }
+            
+            calculateTextDimensions(context, message, username, usernameFont, messageFont) {
+                try {
+                    // Measure username
+                    context.font = usernameFont;
+                    const usernameWidth = context.measureText(username).width;
+                    
+                    // Measure and wrap message text
+                    context.font = messageFont;
+                    const lines = this.wrapText(context, message, this.config.maxWidth - this.config.padding * 2);
+                    
+                    // Calculate actual width needed
+                    let maxTextWidth = usernameWidth;
+                    lines.forEach(line => {
+                        const lineWidth = context.measureText(line).width;
+                        if (lineWidth > maxTextWidth) {
+                            maxTextWidth = lineWidth;
+                        }
+                    });
+                    
+                    // Calculate dimensions with enhanced spacing
+                    const lineHeight = this.config.fontSize * 1.3; // More line spacing
+                    const bubbleWidth = Math.max(maxTextWidth + this.config.padding * 2, 140); // Minimum width
+                    const bubbleHeight = this.config.padding * 2 + 
+                                        this.config.fontSize * 0.85 + 
+                                        30 + // More space for username
+                                        (lines.length * lineHeight) + 
+                                        30; // More bottom padding
+                    
+                    return {
+                        bubbleWidth,
+                        bubbleHeight,
+                        lines,
+                        lineHeight,
+                        maxTextWidth
+                    };
+                } catch (error) {
+                    console.error('Error calculating text dimensions:', error);
+                    return {
+                        bubbleWidth: 200,
+                        bubbleHeight: 100,
+                        lines: [message],
+                        lineHeight: 20,
+                        maxTextWidth: 150
+                    };
+                }
+            }
+            
+            wrapText(context, text, maxWidth) {
+                try {
+                    const words = text.split(' ');
+                    const lines = [];
+                    let currentLine = '';
+                    
+                    for (const word of words) {
+                        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                        const metrics = context.measureText(testLine);
+                        
+                        if (metrics.width <= maxWidth || !currentLine) {
+                            currentLine = testLine;
+                        } else {
+                            if (currentLine) lines.push(currentLine);
+                            currentLine = word;
+                        }
+                    }
+                    
+                    if (currentLine) lines.push(currentLine);
+                    return lines;
+                } catch (error) {
+                    console.error('Error wrapping text:', error);
+                    return [text];
+                }
+            }
+            
+            animateBubbleIn(bubble) {
+                if (!bubble) return;
+                
+                const startScale = 0;
+                const endScale = 1;
+                const duration = 600; // Longer, smoother animation
+                const startTime = Date.now();
+                
+                // Add initial bounce and glow effect
+                bubble.userData.animationPhase = 'entering';
+                
+                const animate = () => {
+                    try {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        // Enhanced easing with bounce
+                        let easeProgress;
+                        if (progress < 0.5) {
+                            easeProgress = 2 * progress * progress;
+                        } else {
+                            const t = progress - 1;
+                            easeProgress = 1 - 2 * t * t;
+                        }
+                        
+                        // Add subtle bounce at the end
+                        let bounceScale = easeProgress;
+                        if (progress > 0.8) {
+                            const bouncePhase = (progress - 0.8) / 0.2;
+                            const bounce = Math.sin(bouncePhase * Math.PI * 4) * 0.1 * (1 - bouncePhase);
+                            bounceScale = easeProgress + bounce;
+                        }
+                        
+                        const scale = startScale + (endScale - startScale) * bounceScale;
+                        bubble.scale.set(scale, scale, scale);
+                        
+                        // Add rotation during entry
+                        const rotation = (1 - progress) * 0.2 * Math.sin(progress * Math.PI * 2);
+                        bubble.rotation.z = rotation;
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            bubble.userData.animationPhase = 'stable';
+                            bubble.rotation.z = 0; // Reset rotation
+                            
+                            // Schedule fade out
+                            setTimeout(() => {
+                                this.animateBubbleOut(bubble);
+                            }, this.config.fadeTime);
+                        }
+                    } catch (error) {
+                        console.error('Error in animateBubbleIn:', error);
+                    }
+                };
+                
+                animate();
+            }
+            
+            animateBubbleOut(bubble) {
+                if (!bubble || !bubble.parent) return;
+                
+                const duration = 800; // Longer fade out
+                const startTime = Date.now();
+                const startOpacity = bubble.userData.opacity || 1;
+                
+                bubble.userData.animationPhase = 'exiting';
+                
+                const animate = () => {
+                    try {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const easeProgress = progress * progress; // Ease out
+                        
+                        const opacity = startOpacity * (1 - easeProgress);
+                        const scale = 1 - (easeProgress * 0.2); // Slight shrink
+                        
+                        // Add gentle rotation during exit
+                        bubble.rotation.z = easeProgress * 0.3;
+                        
+                        // Move slightly upward during fade
+                        const upwardMovement = easeProgress * 0.5;
+                        bubble.position.y = bubble.userData.originalPosition.y + upwardMovement;
+                        
+                        if (bubble.children[0]?.material) {
+                            bubble.children[0].material.opacity = opacity;
+                            bubble.userData.opacity = opacity;
+                        }
+                        
+                        bubble.scale.setScalar(scale);
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            this.removeBubble(bubble);
+                        }
+                    } catch (error) {
+                        console.error('Error in animateBubbleOut:', error);
+                    }
+                };
+                
+                animate();
+            }
+            
+            update() {
+                if (!this.camera || !this.isInitialized) return;
+                
+                // FIXED: Ensure performance object exists before every update
+                this._ensurePerformanceObject();
+                const startTime = Date.now();
+                
+                try {
+                    this.activeBubbles.forEach(bubble => {
+                        if (!bubble || !bubble.parent) return;
+                        
+                        const distance = bubble.position.distanceTo(this.camera.position);
+                        
+                        // Culling
+                        if (distance > this.config.cullingDistance) {
+                            bubble.visible = false;
+                            bubble.userData.isVisible = false;
+                            return;
+                        }
+                        
+                        bubble.visible = true;
+                        bubble.userData.isVisible = true;
+                        
+                        // Face camera
+                        bubble.lookAt(this.camera.position);
+                        
+                        // Enhanced floating animation with more natural movement
+                        const time = Date.now() * 0.0008; // Slower animation
+                        const floatAmount = 0.05; // More pronounced floating
+                        const floatOffset = Math.sin(time + bubble.userData.id * 0.7) * floatAmount;
+                        bubble.position.y = bubble.userData.originalPosition.y + floatOffset;
+                        
+                        // Enhanced gentle swaying with figure-8 pattern
+                        const swayAmount = 0.02;
+                        const swaySpeed = time * 0.4;
+                        bubble.position.x = bubble.userData.originalPosition.x + 
+                            Math.sin(swaySpeed + bubble.userData.id) * swayAmount;
+                        bubble.position.z = bubble.userData.originalPosition.z + 
+                            Math.cos(swaySpeed * 0.7 + bubble.userData.id * 0.5) * swayAmount;
+                        
+                        // Subtle rotation for life-like movement
+                        if (bubble.userData.animationPhase === 'stable') {
+                            bubble.rotation.z = Math.sin(time * 0.3 + bubble.userData.id) * 0.05;
+                        }
+                        
+                        // Enhanced distance-based opacity with smoother transitions
+                        if (bubble.children[0]?.material) {
+                            const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
+                            const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * bubble.userData.opacity;
+                            bubble.children[0].material.opacity = opacity;
+                            
+                            // Scale based on distance for better depth perception
+                            const scaleMultiplier = Math.max(0.7, 1 - normalizedDistance * 0.3);
+                            bubble.scale.setScalar(scaleMultiplier);
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Error in update:', error);
+                }
+                
+                // Performance tracking - FIXED: Always ensure object exists
+                this._ensurePerformanceObject();
+                this.performance.frameTime = Date.now() - startTime;
+                this.performance.bubbleCount = this.activeBubbles.length;
+                this.performance.renderCalls++;
+            }
+            
+            performanceCleanup() {
+                const now = Date.now();
+                this._ensurePerformanceObject();
+                
+                if (now - this.performance.lastCleanup > 10000) {
+                    try {
+                        // Clean up expired bubbles
+                        this.activeBubbles.forEach(bubble => {
+                            if (now - bubble.userData.createdAt > this.config.fadeTime * 3) {
+                                this.removeBubble(bubble);
+                            }
+                        });
+                        
+                        this.performance.lastCleanup = now;
+                    } catch (error) {
+                        console.warn('Error in performance cleanup:', error);
+                    }
+                }
+            }
+            
+            removeBubble(bubble) {
+                if (!bubble) return;
+                
+                try {
+                    // Remove from scene
+                    if (bubble.parent) {
+                        bubble.parent.remove(bubble);
+                    }
+                    
+                    // Clean up resources
+                    bubble.children.forEach(child => {
+                        if (child.material) {
+                            if (child.material.map) {
+                                child.material.map.dispose();
+                            }
+                            child.material.dispose();
+                        }
+                        if (child.geometry) {
+                            child.geometry.dispose();
+                        }
+                    });
+                    
+                    // Remove from tracking
+                    const activeIndex = this.activeBubbles.indexOf(bubble);
+                    if (activeIndex > -1) {
+                        this.activeBubbles.splice(activeIndex, 1);
+                    }
+                    
+                    if (bubble.userData.userId && this.bubbles.has(bubble.userData.userId)) {
+                        const userBubbles = this.bubbles.get(bubble.userData.userId);
+                        const userIndex = userBubbles.indexOf(bubble);
+                        if (userIndex > -1) {
+                            userBubbles.splice(userIndex, 1);
+                        }
+                        
+                        if (userBubbles.length === 0) {
+                            this.bubbles.delete(bubble.userData.userId);
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('Error removing bubble:', error);
+                }
+            }
+            
+            removeUserBubbles(userId) {
+                if (!this.bubbles.has(userId)) return;
+                
+                try {
+                    const userBubbles = this.bubbles.get(userId).slice();
+                    userBubbles.forEach(bubble => {
+                        this.animateBubbleOut(bubble);
+                    });
+                    
+                    this.bubbles.delete(userId);
+                } catch (error) {
+                    console.error('Error removing user bubbles:', error);
+                }
+            }
+            
+            updateBubblePositions(userId, newPosition) {
+                if (!this.bubbles.has(userId) || !newPosition) return;
+                
+                try {
+                    const userBubbles = this.bubbles.get(userId);
+                    userBubbles.forEach((bubble, index) => {
+                        if (bubble.userData.isVisible) {
+                            const bubblePosition = newPosition.clone();
+                            bubblePosition.y += this.config.yOffset;
+                            bubblePosition.x += index * 0.6;
+                            bubblePosition.y += index * 0.4;
+                            
+                            bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error updating bubble positions:', error);
+                }
+            }
+            
+            handleResize() {
+                try {
+                    if (this.isMobile) {
+                        const isLandscape = window.innerWidth > window.innerHeight;
+                        this.config.maxBubbles = isLandscape ? 18 : 12;
+                    }
+                } catch (error) {
+                    console.error('Error handling resize:', error);
+                }
+            }
+            
+            startUpdateLoop() {
+                const update = () => {
+                    try {
+                        if (this.isInitialized) {
+                            this.updateSafe(); // Use safe wrapper
+                        }
+                    } catch (error) {
+                        console.error('Error in update loop:', error);
+                    }
+                    requestAnimationFrame(update);
+                };
+                update();
+            }
+            
+            clearAllBubbles() {
+                try {
+                    const bubblesToRemove = this.activeBubbles.slice();
+                    bubblesToRemove.forEach(bubble => {
+                        this.removeBubble(bubble);
+                    });
+                    
+                    this.activeBubbles = [];
+                    this.bubbles.clear();
+                    
+                    console.log('💬 All chat bubbles cleared');
+                } catch (error) {
+                    console.error('Error clearing bubbles:', error);
+                }
+            }
+            
+            // Public API methods
+            getActiveBubbleCount() {
+                return this.activeBubbles.length;
+            }
+            
+            getUserBubbleCount(userId) {
+                return this.bubbles.has(userId) ? this.bubbles.get(userId).length : 0;
+            }
+            
+            setDebugMode(enabled) {
+                this.config.enableDebug = enabled;
+                console.log(`💬 ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
+            }
+            
+            getPerformanceStats() {
+                this._ensurePerformanceObject();
+                return {
+                    ...this.performance,
+                    visibleBubbles: this.activeBubbles.filter(b => b.userData.isVisible).length,
+                    userCount: this.bubbles.size,
+                    memoryUsage: this.activeBubbles.length * 2048,
+                    isMobile: this.isMobile
+                };
+            }
+            
+            createTestBubble(message = "Test message! 🚀", username = "TestUser") {
+                if (!window.THREE) {
+                    console.warn('THREE.js not available for test bubble');
+                    return null;
+                }
+                
+                const position = new THREE.Vector3(
+                    (Math.random() - 0.5) * 15,
+                    3,
+                    (Math.random() - 0.5) * 15
+                );
+                
+                return this.createBubble(message, username, position, 'test_' + Date.now());
+            }
+            
+            updateConfig(newConfig) {
+                Object.assign(this.config, newConfig);
+                console.log('💬 ChatBubbleSystem config updated:', newConfig);
+            }
+            
+            dispose() {
+                try {
+                    this.clearAllBubbles();
+                    window.removeEventListener('resize', this.handleResize);
+                    console.log('💬 ChatBubbleSystem disposed');
+                } catch (error) {
+                    console.error('Error disposing ChatBubbleSystem:', error);
+                }
+            }
+            
+            // Static method to get singleton instance
+            static getInstance() {
+                if (!ChatBubbleSystem._instance) {
+                    ChatBubbleSystem._instance = new ChatBubbleSystem();
+                }
+                return ChatBubbleSystem._instance;
+            }
+        }
+
+        // Export both class and instance for compatibility
+        window.ChatBubbleSystemClass = ChatBubbleSystem;
+        window.ChatBubbleSystem = ChatBubbleSystem.getInstance();
+
+        // Export for module systems
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = ChatBubbleSystem;
+        }
+
+        console.log('✅ ChatBubbleSystem v4.0 - FIXED VERSION loaded successfully');
+    </script>
 
     <!-- ENHANCED: Scene Synchronization Functions - Direct Integration -->
     <script>
@@ -3892,52 +5048,42 @@
             
             // Smart ChatBubbleSystem instance getter
             getChatBubbleSystemInstance() {
-                // Look for the external ChatBubbleSystem
+                // The embedded version is now available as window.ChatBubbleSystem
                 if (window.ChatBubbleSystem && typeof window.ChatBubbleSystem.init === 'function') {
-                    console.log('✅ Found external ChatBubbleSystem');
                     return window.ChatBubbleSystem;
                 }
                 
-                // Look for ChatBubbleSystemClass (alternative export pattern)
-                if (window.ChatBubbleSystemClass) {
-                    console.log('✅ Found ChatBubbleSystemClass, creating instance');
-                    return window.ChatBubbleSystemClass.getInstance ? 
-                        window.ChatBubbleSystemClass.getInstance() : 
-                        new window.ChatBubbleSystemClass();
-                }
-                
-                console.warn('❌ No ChatBubbleSystem implementation found');
+                console.warn('No ChatBubbleSystem implementation found');
                 return null;
             }
-                        
+            
             // Special initialization for ChatBubbleSystem
             async initializeChatBubbleSystem() {
-                console.log('🔧 Initializing external ChatBubbleSystem...');
+                console.log('🔧 Initializing ChatBubbleSystem...');
                 
                 try {
                     const chatSystem = this.getChatBubbleSystemInstance();
                     
                     if (!chatSystem) {
-                        console.warn('❌ External ChatBubbleSystem not available for initialization');
+                        console.warn('ChatBubbleSystem not available for initialization');
                         return;
                     }
                     
                     // Check if already initialized
                     if (chatSystem.isInitialized) {
-                        console.log('✅ External ChatBubbleSystem already initialized');
+                        console.log('✅ ChatBubbleSystem already initialized');
                         return;
                     }
                     
                     // Try to initialize with proper error handling
                     if (typeof chatSystem.init === 'function') {
-                        await this.safeInitialize(chatSystem, 'External ChatBubbleSystem');
-                        console.log('✅ External ChatBubbleSystem initialized successfully');
+                        await this.safeInitialize(chatSystem, 'ChatBubbleSystem');
                     } else {
-                        console.warn('❌ External ChatBubbleSystem has no init method');
+                        console.warn('ChatBubbleSystem has no init method');
                     }
                     
                 } catch (error) {
-                    console.warn('❌ Error initializing external ChatBubbleSystem:', error);
+                    console.warn('Error initializing ChatBubbleSystem:', error);
                 }
             }
             
@@ -4131,9 +5277,21 @@
                 const deps = this.dependencies[moduleName] || [];
                 await Promise.all(deps.map(dep => this.loadModule(dep)));
                 
-                // REMOVED: Special handling for chat-bubble-system - now load it like any other module
+                // For chat-bubble-system, we already have the embedded version
+                if (moduleName === 'chat-bubble-system') {
+                    console.log('📦 Using embedded ChatBubbleSystem');
+                    this.loadedModules.add(moduleName);
+                    this.updateLoadingStep(moduleName);
+                    
+                    // Run initialization callback
+                    const callback = this.initializationCallbacks.get(moduleName);
+                    if (callback) {
+                        return callback();
+                    }
+                    return Promise.resolve();
+                }
                 
-                // Create loading promise for ALL external modules (including chat-bubble-system)
+                // Create loading promise for external modules
                 const loadingPromise = this.loadScript(this.modulePaths[moduleName])
                     .then(() => {
                         this.loadedModules.add(moduleName);
@@ -4147,7 +5305,7 @@
                         }
                     })
                     .catch((error) => {
-                        console.warn(`⚠️ Could not load external module: ${moduleName}`, error);
+                        console.warn(`⚠️ Could not load external module: ${moduleName}`);
                         this.loadedModules.add(moduleName);
                         return Promise.resolve();
                     });
