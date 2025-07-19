@@ -1694,6 +1694,36 @@
     <script src="{% static 'js/systems/chat-bubble-system.js' %}"></script>
 
     <script>
+    // EMERGENCY FIX: Ensure no global Three.js overrides remain
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check if any global overrides exist and remove them
+        if (window.THREE && THREE.Vector3 && THREE.Vector3.prototype.set) {
+            const setMethod = THREE.Vector3.prototype.set.toString();
+            
+            if (setMethod.includes('safeScale') || setMethod.includes('🛡️') || setMethod.includes('protected from NaN')) {
+                console.log('🔧 Detected and removing global THREE.Vector3.set override');
+                
+                // Restore original Three.js implementation
+                THREE.Vector3.prototype.set = function(x, y, z) {
+                    this.x = x;
+                    this.y = y;
+                    this.z = z;
+                    return this;
+                };
+                
+                console.log('✅ Global Three.js override removed - console spam should stop');
+            }
+        }
+        
+        // Ensure we're using the external chat bubble system
+        if (window.ChatBubbleSystem) {
+            console.log('✅ External ChatBubbleSystem loaded and ready');
+        } else {
+            console.warn('⚠️ External ChatBubbleSystem not loaded');
+        }
+    });
+
+    <script>
         // DJANGO DEBUG: Check what Django is outputting
         console.log('🔍 Django Template Debug:');
         console.log('request.user.is_authenticated:', {{ request.user.is_authenticated|yesno:"true,false" }});

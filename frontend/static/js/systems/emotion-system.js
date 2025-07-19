@@ -1,1362 +1,1251 @@
-// Avatar Emotion System - Enhanced with inline template integration
-// 12 emotions with facial expressions, effects, and simplified UI
+// =============================================
+// EUPHORIE 3D CHAT BUBBLE SYSTEM v6.0 - REFACTORED
+// Extracted from room_3d.html into external chat-bubble-system.js
+// Fixed: No global Three.js overrides, targeted protection only
+// =============================================
 
-window.EmotionSystem = {
-    isInitialized: false,
-    activeEmotions: new Map(), // userId -> emotionState
-    emotionQueue: new Map(),   // userId -> emotion queue
-    particleSystem: null,
-    
-    // 12 core emotions with their properties
-    emotions: {
-        happy: {
-            name: 'Happy',
-            icon: '😊',
-            color: '#FFD700',
-            intensity: 1.0,
-            duration: 5000,
-            facialExpression: {
-                eyeScale: 1.1,
-                mouthCurve: 0.8,
-                eyebrowPosition: 0.1
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.1,
-                headTilt: 0.05,
-                bounceAnimation: true
-            },
-            particles: {
-                type: 'sparkles',
-                color: '#FFD700',
-                count: 20,
-                lifetime: 2000
-            },
-            sound: 'happy_chime'
-        },
-        
-        sad: {
-            name: 'Sad',
-            icon: '😢',
-            color: '#4169E1',
-            intensity: 1.0,
-            duration: 6000,
-            facialExpression: {
-                eyeScale: 0.8,
-                mouthCurve: -0.6,
-                eyebrowPosition: -0.2
-            },
-            bodyLanguage: {
-                shoulderPosition: -0.2,
-                headTilt: -0.1,
-                slumpAnimation: true
-            },
-            particles: {
-                type: 'teardrops',
-                color: '#87CEEB',
-                count: 8,
-                lifetime: 3000
-            },
-            sound: 'sad_note'
-        },
-        
-        excited: {
-            name: 'Excited',
-            icon: '🤩',
-            color: '#FF6347',
-            intensity: 1.2,
-            duration: 4000,
-            facialExpression: {
-                eyeScale: 1.3,
-                mouthCurve: 1.0,
-                eyebrowPosition: 0.3
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.2,
-                headTilt: 0.1,
-                jumpAnimation: true
-            },
-            particles: {
-                type: 'fireworks',
-                color: '#FF6347',
-                count: 30,
-                lifetime: 1500
-            },
-            sound: 'excited_burst'
-        },
-        
-        angry: {
-            name: 'Angry',
-            icon: '😠',
-            color: '#DC143C',
-            intensity: 1.1,
-            duration: 5000,
-            facialExpression: {
-                eyeScale: 0.9,
-                mouthCurve: -0.8,
-                eyebrowPosition: -0.3
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.3,
-                headTilt: 0,
-                tensionAnimation: true
-            },
-            particles: {
-                type: 'steam',
-                color: '#DC143C',
-                count: 15,
-                lifetime: 2500
-            },
-            sound: 'angry_growl'
-        },
-        
-        love: {
-            name: 'Love',
-            icon: '😍',
-            color: '#FF69B4',
-            intensity: 1.0,
-            duration: 7000,
-            facialExpression: {
-                eyeScale: 1.2,
-                mouthCurve: 0.9,
-                eyebrowPosition: 0.1
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.1,
-                headTilt: 0.1,
-                swayAnimation: true
-            },
-            particles: {
-                type: 'hearts',
-                color: '#FF69B4',
-                count: 25,
-                lifetime: 4000
-            },
-            sound: 'love_melody'
-        },
-        
-        surprised: {
-            name: 'Surprised',
-            icon: '😲',
-            color: '#FFA500',
-            intensity: 1.0,
-            duration: 3000,
-            facialExpression: {
-                eyeScale: 1.4,
-                mouthCurve: 0.3,
-                eyebrowPosition: 0.4
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.1,
-                headTilt: 0.05,
-                startleAnimation: true
-            },
-            particles: {
-                type: 'exclamation',
-                color: '#FFA500',
-                count: 10,
-                lifetime: 2000
-            },
-            sound: 'surprise_gasp'
-        },
-        
-        confused: {
-            name: 'Confused',
-            icon: '😕',
-            color: '#9370DB',
-            intensity: 0.8,
-            duration: 4000,
-            facialExpression: {
-                eyeScale: 1.0,
-                mouthCurve: -0.2,
-                eyebrowPosition: 0.2
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.05,
-                headTilt: 0.15,
-                scratchAnimation: true
-            },
-            particles: {
-                type: 'question_marks',
-                color: '#9370DB',
-                count: 8,
-                lifetime: 3000
-            },
-            sound: 'confused_hmm'
-        },
-        
-        tired: {
-            name: 'Tired',
-            icon: '😴',
-            color: '#708090',
-            intensity: 0.6,
-            duration: 8000,
-            facialExpression: {
-                eyeScale: 0.7,
-                mouthCurve: -0.1,
-                eyebrowPosition: -0.1
-            },
-            bodyLanguage: {
-                shoulderPosition: -0.2,
-                headTilt: -0.1,
-                yawnAnimation: true
-            },
-            particles: {
-                type: 'zzz',
-                color: '#708090',
-                count: 6,
-                lifetime: 5000
-            },
-            sound: 'tired_yawn'
-        },
-        
-        laughing: {
-            name: 'Laughing',
-            icon: '😂',
-            color: '#32CD32',
-            intensity: 1.3,
-            duration: 4000,
-            facialExpression: {
-                eyeScale: 0.9,
-                mouthCurve: 1.2,
-                eyebrowPosition: 0.2
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.2,
-                headTilt: 0.1,
-                laughAnimation: true
-            },
-            particles: {
-                type: 'laughter_bubbles',
-                color: '#32CD32',
-                count: 20,
-                lifetime: 2000
-            },
-            sound: 'laugh_burst'
-        },
-        
-        nervous: {
-            name: 'Nervous',
-            icon: '😰',
-            color: '#20B2AA',
-            intensity: 0.9,
-            duration: 5000,
-            facialExpression: {
-                eyeScale: 1.1,
-                mouthCurve: -0.3,
-                eyebrowPosition: 0.1
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.1,
-                headTilt: 0.05,
-                fidgetAnimation: true
-            },
-            particles: {
-                type: 'sweat_drops',
-                color: '#20B2AA',
-                count: 12,
-                lifetime: 3000
-            },
-            sound: 'nervous_gulp'
-        },
-        
-        cool: {
-            name: 'Cool',
-            icon: '😎',
-            color: '#4682B4',
-            intensity: 1.0,
-            duration: 6000,
-            facialExpression: {
-                eyeScale: 0.9,
-                mouthCurve: 0.4,
-                eyebrowPosition: -0.1
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.0,
-                headTilt: -0.05,
-                coolAnimation: true
-            },
-            particles: {
-                type: 'cool_sparkles',
-                color: '#4682B4',
-                count: 15,
-                lifetime: 4000
-            },
-            sound: 'cool_snap'
-        },
-        
-        playful: {
-            name: 'Playful',
-            icon: '😜',
-            color: '#FF1493',
-            intensity: 1.1,
-            duration: 4500,
-            facialExpression: {
-                eyeScale: 1.2,
-                mouthCurve: 0.8,
-                eyebrowPosition: 0.2
-            },
-            bodyLanguage: {
-                shoulderPosition: 0.15,
-                headTilt: 0.1,
-                playAnimation: true
-            },
-            particles: {
-                type: 'rainbow_sparkles',
-                color: '#FF1493',
-                count: 25,
-                lifetime: 2500
-            },
-            sound: 'playful_chime'
-        }
+console.log('🔥 LOADING ChatBubbleSystem v6.0 - Refactored External Version...');
+
+// 1. SAFE MATH UTILITIES - Prevent NaN in calculations
+const SafeMath = {
+    safeDivide: (a, b) => {
+        if (b === 0 || !isFinite(b)) return 0;
+        const result = a / b;
+        return isFinite(result) ? result : 0;
     },
     
-    init: function() {
-        if (this.isInitialized) return;
-        
-        console.log('🎭 Initializing Enhanced Emotion System...');
-        
-        // Initialize particle system
-        this.initParticleSystem();
-        
-        // Set up emotion UI (with inline template enhancements)
-        this.createEmotionUI();
-        
-        // Set up automatic emotion detection
-        this.setupEmotionDetection();
-        
-        // Register with other systems
-        this.registerSystemIntegration();
-        
-        this.isInitialized = true;
-        console.log('✅ Enhanced Emotion System initialized with', Object.keys(this.emotions).length, 'emotions');
+    safeProgress: (elapsed, duration) => {
+        if (duration <= 0 || !isFinite(duration)) return 1;
+        const progress = elapsed / duration;
+        return Math.max(0, Math.min(1, isFinite(progress) ? progress : 0));
     },
     
-    initParticleSystem: function() {
-        // Create particle system for emotion effects
-        this.particleSystem = {
-            particles: [],
-            maxParticles: 1000,
-            
-            addParticle: function(type, position, config) {
-                if (this.particles.length >= this.maxParticles) {
-                    this.particles.shift(); // Remove oldest particle
-                }
-                
-                const particle = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: type,
-                    position: position.clone(),
-                    velocity: new THREE.Vector3(
-                        (Math.random() - 0.5) * 2,
-                        Math.random() * 2 + 1,
-                        (Math.random() - 0.5) * 2
-                    ),
-                    color: config.color,
-                    life: config.lifetime,
-                    maxLife: config.lifetime,
-                    size: 0.1 + Math.random() * 0.1,
-                    rotation: Math.random() * Math.PI * 2
-                };
-                
-                this.particles.push(particle);
-                return particle;
-            },
-            
-            update: function(deltaTime) {
-                for (let i = this.particles.length - 1; i >= 0; i--) {
-                    const particle = this.particles[i];
-                    
-                    // Update particle life
-                    particle.life -= deltaTime;
-                    if (particle.life <= 0) {
-                        this.particles.splice(i, 1);
-                        continue;
-                    }
-                    
-                    // Update position
-                    particle.position.add(particle.velocity.clone().multiplyScalar(deltaTime / 1000));
-                    
-                    // Apply gravity for certain particle types
-                    if (['teardrops', 'sweat_drops'].includes(particle.type)) {
-                        particle.velocity.y -= 9.8 * deltaTime / 1000;
-                    }
-                    
-                    // Fade out
-                    particle.alpha = particle.life / particle.maxLife;
-                }
-            }
-        };
-        
-        console.log('✨ Particle system initialized');
+    // FIXED: More permissive scale validation - no global override
+    safeScale: (value) => {
+        if (value === undefined || value === null) return 1;
+        if (!isFinite(value) || isNaN(value)) return 1;
+        if (value === 0) return 0.001; // Prevent invisible objects
+        if (value < -100) return 0.001; // Handle extreme negatives
+        if (value > 100) return 10; // Cap extreme positives
+        return Math.abs(value); // Always return positive scale
     },
     
-    createEmotionUI: function() {
-        // Enhanced emotion panel with inline template styling
-        const emotionPanel = document.createElement('div');
-        emotionPanel.id = 'emotion-panel';
-        emotionPanel.className = 'emotion-panel';
-        emotionPanel.innerHTML = `
-            <div class="emotion-header">
-                <h3>🎭 Choose Your Emotion</h3>
-                <button id="emotion-panel-close" class="close-btn">×</button>
-            </div>
-            <div class="emotion-grid">
-                ${Object.entries(this.emotions).map(([key, emotion]) => `
-                    <button class="emotion-btn" data-emotion="${key}" title="${emotion.name}">
-                        <span class="emotion-icon">${emotion.icon}</span>
-                        <span class="emotion-name">${emotion.name}</span>
-                    </button>
-                `).join('')}
-            </div>
-            <div class="emotion-intensity">
-                <label for="emotion-intensity-slider">Intensity:</label>
-                <input type="range" id="emotion-intensity-slider" min="0.5" max="2.0" step="0.1" value="1.0">
-                <span id="emotion-intensity-value">1.0</span>
-            </div>
-        `;
-        
-        document.body.appendChild(emotionPanel);
-        
-        // Add enhanced emotion styles (combining both systems)
-        this.addEnhancedEmotionStyles();
-        
-        // Set up event listeners
-        this.setupEmotionUIListeners();
-        
-        console.log('🎨 Enhanced Emotion UI created');
-    },
-    
-    addEnhancedEmotionStyles: function() {
-        // Check if styles already exist
-        if (document.getElementById('emotion-system-styles')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'emotion-system-styles';
-        style.textContent = `
-            /* Enhanced Emotion Panel Styles */
-            .emotion-panel {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) scale(0.9);
-                background: linear-gradient(135deg, rgba(20, 20, 30, 0.95) 0%, rgba(30, 30, 45, 0.95) 100%);
-                backdrop-filter: blur(25px);
-                border: 2px solid rgba(255, 255, 255, 0.15);
-                border-radius: 20px;
-                padding: 25px;
-                z-index: 1500;
-                display: none;
-                min-width: 350px;
-                max-width: 450px;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 
-                            0 0 0 1px rgba(255, 255, 255, 0.05);
-                opacity: 0;
-                transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            }
-
-            .emotion-panel.active {
-                display: block;
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-
-            /* Enhanced Header */
-            .emotion-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            }
-
-            .emotion-header h3 {
-                margin: 0;
-                font-size: 20px;
-                font-weight: 700;
-                background: linear-gradient(45deg, #667eea, #764ba2);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            /* Enhanced Close Button */
-            .close-btn {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                color: white;
-                width: 35px;
-                height: 35px;
-                border-radius: 50%;
-                cursor: pointer;
-                font-size: 18px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-            }
-
-            .close-btn::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-                transform: translateX(-100%);
-                transition: transform 0.6s ease;
-            }
-
-            .close-btn:hover {
-                background: rgba(255, 255, 255, 0.2);
-                border-color: rgba(255, 255, 255, 0.4);
-                transform: scale(1.1);
-                box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-            }
-
-            .close-btn:hover::before {
-                transform: translateX(100%);
-            }
-
-            /* Enhanced Emotion Grid */
-            .emotion-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 12px;
-                margin-bottom: 25px;
-            }
-
-            /* Enhanced Emotion Buttons */
-            .emotion-btn {
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-                border: 2px solid rgba(255, 255, 255, 0.15);
-                border-radius: 12px;
-                padding: 16px 12px;
-                cursor: pointer;
-                transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-                color: white;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 8px;
-                min-height: 90px;
-                position: relative;
-                overflow: hidden;
-                transform-style: preserve-3d;
-            }
-
-            .emotion-btn::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-                transform: translateX(-100%) rotateZ(25deg);
-                transition: transform 0.6s ease;
-                pointer-events: none;
-            }
-
-            .emotion-btn:hover {
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
-                border-color: rgba(255, 255, 255, 0.3);
-                transform: translateY(-4px) rotateX(5deg);
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 
-                            0 0 20px rgba(255, 255, 255, 0.1);
-            }
-
-            .emotion-btn:hover::before {
-                transform: translateX(100%) rotateZ(25deg);
-            }
-
-            .emotion-btn.active {
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.4) 0%, rgba(118, 75, 162, 0.4) 100%);
-                border-color: rgba(102, 126, 234, 0.6);
-                transform: translateY(-2px) scale(1.05);
-                box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3), 
-                            0 0 25px rgba(102, 126, 234, 0.2);
-            }
-
-            .emotion-btn:active {
-                transform: translateY(-1px) scale(0.98);
-            }
-
-            /* Enhanced Emotion Icons */
-            .emotion-icon {
-                font-size: 28px;
-                display: block;
-                transition: transform 0.3s ease;
-                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-            }
-
-            .emotion-btn:hover .emotion-icon {
-                transform: scale(1.2) rotateZ(5deg);
-            }
-
-            .emotion-btn.active .emotion-icon {
-                transform: scale(1.15);
-                animation: emotionPulse 2s infinite;
-            }
-
-            @keyframes emotionPulse {
-                0%, 100% { transform: scale(1.15); }
-                50% { transform: scale(1.25); }
-            }
-
-            /* Enhanced Emotion Names */
-            .emotion-name {
-                font-size: 13px;
-                font-weight: 600;
-                text-align: center;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                opacity: 0.9;
-                transition: opacity 0.3s ease;
-            }
-
-            .emotion-btn:hover .emotion-name {
-                opacity: 1;
-            }
-
-            /* Enhanced Intensity Control */
-            .emotion-intensity {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                color: white;
-                font-size: 14px;
-                padding: 15px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 10px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-
-            .emotion-intensity label {
-                min-width: 70px;
-                font-weight: 600;
-                color: rgba(255, 255, 255, 0.9);
-            }
-
-            #emotion-intensity-slider {
-                flex: 1;
-                height: 8px;
-                border-radius: 4px;
-                background: linear-gradient(to right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3));
-                outline: none;
-                cursor: pointer;
-                -webkit-appearance: none;
-                appearance: none;
-                transition: all 0.3s ease;
-            }
-
-            #emotion-intensity-slider::-webkit-slider-thumb {
-                appearance: none;
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background: linear-gradient(45deg, #667eea, #764ba2);
-                cursor: pointer;
-                border: 2px solid white;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-                transition: all 0.3s ease;
-            }
-
-            #emotion-intensity-slider::-webkit-slider-thumb:hover {
-                transform: scale(1.2);
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            }
-
-            #emotion-intensity-value {
-                min-width: 35px;
-                text-align: right;
-                font-weight: 700;
-                font-size: 16px;
-                color: #667eea;
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-            }
-
-            /* Responsive Design */
-            @media (max-width: 768px) {
-                .emotion-panel {
-                    min-width: 300px;
-                    max-width: 90vw;
-                    padding: 20px;
-                    margin: 10px;
-                }
-                
-                .emotion-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 10px;
-                }
-                
-                .emotion-btn {
-                    padding: 14px 10px;
-                    min-height: 80px;
-                }
-                
-                .emotion-icon {
-                    font-size: 24px;
-                }
-                
-                .emotion-name {
-                    font-size: 12px;
-                }
-            }
-
-            @media (max-width: 480px) {
-                .emotion-panel {
-                    min-width: 280px;
-                    padding: 15px;
-                }
-                
-                .emotion-header h3 {
-                    font-size: 18px;
-                }
-                
-                .emotion-btn {
-                    padding: 12px 8px;
-                    min-height: 70px;
-                }
-                
-                .emotion-icon {
-                    font-size: 20px;
-                }
-                
-                .emotion-intensity {
-                    font-size: 13px;
-                    padding: 12px;
-                }
-            }
-
-            /* Accessibility */
-            .emotion-btn:focus,
-            .close-btn:focus,
-            #emotion-intensity-slider:focus {
-                outline: 2px solid #667eea;
-                outline-offset: 2px;
-            }
-
-            /* Notification Styles */
-            .emotion-notification {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
-                color: white;
-                padding: 15px 20px;
-                border-radius: 12px;
-                z-index: 2000;
-                backdrop-filter: blur(10px);
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                font-weight: 600;
-                animation: slideInRight 0.3s ease;
-            }
-
-            @keyframes slideInRight {
-                from {
-                    opacity: 0;
-                    transform: translateX(100%);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateX(0);
-                }
-            }
-
-            @keyframes slideOutRight {
-                from {
-                    opacity: 1;
-                    transform: translateX(0);
-                }
-                to {
-                    opacity: 0;
-                    transform: translateX(100%);
-                }
-            }
-        `;
-        
-        document.head.appendChild(style);
-        console.log('💄 Enhanced emotion styles added');
-    },
-    
-    setupEmotionUIListeners: function() {
-        // Close button
-        document.getElementById('emotion-panel-close').addEventListener('click', () => {
-            this.hideEmotionPanel();
-        });
-        
-        // Emotion buttons with enhanced feedback
-        document.querySelectorAll('.emotion-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const emotionKey = btn.dataset.emotion;
-                const intensity = parseFloat(document.getElementById('emotion-intensity-slider').value);
-                
-                // Enhanced visual feedback
-                document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                // Show immediate feedback
-                this.showNotification(`You're feeling ${this.emotions[emotionKey].name}! ${this.emotions[emotionKey].icon}`);
-                
-                // Trigger emotion
-                this.triggerEmotion(this.getCurrentUserId(), emotionKey, intensity);
-                
-                // Close panel after selection
-                setTimeout(() => {
-                    this.hideEmotionPanel();
-                }, 500);
-            });
-        });
-        
-        // Intensity slider with real-time preview
-        const intensitySlider = document.getElementById('emotion-intensity-slider');
-        const intensityValue = document.getElementById('emotion-intensity-value');
-        
-        intensitySlider.addEventListener('input', (e) => {
-            intensityValue.textContent = e.target.value;
-            
-            // Optional: Preview intensity with visual feedback
-            const value = parseFloat(e.target.value);
-            const scale = 0.9 + (value - 0.5) * 0.2; // Scale between 0.9 and 1.3
-            document.querySelectorAll('.emotion-icon').forEach(icon => {
-                icon.style.transform = `scale(${scale})`;
-            });
-        });
-        
-        // Reset icon scales when slider interaction ends
-        intensitySlider.addEventListener('mouseup', () => {
-            document.querySelectorAll('.emotion-icon').forEach(icon => {
-                icon.style.transform = '';
-            });
-        });
-        
-        // Click outside to close (enhanced)
-        document.addEventListener('click', (e) => {
-            const panel = document.getElementById('emotion-panel');
-            if (panel && panel.classList.contains('active') && !panel.contains(e.target)) {
-                // Check if click was on the emotion trigger button
-                const emotionTrigger = e.target.closest('[data-action="emotions"]') || 
-                                     e.target.closest('#emotions-control') ||
-                                     e.target.closest('.emotion-control-btn');
-                if (!emotionTrigger) {
-                    this.hideEmotionPanel();
-                }
-            }
-        });
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            const panel = document.getElementById('emotion-panel');
-            if (panel && panel.classList.contains('active')) {
-                if (e.key === 'Escape') {
-                    this.hideEmotionPanel();
-                }
-                
-                // Number keys for quick emotion selection
-                const emotionKeys = Object.keys(this.emotions);
-                const keyNum = parseInt(e.key);
-                if (keyNum >= 1 && keyNum <= emotionKeys.length) {
-                    const emotionKey = emotionKeys[keyNum - 1];
-                    const intensity = parseFloat(document.getElementById('emotion-intensity-slider').value);
-                    this.triggerEmotion(this.getCurrentUserId(), emotionKey, intensity);
-                    this.hideEmotionPanel();
-                }
-            }
-        });
-    },
-    
-    showEmotionPanel: function() {
-        // Remove any existing panel first
-        const existing = document.getElementById('simple-emotion-panel');
-        if (existing) existing.remove();
-        
-        const panel = document.getElementById('emotion-panel');
-        if (panel) {
-            panel.classList.add('active');
-            
-            // Reset any active selections
-            document.querySelectorAll('.emotion-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Reset intensity slider
-            const slider = document.getElementById('emotion-intensity-slider');
-            const value = document.getElementById('emotion-intensity-value');
-            if (slider && value) {
-                slider.value = '1.0';
-                value.textContent = '1.0';
-            }
-            
-            console.log('🎭 Enhanced emotion panel opened');
-        } else {
-            console.warn('Emotion panel not found, falling back to simple version');
-            this.showSimpleEmotionPanel();
-        }
-    },
-    
-    showSimpleEmotionPanel: function() {
-        // Fallback to simple inline-style panel
-        console.log('🎭 Opening simple emotion panel...');
-        
-        // Remove existing panel if any
-        const existing = document.getElementById('simple-emotion-panel');
-        if (existing) existing.remove();
-        
-        // Create simple emotion panel (inline template style)
-        const panel = document.createElement('div');
-        panel.id = 'simple-emotion-panel';
-        panel.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 30, 0.95);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            padding: 25px;
-            z-index: 1500;
-            color: white;
-            min-width: 300px;
-            text-align: center;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        `;
-        
-        // Get top 6 emotions for simple display
-        const topEmotions = ['happy', 'love', 'excited', 'sad', 'angry', 'laughing'];
-        
-        panel.innerHTML = `
-            <h3 style="margin: 0 0 20px 0; color: #667eea;">🎭 Choose Your Emotion</h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-                ${topEmotions.map(key => {
-                    const emotion = this.emotions[key];
-                    return `<button onclick="window.EmotionSystem.triggerEmotion('${this.getCurrentUserId()}', '${key}', 1.0)" style="padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-size: 14px; transition: all 0.3s ease;">${emotion.icon}<br>${emotion.name}</button>`;
-                }).join('')}
-            </div>
-            <button onclick="window.EmotionSystem.hideEmotionPanel()" style="padding: 10px 20px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white; cursor: pointer;">Close</button>
-        `;
-        
-        document.body.appendChild(panel);
-        
-        // Add hover effects
-        panel.querySelectorAll('button').forEach(btn => {
-            if (btn.onclick && btn.onclick.toString().includes('triggerEmotion')) {
-                btn.addEventListener('mouseenter', () => {
-                    btn.style.background = 'rgba(255,255,255,0.2)';
-                    btn.style.transform = 'translateY(-2px)';
-                });
-                btn.addEventListener('mouseleave', () => {
-                    btn.style.background = 'rgba(255,255,255,0.1)';
-                    btn.style.transform = 'translateY(0)';
-                });
-            }
-        });
-        
-        // Add click outside to close
-        setTimeout(() => {
-            const closeHandler = (e) => {
-                if (!panel.contains(e.target)) {
-                    this.hideEmotionPanel();
-                    document.removeEventListener('click', closeHandler);
-                }
-            };
-            document.addEventListener('click', closeHandler);
-        }, 100);
-    },
-    
-    hideEmotionPanel: function() {
-        // Hide main panel
-        const panel = document.getElementById('emotion-panel');
-        if (panel) {
-            panel.classList.remove('active');
-        }
-        
-        // Hide simple panel
-        const simplePanel = document.getElementById('simple-emotion-panel');
-        if (simplePanel) {
-            simplePanel.remove();
-        }
-        
-        console.log('🎭 Emotion panel closed');
-    },
-    
-    triggerEmotion: function(userId, emotionKey, intensity = 1.0) {
-        if (!this.emotions[emotionKey]) {
-            console.warn('Unknown emotion:', emotionKey);
-            return;
-        }
-        
-        const emotion = this.emotions[emotionKey];
-        const emotionState = {
-            emotion: emotionKey,
-            intensity: intensity,
-            startTime: Date.now(),
-            duration: emotion.duration * intensity, // Scale duration with intensity
-            isActive: true
-        };
-        
-        // Store active emotion
-        this.activeEmotions.set(userId, emotionState);
-        
-        console.log(`🎭 Triggering emotion: ${emotion.name} (${intensity}x) for user ${userId}`);
-        
-        // Apply visual effects
-        this.applyEmotionEffects(userId, emotion, intensity);
-        
-        // Create particle effects
-        this.createEmotionParticles(userId, emotion, intensity);
-        
-        // Play sound effect
-        this.playEmotionSound(emotion);
-        
-        // Broadcast to other users
-        this.broadcastEmotion(userId, emotionKey, intensity);
-        
-        // Set up automatic cleanup
-        setTimeout(() => {
-            this.clearEmotion(userId);
-        }, emotionState.duration);
-        
-        // Trigger event for other systems
-        if (window.EventBus) {
-            window.EventBus.emit('emotionTriggered', {
-                userId,
-                emotion: emotionKey,
-                intensity,
-                duration: emotionState.duration
-            });
-        }
-    },
-    
-    showNotification: function(message) {
-        // Enhanced notification system
-        const notification = document.createElement('div');
-        notification.className = 'emotion-notification';
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        // Auto-remove after 3 seconds with animation
-        setTimeout(() => {
-            notification.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    },
-    
-    // Include all other methods from the original system...
-    applyEmotionEffects: function(userId, emotion, intensity) {
-        const avatar = this.getAvatarByUserId(userId);
-        if (!avatar) return;
-        
-        this.applyFacialExpression(avatar, emotion.facialExpression, intensity);
-        this.applyBodyLanguage(avatar, emotion.bodyLanguage, intensity);
-        this.applyColorEffects(avatar, emotion.color, intensity);
-        
-        console.log(`✨ Applied emotion effects for ${emotion.name}`);
-    },
-    
-    applyFacialExpression: function(avatar, expression, intensity) {
-        if (avatar.head) {
-            if (avatar.head.eyes) {
-                const eyeScale = 1 + (expression.eyeScale - 1) * intensity;
-                avatar.head.eyes.scale.setScalar(eyeScale);
-            }
-            
-            if (avatar.head.mouth) {
-                const mouthCurve = expression.mouthCurve * intensity;
-                avatar.head.mouth.userData.curve = mouthCurve;
-            }
-            
-            if (avatar.head.eyebrows) {
-                const eyebrowOffset = expression.eyebrowPosition * intensity;
-                avatar.head.eyebrows.position.y += eyebrowOffset;
-            }
-        }
-    },
-    
-    applyBodyLanguage: function(avatar, bodyLang, intensity) {
-        if (avatar.torso && avatar.torso.shoulders) {
-            const shoulderOffset = bodyLang.shoulderPosition * intensity;
-            avatar.torso.shoulders.rotation.z = shoulderOffset;
-        }
-        
-        if (avatar.head) {
-            const headTilt = bodyLang.headTilt * intensity;
-            avatar.head.rotation.z = headTilt;
-        }
-        
-        this.triggerEmotionAnimation(avatar, bodyLang, intensity);
-    },
-    
-    triggerEmotionAnimation: function(avatar, bodyLang, intensity) {
-        // Simplified animation triggers
-        Object.keys(bodyLang).forEach(key => {
-            if (bodyLang[key] === true) {
-                console.log(`🎬 Triggering ${key} animation (${intensity}x)`);
-                // Animation implementations would go here
-            }
-        });
-    },
-    
-    applyColorEffects: function(avatar, color, intensity) {
-        if (!avatar.material) return;
-        
-        const originalColor = avatar.material.color.clone();
-        const emotionColor = new THREE.Color(color);
-        
-        const blendFactor = Math.min(intensity * 0.3, 0.5);
-        avatar.material.color.lerpColors(originalColor, emotionColor, blendFactor);
-        
-        if (avatar.material.emissive) {
-            avatar.material.emissive.copy(emotionColor);
-            avatar.material.emissiveIntensity = intensity * 0.1;
-        }
-        
-        avatar.userData.originalColor = originalColor;
-    },
-    
-    createEmotionParticles: function(userId, emotion, intensity) {
-        const avatar = this.getAvatarByUserId(userId);
-        if (!avatar || !this.particleSystem) return;
-        
-        const particleConfig = emotion.particles;
-        const particleCount = Math.floor(particleConfig.count * intensity);
-        
-        const headPosition = avatar.position.clone();
-        headPosition.y += 1.8;
-        
-        for (let i = 0; i < particleCount; i++) {
-            const offset = new THREE.Vector3(
-                (Math.random() - 0.5) * 0.5,
-                Math.random() * 0.3,
-                (Math.random() - 0.5) * 0.5
-            );
-            
-            const particlePos = headPosition.clone().add(offset);
-            
-            this.particleSystem.addParticle(
-                particleConfig.type,
-                particlePos,
-                {
-                    color: particleConfig.color,
-                    lifetime: particleConfig.lifetime * intensity
-                }
-            );
-        }
-        
-        console.log(`✨ Created ${particleCount} ${particleConfig.type} particles`);
-    },
-    
-    playEmotionSound: function(emotion) {
-        if (!window.AudioSystem || !emotion.sound) return;
-        
-        try {
-            window.AudioSystem.playSound(emotion.sound, {
-                volume: 0.3,
-                category: 'emotion'
-            });
-        } catch (error) {
-            console.log('🔇 Audio system not available for emotion sounds');
-        }
-    },
-    
-    broadcastEmotion: function(userId, emotionKey, intensity) {
-        if (!window.WebSocketManager) return;
-        
-        const emotionData = {
-            type: 'emotion',
-            userId: userId,
-            emotion: emotionKey,
-            intensity: intensity,
-            timestamp: Date.now()
-        };
-        
-        window.WebSocketManager.send(emotionData);
-        console.log(`📡 Broadcasted emotion ${emotionKey} for user ${userId}`);
-    },
-    
-    clearEmotion: function(userId) {
-        const emotionState = this.activeEmotions.get(userId);
-        if (!emotionState) return;
-        
-        const avatar = this.getAvatarByUserId(userId);
-        if (avatar) {
-            this.restoreAvatarAppearance(avatar);
-        }
-        
-        this.activeEmotions.delete(userId);
-        console.log(`🎭 Cleared emotion for user ${userId}`);
-    },
-    
-    restoreAvatarAppearance: function(avatar) {
-        if (avatar.userData.originalColor) {
-            avatar.material.color.copy(avatar.userData.originalColor);
-            if (avatar.material.emissive) {
-                avatar.material.emissive.setHex(0x000000);
-                avatar.material.emissiveIntensity = 0;
-            }
-        }
-        
-        if (avatar.head) {
-            if (avatar.head.eyes) {
-                avatar.head.eyes.scale.setScalar(1);
-            }
-            if (avatar.head.eyebrows) {
-                avatar.head.eyebrows.position.y = 0;
-            }
-            avatar.head.rotation.z = 0;
-        }
-        
-        if (avatar.torso && avatar.torso.shoulders) {
-            avatar.torso.shoulders.rotation.z = 0;
-        }
-    },
-    
-    setupEmotionDetection: function() {
-        if (window.EventBus) {
-            window.EventBus.on('messageReceived', (data) => {
-                const detectedEmotion = this.detectEmotionFromText(data.message);
-                if (detectedEmotion) {
-                    this.triggerEmotion(data.userId, detectedEmotion, 0.6);
-                }
-            });
-        }
-    },
-    
-    detectEmotionFromText: function(text) {
-        const emotionKeywords = {
-            happy: ['happy', 'joy', 'glad', 'wonderful', 'amazing', '😊', '😄', '🙂'],
-            sad: ['sad', 'disappointed', 'upset', 'crying', '😢', '😭', '☹️'],
-            excited: ['excited', 'thrilled', 'awesome', 'fantastic', '🤩', '🎉'],
-            angry: ['angry', 'mad', 'furious', 'annoyed', '😠', '😡'],
-            love: ['love', 'adore', 'wonderful', 'beautiful', '❤️', '😍', '🥰'],
-            surprised: ['wow', 'surprising', 'unexpected', 'amazing', '😲', '😮'],
-            laughing: ['haha', 'lol', 'funny', 'hilarious', '😂', '🤣'],
-            confused: ['confused', 'what', 'huh', 'unclear', '😕', '🤔'],
-            tired: ['tired', 'sleepy', 'exhausted', 'yawn', '😴', '😪'],
-            cool: ['cool', 'awesome', 'nice', 'sweet', '😎'],
-            playful: ['fun', 'playful', 'silly', 'game', '😜', '🤪']
-        };
-        
-        const lowerText = text.toLowerCase();
-        
-        for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-            if (keywords.some(keyword => lowerText.includes(keyword))) {
-                return emotion;
-            }
-        }
-        
-        return null;
-    },
-    
-    registerSystemIntegration: function() {
-        if (window.RoomCore) {
-            window.RoomCore.registerSystem('emotions', this);
-        }
-        
-        this.addEmotionButton();
-    },
-    
-    addEmotionButton: function() {
-        // Enhanced emotion button integration
-        const emotionBtn = document.getElementById('emotions-control');
-        if (emotionBtn) {
-            emotionBtn.addEventListener('click', () => {
-                this.showEmotionPanel();
-            });
-            console.log('✅ Enhanced emotion button handler added');
-        } else {
-            // Try to add to controls panel
-            const controlsPanel = document.getElementById('controls-panel');
-            if (controlsPanel) {
-                const newBtn = document.createElement('button');
-                newBtn.id = 'emotions-control';
-                newBtn.className = 'control-btn emotion-control-btn';
-                newBtn.innerHTML = '🎭 Emotions';
-                newBtn.title = 'Show emotion panel (E)';
-                
-                newBtn.addEventListener('click', () => {
-                    this.showEmotionPanel();
-                });
-                
-                controlsPanel.appendChild(newBtn);
-                console.log('🎭 Emotion button added to controls panel');
-            }
-        }
-    },
-    
-    getAvatarByUserId: function(userId) {
-        if (window.AvatarSystem && window.AvatarSystem.avatars) {
-            return window.AvatarSystem.avatars.get(userId);
-        }
-        return null;
-    },
-    
-    getCurrentUserId: function() {
-        return window.ROOM_CONFIG?.userId || window.currentUserId || 'current_user';
-    },
-    
-    update: function(deltaTime) {
-        if (!this.isInitialized) return;
-        
-        if (this.particleSystem) {
-            this.particleSystem.update(deltaTime);
-        }
-        
-        const currentTime = Date.now();
-        for (const [userId, emotionState] of this.activeEmotions.entries()) {
-            if (currentTime - emotionState.startTime >= emotionState.duration) {
-                this.clearEmotion(userId);
-            }
-        }
-    },
-    
-    // Public API methods
-    getActiveEmotion: function(userId) {
-        return this.activeEmotions.get(userId);
-    },
-    
-    getAllActiveEmotions: function() {
-        return Array.from(this.activeEmotions.entries());
-    },
-    
-    clearAllEmotions: function() {
-        for (const userId of this.activeEmotions.keys()) {
-            this.clearEmotion(userId);
-        }
-    },
-    
-    destroy: function() {
-        this.clearAllEmotions();
-        
-        const panel = document.getElementById('emotion-panel');
-        if (panel) panel.remove();
-        
-        const simplePanel = document.getElementById('simple-emotion-panel');
-        if (simplePanel) simplePanel.remove();
-        
-        const styles = document.getElementById('emotion-system-styles');
-        if (styles) styles.remove();
-        
-        this.isInitialized = false;
-        console.log('🎭 Enhanced Emotion System destroyed');
+    safeEasing: (progress) => {
+        if (!isFinite(progress) || isNaN(progress)) return 0;
+        progress = Math.max(0, Math.min(1, progress));
+        return progress < 0.5 ? 2 * progress * progress : 1 - 2 * (1 - progress) * (1 - progress);
     }
 };
 
-// Auto-initialize when the DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.EmotionSystem.init();
-    });
-} else {
-    window.EmotionSystem.init();
+// 2. TARGETED SCALE PROTECTION - Only for chat bubble objects (NO GLOBAL OVERRIDE)
+function createSafeScaleHelper() {
+    return {
+        // Safe scale setting specifically for chat bubble objects ONLY
+        setSafeBubbleScale: function(object, x, y, z) {
+            if (!object || !object.scale) return;
+            
+            // Only validate if this looks like a chat bubble object
+            if (!this.isChatBubbleObject(object)) {
+                // For non-chat-bubble objects, use normal scaling (NO INTERFERENCE)
+                if (typeof x === 'number' && y === undefined && z === undefined) {
+                    object.scale.setScalar(x);
+                } else {
+                    object.scale.set(x, y !== undefined ? y : x, z !== undefined ? z : x);
+                }
+                return;
+            }
+            
+            // For chat bubble objects only, apply safe scaling
+            const safeX = SafeMath.safeScale(x);
+            const safeY = SafeMath.safeScale(y !== undefined ? y : x);
+            const safeZ = SafeMath.safeScale(z !== undefined ? z : x);
+            
+            object.scale.set(safeX, safeY, safeZ);
+        },
+        
+        setSafeBubbleScalar: function(object, scalar) {
+            if (!object || !object.scale) return;
+            
+            if (!this.isChatBubbleObject(object)) {
+                object.scale.setScalar(scalar);
+                return;
+            }
+            
+            const safeScalar = SafeMath.safeScale(scalar);
+            object.scale.setScalar(safeScalar);
+        },
+        
+        // Check if an object is a chat bubble (avoid interfering with other Three.js objects)
+        isChatBubbleObject: function(object) {
+            if (!object) return false;
+            
+            // Check for chat bubble indicators
+            return (
+                object.name?.includes('bubble') ||
+                object.userData?.isChatBubble ||
+                object.parent?.userData?.isChatBubble ||
+                object.material?.map?.image?.tagName === 'CANVAS' // Chat bubbles use canvas textures
+            );
+        }
+    };
 }
 
-console.log('🎭 Enhanced Emotion System with inline integration loaded');
+// 3. MAIN CHAT BUBBLE SYSTEM CLASS - REFACTORED VERSION
+class ChatBubbleSystem {
+    constructor() {
+        console.log('💬✨ ChatBubbleSystem v6.0 - Refactored external version starting...');
+        
+        // Create safe scale helper (NO GLOBAL OVERRIDE)
+        this.safeScale = createSafeScaleHelper();
+        
+        // Core properties
+        this.bubbles = new Map();
+        this.activeBubbles = [];
+        this.bubbleIdCounter = 0;
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.isInitialized = false;
+        
+        // Initialize pools and queues
+        this.materialPool = [];
+        this.texturePool = [];
+        this._messageQueue = [];
+        
+        // Enhanced configuration
+        this.config = {
+            maxBubbles: 25,
+            fadeTime: 8000,
+            maxDistance: 60,
+            fontSize: 18,
+            maxWidth: 380,
+            padding: 25,
+            borderRadius: 20,
+            yOffset: 3.5,
+            animationDuration: 600,
+            maxBubblesPerUser: 4,
+            enableDebug: false,
+            enableShadows: true,
+            cullingDistance: 100,
+            enableSparkles: true,
+            enableGlow: true,
+            minHeight: 2.0,
+            maxHeight: 15.0,
+            overlapOffset: 0.8,
+            heightIncrement: 0.5,
+            groundY: 0
+        };
+        
+        // Enhanced visual styles
+        this.bubbleStyles = {
+            background: 'rgba(255, 255, 255, 0.95)',
+            borderColor: 'rgba(102, 126, 234, 0.8)',
+            usernameFontSize: this.config.fontSize * 0.85,
+            usernameColor: '#4a5cf0',
+            textColor: '#1a1a2e',
+            shadowBlur: 15,
+            shadowColor: 'rgba(102, 126, 234, 0.3)',
+            glowColor: 'rgba(102, 126, 234, 0.6)'
+        };
+        
+        // Performance tracking
+        this.performance = {
+            frameTime: 0,
+            bubbleCount: 0,
+            renderCalls: 0,
+            lastCleanup: Date.now()
+        };
+        
+        this.isMobile = window.innerWidth <= 768;
+        
+        // Bind all methods
+        this.bindMethods();
+        
+        // Setup resize handler
+        window.addEventListener('resize', this.handleResize);
+        
+        console.log('✅ ChatBubbleSystem v6.0 - Refactored external version created');
+    }
+    
+    bindMethods() {
+        const methodNames = [
+            'init', 'createBubble', 'createBubbleFromMessage', 'update',
+            'drawBubbleBackground', 'roundRect', 'calculateTextDimensions',
+            'wrapText', 'animateBubbleIn', 'animateBubbleOut', 'removeBubble',
+            'getAvatarPosition', 'performanceCleanup', 'startUpdateLoop',
+            'handleResize', 'updateBubblePositions', 'removeUserBubbles',
+            'clearAllBubbles', '_ensurePerformanceObject', '_processQueuedMessages',
+            'setupEventListeners'
+        ];
+        
+        methodNames.forEach(methodName => {
+            if (typeof this[methodName] === 'function') {
+                this[methodName] = this[methodName].bind(this);
+            }
+        });
+        
+        // Create safe wrapper methods
+        this.createBubbleFromMessageSafe = (...args) => {
+            try {
+                this._ensurePerformanceObject();
+                return this.createBubbleFromMessage.apply(this, args);
+            } catch (error) {
+                console.error('Error in createBubbleFromMessageSafe:', error);
+                return null;
+            }
+        };
+        
+        this.updateSafe = (...args) => {
+            try {
+                this._ensurePerformanceObject();
+                return this.update.apply(this, args);
+            } catch (error) {
+                console.error('Error in updateSafe:', error);
+                return null;
+            }
+        };
+    }
+    
+    _ensurePerformanceObject() {
+        if (!this.performance || typeof this.performance !== 'object') {
+            console.warn('🔧 Recreating performance object');
+            this.performance = {
+                frameTime: 0,
+                bubbleCount: 0,
+                renderCalls: 0,
+                lastCleanup: Date.now()
+            };
+            return;
+        }
+        
+        const requiredProps = ['frameTime', 'bubbleCount', 'renderCalls', 'lastCleanup'];
+        requiredProps.forEach(prop => {
+            if (typeof this.performance[prop] !== 'number') {
+                console.warn(`🔧 Fixing performance.${prop}`);
+                this.performance[prop] = prop === 'lastCleanup' ? Date.now() : 0;
+            }
+        });
+    }
+    
+    async init() {
+        console.log('🚀 Initializing ChatBubbleSystem v6.0...');
+        
+        try {
+            this._ensurePerformanceObject();
+            
+            if (!window.THREE) {
+                console.warn('❌ THREE.js not available - retrying in 500ms');
+                setTimeout(() => this.init(), 500);
+                return;
+            }
+            
+            // Wait for scene systems
+            if (!window.SceneManager?.scene) {
+                console.log('💬 Waiting for SceneManager... retrying in 300ms');
+                setTimeout(() => this.init(), 300);
+                return;
+            }
+            
+            this.scene = window.SceneManager.scene;
+            this.camera = window.SceneManager.camera;
+            this.renderer = window.SceneManager.renderer;
+            
+            if (!this.scene || !this.camera) {
+                console.error('❌ Scene or camera not available');
+                return;
+            }
+            
+            this._ensurePerformanceObject();
+            this.isInitialized = true;
+            
+            console.log('✅ ChatBubbleSystem v6.0 initialized successfully');
+            
+            this.startUpdateLoop();
+            this.setupEventListeners();
+            this._processQueuedMessages();
+            
+        } catch (error) {
+            console.error('❌ Error initializing ChatBubbleSystem:', error);
+            setTimeout(() => this.init(), 1000);
+        }
+    }
+    
+    _processQueuedMessages() {
+        if (this._messageQueue && this._messageQueue.length > 0) {
+            console.log(`📨 Processing ${this._messageQueue.length} queued messages`);
+            const queue = [...this._messageQueue];
+            this._messageQueue = [];
+            
+            queue.forEach(messageData => {
+                try {
+                    this.createBubbleFromMessage(messageData);
+                } catch (error) {
+                    console.warn('Error processing queued message:', error);
+                }
+            });
+        }
+    }
+    
+    setupEventListeners() {
+        if (window.EventBus) {
+            window.EventBus.on('chat_message', this.createBubbleFromMessageSafe);
+            window.EventBus.on('user_left', (data) => this.removeUserBubbles(data.userId));
+        }
+        
+        setInterval(() => {
+            try {
+                this.performanceCleanup();
+            } catch (error) {
+                console.warn('Error in performance cleanup:', error);
+            }
+        }, 10000);
+    }
+    
+    createBubbleFromMessage(messageData) {
+        if (!this.isInitialized) {
+            console.log('💬 Queueing message (system not ready)');
+            this._messageQueue.push(messageData);
+            return null;
+        }
+        
+        // Check if chat bubbles are enabled via ROOM_CONFIG
+        if (window.ROOM_CONFIG && !window.ROOM_CONFIG.chatBubblesEnabled) {
+            console.log('💬 Chat bubbles disabled in ROOM_CONFIG');
+            return null;
+        }
+        
+        try {
+            const avatarPosition = this.getAvatarPosition(messageData.userId || messageData.user_id);
+            if (!avatarPosition) {
+                console.warn(`💬 No avatar found for user ${messageData.userId || messageData.user_id}`);
+                
+                const userId = messageData.userId || messageData.user_id;
+                const fallbackPosition = this.createGroundLevelFallbackPosition(userId);
+                
+                return this.createBubble(
+                    messageData.message,
+                    messageData.username,
+                    fallbackPosition,
+                    userId
+                );
+            }
+            
+            const bubble = this.createBubble(
+                messageData.message,
+                messageData.username,
+                avatarPosition,
+                messageData.userId || messageData.user_id
+            );
+            
+            console.log(`✅ Bubble created for ${messageData.username}: "${messageData.message}"`);
+            return bubble;
+            
+        } catch (error) {
+            console.error('❌ Error creating bubble from message:', error);
+            return null;
+        }
+    }
+    
+    createGroundLevelFallbackPosition(userId) {
+        const hash = userId.split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+        }, 0);
+        
+        const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+        const radius = 3 + (Math.abs(hash) % 4);
+        
+        const groundPosition = new THREE.Vector3(
+            Math.cos(angle) * radius,
+            this.config.groundY,
+            Math.sin(angle) * radius
+        );
+        
+        console.log(`🔧 Created ground-level fallback position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
+        return groundPosition;
+    }
+    
+    getAvatarPosition(userId) {
+        console.log(`🔍 Getting avatar position for user: ${userId}`);
+        
+        try {
+            // Strategy 1: Use AvatarSystem if available
+            if (window.AvatarSystem?.getAvatarPosition) {
+                const pos = window.AvatarSystem.getAvatarPosition(userId);
+                if (pos) {
+                    console.log(`✅ Found avatar position via AvatarSystem: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+                    return pos;
+                }
+            }
+            
+            // Strategy 2: Search scene for avatar
+            if (this.scene) {
+                let avatar = null;
+                
+                const searchPatterns = [
+                    child => child.userData?.userId === userId,
+                    child => child.userData?.id === userId,  
+                    child => child.userData?.user_id === userId,
+                    child => child.name === userId,
+                    child => child.userData?.username === userId
+                ];
+                
+                for (const pattern of searchPatterns) {
+                    avatar = this.scene.children.find(pattern);
+                    if (avatar) {
+                        console.log(`✅ Found avatar in scene, position: (${avatar.position.x.toFixed(2)}, ${avatar.position.y.toFixed(2)}, ${avatar.position.z.toFixed(2)})`);
+                        return avatar.position.clone();
+                    }
+                }
+            }
+            
+            // Strategy 3: Check if this is the current user
+            if (userId === window.ROOM_CONFIG?.userId || 
+                userId === window.WebSocketManager?.userId) {
+                console.log(`✅ Using origin position for current user: ${userId}`);
+                return new THREE.Vector3(0, this.config.groundY, 0);
+            }
+            
+            // Strategy 4: Use WebSocket Manager's user tracking
+            if (window.WebSocketManager?.connectedUsers?.has(userId)) {
+                const userData = window.WebSocketManager.connectedUsers.get(userId);
+                if (userData.position) {
+                    console.log(`✅ Using WebSocket stored position for user: ${userId}`);
+                    return new THREE.Vector3(
+                        userData.position.x, 
+                        userData.position.y || this.config.groundY, 
+                        userData.position.z
+                    );
+                }
+            }
+            
+            return null;
+            
+        } catch (error) {
+            console.error('❌ Error getting avatar position:', error);
+            return null;
+        }
+    }
+    
+    // FIXED: Create bubble with proper targeted scale handling (no global override)
+    createBubble(message, username, position, userId = null) {
+        if (!this.isInitialized || !window.THREE) {
+            console.warn('💬 ChatBubbleSystem not ready');
+            return null;
+        }
+        
+        try {
+            const bubbleGroup = new THREE.Group();
+            const bubbleId = ++this.bubbleIdCounter;
+            
+            // CRITICAL: Mark as chat bubble for targeted scaling
+            bubbleGroup.userData = { isChatBubble: true };
+            
+            // Create canvas with high DPI
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            if (!context) {
+                console.error('Could not get canvas context');
+                return null;
+            }
+            
+            // Calculate text dimensions
+            const usernameFont = `bold ${this.config.fontSize * 0.85}px "Segoe UI", Arial, sans-serif`;
+            const messageFont = `${this.config.fontSize}px "Segoe UI", Arial, sans-serif`;
+            const textMetrics = this.calculateTextDimensions(context, message, username, usernameFont, messageFont);
+            
+            const bubbleWidth = textMetrics.bubbleWidth;
+            const bubbleHeight = textMetrics.bubbleHeight;
+            
+            // High DPI canvas
+            canvas.width = bubbleWidth * 3;
+            canvas.height = bubbleHeight * 3;
+            context.scale(3, 3);
+            
+            // Draw enhanced bubble
+            this.drawBubbleBackground(context, bubbleWidth, bubbleHeight);
+            this.drawBubbleText(context, username, textMetrics, usernameFont, messageFont);
+            
+            // Create sprite
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            const material = new THREE.SpriteMaterial({ 
+                map: texture, 
+                transparent: true,
+                alphaTest: 0.001,
+                depthTest: false
+            });
+            
+            const sprite = new THREE.Sprite(material);
+            
+            // CRITICAL: Mark sprite as chat bubble BEFORE scaling
+            sprite.userData = { isChatBubble: true };
+            
+            // FIXED: Use targeted safe scale helper for chat bubble scaling ONLY
+            const scale = 0.008;
+            this.safeScale.setSafeBubbleScale(sprite, bubbleWidth * scale, bubbleHeight * scale, 1);
+            
+            bubbleGroup.add(sprite);
+            
+            // Calculate safe bubble position
+            const bubblePosition = this.calculateSafeBubblePosition(position, userId);
+            bubbleGroup.position.copy(bubblePosition);
+            
+            // Set bubble data with chat bubble marker
+            bubbleGroup.userData = {
+                id: bubbleId,
+                message: message,
+                username: username,
+                userId: userId,
+                createdAt: Date.now(),
+                opacity: 1,
+                isVisible: true,
+                originalPosition: bubblePosition.clone(),
+                isChatBubble: true // IMPORTANT: Mark as chat bubble
+            };
+            
+            // FIXED: Safe animation start using targeted scaling
+            this.safeScale.setSafeBubbleScalar(bubbleGroup, 0);
+            this.animateBubbleInSafe(bubbleGroup);
+            
+            // Add to scene
+            this.scene.add(bubbleGroup);
+            
+            // Track bubble
+            this.activeBubbles.push(bubbleGroup);
+            
+            if (userId) {
+                if (!this.bubbles.has(userId)) {
+                    this.bubbles.set(userId, []);
+                }
+                this.bubbles.get(userId).push(bubbleGroup);
+                
+                // Limit bubbles per user
+                const userBubbles = this.bubbles.get(userId);
+                if (userBubbles.length > this.config.maxBubblesPerUser) {
+                    const oldBubble = userBubbles.shift();
+                    this.removeBubble(oldBubble);
+                }
+            }
+            
+            // Clean up old bubbles
+            if (this.activeBubbles.length > this.config.maxBubbles) {
+                const oldBubble = this.activeBubbles.shift();
+                this.removeBubble(oldBubble);
+            }
+            
+            return bubbleGroup;
+            
+        } catch (error) {
+            console.error('❌ Error creating bubble:', error);
+            return null;
+        }
+    }
+    
+    calculateSafeBubblePosition(basePosition, userId) {
+        const bubblePosition = basePosition.clone();
+        
+        // Ensure minimum height above ground
+        bubblePosition.y = Math.max(
+            this.config.minHeight, 
+            basePosition.y + this.config.yOffset
+        );
+        
+        // Ensure maximum height
+        bubblePosition.y = Math.min(this.config.maxHeight, bubblePosition.y);
+        
+        // Handle overlap prevention
+        if (userId && this.bubbles.has(userId)) {
+            const userBubbles = this.bubbles.get(userId);
+            const bubbleIndex = userBubbles.length;
+            
+            // Horizontal offset for multiple bubbles
+            bubblePosition.x += bubbleIndex * this.config.overlapOffset;
+            
+            // Vertical stacking
+            bubblePosition.y += bubbleIndex * this.config.heightIncrement;
+            
+            // Small Z offset to prevent z-fighting
+            bubblePosition.z += bubbleIndex * 0.1;
+        }
+        
+        return bubblePosition;
+    }
+    
+    // FIXED: Safe animation with targeted scale protection (no global interference)
+    animateBubbleInSafe(bubble) {
+        if (!bubble) return;
+        
+        console.log('✅ Starting SAFE bubble animation for:', bubble.userData?.message);
+        
+        const startScale = 0;
+        const endScale = 1;
+        const duration = this.config.animationDuration || 600;
+        const startTime = Date.now();
+        
+        bubble.userData.animationPhase = 'entering';
+        
+        const animate = () => {
+            try {
+                const elapsed = Date.now() - startTime;
+                const progress = SafeMath.safeProgress(elapsed, duration);
+                
+                // Safe easing calculation
+                const easeProgress = SafeMath.safeEasing(progress);
+                
+                // Safe bounce calculation
+                let bounceScale = easeProgress;
+                if (progress > 0.8) {
+                    const bouncePhase = (progress - 0.8) / 0.2;
+                    const bounce = Math.sin(bouncePhase * Math.PI * 4) * 0.1 * (1 - bouncePhase);
+                    bounceScale = easeProgress + bounce;
+                }
+                
+                // Safe scale calculation
+                const rawScale = startScale + (endScale - startScale) * bounceScale;
+                const safeScale = SafeMath.safeScale(rawScale);
+                
+                // FIXED: Apply targeted safe scale only to chat bubble (no global interference)
+                this.safeScale.setSafeBubbleScalar(bubble, safeScale);
+                
+                // Safe rotation
+                const rotation = (1 - progress) * 0.2 * Math.sin(progress * Math.PI * 2);
+                bubble.rotation.z = isFinite(rotation) ? rotation : 0;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    bubble.userData.animationPhase = 'stable';
+                    bubble.rotation.z = 0;
+                    this.safeScale.setSafeBubbleScalar(bubble, 1); // Ensure final scale is exactly 1
+                    
+                    console.log('✅ Bubble animation completed safely:', bubble.userData?.message);
+                    
+                    // Schedule fade out
+                    setTimeout(() => {
+                        this.animateBubbleOut(bubble);
+                    }, this.config.fadeTime);
+                }
+            } catch (error) {
+                console.error('❌ Error in safe bubble animation:', error);
+                // Fallback: set to stable state
+                this.safeScale.setSafeBubbleScalar(bubble, 1);
+                bubble.userData.animationPhase = 'stable';
+            }
+        };
+        
+        animate();
+    }
+    
+    animateBubbleOut(bubble) {
+        if (!bubble || !bubble.parent) return;
+        
+        const duration = 800;
+        const startTime = Date.now();
+        const startOpacity = bubble.userData.opacity || 1;
+        
+        bubble.userData.animationPhase = 'exiting';
+        
+        const animate = () => {
+            try {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = progress * progress;
+                
+                const opacity = startOpacity * (1 - easeProgress);
+                const scale = SafeMath.safeScale(1 - (easeProgress * 0.2));
+                
+                bubble.rotation.z = easeProgress * 0.3;
+                
+                const upwardMovement = easeProgress * 0.5;
+                bubble.position.y = bubble.userData.originalPosition.y + upwardMovement;
+                
+                if (bubble.children[0]?.material) {
+                    bubble.children[0].material.opacity = opacity;
+                    bubble.userData.opacity = opacity;
+                }
+                
+                // FIXED: Use targeted safe scale helper (no global interference)
+                this.safeScale.setSafeBubbleScalar(bubble, scale);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    this.removeBubble(bubble);
+                }
+            } catch (error) {
+                console.error('Error in animateBubbleOut:', error);
+                this.removeBubble(bubble);
+            }
+        };
+        
+        animate();
+    }
+    
+    // FIXED: Safe update method with targeted scaling only
+    update() {
+        if (!this.camera || !this.isInitialized) return;
+        
+        this._ensurePerformanceObject();
+        const startTime = Date.now();
+        
+        try {
+            this.activeBubbles.forEach(bubble => {
+                if (!bubble || !bubble.parent) return;
+                
+                const distance = bubble.position.distanceTo(this.camera.position);
+                
+                // Culling
+                if (distance > this.config.cullingDistance) {
+                    bubble.visible = false;
+                    bubble.userData.isVisible = false;
+                    return;
+                }
+                
+                bubble.visible = true;
+                bubble.userData.isVisible = true;
+                
+                // Face camera
+                bubble.lookAt(this.camera.position);
+                
+                // SAFE floating animation
+                const time = Date.now() * 0.0008;
+                const floatAmount = 0.05;
+                const floatOffset = Math.sin(time + bubble.userData.id * 0.7) * floatAmount;
+                
+                // Safe Y position calculation
+                const originalY = bubble.userData.originalPosition?.y || this.config.yOffset;
+                const newY = Math.max(this.config.minHeight, originalY + floatOffset);
+                bubble.position.y = isFinite(newY) ? newY : this.config.yOffset;
+                
+                // Safe swaying
+                const swayAmount = 0.02;
+                const swaySpeed = time * 0.4;
+                const originalX = bubble.userData.originalPosition?.x || 0;
+                const originalZ = bubble.userData.originalPosition?.z || 0;
+                
+                const swayX = Math.sin(swaySpeed + bubble.userData.id) * swayAmount;
+                const swayZ = Math.cos(swaySpeed * 0.7 + bubble.userData.id * 0.5) * swayAmount;
+                
+                bubble.position.x = originalX + (isFinite(swayX) ? swayX : 0);
+                bubble.position.z = originalZ + (isFinite(swayZ) ? swayZ : 0);
+                
+                // Safe rotation
+                if (bubble.userData.animationPhase === 'stable') {
+                    const rotationZ = Math.sin(time * 0.3 + bubble.userData.id) * 0.05;
+                    bubble.rotation.z = isFinite(rotationZ) ? rotationZ : 0;
+                }
+                
+                // FIXED: Safe distance-based scaling with targeted protection
+                if (bubble.children[0]?.material) {
+                    const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
+                    const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * (bubble.userData.opacity || 1);
+                    bubble.children[0].material.opacity = isFinite(opacity) ? opacity : 0.8;
+                    
+                    const rawScaleMultiplier = Math.max(0.7, 1 - normalizedDistance * 0.3);
+                    const safeScaleMultiplier = SafeMath.safeScale(rawScaleMultiplier);
+                    this.safeScale.setSafeBubbleScalar(bubble, safeScaleMultiplier);
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error in safe update:', error);
+        }
+        
+        // Performance tracking
+        this._ensurePerformanceObject();
+        this.performance.frameTime = Date.now() - startTime;
+        this.performance.bubbleCount = this.activeBubbles.length;
+        this.performance.renderCalls++;
+    }
+    
+    // Enhanced text drawing
+    drawBubbleText(context, username, textMetrics, usernameFont, messageFont) {
+        // Username with enhanced styling
+        context.font = usernameFont;
+        context.fillStyle = this.bubbleStyles.usernameColor;
+        context.textAlign = 'left';
+        
+        // Username background
+        const usernameWidth = context.measureText(username).width;
+        const pillGradient = context.createLinearGradient(0, this.config.padding - 3, usernameWidth + 20, this.config.padding + 22);
+        pillGradient.addColorStop(0, 'rgba(74, 92, 240, 0.15)');
+        pillGradient.addColorStop(0.5, 'rgba(102, 126, 234, 0.12)');
+        pillGradient.addColorStop(1, 'rgba(168, 85, 247, 0.15)');
+        
+        context.fillStyle = pillGradient;
+        context.beginPath();
+        this.roundRect(context, this.config.padding - 6, this.config.padding - 3, usernameWidth + 12, 24, 12);
+        context.fill();
+        
+        // Username text with shadow
+        context.fillStyle = this.bubbleStyles.usernameColor;
+        context.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        context.shadowBlur = 2;
+        context.shadowOffsetX = 1;
+        context.shadowOffsetY = 1;
+        context.fillText(username, this.config.padding, this.config.padding + 18);
+        
+        // Reset shadow
+        context.shadowColor = 'transparent';
+        context.shadowBlur = 0;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        
+        // Message text
+        context.font = messageFont;
+        context.fillStyle = this.bubbleStyles.textColor;
+        context.shadowColor = 'rgba(255, 255, 255, 0.9)';
+        context.shadowBlur = 1;
+        context.shadowOffsetY = 1;
+        
+        textMetrics.lines.forEach((line, index) => {
+            context.fillText(
+                line,
+                this.config.padding,
+                this.config.padding + this.config.fontSize * 0.85 + 30 + (index * textMetrics.lineHeight)
+            );
+        });
+        
+        // Reset shadow
+        context.shadowColor = 'transparent';
+        context.shadowBlur = 0;
+        context.shadowOffsetY = 0;
+    }
+    
+    // Enhanced bubble background
+    drawBubbleBackground(context, width, height) {
+        if (!context || typeof width !== 'number' || typeof height !== 'number') {
+            console.error('Invalid parameters for drawBubbleBackground');
+            return;
+        }
+        
+        try {
+            // Glassmorphism gradient background
+            const gradient = context.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+            gradient.addColorStop(0.3, 'rgba(240, 248, 255, 0.9)');
+            gradient.addColorStop(0.7, 'rgba(230, 245, 255, 0.88)');
+            gradient.addColorStop(1, 'rgba(220, 240, 255, 0.85)');
+            
+            // Shadows for depth
+            if (this.config.enableShadows) {
+                context.save();
+                context.shadowColor = 'rgba(102, 126, 234, 0.4)';
+                context.shadowBlur = 25;
+                context.shadowOffsetX = 0;
+                context.shadowOffsetY = 12;
+                
+                context.fillStyle = 'rgba(102, 126, 234, 0.1)';
+                context.beginPath();
+                this.roundRect(context, -2, -2, width + 4, height - 16, this.config.borderRadius + 2);
+                context.fill();
+                context.restore();
+            }
+            
+            // Main bubble
+            context.fillStyle = gradient;
+            context.beginPath();
+            this.roundRect(context, 0, 0, width, height - 20, this.config.borderRadius);
+            context.fill();
+            
+            // Animated border
+            const time = Date.now() * 0.001;
+            const hue1 = (time * 50) % 360;
+            const hue2 = (time * 50 + 60) % 360;
+            const hue3 = (time * 50 + 120) % 360;
+            
+            const borderGradient = context.createLinearGradient(0, 0, width, height);
+            borderGradient.addColorStop(0, `hsla(${hue1}, 70%, 65%, 0.8)`);
+            borderGradient.addColorStop(0.5, `hsla(${hue2}, 70%, 65%, 0.6)`);
+            borderGradient.addColorStop(1, `hsla(${hue3}, 70%, 65%, 0.8)`);
+            
+            context.strokeStyle = borderGradient;
+            context.lineWidth = 3;
+            context.save();
+            context.shadowColor = `hsla(${hue1}, 70%, 65%, 0.6)`;
+            context.shadowBlur = 10;
+            context.beginPath();
+            this.roundRect(context, 1.5, 1.5, width - 3, height - 21.5, this.config.borderRadius - 1);
+            context.stroke();
+            context.restore();
+            
+            // Glass highlight
+            const highlightGradient = context.createLinearGradient(0, 0, 0, height * 0.6);
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            context.fillStyle = highlightGradient;
+            context.beginPath();
+            this.roundRect(context, 2, 2, width - 4, (height - 20) * 0.6, this.config.borderRadius - 2);
+            context.fill();
+            
+            // Enhanced bubble tail
+            const tailGradient = context.createLinearGradient(width / 2 - 15, height - 20, width / 2 + 15, height - 2);
+            tailGradient.addColorStop(0, 'rgba(240, 248, 255, 0.9)');
+            tailGradient.addColorStop(0.5, 'rgba(230, 245, 255, 0.95)');
+            tailGradient.addColorStop(1, 'rgba(220, 240, 255, 0.85)');
+            
+            context.fillStyle = tailGradient;
+            context.beginPath();
+            context.moveTo(width / 2 - 15, height - 20);
+            context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
+            context.fill();
+            
+            // Tail border
+            context.save();
+            context.strokeStyle = `hsla(${hue2}, 70%, 65%, 0.7)`;
+            context.lineWidth = 2;
+            context.shadowColor = `hsla(${hue2}, 70%, 65%, 0.5)`;
+            context.shadowBlur = 8;
+            context.beginPath();
+            context.moveTo(width / 2 - 15, height - 20);
+            context.quadraticCurveTo(width / 2, height - 2, width / 2 + 15, height - 20);
+            context.stroke();
+            context.restore();
+            
+            // Sparkle effects
+            if (this.config.enableSparkles && Math.random() < 0.3) {
+                context.save();
+                const sparkleCount = 3 + Math.floor(Math.random() * 4);
+                
+                for (let i = 0; i < sparkleCount; i++) {
+                    const x = 10 + Math.random() * (width - 20);
+                    const y = 10 + Math.random() * (height - 30);
+                    const size = 1 + Math.random() * 2;
+                    
+                    context.fillStyle = `hsla(${(hue1 + i * 30) % 360}, 80%, 80%, 0.8)`;
+                    context.shadowColor = context.fillStyle;
+                    context.shadowBlur = 4;
+                    
+                    context.beginPath();
+                    context.arc(x, y, size, 0, Math.PI * 2);
+                    context.fill();
+                }
+                context.restore();
+            }
+            
+        } catch (error) {
+            console.error('Error in drawBubbleBackground:', error);
+        }
+    }
+    
+    // Helper methods
+    roundRect(context, x, y, width, height, radius) {
+        if (!context) return;
+        
+        try {
+            context.moveTo(x + radius, y);
+            context.lineTo(x + width - radius, y);
+            context.quadraticCurveTo(x + width, y, x + width, y + radius);
+            context.lineTo(x + width, y + height - radius);
+            context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            context.lineTo(x + radius, y + height);
+            context.quadraticCurveTo(x, y + height, x, y + height - radius);
+            context.lineTo(x, y + radius);
+            context.quadraticCurveTo(x, y, x + radius, y);
+        } catch (error) {
+            console.error('Error in roundRect:', error);
+        }
+    }
+    
+    calculateTextDimensions(context, message, username, usernameFont, messageFont) {
+        try {
+            // Measure username
+            context.font = usernameFont;
+            const usernameWidth = context.measureText(username).width;
+            
+            // Measure and wrap message text
+            context.font = messageFont;
+            const lines = this.wrapText(context, message, this.config.maxWidth - this.config.padding * 2);
+            
+            // Calculate actual width needed
+            let maxTextWidth = usernameWidth;
+            lines.forEach(line => {
+                const lineWidth = context.measureText(line).width;
+                if (lineWidth > maxTextWidth) {
+                    maxTextWidth = lineWidth;
+                }
+            });
+            
+            // Calculate dimensions
+            const lineHeight = this.config.fontSize * 1.3;
+            const bubbleWidth = Math.max(maxTextWidth + this.config.padding * 2, 140);
+            const bubbleHeight = this.config.padding * 2 + 
+                                this.config.fontSize * 0.85 + 
+                                30 + 
+                                (lines.length * lineHeight) + 
+                                30;
+            
+            return {
+                bubbleWidth,
+                bubbleHeight,
+                lines,
+                lineHeight,
+                maxTextWidth
+            };
+        } catch (error) {
+            console.error('Error calculating text dimensions:', error);
+            return {
+                bubbleWidth: 200,
+                bubbleHeight: 100,
+                lines: [message],
+                lineHeight: 20,
+                maxTextWidth: 150
+            };
+        }
+    }
+    
+    wrapText(context, text, maxWidth) {
+        try {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            for (const word of words) {
+                const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                const metrics = context.measureText(testLine);
+                
+                if (metrics.width <= maxWidth || !currentLine) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            
+            if (currentLine) lines.push(currentLine);
+            return lines;
+        } catch (error) {
+            console.error('Error wrapping text:', error);
+            return [text];
+        }
+    }
+    
+    // Rest of the utility methods remain the same
+    removeBubble(bubble) {
+        if (!bubble) return;
+        
+        try {
+            if (bubble.parent) {
+                bubble.parent.remove(bubble);
+            }
+            
+            bubble.children.forEach(child => {
+                if (child.material) {
+                    if (child.material.map) {
+                        child.material.map.dispose();
+                    }
+                    child.material.dispose();
+                }
+                if (child.geometry) {
+                    child.geometry.dispose();
+                }
+            });
+            
+            const activeIndex = this.activeBubbles.indexOf(bubble);
+            if (activeIndex > -1) {
+                this.activeBubbles.splice(activeIndex, 1);
+            }
+            
+            if (bubble.userData.userId && this.bubbles.has(bubble.userData.userId)) {
+                const userBubbles = this.bubbles.get(bubble.userData.userId);
+                const userIndex = userBubbles.indexOf(bubble);
+                if (userIndex > -1) {
+                    userBubbles.splice(userIndex, 1);
+                }
+                
+                if (userBubbles.length === 0) {
+                    this.bubbles.delete(bubble.userData.userId);
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error removing bubble:', error);
+        }
+    }
+    
+    removeUserBubbles(userId) {
+        if (!this.bubbles.has(userId)) return;
+        
+        try {
+            const userBubbles = this.bubbles.get(userId).slice();
+            userBubbles.forEach(bubble => {
+                this.animateBubbleOut(bubble);
+            });
+            
+            this.bubbles.delete(userId);
+        } catch (error) {
+            console.error('Error removing user bubbles:', error);
+        }
+    }
+    
+    updateBubblePositions(userId, newPosition) {
+        if (!this.bubbles.has(userId) || !newPosition) return;
+        
+        try {
+            const userBubbles = this.bubbles.get(userId);
+            userBubbles.forEach((bubble, index) => {
+                if (bubble.userData.isVisible) {
+                    const bubblePosition = newPosition.clone();
+                    bubblePosition.y = Math.max(this.config.minHeight, bubblePosition.y + this.config.yOffset);
+                    bubblePosition.x += index * this.config.overlapOffset;
+                    bubblePosition.y += index * this.config.heightIncrement;
+                    
+                    bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
+                }
+            });
+        } catch (error) {
+            console.error('Error updating bubble positions:', error);
+        }
+    }
+    
+    clearAllBubbles() {
+        try {
+            const bubblesToRemove = this.activeBubbles.slice();
+            bubblesToRemove.forEach(bubble => {
+                this.removeBubble(bubble);
+            });
+            
+            this.activeBubbles = [];
+            this.bubbles.clear();
+            
+            console.log('💬 All chat bubbles cleared');
+        } catch (error) {
+            console.error('Error clearing bubbles:', error);
+        }
+    }
+    
+    handleResize() {
+        try {
+            if (this.isMobile) {
+                const isLandscape = window.innerWidth > window.innerHeight;
+                this.config.maxBubbles = isLandscape ? 18 : 12;
+            }
+        } catch (error) {
+            console.error('Error handling resize:', error);
+        }
+    }
+    
+    performanceCleanup() {
+        const now = Date.now();
+        this._ensurePerformanceObject();
+        
+        if (now - this.performance.lastCleanup > 10000) {
+            try {
+                this.activeBubbles.forEach(bubble => {
+                    if (now - bubble.userData.createdAt > this.config.fadeTime * 3) {
+                        this.removeBubble(bubble);
+                    }
+                });
+                
+                this.performance.lastCleanup = now;
+            } catch (error) {
+                console.warn('Error in performance cleanup:', error);
+            }
+        }
+    }
+    
+    startUpdateLoop() {
+        const update = () => {
+            try {
+                if (this.isInitialized) {
+                    this.updateSafe();
+                }
+            } catch (error) {
+                console.error('Error in update loop:', error);
+            }
+            requestAnimationFrame(update);
+        };
+        update();
+    }
+    
+    // Public API methods
+    getActiveBubbleCount() {
+        return this.activeBubbles.length;
+    }
+    
+    getUserBubbleCount(userId) {
+        return this.bubbles.has(userId) ? this.bubbles.get(userId).length : 0;
+    }
+    
+    setDebugMode(enabled) {
+        this.config.enableDebug = enabled;
+        console.log(`💬 ChatBubbleSystem debug mode: ${enabled ? 'ON' : 'OFF'}`);
+    }
+    
+    getPerformanceStats() {
+        this._ensurePerformanceObject();
+        return {
+            ...this.performance,
+            visibleBubbles: this.activeBubbles.filter(b => b.userData.isVisible).length,
+            userCount: this.bubbles.size,
+            memoryUsage: this.activeBubbles.length * 2048,
+            isMobile: this.isMobile
+        };
+    }
+    
+    createTestBubble(message = "Test message! 🚀", username = "TestUser") {
+        if (!window.THREE) {
+            console.warn('THREE.js not available for test bubble');
+            return null;
+        }
+        
+        const position = new THREE.Vector3(
+            (Math.random() - 0.5) * 15,
+            this.config.yOffset,
+            (Math.random() - 0.5) * 15
+        );
+        
+        return this.createBubble(message, username, position, 'test_' + Date.now());
+    }
+    
+    updateConfig(newConfig) {
+        Object.assign(this.config, newConfig);
+        console.log('💬 ChatBubbleSystem config updated:', newConfig);
+    }
+    
+    dispose() {
+        try {
+            this.clearAllBubbles();
+            window.removeEventListener('resize', this.handleResize);
+            console.log('💬 ChatBubbleSystem disposed');
+        } catch (error) {
+            console.error('Error disposing ChatBubbleSystem:', error);
+        }
+    }
+    
+    // Compatibility methods for the old API
+    animateBubbleIn(bubble) {
+        return this.animateBubbleInSafe(bubble);
+    }
+    
+    // Static method to get singleton instance
+    static getInstance() {
+        if (!ChatBubbleSystem._instance) {
+            ChatBubbleSystem._instance = new ChatBubbleSystem();
+        }
+        return ChatBubbleSystem._instance;
+    }
+}
+
+// Export both class and instance for compatibility
+window.ChatBubbleSystemClass = ChatBubbleSystem;
+window.ChatBubbleSystem = ChatBubbleSystem.getInstance();
+
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ChatBubbleSystem;
+}
+
+console.log('✅ ChatBubbleSystem v6.0 - Refactored external version loaded successfully');
+console.log('🎯 Key improvement: NO global Three.js overrides - targeted protection only');
+console.log('📈 This eliminates console spam and improves performance');
+console.log('🔧 Ready for integration with room_3d.html');
+console.log('');
+console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("Hello Refactored World!");');
