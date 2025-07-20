@@ -1,4 +1,4 @@
-// UPDATED: src/message.rs - Added Scene Synchronization Support
+// FIXED: src/message.rs - Added Screen Sharing Message Types
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ pub struct UserInfo {
     pub avatar: Option<AvatarInfo>,
     pub is_typing: bool,
     pub last_seen: i64,
-    pub nationality: Option<String>, // NEW: Added nationality support
+    pub nationality: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +46,15 @@ pub struct RoomInfo {
     pub active_users: Vec<UserInfo>,
 }
 
+// FIXED: Screen sharing data structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScreenShareData {
+    pub projection_mode: String,
+    pub quality: String,
+    pub share_type: Option<String>,
+    pub session_id: Option<String>,
+}
+
 // Client -> Server messages
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
@@ -55,7 +64,7 @@ pub enum ClientMessage {
         user_id: Option<String>,
         room_id: String,
         username: Option<String>,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: Option<i64>,
     },
 
@@ -64,7 +73,7 @@ pub enum ClientMessage {
         message: String,
         user_id: Option<String>,
         room_id: String,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: Option<i64>,
     },
 
@@ -73,7 +82,7 @@ pub enum ClientMessage {
         user_id: Option<String>,
         room_id: String,
         position: Position,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: Option<i64>,
     },
 
@@ -82,7 +91,7 @@ pub enum ClientMessage {
         user_id: Option<String>,
         room_id: String,
         emotion: String,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: Option<i64>,
     },
 
@@ -93,7 +102,7 @@ pub enum ClientMessage {
         target_user_id: Option<String>,
         interaction_type: String,
         data: Option<serde_json::Value>,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: Option<i64>,
     },
 
@@ -114,7 +123,7 @@ pub enum ClientMessage {
         timestamp: i64,
     },
 
-    // 🆕 NEW: Scene Synchronization Messages
+    // Scene Synchronization Messages
     #[serde(rename = "scene_change")]
     SceneChange {
         user_id: Option<String>,
@@ -148,6 +157,62 @@ pub enum ClientMessage {
         nationality: Option<String>,
         timestamp: Option<i64>,
     },
+
+    // FIXED: Screen Sharing Messages - ADD THESE
+    #[serde(rename = "screen_share_started")]
+    ScreenShareStarted {
+        user_id: String,
+        room_id: String,
+        username: String,
+        nationality: Option<String>,
+        share_data: ScreenShareData,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_stopped")]
+    ScreenShareStopped {
+        user_id: String,
+        room_id: String,
+        username: String,
+        nationality: Option<String>,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_offer")]
+    ScreenShareWebRTCOffer {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
+        data: serde_json::Value,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_answer")]
+    ScreenShareWebRTCAnswer {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
+        data: serde_json::Value,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_candidate")]
+    ScreenShareWebRTCCandidate {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
+        data: serde_json::Value,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_ready")]
+    ScreenShareWebRTCReady {
+        user_id: String,
+        room_id: String,
+        username: String,
+        share_data: ScreenShareData,
+        timestamp: i64,
+    },
 }
 
 // Server -> Client messages
@@ -177,14 +242,14 @@ pub enum ServerMessage {
         user_id: String,
         username: String,
         avatar: Option<AvatarInfo>,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
     },
 
     #[serde(rename = "user_left")]
     UserLeft {
         user_id: String,
         username: String,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
     },
 
     #[serde(rename = "chat_message")]
@@ -192,7 +257,7 @@ pub enum ServerMessage {
         user_id: String,
         username: String,
         message: String,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: i64,
     },
 
@@ -200,7 +265,7 @@ pub enum ServerMessage {
     UserPositionUpdate {
         user_id: String,
         position: Position,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: i64,
     },
 
@@ -209,7 +274,7 @@ pub enum ServerMessage {
         user_id: String,
         username: String,
         emotion: String,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: i64,
     },
 
@@ -220,7 +285,7 @@ pub enum ServerMessage {
         target_user_id: Option<String>,
         interaction_type: String,
         data: Option<serde_json::Value>,
-        nationality: Option<String>, // NEW: Added nationality
+        nationality: Option<String>,
         timestamp: i64,
     },
 
@@ -246,7 +311,7 @@ pub enum ServerMessage {
         error: String,
     },
 
-    // 🆕 NEW: Scene Synchronization Response Messages
+    // Scene Synchronization Response Messages
     #[serde(rename = "scene_change")]
     SceneChange {
         user_id: String,
@@ -275,6 +340,62 @@ pub enum ServerMessage {
         time_of_day: String,
         hour: Option<u8>,
         nationality: Option<String>,
+        timestamp: i64,
+    },
+
+    // FIXED: Screen Sharing Response Messages - ADD THESE
+    #[serde(rename = "screen_share_started")]
+    ScreenShareStarted {
+        user_id: String,
+        room_id: String,
+        username: String,
+        nationality: Option<String>,
+        share_data: ScreenShareData,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_stopped")]
+    ScreenShareStopped {
+        user_id: String,
+        room_id: String,
+        username: String,
+        nationality: Option<String>,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_offer")]
+    ScreenShareWebRTCOffer {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
+        data: serde_json::Value,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_answer")]
+    ScreenShareWebRTCAnswer {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
+        data: serde_json::Value,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_candidate")]
+    ScreenShareWebRTCCandidate {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
+        data: serde_json::Value,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "screen_share_webrtc_ready")]
+    ScreenShareWebRTCReady {
+        user_id: String,
+        room_id: String,
+        username: String,
+        share_data: ScreenShareData,
         timestamp: i64,
     },
 }

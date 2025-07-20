@@ -1,12 +1,12 @@
-// UPDATED: src/server.rs - Fixed version with proper screen sharing integration
+// COMPLETE FIXED: src/server.rs - Updated with proper screen sharing integration
 use std::sync::Arc;
 
-use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo};
+use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo, ScreenShareData};
 use crate::room::Room;
 use crate::user::User;
 use crate::rate_limiter::{RateLimiter, RateLimiterConfig};
 use crate::message_history::{MessageHistory, MessageHistoryConfig};
-use crate::screen_sharing::{ScreenSharingManager, ScreenSharingConfig, ScreenShareMessage};
+use crate::screen_sharing::{ScreenSharingManager, ScreenSharingConfig};
 
 use dashmap::DashMap;
 use tokio::net::{TcpListener, TcpStream};
@@ -24,7 +24,7 @@ pub struct Config {
     pub max_users_per_room: usize,
     pub rate_limiter: RateLimiterConfig,
     pub message_history: MessageHistoryConfig,
-    pub screen_sharing: ScreenSharingConfig,  // NEW: Added screen sharing config
+    pub screen_sharing: ScreenSharingConfig,
 }
 
 impl Config {
@@ -43,7 +43,7 @@ impl Default for Config {
             max_users_per_room: 100,
             rate_limiter: RateLimiterConfig::default(),
             message_history: MessageHistoryConfig::default(),
-            screen_sharing: ScreenSharingConfig::default(),  // NEW: Default screen sharing config
+            screen_sharing: ScreenSharingConfig::default(),
         }
     }
 }
@@ -54,7 +54,7 @@ pub struct WebSocketServer {
     pub config: Config,
     pub rate_limiter: RateLimiter,
     pub message_history: MessageHistory,
-    pub screen_sharing_manager: Arc<ScreenSharingManager>,  // NEW: Screen sharing manager
+    pub screen_sharing_manager: Arc<ScreenSharingManager>,
 }
 
 #[derive(Debug)]
@@ -80,7 +80,7 @@ impl WebSocketServer {
             }
         });
 
-        // NEW: Screen sharing cleanup task
+        // Screen sharing cleanup task
         let cleanup_screen_sharing = screen_sharing_manager.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60)); // Every minute
@@ -179,12 +179,7 @@ impl WebSocketServer {
     }
 
     async fn handle_message(&self, connection_id: &str, text: &str) -> Result<()> {
-        // NEW: Try to parse as screen sharing message first
-        if let Ok(screen_share_msg) = serde_json::from_str::<ScreenShareMessage>(text) {
-            return self.handle_screen_share_message(screen_share_msg, connection_id).await;
-        }
-
-        // Parse as regular message
+        // Parse as regular message (now includes screen sharing)
         let message: ClientMessage = serde_json::from_str(text)?;
         
         // Apply rate limiting to most message types (except ping/auth)
@@ -197,6 +192,7 @@ impl WebSocketServer {
             ClientMessage::SceneChange { .. } |
             ClientMessage::WeatherChange { .. } |
             ClientMessage::TimeChange { .. }
+            // Note: Don't rate limit screen sharing messages for responsiveness
         );
 
         if should_rate_limit && !self.rate_limiter.check_rate_limit(connection_id) {
@@ -531,99 +527,125 @@ impl WebSocketServer {
                     self.broadcast_to_room(&room_id, &response, None).await?;
                 }
             }
-        }
 
-        Ok(())
-    }
-
-    // NEW: Handle screen sharing messages
-    async fn handle_screen_share_message(&self, message: ScreenShareMessage, connection_id: &str) -> Result<()> {
-        if let Some(conn) = self.connections.get(connection_id) {
-            let user_id = &conn.user_id;
-            
-            match message {
-                ScreenShareMessage::Started { user_id: msg_user_id, room_id, username, nationality, share_data, .. } => {
-                    let final_user_id = msg_user_id;
-                    
-                    match self.screen_sharing_manager.start_screen_share(
-                        final_user_id.clone(),
-                        room_id.clone(),
-                        username.clone(),
-                        nationality.clone(),
-                        share_data.clone(),
-                    ).await {
-                        Ok(session_id) => {
-                            let broadcast_message = ScreenShareMessage::Started {
-                                user_id: final_user_id,
-                                room_id: room_id.clone(),
-                                username,
-                                nationality,
-                                share_data,
-                                timestamp: chrono::Utc::now().timestamp_millis() as u64,
-                            };
-                            
-                            self.broadcast_screen_share_message(&room_id, &broadcast_message, Some(user_id)).await?;
-                            tracing::info!("🖥️ Screen share started in room: {} (session: {})", room_id, session_id);
-                        }
-                        Err(e) => {
-                            tracing::warn!("❌ Screen share start failed: {}", e);
-                        }
-                    }
-                }
-
-                ScreenShareMessage::Stopped { user_id: msg_user_id, room_id, username, nationality, .. } => {
-                    if let Some(_stopped_share) = self.screen_sharing_manager.stop_screen_share(&msg_user_id).await {
-                        let broadcast_message = ScreenShareMessage::Stopped {
-                            user_id: msg_user_id,
+            // FIXED: Screen Sharing Message Handling
+            ClientMessage::ScreenShareStarted { user_id, room_id, username, nationality, share_data, .. } => {
+                tracing::info!("🖥️ Screen share start request from: {} in room: {}", username, room_id);
+                
+                match self.screen_sharing_manager.start_screen_share(
+                    user_id.clone(),
+                    room_id.clone(),
+                    username.clone(),
+                    nationality.clone(),
+                    crate::screen_sharing::ScreenShareData {
+                        projection_mode: share_data.projection_mode.clone(),
+                        quality: share_data.quality.clone(),
+                        session_id: share_data.session_id.clone(),
+                    },
+                ).await {
+                    Ok(session_id) => {
+                        let response = ServerMessage::ScreenShareStarted {
+                            user_id: user_id.clone(),
                             room_id: room_id.clone(),
-                            username,
-                            nationality,
-                            timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                            username: username.clone(),
+                            nationality: nationality.clone(),
+                            share_data: share_data.clone(),
+                            timestamp: chrono::Utc::now().timestamp_millis(),
                         };
                         
-                        self.broadcast_screen_share_message(&room_id, &broadcast_message, Some(user_id)).await?;
-                        tracing::info!("🖥️ Screen share stopped in room: {}", room_id);
+                        // Broadcast to ALL users in room (including sender for confirmation)
+                        self.broadcast_to_room(&room_id, &response, None).await?;
+                        tracing::info!("✅ Screen share started: {} in room: {} (session: {})", username, room_id, session_id);
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Screen share start failed: {}", e);
+                        let error_response = ServerMessage::Error {
+                            error: format!("Screen share failed: {}", e),
+                        };
+                        self.send_to_connection(connection_id, &error_response).await?;
                     }
                 }
+            }
 
-                ScreenShareMessage::WebRTCOffer { ref target_user_id, .. } |
-                ScreenShareMessage::WebRTCAnswer { ref target_user_id, .. } |
-                ScreenShareMessage::WebRTCCandidate { ref target_user_id, .. } => {
-                    // Send WebRTC signaling messages directly to target user
-                    self.send_screen_share_message_to_user(target_user_id, &message).await?;
+            ClientMessage::ScreenShareStopped { user_id, room_id, username, nationality, .. } => {
+                tracing::info!("🖥️ Screen share stop request from: {} in room: {}", username, room_id);
+                
+                if let Some(_stopped_share) = self.screen_sharing_manager.stop_screen_share(&user_id).await {
+                    let response = ServerMessage::ScreenShareStopped {
+                        user_id: user_id.clone(),
+                        room_id: room_id.clone(),
+                        username: username.clone(),
+                        nationality: nationality.clone(),
+                        timestamp: chrono::Utc::now().timestamp_millis(),
+                    };
+                    
+                    // Broadcast to ALL users in room
+                    self.broadcast_to_room(&room_id, &response, None).await?;
+                    tracing::info!("✅ Screen share stopped: {} in room: {}", username, room_id);
                 }
             }
-        }
 
-        Ok(())
-    }
+            ClientMessage::ScreenShareWebRTCOffer { user_id, room_id, target_user_id, data, .. } => {
+                tracing::debug!("📡 WebRTC offer: {} -> {} in room: {}", user_id, target_user_id, room_id);
+                
+                let response = ServerMessage::ScreenShareWebRTCOffer {
+                    user_id,
+                    room_id,
+                    target_user_id: target_user_id.clone(),
+                    data,
+                    timestamp: chrono::Utc::now().timestamp_millis(),
+                };
+                
+                // Send directly to target user
+                self.send_to_user(&target_user_id, &response).await?;
+            }
 
-    // NEW: Helper methods for screen sharing
-    async fn broadcast_screen_share_message(&self, room_id: &str, message: &ScreenShareMessage, exclude_user: Option<&str>) -> Result<()> {
-        let json = serde_json::to_string(message)?;
-        
-        for conn in self.connections.iter() {
-            if let Some(ref conn_room_id) = conn.room_id {
-                if conn_room_id == room_id {
-                    if exclude_user.map_or(false, |exclude| conn.user_id == exclude) {
-                        continue;
-                    }
-                    let _ = conn.sender.send(Message::Text(json.clone()));
-                }
+            ClientMessage::ScreenShareWebRTCAnswer { user_id, room_id, target_user_id, data, .. } => {
+                tracing::debug!("📡 WebRTC answer: {} -> {} in room: {}", user_id, target_user_id, room_id);
+                
+                let response = ServerMessage::ScreenShareWebRTCAnswer {
+                    user_id,
+                    room_id,
+                    target_user_id: target_user_id.clone(),
+                    data,
+                    timestamp: chrono::Utc::now().timestamp_millis(),
+                };
+                
+                // Send directly to target user
+                self.send_to_user(&target_user_id, &response).await?;
+            }
+
+            ClientMessage::ScreenShareWebRTCCandidate { user_id, room_id, target_user_id, data, .. } => {
+                tracing::debug!("📡 WebRTC candidate: {} -> {} in room: {}", user_id, target_user_id, room_id);
+                
+                let response = ServerMessage::ScreenShareWebRTCCandidate {
+                    user_id,
+                    room_id,
+                    target_user_id: target_user_id.clone(),
+                    data,
+                    timestamp: chrono::Utc::now().timestamp_millis(),
+                };
+                
+                // Send directly to target user
+                self.send_to_user(&target_user_id, &response).await?;
+            }
+
+            ClientMessage::ScreenShareWebRTCReady { user_id, room_id, username, share_data, .. } => {
+                tracing::info!("📡 WebRTC ready from: {} in room: {}", username, room_id);
+                
+                let response = ServerMessage::ScreenShareWebRTCReady {
+                    user_id: user_id.clone(),
+                    room_id: room_id.clone(),
+                    username,
+                    share_data,
+                    timestamp: chrono::Utc::now().timestamp_millis(),
+                };
+                
+                // Broadcast to all users in room except sender
+                self.broadcast_to_room(&room_id, &response, Some(&user_id)).await?;
             }
         }
-        Ok(())
-    }
 
-    async fn send_screen_share_message_to_user(&self, user_id: &str, message: &ScreenShareMessage) -> Result<()> {
-        let json = serde_json::to_string(message)?;
-        
-        for conn in self.connections.iter() {
-            if conn.user_id == user_id {
-                let _ = conn.sender.send(Message::Text(json));
-                break;
-            }
-        }
         Ok(())
     }
 
@@ -653,6 +675,19 @@ impl WebSocketServer {
         Ok(())
     }
 
+    // FIXED: Helper method to send messages to specific users
+    async fn send_to_user(&self, user_id: &str, message: &ServerMessage) -> Result<()> {
+        let json = serde_json::to_string(message)?;
+        
+        for conn in self.connections.iter() {
+            if conn.user_id == user_id {
+                let _ = conn.sender.send(Message::Text(json));
+                break;
+            }
+        }
+        Ok(())
+    }
+
     async fn broadcast_to_room(&self, room_id: &str, message: &ServerMessage, exclude_user: Option<&str>) -> Result<()> {
         let json = serde_json::to_string(message)?;
         for conn in self.connections.iter() {
@@ -670,17 +705,18 @@ impl WebSocketServer {
 
     async fn cleanup_user(&self, connection_id: &str) {
         if let Some((_, conn)) = self.connections.remove(connection_id) {
-            // NEW: Handle screen sharing cleanup
+            // Handle screen sharing cleanup
             if let Some(room_id) = self.screen_sharing_manager.user_disconnected(&conn.user_id).await {
-                let broadcast_message = ScreenShareMessage::Stopped {
+                let broadcast_message = ServerMessage::ScreenShareStopped {
                     user_id: conn.user_id.clone(),
                     room_id: room_id.clone(),
                     username: "Unknown".to_string(),
                     nationality: None,
-                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
+                    timestamp: chrono::Utc::now().timestamp_millis(),
                 };
                 
-                let _ = self.broadcast_screen_share_message(&room_id, &broadcast_message, None).await;
+                let _ = self.broadcast_to_room(&room_id, &broadcast_message, None).await;
+                tracing::info!("🖥️ Cleaned up screen share for disconnected user: {}", conn.user_id);
             }
 
             if let Some(room_id) = conn.room_id {
