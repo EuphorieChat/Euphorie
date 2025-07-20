@@ -1,6 +1,6 @@
 // ================================
-// EUPHORIE 3D SCREEN SHARING SYSTEM - FIXED VERSION
-// Complete implementation with VideoTexture black screen fix
+// EUPHORIE 3D SCREEN SHARING SYSTEM - PERFECT VERSION
+// Complete implementation with all fixes applied
 // ================================
 
 class EuphorieScreenSharingSystem {
@@ -19,6 +19,7 @@ class EuphorieScreenSharingSystem {
         // CRITICAL: Video texture update system
         this.textureUpdateInterval = null;
         this.isTextureUpdating = false;
+        this.videoMonitorInterval = null; // Monitor video play state
         
         // Screen sharing state
         this.activeShares = new Map(); // userId -> shareData
@@ -378,6 +379,44 @@ class EuphorieScreenSharingSystem {
         }
     }
     
+    // CRITICAL FIX: Force video to play and keep it playing
+    async forceVideoPlay() {
+        if (!this.videoElement) return;
+        
+        console.log('🎬 Ensuring video is playing...');
+        
+        try {
+            // Force play the video
+            await this.videoElement.play();
+            console.log('✅ Video is playing');
+            
+            // Monitor video state and keep it playing
+            this.videoMonitorInterval = setInterval(() => {
+                if (this.videoElement && this.videoElement.paused && this.mediaStream) {
+                    console.log('🔄 Video paused unexpectedly, restarting...');
+                    this.videoElement.play().catch(e => 
+                        console.log('Failed to restart video:', e)
+                    );
+                }
+                
+                // Stop monitoring if sharing stopped
+                if (!this.isSharing || !this.mediaStream) {
+                    clearInterval(this.videoMonitorInterval);
+                    this.videoMonitorInterval = null;
+                }
+            }, 1000); // Check every second
+            
+        } catch (error) {
+            console.warn('⚠️ Video play failed:', error);
+            // Try with user interaction fallback
+            document.addEventListener('click', () => {
+                if (this.videoElement) {
+                    this.videoElement.play().catch(e => console.log('Click play failed:', e));
+                }
+            }, { once: true });
+        }
+    }
+    
     // CRITICAL FIX: Wait for video to be ready
     async waitForVideoReady(videoElement) {
         return new Promise((resolve, reject) => {
@@ -497,10 +536,11 @@ class EuphorieScreenSharingSystem {
             this.videoElement.playsInline = true; // Important for mobile
             console.log('📺 Video element configured');
             
-            // CRITICAL FIX: Wait for video to be ready and start texture updates
+            // CRITICAL FIX: Force video to play and wait for it to be ready
             try {
+                await this.forceVideoPlay();
                 await this.waitForVideoReady(this.videoElement);
-                console.log('✅ Video is ready, starting texture updates');
+                console.log('✅ Video is ready and playing, starting texture updates');
                 
                 // Start continuous texture updates (CRITICAL for fixing black screen)
                 this.startVideoTextureUpdates();
@@ -512,7 +552,7 @@ class EuphorieScreenSharingSystem {
                 }
                 
             } catch (error) {
-                console.warn('⚠️ Video readiness check failed, starting anyway:', error);
+                console.warn('⚠️ Video setup failed, starting anyway:', error);
                 // Start updates anyway
                 this.startVideoTextureUpdates();
             }
@@ -748,12 +788,13 @@ class EuphorieScreenSharingSystem {
         this.videoElement.srcObject = stream;
         this.mediaStream = stream;
         
-        // CRITICAL FIX: Wait for remote video to be ready and start texture updates
+        // CRITICAL FIX: Force video to play and wait for it to be ready
         try {
+            await this.forceVideoPlay();
             await this.waitForVideoReady(this.videoElement);
             this.startVideoTextureUpdates();
         } catch (error) {
-            console.warn('⚠️ Remote video readiness check failed, starting anyway:', error);
+            console.warn('⚠️ Remote video setup failed, starting anyway:', error);
             this.startVideoTextureUpdates();
         }
         
@@ -778,8 +819,13 @@ class EuphorieScreenSharingSystem {
         console.log('🖥️ Stopping screen share...');
         
         try {
-            // CRITICAL FIX: Stop texture updates first
+            // CRITICAL FIX: Stop texture updates and video monitoring first
             this.stopVideoTextureUpdates();
+            
+            if (this.videoMonitorInterval) {
+                clearInterval(this.videoMonitorInterval);
+                this.videoMonitorInterval = null;
+            }
             
             // Stop local stream
             if (this.localStream) {
@@ -846,8 +892,13 @@ class EuphorieScreenSharingSystem {
             if (data.user_id === this.currentSharer) {
                 console.log(`📺 ${data.username} stopped sharing their screen`);
                 
-                // CRITICAL FIX: Stop texture updates for remote streams too
+                // CRITICAL FIX: Stop texture updates and video monitoring for remote streams too
                 this.stopVideoTextureUpdates();
+                
+                if (this.videoMonitorInterval) {
+                    clearInterval(this.videoMonitorInterval);
+                    this.videoMonitorInterval = null;
+                }
                 
                 // Hide projection surface
                 if (this.projectionSurface) {
@@ -1553,8 +1604,13 @@ class EuphorieScreenSharingSystem {
     cleanup() {
         console.log('🧹 Cleaning up screen sharing system...');
         
-        // Stop texture updates
+        // Stop texture updates and video monitoring
         this.stopVideoTextureUpdates();
+        
+        if (this.videoMonitorInterval) {
+            clearInterval(this.videoMonitorInterval);
+            this.videoMonitorInterval = null;
+        }
         
         // Stop streams
         if (this.localStream) {
@@ -1619,6 +1675,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with Three.js r128 compatibility loaded and ready!');
+console.log('🖥️ Screen Sharing System with Three.js r128 compatibility and perfect video autoplay loaded and ready!');
 console.log('💡 Use window.testVideoTexture() to debug video content');
 console.log('💡 Use window.debugScreenShare() for full debug info');
+console.log('🎬 Use window.fixVideoTextureNow() for immediate video fixes');
+console.log('🧪 Use window.testWithSolidColor() to test projection visibility');
