@@ -194,33 +194,35 @@ class EuphorieScreenSharingSystem {
         this.videoElement.autoplay = true;
         this.videoElement.muted = true;
         this.videoElement.playsInline = true;
+        this.videoElement.crossOrigin = 'anonymous'; // CRITICAL: Add this for video texture
         document.body.appendChild(this.videoElement);
         
-        // CRITICAL FIX: Create VideoTexture with proper properties
+        // CRITICAL FIX: Create VideoTexture with r128 compatible properties
         this.projectionTexture = new THREE.VideoTexture(this.videoElement);
         this.projectionTexture.minFilter = THREE.LinearFilter;
         this.projectionTexture.magFilter = THREE.LinearFilter;
-        this.projectionTexture.format = THREE.RGBAFormat; // Changed to RGBA for better compatibility
-        this.projectionTexture.generateMipmaps = false; // Disable mipmaps for video
-        this.projectionTexture.flipY = false; // Prevent flipping
+        this.projectionTexture.format = THREE.RGBFormat; // Changed back to RGB for r128
+        this.projectionTexture.generateMipmaps = false;
+        this.projectionTexture.flipY = false;
+        this.projectionTexture.wrapS = THREE.ClampToEdgeWrapping;
+        this.projectionTexture.wrapT = THREE.ClampToEdgeWrapping;
         
         // CRITICAL FIX: Force initial update
         this.projectionTexture.needsUpdate = true;
         
-        // Create projection material with enhanced properties
-        this.projectionMaterial = new THREE.MeshBasicMaterial({
+        // CRITICAL FIX: Use MeshLambertMaterial instead of MeshBasicMaterial for r128
+        this.projectionMaterial = new THREE.MeshLambertMaterial({
             map: this.projectionTexture,
-            transparent: false, // Changed to false for better visibility
+            transparent: false,
             side: THREE.DoubleSide,
-            // Add emissive for better visibility in dark scenes
-            emissive: new THREE.Color(0x111111),
-            emissiveIntensity: 0.1
+            color: 0xffffff, // Ensure full brightness
+            // Remove emissive properties - not supported in MeshBasicMaterial r128
         });
         
         // Create projection geometry based on mode
         this.updateProjectionSurface();
         
-        console.log('✅ Projection surface created with VideoTexture fix');
+        console.log('✅ Projection surface created with Three.js r128 compatibility');
     }
     
     updateProjectionSurface() {
@@ -266,24 +268,10 @@ class EuphorieScreenSharingSystem {
         this.projectionSurface.rotation.copy(rotation);
         this.projectionSurface.name = 'screen-projection';
         
-        // Add glow effect
-        const glowGeometry = new THREE.PlaneGeometry(
-            this.config.projectionWidth + 1,
-            this.config.projectionHeight + 1
-        );
-        const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x4a90e2,
-            transparent: true,
-            opacity: 0.1,
-            side: THREE.DoubleSide
-        });
+        // CRITICAL FIX: Add ambient light if scene is too dark
+        this.ensureProjectionLighting();
         
-        const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-        glowMesh.position.copy(position);
-        glowMesh.rotation.copy(rotation);
-        glowMesh.position.z -= 0.01; // Slightly behind
-        
-        // Add subtle border for visibility
+        // Add simple border (no glow effects for r128 compatibility)
         const borderGeometry = new THREE.EdgesGeometry(geometry);
         const borderMaterial = new THREE.LineBasicMaterial({ 
             color: 0x00ff00, 
@@ -297,7 +285,6 @@ class EuphorieScreenSharingSystem {
         
         // Create projection group
         const projectionGroup = new THREE.Group();
-        projectionGroup.add(glowMesh);
         projectionGroup.add(this.projectionSurface);
         projectionGroup.add(border);
         projectionGroup.name = 'screen-projection-group';
@@ -308,10 +295,10 @@ class EuphorieScreenSharingSystem {
         this.scene.add(projectionGroup);
         this.projectionSurface = projectionGroup;
         
-        console.log(`✅ Projection surface updated (mode: ${this.projectionMode})`);
+        console.log(`✅ Projection surface updated (mode: ${this.projectionMode}) with r128 compatibility`);
     }
     
-    // CRITICAL FIX: Start continuous texture updates
+    // CRITICAL FIX: Enhanced texture update method for r128
     startVideoTextureUpdates() {
         if (this.isTextureUpdating || !this.projectionTexture) {
             console.log('⚠️ Video texture updates already running or no texture available');
@@ -321,26 +308,66 @@ class EuphorieScreenSharingSystem {
         this.isTextureUpdating = true;
         console.log('🔄 Starting video texture update loop...');
 
-        // Update texture every frame for smooth video playback
+        // CRITICAL FIX: More aggressive texture updating for r128
         this.textureUpdateInterval = setInterval(() => {
             if (this.projectionTexture && this.videoElement) {
-                // Check if video is playing and has data
-                if (this.videoElement.readyState >= this.videoElement.HAVE_CURRENT_DATA && 
-                    !this.videoElement.paused &&
-                    this.videoElement.videoWidth > 0) {
+                const video = this.videoElement;
+                
+                // Check multiple conditions for video readiness
+                if (video.readyState >= video.HAVE_CURRENT_DATA && 
+                    !video.paused &&
+                    video.videoWidth > 0 &&
+                    video.videoHeight > 0) {
                     
-                    // CRITICAL: Force texture update every frame
+                    // CRITICAL: Multiple update flags for r128
                     this.projectionTexture.needsUpdate = true;
                     
-                    // Also update material
+                    // Force material update
                     if (this.projectionMaterial) {
                         this.projectionMaterial.needsUpdate = true;
+                        this.projectionMaterial.map = this.projectionTexture; // Re-assign map
+                    }
+                    
+                    // DEBUGGING: Log video dimensions
+                    if (Math.random() < 0.01) { // Log 1% of updates to avoid spam
+                        console.log(`📺 Video: ${video.videoWidth}x${video.videoHeight}, Ready: ${video.readyState}`);
                     }
                 }
             }
-        }, 16); // ~60 FPS updates (essential for smooth video)
+        }, 16); // Keep 60 FPS
 
-        console.log('✅ Video texture update loop started at 60 FPS');
+        console.log('✅ Video texture update loop started at 60 FPS with r128 compatibility');
+    }
+    
+    // NEW: Ensure proper lighting for video visibility
+    ensureProjectionLighting() {
+        if (!this.scene) return;
+        
+        // Check if scene has sufficient lighting
+        let hasAmbientLight = false;
+        let hasDirectionalLight = false;
+        
+        this.scene.traverse((child) => {
+            if (child.type === 'AmbientLight') hasAmbientLight = true;
+            if (child.type === 'DirectionalLight') hasDirectionalLight = true;
+        });
+        
+        // Add ambient light if missing (essential for video visibility)
+        if (!hasAmbientLight) {
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.8); // Bright ambient
+            ambientLight.name = 'screen-sharing-ambient-light';
+            this.scene.add(ambientLight);
+            console.log('💡 Added ambient light for screen sharing visibility');
+        }
+        
+        // Add directional light for better video contrast
+        if (!hasDirectionalLight) {
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(0, 10, 5);
+            directionalLight.name = 'screen-sharing-directional-light';
+            this.scene.add(directionalLight);
+            console.log('💡 Added directional light for screen sharing contrast');
+        }
     }
     
     // CRITICAL FIX: Stop texture updates
@@ -1064,6 +1091,7 @@ class EuphorieScreenSharingSystem {
         // Add debug functions
         window.testCameraAccess = () => this.testCameraAccess();
         window.debugScreenShare = () => this.debugScreenShare();
+        window.testVideoTexture = () => this.testVideoTexture();
         
         console.log('✅ Screen sharing global functions setup');
     }
@@ -1089,7 +1117,7 @@ class EuphorieScreenSharingSystem {
     }
     
     debugScreenShare() {
-        console.log('🔍 Screen Share Debug Info:');
+        console.log('🔍 Screen Share Debug Info (Three.js r128):');
         console.log('📱 Is Mobile:', this.isMobile());
         console.log('🎥 getUserMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
         console.log('🖥️ getDisplayMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia));
@@ -1102,6 +1130,7 @@ class EuphorieScreenSharingSystem {
         console.log('🌐 WebSocket Manager:', !!window.WebSocketManager);
         console.log('🎯 Projection mode:', this.projectionMode);
         console.log('📱 Camera facing:', this.cameraFacing);
+        console.log('🎨 Three.js version:', THREE.REVISION);
         
         // Video element debug info
         if (this.videoElement) {
@@ -1111,6 +1140,8 @@ class EuphorieScreenSharingSystem {
             console.log('  - Video height:', this.videoElement.videoHeight);
             console.log('  - Paused:', this.videoElement.paused);
             console.log('  - Has src object:', !!this.videoElement.srcObject);
+            console.log('  - Current time:', this.videoElement.currentTime);
+            console.log('  - Duration:', this.videoElement.duration);
         }
         
         // Texture debug info
@@ -1120,7 +1151,31 @@ class EuphorieScreenSharingSystem {
             console.log('  - Format:', this.projectionTexture.format);
             console.log('  - Min filter:', this.projectionTexture.minFilter);
             console.log('  - Mag filter:', this.projectionTexture.magFilter);
+            console.log('  - Image:', this.projectionTexture.image);
+            console.log('  - Texture UUID:', this.projectionTexture.uuid);
         }
+        
+        // Material debug info
+        if (this.projectionMaterial) {
+            console.log('🎭 Material debug:');
+            console.log('  - Type:', this.projectionMaterial.type);
+            console.log('  - Has map:', !!this.projectionMaterial.map);
+            console.log('  - Needs update:', this.projectionMaterial.needsUpdate);
+            console.log('  - Visible:', this.projectionMaterial.visible);
+            console.log('  - Transparent:', this.projectionMaterial.transparent);
+            console.log('  - Opacity:', this.projectionMaterial.opacity);
+        }
+        
+        // Scene lighting debug
+        console.log('💡 Scene lighting:');
+        let lightCount = 0;
+        this.scene.traverse((child) => {
+            if (child.isLight) {
+                lightCount++;
+                console.log(`  - ${child.type}: intensity ${child.intensity}`);
+            }
+        });
+        console.log(`  - Total lights: ${lightCount}`);
         
         // Test camera access
         this.testCameraAccess();
@@ -1344,6 +1399,56 @@ class EuphorieScreenSharingSystem {
         return Array.from(this.activeShares.values());
     }
     
+    // QUICK FIX: Method to test video texture directly
+    testVideoTexture() {
+        if (!this.videoElement || !this.projectionTexture) {
+            console.log('❌ No video element or texture to test');
+            return;
+        }
+        
+        console.log('🧪 Testing video texture...');
+        
+        // Force texture update
+        this.projectionTexture.needsUpdate = true;
+        
+        // Check video element
+        const video = this.videoElement;
+        console.log('📺 Video test results:');
+        console.log('  - Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+        console.log('  - Ready state:', video.readyState, '(need >= 2)');
+        console.log('  - Current time:', video.currentTime);
+        console.log('  - Paused:', video.paused);
+        console.log('  - Ended:', video.ended);
+        
+        // Create test canvas to verify video content
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        
+        try {
+            ctx.drawImage(video, 0, 0);
+            const imageData = ctx.getImageData(0, 0, 10, 10);
+            const pixels = Array.from(imageData.data.slice(0, 12));
+            console.log('🎨 Video pixel data (first 12 values):', pixels);
+            
+            // Check if we have actual video data (not all zeros)
+            const hasData = pixels.some(pixel => pixel > 0);
+            console.log('✅ Video has actual content:', hasData);
+            
+            if (hasData) {
+                console.log('✅ Video texture should work - issue might be in Three.js rendering');
+            } else {
+                console.log('❌ Video has no content - check stream source');
+            }
+            
+        } catch (error) {
+            console.log('❌ Cannot read video pixels:', error.message);
+        }
+        
+        canvas.remove();
+    }
+    
     // CRITICAL FIX: Cleanup method
     cleanup() {
         console.log('🧹 Cleaning up screen sharing system...');
@@ -1414,4 +1519,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with VideoTexture fix loaded and ready!');
+console.log('🖥️ Screen Sharing System with Three.js r128 compatibility loaded and ready!');
+console.log('💡 Use window.testVideoTexture() to debug video content');
+console.log('💡 Use window.debugScreenShare() for full debug info');
