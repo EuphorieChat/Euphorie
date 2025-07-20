@@ -682,7 +682,7 @@ class EuphorieScreenSharingSystem {
     async setupWebRTCConnections() {
         if (!this.localStream || !window.WebSocketManager) return;
         
-        console.log('🔗 Setting up WebRTC connections...');
+        console.log('🔗 Setting up WebRTC connections for screen sharing...');
         
         // Get connected users - try multiple approaches
         let connectedUsers = [];
@@ -694,18 +694,34 @@ class EuphorieScreenSharingSystem {
         } else {
             console.log('⚠️ getConnectedUsers method not found, using alternative approach');
             
-            // Method 2: Use room state or other available data
-            // For now, we'll skip WebRTC setup and rely on WebSocket-only sharing
-            console.log('📡 WebRTC peer connections not available, screen sharing will use WebSocket only');
-            return;
+            // Method 2: Try to get users from room state or other available data
+            if (window.WebSocketManager.connectedUsers) {
+                connectedUsers = window.WebSocketManager.connectedUsers;
+                console.log('📡 Found connected users via connectedUsers property:', connectedUsers);
+            } else if (window.WebSocketManager.roomState?.users) {
+                connectedUsers = window.WebSocketManager.roomState.users;
+                console.log('📡 Found connected users via roomState:', connectedUsers);
+            } else {
+                // Method 3: Broadcast to all - let server handle routing
+                console.log('📡 No user list available, broadcasting screen share to all connected users');
+                
+                // Create a single "broadcast" peer connection for server-side routing
+                this.setupBroadcastConnection();
+                return;
+            }
         }
         
         if (!connectedUsers || connectedUsers.length === 0) {
-            console.log('📡 No connected users found for WebRTC setup');
+            console.log('📡 No connected users found, setting up broadcast connection');
+            this.setupBroadcastConnection();
             return;
         }
         
+        // CRITICAL FIX: Use the SAME stream for ALL peer connections
+        console.log(`🔗 Setting up peer connections to ${connectedUsers.length} users with single stream`);
+        
         for (const userData of connectedUsers) {
+            // Skip self
             if (userData.user_id === window.WebSocketManager.userId) continue;
             
             try {
@@ -715,36 +731,57 @@ class EuphorieScreenSharingSystem {
                 const pc = new RTCPeerConnection({
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 });
                 
-                // Add local stream
-                this.localStream.getTracks().forEach(track => {
+                // CRITICAL FIX: Add the SAME local stream to ALL peer connections
+                console.log(`📹 Adding screen stream tracks to peer connection for ${userData.user_id}`);
+                this.localStream.getTracks().forEach((track, index) => {
+                    console.log(`📹 Adding track ${index}: ${track.kind} (${track.label})`);
                     pc.addTrack(track, this.localStream);
                 });
                 
                 // Handle ICE candidates
                 pc.onicecandidate = (event) => {
                     if (event.candidate) {
+                        console.log(`🧊 Sending ICE candidate to ${userData.user_id}`);
                         window.WebSocketManager.sendWebRTCMessage(
                             userData.user_id,
                             'screen_share_webrtc_candidate',
                             event.candidate
                         );
+                    } else {
+                        console.log(`🧊 ICE gathering complete for ${userData.user_id}`);
                     }
                 };
                 
                 // Handle connection state changes
                 pc.onconnectionstatechange = () => {
                     console.log(`🔗 WebRTC connection to ${userData.user_id}: ${pc.connectionState}`);
+                    if (pc.connectionState === 'connected') {
+                        console.log(`✅ Screen sharing connection established with ${userData.user_id}`);
+                    } else if (pc.connectionState === 'failed') {
+                        console.log(`❌ Screen sharing connection failed with ${userData.user_id}`);
+                    }
+                };
+                
+                // Handle ICE connection state changes
+                pc.oniceconnectionstatechange = () => {
+                    console.log(`🧊 ICE connection to ${userData.user_id}: ${pc.iceConnectionState}`);
                 };
                 
                 // Create offer
-                const offer = await pc.createOffer();
+                console.log(`📤 Creating offer for ${userData.user_id}`);
+                const offer = await pc.createOffer({
+                    offerToReceiveAudio: false,
+                    offerToReceiveVideo: false
+                });
                 await pc.setLocalDescription(offer);
                 
-                // Send offer
+                // Send offer via WebSocket
+                console.log(`📤 Sending offer to ${userData.user_id}`);
                 window.WebSocketManager.sendWebRTCMessage(
                     userData.user_id,
                     'screen_share_webrtc_offer',
@@ -758,12 +795,16 @@ class EuphorieScreenSharingSystem {
                 console.error(`❌ Error setting up WebRTC connection to ${userData.user_id}:`, error);
             }
         }
+        
+        console.log(`🔗 WebRTC setup complete for ${this.peerConnections.size} peer connections`);
     }
     
-    async handleWebRTCOffer(data) {
-        if (!window.WebSocketManager || data.user_id === window.WebSocketManager.userId) return;
+    // NEW: Setup broadcast connection for server-side routing
+    setupBroadcastConnection() {
+        console.log('📡 Setting up broadcast connection for screen sharing...');
         
         try {
+            // Create a special "broadcast" peer connection
             const pc = new RTCPeerConnection({
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
@@ -771,29 +812,98 @@ class EuphorieScreenSharingSystem {
                 ]
             });
             
-            // Handle incoming stream
+            // Add local stream to broadcast connection
+            this.localStream.getTracks().forEach(track => {
+                console.log(`📹 Adding track to broadcast: ${track.kind}`);
+                pc.addTrack(track, this.localStream);
+            });
+            
+            // Store as broadcast connection
+            this.peerConnections.set('broadcast', pc);
+            
+            console.log('✅ Broadcast connection setup complete');
+            
+            // Notify server about screen share start (server will handle distribution)
+            if (window.WebSocketManager?.sendScreenShareStart) {
+                window.WebSocketManager.sendScreenShareStart({
+                    projection_mode: this.projectionMode,
+                    quality: this.config.quality,
+                    sharer_id: window.WebSocketManager.userId,
+                    sharer_name: window.WebSocketManager.username,
+                    share_type: this.isMobile() ? 'camera' : 'screen',
+                    broadcast_mode: true
+                });
+                console.log('📡 Broadcast screen share notification sent');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error setting up broadcast connection:', error);
+        }
+    }
+    
+    async handleWebRTCOffer(data) {
+        if (!window.WebSocketManager || data.user_id === window.WebSocketManager.userId) return;
+        
+        console.log(`📥 Received WebRTC offer from ${data.user_id} for screen sharing`);
+        
+        try {
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]
+            });
+            
+            // CRITICAL: Handle incoming screen sharing stream
             pc.ontrack = (event) => {
-                console.log('📺 Received remote screen stream');
+                console.log(`📺 Received screen sharing stream from ${data.user_id}`);
+                console.log('📺 Stream details:', event.streams[0]);
+                console.log('📺 Track details:', event.track);
+                
+                // Handle the remote screen stream
                 this.handleRemoteStream(event.streams[0], data.user_id);
             };
             
             // Handle ICE candidates
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
+                    console.log(`🧊 Sending ICE candidate to ${data.user_id}`);
                     window.WebSocketManager.sendWebRTCMessage(
                         data.user_id,
                         'screen_share_webrtc_candidate',
                         event.candidate
                     );
+                } else {
+                    console.log(`🧊 ICE gathering complete for ${data.user_id}`);
                 }
             };
             
+            // Handle connection state changes
+            pc.onconnectionstatechange = () => {
+                console.log(`🔗 WebRTC connection from ${data.user_id}: ${pc.connectionState}`);
+                if (pc.connectionState === 'connected') {
+                    console.log(`✅ Screen sharing reception established from ${data.user_id}`);
+                } else if (pc.connectionState === 'failed') {
+                    console.log(`❌ Screen sharing reception failed from ${data.user_id}`);
+                }
+            };
+            
+            // Handle ICE connection state changes
+            pc.oniceconnectionstatechange = () => {
+                console.log(`🧊 ICE connection from ${data.user_id}: ${pc.iceConnectionState}`);
+            };
+            
             // Set remote description and create answer
+            console.log(`📥 Setting remote description from ${data.user_id}`);
             await pc.setRemoteDescription(data.data);
+            
+            console.log(`📤 Creating answer for ${data.user_id}`);
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             
             // Send answer
+            console.log(`📤 Sending answer to ${data.user_id}`);
             window.WebSocketManager.sendWebRTCMessage(
                 data.user_id,
                 'screen_share_webrtc_answer',
@@ -801,9 +911,10 @@ class EuphorieScreenSharingSystem {
             );
             
             this.peerConnections.set(data.user_id, pc);
+            console.log(`✅ WebRTC answer sent to ${data.user_id}`);
             
         } catch (error) {
-            console.error('Error handling WebRTC offer:', error);
+            console.error(`❌ Error handling WebRTC offer from ${data.user_id}:`, error);
         }
     }
     
@@ -834,11 +945,16 @@ class EuphorieScreenSharingSystem {
     }
     
     async handleRemoteStream(stream, userId) {
-        console.log('📺 Handling remote stream from user:', userId);
+        console.log(`📺 Handling remote screen stream from user: ${userId}`);
+        console.log('📺 Stream tracks:', stream.getTracks().length);
+        console.log('📺 Video tracks:', stream.getVideoTracks().length);
+        console.log('📺 Audio tracks:', stream.getAudioTracks().length);
         
         // Set the remote stream to our video element
         this.videoElement.srcObject = stream;
         this.mediaStream = stream;
+        
+        console.log('📺 Remote stream assigned to video element');
         
         // CRITICAL FIX: Immediate aggressive video play forcing for remote streams
         try {
@@ -876,6 +992,7 @@ class EuphorieScreenSharingSystem {
         if (this.projectionSurface) {
             this.projectionSurface.visible = true;
             this.animateProjectionIn();
+            console.log('🎬 Projection surface shown for remote stream');
         }
         
         // Update state
@@ -885,6 +1002,9 @@ class EuphorieScreenSharingSystem {
         this.showViewerControls(userId);
         
         console.log(`✅ Displaying screen share from user: ${userId}`);
+        
+        // Show notification to user
+        this.showNotification(`📺 Now viewing ${userId}'s screen`);
     }
     
     stopScreenShare() {
@@ -1217,7 +1337,27 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
-        // Add global function to force video play (for manual fixes)
+        // Add enhanced debug functions for multi-user troubleshooting
+        window.debugWebRTC = () => {
+            console.log('🔗 WebRTC Debug Info:');
+            console.log('👥 Peer connections:', this.peerConnections.size);
+            this.peerConnections.forEach((pc, userId) => {
+                console.log(`  - ${userId}: ${pc.connectionState} (ICE: ${pc.iceConnectionState})`);
+            });
+            console.log('📺 Current sharer:', this.currentSharer);
+            console.log('📹 Local stream:', !!this.localStream);
+            console.log('📺 Media stream:', !!this.mediaStream);
+            console.log('🎬 Is sharing:', this.isSharing);
+        };
+        
+        window.forceWebRTCReconnect = () => {
+            console.log('🔄 Forcing WebRTC reconnection...');
+            if (this.isSharing && this.localStream) {
+                this.setupWebRTCConnections();
+            } else {
+                console.log('❌ Not currently sharing or no stream available');
+            }
+        };
         window.forceVideoPlayNow = () => {
             if (this.videoElement) {
                 console.log('🎬 Manual: Forcing video to play...');
