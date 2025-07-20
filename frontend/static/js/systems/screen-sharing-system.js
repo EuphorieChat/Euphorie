@@ -134,6 +134,9 @@ class EuphorieScreenSharingSystem {
                     } else if (data.type === 'screen_share_webrtc_candidate') {
                         this.handleWebRTCCandidate(data);
                         return;
+                    } else if (data.type === 'screen_share_webrtc_ready') {
+                        this.handleWebRTCReady(data);
+                        return;
                     }
                     
                     // Call original handler for other messages
@@ -198,13 +201,13 @@ class EuphorieScreenSharingSystem {
         this.videoElement.crossOrigin = 'anonymous'; // CRITICAL: Add this for video texture
         document.body.appendChild(this.videoElement);
         
-        // CRITICAL FIX: Create VideoTexture with r128 compatible properties
+        // CRITICAL FIX: Create VideoTexture with correct orientation
         this.projectionTexture = new THREE.VideoTexture(this.videoElement);
         this.projectionTexture.minFilter = THREE.LinearFilter;
         this.projectionTexture.magFilter = THREE.LinearFilter;
         this.projectionTexture.format = THREE.RGBAFormat; // Use RGBA for better compatibility
         this.projectionTexture.generateMipmaps = false;
-        this.projectionTexture.flipY = false;
+        this.projectionTexture.flipY = true; // FIX: Set to true to prevent upside down
         this.projectionTexture.wrapS = THREE.ClampToEdgeWrapping;
         this.projectionTexture.wrapT = THREE.ClampToEdgeWrapping;
         
@@ -630,26 +633,44 @@ class EuphorieScreenSharingSystem {
             
             console.log('✅ Sharing state set successfully');
             
-            // Notify other users via WebSocket
+            // Notify other users via WebSocket (CRITICAL: This should trigger WebRTC for others)
             if (window.WebSocketManager?.sendScreenShareStart) {
-                window.WebSocketManager.sendScreenShareStart({
+                const shareData = {
                     projection_mode: this.projectionMode,
                     quality: this.config.quality,
                     sharer_id: window.WebSocketManager.userId,
                     sharer_name: window.WebSocketManager.username,
-                    share_type: this.isMobile() ? 'camera' : 'screen'
+                    share_type: this.isMobile() ? 'camera' : 'screen',
+                    stream_id: this.localStream.id,
+                    video_tracks: this.localStream.getVideoTracks().length,
+                    audio_tracks: this.localStream.getAudioTracks().length
+                };
+                
+                window.WebSocketManager.sendScreenShareStart(shareData);
+                console.log('📡 Share notification sent via WebSocket:', shareData);
+                
+                // CRITICAL: Also broadcast that WebRTC connections are available
+                window.WebSocketManager.send({
+                    type: 'screen_share_webrtc_ready',
+                    user_id: window.WebSocketManager.userId,
+                    room_id: window.WebSocketManager.roomId,
+                    username: window.WebSocketManager.username,
+                    share_data: shareData,
+                    timestamp: Date.now()
                 });
-                console.log('📡 Share notification sent via WebSocket');
+                console.log('📡 WebRTC ready notification sent');
+                
             } else {
                 console.warn('⚠️ WebSocket manager not available for notifications');
             }
             
-            // Try to setup WebRTC connections (optional)
+            // CRITICAL: Try to setup WebRTC connections immediately
             try {
                 await this.setupWebRTCConnections();
                 console.log('🔗 WebRTC setup completed');
             } catch (error) {
-                console.log('⚠️ WebRTC setup failed, continuing with WebSocket-only sharing:', error);
+                console.log('⚠️ WebRTC setup failed, screen sharing will work locally only:', error);
+                console.log('💡 Other users may need to refresh or the server needs WebRTC support');
             }
             
             // Show sharing controls
@@ -796,7 +817,31 @@ class EuphorieScreenSharingSystem {
             }
         }
         
-        console.log(`🔗 WebRTC setup complete for ${this.peerConnections.size} peer connections`);
+        console.log(`✅ WebRTC setup complete for ${this.peerConnections.size} peer connections`);
+    }
+    
+    // NEW: Handle WebRTC ready notification from sharer
+    async handleWebRTCReady(data) {
+        if (!window.WebSocketManager || data.user_id === window.WebSocketManager.userId) return;
+        
+        console.log(`📡 Received WebRTC ready notification from ${data.user_id}`);
+        console.log('📡 Share data:', data.share_data);
+        
+        // This means someone started sharing and is ready to accept WebRTC connections
+        // We should prepare to receive their stream
+        this.currentSharer = data.user_id;
+        
+        // Update projection mode if specified
+        if (data.share_data?.projection_mode) {
+            this.projectionMode = data.share_data.projection_mode;
+            this.updateProjectionSurface();
+        }
+        
+        // Show notification that someone is sharing
+        this.showNotification(`📺 ${data.username} is ready to share screen - waiting for connection...`);
+        
+        console.log(`✅ Ready to receive screen share from ${data.user_id}`);
+    }
     }
     
     // NEW: Setup broadcast connection for server-side routing
@@ -1337,7 +1382,25 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
-        // Add enhanced debug functions for multi-user troubleshooting
+        // Add screen orientation debugging
+        window.debugScreenOrientation = () => {
+            if (this.videoElement && this.projectionTexture) {
+                console.log('🖼️ Screen Orientation Debug:');
+                console.log('  - Video dimensions:', this.videoElement.videoWidth, 'x', this.videoElement.videoHeight);
+                console.log('  - Texture flipY:', this.projectionTexture.flipY);
+                console.log('  - Video rotation:', this.videoElement.style.transform);
+                console.log('  - Projection surface rotation:', this.projectionSurface?.rotation);
+            }
+        };
+        
+        window.fixScreenOrientation = () => {
+            if (this.projectionTexture) {
+                // Toggle flipY to fix upside down issue
+                this.projectionTexture.flipY = !this.projectionTexture.flipY;
+                this.projectionTexture.needsUpdate = true;
+                console.log('🔄 Toggled texture flipY to:', this.projectionTexture.flipY);
+            }
+        };
         window.debugWebRTC = () => {
             console.log('🔗 WebRTC Debug Info:');
             console.log('👥 Peer connections:', this.peerConnections.size);
@@ -1903,9 +1966,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with AGGRESSIVE video autoplay loaded and ready!');
+console.log('🖥️ Screen Sharing System with MULTI-USER support and orientation fixes loaded!');
 console.log('💡 Use window.testVideoTexture() to debug video content');
 console.log('💡 Use window.debugScreenShare() for full debug info');
 console.log('🎬 Use window.fixVideoTextureNow() for immediate video fixes');
 console.log('🧪 Use window.testWithSolidColor() to test projection visibility');
 console.log('⚡ Use window.forceVideoPlayNow() to manually force video play');
+console.log('🔗 Use window.debugWebRTC() to check peer connections');
+console.log('🔄 Use window.forceWebRTCReconnect() to restart WebRTC');
+console.log('🖼️ Use window.debugScreenOrientation() to check screen rotation');
+console.log('🔄 Use window.fixScreenOrientation() to fix upside-down screens');
