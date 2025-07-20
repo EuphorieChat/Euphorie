@@ -1,6 +1,6 @@
 // ================================
-// EUPHORIE 3D SCREEN SHARING SYSTEM - PERFECT VERSION
-// Complete implementation with all fixes applied
+// EUPHORIE 3D SCREEN SHARING SYSTEM - SYNTAX FIXED VERSION
+// Complete implementation with syntax error fixed
 // ================================
 
 class EuphorieScreenSharingSystem {
@@ -457,6 +457,7 @@ class EuphorieScreenSharingSystem {
             }, { once: true });
         }
     }
+
     async waitForVideoReady(videoElement) {
         return new Promise((resolve, reject) => {
             if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
@@ -841,7 +842,6 @@ class EuphorieScreenSharingSystem {
         this.showNotification(`📺 ${data.username} is ready to share screen - waiting for connection...`);
         
         console.log(`✅ Ready to receive screen share from ${data.user_id}`);
-    }
     }
     
     // NEW: Setup broadcast connection for server-side routing
@@ -1401,6 +1401,7 @@ class EuphorieScreenSharingSystem {
                 console.log('🔄 Toggled texture flipY to:', this.projectionTexture.flipY);
             }
         };
+
         window.debugWebRTC = () => {
             console.log('🔗 WebRTC Debug Info:');
             console.log('👥 Peer connections:', this.peerConnections.size);
@@ -1421,6 +1422,7 @@ class EuphorieScreenSharingSystem {
                 console.log('❌ Not currently sharing or no stream available');
             }
         };
+
         window.forceVideoPlayNow = () => {
             if (this.videoElement) {
                 console.log('🎬 Manual: Forcing video to play...');
@@ -1435,6 +1437,7 @@ class EuphorieScreenSharingSystem {
                 console.log('❌ No video element found');
             }
         };
+
         window.testCameraAccess = () => this.testCameraAccess();
         window.debugScreenShare = () => this.debugScreenShare();
         window.testVideoTexture = () => this.testVideoTexture();
