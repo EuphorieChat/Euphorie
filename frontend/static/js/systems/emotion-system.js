@@ -6,9 +6,14 @@
 console.log('🎭 LOADING Emotion System - Fixed Version...');
 
 // Use SafeMath from global scope (declared in chat-bubble-system.js)
-// If not available, create a minimal version
-if (typeof SafeMath === 'undefined') {
-    window.SafeMath = {
+// Create a safe wrapper that uses global SafeMath or provides fallbacks
+const getSafeMath = () => {
+    if (typeof window.SafeMath !== 'undefined') {
+        return window.SafeMath;
+    }
+    
+    // Fallback implementation if SafeMath is not available
+    return {
         safeScale: (value) => {
             if (value === undefined || value === null) return 1;
             if (!isFinite(value) || isNaN(value)) return 1;
@@ -28,7 +33,7 @@ if (typeof SafeMath === 'undefined') {
             return Math.max(0, Math.min(1, isFinite(progress) ? progress : 0));
         }
     };
-}
+};
 
 // MAIN EMOTION SYSTEM CLASS
 class EuphorieEmotionSystem {
@@ -487,7 +492,7 @@ class EuphorieEmotionSystem {
         const animate = () => {
             try {
                 const elapsed = Date.now() - startTime;
-                const progress = SafeMath.safeProgress(elapsed, duration);
+                const progress = getSafeMath().safeProgress(elapsed, duration);
                 
                 if (progress >= 1 || !emotionGroup.parent) {
                     return; // Animation complete or object removed
@@ -536,7 +541,7 @@ class EuphorieEmotionSystem {
         group.position.y = group.userData.originalY + yOffset;
         
         const scale = 1 + Math.sin(progress * Math.PI * bounceSpeed * 2) * 0.1 * intensity;
-        group.scale.set(SafeMath.safeScale(scale), SafeMath.safeScale(scale), SafeMath.safeScale(scale));
+        group.scale.set(getSafeMath().safeScale(scale), getSafeMath().safeScale(scale), getSafeMath().safeScale(scale));
     }
     
     animateFloat(group, progress, intensity) {
@@ -569,7 +574,7 @@ class EuphorieEmotionSystem {
         group.rotation.z = wobble;
         
         const scale = 1 + Math.sin(progress * Math.PI * wobbleSpeed * 1.5) * 0.05 * intensity;
-        group.scale.set(SafeMath.safeScale(scale), SafeMath.safeScale(scale), SafeMath.safeScale(scale));
+        group.scale.set(getSafeMath().safeScale(scale), getSafeMath().safeScale(scale), getSafeMath().safeScale(scale));
     }
     
     animatePulse(group, progress, intensity) {
@@ -577,7 +582,7 @@ class EuphorieEmotionSystem {
         const pulseAmount = 0.2 * intensity;
         
         const pulse = 1 + Math.sin(progress * Math.PI * pulseSpeed) * pulseAmount;
-        group.scale.set(SafeMath.safeScale(pulse), SafeMath.safeScale(pulse), SafeMath.safeScale(pulse));
+        group.scale.set(getSafeMath().safeScale(pulse), getSafeMath().safeScale(pulse), getSafeMath().safeScale(pulse));
         
         // Fade out towards the end
         if (progress > 0.7) {
@@ -710,7 +715,7 @@ class EuphorieEmotionSystem {
                         } else {
                             emotion.visible = true;
                             const scale = Math.max(0.5, Math.min(2, this.config.maxDistance / distance));
-                            emotion.scale.set(SafeMath.safeScale(scale), SafeMath.safeScale(scale), SafeMath.safeScale(scale));
+                            emotion.scale.set(getSafeMath().safeScale(scale), getSafeMath().safeScale(scale), getSafeMath().safeScale(scale));
                         }
                     }
                 });
