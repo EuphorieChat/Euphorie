@@ -379,35 +379,73 @@ class EuphorieScreenSharingSystem {
         }
     }
     
-    // CRITICAL FIX: Force video to play and keep it playing
-    async forceVideoPlay() {
-        if (!this.videoElement) return;
+    // CRITICAL FIX: More aggressive video monitoring
+    startVideoMonitoring() {
+        if (this.videoMonitorInterval) {
+            clearInterval(this.videoMonitorInterval);
+        }
         
-        console.log('🎬 Ensuring video is playing...');
+        console.log('🔄 Starting aggressive video monitoring...');
         
-        try {
-            // Force play the video
-            await this.videoElement.play();
-            console.log('✅ Video is playing');
-            
-            // Monitor video state and keep it playing
-            this.videoMonitorInterval = setInterval(() => {
-                if (this.videoElement && this.videoElement.paused && this.mediaStream) {
-                    console.log('🔄 Video paused unexpectedly, restarting...');
-                    this.videoElement.play().catch(e => 
-                        console.log('Failed to restart video:', e)
-                    );
+        // Monitor every 500ms instead of 1000ms for faster response
+        this.videoMonitorInterval = setInterval(() => {
+            if (this.videoElement && this.mediaStream) {
+                const video = this.videoElement;
+                
+                // Check if video is paused
+                if (video.paused) {
+                    console.log('🔄 Video paused detected, forcing play...');
+                    video.play().then(() => {
+                        console.log('✅ Video restarted successfully');
+                        // Force texture update when video resumes
+                        if (this.projectionTexture) {
+                            this.projectionTexture.needsUpdate = true;
+                        }
+                    }).catch(e => console.log('Failed to restart video:', e));
+                }
+                
+                // Also check if video has stopped producing frames
+                if (video.readyState < 2) {
+                    console.log('⚠️ Video not ready, forcing reload...');
+                    // Try to refresh the video
+                    const currentStream = video.srcObject;
+                    video.srcObject = null;
+                    setTimeout(() => {
+                        video.srcObject = currentStream;
+                        video.play().catch(e => console.log('Reload play failed:', e));
+                    }, 100);
                 }
                 
                 // Stop monitoring if sharing stopped
                 if (!this.isSharing || !this.mediaStream) {
                     clearInterval(this.videoMonitorInterval);
                     this.videoMonitorInterval = null;
+                    console.log('🛑 Video monitoring stopped');
                 }
-            }, 1000); // Check every second
+            }
+        }, 500); // Check every 500ms for faster response
+        
+        console.log('✅ Aggressive video monitoring started (500ms intervals)');
+    }
+    
+    // CRITICAL FIX: Legacy force video play method (kept as fallback)
+    async forceVideoPlay() {
+        if (!this.videoElement) return;
+        
+        console.log('🎬 Fallback: Ensuring video is playing...');
+        
+        try {
+            // Force play the video
+            await this.videoElement.play();
+            console.log('✅ Fallback video play successful');
+            
+            // Force texture update
+            if (this.projectionTexture) {
+                this.projectionTexture.needsUpdate = true;
+            }
             
         } catch (error) {
-            console.warn('⚠️ Video play failed:', error);
+            console.warn('⚠️ Fallback video play failed:', error);
             // Try with user interaction fallback
             document.addEventListener('click', () => {
                 if (this.videoElement) {
@@ -416,8 +454,6 @@ class EuphorieScreenSharingSystem {
             }, { once: true });
         }
     }
-    
-    // CRITICAL FIX: Wait for video to be ready
     async waitForVideoReady(videoElement) {
         return new Promise((resolve, reject) => {
             if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
@@ -536,25 +572,41 @@ class EuphorieScreenSharingSystem {
             this.videoElement.playsInline = true; // Important for mobile
             console.log('📺 Video element configured');
             
-            // CRITICAL FIX: Force video to play and wait for it to be ready
+            // CRITICAL FIX: Immediate aggressive video play forcing
             try {
-                await this.forceVideoPlay();
+                // IMMEDIATE: Force video to play right now
+                console.log('🎬 Forcing video to play immediately...');
+                await this.videoElement.play();
+                console.log('✅ Video is playing immediately');
+                
+                // Force texture update immediately
+                if (this.projectionTexture) {
+                    this.projectionTexture.needsUpdate = true;
+                    console.log('🔄 Forced immediate texture update');
+                }
+                
+                // Start the monitoring system
+                this.startVideoMonitoring();
+                
+                // Wait for video to be fully ready
                 await this.waitForVideoReady(this.videoElement);
                 console.log('✅ Video is ready and playing, starting texture updates');
                 
                 // Start continuous texture updates (CRITICAL for fixing black screen)
                 this.startVideoTextureUpdates();
                 
-                // ADDITIONAL FIX: Force immediate texture update
-                if (this.projectionTexture) {
-                    this.projectionTexture.needsUpdate = true;
-                    console.log('🔄 Forced immediate texture update');
-                }
-                
             } catch (error) {
-                console.warn('⚠️ Video setup failed, starting anyway:', error);
-                // Start updates anyway
-                this.startVideoTextureUpdates();
+                console.warn('⚠️ Immediate video play failed, trying fallback:', error);
+                
+                // FALLBACK: Try the old method
+                try {
+                    await this.forceVideoPlay();
+                    await this.waitForVideoReady(this.videoElement);
+                    this.startVideoTextureUpdates();
+                } catch (fallbackError) {
+                    console.warn('⚠️ All video play methods failed, starting updates anyway:', fallbackError);
+                    this.startVideoTextureUpdates();
+                }
             }
             
             // Show projection surface
@@ -788,14 +840,36 @@ class EuphorieScreenSharingSystem {
         this.videoElement.srcObject = stream;
         this.mediaStream = stream;
         
-        // CRITICAL FIX: Force video to play and wait for it to be ready
+        // CRITICAL FIX: Immediate aggressive video play forcing for remote streams
         try {
-            await this.forceVideoPlay();
+            // IMMEDIATE: Force video to play right now
+            console.log('🎬 Forcing remote video to play immediately...');
+            await this.videoElement.play();
+            console.log('✅ Remote video is playing immediately');
+            
+            // Force texture update immediately
+            if (this.projectionTexture) {
+                this.projectionTexture.needsUpdate = true;
+                console.log('🔄 Forced immediate texture update for remote stream');
+            }
+            
+            // Start the monitoring system
+            this.startVideoMonitoring();
+            
+            // Wait for video to be fully ready
             await this.waitForVideoReady(this.videoElement);
             this.startVideoTextureUpdates();
+            
         } catch (error) {
-            console.warn('⚠️ Remote video setup failed, starting anyway:', error);
-            this.startVideoTextureUpdates();
+            console.warn('⚠️ Remote video setup failed, trying fallback:', error);
+            try {
+                await this.forceVideoPlay();
+                await this.waitForVideoReady(this.videoElement);
+                this.startVideoTextureUpdates();
+            } catch (fallbackError) {
+                console.warn('⚠️ All remote video methods failed, starting anyway:', fallbackError);
+                this.startVideoTextureUpdates();
+            }
         }
         
         // Show projection surface
@@ -1143,7 +1217,21 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
-        // Add debug functions
+        // Add global function to force video play (for manual fixes)
+        window.forceVideoPlayNow = () => {
+            if (this.videoElement) {
+                console.log('🎬 Manual: Forcing video to play...');
+                this.videoElement.play().then(() => {
+                    console.log('✅ Manual video play successful');
+                    if (this.projectionTexture) {
+                        this.projectionTexture.needsUpdate = true;
+                        console.log('🔄 Manual texture update applied');
+                    }
+                }).catch(e => console.log('❌ Manual video play failed:', e));
+            } else {
+                console.log('❌ No video element found');
+            }
+        };
         window.testCameraAccess = () => this.testCameraAccess();
         window.debugScreenShare = () => this.debugScreenShare();
         window.testVideoTexture = () => this.testVideoTexture();
@@ -1675,8 +1763,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with Three.js r128 compatibility and perfect video autoplay loaded and ready!');
+console.log('🖥️ Screen Sharing System with AGGRESSIVE video autoplay loaded and ready!');
 console.log('💡 Use window.testVideoTexture() to debug video content');
 console.log('💡 Use window.debugScreenShare() for full debug info');
 console.log('🎬 Use window.fixVideoTextureNow() for immediate video fixes');
 console.log('🧪 Use window.testWithSolidColor() to test projection visibility');
+console.log('⚡ Use window.forceVideoPlayNow() to manually force video play');
