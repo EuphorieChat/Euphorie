@@ -1,4 +1,4 @@
-// Enhanced Avatar System v2.0 - Ultra-realistic human avatars with improved proportions and animations
+// Enhanced Avatar System v2.2 - COMPLETE with all missing methods implemented
 // Compatible with room-core.js and room_3d.html
 
 window.AvatarSystem = {
@@ -41,7 +41,7 @@ window.AvatarSystem = {
     init: async function() {
         if (this.isInitialized) return;
         
-        console.log('👤 Initializing Enhanced Avatar System v2.0');
+        console.log('👤 Initializing Enhanced Avatar System v2.2 - COMPLETE');
         
         this.isInitialized = true;
         this.clock = new THREE.Clock();
@@ -75,7 +75,10 @@ window.AvatarSystem = {
         this.startBlinkingAnimation();
         this.startSubtleMovements();
         
-        console.log('✅ Enhanced Avatar System v2.0 initialized');
+        // Integrate with WebSocket if available
+        this.integrateWithWebSocket();
+        
+        console.log('✅ Enhanced Avatar System v2.2 - COMPLETE initialized');
     },
     
     createAvatar: function(userId, options = {}) {
@@ -211,18 +214,26 @@ window.AvatarSystem = {
         this.createLegs(group, skinMaterial, pantsColor, bodyMod, options.pantsStyle);
         this.createFeet(group, shoeColor, options.shoeStyle);
         
-        // Add hair
-        const hair = this.createAdvancedHair(options.hairStyle, options.hairColor);
-        if (hair) {
-            hair.position.set(0, 1.85, 0);
-            group.add(hair);
+        // Add hair with error handling
+        try {
+            const hair = this.createAdvancedHair(options.hairStyle, options.hairColor);
+            if (hair) {
+                hair.position.set(0, 1.85, 0);
+                group.add(hair);
+            }
+        } catch (error) {
+            console.warn('Error creating hair:', error);
         }
         
-        // Add accessory
-        const accessory = this.createAdvancedAccessory(options.accessory);
-        if (accessory) {
-            accessory.position.set(0, 1.85, 0);
-            group.add(accessory);
+        // Add accessory with error handling
+        try {
+            const accessory = this.createAdvancedAccessory(options.accessory);
+            if (accessory) {
+                accessory.position.set(0, 1.85, 0);
+                group.add(accessory);
+            }
+        } catch (error) {
+            console.warn('Error creating accessory:', error);
         }
         
         return group;
@@ -719,6 +730,7 @@ window.AvatarSystem = {
         }
     },
     
+    // COMPLETE HAIR CREATION METHODS - All missing methods implemented
     createAdvancedHair: function(style, color) {
         const hairColor = parseInt(color.replace('#', '0x'));
         const hairMaterial = new THREE.MeshLambertMaterial({ 
@@ -726,25 +738,28 @@ window.AvatarSystem = {
             shininess: 60
         });
         
-        let hairGroup = new THREE.Group();
-        
-        switch(style) {
-            case 'long_wavy':
-                return this.createLongWavyHair(hairMaterial);
-            case 'curly_afro':
-                return this.createCurlyAfroHair(hairMaterial);
-            case 'pixie_cut':
-                return this.createPixieCutHair(hairMaterial);
-            case 'bob_cut':
-                return this.createBobCutHair(hairMaterial);
-            case 'man_bun':
-                return this.createManBunHair(hairMaterial);
-            case 'buzz_cut':
-                return this.createBuzzCutHair(hairMaterial);
-            case 'ponytail':
-                return this.createPonytailHair(hairMaterial);
-            default: // short_clean
-                return this.createShortCleanHair(hairMaterial);
+        try {
+            switch(style) {
+                case 'long_wavy':
+                    return this.createLongWavyHair(hairMaterial);
+                case 'curly_afro':
+                    return this.createCurlyAfroHair(hairMaterial);
+                case 'pixie_cut':
+                    return this.createPixieCutHair(hairMaterial);
+                case 'bob_cut':
+                    return this.createBobCutHair(hairMaterial);
+                case 'man_bun':
+                    return this.createManBunHair(hairMaterial);
+                case 'buzz_cut':
+                    return this.createBuzzCutHair(hairMaterial);
+                case 'ponytail':
+                    return this.createPonytailHair(hairMaterial);
+                default: // short_clean
+                    return this.createShortCleanHair(hairMaterial);
+            }
+        } catch (error) {
+            console.warn(`Error creating hair style ${style}:`, error);
+            return this.createShortCleanHair(hairMaterial);
         }
     },
     
@@ -792,25 +807,135 @@ window.AvatarSystem = {
         baseHair.scale.set(1, 1.2, 1);
         group.add(baseHair);
         
+        // Add curly texture
+        for (let i = 0; i < 12; i++) {
+            const curlGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const curl = new THREE.Mesh(curlGeometry, hairMaterial);
+            const angle = (i / 12) * Math.PI * 2;
+            curl.position.set(
+                Math.cos(angle) * 0.3,
+                0.1 + Math.random() * 0.15,
+                Math.sin(angle) * 0.3
+            );
+            group.add(curl);
+        }
+        
         return group;
     },
     
+    createPixieCutHair: function(hairMaterial) {
+        const group = new THREE.Group();
+        
+        // Short hair base
+        const baseGeometry = new THREE.SphereGeometry(0.25, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const baseHair = new THREE.Mesh(baseGeometry, hairMaterial);
+        baseHair.position.y = 0.05;
+        group.add(baseHair);
+        
+        // Side swept bangs
+        const bangGeometry = new THREE.BoxGeometry(0.15, 0.04, 0.08);
+        const bang = new THREE.Mesh(bangGeometry, hairMaterial);
+        bang.position.set(0.08, 0.22, 0.18);
+        bang.rotation.z = -0.2;
+        group.add(bang);
+        
+        return group;
+    },
+    
+    createBobCutHair: function(hairMaterial) {
+        const group = new THREE.Group();
+        
+        // Main hair volume
+        const mainGeometry = new THREE.SphereGeometry(0.27, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.8);
+        const mainHair = new THREE.Mesh(mainGeometry, hairMaterial);
+        mainHair.position.y = 0.05;
+        group.add(mainHair);
+        
+        // Side sections for bob shape
+        const sideGeometry = new THREE.BoxGeometry(0.15, 0.3, 0.25);
+        
+        const leftSide = new THREE.Mesh(sideGeometry, hairMaterial);
+        leftSide.position.set(-0.25, 0, 0);
+        group.add(leftSide);
+        
+        const rightSide = new THREE.Mesh(sideGeometry, hairMaterial);
+        rightSide.position.set(0.25, 0, 0);
+        group.add(rightSide);
+        
+        return group;
+    },
+    
+    createManBunHair: function(hairMaterial) {
+        const group = new THREE.Group();
+        
+        // Base hair
+        const baseGeometry = new THREE.SphereGeometry(0.26, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const baseHair = new THREE.Mesh(baseGeometry, hairMaterial);
+        baseHair.position.y = 0.08;
+        group.add(baseHair);
+        
+        // Bun at the back
+        const bunGeometry = new THREE.SphereGeometry(0.08, 12, 12);
+        const bun = new THREE.Mesh(bunGeometry, hairMaterial);
+        bun.position.set(0, 0.15, -0.2);
+        group.add(bun);
+        
+        return group;
+    },
+    
+    createBuzzCutHair: function(hairMaterial) {
+        const hairGeometry = new THREE.SphereGeometry(0.255, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+        hair.position.y = 0.05;
+        hair.castShadow = true;
+        return hair;
+    },
+    
+    createPonytailHair: function(hairMaterial) {
+        const group = new THREE.Group();
+        
+        // Front hair
+        const frontGeometry = new THREE.SphereGeometry(0.27, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.65);
+        const frontHair = new THREE.Mesh(frontGeometry, hairMaterial);
+        frontHair.position.y = 0.08;
+        group.add(frontHair);
+        
+        // Ponytail
+        const tailGeometry = new THREE.CylinderGeometry(0.04, 0.02, 0.5, 12);
+        const tail = new THREE.Mesh(tailGeometry, hairMaterial);
+        tail.position.set(0, -0.1, -0.22);
+        tail.rotation.x = 0.3;
+        group.add(tail);
+        
+        return group;
+    },
+    
+    // COMPLETE ACCESSORY CREATION METHODS - All missing methods implemented
     createAdvancedAccessory: function(type) {
-        switch(type) {
-            case 'glasses':
-                return this.createDetailedGlasses();
-            case 'sunglasses':
-                return this.createSunglasses();
-            case 'hat':
-                return this.createDetailedHat();
-            case 'cap':
-                return this.createBaseballCap();
-            case 'watch':
-                return this.createWatch();
-            case 'backpack':
-                return this.createBackpack();
-            default:
-                return null;
+        try {
+            switch(type) {
+                case 'glasses':
+                    return this.createDetailedGlasses();
+                case 'sunglasses':
+                    return this.createSunglasses();
+                case 'hat':
+                    return this.createDetailedHat();
+                case 'cap':
+                    return this.createBaseballCap();
+                case 'necklace':
+                    return this.createNecklace();
+                case 'earrings':
+                    return this.createEarrings();
+                case 'watch':
+                    return this.createWatch();
+                case 'backpack':
+                    return this.createBackpack();
+                default:
+                    return null;
+            }
+        } catch (error) {
+            console.warn(`Error creating accessory ${type}:`, error);
+            return null;
         }
     },
     
@@ -855,8 +980,178 @@ window.AvatarSystem = {
         return group;
     },
     
+    createSunglasses: function() {
+        const group = new THREE.Group();
+        const frameMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+        const lensMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x111111, 
+            transparent: true, 
+            opacity: 0.8 
+        });
+        
+        // Larger frames for sunglasses
+        const frameGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 16);
+        
+        const leftFrame = new THREE.Mesh(frameGeometry, frameMaterial);
+        leftFrame.position.set(-0.08, 0.03, 0.22);
+        group.add(leftFrame);
+        
+        const rightFrame = new THREE.Mesh(frameGeometry, frameMaterial);
+        rightFrame.position.set(0.08, 0.03, 0.22);
+        group.add(rightFrame);
+        
+        // Dark lenses
+        const lensGeometry = new THREE.CircleGeometry(0.065, 16);
+        
+        const leftLens = new THREE.Mesh(lensGeometry, lensMaterial);
+        leftLens.position.set(-0.08, 0.03, 0.225);
+        group.add(leftLens);
+        
+        const rightLens = new THREE.Mesh(lensGeometry, lensMaterial);
+        rightLens.position.set(0.08, 0.03, 0.225);
+        group.add(rightLens);
+        
+        // Bridge
+        const bridgeGeometry = new THREE.CylinderGeometry(0.006, 0.006, 0.08, 6);
+        const bridge = new THREE.Mesh(bridgeGeometry, frameMaterial);
+        bridge.position.set(0, 0.03, 0.22);
+        bridge.rotation.z = Math.PI / 2;
+        group.add(bridge);
+        
+        return group;
+    },
+    
+    createDetailedHat: function() {
+        const group = new THREE.Group();
+        const hatMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+        
+        // Hat crown
+        const crownGeometry = new THREE.CylinderGeometry(0.22, 0.25, 0.15, 16);
+        const crown = new THREE.Mesh(crownGeometry, hatMaterial);
+        crown.position.y = 0.22;
+        group.add(crown);
+        
+        // Hat brim
+        const brimGeometry = new THREE.CylinderGeometry(0.35, 0.35, 0.02, 24);
+        const brim = new THREE.Mesh(brimGeometry, hatMaterial);
+        brim.position.y = 0.15;
+        group.add(brim);
+        
+        // Hat band
+        const bandGeometry = new THREE.CylinderGeometry(0.255, 0.255, 0.03, 16);
+        const bandMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        const band = new THREE.Mesh(bandGeometry, bandMaterial);
+        band.position.y = 0.16;
+        group.add(band);
+        
+        return group;
+    },
+    
+    createBaseballCap: function() {
+        const group = new THREE.Group();
+        const capMaterial = new THREE.MeshLambertMaterial({ color: 0x000080 });
+        
+        // Cap crown
+        const crownGeometry = new THREE.SphereGeometry(0.24, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const crown = new THREE.Mesh(crownGeometry, capMaterial);
+        crown.position.y = 0.15;
+        group.add(crown);
+        
+        // Visor
+        const visorGeometry = new THREE.CylinderGeometry(0.28, 0.32, 0.02, 16, 1, false, 0, Math.PI);
+        const visor = new THREE.Mesh(visorGeometry, capMaterial);
+        visor.position.set(0, 0.05, 0.15);
+        visor.rotation.x = -Math.PI / 6;
+        group.add(visor);
+        
+        return group;
+    },
+    
+    createNecklace: function() {
+        const group = new THREE.Group();
+        const chainMaterial = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
+        
+        // Simple chain necklace
+        const chainGeometry = new THREE.TorusGeometry(0.18, 0.004, 8, 32);
+        const chain = new THREE.Mesh(chainGeometry, chainMaterial);
+        chain.position.set(0, 1.55, 0.15);
+        chain.rotation.x = Math.PI / 2;
+        group.add(chain);
+        
+        // Pendant
+        const pendantGeometry = new THREE.SphereGeometry(0.012, 8, 8);
+        const pendant = new THREE.Mesh(pendantGeometry, chainMaterial);
+        pendant.position.set(0, 1.45, 0.16);
+        group.add(pendant);
+        
+        return group;
+    },
+    
+    createEarrings: function() {
+        const group = new THREE.Group();
+        const earringMaterial = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
+        
+        // Simple stud earrings
+        const studGeometry = new THREE.SphereGeometry(0.008, 8, 8);
+        
+        const leftEarring = new THREE.Mesh(studGeometry, earringMaterial);
+        leftEarring.position.set(-0.22, 1.85, 0.15);
+        group.add(leftEarring);
+        
+        const rightEarring = new THREE.Mesh(studGeometry, earringMaterial);
+        rightEarring.position.set(0.22, 1.85, 0.15);
+        group.add(rightEarring);
+        
+        return group;
+    },
+    
+    createWatch: function() {
+        const group = new THREE.Group();
+        const watchMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        const bandMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+        
+        // Watch face
+        const faceGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.01, 16);
+        const face = new THREE.Mesh(faceGeometry, watchMaterial);
+        face.position.set(0.62, 0.55, 0.12);
+        face.rotation.z = Math.PI / 2;
+        group.add(face);
+        
+        // Watch band
+        const bandGeometry = new THREE.TorusGeometry(0.04, 0.008, 8, 16);
+        const band = new THREE.Mesh(bandGeometry, bandMaterial);
+        band.position.set(0.62, 0.55, 0.12);
+        band.rotation.x = Math.PI / 2;
+        group.add(band);
+        
+        return group;
+    },
+    
+    createBackpack: function() {
+        const group = new THREE.Group();
+        const packMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        
+        // Main compartment
+        const mainGeometry = new THREE.BoxGeometry(0.3, 0.4, 0.15);
+        const main = new THREE.Mesh(mainGeometry, packMaterial);
+        main.position.set(0, 1.2, -0.25);
+        group.add(main);
+        
+        // Straps
+        const strapGeometry = new THREE.BoxGeometry(0.03, 0.3, 0.02);
+        
+        const leftStrap = new THREE.Mesh(strapGeometry, packMaterial);
+        leftStrap.position.set(-0.1, 1.35, -0.18);
+        group.add(leftStrap);
+        
+        const rightStrap = new THREE.Mesh(strapGeometry, packMaterial);
+        rightStrap.position.set(0.1, 1.35, -0.18);
+        group.add(rightStrap);
+        
+        return group;
+    },
+    
     createNameLabelWithFlag: function(name, nationality) {
-        // Enhanced name label with nationality flag support
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.width = 512;
@@ -868,12 +1163,12 @@ window.AvatarSystem = {
         gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.85)');
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
         
-        // Draw enhanced background
+        // Draw background
         context.fillStyle = gradient;
         this.roundRect(context, 15, 15, canvas.width - 30, canvas.height - 30, 25);
         context.fill();
         
-        // Enhanced border with glow
+        // Enhanced border
         context.strokeStyle = 'rgba(102, 126, 234, 0.8)';
         context.lineWidth = 3;
         context.shadowColor = 'rgba(102, 126, 234, 0.6)';
@@ -885,17 +1180,27 @@ window.AvatarSystem = {
         context.shadowColor = 'transparent';
         context.shadowBlur = 0;
         
-        // Flag placeholder (can be enhanced with actual flag images)
-        if (nationality && nationality !== 'UN') {
-            context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            context.font = 'bold 24px Arial';
-            context.textAlign = 'left';
-            context.fillText('🏳️', 30, 50);
-        }
+        // Use emoji flags to avoid CORS issues
+        const flagEmojis = {
+            'KR': '🇰🇷', 'US': '🇺🇸', 'GB': '🇬🇧', 'JP': '🇯🇵', 'CN': '🇨🇳',
+            'DE': '🇩🇪', 'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'BR': '🇧🇷',
+            'IN': '🇮🇳', 'RU': '🇷🇺', 'MX': '🇲🇽', 'IT': '🇮🇹', 'ES': '🇪🇸',
+            'NL': '🇳🇱', 'SE': '🇸🇪', 'NO': '🇳🇴', 'FI': '🇫🇮', 'DK': '🇩🇰',
+            'BE': '🇧🇪', 'CH': '🇨🇭', 'AT': '🇦🇹', 'PL': '🇵🇱', 'TR': '🇹🇷',
+            'GR': '🇬🇷', 'PT': '🇵🇹', 'IE': '🇮🇪', 'CZ': '🇨🇿', 'HU': '🇭🇺'
+        };
         
-        // Enhanced text with better shadow
-        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        const flagEmoji = flagEmojis[nationality] || '🌍';
+        
+        // Draw flag emoji
         context.font = 'bold 32px Arial';
+        context.textAlign = 'left';
+        context.fillStyle = 'white';
+        context.fillText(flagEmoji, 30, 60);
+        
+        // Draw name with shadow
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.font = 'bold 28px Arial';
         context.textAlign = 'center';
         context.fillText(name, canvas.width / 2 + 2, canvas.height / 2 + 12);
         
@@ -944,7 +1249,7 @@ window.AvatarSystem = {
         return particles;
     },
     
-    // Enhanced animation methods
+    // Animation methods
     startIdleAnimations: function() {
         setInterval(() => {
             this.avatars.forEach(avatar => {
@@ -954,7 +1259,6 @@ window.AvatarSystem = {
                     // Enhanced breathing with chest movement
                     const torso = avatar.mesh.getObjectByName('torso');
                     if (torso) {
-                        torso.scale.y = 1 + Math.sin(avatar.breathPhase) * 0.012;
                         torso.scale.x = 1 + Math.sin(avatar.breathPhase) * 0.005;
                     }
                     
@@ -1074,18 +1378,6 @@ window.AvatarSystem = {
         };
         
         requestAnimationFrame(animateEntrance);
-    },
-    
-    easeOutBounce: function(t) {
-        if (t < 1 / 2.75) {
-            return 7.5625 * t * t;
-        } else if (t < 2 / 2.75) {
-            return 7.5625 * (t -= 1.5 / 2.75) * t + 0.75;
-        } else if (t < 2.5 / 2.75) {
-            return 7.5625 * (t -= 2.25 / 2.75) * t + 0.9375;
-        } else {
-            return 7.5625 * (t -= 2.625 / 2.75) * t + 0.984375;
-        }
     },
     
     // Enhanced wave animation with realistic arm movement
@@ -1292,6 +1584,18 @@ window.AvatarSystem = {
         return 1 - Math.pow(1 - t, 3);
     },
     
+    easeOutBounce: function(t) {
+        if (t < 1 / 2.75) {
+            return 7.5625 * t * t;
+        } else if (t < 2 / 2.75) {
+            return 7.5625 * (t -= 1.5 / 2.75) * t + 0.75;
+        } else if (t < 2.5 / 2.75) {
+            return 7.5625 * (t -= 2.25 / 2.75) * t + 0.9375;
+        } else {
+            return 7.5625 * (t -= 2.625 / 2.75) * t + 0.984375;
+        }
+    },
+    
     roundRect: function(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
@@ -1495,211 +1799,6 @@ window.AvatarSystem = {
         requestAnimationFrame(animateWave);
     },
     
-    // Advanced hair creation methods
-    createLongWavyHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Top section
-        const topGeometry = new THREE.SphereGeometry(0.28, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.7);
-        const topHair = new THREE.Mesh(topGeometry, hairMaterial);
-        topHair.position.y = 0.1;
-        group.add(topHair);
-        
-        // Long wavy strands
-        for (let i = 0; i < 12; i++) {
-            const strandGeometry = new THREE.CylinderGeometry(0.015, 0.01, 0.7, 8);
-            const strand = new THREE.Mesh(strandGeometry, hairMaterial);
-            const angle = (i / 12) * Math.PI * 2;
-            strand.position.set(
-                Math.cos(angle) * 0.22,
-                -0.2,
-                Math.sin(angle) * 0.22
-            );
-            // Add wave effect
-            strand.rotation.z = Math.sin(i * 0.5) * 0.4;
-            strand.rotation.x = Math.cos(i * 0.3) * 0.2;
-            group.add(strand);
-        }
-        
-        return group;
-    },
-    
-    createBobCutHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Main hair volume
-        const mainGeometry = new THREE.SphereGeometry(0.27, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.8);
-        const mainHair = new THREE.Mesh(mainGeometry, hairMaterial);
-        mainHair.position.y = 0.05;
-        group.add(mainHair);
-        
-        // Side sections for bob shape
-        const sideGeometry = new THREE.BoxGeometry(0.15, 0.3, 0.25);
-        
-        const leftSide = new THREE.Mesh(sideGeometry, hairMaterial);
-        leftSide.position.set(-0.25, 0, 0);
-        group.add(leftSide);
-        
-        const rightSide = new THREE.Mesh(sideGeometry, hairMaterial);
-        rightSide.position.set(0.25, 0, 0);
-        group.add(rightSide);
-        
-        return group;
-    },
-    
-    createManBunHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Base hair
-        const baseGeometry = new THREE.SphereGeometry(0.26, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const baseHair = new THREE.Mesh(baseGeometry, hairMaterial);
-        baseHair.position.y = 0.08;
-        group.add(baseHair);
-        
-        // Bun at the back
-        const bunGeometry = new THREE.SphereGeometry(0.08, 12, 12);
-        const bun = new THREE.Mesh(bunGeometry, hairMaterial);
-        bun.position.set(0, 0.15, -0.2);
-        group.add(bun);
-        
-        return group;
-    },
-    
-    createPonytailHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Front hair
-        const frontGeometry = new THREE.SphereGeometry(0.27, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.65);
-        const frontHair = new THREE.Mesh(frontGeometry, hairMaterial);
-        frontHair.position.y = 0.08;
-        group.add(frontHair);
-        
-        // Ponytail
-        const tailGeometry = new THREE.CylinderGeometry(0.04, 0.02, 0.5, 12);
-        const tail = new THREE.Mesh(tailGeometry, hairMaterial);
-        tail.position.set(0, -0.1, -0.22);
-        tail.rotation.x = 0.3;
-        group.add(tail);
-        
-        return group;
-    },
-    
-    createBuzzCutHair: function(hairMaterial) {
-        const hairGeometry = new THREE.SphereGeometry(0.255, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const hair = new THREE.Mesh(hairGeometry, hairMaterial);
-        hair.position.y = 0.05;
-        hair.castShadow = true;
-        return hair;
-    },
-    
-    // Additional accessory creation methods
-    createSunglasses: function() {
-        const group = new THREE.Group();
-        const frameMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
-        const lensMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x111111, 
-            transparent: true, 
-            opacity: 0.8 
-        });
-        
-        // Larger frames for sunglasses
-        const frameGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 16);
-        
-        const leftFrame = new THREE.Mesh(frameGeometry, frameMaterial);
-        leftFrame.position.set(-0.08, 0.03, 0.22);
-        group.add(leftFrame);
-        
-        const rightFrame = new THREE.Mesh(frameGeometry, frameMaterial);
-        rightFrame.position.set(0.08, 0.03, 0.22);
-        group.add(rightFrame);
-        
-        // Dark lenses
-        const lensGeometry = new THREE.CircleGeometry(0.065, 16);
-        
-        const leftLens = new THREE.Mesh(lensGeometry, lensMaterial);
-        leftLens.position.set(-0.08, 0.03, 0.225);
-        group.add(leftLens);
-        
-        const rightLens = new THREE.Mesh(lensGeometry, lensMaterial);
-        rightLens.position.set(0.08, 0.03, 0.225);
-        group.add(rightLens);
-        
-        // Bridge
-        const bridgeGeometry = new THREE.CylinderGeometry(0.006, 0.006, 0.08, 6);
-        const bridge = new THREE.Mesh(bridgeGeometry, frameMaterial);
-        bridge.position.set(0, 0.03, 0.22);
-        bridge.rotation.z = Math.PI / 2;
-        group.add(bridge);
-        
-        return group;
-    },
-    
-    createBaseballCap: function() {
-        const group = new THREE.Group();
-        const capMaterial = new THREE.MeshLambertMaterial({ color: 0x000080 });
-        
-        // Cap crown
-        const crownGeometry = new THREE.SphereGeometry(0.24, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const crown = new THREE.Mesh(crownGeometry, capMaterial);
-        crown.position.y = 0.15;
-        group.add(crown);
-        
-        // Visor
-        const visorGeometry = new THREE.CylinderGeometry(0.28, 0.32, 0.02, 16, 1, false, 0, Math.PI);
-        const visor = new THREE.Mesh(visorGeometry, capMaterial);
-        visor.position.set(0, 0.05, 0.15);
-        visor.rotation.x = -Math.PI / 6;
-        group.add(visor);
-        
-        return group;
-    },
-    
-    createWatch: function() {
-        const group = new THREE.Group();
-        const watchMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-        const bandMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-        
-        // Watch face
-        const faceGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.01, 16);
-        const face = new THREE.Mesh(faceGeometry, watchMaterial);
-        face.position.set(0.62, 0.55, 0.12);
-        face.rotation.z = Math.PI / 2;
-        group.add(face);
-        
-        // Watch band
-        const bandGeometry = new THREE.TorusGeometry(0.04, 0.008, 8, 16);
-        const band = new THREE.Mesh(bandGeometry, bandMaterial);
-        band.position.set(0.62, 0.55, 0.12);
-        band.rotation.x = Math.PI / 2;
-        group.add(band);
-        
-        return group;
-    },
-    
-    createBackpack: function() {
-        const group = new THREE.Group();
-        const packMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-        
-        // Main compartment
-        const mainGeometry = new THREE.BoxGeometry(0.3, 0.4, 0.15);
-        const main = new THREE.Mesh(mainGeometry, packMaterial);
-        main.position.set(0, 1.2, -0.25);
-        group.add(main);
-        
-        // Straps
-        const strapGeometry = new THREE.BoxGeometry(0.03, 0.3, 0.02);
-        
-        const leftStrap = new THREE.Mesh(strapGeometry, packMaterial);
-        leftStrap.position.set(-0.1, 1.35, -0.18);
-        group.add(leftStrap);
-        
-        const rightStrap = new THREE.Mesh(strapGeometry, packMaterial);
-        rightStrap.position.set(0.1, 1.35, -0.18);
-        group.add(rightStrap);
-        
-        return group;
-    },
-    
     // Default avatar creation
     createDefaultAvatar: function() {
         if (this.avatars.has('default')) {
@@ -1815,45 +1914,36 @@ window.AvatarSystem = {
         };
     },
     
-    // Public API methods
-    getAvatar: function(avatarId) {
-        return this.avatars.get(avatarId);
+    // WebSocket Integration Methods
+    integrateWithWebSocket: function() {
+        if (window.WebSocketManager) {
+            console.log('🔗 Integrating enhanced avatar system with WebSocket');
+            
+            // Override the WebSocket createRemoteAvatar method
+            const originalCreateRemoteAvatar = window.WebSocketManager.createRemoteAvatar;
+            
+            window.WebSocketManager.createRemoteAvatar = (userData) => {
+                console.log(`🔄 Using enhanced avatar creation for ${userData.username}`);
+                
+                // Use our enhanced creation method
+                return window.AvatarSystem.createRemoteAvatarSafe(userData);
+            };
+            
+            // Override the remove method too
+            const originalRemoveRemoteAvatar = window.WebSocketManager.removeRemoteAvatar;
+            
+            window.WebSocketManager.removeRemoteAvatar = (userId) => {
+                console.log(`🗑️ Using enhanced avatar removal for ${userId}`);
+                return window.AvatarSystem.removeAvatar(userId);
+            };
+            
+            console.log('✅ Enhanced avatar system integrated with WebSocket');
+        }
     },
     
-    getAllAvatars: function() {
-        return Array.from(this.avatars.values());
-    },
-    
-    getAvatarCount: function() {
-        return this.avatars.size;
-    },
-    
-    updateAnimations: function() {
-        const delta = this.clock.getDelta();
-        
-        // Update any animation mixers if we add skeletal animation later
-        this.animationMixers.forEach(mixer => {
-            mixer.update(delta);
-        });
-        
-        // Update particle effects
-        this.avatars.forEach(avatar => {
-            if (avatar.particleEffect) {
-                const positions = avatar.particleEffect.geometry.attributes.position;
-                if (positions) {
-                    positions.needsUpdate = true;
-                }
-            }
-        });
-    },
-    
-    generateId: function() {
-        return Math.random().toString(36).substr(2, 9);
-    },
-    
-    // FIXED: Improved remote avatar creation method
-    createRemoteAvatarFixed: function(userData) {
-        console.log(`👤 Creating FIXED remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
+    // Safe avatar creation with error handling for remote avatars
+    createRemoteAvatarSafe: function(userData) {
+        console.log(`👤 Creating safe remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
         
         // Double-check we're not creating avatar for current user
         if (userData.user_id === (window.ROOM_CONFIG?.userId || window.WebSocketManager?.userId)) {
@@ -1910,86 +2000,7 @@ window.AvatarSystem = {
         return null;
     },
     
-    // FIXED: Improved name label with emoji flags to avoid CORS issues
-    createNameLabelWithFlagFixed: function(name, nationality) {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = 512;
-        canvas.height = 128;
-        
-        // Enhanced gradient background
-        const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
-        gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.85)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
-        
-        // Draw background
-        context.fillStyle = gradient;
-        this.roundRect(context, 15, 15, canvas.width - 30, canvas.height - 30, 25);
-        context.fill();
-        
-        // Enhanced border
-        context.strokeStyle = 'rgba(102, 126, 234, 0.8)';
-        context.lineWidth = 3;
-        context.shadowColor = 'rgba(102, 126, 234, 0.6)';
-        context.shadowBlur = 10;
-        this.roundRect(context, 15, 15, canvas.width - 30, canvas.height - 30, 25);
-        context.stroke();
-        
-        // Reset shadow
-        context.shadowColor = 'transparent';
-        context.shadowBlur = 0;
-        
-        // FIXED: Use emoji flags instead of external images to avoid CORS
-        const flagEmojis = {
-            'KR': '🇰🇷', 'US': '🇺🇸', 'GB': '🇬🇧', 'JP': '🇯🇵', 'CN': '🇨🇳',
-            'DE': '🇩🇪', 'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'BR': '🇧🇷',
-            'IN': '🇮🇳', 'RU': '🇷🇺', 'MX': '🇲🇽', 'IT': '🇮🇹', 'ES': '🇪🇸',
-            'NL': '🇳🇱', 'SE': '🇸🇪', 'NO': '🇳🇴', 'FI': '🇫🇮', 'DK': '🇩🇰',
-            'BE': '🇧🇪', 'CH': '🇨🇭', 'AT': '🇦🇹', 'PL': '🇵🇱', 'TR': '🇹🇷',
-            'GR': '🇬🇷', 'PT': '🇵🇹', 'IE': '🇮🇪', 'CZ': '🇨🇿', 'HU': '🇭🇺'
-        };
-        
-        const flagEmoji = flagEmojis[nationality] || '🌍';
-        
-        // Draw flag emoji
-        context.font = 'bold 32px Arial';
-        context.textAlign = 'left';
-        context.fillStyle = 'white';
-        context.fillText(flagEmoji, 30, 60);
-        
-        // Draw name with shadow
-        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        context.font = 'bold 28px Arial';
-        context.textAlign = 'center';
-        context.fillText(name, canvas.width / 2 + 2, canvas.height / 2 + 12);
-        
-        context.fillStyle = 'white';
-        context.fillText(name, canvas.width / 2, canvas.height / 2 + 10);
-        
-        // Create texture and material
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.generateMipmaps = false;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        
-        const material = new THREE.SpriteMaterial({ 
-            map: texture,
-            transparent: true,
-            alphaTest: 0.001
-        });
-        const sprite = new THREE.Sprite(material);
-        sprite.scale.set(2.2, 0.55, 1);
-        
-        return sprite;
-    },
-    
-    // FIXED: Override the original method to use the fixed version
-    createNameLabelWithFlag: function(name, nationality) {
-        return this.createNameLabelWithFlagFixed(name, nationality);
-    },
-    
-    // FIXED: Fallback avatar for when main creation fails
+    // Fallback avatar for when main creation fails
     createFallbackAvatar: function(userId, options = {}) {
         console.log(`🔄 Creating fallback avatar for ${userId}`);
         
@@ -2019,7 +2030,7 @@ window.AvatarSystem = {
             group.position.set(position.x, position.y, position.z);
             
             // Add simple name label
-            const nameLabel = this.createNameLabelWithFlagFixed(
+            const nameLabel = this.createNameLabelWithFlag(
                 options.name || userId, 
                 options.nationality || 'UN'
             );
@@ -2053,181 +2064,44 @@ window.AvatarSystem = {
         }
     },
     
-    // FIXED: Safe avatar creation with error handling
-    safeCreateAvatar: function(userId, options = {}) {
-        try {
-            return this.createAvatar(userId, options);
-        } catch (error) {
-            console.error(`❌ Error creating avatar ${userId}:`, error);
-            return this.createFallbackAvatar(userId, options);
-        }
+    // Public API methods
+    getAvatar: function(avatarId) {
+        return this.avatars.get(avatarId);
     },
     
-    // FIXED: Improved avatar removal with better cleanup
-    removeAvatarImproved: function(avatarId) {
-        const avatar = this.avatars.get(avatarId);
-        if (avatar) {
-            console.log(`🗑️ Removing enhanced avatar: ${avatarId}`);
-            
-            try {
-                // Enhanced cleanup
-                this.cleanupAvatar(avatar);
-                
-                if (window.SceneManager && window.SceneManager.scene) {
-                    window.SceneManager.removeObject(avatar.group);
-                }
-                this.avatars.delete(avatarId);
-                
-                // Emit event
-                if (window.EventBus) {
-                    window.EventBus.emit('avatar:removed', { avatarId });
-                }
-                
-                console.log(`✅ Enhanced avatar removed: ${avatarId}`);
-            } catch (error) {
-                console.error(`❌ Error removing avatar ${avatarId}:`, error);
-                // Force removal
-                this.avatars.delete(avatarId);
-            }
-        }
+    getAllAvatars: function() {
+        return Array.from(this.avatars.values());
     },
     
-    // FIXED: Override original remove method
-    removeAvatar: function(avatarId) {
-        return this.removeAvatarImproved(avatarId);
+    getAvatarCount: function() {
+        return this.avatars.size;
     },
     
-    // FIXED: Better country name mapping
-    getCountryNameImproved: function(countryCode) {
-        const countryNames = {
-            'KR': 'South Korea', 'US': 'United States', 'GB': 'United Kingdom',
-            'JP': 'Japan', 'CN': 'China', 'DE': 'Germany', 'FR': 'France',
-            'CA': 'Canada', 'AU': 'Australia', 'BR': 'Brazil', 'IN': 'India',
-            'RU': 'Russia', 'MX': 'Mexico', 'IT': 'Italy', 'ES': 'Spain',
-            'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland',
-            'DK': 'Denmark', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
-            'PL': 'Poland', 'TR': 'Turkey', 'GR': 'Greece', 'PT': 'Portugal',
-            'IE': 'Ireland', 'CZ': 'Czech Republic', 'HU': 'Hungary', 'RO': 'Romania',
-            'BG': 'Bulgaria', 'HR': 'Croatia', 'SK': 'Slovakia', 'SI': 'Slovenia',
-            'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia', 'AR': 'Argentina',
-            'CL': 'Chile', 'PE': 'Peru', 'CO': 'Colombia', 'VE': 'Venezuela',
-            'UY': 'Uruguay', 'PY': 'Paraguay', 'BO': 'Bolivia', 'EC': 'Ecuador',
-            'ZA': 'South Africa', 'EG': 'Egypt', 'MA': 'Morocco', 'NG': 'Nigeria',
-            'KE': 'Kenya', 'GH': 'Ghana', 'TH': 'Thailand', 'VN': 'Vietnam',
-            'PH': 'Philippines', 'ID': 'Indonesia', 'MY': 'Malaysia', 'SG': 'Singapore',
-            'UN': 'Unknown'
-        };
+    updateAnimations: function() {
+        const delta = this.clock.getDelta();
         
-        return countryNames[countryCode] || countryCode || 'Unknown';
-    },
-    
-    // FIXED: Override original method
-    getCountryName: function(countryCode) {
-        return this.getCountryNameImproved(countryCode);
-    },
-    
-    // FIXED: Enhanced integration with WebSocket system
-    integrateWithWebSocket: function() {
-        if (window.WebSocketManager) {
-            console.log('🔗 Integrating enhanced avatar system with WebSocket');
-            
-            // Override the WebSocket createRemoteAvatar method
-            const originalCreateRemoteAvatar = window.WebSocketManager.createRemoteAvatar;
-            
-            window.WebSocketManager.createRemoteAvatar = (userData) => {
-                console.log(`🔄 Using enhanced avatar creation for ${userData.username}`);
-                
-                // Use our fixed creation method
-                return window.AvatarSystem.createRemoteAvatarFixed(userData);
-            };
-            
-            // Override the remove method too
-            const originalRemoveRemoteAvatar = window.WebSocketManager.removeRemoteAvatar;
-            
-            window.WebSocketManager.removeRemoteAvatar = (userId) => {
-                console.log(`🗑️ Using enhanced avatar removal for ${userId}`);
-                return window.AvatarSystem.removeAvatarImproved(userId);
-            };
-            
-            console.log('✅ Enhanced avatar system integrated with WebSocket');
-        }
-    },
-    
-    // FIXED: Better avatar position management
-    getAvatarPositionSafe: function(avatarId) {
-        try {
-            const avatar = this.avatars.get(avatarId);
-            if (avatar && avatar.group && avatar.group.position) {
-                return avatar.group.position.clone();
-            }
-        } catch (error) {
-            console.warn(`Error getting position for avatar ${avatarId}:`, error);
-        }
-        return null;
-    },
-    
-    // FIXED: Override original method
-    getAvatarPosition: function(avatarId) {
-        return this.getAvatarPositionSafe(avatarId);
-    },
-    
-    // FIXED: Enhanced initialization with better error handling
-    initEnhanced: async function() {
-        if (this.isInitialized) return;
+        // Update any animation mixers if we add skeletal animation later
+        this.animationMixers.forEach(mixer => {
+            mixer.update(delta);
+        });
         
-        console.log('👤 Initializing Enhanced Avatar System v2.1 - FIXED');
-        
-        try {
-            this.isInitialized = true;
-            this.clock = new THREE.Clock();
-            
-            // Integrate with WebSocket if available
-            this.integrateWithWebSocket();
-            
-            // Create default avatar immediately if scene is ready
-            if (window.SceneManager && window.SceneManager.isInitialized) {
-                this.createDefaultAvatar();
-            } else {
-                // Wait for scene to be ready
-                if (window.EventBus) {
-                    window.EventBus.on('scene:initialized', () => {
-                        console.log('🎬 Scene ready, creating enhanced realistic avatar...');
-                        this.createDefaultAvatar();
-                    });
+        // Update particle effects
+        this.avatars.forEach(avatar => {
+            if (avatar.particleEffect) {
+                const positions = avatar.particleEffect.geometry.attributes.position;
+                if (positions) {
+                    positions.needsUpdate = true;
                 }
             }
-            
-            // Listen for events
-            if (window.EventBus) {
-                window.EventBus.on('avatar:customize', (options) => {
-                    this.customizeAvatar('default', options);
-                });
-                
-                window.EventBus.on('scene:frame', () => {
-                    this.updateAnimations();
-                });
-            }
-            
-            // Start enhanced animation loops
-            this.startIdleAnimations();
-            this.startBlinkingAnimation();
-            this.startSubtleMovements();
-            
-            console.log('✅ Enhanced Avatar System v2.1 - FIXED initialized');
-            
-        } catch (error) {
-            console.error('❌ Error initializing enhanced avatar system:', error);
-            this.isInitialized = false;
-        }
+        });
     },
     
-    // FIXED: Override original init method
-    init: async function() {
-        return this.initEnhanced();
+    generateId: function() {
+        return Math.random().toString(36).substr(2, 9);
     }
 };
 
-// FIXED: Auto-integration when WebSocket becomes available
+// Auto-integration when WebSocket becomes available
 if (typeof window !== 'undefined') {
     // Try immediate integration
     if (window.WebSocketManager) {
@@ -2256,6 +2130,4 @@ if (typeof window !== 'undefined') {
     }, 30000);
 }
 
-console.log('✅ Enhanced Avatar System v2.1 - FIXED loaded with integration fixes');
-console.log('🔧 Fixes: CORS-safe flag emojis, improved nametag attachment, better error handling');
-console.log('🚀 Ready for WebSocket integration and enhanced avatar creation');
+console.log('✅ Enhanced Avatar System v2.2 - COMPLETE loaded with all missing methods implemented');
