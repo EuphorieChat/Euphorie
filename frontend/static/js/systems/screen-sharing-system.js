@@ -1,6 +1,6 @@
 // ================================
-// EUPHORIE 3D SCREEN SHARING SYSTEM
-// Complete implementation with ceiling/wall projection
+// EUPHORIE 3D SCREEN SHARING SYSTEM - FIXED VERSION
+// Complete implementation with VideoTexture black screen fix
 // ================================
 
 class EuphorieScreenSharingSystem {
@@ -15,6 +15,10 @@ class EuphorieScreenSharingSystem {
         this.projectionSurface = null;
         this.projectionTexture = null;
         this.projectionMaterial = null;
+        
+        // CRITICAL: Video texture update system
+        this.textureUpdateInterval = null;
+        this.isTextureUpdating = false;
         
         // Screen sharing state
         this.activeShares = new Map(); // userId -> shareData
@@ -71,7 +75,7 @@ class EuphorieScreenSharingSystem {
             // Setup WebSocket integration
             this.setupWebSocketIntegration();
             
-            // Create projection surface
+            // Create projection surface with VideoTexture fix
             this.createProjectionSurface();
             
             // Setup global functions (but don't add UI buttons)
@@ -192,24 +196,31 @@ class EuphorieScreenSharingSystem {
         this.videoElement.playsInline = true;
         document.body.appendChild(this.videoElement);
         
-        // Create projection texture
+        // CRITICAL FIX: Create VideoTexture with proper properties
         this.projectionTexture = new THREE.VideoTexture(this.videoElement);
         this.projectionTexture.minFilter = THREE.LinearFilter;
         this.projectionTexture.magFilter = THREE.LinearFilter;
-        this.projectionTexture.format = THREE.RGBFormat;
+        this.projectionTexture.format = THREE.RGBAFormat; // Changed to RGBA for better compatibility
+        this.projectionTexture.generateMipmaps = false; // Disable mipmaps for video
+        this.projectionTexture.flipY = false; // Prevent flipping
         
-        // Create projection material
+        // CRITICAL FIX: Force initial update
+        this.projectionTexture.needsUpdate = true;
+        
+        // Create projection material with enhanced properties
         this.projectionMaterial = new THREE.MeshBasicMaterial({
             map: this.projectionTexture,
-            transparent: true,
-            opacity: 0.95,
-            side: THREE.DoubleSide
+            transparent: false, // Changed to false for better visibility
+            side: THREE.DoubleSide,
+            // Add emissive for better visibility in dark scenes
+            emissive: new THREE.Color(0x111111),
+            emissiveIntensity: 0.1
         });
         
         // Create projection geometry based on mode
         this.updateProjectionSurface();
         
-        console.log('✅ Projection surface created');
+        console.log('✅ Projection surface created with VideoTexture fix');
     }
     
     updateProjectionSurface() {
@@ -272,10 +283,23 @@ class EuphorieScreenSharingSystem {
         glowMesh.rotation.copy(rotation);
         glowMesh.position.z -= 0.01; // Slightly behind
         
+        // Add subtle border for visibility
+        const borderGeometry = new THREE.EdgesGeometry(geometry);
+        const borderMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x00ff00, 
+            linewidth: 2,
+            transparent: true,
+            opacity: 0.7
+        });
+        const border = new THREE.LineSegments(borderGeometry, borderMaterial);
+        border.position.copy(position);
+        border.rotation.copy(rotation);
+        
         // Create projection group
         const projectionGroup = new THREE.Group();
         projectionGroup.add(glowMesh);
         projectionGroup.add(this.projectionSurface);
+        projectionGroup.add(border);
         projectionGroup.name = 'screen-projection-group';
         
         // Initially hidden
@@ -285,6 +309,88 @@ class EuphorieScreenSharingSystem {
         this.projectionSurface = projectionGroup;
         
         console.log(`✅ Projection surface updated (mode: ${this.projectionMode})`);
+    }
+    
+    // CRITICAL FIX: Start continuous texture updates
+    startVideoTextureUpdates() {
+        if (this.isTextureUpdating || !this.projectionTexture) {
+            console.log('⚠️ Video texture updates already running or no texture available');
+            return;
+        }
+
+        this.isTextureUpdating = true;
+        console.log('🔄 Starting video texture update loop...');
+
+        // Update texture every frame for smooth video playback
+        this.textureUpdateInterval = setInterval(() => {
+            if (this.projectionTexture && this.videoElement) {
+                // Check if video is playing and has data
+                if (this.videoElement.readyState >= this.videoElement.HAVE_CURRENT_DATA && 
+                    !this.videoElement.paused &&
+                    this.videoElement.videoWidth > 0) {
+                    
+                    // CRITICAL: Force texture update every frame
+                    this.projectionTexture.needsUpdate = true;
+                    
+                    // Also update material
+                    if (this.projectionMaterial) {
+                        this.projectionMaterial.needsUpdate = true;
+                    }
+                }
+            }
+        }, 16); // ~60 FPS updates (essential for smooth video)
+
+        console.log('✅ Video texture update loop started at 60 FPS');
+    }
+    
+    // CRITICAL FIX: Stop texture updates
+    stopVideoTextureUpdates() {
+        if (this.textureUpdateInterval) {
+            clearInterval(this.textureUpdateInterval);
+            this.textureUpdateInterval = null;
+            this.isTextureUpdating = false;
+            console.log('🛑 Video texture updates stopped');
+        }
+    }
+    
+    // CRITICAL FIX: Wait for video to be ready
+    async waitForVideoReady(videoElement) {
+        return new Promise((resolve, reject) => {
+            if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
+                console.log('✅ Video already ready');
+                resolve();
+                return;
+            }
+
+            let checkAttempts = 0;
+            const maxAttempts = 50; // 5 seconds max
+
+            const checkReady = () => {
+                checkAttempts++;
+                
+                if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
+                    console.log(`✅ Video ready after ${checkAttempts * 100}ms`);
+                    videoElement.removeEventListener('loadeddata', checkReady);
+                    videoElement.removeEventListener('canplay', checkReady);
+                    resolve();
+                } else if (checkAttempts >= maxAttempts) {
+                    console.warn('⚠️ Video took too long to load, proceeding anyway');
+                    videoElement.removeEventListener('loadeddata', checkReady);
+                    videoElement.removeEventListener('canplay', checkReady);
+                    resolve(); // Resolve anyway to continue
+                } else {
+                    console.log(`⏳ Waiting for video... attempt ${checkAttempts}/${maxAttempts}`);
+                    setTimeout(checkReady, 100);
+                }
+            };
+
+            // Listen for video ready events
+            videoElement.addEventListener('loadeddata', checkReady);
+            videoElement.addEventListener('canplay', checkReady);
+            
+            // Start checking immediately
+            checkReady();
+        });
     }
     
     async startScreenShare() {
@@ -359,9 +465,26 @@ class EuphorieScreenSharingSystem {
             console.log('📹 Video tracks:', stream.getVideoTracks().length);
             console.log('🎵 Audio tracks:', stream.getAudioTracks().length);
             
-            // Set up video element
+            // CRITICAL FIX: Set up video element with proper properties
             this.videoElement.srcObject = stream;
+            this.videoElement.muted = true; // Essential for autoplay
+            this.videoElement.autoplay = true;
+            this.videoElement.playsInline = true; // Important for mobile
             console.log('📺 Video element configured');
+            
+            // CRITICAL FIX: Wait for video to be ready before showing
+            try {
+                await this.waitForVideoReady(this.videoElement);
+                console.log('✅ Video is ready, starting texture updates');
+                
+                // Start continuous texture updates (CRITICAL for fixing black screen)
+                this.startVideoTextureUpdates();
+                
+            } catch (error) {
+                console.warn('⚠️ Video readiness check failed, starting anyway:', error);
+                // Start updates anyway
+                this.startVideoTextureUpdates();
+            }
             
             // Show projection surface
             if (this.projectionSurface) {
@@ -587,10 +710,21 @@ class EuphorieScreenSharingSystem {
         }
     }
     
-    handleRemoteStream(stream, userId) {
+    async handleRemoteStream(stream, userId) {
+        console.log('📺 Handling remote stream from user:', userId);
+        
         // Set the remote stream to our video element
         this.videoElement.srcObject = stream;
         this.mediaStream = stream;
+        
+        // CRITICAL FIX: Wait for remote video to be ready and start texture updates
+        try {
+            await this.waitForVideoReady(this.videoElement);
+            this.startVideoTextureUpdates();
+        } catch (error) {
+            console.warn('⚠️ Remote video readiness check failed, starting anyway:', error);
+            this.startVideoTextureUpdates();
+        }
         
         // Show projection surface
         if (this.projectionSurface) {
@@ -613,6 +747,9 @@ class EuphorieScreenSharingSystem {
         console.log('🖥️ Stopping screen share...');
         
         try {
+            // CRITICAL FIX: Stop texture updates first
+            this.stopVideoTextureUpdates();
+            
             // Stop local stream
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => track.stop());
@@ -678,6 +815,9 @@ class EuphorieScreenSharingSystem {
             if (data.user_id === this.currentSharer) {
                 console.log(`📺 ${data.username} stopped sharing their screen`);
                 
+                // CRITICAL FIX: Stop texture updates for remote streams too
+                this.stopVideoTextureUpdates();
+                
                 // Hide projection surface
                 if (this.projectionSurface) {
                     this.animateProjectionOut();
@@ -686,6 +826,11 @@ class EuphorieScreenSharingSystem {
                 // Clear state
                 this.currentSharer = null;
                 this.mediaStream = null;
+                
+                // Clear video element
+                if (this.videoElement) {
+                    this.videoElement.srcObject = null;
+                }
                 
                 // Show notification
                 this.showNotification(`📺 ${data.username} stopped sharing`);
@@ -889,7 +1034,7 @@ class EuphorieScreenSharingSystem {
             this.showSharingControls();
         }
         
-        this.showNotification(`📺 Projection mode: ${mode}`);
+        this.showNotification(`📺 Projection mode changed to: ${mode}`);
         console.log(`📺 Projection mode changed to: ${mode}`);
     }
     
@@ -949,12 +1094,33 @@ class EuphorieScreenSharingSystem {
         console.log('🎥 getUserMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
         console.log('🖥️ getDisplayMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia));
         console.log('🔧 Is sharing:', this.isSharing);
+        console.log('🔄 Is texture updating:', this.isTextureUpdating);
         console.log('👤 Current sharer:', this.currentSharer);
         console.log('📹 Has video element:', !!this.videoElement);
         console.log('🎬 Has projection surface:', !!this.projectionSurface);
+        console.log('🎯 Has projection texture:', !!this.projectionTexture);
         console.log('🌐 WebSocket Manager:', !!window.WebSocketManager);
         console.log('🎯 Projection mode:', this.projectionMode);
         console.log('📱 Camera facing:', this.cameraFacing);
+        
+        // Video element debug info
+        if (this.videoElement) {
+            console.log('📺 Video element debug:');
+            console.log('  - Ready state:', this.videoElement.readyState);
+            console.log('  - Video width:', this.videoElement.videoWidth);
+            console.log('  - Video height:', this.videoElement.videoHeight);
+            console.log('  - Paused:', this.videoElement.paused);
+            console.log('  - Has src object:', !!this.videoElement.srcObject);
+        }
+        
+        // Texture debug info
+        if (this.projectionTexture) {
+            console.log('🎨 Texture debug:');
+            console.log('  - Needs update:', this.projectionTexture.needsUpdate);
+            console.log('  - Format:', this.projectionTexture.format);
+            console.log('  - Min filter:', this.projectionTexture.minFilter);
+            console.log('  - Mag filter:', this.projectionTexture.magFilter);
+        }
         
         // Test camera access
         this.testCameraAccess();
@@ -1177,6 +1343,59 @@ class EuphorieScreenSharingSystem {
     getActiveShares() {
         return Array.from(this.activeShares.values());
     }
+    
+    // CRITICAL FIX: Cleanup method
+    cleanup() {
+        console.log('🧹 Cleaning up screen sharing system...');
+        
+        // Stop texture updates
+        this.stopVideoTextureUpdates();
+        
+        // Stop streams
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(track => track.stop());
+            this.localStream = null;
+        }
+        
+        if (this.mediaStream) {
+            this.mediaStream.getTracks().forEach(track => track.stop());
+            this.mediaStream = null;
+        }
+        
+        // Clear video element
+        if (this.videoElement) {
+            this.videoElement.srcObject = null;
+            this.videoElement.remove();
+            this.videoElement = null;
+        }
+        
+        // Dispose of Three.js resources
+        if (this.projectionTexture) {
+            this.projectionTexture.dispose();
+            this.projectionTexture = null;
+        }
+        
+        if (this.projectionMaterial) {
+            this.projectionMaterial.dispose();
+            this.projectionMaterial = null;
+        }
+        
+        if (this.projectionSurface && this.scene) {
+            this.scene.remove(this.projectionSurface);
+            this.projectionSurface = null;
+        }
+        
+        // Close peer connections
+        this.peerConnections.forEach(pc => pc.close());
+        this.peerConnections.clear();
+        
+        // Reset state
+        this.isSharing = false;
+        this.currentSharer = null;
+        this.isTextureUpdating = false;
+        
+        console.log('✅ Screen sharing cleanup complete');
+    }
 }
 
 // Initialize Screen Sharing System
@@ -1195,4 +1414,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System loaded and ready!');
+console.log('🖥️ Screen Sharing System with VideoTexture fix loaded and ready!');
