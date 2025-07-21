@@ -1,6 +1,6 @@
 // ================================
-// EUPHORIE 3D SCREEN SHARING SYSTEM - COMPLETE WITH MOBILE ORIENTATION FIX
-// Complete implementation with mobile upside-down fix
+// EUPHORIE 3D SCREEN SHARING SYSTEM - COMPLETE FIXED VERSION
+// Enhanced implementation with mobile orientation fix, fullscreen support, and proper WebRTC flow
 // ================================
 
 class EuphorieScreenSharingSystem {
@@ -41,10 +41,10 @@ class EuphorieScreenSharingSystem {
         this.cameraSettings = null;
         this.cameraCapabilities = null;
         
-        // NEW: Fullscreen properties - ENHANCED
+        // Fullscreen properties - ENHANCED
         this.fullscreenOverlay = null;
         this.fullscreenExitHandlers = null;
-        this.touchStartTime = null; // For touch gesture detection
+        this.touchStartTime = null;
         this.raycaster = null;
         this.mouse = null;
         this.clickableProjection = null;
@@ -79,7 +79,7 @@ class EuphorieScreenSharingSystem {
                 return;
             }
             
-            // Setup WebSocket integration
+            // Setup WebSocket integration - FIXED
             this.setupWebSocketIntegration();
             
             // Create projection surface with VideoTexture fix
@@ -119,190 +119,472 @@ class EuphorieScreenSharingSystem {
         return false;
     }
     
+    // FIXED: WebSocket integration that properly handles all message types
     setupWebSocketIntegration() {
-            // Extend WebSocket manager with screen sharing support
-            if (window.WebSocketManager) {
-                const originalHandleMessage = window.WebSocketManager.handleMessage;
-                
-                window.WebSocketManager.handleMessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        
-                        // DEBUG: Log all received screen sharing messages
-                        if (data.type && data.type.includes('screen_share')) {
-                            console.log('📥 Received screen sharing message:', data);
-                        }
-                        
-                        // CRITICAL FIX: Auto-connect to ANY screen sharing in the room
-                        if (data.type === 'screen_share_started' && 
-                            data.room_id === window.WebSocketManager.roomId &&
-                            data.user_id !== window.WebSocketManager.userId) {
-                            
-                            console.log('📺 Auto-connecting to screen share from:', data.username);
-                            
-                            // Auto-setup WebRTC connection after a brief delay
-                            setTimeout(() => {
-                                this.autoConnectToSharer(data.user_id, data.username, data.share_data);
-                            }, 1000);
-                            return;
-                        }
-                        
-                        if (data.type === 'screen_share_started') {
-                            this.handleScreenShareMessage(data);
-                            return;
-                        } else if (data.type === 'screen_share_stopped') {
-                            this.handleScreenShareMessage(data);
-                            return;
-                        } else if (data.type === 'screen_share_webrtc_offer') {
-                            this.handleWebRTCOffer(data);
-                            return;
-                        } else if (data.type === 'screen_share_webrtc_answer') {
-                            this.handleWebRTCAnswer(data);
-                            return;
-                        } else if (data.type === 'screen_share_webrtc_candidate') {
-                            this.handleWebRTCCandidate(data);
-                            return;
-                        } else if (data.type === 'screen_share_webrtc_ready') {
-                            this.handleWebRTCReady(data);
-                            return;
-                        }
-                        
-                        // Call original handler for other messages
-                        originalHandleMessage.call(window.WebSocketManager, event);
-                    } catch (error) {
-                        console.error('Error handling WebSocket message:', error);
-                    }
-                };
-                
-                // Add screen sharing methods to WebSocket manager with better debugging
-                window.WebSocketManager.sendScreenShareStart = (shareData) => {
-                    const message = {
-                        type: 'screen_share_started',
-                        user_id: window.WebSocketManager.userId,
-                        room_id: window.WebSocketManager.roomId,
-                        username: window.WebSocketManager.username,
-                        share_data: shareData,
-                        timestamp: Date.now()
-                    };
-                    console.log('📤 Sending screen share start:', message);
-                    window.WebSocketManager.send(message);
-                };
-                
-                window.WebSocketManager.sendScreenShareStop = () => {
-                    const message = {
-                        type: 'screen_share_stopped',
-                        user_id: window.WebSocketManager.userId,
-                        room_id: window.WebSocketManager.roomId,
-                        username: window.WebSocketManager.username,
-                        timestamp: Date.now()
-                    };
-                    console.log('📤 Sending screen share stop:', message);
-                    window.WebSocketManager.send(message);
-                };
-                
-                window.WebSocketManager.sendWebRTCMessage = (targetUserId, messageType, data) => {
-                    const message = {
-                        type: messageType,
-                        user_id: window.WebSocketManager.userId,
-                        room_id: window.WebSocketManager.roomId,
-                        target_user_id: targetUserId,
-                        data: data,
-                        timestamp: Date.now()
-                    };
-                    console.log(`📤 Sending WebRTC message (${messageType}) to ${targetUserId}:`, message);
-                    window.WebSocketManager.send(message);
-                };
-                
-                // Enhanced send ready function
-                window.WebSocketManager.sendWebRTCReady = (shareData) => {
-                    const message = {
-                        type: 'screen_share_webrtc_ready',
-                        user_id: window.WebSocketManager.userId,
-                        room_id: window.WebSocketManager.roomId,
-                        username: window.WebSocketManager.username,
-                        share_data: shareData,
-                        timestamp: Date.now()
-                    };
-                    console.log('📤 Sending WebRTC ready:', message);
-                    window.WebSocketManager.send(message);
-                };
-                
-                console.log('✅ Enhanced WebSocket integration for screen sharing setup');
-            }
+        if (!window.WebSocketManager) {
+            console.warn('⚠️ WebSocketManager not found, will retry...');
+            setTimeout(() => this.setupWebSocketIntegration(), 1000);
+            return;
         }
 
-        // NEW: Auto-connect to screen sharer (permanent global solution)
-        async autoConnectToSharer(sharerUserId, sharerUsername, shareData) {
-            if (sharerUserId === window.WebSocketManager?.userId) {
-                console.log('⏭️ Skipping auto-connect to self');
-                return;
-            }
-            
-            console.log(`🌐 Auto-connecting to ${sharerUsername}'s screen share...`);
-            
+        console.log('🔗 Setting up WebSocket integration for screen sharing...');
+        
+        // Store original handler if it exists
+        const originalHandleMessage = window.WebSocketManager.handleMessage;
+        
+        // FIXED: Override the handleMessage to intercept screen sharing messages
+        window.WebSocketManager.handleMessage = (event) => {
             try {
-                // Create peer connection to receive stream
-                const pc = new RTCPeerConnection({
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun2.l.google.com:19302' }
-                    ]
-                });
+                const data = JSON.parse(event.data);
                 
-                // Handle incoming stream from sharer
-                pc.ontrack = (event) => {
-                    console.log(`📺 Receiving stream from ${sharerUsername}!`);
-                    const stream = event.streams[0];
-                    
-                    // Connect stream to video element
-                    this.handleRemoteStream(stream, sharerUserId);
-                    this.showNotification(`✅ Now showing ${sharerUsername}'s screen!`);
-                };
-                
-                // Handle ICE candidates
-                pc.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        console.log(`🧊 Sending ICE candidate to ${sharerUsername}`);
-                        window.WebSocketManager.sendWebRTCMessage(
-                            sharerUserId,
-                            'screen_share_webrtc_candidate',
-                            event.candidate
-                        );
-                    }
-                };
-                
-                // Connection state logging
-                pc.onconnectionstatechange = () => {
-                    console.log(`🔗 Connection to ${sharerUsername}:`, pc.connectionState);
-                    if (pc.connectionState === 'connected') {
-                        this.showNotification(`✅ Connected to ${sharerUsername}'s screen`);
-                    } else if (pc.connectionState === 'failed') {
-                        this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
-                    }
-                };
-                
-                // Store peer connection
-                this.peerConnections.set(sharerUserId, pc);
-                
-                // Set current sharer
-                this.currentSharer = sharerUserId;
-                
-                // Set projection mode from share data
-                if (shareData?.projection_mode) {
-                    this.projectionMode = shareData.projection_mode;
-                    this.updateProjectionSurface();
+                // Handle screen sharing messages first
+                if (data.type && data.type.includes('screen_share')) {
+                    console.log('📥 Screen sharing message received:', data.type);
+                    this.handleWebSocketMessage(data);
+                    return; // Don't pass to original handler
                 }
                 
-                // Wait for the sharer to send us an offer
-                // The sharer's setupWebRTCConnections() should create offers for all users
-                console.log(`✅ Auto-connection setup complete for ${sharerUsername} - waiting for offer`);
+                // Handle ongoing share notifications for late joiners
+                if (data.type === 'ongoing_screen_share') {
+                    console.log('📺 Ongoing screen share detected:', data);
+                    this.handleOngoingScreenShare(data);
+                    return;
+                }
+                
+                // Handle new viewer notifications
+                if (data.type === 'new_viewer_joined') {
+                    console.log('👁️ New viewer joined:', data);
+                    this.handleNewViewerJoined(data);
+                    return;
+                }
+                
+                // Handle viewer requests
+                if (data.type === 'viewer_requests_offer') {
+                    console.log('📤 Viewer requesting offer:', data);
+                    this.handleViewerRequestsOffer(data);
+                    return;
+                }
+                
+                // Pass all other messages to original handler
+                if (originalHandleMessage) {
+                    originalHandleMessage.call(window.WebSocketManager, event);
+                }
                 
             } catch (error) {
-                console.error(`❌ Error auto-connecting to ${sharerUsername}:`, error);
-                this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
+                console.error('❌ Error handling WebSocket message:', error);
+                // Fallback to original handler
+                if (originalHandleMessage) {
+                    originalHandleMessage.call(window.WebSocketManager, event);
+                }
             }
+        };
+        
+        // Add screen sharing methods to WebSocket manager
+        this.addWebSocketMethods();
+        
+        console.log('✅ WebSocket integration setup complete');
+    }
+
+    // FIXED: Centralized WebSocket message handler for screen sharing
+    handleWebSocketMessage(data) {
+        switch (data.type) {
+            case 'screen_share_started':
+                this.handleScreenShareStarted(data);
+                break;
+            case 'screen_share_stopped':
+                this.handleScreenShareStopped(data);
+                break;
+            case 'screen_share_webrtc_offer':
+                this.handleWebRTCOffer(data);
+                break;
+            case 'screen_share_webrtc_answer':
+                this.handleWebRTCAnswer(data);
+                break;
+            case 'screen_share_webrtc_candidate':
+                this.handleWebRTCCandidate(data);
+                break;
+            case 'screen_share_webrtc_ready':
+                this.handleWebRTCReady(data);
+                break;
+            default:
+                console.log('🔍 Unknown screen sharing message type:', data.type);
         }
+    }
+
+    // FIXED: Handle screen share started with auto-connection
+    handleScreenShareStarted(data) {
+        if (data.user_id === window.WebSocketManager?.userId) {
+            console.log('⏭️ Ignoring own screen share start message');
+            return;
+        }
+        
+        console.log(`📺 ${data.username} started sharing their screen`);
+        
+        // Store share data for orientation detection
+        if (data.share_data) {
+            this.storeShareData(data.user_id, data.share_data);
+        }
+        
+        this.currentSharer = data.user_id;
+        
+        // Show notification with device type
+        const deviceType = data.share_data?.mobile_device ? '📱 camera' : '🖥️ screen';
+        this.showNotification(`📺 ${data.username} is sharing their ${deviceType}`);
+        
+        // Update projection mode if specified
+        if (data.share_data?.projection_mode) {
+            this.projectionMode = data.share_data.projection_mode;
+            this.updateProjectionSurface();
+        }
+        
+        // AUTO-CONNECT: Immediately try to connect to the sharer
+        setTimeout(() => {
+            this.autoConnectToSharer(data.user_id, data.username, data.share_data);
+        }, 1000);
+    }
+
+    // FIXED: Handle screen share stopped
+    handleScreenShareStopped(data) {
+        if (data.user_id === this.currentSharer) {
+            console.log(`📺 ${data.username} stopped sharing their screen`);
+            
+            // Clear share data
+            if (this.shareDataStore) {
+                this.shareDataStore.delete(data.user_id);
+            }
+            
+            this.stopVideoTextureUpdates();
+            
+            if (this.videoMonitorInterval) {
+                clearInterval(this.videoMonitorInterval);
+                this.videoMonitorInterval = null;
+            }
+            
+            if (this.projectionSurface) {
+                this.animateProjectionOut();
+            }
+            
+            this.currentSharer = null;
+            this.mediaStream = null;
+            
+            if (this.videoElement) {
+                this.videoElement.srcObject = null;
+            }
+            
+            // Close peer connection
+            const pc = this.peerConnections.get(data.user_id);
+            if (pc) {
+                pc.close();
+                this.peerConnections.delete(data.user_id);
+            }
+            
+            this.showNotification(`📺 ${data.username} stopped sharing`);
+            this.hideViewerControls();
+        }
+    }
+
+    // NEW: Handle ongoing screen share for late joiners
+    handleOngoingScreenShare(data) {
+        console.log('📺 Handling ongoing screen share from:', data.username);
+        
+        if (data.user_id === window.WebSocketManager?.userId) {
+            console.log('⏭️ Skipping ongoing share from self');
+            return;
+        }
+        
+        // Auto-connect to ongoing share
+        this.autoConnectToOngoingShare(data.user_id, data.username, data.share_data);
+    }
+
+    // NEW: Handle new viewer joined notification
+    handleNewViewerJoined(data) {
+        console.log('👁️ New viewer joined:', data.viewer_username);
+        
+        if (this.isSharing && this.localStream && data.sharer_user_id === window.WebSocketManager?.userId) {
+            console.log('📤 Sending offer to new viewer:', data.viewer_user_id);
+            setTimeout(() => {
+                this.sendOfferToNewViewer(data.viewer_user_id);
+            }, 1000);
+        }
+    }
+
+    // NEW: Handle viewer requests offer
+    handleViewerRequestsOffer(data) {
+        console.log('📤 Viewer requesting offer:', data.viewer_username);
+        
+        if (this.isSharing && this.localStream) {
+            console.log('📤 Sending offer to requesting viewer:', data.viewer_user_id);
+            this.sendOfferToNewViewer(data.viewer_user_id);
+        }
+    }
+
+    // Add WebSocket methods
+    addWebSocketMethods() {
+        window.WebSocketManager.sendScreenShareStart = (shareData) => {
+            const message = {
+                type: 'screen_share_started',
+                user_id: window.WebSocketManager.userId,
+                room_id: window.WebSocketManager.roomId,
+                username: window.WebSocketManager.username,
+                nationality: window.WebSocketManager.nationality || 'unknown',
+                share_data: shareData,
+                timestamp: Date.now()
+            };
+            console.log('📤 Sending screen share start:', message);
+            window.WebSocketManager.send(message);
+        };
+        
+        window.WebSocketManager.sendScreenShareStop = () => {
+            const message = {
+                type: 'screen_share_stopped',
+                user_id: window.WebSocketManager.userId,
+                room_id: window.WebSocketManager.roomId,
+                username: window.WebSocketManager.username,
+                nationality: window.WebSocketManager.nationality || 'unknown',
+                timestamp: Date.now()
+            };
+            console.log('📤 Sending screen share stop:', message);
+            window.WebSocketManager.send(message);
+        };
+        
+        window.WebSocketManager.sendWebRTCMessage = (targetUserId, messageType, data) => {
+            const message = {
+                type: messageType,
+                user_id: window.WebSocketManager.userId,
+                room_id: window.WebSocketManager.roomId,
+                target_user_id: targetUserId,
+                nationality: window.WebSocketManager.nationality || 'unknown',
+                data: data,
+                timestamp: Date.now()
+            };
+            console.log(`📤 Sending WebRTC message (${messageType}) to ${targetUserId}:`, data);
+            window.WebSocketManager.send(message);
+        };
+
+        // NEW: Request to join ongoing screen share
+        window.WebSocketManager.sendJoinOngoingShare = (sharerUserId) => {
+            const message = {
+                type: 'join_ongoing_screen_share',
+                user_id: window.WebSocketManager.userId,
+                room_id: window.WebSocketManager.roomId,
+                target_user_id: sharerUserId,
+                nationality: window.WebSocketManager.nationality || 'unknown',
+                timestamp: Date.now()
+            };
+            console.log('📤 Requesting to join ongoing share:', message);
+            window.WebSocketManager.send(message);
+        };
+    }
+
+    // FIXED: Auto-connect to sharer with better error handling
+    async autoConnectToSharer(sharerUserId, sharerUsername, shareData) {
+        if (sharerUserId === window.WebSocketManager?.userId) {
+            console.log('⏭️ Skipping auto-connect to self');
+            return;
+        }
+        
+        console.log(`🌐 Auto-connecting to ${sharerUsername}'s screen share...`);
+        
+        try {
+            // Create peer connection to receive stream
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]
+            });
+            
+            // Handle incoming stream from sharer
+            pc.ontrack = (event) => {
+                console.log(`📺 Receiving stream from ${sharerUsername}!`);
+                const stream = event.streams[0];
+                this.handleRemoteStream(stream, sharerUserId);
+                this.showNotification(`✅ Now showing ${sharerUsername}'s screen!`);
+            };
+            
+            // Handle ICE candidates
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    console.log(`🧊 Sending ICE candidate to ${sharerUsername}`);
+                    window.WebSocketManager.sendWebRTCMessage(
+                        sharerUserId,
+                        'screen_share_webrtc_candidate',
+                        event.candidate
+                    );
+                }
+            };
+            
+            // Connection state logging
+            pc.onconnectionstatechange = () => {
+                console.log(`🔗 Connection to ${sharerUsername}:`, pc.connectionState);
+                if (pc.connectionState === 'connected') {
+                    this.showNotification(`✅ Connected to ${sharerUsername}'s screen`);
+                } else if (pc.connectionState === 'failed') {
+                    this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
+                    // Retry connection
+                    setTimeout(() => {
+                        this.retryConnection(sharerUserId, sharerUsername);
+                    }, 2000);
+                }
+            };
+            
+            // Store peer connection
+            this.peerConnections.set(sharerUserId, pc);
+            
+            // Set current sharer
+            this.currentSharer = sharerUserId;
+            
+            // Set projection mode from share data
+            if (shareData?.projection_mode) {
+                this.projectionMode = shareData.projection_mode;
+                this.updateProjectionSurface();
+            }
+            
+            // Send join request to notify sharer
+            window.WebSocketManager.sendJoinOngoingShare(sharerUserId);
+            
+            console.log(`✅ Auto-connection setup complete for ${sharerUsername} - waiting for offer`);
+            
+        } catch (error) {
+            console.error(`❌ Error auto-connecting to ${sharerUsername}:`, error);
+            this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
+        }
+    }
+
+    // NEW: Auto-connect to ongoing share for late joiners
+    async autoConnectToOngoingShare(sharerUserId, sharerUsername, shareData) {
+        if (sharerUserId === window.WebSocketManager?.userId) {
+            return;
+        }
+        
+        console.log(`📺 Auto-connecting to ongoing share from ${sharerUsername}...`);
+        
+        try {
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            });
+            
+            pc.ontrack = (event) => {
+                console.log(`📺 Connected to ongoing share from ${sharerUsername}!`);
+                this.handleRemoteStream(event.streams[0], sharerUserId);
+                this.showNotification(`✅ Joined ${sharerUsername}'s screen share!`);
+            };
+            
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    window.WebSocketManager.sendWebRTCMessage(
+                        sharerUserId,
+                        'screen_share_webrtc_candidate',
+                        event.candidate
+                    );
+                }
+            };
+            
+            this.peerConnections.set(sharerUserId, pc);
+            this.currentSharer = sharerUserId;
+            
+            if (shareData?.projection_mode) {
+                this.projectionMode = shareData.projection_mode;
+                this.updateProjectionSurface();
+            }
+            
+            // Request connection to sharer
+            this.requestConnectionToSharer(sharerUserId);
+            
+        } catch (error) {
+            console.error(`❌ Error connecting to ongoing share:`, error);
+        }
+    }
+
+    // NEW: Request connection to sharer
+    requestConnectionToSharer(sharerUserId) {
+        console.log('📤 Requesting connection to sharer...');
+        
+        if (window.WebSocketManager && window.WebSocketManager.send) {
+            window.WebSocketManager.send({
+                type: 'join_ongoing_screen_share',
+                user_id: window.WebSocketManager.userId,
+                room_id: window.WebSocketManager.roomId,
+                target_user_id: sharerUserId,
+                nationality: window.WebSocketManager.nationality || 'unknown',
+                timestamp: Date.now()
+            });
+        }
+    }
+
+    // NEW: Send offer to new viewer
+    async sendOfferToNewViewer(viewerId) {
+        if (!this.localStream || !this.isSharing) {
+            console.log('❌ Cannot send offer - not sharing or no stream');
+            return;
+        }
+        
+        try {
+            console.log(`📤 Sending offer to new viewer: ${viewerId}`);
+            
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            });
+            
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    window.WebSocketManager.sendWebRTCMessage(
+                        viewerId,
+                        'screen_share_webrtc_candidate',
+                        event.candidate
+                    );
+                }
+            };
+            
+            pc.onconnectionstatechange = () => {
+                console.log(`🔗 Connection to viewer ${viewerId}: ${pc.connectionState}`);
+                if (pc.connectionState === 'connected') {
+                    this.showNotification(`✅ New viewer connected`);
+                }
+            };
+            
+            this.localStream.getTracks().forEach(track => {
+                pc.addTrack(track, this.localStream);
+            });
+            
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            
+            window.WebSocketManager.sendWebRTCMessage(
+                viewerId,
+                'screen_share_webrtc_offer',
+                offer
+            );
+            
+            this.peerConnections.set(viewerId, pc);
+            console.log(`✅ Offer sent to new viewer: ${viewerId}`);
+            
+        } catch (error) {
+            console.error(`❌ Failed to send offer to viewer ${viewerId}:`, error);
+        }
+    }
+
+    // NEW: Retry connection on failure
+    async retryConnection(sharerUserId, sharerUsername) {
+        console.log(`🔄 Retrying connection to ${sharerUsername}...`);
+        
+        // Close existing connection
+        const existingPc = this.peerConnections.get(sharerUserId);
+        if (existingPc) {
+            existingPc.close();
+            this.peerConnections.delete(sharerUserId);
+        }
+        
+        // Request new connection
+        this.requestConnectionToSharer(sharerUserId);
+    }
     
     createProjectionSurface() {
         if (!this.scene || !window.THREE) return;
@@ -1774,10 +2056,12 @@ class EuphorieScreenSharingSystem {
         try {
             const pc = this.peerConnections.get(data.user_id);
             if (pc) {
+                console.log(`📥 Setting remote description (answer) from ${data.user_id}`);
                 await pc.setRemoteDescription(data.data);
+                console.log(`✅ WebRTC answer processed from ${data.user_id}`);
             }
         } catch (error) {
-            console.error('Error handling WebRTC answer:', error);
+            console.error('❌ Error handling WebRTC answer:', error);
         }
     }
     
@@ -1787,10 +2071,12 @@ class EuphorieScreenSharingSystem {
         try {
             const pc = this.peerConnections.get(data.user_id);
             if (pc) {
+                console.log(`🧊 Adding ICE candidate from ${data.user_id}`);
                 await pc.addIceCandidate(data.data);
+                console.log(`✅ ICE candidate added from ${data.user_id}`);
             }
         } catch (error) {
-            console.error('Error handling WebRTC candidate:', error);
+            console.error('❌ Error handling WebRTC candidate:', error);
         }
     }
     
@@ -1845,61 +2131,6 @@ class EuphorieScreenSharingSystem {
             return null;
         }
         return this.shareDataStore.get(userId);
-    }
-    
-    handleScreenShareMessage(data) {
-        if (data.type === 'screen_share_started') {
-            if (data.user_id !== window.WebSocketManager?.userId) {
-                console.log(`📺 ${data.username} started sharing their screen`);
-                
-                // Store share data for later orientation detection
-                if (data.share_data) {
-                    this.storeShareData(data.user_id, data.share_data);
-                }
-                
-                this.currentSharer = data.user_id;
-                
-                // Show notification with device type
-                const deviceType = data.share_data?.mobile_device ? '📱 camera' : '🖥️ screen';
-                this.showNotification(`📺 ${data.username} is sharing their ${deviceType}`);
-                
-                // Update projection mode if specified
-                if (data.share_data?.projection_mode) {
-                    this.projectionMode = data.share_data.projection_mode;
-                    this.updateProjectionSurface();
-                }
-            }
-        } else if (data.type === 'screen_share_stopped') {
-            if (data.user_id === this.currentSharer) {
-                console.log(`📺 ${data.username} stopped sharing their screen`);
-                
-                // Clear share data
-                if (this.shareDataStore) {
-                    this.shareDataStore.delete(data.user_id);
-                }
-                
-                this.stopVideoTextureUpdates();
-                
-                if (this.videoMonitorInterval) {
-                    clearInterval(this.videoMonitorInterval);
-                    this.videoMonitorInterval = null;
-                }
-                
-                if (this.projectionSurface) {
-                    this.animateProjectionOut();
-                }
-                
-                this.currentSharer = null;
-                this.mediaStream = null;
-                
-                if (this.videoElement) {
-                    this.videoElement.srcObject = null;
-                }
-                
-                this.showNotification(`📺 ${data.username} stopped sharing`);
-                this.hideViewerControls();
-            }
-        }
     }
     
     stopScreenShare() {
@@ -2357,7 +2588,7 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
-        // NEW: Enhanced fullscreen functions with better detection
+        // Fullscreen functions
         window.enterFullscreen = () => {
             if (this.isSharing || this.currentSharer) {
                 this.enterFullscreen();
@@ -2369,7 +2600,6 @@ class EuphorieScreenSharingSystem {
         
         window.exitFullscreen = () => this.exitFullscreen();
         
-        // NEW: Simple fullscreen toggle for testing
         window.toggleFullscreen = () => {
             if (this.fullscreenOverlay) {
                 this.exitFullscreen();
@@ -2378,14 +2608,13 @@ class EuphorieScreenSharingSystem {
             }
         };
         
-        // NEW: Debug functions for click detection
+        // Debug functions
         window.testClickDetection = () => {
             console.log('🧪 Testing click detection system...');
             console.log('Canvas element:', this.canvasElement);
             console.log('Camera:', this.camera);
             console.log('Raycaster:', this.raycaster);
             console.log('Clickable projection:', this.clickableProjection);
-            console.log('Double-click handler:', !!this.canvasDoubleClickHandler);
             
             if (this.canvasElement) {
                 console.log('✅ Canvas found - click detection should work');
@@ -2400,7 +2629,7 @@ class EuphorieScreenSharingSystem {
             this.enterFullscreen();
         };
         
-        // NEW: WebRTC debugging functions
+        // WebRTC debugging functions
         window.debugWebRTCConnections = () => {
             console.log('🔗 WebRTC Debug Info:');
             console.log('👥 Peer connections:', this.peerConnections.size);
@@ -2421,18 +2650,11 @@ class EuphorieScreenSharingSystem {
             }
         };
         
-        window.testWebRTCBroadcast = () => {
-            console.log('🧪 Testing WebRTC broadcast...');
-            this.broadcastWebRTCOffer();
-            this.broadcastScreenShareReady();
-        };
-        
-        // MOBILE ORIENTATION FIX FUNCTIONS - Simplified for seamless operation
+        // Mobile orientation fix functions
         window.fixMobileOrientationManual = () => {
             if (window.ScreenSharingSystem && window.ScreenSharingSystem.projectionTexture) {
                 console.log('🔧 Emergency manual orientation toggle...');
                 
-                // Simple toggle for emergency use
                 window.ScreenSharingSystem.projectionTexture.flipY = !window.ScreenSharingSystem.projectionTexture.flipY;
                 window.ScreenSharingSystem.projectionTexture.needsUpdate = true;
                 
@@ -2440,7 +2662,6 @@ class EuphorieScreenSharingSystem {
             }
         };
         
-        // Keep auto-fix for console access but remove from UI
         window.autoFixMobileOrientation = () => {
             if (window.ScreenSharingSystem && window.ScreenSharingSystem.isMobile()) {
                 console.log('🤖 Console: Manual auto-fix trigger...');
@@ -2448,7 +2669,7 @@ class EuphorieScreenSharingSystem {
             }
         };
         
-        // DEBUG FUNCTIONS
+        // Debug functions
         window.debugScreenOrientation = () => {
             if (this.videoElement && this.projectionTexture) {
                 console.log('🖼️ Screen Orientation Debug:');
@@ -2461,7 +2682,6 @@ class EuphorieScreenSharingSystem {
         
         window.fixScreenOrientation = () => {
             if (this.projectionTexture) {
-                // Toggle flipY to fix upside down issue
                 this.projectionTexture.flipY = !this.projectionTexture.flipY;
                 this.projectionTexture.needsUpdate = true;
                 console.log('🔄 Toggled texture flipY to:', this.projectionTexture.flipY);
@@ -2524,7 +2744,6 @@ class EuphorieScreenSharingSystem {
             console.log('✅ Camera access successful');
             console.log('📹 Video tracks:', stream.getVideoTracks().length);
             
-            // Stop the test stream
             stream.getTracks().forEach(track => track.stop());
             
             this.showNotification('✅ Camera test successful');
@@ -2552,7 +2771,6 @@ class EuphorieScreenSharingSystem {
         console.log('📱 Camera facing:', this.cameraFacing);
         console.log('🎨 Three.js version:', THREE.REVISION);
         
-        // Video element debug info
         if (this.videoElement) {
             console.log('📺 Video element debug:');
             console.log('  - Ready state:', this.videoElement.readyState);
@@ -2564,30 +2782,21 @@ class EuphorieScreenSharingSystem {
             console.log('  - Duration:', this.videoElement.duration);
         }
         
-        // Texture debug info
         if (this.projectionTexture) {
             console.log('🎨 Texture debug:');
             console.log('  - Needs update:', this.projectionTexture.needsUpdate);
             console.log('  - Format:', this.projectionTexture.format);
-            console.log('  - Min filter:', this.projectionTexture.minFilter);
-            console.log('  - Mag filter:', this.projectionTexture.magFilter);
-            console.log('  - Image:', this.projectionTexture.image);
-            console.log('  - Texture UUID:', this.projectionTexture.uuid);
             console.log('  - FlipY:', this.projectionTexture.flipY);
         }
         
-        // Material debug info
         if (this.projectionMaterial) {
             console.log('🎭 Material debug:');
             console.log('  - Type:', this.projectionMaterial.type);
             console.log('  - Has map:', !!this.projectionMaterial.map);
             console.log('  - Needs update:', this.projectionMaterial.needsUpdate);
             console.log('  - Visible:', this.projectionMaterial.visible);
-            console.log('  - Transparent:', this.projectionMaterial.transparent);
-            console.log('  - Opacity:', this.projectionMaterial.opacity);
         }
         
-        // Test camera access
         this.testCameraAccess();
     }
     
@@ -2599,10 +2808,8 @@ class EuphorieScreenSharingSystem {
         
         console.log('🧪 Testing video texture...');
         
-        // Force texture update
         this.projectionTexture.needsUpdate = true;
         
-        // Check video element
         const video = this.videoElement;
         console.log('📺 Video test results:');
         console.log('  - Video dimensions:', video.videoWidth, 'x', video.videoHeight);
@@ -2611,7 +2818,6 @@ class EuphorieScreenSharingSystem {
         console.log('  - Paused:', video.paused);
         console.log('  - Ended:', video.ended);
         
-        // Create test canvas to verify video content
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
@@ -2623,7 +2829,6 @@ class EuphorieScreenSharingSystem {
             const pixels = Array.from(imageData.data.slice(0, 12));
             console.log('🎨 Video pixel data (first 12 values):', pixels);
             
-            // Check if we have actual video data (not all zeros)
             const hasData = pixels.some(pixel => pixel > 0);
             console.log('✅ Video has actual content:', hasData);
             
@@ -2649,21 +2854,17 @@ class EuphorieScreenSharingSystem {
             return;
         }
         
-        // Force video to play
         if (this.videoElement.paused) {
             this.videoElement.play().catch(e => console.log('Video play failed:', e));
         }
         
-        // Switch to RGBA format if not already
         if (this.projectionTexture.format !== THREE.RGBAFormat) {
             this.projectionTexture.format = THREE.RGBAFormat;
             console.log('🔄 Switched texture to RGBA format');
         }
         
-        // Force texture update
         this.projectionTexture.needsUpdate = true;
         
-        // Re-assign texture to material
         this.projectionMaterial.map = this.projectionTexture;
         this.projectionMaterial.needsUpdate = true;
         
@@ -2678,17 +2879,14 @@ class EuphorieScreenSharingSystem {
             return;
         }
         
-        // Create solid red texture with text
         const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 512;
         const ctx = canvas.getContext('2d');
         
-        // Red background
         ctx.fillStyle = '#ff0000';
         ctx.fillRect(0, 0, 512, 512);
         
-        // White text
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 48px Arial';
         ctx.textAlign = 'center';
@@ -2699,7 +2897,6 @@ class EuphorieScreenSharingSystem {
         
         const testTexture = new THREE.CanvasTexture(canvas);
         
-        // Apply to material
         this.projectionMaterial.map = testTexture;
         this.projectionMaterial.needsUpdate = true;
         
@@ -2770,10 +2967,8 @@ class EuphorieScreenSharingSystem {
             this.projectionSurface = null;
         }
         
-        // NEW: Cleanup fullscreen elements
         this.removeFullscreenOverlay();
         
-        // NEW: Cleanup click handlers - ENHANCED
         if (this.canvasClickHandler && this.canvasElement) {
             this.canvasElement.removeEventListener('click', this.canvasClickHandler);
             this.canvasClickHandler = null;
@@ -2817,18 +3012,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with SEAMLESS MOBILE ORIENTATION FIX + ENHANCED FULLSCREEN loaded!');
-console.log('📱 Mobile camera orientation is now automatically detected and fixed');
-console.log('🔧 No manual buttons needed - everything works seamlessly!');
-console.log('🖱️ Click on the projection screen to enter fullscreen mode');
-console.log('🖱️ FALLBACK: Double-click anywhere on the 3D scene for fullscreen');
-console.log('👆 IN FULLSCREEN: Touch/click anywhere to exit fullscreen');
-console.log('⌨️ ALTERNATIVE: Press ESC to exit fullscreen');
-console.log('💡 Functions available in console:');
-console.log('  - forceFullscreen() to manually enter fullscreen');
-console.log('  - toggleFullscreen() to toggle fullscreen mode');
-console.log('  - testClickDetection() to debug click detection');
-console.log('  - debugWebRTCConnections() to check WebRTC status');
-console.log('  - testWebRTCBroadcast() to test broadcasting');
-console.log('  - autoFixMobileOrientation() for manual orientation trigger');
+console.log('🖥️ COMPLETE FIXED Screen Sharing System loaded!');
+console.log('🔧 ✅ Fixed WebSocket message integration');
+console.log('📡 ✅ Fixed WebRTC connection flow');
+console.log('👥 ✅ Fixed late joiner support');
+console.log('📱 ✅ Mobile camera orientation automatically fixed');
+console.log('🖱️ ✅ Click on projection screen to enter fullscreen');
+console.log('💡 All debug functions available:');
+console.log('  - debugWebRTCConnections() to check connections');
 console.log('  - debugScreenShare() for full debug info');
+console.log('  - testCameraAccess() to test camera');
+console.log('  - fixMobileOrientationManual() for emergency fix');
+console.log('  - All original functionality preserved and enhanced!');

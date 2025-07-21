@@ -2007,6 +2007,84 @@
                     const data = JSON.parse(event.data);
                     console.log('📨 Received message:', data);
                     
+                    // PRIORITY: Handle screen sharing messages FIRST
+                    if (data.type && data.type.includes('screen_share')) {
+                        console.log('📺 Screen sharing message detected:', data.type);
+                        
+                        // Forward to screen sharing system if available
+                        if (window.ScreenSharingSystem) {
+                            console.log('✅ Forwarding to ScreenSharingSystem:', data.type);
+                            
+                            // Use the centralized message handler
+                            if (window.ScreenSharingSystem.handleWebSocketMessage) {
+                                window.ScreenSharingSystem.handleWebSocketMessage(data);
+                            } else {
+                                // Fallback to individual handlers
+                                switch (data.type) {
+                                    case 'screen_share_started':
+                                        if (window.ScreenSharingSystem.handleScreenShareStarted) {
+                                            window.ScreenSharingSystem.handleScreenShareStarted(data);
+                                        }
+                                        break;
+                                    case 'screen_share_stopped':
+                                        if (window.ScreenSharingSystem.handleScreenShareStopped) {
+                                            window.ScreenSharingSystem.handleScreenShareStopped(data);
+                                        }
+                                        break;
+                                    case 'screen_share_webrtc_offer':
+                                        if (window.ScreenSharingSystem.handleWebRTCOffer) {
+                                            window.ScreenSharingSystem.handleWebRTCOffer(data);
+                                        }
+                                        break;
+                                    case 'screen_share_webrtc_answer':
+                                        if (window.ScreenSharingSystem.handleWebRTCAnswer) {
+                                            window.ScreenSharingSystem.handleWebRTCAnswer(data);
+                                        }
+                                        break;
+                                    case 'screen_share_webrtc_candidate':
+                                        if (window.ScreenSharingSystem.handleWebRTCCandidate) {
+                                            window.ScreenSharingSystem.handleWebRTCCandidate(data);
+                                        }
+                                        break;
+                                    case 'screen_share_webrtc_ready':
+                                        if (window.ScreenSharingSystem.handleWebRTCReady) {
+                                            window.ScreenSharingSystem.handleWebRTCReady(data);
+                                        }
+                                        break;
+                                }
+                            }
+                        } else {
+                            console.warn('⚠️ ScreenSharingSystem not available yet, message ignored:', data.type);
+                        }
+                        return; // Don't process further - IMPORTANT!
+                    }
+                    
+                    // Handle late joiner screen sharing messages
+                    if (data.type === 'ongoing_screen_share') {
+                        console.log('📺 Ongoing screen share notification:', data);
+                        if (window.ScreenSharingSystem && window.ScreenSharingSystem.handleOngoingScreenShare) {
+                            window.ScreenSharingSystem.handleOngoingScreenShare(data);
+                        }
+                        return;
+                    }
+                    
+                    if (data.type === 'new_viewer_joined') {
+                        console.log('👁️ New viewer joined notification:', data);
+                        if (window.ScreenSharingSystem && window.ScreenSharingSystem.handleNewViewerJoined) {
+                            window.ScreenSharingSystem.handleNewViewerJoined(data);
+                        }
+                        return;
+                    }
+                    
+                    if (data.type === 'viewer_requests_offer') {
+                        console.log('📤 Viewer requests offer:', data);
+                        if (window.ScreenSharingSystem && window.ScreenSharingSystem.handleViewerRequestsOffer) {
+                            window.ScreenSharingSystem.handleViewerRequestsOffer(data);
+                        }
+                        return;
+                    }
+                    
+                    // EXISTING MESSAGE HANDLERS (keep all your existing cases)
                     switch (data.type) {
                         case 'auth_success':
                             this.authenticated = true;
