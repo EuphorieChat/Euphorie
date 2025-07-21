@@ -178,7 +178,7 @@ impl ScreenSharingManager {
         None
     }
 
-    // ENHANCED: Handle WebRTC offer relay with better validation
+    // NEW: Handle WebRTC offer relay
     pub async fn handle_webrtc_offer(
         &self,
         user_id: &str,
@@ -187,25 +187,28 @@ impl ScreenSharingManager {
         offer_data: serde_json::Value,
         timestamp: i64,
     ) -> Result<ServerMessage, String> {
-        // Allow WebRTC offers even if the user isn't the active sharer
-        // This enables viewers to initiate connections to sharers
+        // Verify there's an active screen share in this room
         let active_shares = self.active_shares.read().await;
-        if active_shares.contains_key(room_id) {
-            info!("🔄 Relaying WebRTC offer from {} to {} in room {}", user_id, target_user_id, room_id);
-            
-            Ok(ServerMessage::ScreenShareWebRTCOffer {
-                user_id: user_id.to_string(),
-                room_id: room_id.to_string(),
-                target_user_id: target_user_id.to_string(),
-                data: offer_data,
-                timestamp,
-            })
+        if let Some(share) = active_shares.get(room_id) {
+            if share.user_id == user_id {
+                info!("🔄 Relaying WebRTC offer from {} to {} in room {}", user_id, target_user_id, room_id);
+                
+                Ok(ServerMessage::ScreenShareWebRTCOffer {
+                    user_id: user_id.to_string(),
+                    room_id: room_id.to_string(),
+                    target_user_id: target_user_id.to_string(),
+                    data: offer_data,
+                    timestamp,
+                })
+            } else {
+                Err(format!("User {} is not the active screen sharer in room {}", user_id, room_id))
+            }
         } else {
             Err(format!("No active screen share in room {}", room_id))
         }
     }
 
-    // ENHANCED: Handle WebRTC answer relay with better validation
+    // NEW: Handle WebRTC answer relay
     pub async fn handle_webrtc_answer(
         &self,
         user_id: &str,
@@ -214,7 +217,7 @@ impl ScreenSharingManager {
         answer_data: serde_json::Value,
         timestamp: i64,
     ) -> Result<ServerMessage, String> {
-        // Allow WebRTC answers from any user in a room with active screen sharing
+        // Verify there's an active screen share in this room
         let active_shares = self.active_shares.read().await;
         if active_shares.contains_key(room_id) {
             info!("🔄 Relaying WebRTC answer from {} to {} in room {}", user_id, target_user_id, room_id);
@@ -231,7 +234,7 @@ impl ScreenSharingManager {
         }
     }
 
-    // ENHANCED: Handle WebRTC ICE candidate relay with better validation
+    // NEW: Handle WebRTC ICE candidate relay
     pub async fn handle_webrtc_candidate(
         &self,
         user_id: &str,
@@ -240,7 +243,7 @@ impl ScreenSharingManager {
         candidate_data: serde_json::Value,
         timestamp: i64,
     ) -> Result<ServerMessage, String> {
-        // Allow WebRTC candidates from any user in a room with active screen sharing
+        // Verify there's an active screen share in this room
         let active_shares = self.active_shares.read().await;
         if active_shares.contains_key(room_id) {
             info!("🔄 Relaying WebRTC ICE candidate from {} to {} in room {}", user_id, target_user_id, room_id);
@@ -257,7 +260,7 @@ impl ScreenSharingManager {
         }
     }
 
-    // ENHANCED: Handle WebRTC ready broadcast
+    // NEW: Handle WebRTC ready broadcast
     pub async fn handle_webrtc_ready(
         &self,
         user_id: &str,
