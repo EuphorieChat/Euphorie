@@ -41,13 +41,15 @@ class EuphorieScreenSharingSystem {
         this.cameraSettings = null;
         this.cameraCapabilities = null;
         
-        // NEW: Fullscreen properties
+        // NEW: Fullscreen properties - ENHANCED
         this.fullscreenOverlay = null;
         this.fullscreenExitHandlers = null;
+        this.touchStartTime = null; // For touch gesture detection
         this.raycaster = null;
         this.mouse = null;
         this.clickableProjection = null;
         this.canvasClickHandler = null;
+        this.canvasDoubleClickHandler = null;
         this.canvasElement = null;
         
         // Configuration
@@ -446,7 +448,7 @@ class EuphorieScreenSharingSystem {
         }
     }
     
-    // NEW: Create fullscreen video overlay
+    // NEW: Create fullscreen video overlay - ENHANCED WITH TOUCH TO EXIT
     createFullscreenOverlay() {
         // Remove existing overlay
         this.removeFullscreenOverlay();
@@ -466,6 +468,10 @@ class EuphorieScreenSharingSystem {
             justify-content: center;
             align-items: center;
             cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         `;
         
         // Create fullscreen video element
@@ -476,6 +482,7 @@ class EuphorieScreenSharingSystem {
             width: auto;
             height: auto;
             object-fit: contain;
+            pointer-events: none;
         `;
         
         // Copy video source and properties
@@ -491,60 +498,99 @@ class EuphorieScreenSharingSystem {
             }
         }
         
-        // Create exit hint
+        // Create enhanced exit hint with animations
         const exitHint = document.createElement('div');
         exitHint.style.cssText = `
             position: absolute;
             top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
             color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
+            padding: 12px 20px;
+            border-radius: 25px;
             font-size: 14px;
             font-weight: 600;
             backdrop-filter: blur(10px);
-            animation: fadeInOut 3s ease-in-out;
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: fullscreenHint 4s ease-in-out;
+            text-align: center;
+            pointer-events: none;
         `;
-        exitHint.textContent = 'Click anywhere to exit fullscreen';
         
-        // Add fade animation
+        // Detect device type for appropriate hint
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        exitHint.innerHTML = `
+            <div style="margin-bottom: 4px;">📺 Fullscreen Mode</div>
+            <div style="font-size: 12px; opacity: 0.8;">
+                ${isMobile ? 'Tap anywhere to exit' : 'Click anywhere or press ESC to exit'}
+            </div>
+        `;
+        
+        // Add enhanced animations
         const style = document.createElement('style');
         style.textContent = `
-            @keyframes fadeInOut {
-                0% { opacity: 0; transform: translateY(-10px); }
-                20% { opacity: 1; transform: translateY(0); }
-                80% { opacity: 1; transform: translateY(0); }
-                100% { opacity: 0; transform: translateY(-10px); }
+            @keyframes fullscreenHint {
+                0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+                15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            }
+            
+            @keyframes pulseExit {
+                0%, 100% { opacity: 0.7; }
+                50% { opacity: 1; }
             }
         `;
         document.head.appendChild(style);
         
+        // Create tap/click indicator for better UX
+        const tapIndicator = document.createElement('div');
+        tapIndicator.style.cssText = `
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0.7;
+            animation: pulseExit 2s ease-in-out infinite;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.2);
+        `;
+        tapIndicator.textContent = isMobile ? '👆 Tap to exit' : '🖱️ Click to exit';
+        
         // Assemble fullscreen overlay
         this.fullscreenOverlay.appendChild(fullscreenVideo);
         this.fullscreenOverlay.appendChild(exitHint);
+        this.fullscreenOverlay.appendChild(tapIndicator);
         document.body.appendChild(this.fullscreenOverlay);
         
-        // Add exit handlers
+        // Add exit handlers with enhanced touch support
         this.setupFullscreenExitHandlers();
         
-        console.log('🖥️ Fullscreen overlay created');
+        console.log('🖥️ Fullscreen overlay created with touch/click to exit');
     }
     
-    // NEW: Setup fullscreen exit handlers
+    // ENHANCED: Setup fullscreen exit handlers with better touch support
     setupFullscreenExitHandlers() {
         if (!this.fullscreenOverlay) return;
         
-        // Click to exit
-        const clickExit = (event) => {
-            if (event.target === this.fullscreenOverlay) {
-                this.exitFullscreen();
-            }
+        // Enhanced click/touch to exit - works anywhere on the overlay
+        const clickTouchExit = (event) => {
+            console.log('🖱️ Fullscreen overlay touched/clicked - exiting');
+            event.preventDefault();
+            event.stopPropagation();
+            this.exitFullscreen();
         };
         
         // Escape key to exit
         const keyExit = (event) => {
             if (event.key === 'Escape') {
+                console.log('⌨️ ESC key pressed - exiting fullscreen');
                 this.exitFullscreen();
             }
         };
@@ -554,11 +600,34 @@ class EuphorieScreenSharingSystem {
             if (!document.fullscreenElement && 
                 !document.webkitFullscreenElement && 
                 !document.msFullscreenElement) {
+                console.log('🖥️ Browser fullscreen exited - cleaning up overlay');
                 this.exitFullscreen();
             }
         };
         
-        this.fullscreenOverlay.addEventListener('click', clickExit);
+        // Enhanced touch support for mobile
+        const touchStart = (event) => {
+            // Prevent default touch behaviors
+            event.preventDefault();
+            this.touchStartTime = Date.now();
+        };
+        
+        const touchEnd = (event) => {
+            event.preventDefault();
+            const touchDuration = Date.now() - (this.touchStartTime || 0);
+            
+            // Only exit on quick taps (not long presses)
+            if (touchDuration < 500) {
+                console.log('📱 Quick tap detected - exiting fullscreen');
+                this.exitFullscreen();
+            }
+        };
+        
+        // Add all event listeners
+        this.fullscreenOverlay.addEventListener('click', clickTouchExit);
+        this.fullscreenOverlay.addEventListener('touchstart', touchStart, { passive: false });
+        this.fullscreenOverlay.addEventListener('touchend', touchEnd, { passive: false });
+        
         document.addEventListener('keydown', keyExit);
         document.addEventListener('fullscreenchange', fullscreenExit);
         document.addEventListener('webkitfullscreenchange', fullscreenExit);
@@ -566,10 +635,14 @@ class EuphorieScreenSharingSystem {
         
         // Store handlers for cleanup
         this.fullscreenExitHandlers = {
-            clickExit,
+            clickTouchExit,
+            touchStart,
+            touchEnd,
             keyExit,
             fullscreenExit
         };
+        
+        console.log('✅ Enhanced fullscreen exit handlers setup (click, touch, keyboard)');
     }
     
     // NEW: Exit fullscreen mode
@@ -591,20 +664,39 @@ class EuphorieScreenSharingSystem {
         this.showNotification('🖥️ Exited fullscreen mode');
     }
     
-    // NEW: Remove fullscreen overlay
+    // ENHANCED: Remove fullscreen overlay with better cleanup
     removeFullscreenOverlay() {
         if (this.fullscreenOverlay) {
-            // Remove event listeners
+            // Remove enhanced event listeners
             if (this.fullscreenExitHandlers) {
-                document.removeEventListener('keydown', this.fullscreenExitHandlers.keyExit);
-                document.removeEventListener('fullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
-                document.removeEventListener('webkitfullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
-                document.removeEventListener('msfullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
+                // Remove overlay-specific listeners
+                if (this.fullscreenExitHandlers.clickTouchExit) {
+                    this.fullscreenOverlay.removeEventListener('click', this.fullscreenExitHandlers.clickTouchExit);
+                }
+                if (this.fullscreenExitHandlers.touchStart) {
+                    this.fullscreenOverlay.removeEventListener('touchstart', this.fullscreenExitHandlers.touchStart);
+                }
+                if (this.fullscreenExitHandlers.touchEnd) {
+                    this.fullscreenOverlay.removeEventListener('touchend', this.fullscreenExitHandlers.touchEnd);
+                }
+                
+                // Remove document-level listeners
+                if (this.fullscreenExitHandlers.keyExit) {
+                    document.removeEventListener('keydown', this.fullscreenExitHandlers.keyExit);
+                }
+                if (this.fullscreenExitHandlers.fullscreenExit) {
+                    document.removeEventListener('fullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
+                    document.removeEventListener('webkitfullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
+                    document.removeEventListener('msfullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
+                }
             }
             
             this.fullscreenOverlay.remove();
             this.fullscreenOverlay = null;
             this.fullscreenExitHandlers = null;
+            this.touchStartTime = null;
+            
+            console.log('🧹 Fullscreen overlay and all handlers cleaned up');
         }
     }
     
@@ -2613,12 +2705,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with SEAMLESS MOBILE ORIENTATION FIX + FULLSCREEN loaded!');
+console.log('🖥️ Screen Sharing System with SEAMLESS MOBILE ORIENTATION FIX + ENHANCED FULLSCREEN loaded!');
 console.log('📱 Mobile camera orientation is now automatically detected and fixed');
 console.log('🔧 No manual buttons needed - everything works seamlessly!');
 console.log('🖱️ Click on the projection screen to enter fullscreen mode');
 console.log('🖱️ FALLBACK: Double-click anywhere on the 3D scene for fullscreen');
-console.log('⌨️ Press ESC or click outside to exit fullscreen');
+console.log('👆 IN FULLSCREEN: Touch/click anywhere to exit fullscreen');
+console.log('⌨️ ALTERNATIVE: Press ESC to exit fullscreen');
 console.log('💡 Functions available in console:');
 console.log('  - forceFullscreen() to manually enter fullscreen');
 console.log('  - toggleFullscreen() to toggle fullscreen mode');
