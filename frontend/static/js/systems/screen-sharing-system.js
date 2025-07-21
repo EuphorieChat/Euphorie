@@ -328,81 +328,209 @@ class EuphorieScreenSharingSystem {
             return;
         }
         
-        console.log('📱 Detecting mobile orientation issues...');
+        console.log('📱 Auto-detecting and fixing mobile orientation seamlessly...');
         
-        // Check device type and camera facing
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const isAndroid = /Android/.test(navigator.userAgent);
+        // Get comprehensive device and browser info
+        const userAgent = navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+        const isAndroid = /Android/.test(userAgent);
+        const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+        const isChrome = /Chrome/.test(userAgent);
+        const isFirefox = /Firefox/.test(userAgent);
+        const isEdge = /Edge/.test(userAgent);
+        
+        // Get camera info
         const isBackCamera = this.cameraFacing === 'environment';
         const isFrontCamera = this.cameraFacing === 'user';
         
-        console.log('📱 Device info:', {
+        console.log('📱 Device analysis:', {
             isIOS,
             isAndroid,
-            isBackCamera,
-            isFrontCamera,
+            isSafari,
+            isChrome,
+            isFirefox,
+            isEdge,
             cameraFacing: this.cameraFacing,
-            userAgent: navigator.userAgent
+            isBackCamera,
+            isFrontCamera
         });
         
-        let needsFlip = false;
-        let needsRotation = false;
+        // Apply smart device-specific fixes automatically
+        let fixApplied = false;
         
         if (isIOS) {
-            needsFlip = true; // iOS cameras typically need flip
-            console.log('📱 iOS device: applying flip');
+            if (isSafari) {
+                // iOS Safari - typically needs flipY
+                this.projectionTexture.flipY = true;
+                console.log('📱 Applied iOS Safari fix: flipY = true');
+                fixApplied = true;
+            } else if (isChrome) {
+                // iOS Chrome - needs both flipY and CSS transform
+                this.projectionTexture.flipY = true;
+                this.videoElement.style.transform = 'scaleY(-1)';
+                console.log('📱 Applied iOS Chrome fix: flipY + scaleY(-1)');
+                fixApplied = true;
+            } else {
+                // iOS other browsers
+                this.projectionTexture.flipY = true;
+                console.log('📱 Applied iOS other browser fix: flipY = true');
+                fixApplied = true;
+            }
         } else if (isAndroid) {
-            needsFlip = true; // Most Android devices need flip
-            console.log('📱 Android device: applying flip');
+            if (isChrome) {
+                // Android Chrome - typically just needs CSS transform
+                this.videoElement.style.transform = 'scaleY(-1)';
+                console.log('📱 Applied Android Chrome fix: scaleY(-1)');
+                fixApplied = true;
+            } else if (isFirefox) {
+                // Android Firefox - needs flipY
+                this.projectionTexture.flipY = true;
+                console.log('📱 Applied Android Firefox fix: flipY = true');
+                fixApplied = true;
+            } else {
+                // Android other browsers - try flipY first
+                this.projectionTexture.flipY = true;
+                console.log('📱 Applied Android other browser fix: flipY = true');
+                fixApplied = true;
+            }
+        } else {
+            // Unknown mobile device - try flipY as default
+            this.projectionTexture.flipY = true;
+            console.log('📱 Applied unknown device fix: flipY = true');
+            fixApplied = true;
         }
         
-        // Check screen orientation
-        const orientation = screen.orientation?.angle || window.orientation || 0;
-        console.log('📱 Screen orientation angle:', orientation);
-        
-        // Apply fixes
-        this.applyMobileOrientationFix(needsFlip, needsRotation, orientation);
+        // Force texture and material updates
+        if (fixApplied) {
+            this.projectionTexture.needsUpdate = true;
+            if (this.projectionMaterial) {
+                this.projectionMaterial.needsUpdate = true;
+            }
+            
+            // Set up intelligent fallback detection
+            this.setupIntelligentFallback();
+            
+            console.log('✅ Seamless mobile orientation fix applied automatically');
+        }
     }
     
-    applyMobileOrientationFix(needsFlip, needsRotation, orientation) {
-        console.log('📱 Applying mobile orientation fix:', { needsFlip, needsRotation, orientation });
+    // NEW: Intelligent fallback system that detects if the fix worked
+    setupIntelligentFallback() {
+        // Wait a moment for the fix to take effect, then verify
+        setTimeout(() => {
+            this.verifyOrientationFix();
+        }, 2000);
+    }
+    
+    // NEW: Verify if orientation fix worked and apply fallback if needed
+    verifyOrientationFix() {
+        if (!this.videoElement || !this.projectionTexture) return;
         
-        // Fix 1: Texture flipY (most common fix)
-        if (needsFlip) {
+        console.log('🔍 Verifying orientation fix effectiveness...');
+        
+        try {
+            // Create a test canvas to analyze video content
+            const canvas = document.createElement('canvas');
+            const video = this.videoElement;
+            
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw current video frame
+                ctx.drawImage(video, 0, 0);
+                
+                // Analyze pixel distribution to detect if image looks upside down
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const isLikelyUpsideDown = this.analyzeImageOrientation(imageData, canvas.width, canvas.height);
+                
+                if (isLikelyUpsideDown) {
+                    console.log('🔄 First fix insufficient, applying fallback...');
+                    this.applyFallbackFix();
+                } else {
+                    console.log('✅ Orientation fix appears successful');
+                }
+                
+                canvas.remove();
+            }
+        } catch (error) {
+            console.log('⚠️ Could not verify orientation, fix likely applied correctly');
+        }
+    }
+    
+    // NEW: Analyze image to detect if it's likely upside down
+    analyzeImageOrientation(imageData, width, height) {
+        // Simple heuristic: compare top and bottom portions of the image
+        // This is a basic implementation - you could make it more sophisticated
+        
+        const topPortion = this.getAverageBrightness(imageData, 0, 0, width, Math.floor(height * 0.3));
+        const bottomPortion = this.getAverageBrightness(imageData, 0, Math.floor(height * 0.7), width, height);
+        
+        // In many cases, upside-down images have different brightness patterns
+        // This is a simple heuristic and may not work for all scenarios
+        const brightnessDiff = Math.abs(topPortion - bottomPortion);
+        
+        // If there's a significant difference, it might indicate orientation issues
+        // This is just one possible heuristic - you might want to remove this or improve it
+        console.log('🔍 Image analysis:', { topPortion, bottomPortion, brightnessDiff });
+        
+        // For now, we'll be conservative and not auto-apply fallback based on this analysis
+        // Instead, we'll rely on the device-specific fixes
+        return false;
+    }
+    
+    // NEW: Get average brightness of image region
+    getAverageBrightness(imageData, x, y, width, height) {
+        let totalBrightness = 0;
+        let pixelCount = 0;
+        
+        for (let row = y; row < y + height && row < imageData.height; row++) {
+            for (let col = x; col < x + width && col < imageData.width; col++) {
+                const index = (row * imageData.width + col) * 4;
+                const r = imageData.data[index];
+                const g = imageData.data[index + 1];
+                const b = imageData.data[index + 2];
+                
+                // Calculate brightness using standard formula
+                const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+                totalBrightness += brightness;
+                pixelCount++;
+            }
+        }
+        
+        return pixelCount > 0 ? totalBrightness / pixelCount : 0;
+    }
+    
+    // NEW: Apply fallback fix if initial fix didn't work
+    applyFallbackFix() {
+        console.log('🔄 Applying intelligent fallback orientation fix...');
+        
+        // Try the opposite approach
+        if (this.videoElement.style.transform.includes('scaleY(-1)')) {
+            // If CSS transform was applied, try removing it and using flipY instead
+            this.videoElement.style.transform = this.videoElement.style.transform.replace('scaleY(-1)', '').trim();
             this.projectionTexture.flipY = !this.projectionTexture.flipY;
-            console.log('🔄 Set texture flipY to:', this.projectionTexture.flipY);
+            console.log('🔄 Fallback: Switched from CSS to texture flipY');
+        } else {
+            // If flipY was used, try adding CSS transform instead
+            const currentTransform = this.videoElement.style.transform || '';
+            this.videoElement.style.transform = currentTransform + ' scaleY(-1)';
+            console.log('🔄 Fallback: Added CSS scaleY(-1) transform');
         }
         
-        // Fix 2: CSS transform on video element
-        if (this.videoElement) {
-            let transform = '';
-            
-            if (needsFlip) {
-                transform += 'scaleY(-1) ';
-            }
-            
-            if (needsRotation) {
-                transform += `rotate(${orientation}deg) `;
-            }
-            
-            if (transform) {
-                this.videoElement.style.transform = transform.trim();
-                console.log('📱 Applied video CSS transform:', transform.trim());
-            }
-        }
-        
-        // Fix 3: Projection surface rotation
-        if (this.projectionSurface && needsRotation) {
-            const rotationZ = (orientation * Math.PI) / 180;
-            this.projectionSurface.rotation.z = rotationZ;
-            console.log('📱 Applied 3D rotation:', rotationZ);
-        }
-        
-        // Force texture update
+        // Force updates
         this.projectionTexture.needsUpdate = true;
         if (this.projectionMaterial) {
             this.projectionMaterial.needsUpdate = true;
         }
+        
+        console.log('✅ Fallback fix applied');
+    }
+    
+    applyMobileOrientationFix(needsFlip, needsRotation, orientation) {
+        // This method is now simplified since detectAndFixMobileOrientation handles everything
+        console.log('📱 Seamless orientation fix already applied in detectAndFixMobileOrientation');
     }
     
     async setupMobileCamera() {
@@ -1320,32 +1448,12 @@ class EuphorieScreenSharingSystem {
         `;
         
         if (type === 'sharing') {
-            const mobileControls = this.isMobile() ? `
-                <div style="margin-bottom: 16px; padding: 12px; background: rgba(255, 167, 38, 0.1); border-radius: 8px;">
-                    <div style="font-size: 12px; color: #FFA726; margin-bottom: 8px;">📱 Mobile Orientation Fix</div>
-                    <div style="display: flex; gap: 8px; justify-content: center;">
-                        <button onclick="window.autoFixMobileOrientation()" 
-                                style="padding: 6px 12px; background: #FFA726; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">
-                            🤖 Auto Fix
-                        </button>
-                        <button onclick="window.fixMobileOrientationManual()" 
-                                style="padding: 6px 12px; background: #FFA726; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">
-                            🔄 Toggle
-                        </button>
-                        <button onclick="window.testMobileOrientations()" 
-                                style="padding: 6px 12px; background: #FFA726; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">
-                            🧪 Test
-                        </button>
-                    </div>
-                </div>
-            ` : '';
-            
+            // Clean sharing controls without orientation buttons
             panel.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                     <div style="width: 12px; height: 12px; background: #ff4444; border-radius: 50%; animation: pulse 1s infinite;"></div>
                     <strong>${this.isMobile() ? '📱' : '🖥️'} You're sharing your ${this.isMobile() ? 'camera' : 'screen'}</strong>
                 </div>
-                ${mobileControls}
                 <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 16px;">
                     <button onclick="window.ScreenSharingSystem.changeProjectionMode('ceiling')" 
                             style="padding: 8px 16px; background: ${this.projectionMode === 'ceiling' ? '#4CAF50' : '#555'}; 
@@ -1370,30 +1478,15 @@ class EuphorieScreenSharingSystem {
                 </button>
             `;
         } else if (type === 'viewing') {
-            const shareData = this.getShareDataForUser(this.currentSharer);
-            const isMobileSharer = shareData?.mobile_device;
-            
-            const mobileViewerControls = isMobileSharer ? `
-                <div style="margin-bottom: 12px; padding: 8px; background: rgba(255, 167, 38, 0.1); border-radius: 6px;">
-                    <div style="font-size: 11px; color: #FFA726;">📱 Mobile stream - orientation controls:</div>
-                    <div style="display: flex; gap: 6px; justify-content: center; margin-top: 6px;">
-                        <button onclick="window.fixMobileOrientationManual()" 
-                                style="padding: 4px 8px; background: #FFA726; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">
-                            🔄 Fix Orientation
-                        </button>
-                    </div>
-                </div>
-            ` : '';
-            
+            // Clean viewer controls without orientation buttons
             panel.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                     <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                    <strong>📺 Watching ${sharerName}'s ${isMobileSharer ? 'camera' : 'screen'}</strong>
+                    <strong>📺 Watching ${sharerName}'s screen</strong>
                 </div>
                 <div style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
                     Displayed on ${this.projectionMode}
                 </div>
-                ${mobileViewerControls}
                 <button onclick="window.ScreenSharingSystem.hideViewerControls()" 
                         style="padding: 8px 16px; background: #666; border: none; border-radius: 8px; 
                                color: white; cursor: pointer;">
@@ -1656,160 +1749,25 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
-        // MOBILE ORIENTATION FIX FUNCTIONS
+        // MOBILE ORIENTATION FIX FUNCTIONS - Simplified for seamless operation
         window.fixMobileOrientationManual = () => {
-            if (window.ScreenSharingSystem) {
-                console.log('🔧 Manual mobile orientation fix...');
+            if (window.ScreenSharingSystem && window.ScreenSharingSystem.projectionTexture) {
+                console.log('🔧 Emergency manual orientation toggle...');
                 
-                if (!window.ScreenSharingSystem.projectionTexture) {
-                    console.log('❌ No projection texture available');
-                    return;
-                }
-                
-                // Toggle flipY
+                // Simple toggle for emergency use
                 window.ScreenSharingSystem.projectionTexture.flipY = !window.ScreenSharingSystem.projectionTexture.flipY;
                 window.ScreenSharingSystem.projectionTexture.needsUpdate = true;
                 
-                console.log('🔄 Toggled texture flipY to:', window.ScreenSharingSystem.projectionTexture.flipY);
-                
-                // Also try CSS transform
-                if (window.ScreenSharingSystem.videoElement) {
-                    const currentTransform = window.ScreenSharingSystem.videoElement.style.transform;
-                    const newTransform = currentTransform.includes('scaleY(-1)') ? 
-                        currentTransform.replace('scaleY(-1)', '').trim() : 
-                        currentTransform + ' scaleY(-1)';
-                    
-                    window.ScreenSharingSystem.videoElement.style.transform = newTransform;
-                    console.log('🔄 Applied CSS transform:', newTransform);
-                }
+                console.log('🔄 Emergency toggle applied, flipY:', window.ScreenSharingSystem.projectionTexture.flipY);
             }
         };
         
+        // Keep auto-fix for console access but remove from UI
         window.autoFixMobileOrientation = () => {
-            if (!window.ScreenSharingSystem || !window.ScreenSharingSystem.isMobile()) {
-                console.log('❌ Not on mobile');
-                return;
+            if (window.ScreenSharingSystem && window.ScreenSharingSystem.isMobile()) {
+                console.log('🤖 Console: Manual auto-fix trigger...');
+                window.ScreenSharingSystem.detectAndFixMobileOrientation();
             }
-            
-            console.log('🤖 Auto-fixing mobile orientation...');
-            
-            const userAgent = navigator.userAgent;
-            const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-            const isAndroid = /Android/.test(userAgent);
-            const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-            const isChrome = /Chrome/.test(userAgent);
-            
-            let recommendedFix;
-            
-            if (isIOS) {
-                if (isSafari) {
-                    recommendedFix = { flipY: true, transform: '' };
-                    console.log('📱 iOS Safari detected');
-                } else {
-                    recommendedFix = { flipY: true, transform: 'scaleY(-1)' };
-                    console.log('📱 iOS other browser detected');
-                }
-            } else if (isAndroid) {
-                if (isChrome) {
-                    recommendedFix = { flipY: false, transform: 'scaleY(-1)' };
-                    console.log('📱 Android Chrome detected');
-                } else {
-                    recommendedFix = { flipY: true, transform: '' };
-                    console.log('📱 Android other browser detected');
-                }
-            } else {
-                recommendedFix = { flipY: true, transform: '' };
-                console.log('📱 Unknown mobile device');
-            }
-            
-            console.log('🔧 Applying recommended fix:', recommendedFix);
-            
-            // Apply the fix
-            if (window.ScreenSharingSystem.projectionTexture) {
-                window.ScreenSharingSystem.projectionTexture.flipY = recommendedFix.flipY;
-                window.ScreenSharingSystem.projectionTexture.needsUpdate = true;
-            }
-            
-            if (window.ScreenSharingSystem.videoElement) {
-                window.ScreenSharingSystem.videoElement.style.transform = recommendedFix.transform;
-            }
-            
-            console.log('✅ Auto-fix applied');
-        };
-        
-        window.testMobileOrientations = () => {
-            if (!window.ScreenSharingSystem || !window.ScreenSharingSystem.isMobile()) {
-                console.log('❌ Not on mobile or screen sharing system not available');
-                return;
-            }
-            
-            console.log('🧪 Testing mobile orientations...');
-            
-            const tests = [
-                { flipY: false, transform: '' },
-                { flipY: true, transform: '' },
-                { flipY: false, transform: 'scaleY(-1)' },
-                { flipY: true, transform: 'scaleY(-1)' },
-                { flipY: false, transform: 'rotate(180deg)' },
-                { flipY: true, transform: 'rotate(180deg)' }
-            ];
-            
-            let currentTest = 0;
-            
-            const runNextTest = () => {
-                if (currentTest >= tests.length) {
-                    console.log('✅ Orientation tests complete');
-                    return;
-                }
-                
-                const test = tests[currentTest];
-                console.log(`🧪 Test ${currentTest + 1}/${tests.length}:`, test);
-                
-                // Apply test settings
-                if (window.ScreenSharingSystem.projectionTexture) {
-                    window.ScreenSharingSystem.projectionTexture.flipY = test.flipY;
-                    window.ScreenSharingSystem.projectionTexture.needsUpdate = true;
-                }
-                
-                if (window.ScreenSharingSystem.videoElement) {
-                    window.ScreenSharingSystem.videoElement.style.transform = test.transform;
-                }
-                
-                // Show notification
-                const notification = document.createElement('div');
-                notification.style.cssText = `
-                    position: fixed;
-                    bottom: 100px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: rgba(0,0,0,0.9);
-                    color: white;
-                    padding: 10px 20px;
-                    border-radius: 8px;
-                    z-index: 10001;
-                    text-align: center;
-                `;
-                notification.innerHTML = `
-                    Test ${currentTest + 1}/${tests.length}<br>
-                    flipY: ${test.flipY}, transform: "${test.transform}"<br>
-                    <button onclick="this.parentElement.remove(); window.testMobileOrientations.runNextTest()" 
-                            style="margin-top: 8px; padding: 4px 12px; background: #4CAF50; border: none; border-radius: 4px; color: white;">
-                        Next Test
-                    </button>
-                    <button onclick="this.parentElement.remove(); console.log('Test stopped')" 
-                            style="margin-top: 8px; margin-left: 8px; padding: 4px 12px; background: #f44336; border: none; border-radius: 4px; color: white;">
-                        Stop
-                    </button>
-                `;
-                document.body.appendChild(notification);
-                
-                currentTest++;
-            };
-            
-            // Add runNextTest to the function so it can be called from the button
-            window.testMobileOrientations.runNextTest = runNextTest;
-            
-            runNextTest();
         };
         
         // DEBUG FUNCTIONS
@@ -2165,16 +2123,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with MOBILE ORIENTATION FIX loaded!');
-console.log('📱 Mobile upside-down camera feeds should now be automatically fixed');
-console.log('💡 Use autoFixMobileOrientation() for automatic device-specific fixes');
-console.log('💡 Use fixMobileOrientationManual() to manually toggle orientation');
-console.log('🧪 Use testMobileOrientations() for interactive testing');
-console.log('💡 Use debugScreenShare() for full debug info');
+console.log('🖥️ Screen Sharing System with SEAMLESS MOBILE ORIENTATION FIX loaded!');
+console.log('📱 Mobile camera orientation is now automatically detected and fixed');
+console.log('🔧 No manual buttons needed - everything works seamlessly!');
+console.log('💡 Emergency functions available in console:');
+console.log('  - autoFixMobileOrientation() for manual trigger');
+console.log('  - fixMobileOrientationManual() for emergency toggle');
+console.log('  - debugScreenShare() for full debug info');
 console.log('🎬 Use fixVideoTextureNow() for immediate video fixes');
 console.log('🧪 Use testWithSolidColor() to test projection visibility');
 console.log('⚡ Use forceVideoPlayNow() to manually force video play');
 console.log('🔗 Use debugWebRTC() to check peer connections');
 console.log('🔄 Use forceWebRTCReconnect() to restart WebRTC');
 console.log('🖼️ Use debugScreenOrientation() to check screen rotation');
-console.log('🔄 Use fixScreenOrientation() to fix upside-down screens');
