@@ -279,7 +279,11 @@ impl ScreenSharingManager {
                     user_id: user_id.to_string(),
                     room_id: room_id.to_string(),
                     username: username.to_string(),
-                    share_data,
+                    share_data: crate::message::ScreenShareData {
+                        projection_mode: share_data.projection_mode,
+                        quality: share_data.quality,
+                        session_id: share_data.session_id,
+                    },
                     timestamp,
                 })
             } else {

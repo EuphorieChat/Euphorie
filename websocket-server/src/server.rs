@@ -532,16 +532,19 @@ impl WebSocketServer {
             ClientMessage::ScreenShareStarted { user_id, room_id, username, nationality, share_data, .. } => {
                 tracing::info!("🖥️ Screen share start request from: {} in room: {}", username, room_id);
                 
+                // Convert message::ScreenShareData to screen_sharing::ScreenShareData
+                let screen_share_data = crate::screen_sharing::ScreenShareData {
+                    projection_mode: share_data.projection_mode.clone(),
+                    quality: share_data.quality.clone(),
+                    session_id: share_data.session_id.clone(),
+                };
+                
                 match self.screen_sharing_manager.start_screen_share(
                     user_id.clone(),
                     room_id.clone(),
                     username.clone(),
                     nationality.clone(),
-                    crate::screen_sharing::ScreenShareData {
-                        projection_mode: share_data.projection_mode.clone(),
-                        quality: share_data.quality.clone(),
-                        session_id: share_data.session_id.clone(),
-                    },
+                    screen_share_data,
                 ).await {
                     Ok(session_id) => {
                         let response = ServerMessage::ScreenShareStarted {
@@ -648,8 +651,15 @@ impl WebSocketServer {
             ClientMessage::ScreenShareWebRTCReady { user_id, room_id, username, share_data, .. } => {
                 tracing::info!("📡 WebRTC ready from: {} in room: {}", username, room_id);
                 
+                // Convert message::ScreenShareData to screen_sharing::ScreenShareData
+                let screen_share_data = crate::screen_sharing::ScreenShareData {
+                    projection_mode: share_data.projection_mode.clone(),
+                    quality: share_data.quality.clone(),
+                    session_id: share_data.session_id.clone(),
+                };
+                
                 match self.screen_sharing_manager.handle_webrtc_ready(
-                    &user_id, &room_id, &username, share_data, chrono::Utc::now().timestamp_millis()
+                    &user_id, &room_id, &username, screen_share_data, chrono::Utc::now().timestamp_millis()
                 ).await {
                     Ok(response) => {
                         // Broadcast to all users in room except sender
