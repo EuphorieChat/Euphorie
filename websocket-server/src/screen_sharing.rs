@@ -282,6 +282,7 @@ impl ScreenSharingManager {
                     share_data: crate::message::ScreenShareData {
                         projection_mode: share_data.projection_mode,
                         quality: share_data.quality,
+                        share_type: Some("screen".to_string()), // Default to "screen" since it's optional
                         session_id: share_data.session_id,
                     },
                     timestamp,
