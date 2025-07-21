@@ -676,6 +676,12 @@ impl WebSocketServer {
                     }
                 }
             }
+
+            // NEW: Handle broadcast offer message (ignore or log for now)
+            ClientMessage::ScreenShareBroadcastOffer { user_id, room_id, username, .. } => {
+                tracing::info!("📡 Broadcast offer from: {} in room: {} (ignoring for now)", username, room_id);
+                // For now, we'll just acknowledge it - the important messages are the WebRTC ones
+            }
         }
 
         Ok(())

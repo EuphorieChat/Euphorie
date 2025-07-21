@@ -1,4 +1,4 @@
-// FIXED: src/message.rs - Added Screen Sharing Message Types
+// FIXED: src/message.rs - Added Screen Sharing Message Types with broadcast support
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -158,7 +158,7 @@ pub enum ClientMessage {
         timestamp: Option<i64>,
     },
 
-    // FIXED: Screen Sharing Messages - ADD THESE
+    // FIXED: Screen Sharing Messages - COMPLETE SET
     #[serde(rename = "screen_share_started")]
     ScreenShareStarted {
         user_id: String,
@@ -212,6 +212,16 @@ pub enum ClientMessage {
         username: String,
         share_data: ScreenShareData,
         timestamp: i64,
+    },
+
+    // NEW: Missing broadcast offer message type
+    #[serde(rename = "screen_share_broadcast_offer")]
+    ScreenShareBroadcastOffer {
+        user_id: String,
+        room_id: String,
+        username: String,
+        share_type: Option<String>,
+        timestamp: Option<i64>,
     },
 }
 
@@ -343,7 +353,7 @@ pub enum ServerMessage {
         timestamp: i64,
     },
 
-    // FIXED: Screen Sharing Response Messages - ADD THESE
+    // FIXED: Screen Sharing Response Messages - COMPLETE SET
     #[serde(rename = "screen_share_started")]
     ScreenShareStarted {
         user_id: String,
