@@ -1,6 +1,6 @@
 // ================================
-// EUPHORIE 3D SCREEN SHARING SYSTEM - SYNTAX FIXED VERSION
-// Complete implementation with syntax error fixed
+// EUPHORIE 3D SCREEN SHARING SYSTEM - COMPLETE WITH MOBILE ORIENTATION FIX
+// Complete implementation with mobile upside-down fix
 // ================================
 
 class EuphorieScreenSharingSystem {
@@ -19,12 +19,13 @@ class EuphorieScreenSharingSystem {
         // CRITICAL: Video texture update system
         this.textureUpdateInterval = null;
         this.isTextureUpdating = false;
-        this.videoMonitorInterval = null; // Monitor video play state
+        this.videoMonitorInterval = null;
         
         // Screen sharing state
-        this.activeShares = new Map(); // userId -> shareData
+        this.activeShares = new Map();
         this.currentSharer = null;
-        this.projectionMode = 'ceiling'; // 'ceiling', 'wall', 'floating'
+        this.projectionMode = 'ceiling';
+        this.shareDataStore = new Map(); // Store share data for orientation detection
         
         // WebRTC peer connections for screen sharing
         this.peerConnections = new Map();
@@ -35,31 +36,25 @@ class EuphorieScreenSharingSystem {
         this.camera = null;
         this.renderer = null;
         
+        // Mobile orientation properties
+        this.cameraFacing = 'environment';
+        this.cameraSettings = null;
+        this.cameraCapabilities = null;
+        
         // Configuration
         this.config = {
-            maxSharers: 1, // Only one person can share at a time
-            projectionWidth: 16, // 3D units
-            projectionHeight: 9, // 3D units
-            ceilingHeight: 8, // Height above ground
-            wallDistance: 12, // Distance from center for wall projection
-            quality: 'high', // 'low', 'medium', 'high'
+            maxSharers: 1,
+            projectionWidth: 16,
+            projectionHeight: 9,
+            ceilingHeight: 8,
+            wallDistance: 12,
+            quality: 'high',
             frameRate: 30,
             autoSwitchOnStop: true,
             enableControls: true
         };
         
-        // Add default camera facing
-        this.cameraFacing = 'environment'; // Default to back camera
-        
-        // Bind methods with safe binding
-        this.bindMethods();
-        
         console.log('✅ Screen Sharing System created');
-    }
-    
-    bindMethods() {
-        // Remove all method binding - not needed for this class
-        console.log('✅ Method binding skipped - methods work without binding');
     }
     
     async init() {
@@ -79,8 +74,11 @@ class EuphorieScreenSharingSystem {
             // Create projection surface with VideoTexture fix
             this.createProjectionSurface();
             
-            // Setup global functions (but don't add UI buttons)
+            // Setup global functions
             this.setupGlobalFunctions();
+            
+            // Setup orientation change listeners
+            this.setupOrientationListeners();
             
             this.isInitialized = true;
             console.log('✅ Screen Sharing System initialized');
@@ -198,29 +196,26 @@ class EuphorieScreenSharingSystem {
         this.videoElement.autoplay = true;
         this.videoElement.muted = true;
         this.videoElement.playsInline = true;
-        this.videoElement.crossOrigin = 'anonymous'; // CRITICAL: Add this for video texture
+        this.videoElement.crossOrigin = 'anonymous';
         document.body.appendChild(this.videoElement);
         
-        // CRITICAL FIX: Create VideoTexture with correct orientation
+        // Create VideoTexture with correct orientation
         this.projectionTexture = new THREE.VideoTexture(this.videoElement);
         this.projectionTexture.minFilter = THREE.LinearFilter;
         this.projectionTexture.magFilter = THREE.LinearFilter;
-        this.projectionTexture.format = THREE.RGBAFormat; // Use RGBA for better compatibility
+        this.projectionTexture.format = THREE.RGBAFormat;
         this.projectionTexture.generateMipmaps = false;
-        this.projectionTexture.flipY = true; // FIX: Set to true to prevent upside down
+        this.projectionTexture.flipY = true;
         this.projectionTexture.wrapS = THREE.ClampToEdgeWrapping;
         this.projectionTexture.wrapT = THREE.ClampToEdgeWrapping;
-        
-        // CRITICAL FIX: Force initial update
         this.projectionTexture.needsUpdate = true;
         
-        // CRITICAL FIX: Use MeshBasicMaterial for unlit rendering (better for video)
+        // Use MeshBasicMaterial for unlit rendering
         this.projectionMaterial = new THREE.MeshBasicMaterial({
             map: this.projectionTexture,
             transparent: false,
             side: THREE.DoubleSide,
-            color: 0xffffff, // Ensure full brightness
-            // No emissive properties for r128 compatibility
+            color: 0xffffff
         });
         
         // Create projection geometry based on mode
@@ -237,28 +232,26 @@ class EuphorieScreenSharingSystem {
             this.scene.remove(this.projectionSurface);
         }
         
-        // FIXED: Use smaller, more visible geometry
-        const geometry = new THREE.PlaneGeometry(12, 7); // Smaller for better visibility
+        const geometry = new THREE.PlaneGeometry(12, 7);
         let position;
         let rotation;
         
-        // FIXED: Clear, distinct positioning for each mode
         switch (this.projectionMode) {
             case 'ceiling':
-                position = new THREE.Vector3(0, 15, 0); // High above everything
-                rotation = new THREE.Euler(-Math.PI / 2, 0, 0); // Face down
+                position = new THREE.Vector3(0, 15, 0);
+                rotation = new THREE.Euler(-Math.PI / 2, 0, 0);
                 console.log('📺 Ceiling mode: Looking UP to see screen on ceiling');
                 break;
                 
             case 'wall':
-                position = new THREE.Vector3(0, 6, -12); // In front of camera, eye level
-                rotation = new THREE.Euler(0, 0, 0); // Face forward
+                position = new THREE.Vector3(0, 6, -12);
+                rotation = new THREE.Euler(0, 0, 0);
                 console.log('📺 Wall mode: Looking FORWARD to see screen on wall');
                 break;
                 
             case 'floating':
-                position = new THREE.Vector3(0, 10, -8); // Floating in air, angled
-                rotation = new THREE.Euler(-Math.PI / 6, 0, 0); // Angled down slightly
+                position = new THREE.Vector3(0, 10, -8);
+                rotation = new THREE.Euler(-Math.PI / 6, 0, 0);
                 console.log('📺 Floating mode: Looking UP-FORWARD to see floating screen');
                 break;
                 
@@ -273,13 +266,13 @@ class EuphorieScreenSharingSystem {
         this.projectionSurface.rotation.copy(rotation);
         this.projectionSurface.name = 'screen-projection';
         
-        // CRITICAL FIX: Add bright lighting for video visibility
+        // Add bright lighting for video visibility
         this.ensureProjectionLighting();
         
         // Add bright border for debugging positioning
         const borderGeometry = new THREE.EdgesGeometry(geometry);
         const borderMaterial = new THREE.LineBasicMaterial({ 
-            color: 0xff0000, // Bright red border for visibility
+            color: 0xff0000,
             linewidth: 4,
             transparent: true,
             opacity: 1.0
@@ -294,60 +287,14 @@ class EuphorieScreenSharingSystem {
         projectionGroup.add(this.projectionSurface);
         projectionGroup.add(border);
         projectionGroup.name = 'screen-projection-group';
-        
-        // ALWAYS visible when created
         projectionGroup.visible = true;
         
         this.scene.add(projectionGroup);
         this.projectionSurface = projectionGroup;
         
-        console.log(`✅ Projection surface updated (mode: ${this.projectionMode}) with r128 compatibility`);
-        console.log(`📍 Position: x=${position.x}, y=${position.y}, z=${position.z}`);
-        console.log(`🔄 Rotation: x=${rotation.x}, y=${rotation.y}, z=${rotation.z}`);
+        console.log(`✅ Projection surface updated (mode: ${this.projectionMode})`);
     }
     
-    // CRITICAL FIX: Enhanced texture update method for r128
-    startVideoTextureUpdates() {
-        if (this.isTextureUpdating || !this.projectionTexture) {
-            console.log('⚠️ Video texture updates already running or no texture available');
-            return;
-        }
-
-        this.isTextureUpdating = true;
-        console.log('🔄 Starting video texture update loop...');
-
-        // CRITICAL FIX: More aggressive texture updating for r128
-        this.textureUpdateInterval = setInterval(() => {
-            if (this.projectionTexture && this.videoElement) {
-                const video = this.videoElement;
-                
-                // Check multiple conditions for video readiness
-                if (video.readyState >= video.HAVE_CURRENT_DATA && 
-                    !video.paused &&
-                    video.videoWidth > 0 &&
-                    video.videoHeight > 0) {
-                    
-                    // CRITICAL: Multiple update flags for r128
-                    this.projectionTexture.needsUpdate = true;
-                    
-                    // Force material update
-                    if (this.projectionMaterial) {
-                        this.projectionMaterial.needsUpdate = true;
-                        this.projectionMaterial.map = this.projectionTexture; // Re-assign map
-                    }
-                    
-                    // DEBUGGING: Log video dimensions
-                    if (Math.random() < 0.01) { // Log 1% of updates to avoid spam
-                        console.log(`📺 Video: ${video.videoWidth}x${video.videoHeight}, Ready: ${video.readyState}`);
-                    }
-                }
-            }
-        }, 16); // Keep 60 FPS
-
-        console.log('✅ Video texture update loop started at 60 FPS with r128 compatibility');
-    }
-    
-    // NEW: Ensure proper lighting for video visibility
     ensureProjectionLighting() {
         if (!this.scene) return;
         
@@ -358,7 +305,7 @@ class EuphorieScreenSharingSystem {
         existingLights.forEach(light => this.scene.remove(light));
         
         // Add very bright ambient light for video visibility
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); // Full brightness white light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
         ambientLight.name = 'screen-sharing-ambient-light';
         this.scene.add(ambientLight);
         
@@ -372,130 +319,162 @@ class EuphorieScreenSharingSystem {
         console.log('💡 Added bright lighting for screen sharing visibility');
     }
     
-    // CRITICAL FIX: Stop texture updates
-    stopVideoTextureUpdates() {
-        if (this.textureUpdateInterval) {
-            clearInterval(this.textureUpdateInterval);
-            this.textureUpdateInterval = null;
-            this.isTextureUpdating = false;
-            console.log('🛑 Video texture updates stopped');
+    // ================================
+    // MOBILE ORIENTATION FIX METHODS
+    // ================================
+    
+    detectAndFixMobileOrientation() {
+        if (!this.isMobile() || !this.videoElement || !this.projectionTexture) {
+            return;
         }
+        
+        console.log('📱 Detecting mobile orientation issues...');
+        
+        // Check device type and camera facing
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isBackCamera = this.cameraFacing === 'environment';
+        const isFrontCamera = this.cameraFacing === 'user';
+        
+        console.log('📱 Device info:', {
+            isIOS,
+            isAndroid,
+            isBackCamera,
+            isFrontCamera,
+            cameraFacing: this.cameraFacing,
+            userAgent: navigator.userAgent
+        });
+        
+        let needsFlip = false;
+        let needsRotation = false;
+        
+        if (isIOS) {
+            needsFlip = true; // iOS cameras typically need flip
+            console.log('📱 iOS device: applying flip');
+        } else if (isAndroid) {
+            needsFlip = true; // Most Android devices need flip
+            console.log('📱 Android device: applying flip');
+        }
+        
+        // Check screen orientation
+        const orientation = screen.orientation?.angle || window.orientation || 0;
+        console.log('📱 Screen orientation angle:', orientation);
+        
+        // Apply fixes
+        this.applyMobileOrientationFix(needsFlip, needsRotation, orientation);
     }
     
-    // CRITICAL FIX: More aggressive video monitoring
-    startVideoMonitoring() {
-        if (this.videoMonitorInterval) {
-            clearInterval(this.videoMonitorInterval);
+    applyMobileOrientationFix(needsFlip, needsRotation, orientation) {
+        console.log('📱 Applying mobile orientation fix:', { needsFlip, needsRotation, orientation });
+        
+        // Fix 1: Texture flipY (most common fix)
+        if (needsFlip) {
+            this.projectionTexture.flipY = !this.projectionTexture.flipY;
+            console.log('🔄 Set texture flipY to:', this.projectionTexture.flipY);
         }
         
-        console.log('🔄 Starting aggressive video monitoring...');
-        
-        // Monitor every 500ms instead of 1000ms for faster response
-        this.videoMonitorInterval = setInterval(() => {
-            if (this.videoElement && this.mediaStream) {
-                const video = this.videoElement;
-                
-                // Check if video is paused
-                if (video.paused) {
-                    console.log('🔄 Video paused detected, forcing play...');
-                    video.play().then(() => {
-                        console.log('✅ Video restarted successfully');
-                        // Force texture update when video resumes
-                        if (this.projectionTexture) {
-                            this.projectionTexture.needsUpdate = true;
-                        }
-                    }).catch(e => console.log('Failed to restart video:', e));
-                }
-                
-                // Also check if video has stopped producing frames
-                if (video.readyState < 2) {
-                    console.log('⚠️ Video not ready, forcing reload...');
-                    // Try to refresh the video
-                    const currentStream = video.srcObject;
-                    video.srcObject = null;
-                    setTimeout(() => {
-                        video.srcObject = currentStream;
-                        video.play().catch(e => console.log('Reload play failed:', e));
-                    }, 100);
-                }
-                
-                // Stop monitoring if sharing stopped
-                if (!this.isSharing || !this.mediaStream) {
-                    clearInterval(this.videoMonitorInterval);
-                    this.videoMonitorInterval = null;
-                    console.log('🛑 Video monitoring stopped');
-                }
+        // Fix 2: CSS transform on video element
+        if (this.videoElement) {
+            let transform = '';
+            
+            if (needsFlip) {
+                transform += 'scaleY(-1) ';
             }
-        }, 500); // Check every 500ms for faster response
+            
+            if (needsRotation) {
+                transform += `rotate(${orientation}deg) `;
+            }
+            
+            if (transform) {
+                this.videoElement.style.transform = transform.trim();
+                console.log('📱 Applied video CSS transform:', transform.trim());
+            }
+        }
         
-        console.log('✅ Aggressive video monitoring started (500ms intervals)');
+        // Fix 3: Projection surface rotation
+        if (this.projectionSurface && needsRotation) {
+            const rotationZ = (orientation * Math.PI) / 180;
+            this.projectionSurface.rotation.z = rotationZ;
+            console.log('📱 Applied 3D rotation:', rotationZ);
+        }
+        
+        // Force texture update
+        this.projectionTexture.needsUpdate = true;
+        if (this.projectionMaterial) {
+            this.projectionMaterial.needsUpdate = true;
+        }
     }
     
-    // CRITICAL FIX: Legacy force video play method (kept as fallback)
-    async forceVideoPlay() {
-        if (!this.videoElement) return;
-        
-        console.log('🎬 Fallback: Ensuring video is playing...');
+    async setupMobileCamera() {
+        console.log('📱 Setting up mobile camera with orientation detection...');
         
         try {
-            // Force play the video
-            await this.videoElement.play();
-            console.log('✅ Fallback video play successful');
+            const constraints = {
+                video: {
+                    width: { ideal: 1280, max: 1920 },
+                    height: { ideal: 720, max: 1080 },
+                    frameRate: { ideal: 30 },
+                    facingMode: this.cameraFacing || 'environment'
+                },
+                audio: false
+            };
             
-            // Force texture update
-            if (this.projectionTexture) {
-                this.projectionTexture.needsUpdate = true;
-            }
+            console.log('📱 Requesting camera with constraints:', constraints);
+            
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Get actual camera info
+            const videoTrack = stream.getVideoTracks()[0];
+            const settings = videoTrack.getSettings();
+            
+            console.log('📱 Camera settings:', settings);
+            console.log('📱 Camera capabilities:', videoTrack.getCapabilities());
+            
+            // Store camera info for orientation detection
+            this.cameraSettings = settings;
+            this.cameraCapabilities = videoTrack.getCapabilities();
+            
+            this.showNotification('📱 Camera sharing started');
+            return stream;
             
         } catch (error) {
-            console.warn('⚠️ Fallback video play failed:', error);
-            // Try with user interaction fallback
-            document.addEventListener('click', () => {
-                if (this.videoElement) {
-                    this.videoElement.play().catch(e => console.log('Click play failed:', e));
-                }
-            }, { once: true });
+            console.error('📱 Mobile camera setup failed:', error);
+            throw error;
         }
     }
-
-    async waitForVideoReady(videoElement) {
-        return new Promise((resolve, reject) => {
-            if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
-                console.log('✅ Video already ready');
-                resolve();
-                return;
-            }
-
-            let checkAttempts = 0;
-            const maxAttempts = 50; // 5 seconds max
-
-            const checkReady = () => {
-                checkAttempts++;
-                
-                if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
-                    console.log(`✅ Video ready after ${checkAttempts * 100}ms`);
-                    videoElement.removeEventListener('loadeddata', checkReady);
-                    videoElement.removeEventListener('canplay', checkReady);
-                    resolve();
-                } else if (checkAttempts >= maxAttempts) {
-                    console.warn('⚠️ Video took too long to load, proceeding anyway');
-                    videoElement.removeEventListener('loadeddata', checkReady);
-                    videoElement.removeEventListener('canplay', checkReady);
-                    resolve(); // Resolve anyway to continue
-                } else {
-                    console.log(`⏳ Waiting for video... attempt ${checkAttempts}/${maxAttempts}`);
-                    setTimeout(checkReady, 100);
-                }
-            };
-
-            // Listen for video ready events
-            videoElement.addEventListener('loadeddata', checkReady);
-            videoElement.addEventListener('canplay', checkReady);
-            
-            // Start checking immediately
-            checkReady();
-        });
+    
+    handleOrientationChange() {
+        if (!this.isMobile() || !this.isSharing) return;
+        
+        console.log('📱 Orientation changed, reapplying fixes...');
+        
+        // Wait a bit for orientation to settle
+        setTimeout(() => {
+            this.detectAndFixMobileOrientation();
+        }, 300);
     }
+    
+    setupOrientationListeners() {
+        // Add orientation change listener
+        window.addEventListener('orientationchange', () => {
+            this.handleOrientationChange();
+        });
+        
+        // Also listen for resize events (covers more cases)
+        window.addEventListener('resize', () => {
+            if (this.isMobile()) {
+                setTimeout(() => {
+                    this.handleOrientationChange();
+                }, 500);
+            }
+        });
+        
+        console.log('📱 Orientation change listeners setup');
+    }
+    
+    // ================================
+    // ENHANCED SCREEN SHARING METHODS
+    // ================================
     
     async startScreenShare() {
         if (this.isSharing) {
@@ -516,38 +495,9 @@ class EuphorieScreenSharingSystem {
             let stream;
             
             if (this.isMobile()) {
-                // Mobile: Use camera instead of screen sharing
-                console.log('📱 Mobile detected, requesting camera access...');
-                console.log('📱 Camera facing:', this.cameraFacing || 'environment');
-                
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            width: { ideal: 1280, max: 1920 },
-                            height: { ideal: 720, max: 1080 },
-                            frameRate: { ideal: 30 },
-                            facingMode: this.cameraFacing || 'environment'
-                        },
-                        audio: false
-                    });
-                    console.log('📱 Camera stream obtained successfully');
-                } catch (cameraError) {
-                    console.error('📱 Camera access failed:', cameraError);
-                    
-                    // Try with basic constraints if specific facing mode fails
-                    if (cameraError.name === 'OverconstrainedError' || cameraError.name === 'ConstraintNotSatisfiedError') {
-                        console.log('📱 Trying with basic camera constraints...');
-                        stream = await navigator.mediaDevices.getUserMedia({
-                            video: true,
-                            audio: false
-                        });
-                        console.log('📱 Basic camera stream obtained');
-                    } else {
-                        throw cameraError;
-                    }
-                }
-                
-                this.showNotification('📱 Camera sharing started');
+                // Enhanced mobile camera setup with orientation detection
+                console.log('📱 Mobile detected, using enhanced camera setup...');
+                stream = await this.setupMobileCamera();
             } else {
                 // Desktop: Use screen sharing
                 console.log('🖥️ Desktop detected, requesting screen access...');
@@ -569,19 +519,29 @@ class EuphorieScreenSharingSystem {
             console.log('📹 Video tracks:', stream.getVideoTracks().length);
             console.log('🎵 Audio tracks:', stream.getAudioTracks().length);
             
-            // CRITICAL FIX: Set up video element with proper properties
+            // Set up video element with proper properties
             this.videoElement.srcObject = stream;
-            this.videoElement.muted = true; // Essential for autoplay
+            this.videoElement.muted = true;
             this.videoElement.autoplay = true;
-            this.videoElement.playsInline = true; // Important for mobile
+            this.videoElement.playsInline = true;
             console.log('📺 Video element configured');
             
-            // CRITICAL FIX: Immediate aggressive video play forcing
+            // Immediate aggressive video play forcing
             try {
-                // IMMEDIATE: Force video to play right now
                 console.log('🎬 Forcing video to play immediately...');
                 await this.videoElement.play();
                 console.log('✅ Video is playing immediately');
+                
+                // Wait for video to be fully ready
+                await this.waitForVideoReady(this.videoElement);
+                console.log('✅ Video is ready and playing');
+                
+                // MOBILE FIX: Apply orientation fix for mobile devices
+                if (this.isMobile()) {
+                    console.log('📱 Applying mobile orientation fix...');
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Allow video dimensions to stabilize
+                    this.detectAndFixMobileOrientation();
+                }
                 
                 // Force texture update immediately
                 if (this.projectionTexture) {
@@ -592,25 +552,12 @@ class EuphorieScreenSharingSystem {
                 // Start the monitoring system
                 this.startVideoMonitoring();
                 
-                // Wait for video to be fully ready
-                await this.waitForVideoReady(this.videoElement);
-                console.log('✅ Video is ready and playing, starting texture updates');
-                
-                // Start continuous texture updates (CRITICAL for fixing black screen)
+                // Start continuous texture updates
                 this.startVideoTextureUpdates();
                 
             } catch (error) {
-                console.warn('⚠️ Immediate video play failed, trying fallback:', error);
-                
-                // FALLBACK: Try the old method
-                try {
-                    await this.forceVideoPlay();
-                    await this.waitForVideoReady(this.videoElement);
-                    this.startVideoTextureUpdates();
-                } catch (fallbackError) {
-                    console.warn('⚠️ All video play methods failed, starting updates anyway:', fallbackError);
-                    this.startVideoTextureUpdates();
-                }
+                console.warn('⚠️ Video setup failed, trying fallback:', error);
+                await this.tryBasicCameraConstraints();
             }
             
             // Show projection surface
@@ -618,8 +565,6 @@ class EuphorieScreenSharingSystem {
                 this.projectionSurface.visible = true;
                 this.animateProjectionIn();
                 console.log('🎬 Projection surface shown');
-            } else {
-                console.warn('⚠️ Projection surface not available');
             }
             
             // Handle stream ended
@@ -632,9 +577,7 @@ class EuphorieScreenSharingSystem {
             this.isSharing = true;
             this.currentSharer = window.WebSocketManager?.userId;
             
-            console.log('✅ Sharing state set successfully');
-            
-            // Notify other users via WebSocket (CRITICAL: This should trigger WebRTC for others)
+            // Notify other users via WebSocket
             if (window.WebSocketManager?.sendScreenShareStart) {
                 const shareData = {
                     projection_mode: this.projectionMode,
@@ -644,79 +587,238 @@ class EuphorieScreenSharingSystem {
                     share_type: this.isMobile() ? 'camera' : 'screen',
                     stream_id: this.localStream.id,
                     video_tracks: this.localStream.getVideoTracks().length,
-                    audio_tracks: this.localStream.getAudioTracks().length
+                    audio_tracks: this.localStream.getAudioTracks().length,
+                    // Mobile orientation info
+                    mobile_device: this.isMobile(),
+                    camera_facing: this.cameraFacing,
+                    orientation_applied: this.isMobile()
                 };
                 
                 window.WebSocketManager.sendScreenShareStart(shareData);
                 console.log('📡 Share notification sent via WebSocket:', shareData);
-                
-                // CRITICAL: Also broadcast that WebRTC connections are available
-                window.WebSocketManager.send({
-                    type: 'screen_share_webrtc_ready',
-                    user_id: window.WebSocketManager.userId,
-                    room_id: window.WebSocketManager.roomId,
-                    username: window.WebSocketManager.username,
-                    share_data: shareData,
-                    timestamp: Date.now()
-                });
-                console.log('📡 WebRTC ready notification sent');
-                
-            } else {
-                console.warn('⚠️ WebSocket manager not available for notifications');
             }
             
-            // CRITICAL: Try to setup WebRTC connections immediately
-            try {
-                await this.setupWebRTCConnections();
-                console.log('🔗 WebRTC setup completed');
-            } catch (error) {
-                console.log('⚠️ WebRTC setup failed, screen sharing will work locally only:', error);
-                console.log('💡 Other users may need to refresh or the server needs WebRTC support');
-            }
-            
-            // Show sharing controls
+            // Setup WebRTC and show controls
+            await this.setupWebRTCConnections();
             this.showSharingControls();
-            console.log('🎮 Sharing controls displayed');
             
             console.log('✅ Sharing started successfully');
             
         } catch (error) {
             console.error('❌ Error starting share:', error);
-            console.error('❌ Error name:', error.name);
-            console.error('❌ Error message:', error.message);
-            
-            if (error.name === 'NotAllowedError') {
-                this.showNotification('❌ Camera/screen permission denied. Please allow access and try again.');
-            } else if (error.name === 'NotFoundError') {
-                this.showNotification('❌ No camera found on this device');
-            } else if (error.name === 'NotSupportedError') {
-                this.showNotification('❌ Camera/screen sharing not supported on this device');
-            } else if (error.name === 'NotReadableError') {
-                this.showNotification('❌ Camera is already in use by another app');
-            } else if (error.name === 'OverconstrainedError') {
-                this.showNotification('❌ Camera constraints not supported. Try with different settings.');
-            } else {
-                this.showNotification(`❌ Could not start sharing: ${error.message}`);
-            }
+            this.handleScreenShareError(error);
         }
     }
+    
+    handleScreenShareError(error) {
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        
+        if (error.name === 'NotAllowedError') {
+            this.showNotification('❌ Camera/screen permission denied. Please allow access and try again.');
+        } else if (error.name === 'NotFoundError') {
+            this.showNotification('❌ No camera found on this device');
+        } else if (error.name === 'NotSupportedError') {
+            this.showNotification('❌ Camera/screen sharing not supported on this device');
+        } else if (error.name === 'NotReadableError') {
+            this.showNotification('❌ Camera is already in use by another app');
+        } else if (error.name === 'OverconstrainedError') {
+            this.showNotification('❌ Camera constraints not supported. Trying basic camera...');
+            this.tryBasicCameraConstraints();
+        } else {
+            this.showNotification(`❌ Could not start sharing: ${error.message}`);
+        }
+    }
+    
+    async tryBasicCameraConstraints() {
+        if (!this.isMobile()) return;
+        
+        try {
+            console.log('📱 Trying basic camera constraints...');
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
+            
+            this.localStream = stream;
+            this.mediaStream = stream;
+            this.videoElement.srcObject = stream;
+            
+            await this.videoElement.play();
+            await this.waitForVideoReady(this.videoElement);
+            
+            // Apply orientation fix
+            setTimeout(() => {
+                this.detectAndFixMobileOrientation();
+            }, 500);
+            
+            this.startVideoTextureUpdates();
+            
+            if (this.projectionSurface) {
+                this.projectionSurface.visible = true;
+                this.animateProjectionIn();
+            }
+            
+            this.isSharing = true;
+            this.showNotification('📱 Basic camera sharing started');
+            
+        } catch (basicError) {
+            console.error('❌ Basic camera constraints also failed:', basicError);
+            this.showNotification('❌ Camera access failed completely');
+        }
+    }
+    
+    // ================================
+    // VIDEO TEXTURE UPDATE SYSTEM
+    // ================================
+    
+    startVideoTextureUpdates() {
+        if (this.isTextureUpdating || !this.projectionTexture) {
+            console.log('⚠️ Video texture updates already running or no texture available');
+            return;
+        }
+
+        this.isTextureUpdating = true;
+        console.log('🔄 Starting video texture update loop...');
+
+        // More aggressive texture updating for r128
+        this.textureUpdateInterval = setInterval(() => {
+            if (this.projectionTexture && this.videoElement) {
+                const video = this.videoElement;
+                
+                // Check multiple conditions for video readiness
+                if (video.readyState >= video.HAVE_CURRENT_DATA && 
+                    !video.paused &&
+                    video.videoWidth > 0 &&
+                    video.videoHeight > 0) {
+                    
+                    // Multiple update flags for r128
+                    this.projectionTexture.needsUpdate = true;
+                    
+                    // Force material update
+                    if (this.projectionMaterial) {
+                        this.projectionMaterial.needsUpdate = true;
+                        this.projectionMaterial.map = this.projectionTexture;
+                    }
+                    
+                    // Log video dimensions occasionally
+                    if (Math.random() < 0.01) {
+                        console.log(`📺 Video: ${video.videoWidth}x${video.videoHeight}, Ready: ${video.readyState}`);
+                    }
+                }
+            }
+        }, 16); // 60 FPS
+
+        console.log('✅ Video texture update loop started at 60 FPS');
+    }
+    
+    stopVideoTextureUpdates() {
+        if (this.textureUpdateInterval) {
+            clearInterval(this.textureUpdateInterval);
+            this.textureUpdateInterval = null;
+            this.isTextureUpdating = false;
+            console.log('🛑 Video texture updates stopped');
+        }
+    }
+    
+    startVideoMonitoring() {
+        if (this.videoMonitorInterval) {
+            clearInterval(this.videoMonitorInterval);
+        }
+        
+        console.log('🔄 Starting aggressive video monitoring...');
+        
+        this.videoMonitorInterval = setInterval(() => {
+            if (this.videoElement && this.mediaStream) {
+                const video = this.videoElement;
+                
+                // Check if video is paused
+                if (video.paused) {
+                    console.log('🔄 Video paused detected, forcing play...');
+                    video.play().then(() => {
+                        console.log('✅ Video restarted successfully');
+                        if (this.projectionTexture) {
+                            this.projectionTexture.needsUpdate = true;
+                        }
+                    }).catch(e => console.log('Failed to restart video:', e));
+                }
+                
+                // Check if video has stopped producing frames
+                if (video.readyState < 2) {
+                    console.log('⚠️ Video not ready, forcing reload...');
+                    const currentStream = video.srcObject;
+                    video.srcObject = null;
+                    setTimeout(() => {
+                        video.srcObject = currentStream;
+                        video.play().catch(e => console.log('Reload play failed:', e));
+                    }, 100);
+                }
+                
+                // Stop monitoring if sharing stopped
+                if (!this.isSharing || !this.mediaStream) {
+                    clearInterval(this.videoMonitorInterval);
+                    this.videoMonitorInterval = null;
+                    console.log('🛑 Video monitoring stopped');
+                }
+            }
+        }, 500);
+        
+        console.log('✅ Aggressive video monitoring started');
+    }
+    
+    async waitForVideoReady(videoElement) {
+        return new Promise((resolve, reject) => {
+            if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
+                console.log('✅ Video already ready');
+                resolve();
+                return;
+            }
+
+            let checkAttempts = 0;
+            const maxAttempts = 50;
+
+            const checkReady = () => {
+                checkAttempts++;
+                
+                if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
+                    console.log(`✅ Video ready after ${checkAttempts * 100}ms`);
+                    videoElement.removeEventListener('loadeddata', checkReady);
+                    videoElement.removeEventListener('canplay', checkReady);
+                    resolve();
+                } else if (checkAttempts >= maxAttempts) {
+                    console.warn('⚠️ Video took too long to load, proceeding anyway');
+                    videoElement.removeEventListener('loadeddata', checkReady);
+                    videoElement.removeEventListener('canplay', checkReady);
+                    resolve();
+                } else {
+                    console.log(`⏳ Waiting for video... attempt ${checkAttempts}/${maxAttempts}`);
+                    setTimeout(checkReady, 100);
+                }
+            };
+
+            videoElement.addEventListener('loadeddata', checkReady);
+            videoElement.addEventListener('canplay', checkReady);
+            checkReady();
+        });
+    }
+    
+    // ================================
+    // WEBRTC SYSTEM
+    // ================================
     
     async setupWebRTCConnections() {
         if (!this.localStream || !window.WebSocketManager) return;
         
         console.log('🔗 Setting up WebRTC connections for screen sharing...');
         
-        // Get connected users - try multiple approaches
         let connectedUsers = [];
         
-        // Method 1: Check if getConnectedUsers exists
         if (typeof window.WebSocketManager.getConnectedUsers === 'function') {
             connectedUsers = window.WebSocketManager.getConnectedUsers();
             console.log('📡 Found connected users via getConnectedUsers:', connectedUsers);
         } else {
             console.log('⚠️ getConnectedUsers method not found, using alternative approach');
             
-            // Method 2: Try to get users from room state or other available data
             if (window.WebSocketManager.connectedUsers) {
                 connectedUsers = window.WebSocketManager.connectedUsers;
                 console.log('📡 Found connected users via connectedUsers property:', connectedUsers);
@@ -724,10 +826,7 @@ class EuphorieScreenSharingSystem {
                 connectedUsers = window.WebSocketManager.roomState.users;
                 console.log('📡 Found connected users via roomState:', connectedUsers);
             } else {
-                // Method 3: Broadcast to all - let server handle routing
                 console.log('📡 No user list available, broadcasting screen share to all connected users');
-                
-                // Create a single "broadcast" peer connection for server-side routing
                 this.setupBroadcastConnection();
                 return;
             }
@@ -739,17 +838,14 @@ class EuphorieScreenSharingSystem {
             return;
         }
         
-        // CRITICAL FIX: Use the SAME stream for ALL peer connections
         console.log(`🔗 Setting up peer connections to ${connectedUsers.length} users with single stream`);
         
         for (const userData of connectedUsers) {
-            // Skip self
             if (userData.user_id === window.WebSocketManager.userId) continue;
             
             try {
                 console.log(`🔗 Setting up WebRTC connection to ${userData.user_id}`);
                 
-                // Create peer connection
                 const pc = new RTCPeerConnection({
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
@@ -758,14 +854,12 @@ class EuphorieScreenSharingSystem {
                     ]
                 });
                 
-                // CRITICAL FIX: Add the SAME local stream to ALL peer connections
                 console.log(`📹 Adding screen stream tracks to peer connection for ${userData.user_id}`);
                 this.localStream.getTracks().forEach((track, index) => {
                     console.log(`📹 Adding track ${index}: ${track.kind} (${track.label})`);
                     pc.addTrack(track, this.localStream);
                 });
                 
-                // Handle ICE candidates
                 pc.onicecandidate = (event) => {
                     if (event.candidate) {
                         console.log(`🧊 Sending ICE candidate to ${userData.user_id}`);
@@ -779,7 +873,6 @@ class EuphorieScreenSharingSystem {
                     }
                 };
                 
-                // Handle connection state changes
                 pc.onconnectionstatechange = () => {
                     console.log(`🔗 WebRTC connection to ${userData.user_id}: ${pc.connectionState}`);
                     if (pc.connectionState === 'connected') {
@@ -789,12 +882,10 @@ class EuphorieScreenSharingSystem {
                     }
                 };
                 
-                // Handle ICE connection state changes
                 pc.oniceconnectionstatechange = () => {
                     console.log(`🧊 ICE connection to ${userData.user_id}: ${pc.iceConnectionState}`);
                 };
                 
-                // Create offer
                 console.log(`📤 Creating offer for ${userData.user_id}`);
                 const offer = await pc.createOffer({
                     offerToReceiveAudio: false,
@@ -802,7 +893,6 @@ class EuphorieScreenSharingSystem {
                 });
                 await pc.setLocalDescription(offer);
                 
-                // Send offer via WebSocket
                 console.log(`📤 Sending offer to ${userData.user_id}`);
                 window.WebSocketManager.sendWebRTCMessage(
                     userData.user_id,
@@ -821,35 +911,10 @@ class EuphorieScreenSharingSystem {
         console.log(`✅ WebRTC setup complete for ${this.peerConnections.size} peer connections`);
     }
     
-    // NEW: Handle WebRTC ready notification from sharer
-    async handleWebRTCReady(data) {
-        if (!window.WebSocketManager || data.user_id === window.WebSocketManager.userId) return;
-        
-        console.log(`📡 Received WebRTC ready notification from ${data.user_id}`);
-        console.log('📡 Share data:', data.share_data);
-        
-        // This means someone started sharing and is ready to accept WebRTC connections
-        // We should prepare to receive their stream
-        this.currentSharer = data.user_id;
-        
-        // Update projection mode if specified
-        if (data.share_data?.projection_mode) {
-            this.projectionMode = data.share_data.projection_mode;
-            this.updateProjectionSurface();
-        }
-        
-        // Show notification that someone is sharing
-        this.showNotification(`📺 ${data.username} is ready to share screen - waiting for connection...`);
-        
-        console.log(`✅ Ready to receive screen share from ${data.user_id}`);
-    }
-    
-    // NEW: Setup broadcast connection for server-side routing
     setupBroadcastConnection() {
         console.log('📡 Setting up broadcast connection for screen sharing...');
         
         try {
-            // Create a special "broadcast" peer connection
             const pc = new RTCPeerConnection({
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
@@ -857,18 +922,15 @@ class EuphorieScreenSharingSystem {
                 ]
             });
             
-            // Add local stream to broadcast connection
             this.localStream.getTracks().forEach(track => {
                 console.log(`📹 Adding track to broadcast: ${track.kind}`);
                 pc.addTrack(track, this.localStream);
             });
             
-            // Store as broadcast connection
             this.peerConnections.set('broadcast', pc);
             
             console.log('✅ Broadcast connection setup complete');
             
-            // Notify server about screen share start (server will handle distribution)
             if (window.WebSocketManager?.sendScreenShareStart) {
                 window.WebSocketManager.sendScreenShareStart({
                     projection_mode: this.projectionMode,
@@ -886,6 +948,23 @@ class EuphorieScreenSharingSystem {
         }
     }
     
+    async handleWebRTCReady(data) {
+        if (!window.WebSocketManager || data.user_id === window.WebSocketManager.userId) return;
+        
+        console.log(`📡 Received WebRTC ready notification from ${data.user_id}`);
+        
+        this.currentSharer = data.user_id;
+        
+        if (data.share_data?.projection_mode) {
+            this.projectionMode = data.share_data.projection_mode;
+            this.updateProjectionSurface();
+        }
+        
+        this.showNotification(`📺 ${data.username} is ready to share screen - waiting for connection...`);
+        
+        console.log(`✅ Ready to receive screen share from ${data.user_id}`);
+    }
+    
     async handleWebRTCOffer(data) {
         if (!window.WebSocketManager || data.user_id === window.WebSocketManager.userId) return;
         
@@ -900,17 +979,11 @@ class EuphorieScreenSharingSystem {
                 ]
             });
             
-            // CRITICAL: Handle incoming screen sharing stream
             pc.ontrack = (event) => {
                 console.log(`📺 Received screen sharing stream from ${data.user_id}`);
-                console.log('📺 Stream details:', event.streams[0]);
-                console.log('📺 Track details:', event.track);
-                
-                // Handle the remote screen stream
                 this.handleRemoteStream(event.streams[0], data.user_id);
             };
             
-            // Handle ICE candidates
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
                     console.log(`🧊 Sending ICE candidate to ${data.user_id}`);
@@ -924,7 +997,6 @@ class EuphorieScreenSharingSystem {
                 }
             };
             
-            // Handle connection state changes
             pc.onconnectionstatechange = () => {
                 console.log(`🔗 WebRTC connection from ${data.user_id}: ${pc.connectionState}`);
                 if (pc.connectionState === 'connected') {
@@ -934,12 +1006,10 @@ class EuphorieScreenSharingSystem {
                 }
             };
             
-            // Handle ICE connection state changes
             pc.oniceconnectionstatechange = () => {
                 console.log(`🧊 ICE connection from ${data.user_id}: ${pc.iceConnectionState}`);
             };
             
-            // Set remote description and create answer
             console.log(`📥 Setting remote description from ${data.user_id}`);
             await pc.setRemoteDescription(data.data);
             
@@ -947,7 +1017,6 @@ class EuphorieScreenSharingSystem {
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             
-            // Send answer
             console.log(`📤 Sending answer to ${data.user_id}`);
             window.WebSocketManager.sendWebRTCMessage(
                 data.user_id,
@@ -991,135 +1060,72 @@ class EuphorieScreenSharingSystem {
     
     async handleRemoteStream(stream, userId) {
         console.log(`📺 Handling remote screen stream from user: ${userId}`);
-        console.log('📺 Stream tracks:', stream.getTracks().length);
-        console.log('📺 Video tracks:', stream.getVideoTracks().length);
-        console.log('📺 Audio tracks:', stream.getAudioTracks().length);
         
-        // Set the remote stream to our video element
         this.videoElement.srcObject = stream;
         this.mediaStream = stream;
         
-        console.log('📺 Remote stream assigned to video element');
-        
-        // CRITICAL FIX: Immediate aggressive video play forcing for remote streams
         try {
-            // IMMEDIATE: Force video to play right now
-            console.log('🎬 Forcing remote video to play immediately...');
             await this.videoElement.play();
-            console.log('✅ Remote video is playing immediately');
+            await this.waitForVideoReady(this.videoElement);
             
-            // Force texture update immediately
-            if (this.projectionTexture) {
-                this.projectionTexture.needsUpdate = true;
-                console.log('🔄 Forced immediate texture update for remote stream');
+            // Check if this is from a mobile user for orientation fix
+            const shareData = this.getShareDataForUser(userId);
+            if (shareData && shareData.mobile_device) {
+                console.log('📱 Remote stream is from mobile device, checking orientation...');
+                setTimeout(() => {
+                    this.detectAndFixMobileOrientation();
+                }, 500);
             }
             
-            // Start the monitoring system
-            this.startVideoMonitoring();
-            
-            // Wait for video to be fully ready
-            await this.waitForVideoReady(this.videoElement);
             this.startVideoTextureUpdates();
             
         } catch (error) {
-            console.warn('⚠️ Remote video setup failed, trying fallback:', error);
-            try {
-                await this.forceVideoPlay();
-                await this.waitForVideoReady(this.videoElement);
-                this.startVideoTextureUpdates();
-            } catch (fallbackError) {
-                console.warn('⚠️ All remote video methods failed, starting anyway:', fallbackError);
-                this.startVideoTextureUpdates();
-            }
+            console.warn('⚠️ Remote video setup failed:', error);
         }
         
-        // Show projection surface
         if (this.projectionSurface) {
             this.projectionSurface.visible = true;
             this.animateProjectionIn();
-            console.log('🎬 Projection surface shown for remote stream');
         }
         
-        // Update state
         this.currentSharer = userId;
-        
-        // Show viewer controls
         this.showViewerControls(userId);
-        
-        console.log(`✅ Displaying screen share from user: ${userId}`);
-        
-        // Show notification to user
         this.showNotification(`📺 Now viewing ${userId}'s screen`);
     }
     
-    stopScreenShare() {
-        if (!this.isSharing && !this.mediaStream) return;
-        
-        console.log('🖥️ Stopping screen share...');
-        
-        try {
-            // CRITICAL FIX: Stop texture updates and video monitoring first
-            this.stopVideoTextureUpdates();
-            
-            if (this.videoMonitorInterval) {
-                clearInterval(this.videoMonitorInterval);
-                this.videoMonitorInterval = null;
-            }
-            
-            // Stop local stream
-            if (this.localStream) {
-                this.localStream.getTracks().forEach(track => track.stop());
-                this.localStream = null;
-            }
-            
-            // Clear media stream
-            if (this.mediaStream) {
-                this.mediaStream.getTracks().forEach(track => track.stop());
-                this.mediaStream = null;
-            }
-            
-            // Clear video element
-            if (this.videoElement) {
-                this.videoElement.srcObject = null;
-            }
-            
-            // Hide projection surface
-            if (this.projectionSurface) {
-                this.animateProjectionOut();
-            }
-            
-            // Close peer connections
-            this.peerConnections.forEach(pc => pc.close());
-            this.peerConnections.clear();
-            
-            // Reset state
-            this.isSharing = false;
-            this.currentSharer = null;
-            
-            // Notify other users
-            if (window.WebSocketManager?.sendScreenShareStop) {
-                window.WebSocketManager.sendScreenShareStop();
-            }
-            
-            // Hide controls
-            this.hideSharingControls();
-            
-            this.showNotification('✅ Screen sharing stopped');
-            console.log('✅ Screen sharing stopped');
-            
-        } catch (error) {
-            console.error('Error stopping screen share:', error);
+    // ================================
+    // SHARE DATA MANAGEMENT
+    // ================================
+    
+    storeShareData(userId, shareData) {
+        if (!this.shareDataStore) {
+            this.shareDataStore = new Map();
         }
+        this.shareDataStore.set(userId, shareData);
+    }
+    
+    getShareDataForUser(userId) {
+        if (!this.shareDataStore) {
+            return null;
+        }
+        return this.shareDataStore.get(userId);
     }
     
     handleScreenShareMessage(data) {
         if (data.type === 'screen_share_started') {
             if (data.user_id !== window.WebSocketManager?.userId) {
                 console.log(`📺 ${data.username} started sharing their screen`);
+                
+                // Store share data for later orientation detection
+                if (data.share_data) {
+                    this.storeShareData(data.user_id, data.share_data);
+                }
+                
                 this.currentSharer = data.user_id;
                 
-                // Show notification
-                this.showNotification(`📺 ${data.username} is sharing their screen`);
+                // Show notification with device type
+                const deviceType = data.share_data?.mobile_device ? '📱 camera' : '🖥️ screen';
+                this.showNotification(`📺 ${data.username} is sharing their ${deviceType}`);
                 
                 // Update projection mode if specified
                 if (data.share_data?.projection_mode) {
@@ -1131,7 +1137,11 @@ class EuphorieScreenSharingSystem {
             if (data.user_id === this.currentSharer) {
                 console.log(`📺 ${data.username} stopped sharing their screen`);
                 
-                // CRITICAL FIX: Stop texture updates and video monitoring for remote streams too
+                // Clear share data
+                if (this.shareDataStore) {
+                    this.shareDataStore.delete(data.user_id);
+                }
+                
                 this.stopVideoTextureUpdates();
                 
                 if (this.videoMonitorInterval) {
@@ -1139,37 +1149,84 @@ class EuphorieScreenSharingSystem {
                     this.videoMonitorInterval = null;
                 }
                 
-                // Hide projection surface
                 if (this.projectionSurface) {
                     this.animateProjectionOut();
                 }
                 
-                // Clear state
                 this.currentSharer = null;
                 this.mediaStream = null;
                 
-                // Clear video element
                 if (this.videoElement) {
                     this.videoElement.srcObject = null;
                 }
                 
-                // Show notification
                 this.showNotification(`📺 ${data.username} stopped sharing`);
-                
-                // Hide controls
                 this.hideViewerControls();
             }
         }
     }
     
+    stopScreenShare() {
+        if (!this.isSharing && !this.mediaStream) return;
+        
+        console.log('🖥️ Stopping screen share...');
+        
+        try {
+            this.stopVideoTextureUpdates();
+            
+            if (this.videoMonitorInterval) {
+                clearInterval(this.videoMonitorInterval);
+                this.videoMonitorInterval = null;
+            }
+            
+            if (this.localStream) {
+                this.localStream.getTracks().forEach(track => track.stop());
+                this.localStream = null;
+            }
+            
+            if (this.mediaStream) {
+                this.mediaStream.getTracks().forEach(track => track.stop());
+                this.mediaStream = null;
+            }
+            
+            if (this.videoElement) {
+                this.videoElement.srcObject = null;
+            }
+            
+            if (this.projectionSurface) {
+                this.animateProjectionOut();
+            }
+            
+            this.peerConnections.forEach(pc => pc.close());
+            this.peerConnections.clear();
+            
+            this.isSharing = false;
+            this.currentSharer = null;
+            
+            if (window.WebSocketManager?.sendScreenShareStop) {
+                window.WebSocketManager.sendScreenShareStop();
+            }
+            
+            this.hideSharingControls();
+            
+            this.showNotification('✅ Screen sharing stopped');
+            console.log('✅ Screen sharing stopped');
+            
+        } catch (error) {
+            console.error('Error stopping screen share:', error);
+        }
+    }
+    
+    // ================================
+    // UI AND ANIMATION METHODS
+    // ================================
+    
     animateProjectionIn() {
         if (!this.projectionSurface) return;
         
-        // Start invisible and small
         this.projectionSurface.scale.set(0.1, 0.1, 0.1);
         this.projectionSurface.visible = true;
         
-        // Animate in
         const startTime = Date.now();
         const duration = 1000;
         
@@ -1177,14 +1234,11 @@ class EuphorieScreenSharingSystem {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
             
-            // Easing function
             const easeProgress = 1 - Math.pow(1 - progress, 3);
             
-            // Scale animation
             const scale = 0.1 + (0.9 * easeProgress);
             this.projectionSurface.scale.set(scale, scale, scale);
             
-            // Slight rotation animation
             this.projectionSurface.rotation.z = Math.sin(progress * Math.PI) * 0.1;
             
             if (progress < 1) {
@@ -1207,14 +1261,11 @@ class EuphorieScreenSharingSystem {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
             
-            // Easing function
             const easeProgress = Math.pow(progress, 2);
             
-            // Scale animation
             const scale = 1 - (0.9 * easeProgress);
             this.projectionSurface.scale.set(scale, scale, scale);
             
-            // Rotation animation
             this.projectionSurface.rotation.z = progress * Math.PI * 0.5;
             
             if (progress < 1) {
@@ -1246,7 +1297,6 @@ class EuphorieScreenSharingSystem {
     }
     
     createControlPanel(type, sharerName = '') {
-        // Remove existing panel
         this.removeControlPanel();
         
         const panel = document.createElement('div');
@@ -1270,11 +1320,32 @@ class EuphorieScreenSharingSystem {
         `;
         
         if (type === 'sharing') {
+            const mobileControls = this.isMobile() ? `
+                <div style="margin-bottom: 16px; padding: 12px; background: rgba(255, 167, 38, 0.1); border-radius: 8px;">
+                    <div style="font-size: 12px; color: #FFA726; margin-bottom: 8px;">📱 Mobile Orientation Fix</div>
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                        <button onclick="window.autoFixMobileOrientation()" 
+                                style="padding: 6px 12px; background: #FFA726; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">
+                            🤖 Auto Fix
+                        </button>
+                        <button onclick="window.fixMobileOrientationManual()" 
+                                style="padding: 6px 12px; background: #FFA726; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">
+                            🔄 Toggle
+                        </button>
+                        <button onclick="window.testMobileOrientations()" 
+                                style="padding: 6px 12px; background: #FFA726; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">
+                            🧪 Test
+                        </button>
+                    </div>
+                </div>
+            ` : '';
+            
             panel.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                     <div style="width: 12px; height: 12px; background: #ff4444; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                    <strong>🖥️ You're sharing your screen</strong>
+                    <strong>${this.isMobile() ? '📱' : '🖥️'} You're sharing your ${this.isMobile() ? 'camera' : 'screen'}</strong>
                 </div>
+                ${mobileControls}
                 <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 16px;">
                     <button onclick="window.ScreenSharingSystem.changeProjectionMode('ceiling')" 
                             style="padding: 8px 16px; background: ${this.projectionMode === 'ceiling' ? '#4CAF50' : '#555'}; 
@@ -1299,23 +1370,34 @@ class EuphorieScreenSharingSystem {
                 </button>
             `;
         } else if (type === 'viewing') {
+            const shareData = this.getShareDataForUser(this.currentSharer);
+            const isMobileSharer = shareData?.mobile_device;
+            
+            const mobileViewerControls = isMobileSharer ? `
+                <div style="margin-bottom: 12px; padding: 8px; background: rgba(255, 167, 38, 0.1); border-radius: 6px;">
+                    <div style="font-size: 11px; color: #FFA726;">📱 Mobile stream - orientation controls:</div>
+                    <div style="display: flex; gap: 6px; justify-content: center; margin-top: 6px;">
+                        <button onclick="window.fixMobileOrientationManual()" 
+                                style="padding: 4px 8px; background: #FFA726; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 10px;">
+                            🔄 Fix Orientation
+                        </button>
+                    </div>
+                </div>
+            ` : '';
+            
             panel.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                     <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                    <strong>📺 Watching ${sharerName}'s screen</strong>
+                    <strong>📺 Watching ${sharerName}'s ${isMobileSharer ? 'camera' : 'screen'}</strong>
                 </div>
                 <div style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
                     Displayed on ${this.projectionMode}
                 </div>
-                <button onclick="window.ScreenSharingSystem.requestShareControl()" 
-                        style="padding: 8px 16px; background: #2196F3; border: none; border-radius: 8px; 
-                               color: white; cursor: pointer; margin-right: 8px;">
-                    🎮 Request Control
-                </button>
+                ${mobileViewerControls}
                 <button onclick="window.ScreenSharingSystem.hideViewerControls()" 
                         style="padding: 8px 16px; background: #666; border: none; border-radius: 8px; 
                                color: white; cursor: pointer;">
-                    ✕ Hide
+                    ✕ Hide Controls
                 </button>
             `;
         }
@@ -1350,7 +1432,6 @@ class EuphorieScreenSharingSystem {
         this.projectionMode = mode;
         this.updateProjectionSurface();
         
-        // Update controls
         if (this.isSharing) {
             this.showSharingControls();
         }
@@ -1359,181 +1440,7 @@ class EuphorieScreenSharingSystem {
         console.log(`📺 Projection mode changed to: ${mode}`);
     }
     
-    requestShareControl() {
-        this.showNotification('🎮 Control request sent to sharer');
-        // TODO: Implement control request system
-    }
-    
-    setupGlobalFunctions() {
-        // Make system available globally
-        window.ScreenSharingSystem = this;
-        
-        // Add to global action functions
-        window.startScreenShare = () => this.startScreenShare();
-        window.stopScreenShare = () => this.stopScreenShare();
-        window.toggleScreenShare = () => {
-            if (this.isSharing) {
-                this.stopScreenShare();
-            } else {
-                this.startScreenShare();
-            }
-        };
-        
-        // Add the showScreenShareUI function for the existing button
-        window.showScreenShareUI = () => this.showScreenShareUI();
-        
-        // Add screen orientation debugging
-        window.debugScreenOrientation = () => {
-            if (this.videoElement && this.projectionTexture) {
-                console.log('🖼️ Screen Orientation Debug:');
-                console.log('  - Video dimensions:', this.videoElement.videoWidth, 'x', this.videoElement.videoHeight);
-                console.log('  - Texture flipY:', this.projectionTexture.flipY);
-                console.log('  - Video rotation:', this.videoElement.style.transform);
-                console.log('  - Projection surface rotation:', this.projectionSurface?.rotation);
-            }
-        };
-        
-        window.fixScreenOrientation = () => {
-            if (this.projectionTexture) {
-                // Toggle flipY to fix upside down issue
-                this.projectionTexture.flipY = !this.projectionTexture.flipY;
-                this.projectionTexture.needsUpdate = true;
-                console.log('🔄 Toggled texture flipY to:', this.projectionTexture.flipY);
-            }
-        };
-
-        window.debugWebRTC = () => {
-            console.log('🔗 WebRTC Debug Info:');
-            console.log('👥 Peer connections:', this.peerConnections.size);
-            this.peerConnections.forEach((pc, userId) => {
-                console.log(`  - ${userId}: ${pc.connectionState} (ICE: ${pc.iceConnectionState})`);
-            });
-            console.log('📺 Current sharer:', this.currentSharer);
-            console.log('📹 Local stream:', !!this.localStream);
-            console.log('📺 Media stream:', !!this.mediaStream);
-            console.log('🎬 Is sharing:', this.isSharing);
-        };
-        
-        window.forceWebRTCReconnect = () => {
-            console.log('🔄 Forcing WebRTC reconnection...');
-            if (this.isSharing && this.localStream) {
-                this.setupWebRTCConnections();
-            } else {
-                console.log('❌ Not currently sharing or no stream available');
-            }
-        };
-
-        window.forceVideoPlayNow = () => {
-            if (this.videoElement) {
-                console.log('🎬 Manual: Forcing video to play...');
-                this.videoElement.play().then(() => {
-                    console.log('✅ Manual video play successful');
-                    if (this.projectionTexture) {
-                        this.projectionTexture.needsUpdate = true;
-                        console.log('🔄 Manual texture update applied');
-                    }
-                }).catch(e => console.log('❌ Manual video play failed:', e));
-            } else {
-                console.log('❌ No video element found');
-            }
-        };
-
-        window.testCameraAccess = () => this.testCameraAccess();
-        window.debugScreenShare = () => this.debugScreenShare();
-        window.testVideoTexture = () => this.testVideoTexture();
-        window.fixVideoTextureNow = () => this.fixVideoTextureNow();
-        window.testWithSolidColor = () => this.testWithSolidColor();
-        
-        console.log('✅ Screen sharing global functions setup');
-    }
-    
-    // Debug functions
-    async testCameraAccess() {
-        console.log('🧪 Testing camera access...');
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            console.log('✅ Camera access successful');
-            console.log('📹 Video tracks:', stream.getVideoTracks().length);
-            
-            // Stop the test stream
-            stream.getTracks().forEach(track => track.stop());
-            
-            this.showNotification('✅ Camera test successful');
-            return true;
-        } catch (error) {
-            console.error('❌ Camera test failed:', error);
-            this.showNotification(`❌ Camera test failed: ${error.message}`);
-            return false;
-        }
-    }
-    
-    debugScreenShare() {
-        console.log('🔍 Screen Share Debug Info (Three.js r128):');
-        console.log('📱 Is Mobile:', this.isMobile());
-        console.log('🎥 getUserMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
-        console.log('🖥️ getDisplayMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia));
-        console.log('🔧 Is sharing:', this.isSharing);
-        console.log('🔄 Is texture updating:', this.isTextureUpdating);
-        console.log('👤 Current sharer:', this.currentSharer);
-        console.log('📹 Has video element:', !!this.videoElement);
-        console.log('🎬 Has projection surface:', !!this.projectionSurface);
-        console.log('🎯 Has projection texture:', !!this.projectionTexture);
-        console.log('🌐 WebSocket Manager:', !!window.WebSocketManager);
-        console.log('🎯 Projection mode:', this.projectionMode);
-        console.log('📱 Camera facing:', this.cameraFacing);
-        console.log('🎨 Three.js version:', THREE.REVISION);
-        
-        // Video element debug info
-        if (this.videoElement) {
-            console.log('📺 Video element debug:');
-            console.log('  - Ready state:', this.videoElement.readyState);
-            console.log('  - Video width:', this.videoElement.videoWidth);
-            console.log('  - Video height:', this.videoElement.videoHeight);
-            console.log('  - Paused:', this.videoElement.paused);
-            console.log('  - Has src object:', !!this.videoElement.srcObject);
-            console.log('  - Current time:', this.videoElement.currentTime);
-            console.log('  - Duration:', this.videoElement.duration);
-        }
-        
-        // Texture debug info
-        if (this.projectionTexture) {
-            console.log('🎨 Texture debug:');
-            console.log('  - Needs update:', this.projectionTexture.needsUpdate);
-            console.log('  - Format:', this.projectionTexture.format);
-            console.log('  - Min filter:', this.projectionTexture.minFilter);
-            console.log('  - Mag filter:', this.projectionTexture.magFilter);
-            console.log('  - Image:', this.projectionTexture.image);
-            console.log('  - Texture UUID:', this.projectionTexture.uuid);
-        }
-        
-        // Material debug info
-        if (this.projectionMaterial) {
-            console.log('🎭 Material debug:');
-            console.log('  - Type:', this.projectionMaterial.type);
-            console.log('  - Has map:', !!this.projectionMaterial.map);
-            console.log('  - Needs update:', this.projectionMaterial.needsUpdate);
-            console.log('  - Visible:', this.projectionMaterial.visible);
-            console.log('  - Transparent:', this.projectionMaterial.transparent);
-            console.log('  - Opacity:', this.projectionMaterial.opacity);
-        }
-        
-        // Scene lighting debug
-        console.log('💡 Scene lighting:');
-        let lightCount = 0;
-        this.scene.traverse((child) => {
-            if (child.isLight) {
-                lightCount++;
-                console.log(`  - ${child.type}: intensity ${child.intensity}`);
-            }
-        });
-        console.log(`  - Total lights: ${lightCount}`);
-        
-        // Test camera access
-        this.testCameraAccess();
-    }
-    
     showScreenShareUI() {
-        // Create dedicated screen share UI
         const modal = document.createElement('div');
         modal.id = 'screen-share-modal';
         modal.style.cssText = `
@@ -1562,7 +1469,6 @@ class EuphorieScreenSharingSystem {
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         `;
         
-        // Close modal function
         const closeModal = () => {
             const existingModal = document.getElementById('screen-share-modal');
             if (existingModal) {
@@ -1728,29 +1634,327 @@ class EuphorieScreenSharingSystem {
         }, 3000);
     }
     
-    // Debug and utility methods
-    isScreenSharingSupported() {
-        return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+    // ================================
+    // GLOBAL FUNCTIONS & UTILITIES
+    // ================================
+    
+    setupGlobalFunctions() {
+        // Make system available globally
+        window.ScreenSharingSystem = this;
+        
+        // Add to global action functions
+        window.startScreenShare = () => this.startScreenShare();
+        window.stopScreenShare = () => this.stopScreenShare();
+        window.toggleScreenShare = () => {
+            if (this.isSharing) {
+                this.stopScreenShare();
+            } else {
+                this.startScreenShare();
+            }
+        };
+        
+        // Add the showScreenShareUI function for the existing button
+        window.showScreenShareUI = () => this.showScreenShareUI();
+        
+        // MOBILE ORIENTATION FIX FUNCTIONS
+        window.fixMobileOrientationManual = () => {
+            if (window.ScreenSharingSystem) {
+                console.log('🔧 Manual mobile orientation fix...');
+                
+                if (!window.ScreenSharingSystem.projectionTexture) {
+                    console.log('❌ No projection texture available');
+                    return;
+                }
+                
+                // Toggle flipY
+                window.ScreenSharingSystem.projectionTexture.flipY = !window.ScreenSharingSystem.projectionTexture.flipY;
+                window.ScreenSharingSystem.projectionTexture.needsUpdate = true;
+                
+                console.log('🔄 Toggled texture flipY to:', window.ScreenSharingSystem.projectionTexture.flipY);
+                
+                // Also try CSS transform
+                if (window.ScreenSharingSystem.videoElement) {
+                    const currentTransform = window.ScreenSharingSystem.videoElement.style.transform;
+                    const newTransform = currentTransform.includes('scaleY(-1)') ? 
+                        currentTransform.replace('scaleY(-1)', '').trim() : 
+                        currentTransform + ' scaleY(-1)';
+                    
+                    window.ScreenSharingSystem.videoElement.style.transform = newTransform;
+                    console.log('🔄 Applied CSS transform:', newTransform);
+                }
+            }
+        };
+        
+        window.autoFixMobileOrientation = () => {
+            if (!window.ScreenSharingSystem || !window.ScreenSharingSystem.isMobile()) {
+                console.log('❌ Not on mobile');
+                return;
+            }
+            
+            console.log('🤖 Auto-fixing mobile orientation...');
+            
+            const userAgent = navigator.userAgent;
+            const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+            const isAndroid = /Android/.test(userAgent);
+            const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+            const isChrome = /Chrome/.test(userAgent);
+            
+            let recommendedFix;
+            
+            if (isIOS) {
+                if (isSafari) {
+                    recommendedFix = { flipY: true, transform: '' };
+                    console.log('📱 iOS Safari detected');
+                } else {
+                    recommendedFix = { flipY: true, transform: 'scaleY(-1)' };
+                    console.log('📱 iOS other browser detected');
+                }
+            } else if (isAndroid) {
+                if (isChrome) {
+                    recommendedFix = { flipY: false, transform: 'scaleY(-1)' };
+                    console.log('📱 Android Chrome detected');
+                } else {
+                    recommendedFix = { flipY: true, transform: '' };
+                    console.log('📱 Android other browser detected');
+                }
+            } else {
+                recommendedFix = { flipY: true, transform: '' };
+                console.log('📱 Unknown mobile device');
+            }
+            
+            console.log('🔧 Applying recommended fix:', recommendedFix);
+            
+            // Apply the fix
+            if (window.ScreenSharingSystem.projectionTexture) {
+                window.ScreenSharingSystem.projectionTexture.flipY = recommendedFix.flipY;
+                window.ScreenSharingSystem.projectionTexture.needsUpdate = true;
+            }
+            
+            if (window.ScreenSharingSystem.videoElement) {
+                window.ScreenSharingSystem.videoElement.style.transform = recommendedFix.transform;
+            }
+            
+            console.log('✅ Auto-fix applied');
+        };
+        
+        window.testMobileOrientations = () => {
+            if (!window.ScreenSharingSystem || !window.ScreenSharingSystem.isMobile()) {
+                console.log('❌ Not on mobile or screen sharing system not available');
+                return;
+            }
+            
+            console.log('🧪 Testing mobile orientations...');
+            
+            const tests = [
+                { flipY: false, transform: '' },
+                { flipY: true, transform: '' },
+                { flipY: false, transform: 'scaleY(-1)' },
+                { flipY: true, transform: 'scaleY(-1)' },
+                { flipY: false, transform: 'rotate(180deg)' },
+                { flipY: true, transform: 'rotate(180deg)' }
+            ];
+            
+            let currentTest = 0;
+            
+            const runNextTest = () => {
+                if (currentTest >= tests.length) {
+                    console.log('✅ Orientation tests complete');
+                    return;
+                }
+                
+                const test = tests[currentTest];
+                console.log(`🧪 Test ${currentTest + 1}/${tests.length}:`, test);
+                
+                // Apply test settings
+                if (window.ScreenSharingSystem.projectionTexture) {
+                    window.ScreenSharingSystem.projectionTexture.flipY = test.flipY;
+                    window.ScreenSharingSystem.projectionTexture.needsUpdate = true;
+                }
+                
+                if (window.ScreenSharingSystem.videoElement) {
+                    window.ScreenSharingSystem.videoElement.style.transform = test.transform;
+                }
+                
+                // Show notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    bottom: 100px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0,0,0,0.9);
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    z-index: 10001;
+                    text-align: center;
+                `;
+                notification.innerHTML = `
+                    Test ${currentTest + 1}/${tests.length}<br>
+                    flipY: ${test.flipY}, transform: "${test.transform}"<br>
+                    <button onclick="this.parentElement.remove(); window.testMobileOrientations.runNextTest()" 
+                            style="margin-top: 8px; padding: 4px 12px; background: #4CAF50; border: none; border-radius: 4px; color: white;">
+                        Next Test
+                    </button>
+                    <button onclick="this.parentElement.remove(); console.log('Test stopped')" 
+                            style="margin-top: 8px; margin-left: 8px; padding: 4px 12px; background: #f44336; border: none; border-radius: 4px; color: white;">
+                        Stop
+                    </button>
+                `;
+                document.body.appendChild(notification);
+                
+                currentTest++;
+            };
+            
+            // Add runNextTest to the function so it can be called from the button
+            window.testMobileOrientations.runNextTest = runNextTest;
+            
+            runNextTest();
+        };
+        
+        // DEBUG FUNCTIONS
+        window.debugScreenOrientation = () => {
+            if (this.videoElement && this.projectionTexture) {
+                console.log('🖼️ Screen Orientation Debug:');
+                console.log('  - Video dimensions:', this.videoElement.videoWidth, 'x', this.videoElement.videoHeight);
+                console.log('  - Texture flipY:', this.projectionTexture.flipY);
+                console.log('  - Video rotation:', this.videoElement.style.transform);
+                console.log('  - Projection surface rotation:', this.projectionSurface?.rotation);
+            }
+        };
+        
+        window.fixScreenOrientation = () => {
+            if (this.projectionTexture) {
+                // Toggle flipY to fix upside down issue
+                this.projectionTexture.flipY = !this.projectionTexture.flipY;
+                this.projectionTexture.needsUpdate = true;
+                console.log('🔄 Toggled texture flipY to:', this.projectionTexture.flipY);
+            }
+        };
+
+        window.debugWebRTC = () => {
+            console.log('🔗 WebRTC Debug Info:');
+            console.log('👥 Peer connections:', this.peerConnections.size);
+            this.peerConnections.forEach((pc, userId) => {
+                console.log(`  - ${userId}: ${pc.connectionState} (ICE: ${pc.iceConnectionState})`);
+            });
+            console.log('📺 Current sharer:', this.currentSharer);
+            console.log('📹 Local stream:', !!this.localStream);
+            console.log('📺 Media stream:', !!this.mediaStream);
+            console.log('🎬 Is sharing:', this.isSharing);
+        };
+        
+        window.forceWebRTCReconnect = () => {
+            console.log('🔄 Forcing WebRTC reconnection...');
+            if (this.isSharing && this.localStream) {
+                this.setupWebRTCConnections();
+            } else {
+                console.log('❌ Not currently sharing or no stream available');
+            }
+        };
+
+        window.forceVideoPlayNow = () => {
+            if (this.videoElement) {
+                console.log('🎬 Manual: Forcing video to play...');
+                this.videoElement.play().then(() => {
+                    console.log('✅ Manual video play successful');
+                    if (this.projectionTexture) {
+                        this.projectionTexture.needsUpdate = true;
+                        console.log('🔄 Manual texture update applied');
+                    }
+                }).catch(e => console.log('❌ Manual video play failed:', e));
+            } else {
+                console.log('❌ No video element found');
+            }
+        };
+
+        window.testCameraAccess = () => this.testCameraAccess();
+        window.debugScreenShare = () => this.debugScreenShare();
+        window.testVideoTexture = () => this.testVideoTexture();
+        window.fixVideoTextureNow = () => this.fixVideoTextureNow();
+        window.testWithSolidColor = () => this.testWithSolidColor();
+        
+        console.log('✅ Screen sharing global functions setup');
     }
     
-    isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad detection
+    // ================================
+    // DEBUG AND UTILITY METHODS
+    // ================================
+    
+    async testCameraAccess() {
+        console.log('🧪 Testing camera access...');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            console.log('✅ Camera access successful');
+            console.log('📹 Video tracks:', stream.getVideoTracks().length);
+            
+            // Stop the test stream
+            stream.getTracks().forEach(track => track.stop());
+            
+            this.showNotification('✅ Camera test successful');
+            return true;
+        } catch (error) {
+            console.error('❌ Camera test failed:', error);
+            this.showNotification(`❌ Camera test failed: ${error.message}`);
+            return false;
+        }
     }
     
-    getCurrentSharer() {
-        return this.currentSharer;
+    debugScreenShare() {
+        console.log('🔍 Screen Share Debug Info (Three.js r128):');
+        console.log('📱 Is Mobile:', this.isMobile());
+        console.log('🎥 getUserMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        console.log('🖥️ getDisplayMedia supported:', !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia));
+        console.log('🔧 Is sharing:', this.isSharing);
+        console.log('🔄 Is texture updating:', this.isTextureUpdating);
+        console.log('👤 Current sharer:', this.currentSharer);
+        console.log('📹 Has video element:', !!this.videoElement);
+        console.log('🎬 Has projection surface:', !!this.projectionSurface);
+        console.log('🎯 Has projection texture:', !!this.projectionTexture);
+        console.log('🌐 WebSocket Manager:', !!window.WebSocketManager);
+        console.log('🎯 Projection mode:', this.projectionMode);
+        console.log('📱 Camera facing:', this.cameraFacing);
+        console.log('🎨 Three.js version:', THREE.REVISION);
+        
+        // Video element debug info
+        if (this.videoElement) {
+            console.log('📺 Video element debug:');
+            console.log('  - Ready state:', this.videoElement.readyState);
+            console.log('  - Video width:', this.videoElement.videoWidth);
+            console.log('  - Video height:', this.videoElement.videoHeight);
+            console.log('  - Paused:', this.videoElement.paused);
+            console.log('  - Has src object:', !!this.videoElement.srcObject);
+            console.log('  - Current time:', this.videoElement.currentTime);
+            console.log('  - Duration:', this.videoElement.duration);
+        }
+        
+        // Texture debug info
+        if (this.projectionTexture) {
+            console.log('🎨 Texture debug:');
+            console.log('  - Needs update:', this.projectionTexture.needsUpdate);
+            console.log('  - Format:', this.projectionTexture.format);
+            console.log('  - Min filter:', this.projectionTexture.minFilter);
+            console.log('  - Mag filter:', this.projectionTexture.magFilter);
+            console.log('  - Image:', this.projectionTexture.image);
+            console.log('  - Texture UUID:', this.projectionTexture.uuid);
+            console.log('  - FlipY:', this.projectionTexture.flipY);
+        }
+        
+        // Material debug info
+        if (this.projectionMaterial) {
+            console.log('🎭 Material debug:');
+            console.log('  - Type:', this.projectionMaterial.type);
+            console.log('  - Has map:', !!this.projectionMaterial.map);
+            console.log('  - Needs update:', this.projectionMaterial.needsUpdate);
+            console.log('  - Visible:', this.projectionMaterial.visible);
+            console.log('  - Transparent:', this.projectionMaterial.transparent);
+            console.log('  - Opacity:', this.projectionMaterial.opacity);
+        }
+        
+        // Test camera access
+        this.testCameraAccess();
     }
     
-    getProjectionMode() {
-        return this.projectionMode;
-    }
-    
-    getActiveShares() {
-        return Array.from(this.activeShares.values());
-    }
-    
-    // QUICK FIX: Method to test video texture directly
     testVideoTexture() {
         if (!this.videoElement || !this.projectionTexture) {
             console.log('❌ No video element or texture to test');
@@ -1789,8 +1993,6 @@ class EuphorieScreenSharingSystem {
             
             if (hasData) {
                 console.log('✅ Video texture should work - issue might be in Three.js rendering');
-                
-                // ADDITIONAL FIX: Try to fix the texture right now
                 this.fixVideoTextureNow();
             } else {
                 console.log('❌ Video has no content - check stream source');
@@ -1803,7 +2005,6 @@ class EuphorieScreenSharingSystem {
         canvas.remove();
     }
     
-    // NEW: Immediate video texture fix
     fixVideoTextureNow() {
         console.log('🔧 Applying immediate video texture fix...');
         
@@ -1830,32 +2031,9 @@ class EuphorieScreenSharingSystem {
         this.projectionMaterial.map = this.projectionTexture;
         this.projectionMaterial.needsUpdate = true;
         
-        // Switch to unlit material if using Lambert
-        if (this.projectionMaterial.type === 'MeshLambertMaterial') {
-            const newMaterial = new THREE.MeshBasicMaterial({
-                map: this.projectionTexture,
-                side: THREE.DoubleSide,
-                transparent: false,
-                color: 0xffffff
-            });
-            
-            // Update material on mesh
-            const scene = this.scene;
-            const projectionGroup = scene?.getObjectByName('screen-projection-group');
-            if (projectionGroup) {
-                const surface = projectionGroup.getObjectByName('screen-projection');
-                if (surface) {
-                    surface.material = newMaterial;
-                    this.projectionMaterial = newMaterial;
-                    console.log('🔄 Switched to unlit MeshBasicMaterial');
-                }
-            }
-        }
-        
         console.log('✅ Immediate video texture fix applied');
     }
     
-    // NEW: Test with solid color for debugging
     testWithSolidColor() {
         console.log('🧪 Testing with solid color texture...');
         
@@ -1894,11 +2072,30 @@ class EuphorieScreenSharingSystem {
         console.log(`📍 Look ${this.projectionMode === 'ceiling' ? 'UP' : this.projectionMode === 'wall' ? 'FORWARD' : 'UP-FORWARD'} to see it`);
     }
     
-    // CRITICAL FIX: Cleanup method
+    isScreenSharingSupported() {
+        return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+    }
+    
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+    
+    getCurrentSharer() {
+        return this.currentSharer;
+    }
+    
+    getProjectionMode() {
+        return this.projectionMode;
+    }
+    
+    getActiveShares() {
+        return Array.from(this.activeShares.values());
+    }
+    
     cleanup() {
         console.log('🧹 Cleaning up screen sharing system...');
         
-        // Stop texture updates and video monitoring
         this.stopVideoTextureUpdates();
         
         if (this.videoMonitorInterval) {
@@ -1906,7 +2103,6 @@ class EuphorieScreenSharingSystem {
             this.videoMonitorInterval = null;
         }
         
-        // Stop streams
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => track.stop());
             this.localStream = null;
@@ -1917,14 +2113,12 @@ class EuphorieScreenSharingSystem {
             this.mediaStream = null;
         }
         
-        // Clear video element
         if (this.videoElement) {
             this.videoElement.srcObject = null;
             this.videoElement.remove();
             this.videoElement = null;
         }
         
-        // Dispose of Three.js resources
         if (this.projectionTexture) {
             this.projectionTexture.dispose();
             this.projectionTexture = null;
@@ -1940,11 +2134,9 @@ class EuphorieScreenSharingSystem {
             this.projectionSurface = null;
         }
         
-        // Close peer connections
         this.peerConnections.forEach(pc => pc.close());
         this.peerConnections.clear();
         
-        // Reset state
         this.isSharing = false;
         this.currentSharer = null;
         this.isTextureUpdating = false;
@@ -1952,6 +2144,10 @@ class EuphorieScreenSharingSystem {
         console.log('✅ Screen sharing cleanup complete');
     }
 }
+
+// ================================
+// INITIALIZATION
+// ================================
 
 // Initialize Screen Sharing System
 document.addEventListener('DOMContentLoaded', () => {
@@ -1969,13 +2165,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with MULTI-USER support and orientation fixes loaded!');
-console.log('💡 Use window.testVideoTexture() to debug video content');
-console.log('💡 Use window.debugScreenShare() for full debug info');
-console.log('🎬 Use window.fixVideoTextureNow() for immediate video fixes');
-console.log('🧪 Use window.testWithSolidColor() to test projection visibility');
-console.log('⚡ Use window.forceVideoPlayNow() to manually force video play');
-console.log('🔗 Use window.debugWebRTC() to check peer connections');
-console.log('🔄 Use window.forceWebRTCReconnect() to restart WebRTC');
-console.log('🖼️ Use window.debugScreenOrientation() to check screen rotation');
-console.log('🔄 Use window.fixScreenOrientation() to fix upside-down screens');
+console.log('🖥️ Screen Sharing System with MOBILE ORIENTATION FIX loaded!');
+console.log('📱 Mobile upside-down camera feeds should now be automatically fixed');
+console.log('💡 Use autoFixMobileOrientation() for automatic device-specific fixes');
+console.log('💡 Use fixMobileOrientationManual() to manually toggle orientation');
+console.log('🧪 Use testMobileOrientations() for interactive testing');
+console.log('💡 Use debugScreenShare() for full debug info');
+console.log('🎬 Use fixVideoTextureNow() for immediate video fixes');
+console.log('🧪 Use testWithSolidColor() to test projection visibility');
+console.log('⚡ Use forceVideoPlayNow() to manually force video play');
+console.log('🔗 Use debugWebRTC() to check peer connections');
+console.log('🔄 Use forceWebRTCReconnect() to restart WebRTC');
+console.log('🖼️ Use debugScreenOrientation() to check screen rotation');
+console.log('🔄 Use fixScreenOrientation() to fix upside-down screens');
