@@ -1,4 +1,4 @@
-// FIXED: src/message.rs - Added Screen Sharing Message Types with broadcast support
+// FIXED: src/message.rs - Added Screen Sharing Message Types with complete support
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,7 +214,7 @@ pub enum ClientMessage {
         timestamp: i64,
     },
 
-    // NEW: Missing broadcast offer message type
+    // NEW: Missing message types that JavaScript is sending
     #[serde(rename = "screen_share_broadcast_offer")]
     ScreenShareBroadcastOffer {
         user_id: String,
@@ -222,6 +222,15 @@ pub enum ClientMessage {
         username: String,
         share_type: Option<String>,
         timestamp: Option<i64>,
+    },
+
+    #[serde(rename = "screen_share_ready")]
+    ScreenShareReady {
+        user_id: String,
+        room_id: String,
+        username: String,
+        share_data: ScreenShareData,
+        timestamp: i64,
     },
 }
 

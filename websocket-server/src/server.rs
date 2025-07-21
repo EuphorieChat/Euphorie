@@ -682,6 +682,31 @@ impl WebSocketServer {
                 tracing::info!("📡 Broadcast offer from: {} in room: {} (ignoring for now)", username, room_id);
                 // For now, we'll just acknowledge it - the important messages are the WebRTC ones
             }
+
+            // NEW: Handle screen share ready message
+            ClientMessage::ScreenShareReady { user_id, room_id, username, share_data, .. } => {
+                tracing::info!("📡 Screen share ready from: {} in room: {}", username, room_id);
+                
+                // Convert message::ScreenShareData to screen_sharing::ScreenShareData
+                let screen_share_data = crate::screen_sharing::ScreenShareData {
+                    projection_mode: share_data.projection_mode.clone(),
+                    quality: share_data.quality.clone(),
+                    session_id: share_data.session_id.clone(),
+                };
+                
+                match self.screen_sharing_manager.handle_webrtc_ready(
+                    &user_id, &room_id, &username, screen_share_data, chrono::Utc::now().timestamp_millis()
+                ).await {
+                    Ok(response) => {
+                        // Broadcast to all users in room except sender
+                        self.broadcast_to_room(&room_id, &response, Some(&user_id)).await?;
+                        tracing::info!("✅ Screen share ready broadcasted from {} in room {}", username, room_id);
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Failed to handle screen share ready: {}", e);
+                    }
+                }
+            }
         }
 
         Ok(())
