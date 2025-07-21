@@ -1,11 +1,12 @@
 // ================================
-// EUPHORIE 3D SCREEN SHARING SYSTEM - COMPLETE FIXED VERSION
-// Enhanced implementation with mobile orientation fix, fullscreen support, and proper WebRTC flow
+// EUPHORIE 3D COMPLETE SCREEN SHARING SYSTEM - DARK SCREEN FIXES
+// Complete implementation with enhanced remote stream handling
+// Version: 2.1.0 - Fixed Dark Screen Bug
 // ================================
 
 class EuphorieScreenSharingSystem {
     constructor() {
-        console.log('🖥️ Initializing Screen Sharing System...');
+        console.log('🖥️ Initializing Enhanced Screen Sharing System v2.1.0...');
         
         // Core properties
         this.isInitialized = false;
@@ -16,10 +17,17 @@ class EuphorieScreenSharingSystem {
         this.projectionTexture = null;
         this.projectionMaterial = null;
         
-        // CRITICAL: Video texture update system
+        // ENHANCED: Video texture update system with dark screen fixes
         this.textureUpdateInterval = null;
         this.isTextureUpdating = false;
         this.videoMonitorInterval = null;
+        this.debugMode = true;
+        
+        // Enhanced stream tracking for debugging
+        this.receivedStreams = new Map(); // Track received streams
+        this.videoPlayPromises = new Map(); // Track video play promises
+        this.streamStartTimes = new Map(); // Track when streams started
+        this.darkScreenDetection = new Map(); // Track dark screen detection
         
         // Screen sharing state
         this.activeShares = new Map();
@@ -62,14 +70,20 @@ class EuphorieScreenSharingSystem {
             quality: 'high',
             frameRate: 30,
             autoSwitchOnStop: true,
-            enableControls: true
+            enableControls: true,
+            // ENHANCED: Dark screen detection settings
+            darkScreenThreshold: 10,
+            darkScreenCheckInterval: 100,
+            darkScreenMaxFrames: 30,
+            videoPlayRetries: 5,
+            videoContentTimeout: 10000
         };
         
-        console.log('✅ Screen Sharing System created');
+        console.log('✅ Enhanced Screen Sharing System created with dark screen fixes');
     }
     
     async init() {
-        console.log('🚀 Initializing Screen Sharing System...');
+        console.log('🚀 Initializing Enhanced Screen Sharing System...');
         
         try {
             // Wait for Three.js scene
@@ -92,7 +106,7 @@ class EuphorieScreenSharingSystem {
             this.setupOrientationListeners();
             
             this.isInitialized = true;
-            console.log('✅ Screen Sharing System initialized');
+            console.log('✅ Enhanced Screen Sharing System initialized with dark screen fixes');
             
         } catch (error) {
             console.error('❌ Error initializing Screen Sharing System:', error);
@@ -211,7 +225,7 @@ class EuphorieScreenSharingSystem {
         }
     }
 
-    // FIXED: Handle screen share started with auto-connection
+    // ENHANCED: Handle screen share started with auto-connection
     handleScreenShareStarted(data) {
         if (data.user_id === window.WebSocketManager?.userId) {
             console.log('⏭️ Ignoring own screen share start message');
@@ -243,7 +257,7 @@ class EuphorieScreenSharingSystem {
         }, 1000);
     }
 
-    // FIXED: Handle screen share stopped
+    // ENHANCED: Handle screen share stopped
     handleScreenShareStopped(data) {
         if (data.user_id === this.currentSharer) {
             console.log(`📺 ${data.username} stopped sharing their screen`);
@@ -277,6 +291,11 @@ class EuphorieScreenSharingSystem {
                 pc.close();
                 this.peerConnections.delete(data.user_id);
             }
+            
+            // Clean up tracking
+            this.receivedStreams.delete(data.user_id);
+            this.streamStartTimes.delete(data.user_id);
+            this.darkScreenDetection.delete(data.user_id);
             
             this.showNotification(`📺 ${data.username} stopped sharing`);
             this.hideViewerControls();
@@ -376,7 +395,7 @@ class EuphorieScreenSharingSystem {
         };
     }
 
-    // FIXED: Auto-connect to sharer with better error handling
+    // ENHANCED: Auto-connect to sharer with better error handling
     async autoConnectToSharer(sharerUserId, sharerUsername, shareData) {
         if (sharerUserId === window.WebSocketManager?.userId) {
             console.log('⏭️ Skipping auto-connect to self');
@@ -395,11 +414,11 @@ class EuphorieScreenSharingSystem {
                 ]
             });
             
-            // Handle incoming stream from sharer
+            // CRITICAL FIX: Handle incoming stream with enhanced processing
             pc.ontrack = (event) => {
                 console.log(`📺 Receiving stream from ${sharerUsername}!`);
                 const stream = event.streams[0];
-                this.handleRemoteStream(stream, sharerUserId);
+                this.handleRemoteStreamEnhanced(stream, sharerUserId);
                 this.showNotification(`✅ Now showing ${sharerUsername}'s screen!`);
             };
             
@@ -452,6 +471,641 @@ class EuphorieScreenSharingSystem {
         }
     }
 
+    // ================================
+    // CRITICAL DARK SCREEN FIXES
+    // ================================
+    
+    // CRITICAL FIX 1: Enhanced remote stream handling with proper video setup
+    async handleRemoteStreamEnhanced(stream, userId) {
+        console.log(`📺 [FIX] Enhanced remote stream handling for user: ${userId}`);
+        console.log(`📺 [FIX] Stream details:`, {
+            id: stream.id,
+            active: stream.active,
+            videoTracks: stream.getVideoTracks().length,
+            audioTracks: stream.getAudioTracks().length
+        });
+        
+        // Store received stream
+        this.receivedStreams.set(userId, stream);
+        this.streamStartTimes.set(userId, Date.now());
+        
+        // CRITICAL: Ensure video element is properly configured BEFORE setting stream
+        if (!this.videoElement) {
+            console.log('📺 [FIX] Creating new video element for remote stream');
+            this.createProjectionSurface();
+        }
+        
+        // Enhanced video element configuration for remote streams
+        this.configureVideoElementForRemoteStream(this.videoElement, stream);
+        
+        // Set stream and wait for it to load properly
+        this.videoElement.srcObject = stream;
+        this.mediaStream = stream;
+        
+        try {
+            // CRITICAL FIX: Force video to play and wait for actual readiness
+            console.log('🎬 [FIX] Starting enhanced video play sequence...');
+            await this.forceVideoPlayWithRetries(this.videoElement, userId);
+            
+            // Wait for video to have actual content
+            await this.waitForVideoContent(this.videoElement, userId);
+            
+            // Check stream tracks are active
+            this.verifyStreamTracks(stream, userId);
+            
+            // Apply mobile orientation fix if needed
+            const shareData = this.getShareDataForUser(userId);
+            if (shareData && shareData.mobile_device) {
+                console.log('📱 [FIX] Applying mobile orientation fixes for remote stream');
+                setTimeout(() => {
+                    this.detectAndFixMobileOrientation();
+                }, 500);
+            }
+            
+            // CRITICAL: Enhanced texture update system
+            this.startEnhancedVideoTextureUpdates();
+            
+            console.log('✅ [FIX] Remote stream setup completed successfully');
+            
+        } catch (error) {
+            console.error('❌ [FIX] Remote video setup failed:', error);
+            // Try fallback approach
+            await this.fallbackVideoSetup(stream, userId);
+        }
+        
+        // Show projection surface with enhanced visibility
+        if (this.projectionSurface) {
+            this.projectionSurface.visible = true;
+            this.enhanceProjectionVisibility();
+            this.animateProjectionIn();
+        }
+        
+        this.currentSharer = userId;
+        this.showViewerControls(userId);
+        this.showNotification(`📺 Now viewing ${userId}'s screen`);
+        
+        // Start monitoring for dark screen issues
+        this.startDarkScreenMonitoring(userId);
+    }
+    
+    // CRITICAL FIX 2: Enhanced video element configuration
+    configureVideoElementForRemoteStream(videoElement, stream) {
+        console.log('🔧 [FIX] Configuring video element for remote stream');
+        
+        // Remove any existing event listeners to prevent conflicts
+        const newVideo = videoElement.cloneNode();
+        if (videoElement.parentNode) {
+            videoElement.parentNode.replaceChild(newVideo, videoElement);
+        } else {
+            document.body.appendChild(newVideo);
+        }
+        this.videoElement = newVideo;
+        
+        // Enhanced video configuration
+        this.videoElement.style.display = 'none';
+        this.videoElement.autoplay = true;
+        this.videoElement.muted = true;
+        this.videoElement.playsInline = true;
+        this.videoElement.loop = false; // Important for streams
+        this.videoElement.controls = false;
+        this.videoElement.crossOrigin = 'anonymous';
+        
+        // CRITICAL: Set properties that help with WebRTC streams
+        this.videoElement.disablePictureInPicture = true;
+        this.videoElement.disableRemotePlayback = true;
+        
+        // Enhanced loading attributes
+        this.videoElement.preload = 'auto';
+        this.videoElement.defaultMuted = true;
+        
+        console.log('✅ [FIX] Video element configured for remote stream');
+    }
+    
+    // CRITICAL FIX 3: Enhanced video play with retries and debugging
+    async forceVideoPlayWithRetries(videoElement, userId, maxRetries = 5) {
+        console.log(`🎬 [FIX] Force playing video for user ${userId} (max retries: ${maxRetries})`);
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`🎬 [FIX] Play attempt ${attempt}/${maxRetries} for user ${userId}`);
+                
+                // Cancel any pending play promises
+                if (this.videoPlayPromises.has(userId)) {
+                    try {
+                        await this.videoPlayPromises.get(userId);
+                    } catch (e) {
+                        console.log('Previous play promise rejected, continuing...');
+                    }
+                }
+                
+                // Create new play promise
+                const playPromise = videoElement.play();
+                this.videoPlayPromises.set(userId, playPromise);
+                
+                await playPromise;
+                
+                console.log(`✅ [FIX] Video play successful on attempt ${attempt} for user ${userId}`);
+                
+                // Verify video is actually playing
+                if (!videoElement.paused && videoElement.readyState >= 2) {
+                    console.log(`✅ [FIX] Video confirmed playing for user ${userId}`);
+                    return true;
+                }
+                
+                console.warn(`⚠️ [FIX] Video play succeeded but video not ready, retrying...`);
+                
+            } catch (error) {
+                console.warn(`⚠️ [FIX] Play attempt ${attempt} failed for user ${userId}:`, error.message);
+                
+                if (attempt === maxRetries) {
+                    throw new Error(`Video play failed after ${maxRetries} attempts: ${error.message}`);
+                }
+                
+                // Wait before retry with exponential backoff
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                console.log(`⏳ [FIX] Waiting ${delay}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+        
+        return false;
+    }
+    
+    // CRITICAL FIX 4: Wait for actual video content (not just metadata)
+    async waitForVideoContent(videoElement, userId, timeout = 10000) {
+        console.log(`⏳ [FIX] Waiting for video content for user ${userId}...`);
+        
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            let checkAttempts = 0;
+            const maxAttempts = timeout / 100;
+            
+            const checkContent = () => {
+                checkAttempts++;
+                const elapsed = Date.now() - startTime;
+                
+                // Check multiple conditions for content availability
+                const hasMetadata = videoElement.readyState >= 1;
+                const hasCurrentData = videoElement.readyState >= 2;
+                const hasVideoSize = videoElement.videoWidth > 0 && videoElement.videoHeight > 0;
+                const isPlaying = !videoElement.paused && !videoElement.ended;
+                const hasCurrentTime = videoElement.currentTime > 0;
+                
+                console.log(`🔍 [FIX] Content check ${checkAttempts}/${maxAttempts} for user ${userId}:`, {
+                    readyState: videoElement.readyState,
+                    videoSize: `${videoElement.videoWidth}x${videoElement.videoHeight}`,
+                    paused: videoElement.paused,
+                    currentTime: videoElement.currentTime,
+                    hasMetadata,
+                    hasCurrentData,
+                    hasVideoSize,
+                    isPlaying,
+                    hasCurrentTime
+                });
+                
+                // Success condition: has data AND video dimensions AND is playing
+                if (hasCurrentData && hasVideoSize && isPlaying) {
+                    console.log(`✅ [FIX] Video content confirmed for user ${userId} after ${elapsed}ms`);
+                    resolve();
+                    return;
+                }
+                
+                // Timeout condition
+                if (elapsed >= timeout) {
+                    console.warn(`⚠️ [FIX] Video content timeout for user ${userId} after ${elapsed}ms`);
+                    console.warn(`⚠️ [FIX] Final state:`, {
+                        readyState: videoElement.readyState,
+                        videoSize: `${videoElement.videoWidth}x${videoElement.videoHeight}`,
+                        paused: videoElement.paused,
+                        currentTime: videoElement.currentTime
+                    });
+                    
+                    // Don't reject - continue with whatever we have
+                    resolve();
+                    return;
+                }
+                
+                // Continue checking
+                setTimeout(checkContent, 100);
+            };
+            
+            // Add event listeners for faster detection
+            const onLoadedData = () => {
+                console.log(`📺 [FIX] Video loadeddata event for user ${userId}`);
+                checkContent();
+            };
+            
+            const onCanPlay = () => {
+                console.log(`📺 [FIX] Video canplay event for user ${userId}`);
+                checkContent();
+            };
+            
+            const onTimeUpdate = () => {
+                console.log(`📺 [FIX] Video timeupdate event for user ${userId} - currentTime:`, videoElement.currentTime);
+                checkContent();
+            };
+            
+            videoElement.addEventListener('loadeddata', onLoadedData, { once: true });
+            videoElement.addEventListener('canplay', onCanPlay, { once: true });
+            videoElement.addEventListener('timeupdate', onTimeUpdate, { once: true });
+            
+            // Start checking immediately
+            checkContent();
+        });
+    }
+    
+    // CRITICAL FIX 5: Verify stream tracks are active and working
+    verifyStreamTracks(stream, userId) {
+        console.log(`🔍 [FIX] Verifying stream tracks for user ${userId}`);
+        
+        const videoTracks = stream.getVideoTracks();
+        const audioTracks = stream.getAudioTracks();
+        
+        console.log(`📹 [FIX] Video tracks (${videoTracks.length}):`, videoTracks.map(track => ({
+            id: track.id,
+            kind: track.kind,
+            label: track.label,
+            enabled: track.enabled,
+            readyState: track.readyState,
+            muted: track.muted
+        })));
+        
+        console.log(`🎵 [FIX] Audio tracks (${audioTracks.length}):`, audioTracks.map(track => ({
+            id: track.id,
+            kind: track.kind,
+            enabled: track.enabled,
+            readyState: track.readyState,
+            muted: track.muted
+        })));
+        
+        // Check for issues
+        const disabledVideoTracks = videoTracks.filter(track => !track.enabled);
+        const endedVideoTracks = videoTracks.filter(track => track.readyState === 'ended');
+        const mutedVideoTracks = videoTracks.filter(track => track.muted);
+        
+        if (disabledVideoTracks.length > 0) {
+            console.warn(`⚠️ [FIX] ${disabledVideoTracks.length} disabled video tracks for user ${userId}`);
+        }
+        
+        if (endedVideoTracks.length > 0) {
+            console.warn(`⚠️ [FIX] ${endedVideoTracks.length} ended video tracks for user ${userId}`);
+        }
+        
+        if (mutedVideoTracks.length > 0) {
+            console.warn(`⚠️ [FIX] ${mutedVideoTracks.length} muted video tracks for user ${userId}`);
+        }
+        
+        // Try to fix common issues
+        videoTracks.forEach((track, index) => {
+            if (!track.enabled) {
+                console.log(`🔧 [FIX] Enabling video track ${index} for user ${userId}`);
+                track.enabled = true;
+            }
+        });
+        
+        return {
+            videoTracks: videoTracks.length,
+            activeVideoTracks: videoTracks.filter(track => track.enabled && track.readyState === 'live').length,
+            audioTracks: audioTracks.length,
+            issues: {
+                disabled: disabledVideoTracks.length,
+                ended: endedVideoTracks.length,
+                muted: mutedVideoTracks.length
+            }
+        };
+    }
+    
+    // CRITICAL FIX 6: Enhanced texture update system with better error handling
+    startEnhancedVideoTextureUpdates() {
+        if (this.isTextureUpdating || !this.projectionTexture) {
+            console.log('⚠️ [FIX] Enhanced texture updates already running or no texture available');
+            return;
+        }
+
+        this.isTextureUpdating = true;
+        console.log('🔄 [FIX] Starting enhanced video texture update loop...');
+
+        // More aggressive texture updating with better error handling
+        this.textureUpdateInterval = setInterval(() => {
+            try {
+                if (this.projectionTexture && this.videoElement) {
+                    const video = this.videoElement;
+                    
+                    // Enhanced readiness checks
+                    const isReady = video.readyState >= video.HAVE_CURRENT_DATA;
+                    const isPlaying = !video.paused && !video.ended;
+                    const hasSize = video.videoWidth > 0 && video.videoHeight > 0;
+                    const hasTime = video.currentTime > 0;
+                    
+                    if (isReady && isPlaying && hasSize) {
+                        // Force texture update
+                        this.projectionTexture.needsUpdate = true;
+                        
+                        // CRITICAL: Ensure material is updated too
+                        if (this.projectionMaterial) {
+                            this.projectionMaterial.needsUpdate = true;
+                            
+                            // Verify material map is correct
+                            if (this.projectionMaterial.map !== this.projectionTexture) {
+                                console.log('🔧 [FIX] Reassigning texture to material');
+                                this.projectionMaterial.map = this.projectionTexture;
+                            }
+                        }
+                        
+                        // Debug video state occasionally
+                        if (Math.random() < 0.01) {
+                            console.log(`📺 [FIX] Video: ${video.videoWidth}x${video.videoHeight}, Time: ${video.currentTime.toFixed(2)}, Ready: ${video.readyState}`);
+                        }
+                    } else {
+                        // Debug why video isn't ready
+                        if (Math.random() < 0.1) {
+                            console.log(`🔍 [FIX] Video not ready:`, {
+                                readyState: video.readyState,
+                                paused: video.paused,
+                                ended: video.ended,
+                                videoSize: `${video.videoWidth}x${video.videoHeight}`,
+                                currentTime: video.currentTime,
+                                isReady,
+                                isPlaying,
+                                hasSize,
+                                hasTime
+                            });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('❌ [FIX] Error in enhanced texture update:', error);
+            }
+        }, 16); // 60 FPS
+
+        console.log('✅ [FIX] Enhanced video texture update loop started at 60 FPS');
+    }
+    
+    // CRITICAL FIX 7: Enhanced projection visibility
+    enhanceProjectionVisibility() {
+        if (!this.projectionSurface || !this.projectionMaterial) return;
+        
+        console.log('🔧 [FIX] Enhancing projection visibility...');
+        
+        // Enhanced material settings for better visibility
+        this.projectionMaterial.transparent = false;
+        this.projectionMaterial.opacity = 1.0;
+        this.projectionMaterial.side = THREE.DoubleSide;
+        this.projectionMaterial.color.setHex(0xffffff);
+        
+        // CRITICAL: Ensure proper texture settings for Three.js r128
+        if (this.projectionTexture) {
+            this.projectionTexture.minFilter = THREE.LinearFilter;
+            this.projectionTexture.magFilter = THREE.LinearFilter;
+            this.projectionTexture.format = THREE.RGBAFormat;
+            this.projectionTexture.generateMipmaps = false;
+            this.projectionTexture.flipY = true;
+            this.projectionTexture.wrapS = THREE.ClampToEdgeWrapping;
+            this.projectionTexture.wrapT = THREE.ClampToEdgeWrapping;
+        }
+        
+        // Add extra bright lighting specifically for the projection
+        this.addProjectionLighting();
+        
+        console.log('✅ [FIX] Projection visibility enhanced');
+    }
+    
+    // CRITICAL FIX 8: Add specific lighting for projection surface
+    addProjectionLighting() {
+        if (!this.scene || !this.projectionSurface) return;
+        
+        // Remove existing projection lighting
+        const existingLights = this.scene.children.filter(child => 
+            child.name && child.name.includes('projection-light')
+        );
+        existingLights.forEach(light => this.scene.remove(light));
+        
+        // Add very bright point light near projection surface
+        const pointLight = new THREE.PointLight(0xffffff, 2.0, 100);
+        const surfacePos = this.projectionSurface.position;
+        pointLight.position.set(surfacePos.x, surfacePos.y + 5, surfacePos.z + 5);
+        pointLight.name = 'projection-point-light';
+        this.scene.add(pointLight);
+        
+        // Add directional light pointing at surface
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(surfacePos.x + 10, surfacePos.y + 10, surfacePos.z + 10);
+        dirLight.target.position.copy(surfacePos);
+        dirLight.name = 'projection-directional-light';
+        this.scene.add(dirLight);
+        this.scene.add(dirLight.target);
+        
+        console.log('💡 [FIX] Added projection-specific lighting');
+    }
+    
+    // CRITICAL FIX 9: Fallback video setup for problematic streams
+    async fallbackVideoSetup(stream, userId) {
+        console.log(`🔧 [FIX] Attempting fallback video setup for user ${userId}`);
+        
+        try {
+            // Create a new video element as fallback
+            const fallbackVideo = document.createElement('video');
+            this.configureVideoElementForRemoteStream(fallbackVideo, stream);
+            
+            // Replace current video element
+            if (this.videoElement && this.videoElement.parentNode) {
+                this.videoElement.parentNode.replaceChild(fallbackVideo, this.videoElement);
+            } else {
+                document.body.appendChild(fallbackVideo);
+            }
+            this.videoElement = fallbackVideo;
+            
+            // Set stream and try basic play
+            this.videoElement.srcObject = stream;
+            
+            // Simple play without retries
+            await this.videoElement.play();
+            
+            // Force texture recreation
+            if (this.projectionTexture) {
+                this.projectionTexture.dispose();
+            }
+            
+            this.projectionTexture = new THREE.VideoTexture(this.videoElement);
+            this.projectionTexture.minFilter = THREE.LinearFilter;
+            this.projectionTexture.magFilter = THREE.LinearFilter;
+            
+            if (this.projectionMaterial) {
+                this.projectionMaterial.map = this.projectionTexture;
+                this.projectionMaterial.needsUpdate = true;
+            }
+            
+            console.log('✅ [FIX] Fallback video setup completed');
+            
+        } catch (error) {
+            console.error('❌ [FIX] Fallback video setup also failed:', error);
+            this.showNotification('❌ Video setup failed - trying test pattern');
+            this.showTestPattern();
+        }
+    }
+    
+    // CRITICAL FIX 10: Dark screen monitoring and auto-recovery
+    startDarkScreenMonitoring(userId) {
+        console.log(`🕵️ [FIX] Starting dark screen monitoring for user ${userId}`);
+        
+        let consecutiveDarkFrames = 0;
+        const maxDarkFrames = this.config.darkScreenMaxFrames;
+        
+        const monitorInterval = setInterval(() => {
+            if (!this.videoElement || this.currentSharer !== userId) {
+                clearInterval(monitorInterval);
+                return;
+            }
+            
+            try {
+                // Create canvas to sample video pixels
+                const canvas = document.createElement('canvas');
+                const video = this.videoElement;
+                
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    canvas.width = Math.min(video.videoWidth, 100);
+                    canvas.height = Math.min(video.videoHeight, 100);
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Draw video frame
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Sample pixels
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+                    
+                    // Calculate average brightness
+                    let totalBrightness = 0;
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        const r = pixels[i];
+                        const g = pixels[i + 1];
+                        const b = pixels[i + 2];
+                        totalBrightness += (r + g + b) / 3;
+                    }
+                    
+                    const avgBrightness = totalBrightness / (pixels.length / 4);
+                    
+                    // Check if frame is too dark (possibly black)
+                    if (avgBrightness < this.config.darkScreenThreshold) {
+                        consecutiveDarkFrames++;
+                        
+                        if (consecutiveDarkFrames >= maxDarkFrames) {
+                            console.warn(`🚨 [FIX] Dark screen detected for user ${userId} - attempting recovery`);
+                            this.attemptDarkScreenRecovery(userId);
+                            consecutiveDarkFrames = 0; // Reset counter
+                        }
+                    } else {
+                        consecutiveDarkFrames = 0; // Reset counter on good frame
+                    }
+                    
+                    canvas.remove();
+                }
+                
+            } catch (error) {
+                // Ignore errors in monitoring - don't spam console
+            }
+            
+        }, this.config.darkScreenCheckInterval);
+        
+        // Store monitoring reference
+        this.darkScreenDetection.set(userId, monitorInterval);
+        
+        // Stop monitoring after 30 seconds
+        setTimeout(() => {
+            clearInterval(monitorInterval);
+            this.darkScreenDetection.delete(userId);
+            console.log(`🕵️ [FIX] Dark screen monitoring ended for user ${userId}`);
+        }, 30000);
+    }
+    
+    // CRITICAL FIX 11: Dark screen recovery mechanisms
+    async attemptDarkScreenRecovery(userId) {
+        console.log(`🚑 [FIX] Attempting dark screen recovery for user ${userId}`);
+        
+        try {
+            // Recovery step 1: Force video play again
+            console.log('🚑 [FIX] Recovery step 1: Force video replay');
+            await this.videoElement.play();
+            
+            // Recovery step 2: Force texture update
+            console.log('🚑 [FIX] Recovery step 2: Force texture update');
+            if (this.projectionTexture) {
+                this.projectionTexture.needsUpdate = true;
+            }
+            
+            // Recovery step 3: Recreate texture if needed
+            console.log('🚑 [FIX] Recovery step 3: Recreate texture');
+            const oldTexture = this.projectionTexture;
+            this.projectionTexture = new THREE.VideoTexture(this.videoElement);
+            this.projectionTexture.minFilter = THREE.LinearFilter;
+            this.projectionTexture.magFilter = THREE.LinearFilter;
+            
+            if (this.projectionMaterial) {
+                this.projectionMaterial.map = this.projectionTexture;
+                this.projectionMaterial.needsUpdate = true;
+            }
+            
+            // Dispose old texture
+            if (oldTexture) {
+                oldTexture.dispose();
+            }
+            
+            // Recovery step 4: Check WebRTC connection
+            console.log('🚑 [FIX] Recovery step 4: Check WebRTC connection');
+            const pc = this.peerConnections.get(userId);
+            if (pc && pc.connectionState !== 'connected') {
+                console.warn(`🚑 [FIX] WebRTC connection issue: ${pc.connectionState}`);
+                // Could trigger reconnection here
+            }
+            
+            this.showNotification('🚑 Attempting to fix dark screen...');
+            
+        } catch (error) {
+            console.error('❌ [FIX] Dark screen recovery failed:', error);
+            this.showNotification('❌ Could not fix dark screen - please refresh');
+        }
+    }
+    
+    // CRITICAL FIX 12: Show test pattern for debugging
+    showTestPattern() {
+        console.log('🧪 [FIX] Showing test pattern for debugging');
+        
+        // Create colorful test pattern
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw colorful pattern
+        const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+        gradient.addColorStop(0, '#ff0000');
+        gradient.addColorStop(0.25, '#00ff00');
+        gradient.addColorStop(0.5, '#0000ff');
+        gradient.addColorStop(0.75, '#ffff00');
+        gradient.addColorStop(1, '#ff00ff');
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Add text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('VIDEO FEED', 256, 200);
+        ctx.fillText('TEST PATTERN', 256, 250);
+        ctx.fillText('FAILED', 256, 300);
+        
+        // Create texture from canvas
+        const testTexture = new THREE.CanvasTexture(canvas);
+        
+        if (this.projectionMaterial) {
+            this.projectionMaterial.map = testTexture;
+            this.projectionMaterial.needsUpdate = true;
+        }
+        
+        console.log('✅ [FIX] Test pattern displayed');
+    }
+
     // NEW: Auto-connect to ongoing share for late joiners
     async autoConnectToOngoingShare(sharerUserId, sharerUsername, shareData) {
         if (sharerUserId === window.WebSocketManager?.userId) {
@@ -470,7 +1124,7 @@ class EuphorieScreenSharingSystem {
             
             pc.ontrack = (event) => {
                 console.log(`📺 Connected to ongoing share from ${sharerUsername}!`);
-                this.handleRemoteStream(event.streams[0], sharerUserId);
+                this.handleRemoteStreamEnhanced(event.streams[0], sharerUserId);
                 this.showNotification(`✅ Joined ${sharerUsername}'s screen share!`);
             };
             
@@ -1117,7 +1771,7 @@ class EuphorieScreenSharingSystem {
         
         console.log('💡 Added bright lighting for screen sharing visibility');
     }
-    
+
     // ================================
     // MOBILE ORIENTATION FIX METHODS
     // ================================
@@ -1327,11 +1981,6 @@ class EuphorieScreenSharingSystem {
         console.log('✅ Fallback fix applied');
     }
     
-    applyMobileOrientationFix(needsFlip, needsRotation, orientation) {
-        // This method is now simplified since detectAndFixMobileOrientation handles everything
-        console.log('📱 Seamless orientation fix already applied in detectAndFixMobileOrientation');
-    }
-    
     async setupMobileCamera() {
         console.log('📱 Setting up mobile camera with orientation detection...');
         
@@ -1398,7 +2047,7 @@ class EuphorieScreenSharingSystem {
         
         console.log('📱 Orientation change listeners setup');
     }
-    
+
     // ================================
     // ENHANCED SCREEN SHARING METHODS
     // ================================
@@ -1594,7 +2243,7 @@ class EuphorieScreenSharingSystem {
             this.showNotification('❌ Camera access failed completely');
         }
     }
-    
+
     // ================================
     // VIDEO TEXTURE UPDATE SYSTEM
     // ================================
@@ -1728,9 +2377,9 @@ class EuphorieScreenSharingSystem {
             checkReady();
         });
     }
-    
+
     // ================================
-    // WEBRTC SYSTEM
+    // WEBRTC SYSTEM  
     // ================================
     
     // ENHANCED: WebRTC setup with better error handling and debugging
@@ -1999,7 +2648,7 @@ class EuphorieScreenSharingSystem {
             
             pc.ontrack = (event) => {
                 console.log(`📺 Received screen sharing stream from ${data.user_id}`);
-                this.handleRemoteStream(event.streams[0], data.user_id);
+                this.handleRemoteStreamEnhanced(event.streams[0], data.user_id);
             };
             
             pc.onicecandidate = (event) => {
@@ -2079,42 +2728,7 @@ class EuphorieScreenSharingSystem {
             console.error('❌ Error handling WebRTC candidate:', error);
         }
     }
-    
-    async handleRemoteStream(stream, userId) {
-        console.log(`📺 Handling remote screen stream from user: ${userId}`);
-        
-        this.videoElement.srcObject = stream;
-        this.mediaStream = stream;
-        
-        try {
-            await this.videoElement.play();
-            await this.waitForVideoReady(this.videoElement);
-            
-            // Check if this is from a mobile user for orientation fix
-            const shareData = this.getShareDataForUser(userId);
-            if (shareData && shareData.mobile_device) {
-                console.log('📱 Remote stream is from mobile device, checking orientation...');
-                setTimeout(() => {
-                    this.detectAndFixMobileOrientation();
-                }, 500);
-            }
-            
-            this.startVideoTextureUpdates();
-            
-        } catch (error) {
-            console.warn('⚠️ Remote video setup failed:', error);
-        }
-        
-        if (this.projectionSurface) {
-            this.projectionSurface.visible = true;
-            this.animateProjectionIn();
-        }
-        
-        this.currentSharer = userId;
-        this.showViewerControls(userId);
-        this.showNotification(`📺 Now viewing ${userId}'s screen`);
-    }
-    
+
     // ================================
     // SHARE DATA MANAGEMENT
     // ================================
@@ -2167,6 +2781,10 @@ class EuphorieScreenSharingSystem {
             this.peerConnections.forEach(pc => pc.close());
             this.peerConnections.clear();
             
+            // Clean up dark screen monitoring
+            this.darkScreenDetection.forEach(interval => clearInterval(interval));
+            this.darkScreenDetection.clear();
+            
             this.isSharing = false;
             this.currentSharer = null;
             
@@ -2183,7 +2801,7 @@ class EuphorieScreenSharingSystem {
             console.error('Error stopping screen share:', error);
         }
     }
-    
+
     // ================================
     // UI AND ANIMATION METHODS
     // ================================
@@ -2669,6 +3287,58 @@ class EuphorieScreenSharingSystem {
             }
         };
         
+        // Debug functions for dark screen fixes
+        window.debugRemoteStream = (userId) => {
+            if (this.receivedStreams.has(userId)) {
+                const stream = this.receivedStreams.get(userId);
+                console.log(`🔍 Remote stream debug for ${userId}:`, {
+                    id: stream.id,
+                    active: stream.active,
+                    tracks: stream.getTracks().length,
+                    videoTracks: stream.getVideoTracks().map(t => ({
+                        enabled: t.enabled,
+                        readyState: t.readyState,
+                        muted: t.muted
+                    }))
+                });
+            } else {
+                console.log(`❌ No remote stream found for user ${userId}`);
+            }
+        };
+        
+        window.fixDarkScreen = (userId) => {
+            if (this.currentSharer === userId) {
+                this.attemptDarkScreenRecovery(userId);
+            } else {
+                console.log(`❌ ${userId} is not the current sharer`);
+            }
+        };
+        
+        window.showTestPattern = () => this.showTestPattern();
+        window.forceVideoPlay = () => {
+            if (this.videoElement) {
+                this.videoElement.play().then(() => {
+                    console.log('✅ Video play forced');
+                    if (this.projectionTexture) {
+                        this.projectionTexture.needsUpdate = true;
+                    }
+                }).catch(e => console.log('❌ Force play failed:', e));
+            }
+        };
+        
+        window.recreateTexture = () => {
+            if (this.videoElement && this.projectionMaterial) {
+                const oldTexture = this.projectionTexture;
+                this.projectionTexture = new THREE.VideoTexture(this.videoElement);
+                this.projectionTexture.minFilter = THREE.LinearFilter;
+                this.projectionTexture.magFilter = THREE.LinearFilter;
+                this.projectionMaterial.map = this.projectionTexture;
+                this.projectionMaterial.needsUpdate = true;
+                if (oldTexture) oldTexture.dispose();
+                console.log('✅ Texture recreated');
+            }
+        };
+        
         // Debug functions
         window.debugScreenOrientation = () => {
             if (this.videoElement && this.projectionTexture) {
@@ -2992,11 +3662,7 @@ class EuphorieScreenSharingSystem {
     }
 }
 
-// ================================
-// INITIALIZATION
-// ================================
-
-// Initialize Screen Sharing System
+// Initialize Enhanced Screen Sharing System
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (window.THREE && (window.SceneManager || window.scene)) {
@@ -3012,15 +3678,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ COMPLETE FIXED Screen Sharing System loaded!');
-console.log('🔧 ✅ Fixed WebSocket message integration');
-console.log('📡 ✅ Fixed WebRTC connection flow');
-console.log('👥 ✅ Fixed late joiner support');
-console.log('📱 ✅ Mobile camera orientation automatically fixed');
-console.log('🖱️ ✅ Click on projection screen to enter fullscreen');
-console.log('💡 All debug functions available:');
-console.log('  - debugWebRTCConnections() to check connections');
-console.log('  - debugScreenShare() for full debug info');
-console.log('  - testCameraAccess() to test camera');
-console.log('  - fixMobileOrientationManual() for emergency fix');
-console.log('  - All original functionality preserved and enhanced!');
+console.log('🖥️ ENHANCED Screen Sharing System with Dark Screen Fixes loaded!');
+console.log('🔧 ✅ Enhanced remote stream handling');
+console.log('📺 ✅ Dark screen detection and recovery');
+console.log('🎬 ✅ Video play retry mechanisms');
+console.log('🎯 ✅ Enhanced texture update system');
+console.log('💡 Available debug functions:');
+console.log('  - debugRemoteStream(userId) - Debug specific user\'s stream');
+console.log('  - fixDarkScreen(userId) - Force recovery for user');
+console.log('  - showTestPattern() - Display test pattern');
+console.log('  - forceVideoPlay() - Force video to play');
+console.log('  - recreateTexture() - Recreate video texture');
