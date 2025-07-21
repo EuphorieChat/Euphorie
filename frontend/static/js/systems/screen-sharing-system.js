@@ -322,28 +322,73 @@ class EuphorieScreenSharingSystem {
         console.log('🖱️ Fullscreen click handler added to projection surface');
     }
     
-    // NEW: Setup global click listener for screen interaction
+    // NEW: Setup global click listener for screen interaction - FIXED VERSION
     setupScreenClickListener() {
-        const canvas = this.renderer?.domElement || document.querySelector('canvas');
+        // Try multiple methods to find the canvas and camera
+        let canvas = null;
+        let camera = null;
+        
+        // Method 1: Try renderer domElement
+        if (this.renderer?.domElement) {
+            canvas = this.renderer.domElement;
+            camera = this.camera;
+        }
+        
+        // Method 2: Try SceneManager
+        if (!canvas && window.SceneManager) {
+            canvas = window.SceneManager.renderer?.domElement;
+            camera = window.SceneManager.camera;
+        }
+        
+        // Method 3: Try any canvas element
+        if (!canvas) {
+            canvas = document.querySelector('canvas');
+            camera = window.camera || this.camera;
+        }
+        
+        // Method 4: Try Three.js container
+        if (!canvas) {
+            const threeContainer = document.getElementById('three-container');
+            if (threeContainer) {
+                canvas = threeContainer.querySelector('canvas');
+            }
+        }
         
         if (!canvas) {
-            console.warn('⚠️ No canvas found for click detection');
+            console.warn('⚠️ No canvas found for click detection, will retry...');
+            // Retry after a delay
+            setTimeout(() => this.setupScreenClickListener(), 2000);
             return;
         }
         
+        if (!camera) {
+            console.warn('⚠️ No camera found for click detection, will retry...');
+            setTimeout(() => this.setupScreenClickListener(), 2000);
+            return;
+        }
+        
+        console.log('🖱️ Found canvas and camera for click detection');
+        
         const handleClick = (event) => {
-            if (!this.clickableProjection || !this.camera) return;
+            if (!this.clickableProjection || !camera) {
+                console.log('🖱️ Click detected but no projection surface available');
+                return;
+            }
             
             // Calculate mouse position in normalized device coordinates
             const rect = canvas.getBoundingClientRect();
             this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
             this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
             
+            console.log('🖱️ Click position:', this.mouse.x, this.mouse.y);
+            
             // Update raycaster
-            this.raycaster.setFromCamera(this.mouse, this.camera);
+            this.raycaster.setFromCamera(this.mouse, camera);
             
             // Check for intersections with projection surface
             const intersects = this.raycaster.intersectObjects([this.clickableProjection], true);
+            
+            console.log('🖱️ Intersections found:', intersects.length);
             
             if (intersects.length > 0) {
                 console.log('🖱️ Projection screen clicked - entering fullscreen');
@@ -357,8 +402,22 @@ class EuphorieScreenSharingSystem {
         // Store reference for cleanup
         this.canvasClickHandler = handleClick;
         this.canvasElement = canvas;
+        this.camera = camera; // Store camera reference
         
-        console.log('🖱️ Screen click listener setup complete');
+        console.log('🖱️ Screen click listener setup complete on canvas');
+        
+        // ALTERNATIVE: Also add a simpler fallback - double-click anywhere on canvas
+        const handleDoubleClick = (event) => {
+            if (this.isSharing || this.currentSharer) {
+                console.log('🖱️ Double-click detected - entering fullscreen (fallback)');
+                this.enterFullscreen();
+            }
+        };
+        
+        canvas.addEventListener('dblclick', handleDoubleClick);
+        this.canvasDoubleClickHandler = handleDoubleClick;
+        
+        console.log('🖱️ Added double-click fallback for fullscreen');
     }
     
     // NEW: Enter fullscreen mode
@@ -1188,109 +1247,200 @@ class EuphorieScreenSharingSystem {
     // WEBRTC SYSTEM
     // ================================
     
+    // ENHANCED: WebRTC setup with better error handling and debugging
     async setupWebRTCConnections() {
-        if (!this.localStream || !window.WebSocketManager) return;
+        if (!this.localStream || !window.WebSocketManager) {
+            console.error('❌ Cannot setup WebRTC: missing stream or WebSocket manager');
+            return;
+        }
         
         console.log('🔗 Setting up WebRTC connections for screen sharing...');
+        console.log('📹 Local stream tracks:', this.localStream.getTracks().length);
         
+        // Get connected users with enhanced debugging
         let connectedUsers = [];
         
         if (typeof window.WebSocketManager.getConnectedUsers === 'function') {
-            connectedUsers = window.WebSocketManager.getConnectedUsers();
-            console.log('📡 Found connected users via getConnectedUsers:', connectedUsers);
-        } else {
-            console.log('⚠️ getConnectedUsers method not found, using alternative approach');
+            try {
+                connectedUsers = window.WebSocketManager.getConnectedUsers();
+                console.log('📡 Found connected users via getConnectedUsers:', connectedUsers.length);
+            } catch (error) {
+                console.error('❌ Error getting connected users:', error);
+            }
+        }
+        
+        // Try alternative methods to get users
+        if (!connectedUsers || connectedUsers.length === 0) {
+            console.log('⚠️ getConnectedUsers method not found or returned empty, using alternative approach');
             
-            if (window.WebSocketManager.connectedUsers) {
-                connectedUsers = window.WebSocketManager.connectedUsers;
-                console.log('📡 Found connected users via connectedUsers property:', connectedUsers);
+            if (window.WebSocketManager.connectedUsers && window.WebSocketManager.connectedUsers.size > 0) {
+                connectedUsers = Array.from(window.WebSocketManager.connectedUsers.values());
+                console.log('📡 Found connected users via connectedUsers Map:', connectedUsers.length);
             } else if (window.WebSocketManager.roomState?.users) {
                 connectedUsers = window.WebSocketManager.roomState.users;
-                console.log('📡 Found connected users via roomState:', connectedUsers);
+                console.log('📡 Found connected users via roomState:', connectedUsers.length);
             } else {
-                console.log('📡 No user list available, broadcasting screen share to all connected users');
+                console.log('📡 No user list available, setting up broadcast mode');
                 this.setupBroadcastConnection();
+                
+                // ENHANCED: Also try to manually trigger WebRTC offers
+                this.broadcastWebRTCOffer();
                 return;
             }
         }
         
         if (!connectedUsers || connectedUsers.length === 0) {
-            console.log('📡 No connected users found, setting up broadcast connection');
+            console.log('📡 No connected users found, using broadcast approach');
             this.setupBroadcastConnection();
+            this.broadcastWebRTCOffer();
             return;
         }
         
-        console.log(`🔗 Setting up peer connections to ${connectedUsers.length} users with single stream`);
+        console.log(`🔗 Setting up peer connections to ${connectedUsers.length} users`);
         
+        // Setup individual peer connections
         for (const userData of connectedUsers) {
-            if (userData.user_id === window.WebSocketManager.userId) continue;
+            if (userData.user_id === window.WebSocketManager.userId) {
+                console.log(`⏭️ Skipping self: ${userData.user_id}`);
+                continue;
+            }
             
             try {
-                console.log(`🔗 Setting up WebRTC connection to ${userData.user_id}`);
+                console.log(`🔗 Setting up WebRTC connection to ${userData.user_id} (${userData.username || 'Unknown'})`);
                 
-                const pc = new RTCPeerConnection({
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun2.l.google.com:19302' }
-                    ]
-                });
-                
-                console.log(`📹 Adding screen stream tracks to peer connection for ${userData.user_id}`);
-                this.localStream.getTracks().forEach((track, index) => {
-                    console.log(`📹 Adding track ${index}: ${track.kind} (${track.label})`);
-                    pc.addTrack(track, this.localStream);
-                });
-                
-                pc.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        console.log(`🧊 Sending ICE candidate to ${userData.user_id}`);
-                        window.WebSocketManager.sendWebRTCMessage(
-                            userData.user_id,
-                            'screen_share_webrtc_candidate',
-                            event.candidate
-                        );
-                    } else {
-                        console.log(`🧊 ICE gathering complete for ${userData.user_id}`);
-                    }
-                };
-                
-                pc.onconnectionstatechange = () => {
-                    console.log(`🔗 WebRTC connection to ${userData.user_id}: ${pc.connectionState}`);
-                    if (pc.connectionState === 'connected') {
-                        console.log(`✅ Screen sharing connection established with ${userData.user_id}`);
-                    } else if (pc.connectionState === 'failed') {
-                        console.log(`❌ Screen sharing connection failed with ${userData.user_id}`);
-                    }
-                };
-                
-                pc.oniceconnectionstatechange = () => {
-                    console.log(`🧊 ICE connection to ${userData.user_id}: ${pc.iceConnectionState}`);
-                };
-                
-                console.log(`📤 Creating offer for ${userData.user_id}`);
-                const offer = await pc.createOffer({
-                    offerToReceiveAudio: false,
-                    offerToReceiveVideo: false
-                });
-                await pc.setLocalDescription(offer);
-                
-                console.log(`📤 Sending offer to ${userData.user_id}`);
-                window.WebSocketManager.sendWebRTCMessage(
-                    userData.user_id,
-                    'screen_share_webrtc_offer',
-                    offer
-                );
-                
-                this.peerConnections.set(userData.user_id, pc);
-                console.log(`✅ WebRTC setup initiated for ${userData.user_id}`);
+                const success = await this.createPeerConnection(userData);
+                if (success) {
+                    console.log(`✅ WebRTC setup completed for ${userData.user_id}`);
+                } else {
+                    console.log(`❌ WebRTC setup failed for ${userData.user_id}`);
+                }
                 
             } catch (error) {
                 console.error(`❌ Error setting up WebRTC connection to ${userData.user_id}:`, error);
             }
         }
         
-        console.log(`✅ WebRTC setup complete for ${this.peerConnections.size} peer connections`);
+        console.log(`✅ WebRTC setup process complete. Active connections: ${this.peerConnections.size}`);
+        
+        // ENHANCED: Send a ready signal to all users
+        this.broadcastScreenShareReady();
+    }
+    
+    // NEW: Create individual peer connection with enhanced error handling
+    async createPeerConnection(userData) {
+        try {
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' }
+                ],
+                iceCandidatePoolSize: 10
+            });
+            
+            // Enhanced logging for peer connection events
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    console.log(`🧊 Sending ICE candidate to ${userData.user_id}`);
+                    window.WebSocketManager.sendWebRTCMessage(
+                        userData.user_id,
+                        'screen_share_webrtc_candidate',
+                        event.candidate
+                    );
+                } else {
+                    console.log(`🧊 ICE gathering complete for ${userData.user_id}`);
+                }
+            };
+            
+            pc.onconnectionstatechange = () => {
+                console.log(`🔗 WebRTC connection to ${userData.user_id}: ${pc.connectionState}`);
+                if (pc.connectionState === 'connected') {
+                    console.log(`✅ Screen sharing connection established with ${userData.user_id}`);
+                    this.showNotification(`✅ Connected to ${userData.username || userData.user_id}`);
+                } else if (pc.connectionState === 'failed') {
+                    console.log(`❌ Screen sharing connection failed with ${userData.user_id}`);
+                    this.showNotification(`❌ Connection failed to ${userData.username || userData.user_id}`);
+                }
+            };
+            
+            pc.oniceconnectionstatechange = () => {
+                console.log(`🧊 ICE connection to ${userData.user_id}: ${pc.iceConnectionState}`);
+            };
+            
+            // CRITICAL: Add all tracks from local stream
+            console.log(`📹 Adding ${this.localStream.getTracks().length} tracks to peer connection for ${userData.user_id}`);
+            this.localStream.getTracks().forEach((track, index) => {
+                console.log(`📹 Adding track ${index}: ${track.kind} (${track.label}) to ${userData.user_id}`);
+                pc.addTrack(track, this.localStream);
+            });
+            
+            // Create and send offer
+            console.log(`📤 Creating offer for ${userData.user_id}`);
+            const offer = await pc.createOffer({
+                offerToReceiveAudio: false,
+                offerToReceiveVideo: false
+            });
+            
+            await pc.setLocalDescription(offer);
+            console.log(`📤 Sending offer to ${userData.user_id}`);
+            
+            window.WebSocketManager.sendWebRTCMessage(
+                userData.user_id,
+                'screen_share_webrtc_offer',
+                offer
+            );
+            
+            this.peerConnections.set(userData.user_id, pc);
+            return true;
+            
+        } catch (error) {
+            console.error(`❌ Error creating peer connection for ${userData.user_id}:`, error);
+            return false;
+        }
+    }
+    
+    // NEW: Broadcast WebRTC offer to all connected users
+    broadcastWebRTCOffer() {
+        console.log('📡 Broadcasting WebRTC offer to all users...');
+        
+        if (window.WebSocketManager && window.WebSocketManager.send) {
+            window.WebSocketManager.send({
+                type: 'screen_share_broadcast_offer',
+                user_id: window.WebSocketManager.userId,
+                room_id: window.WebSocketManager.roomId,
+                username: window.WebSocketManager.username,
+                share_type: this.isMobile() ? 'camera' : 'screen',
+                timestamp: Date.now()
+            });
+            
+            console.log('📡 Broadcast offer sent');
+        }
+    }
+    
+    // NEW: Broadcast that screen share is ready
+    broadcastScreenShareReady() {
+        console.log('📡 Broadcasting screen share ready signal...');
+        
+        if (window.WebSocketManager && window.WebSocketManager.send) {
+            window.WebSocketManager.send({
+                type: 'screen_share_ready',
+                user_id: window.WebSocketManager.userId,
+                room_id: window.WebSocketManager.roomId,
+                username: window.WebSocketManager.username,
+                share_data: {
+                    projection_mode: this.projectionMode,
+                    mobile_device: this.isMobile(),
+                    camera_facing: this.cameraFacing,
+                    stream_id: this.localStream.id,
+                    tracks: this.localStream.getTracks().length
+                },
+                timestamp: Date.now()
+            });
+            
+            console.log('📡 Screen share ready signal sent');
+        }
     }
     
     setupBroadcastConnection() {
@@ -2003,16 +2153,75 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
-        // NEW: Fullscreen functions
+        // NEW: Enhanced fullscreen functions with better detection
         window.enterFullscreen = () => {
             if (this.isSharing || this.currentSharer) {
                 this.enterFullscreen();
             } else {
                 console.log('❌ No screen share active to fullscreen');
+                this.showNotification('❌ No screen sharing active');
             }
         };
         
         window.exitFullscreen = () => this.exitFullscreen();
+        
+        // NEW: Simple fullscreen toggle for testing
+        window.toggleFullscreen = () => {
+            if (this.fullscreenOverlay) {
+                this.exitFullscreen();
+            } else {
+                this.enterFullscreen();
+            }
+        };
+        
+        // NEW: Debug functions for click detection
+        window.testClickDetection = () => {
+            console.log('🧪 Testing click detection system...');
+            console.log('Canvas element:', this.canvasElement);
+            console.log('Camera:', this.camera);
+            console.log('Raycaster:', this.raycaster);
+            console.log('Clickable projection:', this.clickableProjection);
+            console.log('Double-click handler:', !!this.canvasDoubleClickHandler);
+            
+            if (this.canvasElement) {
+                console.log('✅ Canvas found - click detection should work');
+                console.log('💡 Try double-clicking anywhere on the 3D scene as fallback');
+            } else {
+                console.log('❌ No canvas found - click detection will not work');
+            }
+        };
+        
+        window.forceFullscreen = () => {
+            console.log('🔧 Force entering fullscreen...');
+            this.enterFullscreen();
+        };
+        
+        // NEW: WebRTC debugging functions
+        window.debugWebRTCConnections = () => {
+            console.log('🔗 WebRTC Debug Info:');
+            console.log('👥 Peer connections:', this.peerConnections.size);
+            this.peerConnections.forEach((pc, userId) => {
+                console.log(`  - ${userId}: ${pc.connectionState} (ICE: ${pc.iceConnectionState})`);
+            });
+            console.log('📺 Current sharer:', this.currentSharer);
+            console.log('📹 Local stream:', !!this.localStream);
+            console.log('📺 Media stream:', !!this.mediaStream);
+            console.log('🎬 Is sharing:', this.isSharing);
+            console.log('🌐 WebSocket Manager connected:', !!window.WebSocketManager);
+            
+            if (this.localStream) {
+                console.log('📹 Local stream tracks:');
+                this.localStream.getTracks().forEach((track, index) => {
+                    console.log(`  Track ${index}: ${track.kind} - ${track.label} (enabled: ${track.enabled})`);
+                });
+            }
+        };
+        
+        window.testWebRTCBroadcast = () => {
+            console.log('🧪 Testing WebRTC broadcast...');
+            this.broadcastWebRTCOffer();
+            this.broadcastScreenShareReady();
+        };
         
         // MOBILE ORIENTATION FIX FUNCTIONS - Simplified for seamless operation
         window.fixMobileOrientationManual = () => {
@@ -2360,12 +2569,18 @@ class EuphorieScreenSharingSystem {
         // NEW: Cleanup fullscreen elements
         this.removeFullscreenOverlay();
         
-        // NEW: Cleanup click handlers
+        // NEW: Cleanup click handlers - ENHANCED
         if (this.canvasClickHandler && this.canvasElement) {
             this.canvasElement.removeEventListener('click', this.canvasClickHandler);
             this.canvasClickHandler = null;
-            this.canvasElement = null;
         }
+        
+        if (this.canvasDoubleClickHandler && this.canvasElement) {
+            this.canvasElement.removeEventListener('dblclick', this.canvasDoubleClickHandler);
+            this.canvasDoubleClickHandler = null;
+        }
+        
+        this.canvasElement = null;
         
         this.peerConnections.forEach(pc => pc.close());
         this.peerConnections.clear();
@@ -2402,15 +2617,13 @@ console.log('🖥️ Screen Sharing System with SEAMLESS MOBILE ORIENTATION FIX 
 console.log('📱 Mobile camera orientation is now automatically detected and fixed');
 console.log('🔧 No manual buttons needed - everything works seamlessly!');
 console.log('🖱️ Click on the projection screen to enter fullscreen mode');
+console.log('🖱️ FALLBACK: Double-click anywhere on the 3D scene for fullscreen');
 console.log('⌨️ Press ESC or click outside to exit fullscreen');
 console.log('💡 Functions available in console:');
-console.log('  - enterFullscreen() to manually enter fullscreen');
-console.log('  - exitFullscreen() to manually exit fullscreen');
+console.log('  - forceFullscreen() to manually enter fullscreen');
+console.log('  - toggleFullscreen() to toggle fullscreen mode');
+console.log('  - testClickDetection() to debug click detection');
+console.log('  - debugWebRTCConnections() to check WebRTC status');
+console.log('  - testWebRTCBroadcast() to test broadcasting');
 console.log('  - autoFixMobileOrientation() for manual orientation trigger');
-console.log('  - fixMobileOrientationManual() for emergency toggle');
 console.log('  - debugScreenShare() for full debug info');
-console.log('🎬 Use fixVideoTextureNow() for immediate video fixes');
-console.log('🧪 Use testWithSolidColor() to test projection visibility');
-console.log('⚡ Use forceVideoPlayNow() to manually force video play');
-console.log('🔗 Use debugWebRTC() to check peer connections');
-console.log('🔄 Use forceWebRTCReconnect() to restart WebRTC');
