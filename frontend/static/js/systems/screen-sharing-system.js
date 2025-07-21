@@ -311,8 +311,25 @@ class EuphorieScreenSharingSystem {
             return;
         }
         
-        // Auto-connect to ongoing share
-        this.autoConnectToOngoingShare(data.user_id, data.username, data.share_data);
+        // Store share data
+        if (data.share_data) {
+            this.storeShareData(data.user_id, data.share_data);
+        }
+        
+        this.currentSharer = data.user_id;
+        
+        // Update projection mode if specified
+        if (data.share_data?.projection_mode) {
+            this.projectionMode = data.share_data.projection_mode;
+            this.updateProjectionSurface();
+        }
+        
+        // Show notification
+        const deviceType = data.share_data?.mobile_device ? '📱 camera' : '🖥️ screen';
+        this.showNotification(`📺 ${data.username} is already sharing their ${deviceType}`);
+        
+        // Auto-connect to ongoing share with proper flow
+        this.setupViewerConnection(data.user_id, data.username, data.share_data);
     }
 
     // NEW: Handle new viewer joined notification
