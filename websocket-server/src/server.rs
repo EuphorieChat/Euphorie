@@ -1,7 +1,7 @@
 // COMPLETE FIXED: src/server.rs - Updated with proper screen sharing integration
 use std::sync::Arc;
 
-use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo, ScreenShareData};
+use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo};
 use crate::room::Room;
 use crate::user::User;
 use crate::rate_limiter::{RateLimiter, RateLimiterConfig};
@@ -585,64 +585,81 @@ impl WebSocketServer {
                 }
             }
 
+            // NEW: WebRTC Signaling Message Handlers
             ClientMessage::ScreenShareWebRTCOffer { user_id, room_id, target_user_id, data, .. } => {
                 tracing::debug!("📡 WebRTC offer: {} -> {} in room: {}", user_id, target_user_id, room_id);
                 
-                let response = ServerMessage::ScreenShareWebRTCOffer {
-                    user_id,
-                    room_id,
-                    target_user_id: target_user_id.clone(),
-                    data,
-                    timestamp: chrono::Utc::now().timestamp_millis(),
-                };
-                
-                // Send directly to target user
-                self.send_to_user(&target_user_id, &response).await?;
+                match self.screen_sharing_manager.handle_webrtc_offer(
+                    &user_id, &room_id, &target_user_id, data, chrono::Utc::now().timestamp_millis()
+                ).await {
+                    Ok(response) => {
+                        // Send directly to target user
+                        self.send_to_user(&target_user_id, &response).await?;
+                        tracing::info!("✅ WebRTC offer relayed from {} to {}", user_id, target_user_id);
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Failed to relay WebRTC offer: {}", e);
+                        let error_response = ServerMessage::Error {
+                            error: format!("WebRTC offer failed: {}", e),
+                        };
+                        self.send_to_connection(connection_id, &error_response).await?;
+                    }
+                }
             }
 
             ClientMessage::ScreenShareWebRTCAnswer { user_id, room_id, target_user_id, data, .. } => {
                 tracing::debug!("📡 WebRTC answer: {} -> {} in room: {}", user_id, target_user_id, room_id);
                 
-                let response = ServerMessage::ScreenShareWebRTCAnswer {
-                    user_id,
-                    room_id,
-                    target_user_id: target_user_id.clone(),
-                    data,
-                    timestamp: chrono::Utc::now().timestamp_millis(),
-                };
-                
-                // Send directly to target user
-                self.send_to_user(&target_user_id, &response).await?;
+                match self.screen_sharing_manager.handle_webrtc_answer(
+                    &user_id, &room_id, &target_user_id, data, chrono::Utc::now().timestamp_millis()
+                ).await {
+                    Ok(response) => {
+                        // Send directly to target user
+                        self.send_to_user(&target_user_id, &response).await?;
+                        tracing::info!("✅ WebRTC answer relayed from {} to {}", user_id, target_user_id);
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Failed to relay WebRTC answer: {}", e);
+                        let error_response = ServerMessage::Error {
+                            error: format!("WebRTC answer failed: {}", e),
+                        };
+                        self.send_to_connection(connection_id, &error_response).await?;
+                    }
+                }
             }
 
             ClientMessage::ScreenShareWebRTCCandidate { user_id, room_id, target_user_id, data, .. } => {
                 tracing::debug!("📡 WebRTC candidate: {} -> {} in room: {}", user_id, target_user_id, room_id);
                 
-                let response = ServerMessage::ScreenShareWebRTCCandidate {
-                    user_id,
-                    room_id,
-                    target_user_id: target_user_id.clone(),
-                    data,
-                    timestamp: chrono::Utc::now().timestamp_millis(),
-                };
-                
-                // Send directly to target user
-                self.send_to_user(&target_user_id, &response).await?;
+                match self.screen_sharing_manager.handle_webrtc_candidate(
+                    &user_id, &room_id, &target_user_id, data, chrono::Utc::now().timestamp_millis()
+                ).await {
+                    Ok(response) => {
+                        // Send directly to target user
+                        self.send_to_user(&target_user_id, &response).await?;
+                        tracing::debug!("✅ WebRTC candidate relayed from {} to {}", user_id, target_user_id);
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Failed to relay WebRTC candidate: {}", e);
+                    }
+                }
             }
 
             ClientMessage::ScreenShareWebRTCReady { user_id, room_id, username, share_data, .. } => {
                 tracing::info!("📡 WebRTC ready from: {} in room: {}", username, room_id);
                 
-                let response = ServerMessage::ScreenShareWebRTCReady {
-                    user_id: user_id.clone(),
-                    room_id: room_id.clone(),
-                    username,
-                    share_data,
-                    timestamp: chrono::Utc::now().timestamp_millis(),
-                };
-                
-                // Broadcast to all users in room except sender
-                self.broadcast_to_room(&room_id, &response, Some(&user_id)).await?;
+                match self.screen_sharing_manager.handle_webrtc_ready(
+                    &user_id, &room_id, &username, share_data, chrono::Utc::now().timestamp_millis()
+                ).await {
+                    Ok(response) => {
+                        // Broadcast to all users in room except sender
+                        self.broadcast_to_room(&room_id, &response, Some(&user_id)).await?;
+                        tracing::info!("✅ WebRTC ready broadcasted from {} in room {}", username, room_id);
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Failed to handle WebRTC ready: {}", e);
+                    }
+                }
             }
         }
 

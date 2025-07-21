@@ -6,6 +6,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use tracing::{info, warn};
+use crate::message::ServerMessage;
 
 // Screen sharing configuration
 #[derive(Debug, Clone)]
@@ -175,6 +176,118 @@ impl ScreenSharingManager {
         }
 
         None
+    }
+
+    // NEW: Handle WebRTC offer relay
+    pub async fn handle_webrtc_offer(
+        &self,
+        user_id: &str,
+        room_id: &str,
+        target_user_id: &str,
+        offer_data: serde_json::Value,
+        timestamp: i64,
+    ) -> Result<ServerMessage, String> {
+        // Verify there's an active screen share in this room
+        let active_shares = self.active_shares.read().await;
+        if let Some(share) = active_shares.get(room_id) {
+            if share.user_id == user_id {
+                info!("🔄 Relaying WebRTC offer from {} to {} in room {}", user_id, target_user_id, room_id);
+                
+                Ok(ServerMessage::ScreenShareWebRTCOffer {
+                    user_id: user_id.to_string(),
+                    room_id: room_id.to_string(),
+                    target_user_id: target_user_id.to_string(),
+                    data: offer_data,
+                    timestamp,
+                })
+            } else {
+                Err(format!("User {} is not the active screen sharer in room {}", user_id, room_id))
+            }
+        } else {
+            Err(format!("No active screen share in room {}", room_id))
+        }
+    }
+
+    // NEW: Handle WebRTC answer relay
+    pub async fn handle_webrtc_answer(
+        &self,
+        user_id: &str,
+        room_id: &str,
+        target_user_id: &str,
+        answer_data: serde_json::Value,
+        timestamp: i64,
+    ) -> Result<ServerMessage, String> {
+        // Verify there's an active screen share in this room
+        let active_shares = self.active_shares.read().await;
+        if active_shares.contains_key(room_id) {
+            info!("🔄 Relaying WebRTC answer from {} to {} in room {}", user_id, target_user_id, room_id);
+            
+            Ok(ServerMessage::ScreenShareWebRTCAnswer {
+                user_id: user_id.to_string(),
+                room_id: room_id.to_string(),
+                target_user_id: target_user_id.to_string(),
+                data: answer_data,
+                timestamp,
+            })
+        } else {
+            Err(format!("No active screen share in room {}", room_id))
+        }
+    }
+
+    // NEW: Handle WebRTC ICE candidate relay
+    pub async fn handle_webrtc_candidate(
+        &self,
+        user_id: &str,
+        room_id: &str,
+        target_user_id: &str,
+        candidate_data: serde_json::Value,
+        timestamp: i64,
+    ) -> Result<ServerMessage, String> {
+        // Verify there's an active screen share in this room
+        let active_shares = self.active_shares.read().await;
+        if active_shares.contains_key(room_id) {
+            info!("🔄 Relaying WebRTC ICE candidate from {} to {} in room {}", user_id, target_user_id, room_id);
+            
+            Ok(ServerMessage::ScreenShareWebRTCCandidate {
+                user_id: user_id.to_string(),
+                room_id: room_id.to_string(),
+                target_user_id: target_user_id.to_string(),
+                data: candidate_data,
+                timestamp,
+            })
+        } else {
+            Err(format!("No active screen share in room {}", room_id))
+        }
+    }
+
+    // NEW: Handle WebRTC ready broadcast
+    pub async fn handle_webrtc_ready(
+        &self,
+        user_id: &str,
+        room_id: &str,
+        username: &str,
+        share_data: ScreenShareData,
+        timestamp: i64,
+    ) -> Result<ServerMessage, String> {
+        // Verify there's an active screen share in this room
+        let active_shares = self.active_shares.read().await;
+        if let Some(share) = active_shares.get(room_id) {
+            if share.user_id == user_id {
+                info!("📡 Broadcasting WebRTC ready from {} in room {}", username, room_id);
+                
+                Ok(ServerMessage::ScreenShareWebRTCReady {
+                    user_id: user_id.to_string(),
+                    room_id: room_id.to_string(),
+                    username: username.to_string(),
+                    share_data,
+                    timestamp,
+                })
+            } else {
+                Err(format!("User {} is not the active screen sharer in room {}", user_id, room_id))
+            }
+        } else {
+            Err(format!("No active screen share in room {}", room_id))
+        }
     }
 
     pub async fn add_viewer(&self, room_id: &str, user_id: String) -> bool {
