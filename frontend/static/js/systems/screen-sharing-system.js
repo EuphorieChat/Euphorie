@@ -41,6 +41,15 @@ class EuphorieScreenSharingSystem {
         this.cameraSettings = null;
         this.cameraCapabilities = null;
         
+        // NEW: Fullscreen properties
+        this.fullscreenOverlay = null;
+        this.fullscreenExitHandlers = null;
+        this.raycaster = null;
+        this.mouse = null;
+        this.clickableProjection = null;
+        this.canvasClickHandler = null;
+        this.canvasElement = null;
+        
         // Configuration
         this.config = {
             maxSharers: 1,
@@ -289,10 +298,255 @@ class EuphorieScreenSharingSystem {
         projectionGroup.name = 'screen-projection-group';
         projectionGroup.visible = true;
         
+        // ENHANCED: Add click handler for fullscreen
+        this.addFullscreenClickHandler(projectionGroup);
+        
         this.scene.add(projectionGroup);
         this.projectionSurface = projectionGroup;
         
-        console.log(`✅ Projection surface updated (mode: ${this.projectionMode})`);
+        console.log(`✅ Projection surface updated (mode: ${this.projectionMode}) with fullscreen click support`);
+    }
+    
+    // NEW: Add fullscreen click handler to projection surface
+    addFullscreenClickHandler(projectionGroup) {
+        // Set up raycasting for click detection
+        if (!this.raycaster) {
+            this.raycaster = new THREE.Raycaster();
+            this.mouse = new THREE.Vector2();
+            this.setupScreenClickListener();
+        }
+        
+        // Store reference for click detection
+        this.clickableProjection = projectionGroup;
+        
+        console.log('🖱️ Fullscreen click handler added to projection surface');
+    }
+    
+    // NEW: Setup global click listener for screen interaction
+    setupScreenClickListener() {
+        const canvas = this.renderer?.domElement || document.querySelector('canvas');
+        
+        if (!canvas) {
+            console.warn('⚠️ No canvas found for click detection');
+            return;
+        }
+        
+        const handleClick = (event) => {
+            if (!this.clickableProjection || !this.camera) return;
+            
+            // Calculate mouse position in normalized device coordinates
+            const rect = canvas.getBoundingClientRect();
+            this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            // Update raycaster
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            
+            // Check for intersections with projection surface
+            const intersects = this.raycaster.intersectObjects([this.clickableProjection], true);
+            
+            if (intersects.length > 0) {
+                console.log('🖱️ Projection screen clicked - entering fullscreen');
+                this.enterFullscreen();
+            }
+        };
+        
+        // Add click event listener
+        canvas.addEventListener('click', handleClick);
+        
+        // Store reference for cleanup
+        this.canvasClickHandler = handleClick;
+        this.canvasElement = canvas;
+        
+        console.log('🖱️ Screen click listener setup complete');
+    }
+    
+    // NEW: Enter fullscreen mode
+    async enterFullscreen() {
+        try {
+            console.log('🖥️ Entering fullscreen mode...');
+            
+            // Create fullscreen overlay
+            this.createFullscreenOverlay();
+            
+            // Try to enter browser fullscreen
+            if (document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                await document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                await document.documentElement.msRequestFullscreen();
+            }
+            
+            this.showNotification('🖥️ Fullscreen mode activated - Press ESC to exit');
+            
+        } catch (error) {
+            console.log('⚠️ Browser fullscreen not available, using overlay fullscreen');
+            // Fallback to custom fullscreen overlay
+            this.showNotification('🖥️ Fullscreen view activated - Click outside to exit');
+        }
+    }
+    
+    // NEW: Create fullscreen video overlay
+    createFullscreenOverlay() {
+        // Remove existing overlay
+        this.removeFullscreenOverlay();
+        
+        // Create fullscreen container
+        this.fullscreenOverlay = document.createElement('div');
+        this.fullscreenOverlay.id = 'screen-share-fullscreen';
+        this.fullscreenOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        `;
+        
+        // Create fullscreen video element
+        const fullscreenVideo = document.createElement('video');
+        fullscreenVideo.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        `;
+        
+        // Copy video source and properties
+        if (this.videoElement && this.videoElement.srcObject) {
+            fullscreenVideo.srcObject = this.videoElement.srcObject;
+            fullscreenVideo.autoplay = true;
+            fullscreenVideo.muted = true;
+            fullscreenVideo.playsInline = true;
+            
+            // Apply same orientation fixes to fullscreen video
+            if (this.videoElement.style.transform) {
+                fullscreenVideo.style.transform = this.videoElement.style.transform;
+            }
+        }
+        
+        // Create exit hint
+        const exitHint = document.createElement('div');
+        exitHint.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            animation: fadeInOut 3s ease-in-out;
+        `;
+        exitHint.textContent = 'Click anywhere to exit fullscreen';
+        
+        // Add fade animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-10px); }
+                20% { opacity: 1; transform: translateY(0); }
+                80% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Assemble fullscreen overlay
+        this.fullscreenOverlay.appendChild(fullscreenVideo);
+        this.fullscreenOverlay.appendChild(exitHint);
+        document.body.appendChild(this.fullscreenOverlay);
+        
+        // Add exit handlers
+        this.setupFullscreenExitHandlers();
+        
+        console.log('🖥️ Fullscreen overlay created');
+    }
+    
+    // NEW: Setup fullscreen exit handlers
+    setupFullscreenExitHandlers() {
+        if (!this.fullscreenOverlay) return;
+        
+        // Click to exit
+        const clickExit = (event) => {
+            if (event.target === this.fullscreenOverlay) {
+                this.exitFullscreen();
+            }
+        };
+        
+        // Escape key to exit
+        const keyExit = (event) => {
+            if (event.key === 'Escape') {
+                this.exitFullscreen();
+            }
+        };
+        
+        // Browser fullscreen change
+        const fullscreenExit = () => {
+            if (!document.fullscreenElement && 
+                !document.webkitFullscreenElement && 
+                !document.msFullscreenElement) {
+                this.exitFullscreen();
+            }
+        };
+        
+        this.fullscreenOverlay.addEventListener('click', clickExit);
+        document.addEventListener('keydown', keyExit);
+        document.addEventListener('fullscreenchange', fullscreenExit);
+        document.addEventListener('webkitfullscreenchange', fullscreenExit);
+        document.addEventListener('msfullscreenchange', fullscreenExit);
+        
+        // Store handlers for cleanup
+        this.fullscreenExitHandlers = {
+            clickExit,
+            keyExit,
+            fullscreenExit
+        };
+    }
+    
+    // NEW: Exit fullscreen mode
+    exitFullscreen() {
+        console.log('🖥️ Exiting fullscreen mode...');
+        
+        // Exit browser fullscreen
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+        
+        // Remove overlay
+        this.removeFullscreenOverlay();
+        
+        this.showNotification('🖥️ Exited fullscreen mode');
+    }
+    
+    // NEW: Remove fullscreen overlay
+    removeFullscreenOverlay() {
+        if (this.fullscreenOverlay) {
+            // Remove event listeners
+            if (this.fullscreenExitHandlers) {
+                document.removeEventListener('keydown', this.fullscreenExitHandlers.keyExit);
+                document.removeEventListener('fullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
+                document.removeEventListener('webkitfullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
+                document.removeEventListener('msfullscreenchange', this.fullscreenExitHandlers.fullscreenExit);
+            }
+            
+            this.fullscreenOverlay.remove();
+            this.fullscreenOverlay = null;
+            this.fullscreenExitHandlers = null;
+        }
     }
     
     ensureProjectionLighting() {
@@ -1749,6 +2003,17 @@ class EuphorieScreenSharingSystem {
         // Add the showScreenShareUI function for the existing button
         window.showScreenShareUI = () => this.showScreenShareUI();
         
+        // NEW: Fullscreen functions
+        window.enterFullscreen = () => {
+            if (this.isSharing || this.currentSharer) {
+                this.enterFullscreen();
+            } else {
+                console.log('❌ No screen share active to fullscreen');
+            }
+        };
+        
+        window.exitFullscreen = () => this.exitFullscreen();
+        
         // MOBILE ORIENTATION FIX FUNCTIONS - Simplified for seamless operation
         window.fixMobileOrientationManual = () => {
             if (window.ScreenSharingSystem && window.ScreenSharingSystem.projectionTexture) {
@@ -2092,6 +2357,16 @@ class EuphorieScreenSharingSystem {
             this.projectionSurface = null;
         }
         
+        // NEW: Cleanup fullscreen elements
+        this.removeFullscreenOverlay();
+        
+        // NEW: Cleanup click handlers
+        if (this.canvasClickHandler && this.canvasElement) {
+            this.canvasElement.removeEventListener('click', this.canvasClickHandler);
+            this.canvasClickHandler = null;
+            this.canvasElement = null;
+        }
+        
         this.peerConnections.forEach(pc => pc.close());
         this.peerConnections.clear();
         
@@ -2123,11 +2398,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-console.log('🖥️ Screen Sharing System with SEAMLESS MOBILE ORIENTATION FIX loaded!');
+console.log('🖥️ Screen Sharing System with SEAMLESS MOBILE ORIENTATION FIX + FULLSCREEN loaded!');
 console.log('📱 Mobile camera orientation is now automatically detected and fixed');
 console.log('🔧 No manual buttons needed - everything works seamlessly!');
-console.log('💡 Emergency functions available in console:');
-console.log('  - autoFixMobileOrientation() for manual trigger');
+console.log('🖱️ Click on the projection screen to enter fullscreen mode');
+console.log('⌨️ Press ESC or click outside to exit fullscreen');
+console.log('💡 Functions available in console:');
+console.log('  - enterFullscreen() to manually enter fullscreen');
+console.log('  - exitFullscreen() to manually exit fullscreen');
+console.log('  - autoFixMobileOrientation() for manual orientation trigger');
 console.log('  - fixMobileOrientationManual() for emergency toggle');
 console.log('  - debugScreenShare() for full debug info');
 console.log('🎬 Use fixVideoTextureNow() for immediate video fixes');
@@ -2135,4 +2414,3 @@ console.log('🧪 Use testWithSolidColor() to test projection visibility');
 console.log('⚡ Use forceVideoPlayNow() to manually force video play');
 console.log('🔗 Use debugWebRTC() to check peer connections');
 console.log('🔄 Use forceWebRTCReconnect() to restart WebRTC');
-console.log('🖼️ Use debugScreenOrientation() to check screen rotation');
