@@ -1,4 +1,4 @@
-// COMPLETE FIXED: src/server.rs - Updated with proper screen sharing integration
+// src/server.rs - Complete server with late joiner screen sharing support
 use std::sync::Arc;
 
 use crate::message::{ClientMessage, ServerMessage, Position, AvatarInfo, UserInfo};
@@ -247,12 +247,48 @@ impl WebSocketServer {
                         conn.room_id = Some(room_id.clone());
                     }
 
+                    // NEW: Check for ongoing screen shares and include in room info
+                    let ongoing_screen_share = self.screen_sharing_manager.get_ongoing_share_info(&room_id).await;
+                    let mut room_info = room.to_room_info().await;
+                    room_info.ongoing_screen_share = ongoing_screen_share.clone();
+
                     let response = ServerMessage::AuthSuccess {
                         user_id: final_user_id.clone(),
                         room_id: room_id.clone(),
-                        room_info: room.to_room_info().await,
+                        room_info,
                     };
                     self.send_to_connection(connection_id, &response).await?;
+
+                    // NEW: If there's an ongoing screen share, notify the new user AND the sharer
+                    if let Some(ongoing_share) = ongoing_screen_share {
+                        tracing::info!("📺 New user {} joined room {} with ongoing screen share from {}", 
+                                     final_username, room_id, ongoing_share.username);
+                        
+                        // Send ongoing screen share info to the new user
+                        let ongoing_share_message = ServerMessage::OngoingScreenShare {
+                            user_id: ongoing_share.user_id.clone(),
+                            room_id: room_id.clone(),
+                            username: ongoing_share.username.clone(),
+                            nationality: ongoing_share.nationality.clone(),
+                            share_data: ongoing_share.share_data.clone(),
+                            timestamp: chrono::Utc::now().timestamp_millis(),
+                            viewer_count: ongoing_share.viewer_count,
+                        };
+                        self.send_to_connection(connection_id, &ongoing_share_message).await?;
+
+                        // Notify the sharer about the new potential viewer
+                        let new_viewer_message = ServerMessage::NewViewerJoined {
+                            viewer_user_id: final_user_id.clone(),
+                            viewer_username: final_username.clone(),
+                            room_id: room_id.clone(),
+                            sharer_user_id: ongoing_share.user_id.clone(),
+                            timestamp: chrono::Utc::now().timestamp_millis(),
+                        };
+                        self.send_to_user(&ongoing_share.user_id, &new_viewer_message).await?;
+
+                        // Add to viewer list
+                        self.screen_sharing_manager.add_viewer(&room_id, final_user_id.clone()).await;
+                    }
 
                     // Send recent message history to the user
                     let recent_messages = self.message_history.get_recent_messages(&room_id, Some(20)).await;
@@ -422,9 +458,13 @@ impl WebSocketServer {
                         last_seen: chrono::Utc::now().timestamp_millis(),
                     }).collect();
 
+                    // NEW: Include ongoing screen share in room state
+                    let ongoing_screen_share = self.screen_sharing_manager.get_ongoing_share_info(&room_id).await;
+
                     let response = ServerMessage::RoomState {
                         room_id,
                         users,
+                        ongoing_screen_share,
                     };
                     self.send_to_connection(connection_id, &response).await?;
                 }
@@ -533,7 +573,7 @@ impl WebSocketServer {
                 }
             }
 
-            // FIXED: Screen Sharing Message Handling
+            // Screen Sharing Message Handling
             ClientMessage::ScreenShareStarted { user_id, room_id, username, nationality, share_data, .. } => {
                 tracing::info!("🖥️ Screen share start request from: {} in room: {}", username, room_id);
                 
@@ -593,7 +633,7 @@ impl WebSocketServer {
                 }
             }
 
-            // NEW: WebRTC Signaling Message Handlers
+            // WebRTC Signaling Message Handlers
             ClientMessage::ScreenShareWebRTCOffer { user_id, room_id, target_user_id, data, .. } => {
                 tracing::debug!("📡 WebRTC offer: {} -> {} in room: {}", user_id, target_user_id, room_id);
                 
@@ -677,13 +717,13 @@ impl WebSocketServer {
                 }
             }
 
-            // NEW: Handle broadcast offer message (ignore or log for now)
+            // Handle broadcast offer message (ignore or log for now)
             ClientMessage::ScreenShareBroadcastOffer { user_id, room_id, username, .. } => {
                 tracing::info!("📡 Broadcast offer from: {} in room: {} (ignoring for now)", username, room_id);
                 // For now, we'll just acknowledge it - the important messages are the WebRTC ones
             }
 
-            // NEW: Handle screen share ready message
+            // Handle screen share ready message
             ClientMessage::ScreenShareReady { user_id, room_id, username, share_data, .. } => {
                 tracing::info!("📡 Screen share ready from: {} in room: {}", username, room_id);
                 
@@ -704,6 +744,52 @@ impl WebSocketServer {
                     }
                     Err(e) => {
                         tracing::warn!("❌ Failed to handle screen share ready: {}", e);
+                    }
+                }
+            }
+
+            // NEW: Late joiner support messages
+            ClientMessage::RequestScreenShareOffer { user_id, room_id, target_user_id, .. } => {
+                tracing::info!("📤 Viewer {} requesting offer from sharer {} in room {}", user_id, target_user_id, room_id);
+                
+                match self.screen_sharing_manager.handle_offer_request(
+                    &user_id, &room_id, &target_user_id
+                ).await {
+                    Ok(response) => {
+                        // Send the request to the target sharer
+                        self.send_to_user(&target_user_id, &response).await?;
+                        tracing::info!("✅ Offer request relayed from {} to sharer {}", user_id, target_user_id);
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Failed to handle offer request: {}", e);
+                        let error_response = ServerMessage::Error {
+                            error: format!("Offer request failed: {}", e),
+                        };
+                        self.send_to_connection(connection_id, &error_response).await?;
+                    }
+                }
+            }
+
+            ClientMessage::JoinOngoingScreenShare { user_id, room_id, target_user_id, .. } => {
+                tracing::info!("👁️ Viewer {} joining ongoing share from {} in room {}", user_id, target_user_id, room_id);
+                
+                match self.screen_sharing_manager.handle_join_request(
+                    &user_id, &room_id, &target_user_id
+                ).await {
+                    Ok(response) => {
+                        // Notify the sharer about the new viewer
+                        self.send_to_user(&target_user_id, &response).await?;
+                        tracing::info!("✅ Join request sent from {} to sharer {}", user_id, target_user_id);
+
+                        // Add to viewer list
+                        self.screen_sharing_manager.add_viewer(&room_id, user_id.clone()).await;
+                    }
+                    Err(e) => {
+                        tracing::warn!("❌ Failed to handle join request: {}", e);
+                        let error_response = ServerMessage::Error {
+                            error: format!("Join request failed: {}", e),
+                        };
+                        self.send_to_connection(connection_id, &error_response).await?;
                     }
                 }
             }
@@ -738,7 +824,7 @@ impl WebSocketServer {
         Ok(())
     }
 
-    // FIXED: Helper method to send messages to specific users
+    // Helper method to send messages to specific users
     async fn send_to_user(&self, user_id: &str, message: &ServerMessage) -> Result<()> {
         let json = serde_json::to_string(message)?;
         

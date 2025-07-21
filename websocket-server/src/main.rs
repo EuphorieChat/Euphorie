@@ -1,4 +1,4 @@
-// src/main.rs - Updated with rate limiting, message history, and screen sharing configuration
+// src/main.rs - Complete configuration with enhanced screen sharing support
 use anyhow::Result;
 use clap::Parser;
 use euphorie_websocket::{
@@ -6,7 +6,7 @@ use euphorie_websocket::{
     WebSocketServer,
     RateLimiterConfig,
     MessageHistoryConfig,
-    ScreenSharingConfig,  // NEW: Add screen sharing config
+    ScreenSharingConfig,
 };
 use tracing::{info, error};
 use tracing_subscriber;
@@ -14,7 +14,7 @@ use std::time::Duration;
 
 #[derive(Parser)]
 #[command(name = "euphorie-websocket")]
-#[command(about = "High-performance WebSocket server for Euphorie 3D multi-user rooms with screen sharing")]
+#[command(about = "High-performance WebSocket server for Euphorie 3D multi-user rooms with advanced screen sharing")]
 struct Cli {
     #[arg(long, default_value = "127.0.0.1")]
     host: String,
@@ -48,12 +48,15 @@ struct Cli {
     #[arg(long, default_value = "24")]
     message_ttl_hours: u64,
     
-    // NEW: Screen sharing options
+    // Enhanced screen sharing options
     #[arg(long, default_value = "1")]
     max_screen_shares_per_room: usize,
     
     #[arg(long, default_value = "3600")]  // 1 hour in seconds
     screen_share_timeout_seconds: u64,
+    
+    #[arg(long, default_value = "100")]  // Maximum viewers per share
+    max_viewers_per_share: usize,
     
     #[arg(long)]
     enable_screen_share_recording: bool,
@@ -69,7 +72,7 @@ struct Cli {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
     
-    // Initialize tracing with better formatting
+    // Initialize enhanced tracing with better formatting for screen sharing debugging
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(if cli.verbose { 
             tracing::Level::DEBUG 
@@ -79,11 +82,12 @@ async fn main() -> Result<()> {
         .with_target(false)
         .with_thread_ids(true)
         .with_line_number(true)
+        .with_file(true)
         .finish();
     
     tracing::subscriber::set_global_default(subscriber)?;
     
-    info!("🚀 Starting Euphorie WebSocket Server v1.0.0");
+    info!("🚀 Starting Euphorie WebSocket Server v2.0.0 with Enhanced Screen Sharing");
     info!("📡 Binding to {}:{}", cli.host, cli.port);
     info!("⚡ Max connections: {}", cli.max_connections);
     info!("🏠 Max rooms: {}", cli.max_rooms);
@@ -92,9 +96,12 @@ async fn main() -> Result<()> {
     info!("📚 Message history: {} msgs/room, {} rooms cached, {}h TTL", 
           cli.max_messages_per_room, cli.max_rooms_in_cache, cli.message_ttl_hours);
     
-    // NEW: Screen sharing logging
-    info!("🖥️ Screen sharing: {} shares/room, {}s timeout, recording: {}", 
-          cli.max_screen_shares_per_room, cli.screen_share_timeout_seconds, cli.enable_screen_share_recording);
+    // Enhanced screen sharing logging
+    info!("🖥️ Screen sharing configuration:");
+    info!("   📺 Max shares per room: {}", cli.max_screen_shares_per_room);
+    info!("   ⏰ Session timeout: {}s", cli.screen_share_timeout_seconds);
+    info!("   👁️ Max viewers per share: {}", cli.max_viewers_per_share);
+    info!("   📹 Recording enabled: {}", cli.enable_screen_share_recording);
     
     if let Some(ref origin) = cli.cors_origin {
         info!("🌐 CORS origin: {}", origin);
@@ -112,12 +119,12 @@ async fn main() -> Result<()> {
         message_ttl_hours: cli.message_ttl_hours,
     };
     
-    // NEW: Screen sharing configuration
+    // Enhanced screen sharing configuration with late joiner support
     let screen_sharing_config = ScreenSharingConfig {
         max_shares_per_room: cli.max_screen_shares_per_room,
         session_timeout: Duration::from_secs(cli.screen_share_timeout_seconds),
         enable_recording: cli.enable_screen_share_recording,
-        max_viewers_per_share: cli.max_users_per_room, // Reuse existing limit
+        max_viewers_per_share: cli.max_viewers_per_share,
     };
     
     let config = Config {
@@ -128,7 +135,7 @@ async fn main() -> Result<()> {
         max_users_per_room: cli.max_users_per_room,
         rate_limiter: rate_limiter_config,
         message_history: message_history_config,
-        screen_sharing: screen_sharing_config,  // NEW: Add screen sharing config
+        screen_sharing: screen_sharing_config,
     };
     
     let server = WebSocketServer::new(config).await
@@ -136,6 +143,14 @@ async fn main() -> Result<()> {
             error!("Failed to create WebSocket server: {}", e);
             e
         })?;
+    
+    // Log server capabilities for debugging
+    info!("✨ Server capabilities:");
+    info!("   🖥️ Screen sharing with late joiner support");
+    info!("   🔄 WebRTC signaling relay");
+    info!("   👁️ Multiple viewers per share");
+    info!("   📡 Real-time connection status");
+    info!("   🧹 Automatic cleanup and session management");
     
     // Handle shutdown gracefully
     tokio::select! {
@@ -156,7 +171,7 @@ async fn main() -> Result<()> {
         }
     }
     
-    info!("👋 Server shutting down gracefully");
+    info!("👋 Server shutting down gracefully - cleaning up active screen shares");
     Ok(())
 }
 

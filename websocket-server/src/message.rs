@@ -1,4 +1,4 @@
-// FIXED: src/message.rs - Added Screen Sharing Message Types with complete support
+// src/message.rs - Complete Screen Sharing Message Types with Late Joiner Support
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,15 +44,28 @@ pub struct RoomInfo {
     pub max_users: usize,
     pub scene_preset: String,
     pub active_users: Vec<UserInfo>,
+    // NEW: Include ongoing screen share info
+    pub ongoing_screen_share: Option<OngoingScreenShareInfo>,
 }
 
-// FIXED: Screen sharing data structure
+// NEW: Screen sharing data structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenShareData {
     pub projection_mode: String,
     pub quality: String,
     pub share_type: Option<String>,
     pub session_id: Option<String>,
+}
+
+// NEW: Ongoing screen share info for room state
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OngoingScreenShareInfo {
+    pub user_id: String,
+    pub username: String,
+    pub nationality: Option<String>,
+    pub share_data: ScreenShareData,
+    pub started_at: i64,
+    pub viewer_count: usize,
 }
 
 // Client -> Server messages
@@ -158,7 +171,7 @@ pub enum ClientMessage {
         timestamp: Option<i64>,
     },
 
-    // FIXED: Screen Sharing Messages - COMPLETE SET
+    // Screen Sharing Messages - Complete Set
     #[serde(rename = "screen_share_started")]
     ScreenShareStarted {
         user_id: String,
@@ -214,7 +227,6 @@ pub enum ClientMessage {
         timestamp: i64,
     },
 
-    // NEW: Missing message types that JavaScript is sending
     #[serde(rename = "screen_share_broadcast_offer")]
     ScreenShareBroadcastOffer {
         user_id: String,
@@ -230,6 +242,23 @@ pub enum ClientMessage {
         room_id: String,
         username: String,
         share_data: ScreenShareData,
+        timestamp: i64,
+    },
+
+    // NEW: Late joiner support messages
+    #[serde(rename = "request_screen_share_offer")]
+    RequestScreenShareOffer {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "join_ongoing_screen_share")]
+    JoinOngoingScreenShare {
+        user_id: String,
+        room_id: String,
+        target_user_id: String,
         timestamp: i64,
     },
 }
@@ -254,6 +283,8 @@ pub enum ServerMessage {
     RoomState {
         room_id: String,
         users: Vec<UserInfo>,
+        // NEW: Include ongoing screen share in room state
+        ongoing_screen_share: Option<OngoingScreenShareInfo>,
     },
 
     #[serde(rename = "user_joined")]
@@ -362,7 +393,7 @@ pub enum ServerMessage {
         timestamp: i64,
     },
 
-    // FIXED: Screen Sharing Response Messages - COMPLETE SET
+    // Screen Sharing Response Messages - Complete Set
     #[serde(rename = "screen_share_started")]
     ScreenShareStarted {
         user_id: String,
@@ -415,6 +446,35 @@ pub enum ServerMessage {
         room_id: String,
         username: String,
         share_data: ScreenShareData,
+        timestamp: i64,
+    },
+
+    // NEW: Late joiner screen sharing messages
+    #[serde(rename = "ongoing_screen_share")]
+    OngoingScreenShare {
+        user_id: String,
+        room_id: String,
+        username: String,
+        nationality: Option<String>,
+        share_data: ScreenShareData,
+        timestamp: i64,
+        viewer_count: usize,
+    },
+
+    #[serde(rename = "new_viewer_joined")]
+    NewViewerJoined {
+        viewer_user_id: String,
+        viewer_username: String,
+        room_id: String,
+        sharer_user_id: String,
+        timestamp: i64,
+    },
+
+    #[serde(rename = "viewer_requests_offer")]
+    ViewerRequestsOffer {
+        viewer_user_id: String,
+        viewer_username: String,
+        room_id: String,
         timestamp: i64,
     },
 }
