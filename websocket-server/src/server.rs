@@ -179,6 +179,11 @@ impl WebSocketServer {
     }
 
     async fn handle_message(&self, connection_id: &str, text: &str) -> Result<()> {
+        // DEBUG: Log all incoming messages for screen sharing debugging
+        if text.contains("screen_share") || text.contains("webrtc") {
+            tracing::info!("🔍 DEBUG: Received screen sharing message: {}", text);
+        }
+        
         // Parse as regular message (now includes screen sharing)
         let message: ClientMessage = serde_json::from_str(text)?;
         
