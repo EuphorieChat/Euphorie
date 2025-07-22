@@ -203,16 +203,16 @@ class EuphorieEmotionSystem {
             enableParticles: true,
             enableAnimations: true,
             enableTrails: true,
-            enableGlow: true,
+            enableGlow: false, // DISABLED by default for better emoji visibility
             enableCombos: true,
             fadeTime: 800,
             yOffset: 4.0,
             maxDistance: 50,
             enableDebug: false,
             trailLength: 20,
-            glowIntensity: 2.0,
-            comboWindow: 2000, // Time window for emotion combos
-            shaderEffects: true
+            glowIntensity: 0.5, // Reduced glow intensity
+            comboWindow: 2000,
+            shaderEffects: false // Disabled for better performance and clarity
         };
         
         // Performance tracking
@@ -624,7 +624,7 @@ class EuphorieEmotionSystem {
     
     createEmojiSprite(emotionData) {
         try {
-            // Create canvas for emoji with more subtle effects
+            // Create canvas for emoji - MINIMAL effects for clarity
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             const size = 256;
@@ -632,52 +632,38 @@ class EuphorieEmotionSystem {
             canvas.width = size;
             canvas.height = size;
             
-            // Clear canvas
+            // Clear canvas with transparent background
             context.clearRect(0, 0, size, size);
             
-            // Draw subtle glow effect if enabled
+            // OPTIONAL: Very subtle colored circle behind emoji
             if (this.config.enableGlow && emotionData.glow) {
-                const glowSize = size * 0.6;
-                const glowGradient = context.createRadialGradient(
-                    size/2, size/2, 0,
-                    size/2, size/2, glowSize/2
-                );
-                
                 const color = new THREE.Color(emotionData.color);
-                // Much more subtle glow
-                glowGradient.addColorStop(0, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.2)`);
-                glowGradient.addColorStop(0.5, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.1)`);
-                glowGradient.addColorStop(1, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0)`);
                 
-                context.fillStyle = glowGradient;
-                context.fillRect(0, 0, size, size);
+                // Just a simple, very faint circle
+                context.fillStyle = `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.15)`;
+                context.beginPath();
+                context.arc(size/2, size/2, size/2.5, 0, Math.PI * 2);
+                context.fill();
             }
             
-            // Draw subtle background circle
-            const gradient = context.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/3);
-            const primaryColor = new THREE.Color(emotionData.color);
-            const secondaryColor = new THREE.Color(emotionData.secondaryColor || emotionData.color);
+            // Draw emoji CLEARLY without any effects
+            context.save();
             
-            // Much more transparent background
-            gradient.addColorStop(0, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0.3)`);
-            gradient.addColorStop(0.7, `rgba(${secondaryColor.r*255}, ${secondaryColor.g*255}, ${secondaryColor.b*255}, 0.2)`);
-            gradient.addColorStop(1, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0)`);
-            
-            context.fillStyle = gradient;
-            context.beginPath();
-            context.arc(size/2, size/2, size/3, 0, Math.PI * 2);
-            context.fill();
-            
-            // Draw emoji without shadow for better visibility
-            context.shadowColor = 'transparent';
-            context.shadowBlur = 0;
-            context.shadowOffsetX = 0;
-            context.shadowOffsetY = 0;
-            
-            context.font = `${size * 0.5}px Arial`;
+            // Use a slightly larger font for better visibility
+            context.font = `bold ${size * 0.6}px Arial`;
             context.textAlign = 'center';
             context.textBaseline = 'middle';
+            
+            // Add a very subtle white outline for dark backgrounds
+            context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            context.lineWidth = 3;
+            context.strokeText(emotionData.emoji, size/2, size/2);
+            
+            // Draw the emoji itself
+            context.fillStyle = '#000000'; // Black for emoji
             context.fillText(emotionData.emoji, size/2, size/2);
+            
+            context.restore();
             
             // Create texture and sprite
             const texture = new THREE.CanvasTexture(canvas);
@@ -686,8 +672,10 @@ class EuphorieEmotionSystem {
             const material = new THREE.SpriteMaterial({
                 map: texture,
                 transparent: true,
-                opacity: 0.9, // Slightly less opaque
-                blending: THREE.NormalBlending // Normal blending instead of additive
+                opacity: 1.0, // Full opacity for clarity
+                blending: THREE.NormalBlending,
+                depthTest: false,
+                depthWrite: false
             });
             
             const sprite = new THREE.Sprite(material);
@@ -747,11 +735,11 @@ class EuphorieEmotionSystem {
             geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
             geometry.userData = { velocities: velocities };
             
-            // Create custom particle material
+            // Create custom particle material with reduced opacity
             const material = new THREE.PointsMaterial({
                 size: 0.15,
                 transparent: true,
-                opacity: 0.9,
+                opacity: 0.6, // Reduced opacity so particles don't obscure emoji
                 vertexColors: true,
                 blending: THREE.AdditiveBlending,
                 sizeAttenuation: true,
