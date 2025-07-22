@@ -2975,7 +2975,7 @@ def screen_share_stats(request, room_id):
 @csrf_exempt
 @require_http_methods(["POST"])
 def grok_chat(request):
-    """Handle Grok AI chat requests by forwarding to the actual Grok API"""
+    """Handle Grok AI chat requests by forwarding to the Groq API"""
     try:
         # Parse the request body
         data = json.loads(request.body)
@@ -2989,7 +2989,7 @@ def grok_chat(request):
                 'message': 'No message provided'
             }, status=400)
         
-        # Call the real Grok API
+        # Call the Groq API
         grok_response = call_grok_api(user_message, conversation_history)
         
         if grok_response['status'] == 'success':
@@ -3000,7 +3000,7 @@ def grok_chat(request):
         else:
             return JsonResponse({
                 'status': 'error',
-                'message': grok_response.get('error', 'Failed to get response from Grok')
+                'message': grok_response.get('error', 'Failed to get response from Groq')
             }, status=500)
             
     except json.JSONDecodeError:
@@ -3014,7 +3014,6 @@ def grok_chat(request):
             'status': 'error',
             'message': 'An error occurred processing your request'
         }, status=500)
-
 
 def call_grok_api(message, conversation_history=None):
     """Call the Groq API for fast inference"""
