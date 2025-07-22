@@ -1,18 +1,16 @@
 // =============================================
-// EUPHORIE 3D EMOTION SYSTEM - FIXED VERSION
-// Removed duplicate SafeMath declaration to fix conflict
+// EUPHORIE 3D EMOTION SYSTEM - ENHANCED VERSION
+// Advanced emotion display with particle effects, combos, and trails
 // =============================================
 
-console.log('🎭 LOADING Emotion System - Fixed Version...');
+console.log('🎭 LOADING Enhanced Emotion System...');
 
-// Use SafeMath from global scope (declared in chat-bubble-system.js)
-// Create a safe wrapper that uses global SafeMath or provides fallbacks
+// Safe math utilities
 const getSafeMath = () => {
     if (typeof window.SafeMath !== 'undefined') {
         return window.SafeMath;
     }
     
-    // Fallback implementation if SafeMath is not available
     return {
         safeScale: (value) => {
             if (value === undefined || value === null) return 1;
@@ -38,7 +36,7 @@ const getSafeMath = () => {
 // MAIN EMOTION SYSTEM CLASS
 class EuphorieEmotionSystem {
     constructor() {
-        console.log('🎭 Initializing Emotion System...');
+        console.log('🎭 Initializing Enhanced Emotion System...');
         
         // Core properties
         this.isInitialized = false;
@@ -47,99 +45,174 @@ class EuphorieEmotionSystem {
         this.renderer = null;
         
         // Emotion tracking
-        this.activeEmotions = new Map(); // userId -> emotion data
-        this.emotionHistory = new Map(); // userId -> emotion history
-        this.emotionParticles = new Map(); // userId -> particle systems
+        this.activeEmotions = new Map();
+        this.emotionHistory = new Map();
+        this.emotionParticles = new Map();
+        this.emotionCombos = new Map();
+        this.emotionTrails = new Map();
         
-        // Available emotions with enhanced data
+        // Enhanced emotions with more properties
         this.emotions = {
             happy: { 
                 emoji: '😊', 
-                color: 0xFFD700, 
+                color: 0xFFD700,
+                secondaryColor: 0xFFA500,
                 particle: 'sparkle',
                 sound: 'happy.mp3',
                 animation: 'bounce',
                 duration: 3000,
-                intensity: 1.0
+                intensity: 1.0,
+                trail: true,
+                glow: true,
+                particleEmoji: '✨'
             },
             sad: { 
                 emoji: '😢', 
-                color: 0x4169E1, 
+                color: 0x4169E1,
+                secondaryColor: 0x1E90FF,
                 particle: 'rain',
                 sound: 'sad.mp3',
                 animation: 'droop',
                 duration: 4000,
-                intensity: 0.8
+                intensity: 0.8,
+                trail: true,
+                glow: false,
+                particleEmoji: '💧'
             },
             angry: { 
                 emoji: '😡', 
-                color: 0xFF4500, 
+                color: 0xFF4500,
+                secondaryColor: 0xFF0000,
                 particle: 'fire',
                 sound: 'angry.mp3',
                 animation: 'shake',
                 duration: 2500,
-                intensity: 1.2
+                intensity: 1.2,
+                trail: true,
+                glow: true,
+                particleEmoji: '🔥'
             },
             love: { 
                 emoji: '😍', 
-                color: 0xFF69B4, 
+                color: 0xFF69B4,
+                secondaryColor: 0xFF1493,
                 particle: 'hearts',
                 sound: 'love.mp3',
                 animation: 'float',
                 duration: 5000,
-                intensity: 1.1
+                intensity: 1.1,
+                trail: true,
+                glow: true,
+                particleEmoji: '❤️'
             },
             surprised: { 
                 emoji: '😲', 
-                color: 0xFFFF00, 
+                color: 0xFFFF00,
+                secondaryColor: 0xFFD700,
                 particle: 'burst',
                 sound: 'surprise.mp3',
                 animation: 'jump',
                 duration: 2000,
-                intensity: 1.3
+                intensity: 1.3,
+                trail: false,
+                glow: true,
+                particleEmoji: '⭐'
             },
             laugh: { 
                 emoji: '😂', 
-                color: 0x32CD32, 
+                color: 0x32CD32,
+                secondaryColor: 0x00FF00,
                 particle: 'bubbles',
                 sound: 'laugh.mp3',
                 animation: 'wobble',
                 duration: 3500,
-                intensity: 1.4
+                intensity: 1.4,
+                trail: true,
+                glow: true,
+                particleEmoji: '🎈'
             },
             confused: { 
                 emoji: '😕', 
-                color: 0x9370DB, 
+                color: 0x9370DB,
+                secondaryColor: 0xDA70D6,
                 particle: 'question',
                 sound: 'confused.mp3',
                 animation: 'tilt',
                 duration: 3000,
-                intensity: 0.9
+                intensity: 0.9,
+                trail: false,
+                glow: false,
+                particleEmoji: '❓'
             },
             excited: { 
                 emoji: '🤩', 
-                color: 0xFF1493, 
+                color: 0xFF1493,
+                secondaryColor: 0xFFB6C1,
                 particle: 'stars',
                 sound: 'excited.mp3',
                 animation: 'vibrate',
                 duration: 4000,
-                intensity: 1.5
+                intensity: 1.5,
+                trail: true,
+                glow: true,
+                particleEmoji: '🌟'
+            },
+            cool: {
+                emoji: '😎',
+                color: 0x00CED1,
+                secondaryColor: 0x4682B4,
+                particle: 'ice',
+                sound: 'cool.mp3',
+                animation: 'slide',
+                duration: 3000,
+                intensity: 1.0,
+                trail: true,
+                glow: true,
+                particleEmoji: '❄️'
+            },
+            sleepy: {
+                emoji: '😴',
+                color: 0x483D8B,
+                secondaryColor: 0x6A5ACD,
+                particle: 'zzz',
+                sound: 'sleepy.mp3',
+                animation: 'sway',
+                duration: 4000,
+                intensity: 0.7,
+                trail: false,
+                glow: false,
+                particleEmoji: '💤'
             }
         };
         
-        // Configuration
+        // Emotion combos (when multiple emotions are triggered quickly)
+        this.emotionCombosConfig = {
+            'happy+excited': { name: 'euphoric', bonus: 2.0, color: 0xFFD700 },
+            'sad+angry': { name: 'frustrated', bonus: 1.5, color: 0x8B0000 },
+            'love+happy': { name: 'blissful', bonus: 1.8, color: 0xFF69B4 },
+            'surprised+excited': { name: 'amazed', bonus: 1.6, color: 0xFFFF00 }
+        };
+        
+        // Enhanced configuration
         this.config = {
             maxEmotionsPerUser: 3,
             defaultDuration: 3000,
-            particleCount: 50,
+            particleCount: 80,
             emotionScale: 1.5,
             enableSound: true,
             enableParticles: true,
             enableAnimations: true,
+            enableTrails: true,
+            enableGlow: true,
+            enableCombos: true,
             fadeTime: 800,
             yOffset: 4.0,
             maxDistance: 50,
-            enableDebug: false
+            enableDebug: false,
+            trailLength: 20,
+            glowIntensity: 2.0,
+            comboWindow: 2000, // Time window for emotion combos
+            shaderEffects: true
         };
         
         // Performance tracking
@@ -147,13 +220,39 @@ class EuphorieEmotionSystem {
             activeEmotions: 0,
             particleSystems: 0,
             frameTime: 0,
-            lastCleanup: Date.now()
+            lastCleanup: Date.now(),
+            fps: 60
+        };
+        
+        // Shaders for advanced effects
+        this.shaders = {
+            glow: {
+                vertex: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragment: `
+                    uniform sampler2D texture;
+                    uniform vec3 glowColor;
+                    uniform float intensity;
+                    varying vec2 vUv;
+                    
+                    void main() {
+                        vec4 texColor = texture2D(texture, vUv);
+                        vec3 glow = glowColor * intensity * texColor.a;
+                        gl_FragColor = vec4(texColor.rgb + glow, texColor.a);
+                    }
+                `
+            }
         };
         
         // Bind methods
         this.bindMethods();
         
-        console.log('✅ Emotion System created with', Object.keys(this.emotions).length, 'emotions');
+        console.log('✅ Enhanced Emotion System created with', Object.keys(this.emotions).length, 'emotions');
     }
     
     bindMethods() {
@@ -161,7 +260,8 @@ class EuphorieEmotionSystem {
             'init', 'triggerEmotion', 'showRemoteEmotion', 'createEmotionDisplay',
             'createParticleSystem', 'animateEmotion', 'removeEmotion',
             'update', 'cleanup', 'showEmotionPanel', 'getAvatarPosition',
-            'handleResize', 'updateEmotionPositions'
+            'handleResize', 'updateEmotionPositions', 'createTrail',
+            'updateTrails', 'checkForCombos', 'createComboEffect'
         ];
         
         methods.forEach(method => {
@@ -172,7 +272,7 @@ class EuphorieEmotionSystem {
     }
     
     async init() {
-        console.log('🚀 Initializing Emotion System...');
+        console.log('🚀 Initializing Enhanced Emotion System...');
         
         try {
             if (!window.THREE) {
@@ -181,7 +281,6 @@ class EuphorieEmotionSystem {
                 return;
             }
             
-            // Wait for scene systems
             if (!window.SceneManager?.scene) {
                 console.log('🎭 Waiting for SceneManager... retrying in 300ms');
                 setTimeout(() => this.init(), 300);
@@ -197,9 +296,17 @@ class EuphorieEmotionSystem {
                 return;
             }
             
+            // Initialize audio context for sounds
+            this.initAudio();
+            
+            // Create emotion container group
+            this.emotionContainer = new THREE.Group();
+            this.emotionContainer.name = 'EmotionContainer';
+            this.scene.add(this.emotionContainer);
+            
             this.isInitialized = true;
             
-            console.log('✅ Emotion System initialized successfully');
+            console.log('✅ Enhanced Emotion System initialized successfully');
             
             this.startUpdateLoop();
             this.setupEventListeners();
@@ -207,6 +314,17 @@ class EuphorieEmotionSystem {
         } catch (error) {
             console.error('❌ Error initializing Emotion System:', error);
             setTimeout(() => this.init(), 1000);
+        }
+    }
+    
+    initAudio() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.audioBuffers = new Map();
+            console.log('🔊 Audio context initialized');
+        } catch (error) {
+            console.warn('🔇 Audio context initialization failed:', error);
+            this.config.enableSound = false;
         }
     }
     
@@ -225,6 +343,14 @@ class EuphorieEmotionSystem {
         
         // Window resize
         window.addEventListener('resize', this.handleResize);
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                this.showEmotionPanel();
+            }
+        });
     }
     
     triggerEmotion(emotion) {
@@ -238,10 +364,14 @@ class EuphorieEmotionSystem {
             return;
         }
         
-        // Get current user ID
         const userId = window.WebSocketManager?.userId || window.ROOM_CONFIG?.userId || 'local_user';
         
         console.log(`🎭 Triggering emotion: ${emotion} for user: ${userId}`);
+        
+        // Check for combos
+        if (this.config.enableCombos) {
+            this.checkForCombos(userId, emotion);
+        }
         
         // Send via WebSocket if available
         if (window.sendEmotion) {
@@ -251,7 +381,100 @@ class EuphorieEmotionSystem {
         // Show locally
         this.showLocalEmotion(userId, emotion);
         
+        // Update emotion history
+        if (!this.emotionHistory.has(userId)) {
+            this.emotionHistory.set(userId, []);
+        }
+        this.emotionHistory.get(userId).push({
+            emotion: emotion,
+            timestamp: Date.now()
+        });
+        
         return true;
+    }
+    
+    checkForCombos(userId, newEmotion) {
+        const history = this.emotionHistory.get(userId) || [];
+        const now = Date.now();
+        
+        // Get recent emotions within combo window
+        const recentEmotions = history
+            .filter(e => now - e.timestamp < this.config.comboWindow)
+            .map(e => e.emotion);
+        
+        if (recentEmotions.length > 0) {
+            const lastEmotion = recentEmotions[recentEmotions.length - 1];
+            const comboKey = `${lastEmotion}+${newEmotion}`;
+            const reverseComboKey = `${newEmotion}+${lastEmotion}`;
+            
+            const combo = this.emotionCombosConfig[comboKey] || this.emotionCombosConfig[reverseComboKey];
+            
+            if (combo) {
+                console.log(`🎯 Combo detected: ${combo.name}!`);
+                this.createComboEffect(userId, combo);
+            }
+        }
+    }
+    
+    createComboEffect(userId, combo) {
+        const position = this.getAvatarPosition(userId);
+        if (!position) return;
+        
+        // Create combo text
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 256;
+        canvas.height = 128;
+        
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Gradient text
+        const gradient = context.createLinearGradient(0, 0, canvas.width, 0);
+        gradient.addColorStop(0, '#FFD700');
+        gradient.addColorStop(0.5, '#FFA500');
+        gradient.addColorStop(1, '#FF69B4');
+        
+        context.font = 'bold 48px Arial';
+        context.fillStyle = gradient;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(combo.name.toUpperCase() + '!', canvas.width / 2, canvas.height / 2);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 1
+        });
+        
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(4, 2, 1);
+        sprite.position.copy(position);
+        sprite.position.y += this.config.yOffset + 2;
+        
+        this.scene.add(sprite);
+        
+        // Animate combo text
+        const startTime = Date.now();
+        const animateCombo = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = elapsed / 1500;
+            
+            if (progress >= 1) {
+                this.scene.remove(sprite);
+                material.dispose();
+                texture.dispose();
+                return;
+            }
+            
+            sprite.position.y += 0.02;
+            sprite.scale.multiplyScalar(1.01);
+            material.opacity = 1 - progress;
+            
+            requestAnimationFrame(animateCombo);
+        };
+        animateCombo();
     }
     
     showLocalEmotion(userId, emotion) {
@@ -301,13 +524,14 @@ class EuphorieEmotionSystem {
                 
                 for (const pattern of searchPatterns) {
                     const avatar = this.scene.children.find(pattern);
-                    if (avatar) return avatar.position.clone();
+                    if (avatar?.position) return avatar.position.clone();
                 }
             }
             
             // Strategy 3: Check if this is the current user
             if (userId === window.ROOM_CONFIG?.userId || 
-                userId === window.WebSocketManager?.userId) {
+                userId === window.WebSocketManager?.userId ||
+                userId === 'local_user') {
                 return new THREE.Vector3(0, 0, 0);
             }
             
@@ -333,10 +557,20 @@ class EuphorieEmotionSystem {
                 userId: userId,
                 emotion: emotionName,
                 createdAt: Date.now(),
-                isEmotion: true
+                duration: emotionData.duration,
+                isEmotion: true,
+                emotionData: emotionData
             };
             
-            // Create emoji sprite
+            // Store original position for animations
+            const emotionPosition = position.clone();
+            emotionPosition.y += this.config.yOffset;
+            emotionGroup.position.copy(emotionPosition);
+            emotionGroup.userData.originalX = emotionPosition.x;
+            emotionGroup.userData.originalY = emotionPosition.y;
+            emotionGroup.userData.originalZ = emotionPosition.z;
+            
+            // Create emoji sprite with glow effect
             const emojiSprite = this.createEmojiSprite(emotionData);
             if (emojiSprite) {
                 emotionGroup.add(emojiSprite);
@@ -344,25 +578,34 @@ class EuphorieEmotionSystem {
             
             // Create particle system
             if (this.config.enableParticles) {
-                const particles = this.createParticleSystem(emotionData);
+                const particles = this.createEnhancedParticleSystem(emotionData);
                 if (particles) {
                     emotionGroup.add(particles);
                 }
             }
             
-            // Position emotion above avatar
-            const emotionPosition = position.clone();
-            emotionPosition.y += this.config.yOffset;
-            emotionGroup.position.copy(emotionPosition);
+            // Create trail effect
+            if (this.config.enableTrails && emotionData.trail) {
+                const trail = this.createTrail(emotionData);
+                if (trail) {
+                    emotionGroup.add(trail);
+                    this.emotionTrails.set(emotionGroup, trail);
+                }
+            }
             
             // Add to scene
-            this.scene.add(emotionGroup);
+            this.emotionContainer.add(emotionGroup);
             
             // Track emotion
             if (!this.activeEmotions.has(userId)) {
                 this.activeEmotions.set(userId, []);
             }
             this.activeEmotions.get(userId).push(emotionGroup);
+            
+            // Play sound if enabled
+            if (this.config.enableSound && emotionData.sound) {
+                this.playEmotionSound(emotionData.sound);
+            }
             
             // Start animation
             this.animateEmotion(emotionGroup, emotionData);
@@ -381,10 +624,10 @@ class EuphorieEmotionSystem {
     
     createEmojiSprite(emotionData) {
         try {
-            // Create canvas for emoji
+            // Create canvas for emoji with glow
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
-            const size = 128;
+            const size = 256;
             
             canvas.width = size;
             canvas.height = size;
@@ -392,22 +635,46 @@ class EuphorieEmotionSystem {
             // Clear canvas
             context.clearRect(0, 0, size, size);
             
-            // Draw background circle with glow
+            // Draw glow effect if enabled
+            if (this.config.enableGlow && emotionData.glow) {
+                const glowSize = size * 0.8;
+                const glowGradient = context.createRadialGradient(
+                    size/2, size/2, 0,
+                    size/2, size/2, glowSize/2
+                );
+                
+                const color = new THREE.Color(emotionData.color);
+                glowGradient.addColorStop(0, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.8)`);
+                glowGradient.addColorStop(0.5, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.4)`);
+                glowGradient.addColorStop(1, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0)`);
+                
+                context.fillStyle = glowGradient;
+                context.fillRect(0, 0, size, size);
+            }
+            
+            // Draw background circle with gradient
             const gradient = context.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-            gradient.addColorStop(0, `rgba(${(emotionData.color >> 16) & 255}, ${(emotionData.color >> 8) & 255}, ${emotionData.color & 255}, 0.8)`);
-            gradient.addColorStop(0.7, `rgba(${(emotionData.color >> 16) & 255}, ${(emotionData.color >> 8) & 255}, ${emotionData.color & 255}, 0.4)`);
-            gradient.addColorStop(1, `rgba(${(emotionData.color >> 16) & 255}, ${(emotionData.color >> 8) & 255}, ${emotionData.color & 255}, 0.1)`);
+            const primaryColor = new THREE.Color(emotionData.color);
+            const secondaryColor = new THREE.Color(emotionData.secondaryColor || emotionData.color);
+            
+            gradient.addColorStop(0, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0.9)`);
+            gradient.addColorStop(0.7, `rgba(${secondaryColor.r*255}, ${secondaryColor.g*255}, ${secondaryColor.b*255}, 0.6)`);
+            gradient.addColorStop(1, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0.1)`);
             
             context.fillStyle = gradient;
             context.beginPath();
-            context.arc(size/2, size/2, size/2 - 2, 0, Math.PI * 2);
+            context.arc(size/2, size/2, size/3, 0, Math.PI * 2);
             context.fill();
             
-            // Draw emoji
-            context.font = `${size * 0.6}px Arial`;
+            // Draw emoji with shadow
+            context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            context.shadowBlur = 10;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            
+            context.font = `${size * 0.5}px Arial`;
             context.textAlign = 'center';
             context.textBaseline = 'middle';
-            context.fillStyle = '#000';
             context.fillText(emotionData.emoji, size/2, size/2);
             
             // Create texture and sprite
@@ -417,11 +684,13 @@ class EuphorieEmotionSystem {
             const material = new THREE.SpriteMaterial({
                 map: texture,
                 transparent: true,
-                alphaTest: 0.001
+                opacity: 1,
+                blending: THREE.AdditiveBlending
             });
             
             const sprite = new THREE.Sprite(material);
             sprite.scale.set(this.config.emotionScale, this.config.emotionScale, 1);
+            sprite.userData = { isEmojiSprite: true };
             
             return sprite;
             
@@ -431,7 +700,7 @@ class EuphorieEmotionSystem {
         }
     }
     
-    createParticleSystem(emotionData) {
+    createEnhancedParticleSystem(emotionData) {
         try {
             const geometry = new THREE.BufferGeometry();
             const particles = this.config.particleCount;
@@ -439,47 +708,91 @@ class EuphorieEmotionSystem {
             const positions = new Float32Array(particles * 3);
             const colors = new Float32Array(particles * 3);
             const sizes = new Float32Array(particles);
+            const velocities = new Float32Array(particles * 3);
             
             const color = new THREE.Color(emotionData.color);
+            const secondaryColor = new THREE.Color(emotionData.secondaryColor || emotionData.color);
             
             for (let i = 0; i < particles; i++) {
-                // Random positions in a sphere
                 const i3 = i * 3;
-                positions[i3] = (Math.random() - 0.5) * 4;
-                positions[i3 + 1] = Math.random() * 2;
-                positions[i3 + 2] = (Math.random() - 0.5) * 4;
                 
-                // Colors with some variation
-                colors[i3] = color.r + (Math.random() - 0.5) * 0.2;
-                colors[i3 + 1] = color.g + (Math.random() - 0.5) * 0.2;
-                colors[i3 + 2] = color.b + (Math.random() - 0.5) * 0.2;
+                // Initial positions in a sphere
+                const radius = Math.random() * 2;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                
+                positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                positions[i3 + 2] = radius * Math.cos(phi);
+                
+                // Mix primary and secondary colors
+                const colorMix = Math.random();
+                colors[i3] = color.r * colorMix + secondaryColor.r * (1 - colorMix);
+                colors[i3 + 1] = color.g * colorMix + secondaryColor.g * (1 - colorMix);
+                colors[i3 + 2] = color.b * colorMix + secondaryColor.b * (1 - colorMix);
                 
                 // Random sizes
-                sizes[i] = Math.random() * 0.5 + 0.2;
+                sizes[i] = Math.random() * 0.8 + 0.2;
+                
+                // Random velocities for particle movement
+                velocities[i3] = (Math.random() - 0.5) * 0.02;
+                velocities[i3 + 1] = Math.random() * 0.03 + 0.01;
+                velocities[i3 + 2] = (Math.random() - 0.5) * 0.02;
             }
             
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            geometry.userData = { velocities: velocities };
             
+            // Create custom particle material
             const material = new THREE.PointsMaterial({
-                size: 0.1,
+                size: 0.15,
                 transparent: true,
-                opacity: 0.8,
+                opacity: 0.9,
                 vertexColors: true,
                 blending: THREE.AdditiveBlending,
-                sizeAttenuation: true
+                sizeAttenuation: true,
+                depthWrite: false
             });
             
-            const particles_mesh = new THREE.Points(geometry, material);
-            particles_mesh.userData = { isParticleSystem: true };
+            const particleSystem = new THREE.Points(geometry, material);
+            particleSystem.userData = { 
+                isParticleSystem: true,
+                particleType: emotionData.particle,
+                originalPositions: positions.slice()
+            };
             
-            return particles_mesh;
+            return particleSystem;
             
         } catch (error) {
             console.error('Error creating particle system:', error);
             return null;
         }
+    }
+    
+    createTrail(emotionData) {
+        const trailGeometry = new THREE.BufferGeometry();
+        const trailPositions = new Float32Array(this.config.trailLength * 3);
+        
+        trailGeometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+        
+        const trailMaterial = new THREE.LineBasicMaterial({
+            color: emotionData.color,
+            transparent: true,
+            opacity: 0.5,
+            linewidth: 2,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const trail = new THREE.Line(trailGeometry, trailMaterial);
+        trail.userData = { 
+            isTrail: true,
+            currentIndex: 0,
+            positions: []
+        };
+        
+        return trail;
     }
     
     animateEmotion(emotionGroup, emotionData) {
@@ -515,13 +828,42 @@ class EuphorieEmotionSystem {
                     case 'pulse':
                         this.animatePulse(emotionGroup, progress, intensity);
                         break;
+                    case 'vibrate':
+                        this.animateVibrate(emotionGroup, progress, intensity);
+                        break;
+                    case 'jump':
+                        this.animateJump(emotionGroup, progress, intensity);
+                        break;
+                    case 'tilt':
+                        this.animateTilt(emotionGroup, progress, intensity);
+                        break;
+                    case 'droop':
+                        this.animateDroop(emotionGroup, progress, intensity);
+                        break;
+                    case 'slide':
+                        this.animateSlide(emotionGroup, progress, intensity);
+                        break;
+                    case 'sway':
+                        this.animateSway(emotionGroup, progress, intensity);
+                        break;
                     default:
                         this.animateDefault(emotionGroup, progress, intensity);
                         break;
                 }
                 
                 // Animate particles
-                this.animateParticles(emotionGroup, progress);
+                this.animateParticles(emotionGroup, progress, emotionData);
+                
+                // Update trail
+                if (this.emotionTrails.has(emotionGroup)) {
+                    this.updateTrail(emotionGroup);
+                }
+                
+                // Fade out effect
+                if (progress > 0.7) {
+                    const fadeProgress = (progress - 0.7) / 0.3;
+                    this.fadeEmotionGroup(emotionGroup, 1 - fadeProgress);
+                }
                 
                 requestAnimationFrame(animate);
                 
@@ -541,7 +883,7 @@ class EuphorieEmotionSystem {
         group.position.y = group.userData.originalY + yOffset;
         
         const scale = 1 + Math.sin(progress * Math.PI * bounceSpeed * 2) * 0.1 * intensity;
-        group.scale.set(getSafeMath().safeScale(scale), getSafeMath().safeScale(scale), getSafeMath().safeScale(scale));
+        group.scale.set(scale, scale, scale);
     }
     
     animateFloat(group, progress, intensity) {
@@ -549,7 +891,7 @@ class EuphorieEmotionSystem {
         const floatSpeed = 2;
         const yOffset = Math.sin(progress * Math.PI * floatSpeed) * floatHeight;
         
-        group.position.y = (group.userData.originalY || group.position.y) + yOffset;
+        group.position.y = group.userData.originalY + yOffset;
         
         const rotation = Math.sin(progress * Math.PI * 4) * 0.2 * intensity;
         group.rotation.z = rotation;
@@ -557,13 +899,13 @@ class EuphorieEmotionSystem {
     
     animateShake(group, progress, intensity) {
         const shakeAmount = 0.1 * intensity;
-        const shakeSpeed = 20;
+        const shakeSpeed = 30;
         
-        const shakeX = (Math.random() - 0.5) * shakeAmount * Math.sin(progress * Math.PI * shakeSpeed);
-        const shakeY = (Math.random() - 0.5) * shakeAmount * Math.sin(progress * Math.PI * shakeSpeed);
+        const shakeX = Math.sin(progress * Math.PI * shakeSpeed) * shakeAmount;
+        const shakeZ = Math.cos(progress * Math.PI * shakeSpeed * 1.1) * shakeAmount;
         
-        group.position.x = (group.userData.originalX || 0) + shakeX;
-        group.position.y = (group.userData.originalY || group.position.y) + shakeY;
+        group.position.x = group.userData.originalX + shakeX;
+        group.position.z = group.userData.originalZ + shakeZ;
     }
     
     animateWobble(group, progress, intensity) {
@@ -572,9 +914,10 @@ class EuphorieEmotionSystem {
         
         const wobble = Math.sin(progress * Math.PI * wobbleSpeed) * wobbleAmount;
         group.rotation.z = wobble;
+        group.rotation.x = Math.sin(progress * Math.PI * wobbleSpeed * 0.7) * wobbleAmount * 0.5;
         
         const scale = 1 + Math.sin(progress * Math.PI * wobbleSpeed * 1.5) * 0.05 * intensity;
-        group.scale.set(getSafeMath().safeScale(scale), getSafeMath().safeScale(scale), getSafeMath().safeScale(scale));
+        group.scale.set(scale, scale, scale);
     }
     
     animatePulse(group, progress, intensity) {
@@ -582,74 +925,287 @@ class EuphorieEmotionSystem {
         const pulseAmount = 0.2 * intensity;
         
         const pulse = 1 + Math.sin(progress * Math.PI * pulseSpeed) * pulseAmount;
-        group.scale.set(getSafeMath().safeScale(pulse), getSafeMath().safeScale(pulse), getSafeMath().safeScale(pulse));
+        group.scale.set(pulse, pulse, pulse);
+    }
+    
+    animateVibrate(group, progress, intensity) {
+        const vibrateSpeed = 50;
+        const vibrateAmount = 0.05 * intensity;
         
-        // Fade out towards the end
-        if (progress > 0.7) {
-            const fadeProgress = (progress - 0.7) / 0.3;
-            const opacity = 1 - fadeProgress;
-            
-            group.children.forEach(child => {
-                if (child.material) {
-                    child.material.opacity = opacity;
-                }
-            });
-        }
+        group.position.x = group.userData.originalX + Math.sin(progress * Math.PI * vibrateSpeed) * vibrateAmount;
+        group.position.y = group.userData.originalY + Math.cos(progress * Math.PI * vibrateSpeed * 1.1) * vibrateAmount;
+        group.position.z = group.userData.originalZ + Math.sin(progress * Math.PI * vibrateSpeed * 0.9) * vibrateAmount;
+    }
+    
+    animateJump(group, progress, intensity) {
+        const jumpHeight = 2.0 * intensity;
+        const jumpCount = 3;
+        const jumpProgress = (progress * jumpCount) % 1;
+        
+        const yOffset = Math.sin(jumpProgress * Math.PI) * jumpHeight * (1 - progress * 0.5);
+        group.position.y = group.userData.originalY + yOffset;
+        
+        const squash = 1 - Math.abs(Math.sin(jumpProgress * Math.PI)) * 0.2;
+        group.scale.set(1 / squash, squash, 1 / squash);
+    }
+    
+    animateTilt(group, progress, intensity) {
+        const tiltAmount = 0.5 * intensity;
+        const tiltSpeed = 3;
+        
+        group.rotation.z = Math.sin(progress * Math.PI * tiltSpeed) * tiltAmount;
+        group.rotation.x = Math.cos(progress * Math.PI * tiltSpeed * 0.7) * tiltAmount * 0.5;
+    }
+    
+    animateDroop(group, progress, intensity) {
+        const droopAmount = 0.5 * intensity;
+        const droopSpeed = 1;
+        
+        group.position.y = group.userData.originalY - progress * droopAmount;
+        group.rotation.z = progress * droopAmount * 0.5;
+        
+        const scale = 1 - progress * 0.1 * intensity;
+        group.scale.set(scale, scale * 0.8, scale);
+    }
+    
+    animateSlide(group, progress, intensity) {
+        const slideDistance = 2.0 * intensity;
+        const slideSpeed = 2;
+        
+        const slideOffset = Math.sin(progress * Math.PI * slideSpeed) * slideDistance;
+        group.position.x = group.userData.originalX + slideOffset;
+        
+        group.rotation.y = progress * Math.PI * 2;
+    }
+    
+    animateSway(group, progress, intensity) {
+        const swayAmount = 0.3 * intensity;
+        const swaySpeed = 2;
+        
+        group.rotation.z = Math.sin(progress * Math.PI * swaySpeed) * swayAmount;
+        group.position.x = group.userData.originalX + Math.sin(progress * Math.PI * swaySpeed * 0.5) * swayAmount;
     }
     
     animateDefault(group, progress, intensity) {
-        // Simple fade out animation
-        if (progress > 0.6) {
-            const fadeProgress = (progress - 0.6) / 0.4;
-            const opacity = 1 - fadeProgress;
-            
-            group.children.forEach(child => {
-                if (child.material) {
-                    child.material.opacity = opacity;
-                }
-            });
-        }
-        
-        // Slight upward movement
         const upwardMovement = progress * 0.5 * intensity;
-        group.position.y = (group.userData.originalY || group.position.y) + upwardMovement;
+        group.position.y = group.userData.originalY + upwardMovement;
+        
+        const rotation = progress * Math.PI * 2 * intensity;
+        group.rotation.y = rotation;
     }
     
-    animateParticles(group, progress) {
+    animateParticles(group, progress, emotionData) {
         const particles = group.children.find(child => child.userData?.isParticleSystem);
         if (!particles) return;
         
         try {
             const positions = particles.geometry.attributes.position.array;
             const originalPositions = particles.userData.originalPositions;
+            const velocities = particles.geometry.userData.velocities;
             
-            if (!originalPositions) {
-                particles.userData.originalPositions = positions.slice();
-                return;
-            }
+            if (!originalPositions) return;
             
-            for (let i = 0; i < positions.length; i += 3) {
-                const originalX = originalPositions[i];
-                const originalY = originalPositions[i + 1];
-                const originalZ = originalPositions[i + 2];
-                
-                // Spread particles outward over time
-                const spread = progress * 2;
-                positions[i] = originalX + (originalX * spread);
-                positions[i + 1] = originalY + (progress * 3) + Math.sin(progress * Math.PI * 4) * 0.5;
-                positions[i + 2] = originalZ + (originalZ * spread);
+            // Apply particle-specific animations based on type
+            switch (emotionData.particle) {
+                case 'sparkle':
+                    this.animateSparkleParticles(positions, originalPositions, velocities, progress);
+                    break;
+                case 'rain':
+                    this.animateRainParticles(positions, originalPositions, velocities, progress);
+                    break;
+                case 'fire':
+                    this.animateFireParticles(positions, originalPositions, velocities, progress);
+                    break;
+                case 'hearts':
+                    this.animateHeartParticles(positions, originalPositions, velocities, progress);
+                    break;
+                case 'burst':
+                    this.animateBurstParticles(positions, originalPositions, velocities, progress);
+                    break;
+                case 'stars':
+                    this.animateStarParticles(positions, originalPositions, velocities, progress);
+                    break;
+                case 'bubbles':
+                    this.animateBubbleParticles(positions, originalPositions, velocities, progress);
+                    break;
+                case 'question':
+                    this.animateQuestionParticles(positions, originalPositions, velocities, progress);
+                    break;
+                default:
+                    this.animateDefaultParticles(positions, originalPositions, velocities, progress);
+                    break;
             }
             
             particles.geometry.attributes.position.needsUpdate = true;
             
+            // Update particle sizes for twinkle effect
+            const sizes = particles.geometry.attributes.size.array;
+            for (let i = 0; i < sizes.length; i++) {
+                sizes[i] = (Math.sin(progress * Math.PI * 10 + i) * 0.5 + 0.5) * 0.8 + 0.2;
+            }
+            particles.geometry.attributes.size.needsUpdate = true;
+            
             // Fade particles
             if (progress > 0.5) {
                 const fadeProgress = (progress - 0.5) / 0.5;
-                particles.material.opacity = 0.8 * (1 - fadeProgress);
+                particles.material.opacity = 0.9 * (1 - fadeProgress);
             }
             
         } catch (error) {
             console.error('Error animating particles:', error);
+        }
+    }
+    
+    animateSparkleParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const spread = progress * 3;
+            const sparkle = Math.sin(progress * Math.PI * 20 + i) * 0.1;
+            
+            positions[i] = originalPositions[i] * (1 + spread) + sparkle;
+            positions[i + 1] = originalPositions[i + 1] + progress * 2 + Math.abs(Math.sin(progress * Math.PI * 10 + i)) * 0.5;
+            positions[i + 2] = originalPositions[i + 2] * (1 + spread) + sparkle;
+        }
+    }
+    
+    animateRainParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            positions[i] = originalPositions[i] + Math.sin(progress * Math.PI * 2 + i) * 0.1;
+            positions[i + 1] = originalPositions[i + 1] - progress * 3;
+            positions[i + 2] = originalPositions[i + 2] + Math.cos(progress * Math.PI * 2 + i) * 0.1;
+        }
+    }
+    
+    animateFireParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const turbulence = Math.sin(progress * Math.PI * 10 + i) * 0.2;
+            
+            positions[i] = originalPositions[i] + turbulence + velocities[i] * progress * 10;
+            positions[i + 1] = originalPositions[i + 1] + progress * 4 + Math.abs(turbulence);
+            positions[i + 2] = originalPositions[i + 2] + turbulence + velocities[i + 2] * progress * 10;
+        }
+    }
+    
+    animateHeartParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const float = Math.sin(progress * Math.PI * 2 + i) * 0.3;
+            
+            positions[i] = originalPositions[i] + float;
+            positions[i + 1] = originalPositions[i + 1] + progress * 2 + Math.sin(progress * Math.PI * 4 + i) * 0.2;
+            positions[i + 2] = originalPositions[i + 2] + Math.cos(progress * Math.PI * 2 + i) * 0.3;
+        }
+    }
+    
+    animateBurstParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const burst = progress * 5;
+            
+            positions[i] = originalPositions[i] * (1 + burst);
+            positions[i + 1] = originalPositions[i + 1] * (1 + burst) + progress * 2;
+            positions[i + 2] = originalPositions[i + 2] * (1 + burst);
+        }
+    }
+    
+    animateStarParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const twinkle = Math.sin(progress * Math.PI * 15 + i) * 0.1;
+            const spread = progress * 2;
+            
+            positions[i] = originalPositions[i] * (1 + spread) + twinkle;
+            positions[i + 1] = originalPositions[i + 1] + progress * 3 + Math.abs(twinkle) * 2;
+            positions[i + 2] = originalPositions[i + 2] * (1 + spread) + twinkle;
+        }
+    }
+    
+    animateBubbleParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const wobble = Math.sin(progress * Math.PI * 5 + i) * 0.2;
+            
+            positions[i] = originalPositions[i] + wobble;
+            positions[i + 1] = originalPositions[i + 1] + progress * 3;
+            positions[i + 2] = originalPositions[i + 2] + Math.cos(progress * Math.PI * 5 + i) * 0.2;
+        }
+    }
+    
+    animateQuestionParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const spiral = progress * Math.PI * 4;
+            const radius = 1 + progress * 2;
+            
+            positions[i] = originalPositions[i] + Math.cos(spiral + i) * radius * 0.5;
+            positions[i + 1] = originalPositions[i + 1] + progress * 2;
+            positions[i + 2] = originalPositions[i + 2] + Math.sin(spiral + i) * radius * 0.5;
+        }
+    }
+    
+    animateDefaultParticles(positions, originalPositions, velocities, progress) {
+        for (let i = 0; i < positions.length; i += 3) {
+            const spread = progress * 2;
+            
+            positions[i] = originalPositions[i] + velocities[i] * progress * 20;
+            positions[i + 1] = originalPositions[i + 1] + velocities[i + 1] * progress * 20;
+            positions[i + 2] = originalPositions[i + 2] + velocities[i + 2] * progress * 20;
+        }
+    }
+    
+    updateTrail(emotionGroup) {
+        const trail = this.emotionTrails.get(emotionGroup);
+        if (!trail) return;
+        
+        const trailData = trail.userData;
+        const positions = trail.geometry.attributes.position.array;
+        
+        // Add current position to trail
+        trailData.positions.push(emotionGroup.position.clone());
+        
+        // Limit trail length
+        if (trailData.positions.length > this.config.trailLength) {
+            trailData.positions.shift();
+        }
+        
+        // Update trail geometry
+        for (let i = 0; i < trailData.positions.length; i++) {
+            const pos = trailData.positions[i];
+            const i3 = i * 3;
+            
+            positions[i3] = pos.x;
+            positions[i3 + 1] = pos.y;
+            positions[i3 + 2] = pos.z;
+        }
+        
+        trail.geometry.attributes.position.needsUpdate = true;
+        
+        // Fade trail
+        const opacity = Math.max(0, 1 - (trailData.positions.length / this.config.trailLength) * 0.5);
+        trail.material.opacity = opacity * 0.5;
+    }
+    
+    fadeEmotionGroup(group, opacity) {
+        group.children.forEach(child => {
+            if (child.material) {
+                child.material.opacity = opacity;
+            }
+        });
+    }
+    
+    playEmotionSound(soundFile) {
+        if (!this.config.enableSound || !this.audioContext) return;
+        
+        try {
+            // Simple beep sound as placeholder
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.value = 440; // A4 note
+            gainNode.gain.value = 0.1;
+            
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.1);
+            
+        } catch (error) {
+            console.warn('Error playing emotion sound:', error);
         }
     }
     
@@ -667,11 +1223,19 @@ class EuphorieEmotionSystem {
         if (!emotionGroup || !emotionGroup.parent) return;
         
         try {
+            // Remove trail if exists
+            if (this.emotionTrails.has(emotionGroup)) {
+                const trail = this.emotionTrails.get(emotionGroup);
+                if (trail.geometry) trail.geometry.dispose();
+                if (trail.material) trail.material.dispose();
+                this.emotionTrails.delete(emotionGroup);
+            }
+            
             // Remove from scene
-            this.scene.remove(emotionGroup);
+            this.emotionContainer.remove(emotionGroup);
             
             // Dispose of resources
-            emotionGroup.children.forEach(child => {
+            emotionGroup.traverse(child => {
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) {
                     if (child.material.map) child.material.map.dispose();
@@ -706,6 +1270,7 @@ class EuphorieEmotionSystem {
             this.activeEmotions.forEach(userEmotions => {
                 userEmotions.forEach(emotion => {
                     if (emotion.parent) {
+                        // Billboard effect - face camera
                         emotion.lookAt(this.camera.position);
                         
                         // Distance-based scaling
@@ -714,12 +1279,20 @@ class EuphorieEmotionSystem {
                             emotion.visible = false;
                         } else {
                             emotion.visible = true;
-                            const scale = Math.max(0.5, Math.min(2, this.config.maxDistance / distance));
-                            emotion.scale.set(getSafeMath().safeScale(scale), getSafeMath().safeScale(scale), getSafeMath().safeScale(scale));
+                            const scale = Math.max(0.5, Math.min(2, 10 / distance)) * this.config.emotionScale;
+                            
+                            // Apply scale to sprite only, not entire group
+                            const sprite = emotion.children.find(child => child.userData?.isEmojiSprite);
+                            if (sprite) {
+                                sprite.scale.set(scale, scale, 1);
+                            }
                         }
                     }
                 });
             });
+            
+            // Update performance stats
+            this.performance.activeEmotions = this.getActiveEmotionCount();
             
         } catch (error) {
             console.error('Error in emotion update:', error);
@@ -730,14 +1303,28 @@ class EuphorieEmotionSystem {
         const now = Date.now();
         
         try {
+            // Remove old emotions
             this.activeEmotions.forEach((userEmotions, userId) => {
                 const emotionsToRemove = userEmotions.filter(emotion => {
-                    return now - emotion.userData.createdAt > (emotion.userData.duration || this.config.defaultDuration) + 1000;
+                    return now - emotion.userData.createdAt > emotion.userData.duration + 1000;
                 });
                 
                 emotionsToRemove.forEach(emotion => {
                     this.removeEmotion(emotion);
                 });
+            });
+            
+            // Clean emotion history
+            this.emotionHistory.forEach((history, userId) => {
+                const recentHistory = history.filter(entry => {
+                    return now - entry.timestamp < 60000; // Keep last minute
+                });
+                
+                if (recentHistory.length === 0) {
+                    this.emotionHistory.delete(userId);
+                } else {
+                    this.emotionHistory.set(userId, recentHistory);
+                }
             });
             
             this.performance.lastCleanup = now;
@@ -757,48 +1344,85 @@ class EuphorieEmotionSystem {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 10000;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            animation: fadeIn 0.3s ease;
         `;
         
         const content = document.createElement('div');
         content.style.cssText = `
             background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 600px;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 800px;
             width: 90%;
             color: white;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: slideIn 0.3s ease;
         `;
         
         content.innerHTML = `
-            <h2 style="margin-top: 0; color: #4CAF50;">🎭 Choose Your Emotion</h2>
-            <p style="margin-bottom: 30px; color: #ccc;">
-                Express yourself! Your emotion will appear above your avatar.
+            <h2 style="margin-top: 0; color: #4CAF50; font-size: 2.5em; margin-bottom: 10px;">
+                🎭 Express Your Emotion
+            </h2>
+            <p style="margin-bottom: 30px; color: #aaa; font-size: 1.1em;">
+                Choose an emotion to share with everyone in the room
             </p>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 30px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 40px;">
                 ${Object.entries(this.emotions).map(([key, emotion]) => `
                     <div class="emotion-option" data-emotion="${key}" 
-                         style="padding: 20px; background: #333; border-radius: 10px; cursor: pointer; 
-                                transition: all 0.3s; border: 2px solid transparent;">
-                        <div style="font-size: 3em; margin-bottom: 10px;">${emotion.emoji}</div>
-                        <div style="font-weight: bold; text-transform: capitalize;">${key}</div>
+                         style="padding: 25px 15px; background: linear-gradient(145deg, #2a2a2a, #333); 
+                                border-radius: 15px; cursor: pointer; 
+                                transition: all 0.3s; border: 2px solid transparent;
+                                box-shadow: 5px 5px 15px rgba(0,0,0,0.3), -5px -5px 15px rgba(255,255,255,0.05);">
+                        <div style="font-size: 3.5em; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));">
+                            ${emotion.emoji}
+                        </div>
+                        <div style="font-weight: bold; text-transform: capitalize; font-size: 1.1em;">
+                            ${key}
+                        </div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                            ${emotion.particleEmoji}
+                        </div>
                     </div>
                 `).join('')}
             </div>
             
-            <button id="cancel-emotion" 
-                    style="padding: 12px 24px; background: #666; border: none; border-radius: 8px; 
-                           color: white; cursor: pointer;">
-                Cancel
-            </button>
+            <div style="display: flex; gap: 20px; justify-content: center;">
+                <button id="cancel-emotion" 
+                        style="padding: 15px 30px; background: #555; border: none; border-radius: 10px; 
+                               color: white; cursor: pointer; font-size: 1.1em; transition: all 0.3s;">
+                    Cancel
+                </button>
+                <button id="random-emotion" 
+                        style="padding: 15px 30px; background: linear-gradient(45deg, #4CAF50, #45a049); 
+                               border: none; border-radius: 10px; 
+                               color: white; cursor: pointer; font-size: 1.1em; transition: all 0.3s;">
+                    🎲 Random
+                </button>
+            </div>
+            
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideIn {
+                    from { transform: translateY(-50px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                .emotion-option:hover {
+                    transform: translateY(-5px) scale(1.05) !important;
+                    box-shadow: 8px 8px 20px rgba(0,0,0,0.4), -8px -8px 20px rgba(255,255,255,0.1) !important;
+                }
+            </style>
         `;
         
         modal.appendChild(content);
@@ -807,21 +1431,23 @@ class EuphorieEmotionSystem {
         // Add event listeners
         const emotionOptions = content.querySelectorAll('.emotion-option');
         emotionOptions.forEach(option => {
+            const emotionKey = option.dataset.emotion;
+            const emotionData = this.emotions[emotionKey];
+            
             option.addEventListener('mouseenter', () => {
-                option.style.background = '#444';
-                option.style.transform = 'scale(1.05)';
-                option.style.borderColor = '#4CAF50';
+                option.style.background = `linear-gradient(145deg, #333, #444)`;
+                option.style.borderColor = `#${emotionData.color.toString(16).padStart(6, '0')}`;
+                option.style.boxShadow = `0 0 20px rgba(${(emotionData.color >> 16) & 255}, ${(emotionData.color >> 8) & 255}, ${emotionData.color & 255}, 0.5)`;
             });
             
             option.addEventListener('mouseleave', () => {
-                option.style.background = '#333';
-                option.style.transform = 'scale(1)';
+                option.style.background = 'linear-gradient(145deg, #2a2a2a, #333)';
                 option.style.borderColor = 'transparent';
+                option.style.boxShadow = '5px 5px 15px rgba(0,0,0,0.3), -5px -5px 15px rgba(255,255,255,0.05)';
             });
             
             option.addEventListener('click', () => {
-                const emotion = option.dataset.emotion;
-                this.triggerEmotion(emotion);
+                this.triggerEmotion(emotionKey);
                 document.body.removeChild(modal);
             });
         });
@@ -829,6 +1455,15 @@ class EuphorieEmotionSystem {
         // Cancel button
         const cancelButton = content.querySelector('#cancel-emotion');
         cancelButton.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+        
+        // Random button
+        const randomButton = content.querySelector('#random-emotion');
+        randomButton.addEventListener('click', () => {
+            const emotionKeys = Object.keys(this.emotions);
+            const randomEmotion = emotionKeys[Math.floor(Math.random() * emotionKeys.length)];
+            this.triggerEmotion(randomEmotion);
             document.body.removeChild(modal);
         });
         
@@ -857,7 +1492,13 @@ class EuphorieEmotionSystem {
             userEmotions.forEach(emotion => {
                 const emotionPosition = newPosition.clone();
                 emotionPosition.y += this.config.yOffset;
-                emotion.position.copy(emotionPosition);
+                
+                // Update stored original position
+                emotion.userData.originalX = emotionPosition.x;
+                emotion.userData.originalY = emotionPosition.y;
+                emotion.userData.originalZ = emotionPosition.z;
+                
+                // Let animation handle actual position
             });
             
         } catch (error) {
@@ -922,14 +1563,92 @@ class EuphorieEmotionSystem {
         return {
             ...this.performance,
             activeEmotions: this.getActiveEmotionCount(),
-            trackedUsers: this.activeEmotions.size
+            trackedUsers: this.activeEmotions.size,
+            emotionHistory: this.emotionHistory.size,
+            trails: this.emotionTrails.size
         };
+    }
+    
+    // Get emotion history for analytics
+    getEmotionHistory(userId = null) {
+        if (userId) {
+            return this.emotionHistory.get(userId) || [];
+        }
+        
+        // Return all history
+        const allHistory = [];
+        this.emotionHistory.forEach((history, uid) => {
+            history.forEach(entry => {
+                allHistory.push({
+                    userId: uid,
+                    ...entry
+                });
+            });
+        });
+        
+        return allHistory.sort((a, b) => b.timestamp - a.timestamp);
+    }
+    
+    // Get most popular emotions
+    getMostPopularEmotions(limit = 5) {
+        const emotionCounts = {};
+        
+        this.emotionHistory.forEach(history => {
+            history.forEach(entry => {
+                emotionCounts[entry.emotion] = (emotionCounts[entry.emotion] || 0) + 1;
+            });
+        });
+        
+        return Object.entries(emotionCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, limit)
+            .map(([emotion, count]) => ({ emotion, count }));
+    }
+    
+    // Test specific emotion
+    testEmotion(emotion = 'happy') {
+        console.log(`🧪 Testing emotion: ${emotion}`);
+        return this.triggerEmotion(emotion);
+    }
+    
+    // Debug method to inspect current state
+    debug() {
+        console.group('🎭 Emotion System Debug Info');
+        console.log('Initialized:', this.isInitialized);
+        console.log('Active Emotions:', this.getActiveEmotionCount());
+        console.log('Tracked Users:', this.activeEmotions.size);
+        console.log('Performance:', this.getPerformanceStats());
+        console.log('Config:', this.config);
+        console.log('Available Emotions:', Object.keys(this.emotions));
+        console.log('Most Popular:', this.getMostPopularEmotions());
+        console.groupEnd();
     }
     
     dispose() {
         try {
+            // Clear all emotions
             this.clearAllEmotions();
+            
+            // Remove event listeners
             window.removeEventListener('resize', this.handleResize);
+            
+            // Remove emotion container
+            if (this.emotionContainer && this.scene) {
+                this.scene.remove(this.emotionContainer);
+            }
+            
+            // Clear all maps
+            this.activeEmotions.clear();
+            this.emotionHistory.clear();
+            this.emotionParticles.clear();
+            this.emotionCombos.clear();
+            this.emotionTrails.clear();
+            
+            // Close audio context
+            if (this.audioContext) {
+                this.audioContext.close();
+            }
+            
             console.log('🎭 Emotion System disposed');
         } catch (error) {
             console.error('Error disposing Emotion System:', error);
@@ -940,11 +1659,30 @@ class EuphorieEmotionSystem {
 // Create and export the system
 window.EmotionSystem = new EuphorieEmotionSystem();
 
+// Auto-initialize when scene is ready
+if (window.SceneManager?.scene) {
+    window.EmotionSystem.init();
+} else {
+    // Wait for scene to be ready
+    const checkScene = setInterval(() => {
+        if (window.SceneManager?.scene) {
+            clearInterval(checkScene);
+            window.EmotionSystem.init();
+        }
+    }, 100);
+}
+
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = EuphorieEmotionSystem;
 }
 
-console.log('✅ Emotion System loaded successfully - No SafeMath conflicts');
-console.log('🎭 Ready to express emotions!');
-console.log('🧪 Test with: window.EmotionSystem.triggerEmotion("happy")');
+// Add global shortcut function
+window.showEmotion = (emotion) => window.EmotionSystem.triggerEmotion(emotion);
+window.showEmotionPanel = () => window.EmotionSystem.showEmotionPanel();
+
+console.log('✅ Enhanced Emotion System loaded successfully');
+console.log('🎭 Available emotions:', Object.keys(window.EmotionSystem.emotions).join(', '));
+console.log('🧪 Test with: window.EmotionSystem.testEmotion("happy")');
+console.log('📊 Debug with: window.EmotionSystem.debug()');
+console.log('🎨 Show panel: Ctrl+E or window.showEmotionPanel()');
