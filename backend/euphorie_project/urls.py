@@ -129,7 +129,11 @@ urlpatterns = [
     path('login/', lambda request: redirect('/accounts/login/'), name='login'),
     path('signup/', lambda request: redirect('/accounts/signup/'), name='signup'),
     path('register/', lambda request: redirect('/accounts/signup/'), name='register'),
-    
+
+
+    # ==================== Grok Chat URL ====================
+    path('api/grok-chat/', grok_chat, name='grok_chat'),
+
     # ==================== SOCIAL MEDIA REDIRECTS ====================
     path('twitter/', lambda request: redirect('https://twitter.com/euphorieinc'), name='social_twitter'),
     path('discord/', lambda request: redirect('https://discord.gg/euphorie'), name='social_discord'),

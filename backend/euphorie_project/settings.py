@@ -15,6 +15,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-change-in-
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = ['*']  # Allow all hosts - safe when behind reverse proxy
 
+
+# Grok API Configuration
+GROK_API_KEY = env('GROK_API_KEY', default='')
+
 # Applications
 INSTALLED_APPS = [
     'django.contrib.admin',

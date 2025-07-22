@@ -1272,6 +1272,311 @@
 </style>
 
 
+
+
+<!-- AI Chat Tab Enhancement -->
+<style>
+/* Enhanced Chat Panel with Tabs */
+.chat-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.chat-tab {
+    flex: 1;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.chat-tab:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+.chat-tab.active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.chat-tab-icon {
+    font-size: 16px;
+}
+
+.chat-tab-badge {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    background: #FF6B35;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: bold;
+    min-width: 16px;
+    text-align: center;
+}
+
+/* AI Chat Specific Styles */
+.ai-chat-container {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+}
+
+.ai-chat-container.active {
+    display: flex;
+}
+
+.room-chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.room-chat-container.hidden {
+    display: none;
+}
+
+#ai-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 50, 0.8));
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+    max-height: 200px;
+}
+
+.ai-message {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+    backdrop-filter: blur(5px);
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+.ai-message.user {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
+    border-left: 3px solid #4CAF50;
+    margin-left: 15px;
+}
+
+.ai-message.grok {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 152, 0, 0.15));
+    border-left: 3px solid #FF6B35;
+}
+
+.ai-message.thinking {
+    background: linear-gradient(135deg, rgba(255, 167, 38, 0.15), rgba(255, 152, 0, 0.15));
+    border-left: 3px solid #FFA726;
+}
+
+.ai-message .sender {
+    font-weight: 700;
+    font-size: 11px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-message.user .sender {
+    color: #4CAF50;
+}
+
+.ai-message.grok .sender {
+    color: #FF6B35;
+}
+
+.ai-message .content {
+    font-size: 11px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.95);
+    white-space: pre-wrap;
+}
+
+.ai-thinking-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #FFA726;
+}
+
+.ai-thinking-dots {
+    display: flex;
+    gap: 3px;
+}
+
+.ai-thinking-dot {
+    width: 6px;
+    height: 6px;
+    background: #FFA726;
+    border-radius: 50%;
+    animation: ai-thinking 1.5s infinite;
+}
+
+.ai-thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.ai-thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes ai-thinking {
+    0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
+    30% { opacity: 1; transform: scale(1.3); }
+}
+
+/* AI Status Indicator */
+.ai-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 8px;
+    font-size: 11px;
+    margin-bottom: 12px;
+}
+
+.ai-status.connected {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: rgba(76, 175, 80, 0.3);
+    color: #4CAF50;
+}
+
+.ai-status.error {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: rgba(244, 67, 54, 0.3);
+    color: #F44336;
+}
+
+.ai-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+}
+
+/* AI Chat Input */
+#ai-chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));
+    border: 2px solid rgba(255, 107, 53, 0.3);
+    border-radius: 10px;
+    color: white;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+#ai-chat-input:focus {
+    outline: none;
+    border-color: #FF6B35;
+    background: linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1));
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+}
+
+#ai-send-btn {
+    padding: 12px 18px;
+    background: linear-gradient(135deg, #FF6B35, #ff8a50);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+#ai-send-btn:hover {
+    background: linear-gradient(135deg, #ff8a50, #FF6B35);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+#ai-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* AI Suggestions */
+.ai-suggestions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.ai-suggestion {
+    padding: 6px 12px;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 16px;
+    color: #FF6B35;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ai-suggestion:hover {
+    background: rgba(255, 107, 53, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .chat-tabs {
+        margin-bottom: 8px;
+        padding: 3px;
+    }
+    
+    .chat-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .chat-tab-icon {
+        font-size: 14px;
+    }
+    
+    #ai-chat-messages {
+        max-height: 160px;
+    }
+}
+</style>
+
+
+
+
+
 </head>
 <body>
     <div id="room-container">
@@ -3862,6 +4167,450 @@
             }
         }, 100);
     </script>
+
+
+    <script>
+    // AI Chat System
+    class AIGrokChat {
+        constructor() {
+            this.isConnected = false;
+            this.messageHistory = [];
+            this.currentTab = 'room';
+            this.unreadAIMessages = 0;
+            this.apiKey = null; // Will be set from backend
+            this.apiEndpoint = 'https://api.x.ai/v1/chat/completions'; // Example endpoint
+            
+            this.init();
+        }
+        
+        init() {
+            // Wait for DOM to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => this.setupUI());
+            } else {
+                this.setupUI();
+            }
+        }
+        
+        setupUI() {
+            // Add tabs to both desktop and mobile chat panels
+            this.enhanceChatPanel('chat-panel');
+            this.enhanceChatPanel('mobile-chat-panel');
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Add initial AI welcome message
+            setTimeout(() => {
+                this.addAIMessage('grok', "🤖 Hi! I'm Grok, your AI assistant. Ask me anything about the room, get help with features, or just chat!");
+                this.addSuggestions();
+            }, 1000);
+            
+            console.log('✅ AI Grok Chat system initialized');
+        }
+        
+        enhanceChatPanel(panelId) {
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            
+            const chatContent = panel.querySelector('.chat-content');
+            if (!chatContent) return;
+            
+            // Create tabs
+            const tabsHtml = `
+                <div class="chat-tabs">
+                    <button class="chat-tab active" data-tab="room">
+                        <span class="chat-tab-icon">💬</span>
+                        <span>Connected</span>
+                    </button>
+                    <button class="chat-tab" data-tab="ai">
+                        <span class="chat-tab-icon">🤖</span>
+                        <span>Ask AI</span>
+                        <span class="chat-tab-badge" id="${panelId}-ai-badge" style="display: none;">0</span>
+                    </button>
+                </div>
+            `;
+            
+            // Insert tabs at the beginning of chat content
+            chatContent.insertAdjacentHTML('afterbegin', tabsHtml);
+            
+            // Wrap existing chat content
+            const existingContent = Array.from(chatContent.children).filter(child => 
+                !child.classList.contains('chat-tabs')
+            );
+            
+            const roomContainer = document.createElement('div');
+            roomContainer.className = 'room-chat-container';
+            existingContent.forEach(child => roomContainer.appendChild(child));
+            chatContent.appendChild(roomContainer);
+            
+            // Create AI chat container
+            const aiContainer = document.createElement('div');
+            aiContainer.className = 'ai-chat-container';
+            aiContainer.innerHTML = `
+                <div class="ai-status connected">
+                    <span class="ai-status-dot"></span>
+                    <span>Grok AI Connected</span>
+                </div>
+                
+                <div class="ai-suggestions" id="${panelId}-ai-suggestions"></div>
+                
+                <div id="${panelId}-ai-messages" class="ai-messages"></div>
+                
+                <div class="chat-input-container">
+                    <input type="text" id="${panelId}-ai-input" class="ai-chat-input" placeholder="Ask Grok anything..." maxlength="500">
+                    <button id="${panelId}-ai-send" class="ai-send-btn">Send</button>
+                </div>
+            `;
+            
+            chatContent.appendChild(aiContainer);
+        }
+        
+        setupEventListeners() {
+            // Tab switching for both panels
+            document.querySelectorAll('.chat-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabName = e.currentTarget.getAttribute('data-tab');
+                    this.switchTab(tabName, e.currentTarget);
+                });
+            });
+            
+            // AI input handlers for both panels
+            ['chat-panel', 'mobile-chat-panel'].forEach(panelId => {
+                const input = document.getElementById(`${panelId}-ai-input`);
+                const sendBtn = document.getElementById(`${panelId}-ai-send`);
+                
+                if (input && sendBtn) {
+                    // Send on Enter
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            this.sendMessage(input.value, panelId);
+                        }
+                    });
+                    
+                    // Send on button click
+                    sendBtn.addEventListener('click', () => {
+                        this.sendMessage(input.value, panelId);
+                    });
+                }
+            });
+            
+            // Suggestion clicks
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('ai-suggestion')) {
+                    const suggestion = e.target.textContent;
+                    const panelId = e.target.closest('.ai-chat-container').querySelector('input').id.replace('-ai-input', '');
+                    this.sendMessage(suggestion, panelId);
+                }
+            });
+        }
+        
+        switchTab(tabName, tabElement) {
+            const panel = tabElement.closest('.chat-panel, #mobile-chat-panel');
+            if (!panel) return;
+            
+            // Update tab states
+            panel.querySelectorAll('.chat-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            tabElement.classList.add('active');
+            
+            // Show/hide content
+            const roomContainer = panel.querySelector('.room-chat-container');
+            const aiContainer = panel.querySelector('.ai-chat-container');
+            
+            if (tabName === 'room') {
+                roomContainer?.classList.remove('hidden');
+                aiContainer?.classList.remove('active');
+                this.currentTab = 'room';
+            } else {
+                roomContainer?.classList.add('hidden');
+                aiContainer?.classList.add('active');
+                this.currentTab = 'ai';
+                
+                // Clear unread badge
+                this.unreadAIMessages = 0;
+                this.updateBadge(panel.id);
+            }
+        }
+        
+        async sendMessage(message, panelId) {
+            message = message.trim();
+            if (!message) return;
+            
+            const input = document.getElementById(`${panelId}-ai-input`);
+            const sendBtn = document.getElementById(`${panelId}-ai-send`);
+            
+            // Clear input
+            input.value = '';
+            
+            // Add user message
+            this.addUserMessage(message, panelId);
+            
+            // Show thinking indicator
+            this.showThinking(panelId);
+            
+            // Disable input while processing
+            input.disabled = true;
+            sendBtn.disabled = true;
+            
+            try {
+                // Get AI response
+                const response = await this.getGrokResponse(message);
+                
+                // Remove thinking indicator
+                this.hideThinking(panelId);
+                
+                // Add AI response
+                this.addAIMessage('grok', response, panelId);
+                
+            } catch (error) {
+                console.error('Error getting AI response:', error);
+                this.hideThinking(panelId);
+                this.addAIMessage('grok', "Sorry, I'm having trouble connecting right now. Please try again later.", panelId);
+            } finally {
+                // Re-enable input
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+        
+        async getGrokResponse(message) {
+            // For demo purposes, using contextual responses
+            // In production, this would call the actual Grok API
+            
+            const responses = {
+                // Greetings
+                'hello': "Hey there! 👋 Welcome to Euphorie 3D! How can I help you navigate this virtual world?",
+                'hi': "Hi! 🎉 Great to see you here! Need help with anything?",
+                
+                // Help queries
+                'help': "I can help you with:\n\n🎮 **Controls**: Movement, camera, interactions\n💬 **Chat**: Messaging, bubbles, emotes\n🏠 **Rooms**: Navigation, features, settings\n👥 **Social**: Friends, groups, activities\n🎨 **Customization**: Avatar, pets, themes\n\nWhat would you like to know more about?",
+                
+                'controls': "Here are the main controls:\n\n🖱️ **Mouse**: Rotate camera, click to interact\n⌨️ **Keyboard**:\n• W/1: Wave\n• D/2: Dance\n• E: Emotions panel\n• G: Group activities\n• Ctrl+H: All shortcuts\n\n📱 **Mobile**: Touch & drag to rotate, pinch to zoom",
+                
+                'avatar': "You can customize your avatar by:\n\n1. Click the hamburger menu (☰)\n2. Select 'Avatar' option\n3. Choose colors, accessories, and styles\n\nYour nationality flag appears on your nametag! 🏳️",
+                
+                'bubbles': "3D Chat Bubbles float above avatars when you type! 💭\n\n• Toggle with the '3D Bubbles' button\n• Messages fade after 6 seconds\n• Everyone in the room can see them\n• Great for quick conversations!",
+                
+                'weather': "This room has synchronized weather! 🌦️\n\n• Click hamburger menu → Weather\n• Choose from: Sunny, Rainy, Snowy, Stormy\n• Changes apply to everyone in the room\n• Creates amazing atmospheric effects!",
+                
+                'pets': "Want a virtual pet? 🐾\n\n• Click hamburger menu → Get Pet\n• Pets follow you around the room\n• Each has unique personality\n• Collect multiple pets!\n• Other users can see your pets too",
+                
+                'screen': "You can share your screen! 📺\n\n• Click hamburger menu → Screen Share\n• Choose what to share\n• Others see it on virtual screens\n• Perfect for presentations or showing content\n• Press Ctrl+Shift+S for quick toggle",
+                
+                // Default contextual response
+                'default': this.generateContextualResponse.bind(this)
+            };
+            
+            // Check for keyword matches
+            const lowercaseMessage = message.toLowerCase();
+            for (const [keyword, response] of Object.entries(responses)) {
+                if (keyword !== 'default' && lowercaseMessage.includes(keyword)) {
+                    return typeof response === 'function' ? response(message) : response;
+                }
+            }
+            
+            // Use default contextual response
+            return responses.default(message);
+        }
+        
+        generateContextualResponse(message) {
+            // Contextual responses based on content
+            const lowercase = message.toLowerCase();
+            
+            if (lowercase.includes('screen') || lowercase.includes('share')) {
+                return "Screen sharing lets you show your screen to others in the room! 📺\n\nClick the hamburger menu and select 'Screen Share', or press Ctrl+Shift+S. Your content appears on virtual screens in the 3D space. Perfect for presentations or showing videos!";
+            }
+            
+            if (lowercase.includes('emotion') || lowercase.includes('feel')) {
+                return "Express yourself with emotions! 🎭\n\nPress 'E' or click Emotions in the menu. Choose from happy, sad, excited, angry, love, and more. Emotions appear as visual effects around your avatar!";
+            }
+            
+            if (lowercase.includes('friend') || lowercase.includes('user')) {
+                return `There are currently ${this.getRoomUserCount()} users in this room! 👥\n\nYou can:\n• Click on avatars to interact\n• Send friend requests\n• Form groups for activities\n• See user nationalities on nametags\n\nThe room supports up to ${window.ROOM_CONFIG?.maxUsers || 10} users.`;
+            }
+            
+            if (lowercase.includes('flag') || lowercase.includes('country') || lowercase.includes('nationality')) {
+                return "Your nationality flag appears on your nametag! 🌍\n\nTo change it:\n• Click hamburger menu → Nationality\n• Select your country\n• Your flag updates instantly\n\nIt's a great way to show where you're from!";
+            }
+            
+            if (lowercase.includes('music') || lowercase.includes('sound')) {
+                return "While this room doesn't have built-in music, you can:\n\n🎵 Share music via screen sharing\n🎤 Use voice chat (if enabled)\n🔊 Hear interaction sound effects\n\nSome rooms have ambient sounds based on the environment!";
+            }
+            
+            if (lowercase.includes('lag') || lowercase.includes('slow') || lowercase.includes('performance')) {
+                return "Experiencing performance issues? Try these:\n\n⚡ Reduce graphics quality in settings\n🔄 Refresh the page\n📱 Close other browser tabs\n🌐 Check your internet connection\n👥 Rooms with fewer users run smoother\n\nThe platform is optimized for modern browsers!";
+            }
+            
+            // Generic helpful response
+            return "That's an interesting question! 🤔\n\nI'm here to help with anything about Euphorie 3D. You can ask me about:\n\n• Room features and controls\n• How to customize your avatar\n• Social interactions and activities\n• Technical help and tips\n\nWhat would you like to explore?";
+        }
+        
+        getRoomUserCount() {
+            return window.WebSocketManager?.connectedUsers?.size + 1 || 1;
+        }
+        
+        addUserMessage(message, panelId) {
+            const messagesContainer = document.getElementById(`${panelId}-ai-messages`);
+            if (!messagesContainer) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message user';
+            messageDiv.innerHTML = `
+                <div class="sender">
+                    <span>You</span>
+                </div>
+                <div class="content">${this.escapeHtml(message)}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Add to history
+            this.messageHistory.push({ type: 'user', content: message });
+        }
+        
+        addAIMessage(sender, message, panelId = null) {
+            const containers = panelId ? 
+                [document.getElementById(`${panelId}-ai-messages`)] : 
+                [document.getElementById('chat-panel-ai-messages'), 
+                document.getElementById('mobile-chat-panel-ai-messages')];
+            
+            containers.forEach(container => {
+                if (!container) return;
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `ai-message ${sender}`;
+                messageDiv.innerHTML = `
+                    <div class="sender">
+                        <span>${sender === 'grok' ? '🤖 Grok AI' : sender}</span>
+                    </div>
+                    <div class="content">${this.formatAIMessage(message)}</div>
+                `;
+                
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
+            });
+            
+            // Add to history
+            this.messageHistory.push({ type: 'ai', sender, content: message });
+            
+            // Update badge if not in AI tab
+            if (this.currentTab !== 'ai') {
+                this.unreadAIMessages++;
+                this.updateBadge('chat-panel');
+                this.updateBadge('mobile-chat-panel');
+            }
+        }
+        
+        formatAIMessage(message) {
+            // Convert markdown-style formatting
+            return message
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/•/g, '&bull;');
+        }
+        
+        showThinking(panelId) {
+            const messagesContainer = document.getElementById(`${panelId}-ai-messages`);
+            if (!messagesContainer) return;
+            
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'ai-message thinking';
+            thinkingDiv.id = `${panelId}-thinking`;
+            thinkingDiv.innerHTML = `
+                <div class="ai-thinking-indicator">
+                    <span>Grok is thinking</span>
+                    <div class="ai-thinking-dots">
+                        <div class="ai-thinking-dot"></div>
+                        <div class="ai-thinking-dot"></div>
+                        <div class="ai-thinking-dot"></div>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(thinkingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        hideThinking(panelId) {
+            const thinkingDiv = document.getElementById(`${panelId}-thinking`);
+            if (thinkingDiv) {
+                thinkingDiv.remove();
+            }
+        }
+        
+        addSuggestions() {
+            const suggestions = [
+                "How do I move around?",
+                "Show me chat features",
+                "How to get a pet?",
+                "What's screen sharing?"
+            ];
+            
+            ['chat-panel', 'mobile-chat-panel'].forEach(panelId => {
+                const container = document.getElementById(`${panelId}-ai-suggestions`);
+                if (!container) return;
+                
+                container.innerHTML = suggestions.map(s => 
+                    `<button class="ai-suggestion">${s}</button>`
+                ).join('');
+            });
+        }
+        
+        updateBadge(panelId) {
+            const badge = document.getElementById(`${panelId}-ai-badge`);
+            if (!badge) return;
+            
+            if (this.unreadAIMessages > 0) {
+                badge.textContent = this.unreadAIMessages > 99 ? '99+' : this.unreadAIMessages;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    }
+
+    // Initialize AI Chat System
+    document.addEventListener('DOMContentLoaded', () => {
+        // Wait a bit for other systems to load
+        setTimeout(() => {
+            window.AIGrokChat = new AIGrokChat();
+            console.log('🤖 AI Grok Chat system loaded');
+        }, 2000);
+    });
+
+    // Add keyboard shortcut for AI chat
+    document.addEventListener('keydown', (e) => {
+        // Ctrl + G for Grok AI
+        if (e.ctrlKey && e.key === 'g') {
+            e.preventDefault();
+            // Switch to AI tab
+            const activePanel = document.querySelector('.chat-panel:not(.hidden), #mobile-chat-panel.expanded');
+            if (activePanel) {
+                const aiTab = activePanel.querySelector('.chat-tab[data-tab="ai"]');
+                if (aiTab) {
+                    aiTab.click();
+                }
+            }
+        }
+    });
+    </script>
+
 
     <!-- Enhanced Modular System - Fixed for Scene Synchronization -->
     <script>

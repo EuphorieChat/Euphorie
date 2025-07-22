@@ -32,9 +32,7 @@ from .models import (
     RoomBookmark, MessageReport, UserActivity, FriendRequest, 
     FriendSuggestion, NationalityStats, get_client_ip
 )
-from .forms import (
-    RoomCreationForm, UserProfileForm, QuickMessageForm
-)
+from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -2970,3 +2968,55 @@ def screen_share_stats(request, room_id):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def grok_chat(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            message = data.get('message', '')
+            context = data.get('context', [])
+            
+            # For testing without API key
+            if not hasattr(settings, 'GROK_API_KEY'):
+                return JsonResponse({
+                    'response': 'Grok API key not configured. Using demo mode.'
+                })
+            
+            # Call Grok API
+            response = requests.post(
+                'https://api.x.ai/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {settings.GROK_API_KEY}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': 'grok-1',
+                    'messages': [
+                        {
+                            'role': 'system', 
+                            'content': 'You are a helpful assistant for Euphorie 3D virtual world. Be friendly and concise.'
+                        },
+                        {'role': 'user', 'content': message}
+                    ],
+                    'max_tokens': 150,
+                    'temperature': 0.7
+                }
+            )
+            
+            if response.status_code == 200:
+                ai_response = response.json()['choices'][0]['message']['content']
+                return JsonResponse({'response': ai_response})
+            else:
+                return JsonResponse({
+                    'response': 'Sorry, I encountered an error. Please try again.'
+                }, status=500)
+                
+        except Exception as e:
+            print(f"Grok chat error: {e}")
+            return JsonResponse({
+                'response': 'Sorry, something went wrong. Please try again.'
+            }, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
