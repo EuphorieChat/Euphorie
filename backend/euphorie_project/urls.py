@@ -132,7 +132,7 @@ urlpatterns = [
 
 
     # ==================== Grok Chat URL ====================
-    # path('api/grok-chat/', grok_chat, name='grok_chat'),
+    path('api/grok-chat/', grok_chat, name='grok_chat'),
 
     # ==================== SOCIAL MEDIA REDIRECTS ====================
     path('twitter/', lambda request: redirect('https://twitter.com/euphorieinc'), name='social_twitter'),

@@ -1,17 +1,19 @@
+# Standard library
 import csv
 import json
 import logging
 import uuid
 from datetime import datetime, timedelta
 
-import requests  # Third-party
+# Third-party
+import requests
 
-# Django core
+# Django
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -2971,49 +2973,171 @@ def screen_share_stats(request, room_id):
 
 
 @login_required
-@csrf_exempt  # For testing, remove in production and handle CSRF properly
 def grok_chat(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            message = data.get('message', '')
-            context = data.get('context', [])
-            
-            if not settings.GROK_API_KEY:
-                logger.warning("Grok API key not configured")
-                return JsonResponse({
-                    'response': "I'm currently in demo mode. Ask me about room features, controls, or how to use Euphorie 3D!",
-                    'status': 'demo'
-                })
-            
-            # For now, return a demo response
-            # TODO: Implement actual Grok API call when ready
-            demo_responses = {
-                "hello": "Hey there! Welcome to Euphorie 3D! How can I help you?",
-                "help": "I can help you with room controls, chat features, avatars, and more!",
-                "controls": "Use mouse to rotate camera, W to wave, D to dance, E for emotions!"
-            }
-            
-            # Simple keyword matching for demo
-            message_lower = message.lower()
-            for keyword, response in demo_responses.items():
-                if keyword in message_lower:
-                    return JsonResponse({
-                        'response': response,
-                        'status': 'success'
-                    })
-            
-            # Default response
-            return JsonResponse({
-                'response': f"You said: '{message}'. I'm in demo mode but I'm here to help with Euphorie 3D!",
-                'status': 'success'
-            })
-                
-        except Exception as e:
-            logger.error(f"Grok chat error: {str(e)}")
-            return JsonResponse({
-                'response': 'Sorry, something went wrong. Please try again.',
-                'status': 'error'
-            }, status=500)
+    """API endpoint for Grok AI chat with actual API integration"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body)
+        message = data.get('message', '')
+        context = data.get('context', [])
+        
+        if not message:
+            return JsonResponse({
+                'response': "Please ask me something!",
+                'status': 'error'
+            }, status=400)
+        
+        # Check if API key exists
+        if not settings.GROK_API_KEY:
+            logger.warning("Grok API key not configured, using demo mode")
+            return JsonResponse({
+                'response': get_demo_response(message),
+                'status': 'demo'
+            })
+        
+        # Prepare the conversation history
+        messages = []
+        
+        # Add context from previous messages if provided
+        for ctx_msg in context[-5:]:  # Limit context to last 5 messages
+            if ctx_msg.get('type') == 'user':
+                messages.append({
+                    "role": "user",
+                    "content": ctx_msg.get('content', '')
+                })
+            elif ctx_msg.get('type') == 'ai':
+                messages.append({
+                    "role": "assistant", 
+                    "content": ctx_msg.get('content', '')
+                })
+        
+        # Add the current message
+        messages.append({
+            "role": "user",
+            "content": message
+        })
+        
+        # Add system prompt for Euphorie context
+        system_prompt = """You are Grok, an AI assistant for Euphorie 3D, a virtual 3D chat platform. 
+        You should be helpful, friendly, and knowledgeable about:
+        - Room navigation and controls (mouse to rotate, W to wave, D to dance, E for emotions)
+        - 3D chat bubbles that float above avatars
+        - Avatar customization and nationality flags
+        - Screen sharing features
+        - Making friends and social interactions
+        - Virtual pets and group activities
+        - Weather and scene synchronization features
+        
+        Keep responses concise but informative. Use emojis when appropriate to be friendly."""
+        
+        # Make API request to Grok
+        try:
+            response = requests.post(
+                'https://api.x.ai/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {settings.GROK_API_KEY}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': 'grok-beta',  # or 'grok-2' depending on your access
+                    'messages': [
+                        {"role": "system", "content": system_prompt},
+                        *messages
+                    ],
+                    'temperature': 0.7,
+                    'max_tokens': 500,
+                    'stream': False
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                ai_response = response_data['choices'][0]['message']['content']
+                
+                # Log successful API call
+                logger.info(f"Grok API call successful for user {request.user.username}")
+                
+                return JsonResponse({
+                    'response': ai_response,
+                    'status': 'success'
+                })
+            else:
+                logger.error(f"Grok API error: {response.status_code} - {response.text}")
+                
+                # Fallback to demo response on API error
+                return JsonResponse({
+                    'response': get_demo_response(message),
+                    'status': 'demo',
+                    'error': 'API error - using demo mode'
+                })
+                
+        except requests.exceptions.Timeout:
+            logger.error("Grok API timeout")
+            return JsonResponse({
+                'response': "Sorry, the AI is taking too long to respond. Please try again.",
+                'status': 'error'
+            })
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Grok API request error: {str(e)}")
+            return JsonResponse({
+                'response': get_demo_response(message),
+                'status': 'demo',
+                'error': 'Connection error - using demo mode'
+            })
+            
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in Grok chat request")
+        return JsonResponse({
+            'response': 'Sorry, I couldn\'t understand your request. Please try again.',
+            'status': 'error'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Grok chat error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'response': 'Sorry, something went wrong. Please try again.',
+            'status': 'error'
+        }, status=500)
+
+
+def get_demo_response(message):
+    """Generate contextual demo responses"""
+    if not message:
+        return "Hello! I'm Grok, your AI assistant. How can I help you with Euphorie 3D?"
+    
+    message_lower = message.lower()
+    
+    # Enhanced response database
+    responses = {
+        'hello': "Hey there! 👋 Welcome to Euphorie 3D! I'm Grok, your AI assistant. How can I help you navigate this virtual world?",
+        'hi': "Hi! 🎉 Great to see you here! Need help with anything?",
+        'help': "I can help you with:\n\n🎮 **Controls**: Movement, camera, interactions\n💬 **Chat**: Messaging, bubbles, emotes\n🏠 **Rooms**: Navigation, features, settings\n👥 **Social**: Friends, groups, activities\n🎨 **Customization**: Avatar, pets, themes\n📺 **Screen Sharing**: Share your screen with others\n\nWhat would you like to know more about?",
+        'controls': "Here are the main controls:\n\n🖱️ **Mouse**: Rotate camera, click to interact\n⌨️ **Keyboard**:\n• W/1: Wave\n• D/2: Dance\n• E: Emotions panel\n• G: Group activities\n• Ctrl+H: All shortcuts\n• Ctrl+G: Open AI chat\n• Ctrl+Shift+S: Screen share\n\n📱 **Mobile**: Touch & drag to rotate, pinch to zoom",
+        'avatar': "You can customize your avatar by:\n\n1. Click the hamburger menu (☰)\n2. Select 'Avatar' option\n3. Choose colors, accessories, and styles\n\nYour nationality flag appears on your nametag! 🏳️",
+        'bubbles': "3D Chat Bubbles float above avatars when you type! 💭\n\n• Toggle with the '3D Bubbles' button\n• Messages fade after 6 seconds\n• Everyone in the room can see them\n• Great for quick conversations!",
+        'weather': "This room has synchronized weather! 🌦️\n\n• Click hamburger menu → Weather\n• Choose from: Sunny, Rainy, Snowy, Stormy\n• Changes apply to everyone in the room\n• Creates amazing atmospheric effects!",
+        'pets': "Want a virtual pet? 🐾\n\n• Click hamburger menu → Get Pet\n• Pets follow you around the room\n• Each has unique personality\n• Collect multiple pets!\n• Other users can see your pets too",
+        'screen': "You can share your screen! 📺\n\n• Click hamburger menu → Screen Share\n• Choose what to share\n• Others see it on virtual screens\n• Perfect for presentations or showing content\n• Press Ctrl+Shift+S for quick toggle",
+    }
+    
+    # Check for keyword matches
+    for keyword, response in responses.items():
+        if keyword in message_lower:
+            return response
+    
+    # More contextual responses
+    if any(word in message_lower for word in ['screen', 'share', 'sharing']):
+        return responses['screen']
+    elif any(word in message_lower for word in ['emotion', 'feel', 'mood']):
+        return "Express yourself with emotions! 🎭\n\nPress 'E' or click Emotions in the menu. Choose from happy, sad, excited, angry, love, and more. Emotions appear as visual effects around your avatar!"
+    elif any(word in message_lower for word in ['friend', 'user', 'people']):
+        return "You can interact with other users! 👥\n\nClick on avatars to:\n• Send friend requests\n• Start conversations\n• Form groups\n• See their nationality flags\n\nMaking friends makes Euphorie 3D more fun!"
+    elif any(word in message_lower for word in ['flag', 'country', 'nationality']):
+        return "Your nationality flag appears on your nametag! 🌍\n\nTo change it:\n• Click hamburger menu → Nationality\n• Select your country\n• Your flag updates instantly\n\nIt's a great way to show where you're from!"
+    elif any(word in message_lower for word in ['room', 'create', 'join']):
+        return "Rooms are the heart of Euphorie 3D! 🏠\n\n• Browse public rooms on the main page\n• Create your own room with custom settings\n• Join rooms to meet new people\n• Each room can have different themes and weather\n\nWhat kind of room interests you?"
+    
+    # Default friendly response
+    return "That's an interesting question! 🤔\n\nI'm here to help with anything about Euphorie 3D. Try asking about:\n• Room controls and features\n• How to customize your avatar\n• Making friends and chatting\n• Screen sharing and activities\n\nWhat would you like to know?"
