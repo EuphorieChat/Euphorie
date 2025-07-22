@@ -2918,8 +2918,7 @@ window.PetSystem = {
                 -webkit-overflow-scrolling: touch;
                 transition: all 0.3s ease;
                 animation: slideInRight 0.3s ease;
-                display: flex !important;
-                flex-direction: column !important;
+                display: block !important;
             `;
         } else {
             // Desktop: Position above chatbox
@@ -2973,58 +2972,56 @@ window.PetSystem = {
             document.head.appendChild(animStyle);
         }
         
-        // Add close button if not exists
-        if (!petPanel.querySelector('.pet-panel-close')) {
-            const closeButton = document.createElement('button');
-            closeButton.className = 'pet-panel-close';
-            closeButton.innerHTML = '×';
-            closeButton.style.cssText = `
-                position: absolute;
-                top: ${isMobile ? '8px' : '10px'};
-                right: ${isMobile ? '8px' : '10px'};
-                width: ${isMobile ? '28px' : '30px'};
-                height: ${isMobile ? '28px' : '30px'};
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 50%;
-                color: white;
-                font-size: ${isMobile ? '20px' : '24px'};
-                line-height: 1;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.3s ease;
-                z-index: 10;
-            `;
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'pet-panel-close';
+        closeButton.innerHTML = '×';
+        closeButton.style.cssText = `
+            position: absolute;
+            top: ${isMobile ? '8px' : '10px'};
+            right: ${isMobile ? '8px' : '10px'};
+            width: ${isMobile ? '28px' : '30px'};
+            height: ${isMobile ? '28px' : '30px'};
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: ${isMobile ? '20px' : '24px'};
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        `;
+        
+        // Add hover effect
+        closeButton.addEventListener('mouseenter', () => {
+            closeButton.style.background = 'rgba(255, 67, 54, 0.8)';
+            closeButton.style.transform = 'scale(1.1)';
+        });
+        
+        closeButton.addEventListener('mouseleave', () => {
+            closeButton.style.background = 'rgba(255, 255, 255, 0.1)';
+            closeButton.style.transform = 'scale(1)';
+        });
+        
+        // Add click handler to close panel
+        closeButton.addEventListener('click', () => {
+            petPanel.style.display = 'none';
+            petPanel.dataset.enhanced = 'false'; // Reset enhancement flag
             
-            // Add hover effect
-            closeButton.addEventListener('mouseenter', () => {
-                closeButton.style.background = 'rgba(255, 67, 54, 0.8)';
-                closeButton.style.transform = 'scale(1.1)';
+            // Also update any toggle buttons
+            const toggleButtons = document.querySelectorAll('[onclick*="pet-panel"]');
+            toggleButtons.forEach(button => {
+                if (button.textContent.includes('Pets')) {
+                    button.classList.remove('active');
+                }
             });
-            
-            closeButton.addEventListener('mouseleave', () => {
-                closeButton.style.background = 'rgba(255, 255, 255, 0.1)';
-                closeButton.style.transform = 'scale(1)';
-            });
-            
-            // Add click handler to close panel
-            closeButton.addEventListener('click', () => {
-                petPanel.style.display = 'none';
-                petPanel.dataset.enhanced = 'false'; // Reset enhancement flag
-                
-                // Also update any toggle buttons
-                const toggleButtons = document.querySelectorAll('[onclick*="pet-panel"]');
-                toggleButtons.forEach(button => {
-                    if (button.textContent.includes('Pets')) {
-                        button.classList.remove('active');
-                    }
-                });
-            });
-            
-            petPanel.appendChild(closeButton);
-        }
+        });
+        
+        petPanel.appendChild(closeButton);
         
         // Add header if not exists
         if (!petPanel.querySelector('.pet-panel-header')) {
@@ -3034,7 +3031,6 @@ window.PetSystem = {
                 margin-bottom: ${isMobile ? '10px' : '15px'};
                 padding-bottom: ${isMobile ? '8px' : '10px'};
                 border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-                flex-shrink: 0;
             `;
             
             header.innerHTML = `
@@ -3085,25 +3081,9 @@ window.PetSystem = {
             petPanel.insertBefore(header, petPanel.firstChild);
         }
         
-        // Ensure the content container has proper flex styling
-        const petList = petPanel.querySelector('#pet-list');
-        if (petList) {
-            petList.style.cssText = `
-                flex: 1;
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
-            `;
-        }
-        
         // Add custom scrollbar styling
         const style = document.createElement('style');
         style.textContent = `
-            #pet-panel {
-                display: flex !important;
-                flex-direction: column !important;
-            }
-            
             #pet-panel::-webkit-scrollbar {
                 width: ${isMobile ? '6px' : '8px'};
             }
@@ -3130,7 +3110,6 @@ window.PetSystem = {
                 border-radius: 8px;
                 border-left: 3px solid #4CAF50;
                 transition: all 0.3s;
-                flex-shrink: 0;
             }
             
             .pet-item:hover {
