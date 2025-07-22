@@ -7,6 +7,8 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.shortcuts import redirect
 from django.http import HttpResponse
+from chat.views import grok_chat
+
 
 def redirect_to_app(request):
     """Redirect legacy URLs to new structure"""
