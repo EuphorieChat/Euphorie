@@ -6147,31 +6147,37 @@ document.addEventListener('DOMContentLoaded', () => {
     display: none !important;
 }
 
-/* Fixed status panel - no backdrop effects that interfere with 3D */
+/* Fixed status panel - completely isolated from 3D scene */
 #status-panel {
     max-width: 30vw !important;
     min-width: 200px !important;
     overflow: hidden;
     word-wrap: break-word;
-    /* Remove backdrop-filter to prevent 3D rendering issues */
+    /* Solid background with no transparency */
+    background: #0a0a0a !important;
+    /* Simple border instead of shadows */
+    border: 1px solid #333 !important;
+    /* Remove ALL effects that might interfere with 3D */
+    box-shadow: none !important;
     backdrop-filter: none !important;
-    /* Use solid background instead of transparency */
-    background: rgba(0, 0, 0, 0.9) !important;
-    /* Limit shadow spread */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-    /* Ensure it doesn't affect 3D layers */
-    will-change: transform;
-    transform: translateZ(0);
-    /* Prevent bleed-through */
+    filter: none !important;
+    mix-blend-mode: normal !important;
+    /* Keep it on its own layer */
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* Lower z-index to stay behind 3D canvas */
+    z-index: 10 !important;
+}
+
+/* Make sure the 3D container has higher z-index */
+#three-container {
+    position: relative;
+    z-index: 1;
     isolation: isolate;
 }
 
-/* Remove any backdrop filters from child elements */
-#status-panel * {
-    backdrop-filter: none !important;
-}
-
-/* For very small screens, allow slightly more width */
+/* For very small screens */
 @media (max-width: 480px) {
     #status-panel {
         max-width: 40vw !important;
@@ -6188,7 +6194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
 
-/* Ensure text doesn't overflow */
+/* Text overflow handling */
 #status-panel .status-item {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -6204,47 +6210,46 @@ document.addEventListener('DOMContentLoaded', () => {
     vertical-align: bottom;
 }
 
-/* Enhanced pretty toggle button - also fixed */
+/* Simple toggle button without effects */
 .status-toggle-simple {
     position: fixed;
     top: 15px;
     left: 15px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+    background: #667eea;
     color: white;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid #8b9dc3;
     border-radius: 12px;
     padding: 10px 16px;
     cursor: pointer;
-    z-index: 101;
+    z-index: 11;
     font-size: 13px;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    /* Remove backdrop-filter */
+    /* No shadows or effects */
+    box-shadow: none !important;
     backdrop-filter: none !important;
-    transition: all 0.3s ease;
+    filter: none !important;
+    transition: opacity 0.3s ease, transform 0.2s ease;
     display: flex;
     align-items: center;
     gap: 8px;
-    animation: fadeIn 0.3s ease;
-    /* Ensure isolation */
-    isolation: isolate;
+    opacity: 0.9;
 }
 
 .status-toggle-simple:hover {
-    background: linear-gradient(135deg, rgba(118, 75, 162, 0.95), rgba(102, 126, 234, 0.95));
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+    opacity: 1;
+    transform: translateY(-2px);
+    background: #7c8ff0;
 }
 
 .status-toggle-simple:active {
-    transform: translateY(0) scale(1.02);
+    transform: translateY(0);
 }
 
-/* Pulse animation for attention */
+/* Simple pulse without shadow effects */
 @keyframes pulse {
-    0% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
-    50% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6); }
-    100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+    0% { opacity: 0.9; }
+    50% { opacity: 1; }
+    100% { opacity: 0.9; }
 }
 
 .status-toggle-simple.pulse {
@@ -6253,8 +6258,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Fade in animation */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Hide button styling */
@@ -6262,8 +6267,8 @@ document.addEventListener('DOMContentLoaded', () => {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #333;
+    border: 1px solid #555;
     border-radius: 6px;
     color: white;
     cursor: pointer;
@@ -6273,13 +6278,12 @@ document.addEventListener('DOMContentLoaded', () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease;
     line-height: 1;
 }
 
 .status-hide-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
+    background: #555;
 }
 
 /* Mobile responsive */
@@ -6294,14 +6298,26 @@ document.addEventListener('DOMContentLoaded', () => {
 </style>
 
 <script>
-// Enhanced simple toggle approach
+// Fix for 3D rendering issue
 document.addEventListener('DOMContentLoaded', () => {
+    // First, ensure the 3D container is properly isolated
+    const threeContainer = document.getElementById('three-container');
+    if (threeContainer) {
+        threeContainer.style.isolation = 'isolate';
+        threeContainer.style.position = 'relative';
+        threeContainer.style.zIndex = '1';
+    }
+    
     setTimeout(() => {
         const panel = document.getElementById('status-panel');
         if (!panel) {
             console.error('Status panel not found');
             return;
         }
+        
+        // Force the panel to render on its own layer
+        panel.style.willChange = 'transform';
+        panel.style.transform = 'translate3d(0, 0, 0)';
         
         // Create enhanced toggle button
         const toggleBtn = document.createElement('button');
@@ -6312,44 +6328,37 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         toggleBtn.style.display = 'none';
         
-        // Add click handler with animation
+        // Add click handler
         toggleBtn.onclick = () => {
             if (panel.classList.contains('hide-panel')) {
-                // Show panel with animation
                 panel.style.animation = 'fadeIn 0.3s ease';
                 panel.classList.remove('hide-panel');
                 toggleBtn.style.display = 'none';
-                
-                // Save preference
                 localStorage.setItem('statusPanelHidden', 'false');
             }
         };
         
-        // Add hide button to panel with better styling
+        // Add hide button to panel
         const hideBtn = document.createElement('button');
         hideBtn.className = 'status-hide-btn';
         hideBtn.innerHTML = '×';
         hideBtn.title = 'Hide Status Panel';
         
         hideBtn.onclick = () => {
-            // Hide panel
             panel.classList.add('hide-panel');
             toggleBtn.style.display = 'flex';
             
-            // Add pulse effect briefly to draw attention
+            // Simple pulse effect
             toggleBtn.classList.add('pulse');
             setTimeout(() => {
                 toggleBtn.classList.remove('pulse');
             }, 4000);
             
-            // Save preference
             localStorage.setItem('statusPanelHidden', 'true');
         };
         
-        // Add hide button to panel (position it absolutely)
         panel.style.position = 'relative';
         panel.appendChild(hideBtn);
-        
         document.body.appendChild(toggleBtn);
         
         // Load saved preference
