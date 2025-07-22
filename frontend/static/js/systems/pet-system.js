@@ -1,4 +1,4 @@
-// Advanced Pet System - Complete Version with All Code
+// Advanced Pet System - Complete Version with All Fixes
 // Features: 8 pet types, AI behaviors, interactions, customization, emotions
 
 window.PetSystem = {
@@ -180,6 +180,9 @@ window.PetSystem = {
             // Set up UI buttons
             this.setupUIButtons();
             
+            // Set up pet panel functions
+            this.setupPetPanelFunctions();
+            
             this.isInitialized = true;
             console.log('✅ Advanced Pet System initialized successfully');
             
@@ -221,6 +224,61 @@ window.PetSystem = {
         return allReady;
     },
 
+    setupPetPanelFunctions: function() {
+        // Global pet panel functions
+        window.showPetPanel = () => {
+            let petPanel = document.getElementById('pet-panel');
+            
+            if (!petPanel) {
+                // Create the panel if it doesn't exist
+                petPanel = document.createElement('div');
+                petPanel.id = 'pet-panel';
+                document.body.appendChild(petPanel);
+                
+                // Initial content
+                petPanel.innerHTML = '<div id="pet-list"></div>';
+            }
+            
+            // Make sure it's visible FIRST
+            petPanel.style.display = 'block';
+            
+            // THEN update/enhance it
+            if (window.PetSystem && window.PetSystem.isInitialized) {
+                window.PetSystem.updatePetUI();
+            }
+        };
+
+        window.hidePetPanel = () => {
+            const petPanel = document.getElementById('pet-panel');
+            if (petPanel) {
+                petPanel.style.display = 'none';
+                petPanel.dataset.enhanced = 'false';
+            }
+        };
+
+        window.togglePetPanel = () => {
+            const petPanel = document.getElementById('pet-panel');
+            
+            if (!petPanel || petPanel.style.display === 'none' || petPanel.style.display === '') {
+                window.showPetPanel();
+            } else {
+                window.hidePetPanel();
+            }
+        };
+
+        // Intercept existing toggle mechanisms
+        if (typeof window.togglePanel === 'function') {
+            const originalTogglePanel = window.togglePanel;
+            window.togglePanel = function(panelId) {
+                if (panelId === 'pet-panel') {
+                    window.togglePetPanel();
+                } else {
+                    originalTogglePanel(panelId);
+                }
+            };
+        }
+    },
+
     setupUIButtons: function() {
         // Add pet button to main UI if not exists
         const addPetButton = document.getElementById('add-pet-button');
@@ -253,7 +311,7 @@ window.PetSystem = {
             }
         }
         
-        // Also check for any existing pet-related buttons and fix their click handlers
+        // Fix existing pet-related buttons
         const existingPetButtons = document.querySelectorAll('[onclick*="PetSystem"]');
         existingPetButtons.forEach(button => {
             const onclickText = button.getAttribute('onclick');
@@ -261,6 +319,17 @@ window.PetSystem = {
                 button.onclick = () => this.assignRandomPet('default');
             } else if (onclickText && onclickText.includes('showPetManagementPanel')) {
                 button.onclick = () => this.showPetManagementPanel();
+            }
+        });
+
+        // Fix pet panel toggle buttons
+        const petPanelButtons = document.querySelectorAll('[onclick*="pet-panel"]');
+        petPanelButtons.forEach(button => {
+            if (button.textContent.includes('Pets') || button.textContent.includes('🐾')) {
+                button.onclick = (e) => {
+                    e.preventDefault();
+                    window.togglePetPanel();
+                };
             }
         });
     },
@@ -2870,12 +2939,15 @@ window.PetSystem = {
             petCountElement.textContent = this.activePets.size;
         }
         
-        // Update pet panel if visible
+        // Update pet panel if it exists (but don't check visibility)
         const petPanel = document.getElementById('pet-panel');
-        if (petPanel && petPanel.style.display !== 'none') {
-            // Update panel positioning and styling
-            this.enhancePetPanel(petPanel);
+        if (petPanel) {
+            // Only enhance if not already enhanced
+            if (petPanel.dataset.enhanced !== 'true') {
+                this.enhancePetPanel(petPanel);
+            }
             
+            // Always update the content
             const petList = document.getElementById('pet-list');
             if (petList) {
                 petList.innerHTML = this.generatePetPanelHTML();
@@ -2893,57 +2965,37 @@ window.PetSystem = {
         // Check if mobile
         const isMobile = window.innerWidth <= 768;
         
-        // Update panel styling based on device
-        if (isMobile) {
-            // Mobile: Position below status menu, half width
-            petPanel.style.cssText = `
-                position: fixed;
-                top: 120px; /* Below status menu */
-                right: 10px;
-                width: calc(50% - 15px); /* Half width minus margins */
-                min-width: 200px; /* Minimum width */
-                max-width: 300px; /* Maximum width */
-                height: calc(100vh - 260px); /* Taller panel, leave space for status menu and bottom UI */
-                max-height: 500px; /* Cap maximum height */
-                background: rgba(20, 20, 30, 0.95);
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                border-radius: 15px;
-                padding: 15px;
-                padding-top: 35px; /* Space for close button */
-                color: white;
-                z-index: 1000;
-                backdrop-filter: blur(10px);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                transition: all 0.3s ease;
-                animation: slideInRight 0.3s ease;
-                display: block !important;
-            `;
-        } else {
-            // Desktop: Position above chatbox
-            petPanel.style.cssText = `
-                position: fixed;
-                bottom: 420px; /* Position above chatbox */
-                right: 20px;
-                width: 320px;
-                max-height: 400px;
-                background: rgba(20, 20, 30, 0.95);
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                border-radius: 15px;
-                padding: 20px;
-                padding-top: 40px; /* Space for close button */
-                color: white;
-                z-index: 1000;
-                backdrop-filter: blur(10px);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-                overflow-y: auto;
-                transition: all 0.3s ease;
-                display: block !important;
-            `;
-        }
+        // Get all current styles to preserve
+        const computedStyle = window.getComputedStyle(petPanel);
+        const currentDisplay = computedStyle.display;
         
-        // Add animation styles
+        // Apply new styles WITHOUT changing display
+        Object.assign(petPanel.style, {
+            position: 'fixed',
+            top: isMobile ? '120px' : 'auto',
+            bottom: isMobile ? 'auto' : '420px',
+            right: isMobile ? '10px' : '20px',
+            width: isMobile ? 'calc(50% - 15px)' : '320px',
+            minWidth: isMobile ? '200px' : 'auto',
+            maxWidth: isMobile ? '300px' : 'auto',
+            height: isMobile ? 'calc(100vh - 260px)' : 'auto',
+            maxHeight: isMobile ? '500px' : '400px',
+            background: 'rgba(20, 20, 30, 0.95)',
+            border: '2px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '15px',
+            padding: isMobile ? '15px' : '20px',
+            paddingTop: isMobile ? '35px' : '40px',
+            color: 'white',
+            zIndex: '1000',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            transition: 'all 0.3s ease',
+            animation: isMobile ? 'slideInRight 0.3s ease' : 'fadeIn 0.3s ease'
+        });
+        
+        // Add animation styles if not exists
         if (!document.querySelector('#pet-panel-animations')) {
             const animStyle = document.createElement('style');
             animStyle.id = 'pet-panel-animations';
@@ -2958,7 +3010,7 @@ window.PetSystem = {
                         transform: translateX(0);
                     }
                 }
-                @keyframes slideDown {
+                @keyframes fadeIn {
                     from { 
                         opacity: 0;
                         transform: translateY(-20px);
@@ -2972,58 +3024,51 @@ window.PetSystem = {
             document.head.appendChild(animStyle);
         }
         
-        // Add close button
-        const closeButton = document.createElement('button');
-        closeButton.className = 'pet-panel-close';
-        closeButton.innerHTML = '×';
-        closeButton.style.cssText = `
-            position: absolute;
-            top: ${isMobile ? '8px' : '10px'};
-            right: ${isMobile ? '8px' : '10px'};
-            width: ${isMobile ? '28px' : '30px'};
-            height: ${isMobile ? '28px' : '30px'};
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            color: white;
-            font-size: ${isMobile ? '20px' : '24px'};
-            line-height: 1;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            z-index: 10;
-        `;
-        
-        // Add hover effect
-        closeButton.addEventListener('mouseenter', () => {
-            closeButton.style.background = 'rgba(255, 67, 54, 0.8)';
-            closeButton.style.transform = 'scale(1.1)';
-        });
-        
-        closeButton.addEventListener('mouseleave', () => {
-            closeButton.style.background = 'rgba(255, 255, 255, 0.1)';
-            closeButton.style.transform = 'scale(1)';
-        });
-        
-        // Add click handler to close panel
-        closeButton.addEventListener('click', () => {
-            petPanel.style.display = 'none';
-            petPanel.dataset.enhanced = 'false'; // Reset enhancement flag
+        // Add close button only if it doesn't exist
+        if (!petPanel.querySelector('.pet-panel-close')) {
+            const closeButton = document.createElement('button');
+            closeButton.className = 'pet-panel-close';
+            closeButton.innerHTML = '×';
+            closeButton.style.cssText = `
+                position: absolute;
+                top: ${isMobile ? '8px' : '10px'};
+                right: ${isMobile ? '8px' : '10px'};
+                width: ${isMobile ? '28px' : '30px'};
+                height: ${isMobile ? '28px' : '30px'};
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                color: white;
+                font-size: ${isMobile ? '20px' : '24px'};
+                line-height: 1;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+                z-index: 10;
+            `;
             
-            // Also update any toggle buttons
-            const toggleButtons = document.querySelectorAll('[onclick*="pet-panel"]');
-            toggleButtons.forEach(button => {
-                if (button.textContent.includes('Pets')) {
-                    button.classList.remove('active');
-                }
+            // Add hover effect
+            closeButton.addEventListener('mouseenter', () => {
+                closeButton.style.background = 'rgba(255, 67, 54, 0.8)';
+                closeButton.style.transform = 'scale(1.1)';
             });
-        });
+            
+            closeButton.addEventListener('mouseleave', () => {
+                closeButton.style.background = 'rgba(255, 255, 255, 0.1)';
+                closeButton.style.transform = 'scale(1)';
+            });
+            
+            // Add click handler to close panel
+            closeButton.addEventListener('click', () => {
+                window.hidePetPanel();
+            });
+            
+            petPanel.appendChild(closeButton);
+        }
         
-        petPanel.appendChild(closeButton);
-        
-        // Add header if not exists
+        // Add header only if it doesn't exist
         if (!petPanel.querySelector('.pet-panel-header')) {
             const header = document.createElement('div');
             header.className = 'pet-panel-header';
@@ -3082,57 +3127,56 @@ window.PetSystem = {
         }
         
         // Add custom scrollbar styling
-        const style = document.createElement('style');
-        style.textContent = `
-            #pet-panel::-webkit-scrollbar {
-                width: ${isMobile ? '6px' : '8px'};
-            }
-            #pet-panel::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 4px;
-            }
-            #pet-panel::-webkit-scrollbar-thumb {
-                background: rgba(255, 255, 255, 0.3);
-                border-radius: 4px;
-            }
-            #pet-panel::-webkit-scrollbar-thumb:hover {
-                background: rgba(255, 255, 255, 0.5);
-            }
-            
-            /* Pet item styling */
-            .pet-item {
-                display: flex;
-                align-items: center;
-                gap: ${isMobile ? '10px' : '15px'};
-                padding: ${isMobile ? '8px' : '10px'};
-                margin: 5px 0;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 8px;
-                border-left: 3px solid #4CAF50;
-                transition: all 0.3s;
-            }
-            
-            .pet-item:hover {
-                background: rgba(255, 255, 255, 0.1);
-                transform: translateX(5px);
-            }
-            
-            .pet-stats {
-                display: flex;
-                gap: ${isMobile ? '8px' : '10px'};
-                font-size: ${isMobile ? '11px' : '12px'};
-                margin-top: ${isMobile ? '3px' : '5px'};
-            }
-            
-            .pet-stats span {
-                display: flex;
-                align-items: center;
-                gap: 3px;
-            }
-        `;
-        
         if (!document.querySelector('#pet-panel-styles')) {
+            const style = document.createElement('style');
             style.id = 'pet-panel-styles';
+            style.textContent = `
+                #pet-panel::-webkit-scrollbar {
+                    width: ${isMobile ? '6px' : '8px'};
+                }
+                #pet-panel::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                }
+                #pet-panel::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 4px;
+                }
+                #pet-panel::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.5);
+                }
+                
+                /* Pet item styling */
+                .pet-item {
+                    display: flex;
+                    align-items: center;
+                    gap: ${isMobile ? '10px' : '15px'};
+                    padding: ${isMobile ? '8px' : '10px'};
+                    margin: 5px 0;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 8px;
+                    border-left: 3px solid #4CAF50;
+                    transition: all 0.3s;
+                }
+                
+                .pet-item:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    transform: translateX(5px);
+                }
+                
+                .pet-stats {
+                    display: flex;
+                    gap: ${isMobile ? '8px' : '10px'};
+                    font-size: ${isMobile ? '11px' : '12px'};
+                    margin-top: ${isMobile ? '3px' : '5px'};
+                }
+                
+                .pet-stats span {
+                    display: flex;
+                    align-items: center;
+                    gap: 3px;
+                }
+            `;
             document.head.appendChild(style);
         }
     },
