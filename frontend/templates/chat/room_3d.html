@@ -4525,8 +4525,13 @@
         }
         
         async getGrokResponse(message) {
+            // Add detailed logging
+            console.log('🤖 Getting AI response for:', message);
+            
             // Try API first
             try {
+                console.log('📤 Sending request to /api/grok-chat/');
+                
                 const response = await fetch('/api/grok-chat/', {
                     method: 'POST',
                     headers: {
@@ -4539,18 +4544,27 @@
                     })
                 });
                 
+                console.log('📥 Response status:', response.status);
+                console.log('📥 Response headers:', response.headers);
+                
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('✅ AI response data:', data);
                     return data.response;
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ API error:', response.status, errorText);
                 }
             } catch (error) {
-                console.warn('API call failed, using local responses:', error);
+                console.error('❌ Network error:', error);
+                console.error('Error details:', error.message, error.stack);
             }
             
             // Fallback to local responses
+        console.log('⚠️ Using fallback local response');
             return this.getLocalResponse(message);
         }
-        
+                
         getLocalResponse(message) {
             const responses = {
                 'hello': "Hey there! 👋 Welcome to Euphorie 3D! How can I help you navigate this virtual world?",
