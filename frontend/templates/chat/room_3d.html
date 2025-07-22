@@ -3291,7 +3291,7 @@
             }
             
             // Helper method to show notifications
-//             showNotification(message) {
+            showNotification(message) {
                 // Simply return without creating any notification
                 return;
 
@@ -3413,7 +3413,7 @@
                     this.applyRemoteSceneChange(data);
                     
                     // Show notification
-//                     // this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
+                    // this.showNotification(`🏠 Scene changed to ${sceneName} by ${data.username || 'user'}`);
                 } else {
                     // Own scene change - just show confirmation
                     const sceneName = data.scene_name || data.scene_preset;
@@ -3475,7 +3475,7 @@
                 
                 if (!applied) {
                     console.warn('⚠️ No scene system available to apply remote scene change');
-//                     // this.showNotification(`🏠 ${data.username || 'user'} changed the scene (reload to see changes)`);
+                    // this.showNotification(`🏠 ${data.username || 'user'} changed the scene (reload to see changes)`);
                 }
             }
             
@@ -3543,13 +3543,13 @@
                             console.log(`✅ Applied remote weather change: ${data.weather_type}`);
                             
                             // Show notification
-//                             // this.showNotification(`🌦️ Weather changed to ${data.weather_type} by ${data.username || 'user'}`);
+                            // this.showNotification(`🌦️ Weather changed to ${data.weather_type} by ${data.username || 'user'}`);
                         } catch (error) {
                             console.error('❌ Error applying remote weather change:', error);
                         }
                     } else {
                         console.warn('⚠️ No weather system available to apply remote weather change');
-//                         // this.showNotification(`🌦️ ${data.username || 'user'} changed the weather`);
+                        // this.showNotification(`🌦️ ${data.username || 'user'} changed the weather`);
                     }
                 } else {
                     // Own weather change - just show confirmation
@@ -3576,13 +3576,13 @@
                             console.log(`✅ Applied remote time change: ${data.time_of_day}`);
                             
                             // Show notification
-//                             // this.showNotification(`🌅 Time changed to ${timeDisplay} by ${data.username || 'user'}`);
+                            // this.showNotification(`🌅 Time changed to ${timeDisplay} by ${data.username || 'user'}`);
                         } catch (error) {
                             console.error('❌ Error applying remote time change:', error);
                         }
                     } else {
                         console.warn('⚠️ No time system available to apply remote time change');
-//                         // this.showNotification(`🌅 ${data.username || 'user'} changed the time`);
+                        // this.showNotification(`🌅 ${data.username || 'user'} changed the time`);
                     }
                 } else {
                     // Own time change - just show confirmation
@@ -4046,8 +4046,8 @@
             if (syncSuccess) {
                 // Show confirmation notification
                 const notification = `🏠 Scene changed to ${sceneName || scenePreset}`;
-//                 if (window.WebSocketManager && window.WebSocketManager.showNotification) {
-//                     window.WebSocketManager.showNotification(notification);
+                if (window.WebSocketManager && window.WebSocketManager.showNotification) {
+                    window.WebSocketManager.showNotification(notification);
                 }
                 console.log(notification);
             }
@@ -5755,9 +5755,9 @@
                         if (petSystem && petSystem.assignRandomPet) {
                             const pet = petSystem.assignRandomPet('default');
                             if (pet && pet.options) {
-//                                 // this.showNotification(`🐾 ${pet.options.name} joined you!`);
+                                // this.showNotification(`🐾 ${pet.options.name} joined you!`);
                             } else {
-//                                 // this.showNotification('🐾 A new pet joined you!');
+                                // this.showNotification('🐾 A new pet joined you!');
                             }
                             return pet;
                         }
@@ -5772,7 +5772,7 @@
                         if (petPanel) {
                             const isVisible = petPanel.style.display !== 'none';
                             petPanel.style.display = isVisible ? 'none' : 'block';
-//                             // this.showNotification(isVisible ? '🎪 Pet panel hidden' : '🎪 Pet panel shown');
+                            // this.showNotification(isVisible ? '🎪 Pet panel hidden' : '🎪 Pet panel shown');
                         }
                     },
                     'Pet panel',
@@ -5798,7 +5798,7 @@
                         } else if (roomCore && roomCore.changeScene) {
                             roomCore.changeScene();
                         } else {
-//                             // this.showNotification('🏠 Scene system loading...');
+                            // this.showNotification('🏠 Scene system loading...');
                         }
                     },
                     'Scene system',
@@ -5812,7 +5812,7 @@
                             // The weather system is already enhanced with sync in the loader
                             advancedScene.showWeatherSelector();
                         } else {
-//                             // this.showNotification('🌦️ Weather system loading...');
+                            // this.showNotification('🌦️ Weather system loading...');
                         }
                     },
                     'Weather system',
@@ -5826,7 +5826,7 @@
                             // The time system is already enhanced with sync in the loader
                             advancedScene.showTimeOfDaySelector();
                         } else {
-//                             // this.showNotification('🌅 Time system loading...');
+                            // this.showNotification('🌅 Time system loading...');
                         }
                     },
                     'Time system',
@@ -5857,17 +5857,17 @@
                     const result = primaryFunction();
                     if (result === undefined || result === null) {
                         console.log(`${systemName} not ready yet, showing fallback`);
-//                         this.showNotification(fallbackMessage);
+                        this.showNotification(fallbackMessage);
                     }
                     return result;
                 } catch (error) {
                     console.warn(`${systemName} not available:`, error.message);
-//                     this.showNotification(fallbackMessage);
+                    this.showNotification(fallbackMessage);
                     return null;
                 }
             }
             
-//             showNotification(message) {
+            showNotification(message) {
                 // Enhanced fallback notification system
                 const notification = document.createElement('div');
                 notification.style.cssText = `

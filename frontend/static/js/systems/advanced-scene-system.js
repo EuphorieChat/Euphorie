@@ -606,7 +606,7 @@ window.AdvancedSceneSystem = {
         
         // Show notification
         if (window.RoomCore) {
-//             window.RoomCore.showNotification(`${weather.emoji} Weather: ${weather.name}`);
+            window.RoomCore.showNotification(`${weather.emoji} Weather: ${weather.name}`);
         }
         
         // Emit event
@@ -632,7 +632,7 @@ window.AdvancedSceneSystem = {
         
         // Show notification
         if (window.RoomCore) {
-//             window.RoomCore.showNotification(`${time.emoji} Time: ${time.name}`);
+            window.RoomCore.showNotification(`${time.emoji} Time: ${time.name}`);
         }
         
         // Emit event
@@ -682,7 +682,7 @@ window.AdvancedSceneSystem = {
         
         // Update UI
         if (window.RoomCore) {
-//             window.RoomCore.showNotification(`🌟 Welcome to ${environment.name}! ${environment.emoji}`);
+            window.RoomCore.showNotification(`🌟 Welcome to ${environment.name}! ${environment.emoji}`);
         }
         
         // Emit event

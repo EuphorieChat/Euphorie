@@ -238,7 +238,7 @@ window.RoomCore = {
         }
         
         console.log('✨ Enhanced magic effects activated!');
-//         this.showNotification('✨ Magical aura activated! All avatars are glowing!');
+        this.showNotification('✨ Magical aura activated! All avatars are glowing!');
     },
     
     addMagicalGlow: function(avatar) {
@@ -286,7 +286,7 @@ window.RoomCore = {
                 word.charAt(0).toUpperCase() + word.slice(1)
             ).join(' ');
             
-//             this.showNotification(`🏠 Welcome to ${sceneName}!`);
+            this.showNotification(`🏠 Welcome to ${sceneName}!`);
         }
     },
     
@@ -335,11 +335,11 @@ window.RoomCore = {
         const isActive = document.body.classList.toggle('interaction-mode');
         
         if (isActive) {
-//             this.showNotification('🎯 Interaction mode activated! Click on avatars to interact.');
+            this.showNotification('🎯 Interaction mode activated! Click on avatars to interact.');
             // Highlight all avatars
             this.highlightInteractableAvatars();
         } else {
-//             this.showNotification('🎯 Interaction mode deactivated.');
+            this.showNotification('🎯 Interaction mode deactivated.');
             this.unhighlightAvatars();
         }
     },
@@ -411,7 +411,7 @@ window.RoomCore = {
         const availableNames = friendNames.filter(name => !usedNames.has(name));
         
         if (availableNames.length === 0) {
-//             this.showNotification('🎉 Room is full of friends!');
+            this.showNotification('🎉 Room is full of friends!');
             return;
         }
         
@@ -442,12 +442,12 @@ window.RoomCore = {
                 if (window.InteractionSystem) {
                     // Simulate friend doing an interaction
                     window.InteractionSystem.createParticleEffect(friend, 'sparkle');
-//                     this.showNotification(`👋 ${name} waves hello!`);
+                    this.showNotification(`👋 ${name} waves hello!`);
                 }
             }, 1000 + i * 500);
         }
         
-//         this.showNotification(`🎉 ${friendsToAdd} new friends joined the room!`);
+        this.showNotification(`🎉 ${friendsToAdd} new friends joined the room!`);
     },
     
     showAvatarCustomizationPanel: function() {
@@ -539,7 +539,7 @@ window.RoomCore = {
         // Add event listeners for customization
         this.setupCustomizationListeners(panel);
         
-//         this.showNotification('👤 Avatar customization panel opened!');
+        this.showNotification('👤 Avatar customization panel opened!');
     },
     
     setupCustomizationListeners: function(panel) {
@@ -582,7 +582,7 @@ window.RoomCore = {
         panel.querySelector('#randomize-avatar').addEventListener('click', () => {
             const randomOptions = window.AvatarSystem.getRandomCustomization();
             this.updateAvatar(randomOptions);
-//             this.showNotification('🎲 Avatar randomized!');
+            this.showNotification('🎲 Avatar randomized!');
         });
         
         panel.querySelector('#dance-preview').addEventListener('click', () => {
@@ -662,7 +662,7 @@ window.RoomCore = {
         }
     },
     
-//     showNotification: function(message) {
+    showNotification: function(message) {
         // Create notification element
         const notification = document.createElement('div');
         notification.style.cssText = `

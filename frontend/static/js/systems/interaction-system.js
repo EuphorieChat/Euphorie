@@ -243,14 +243,14 @@ window.InteractionSystem = {
         if (this.interactionCooldowns.has(cooldownKey)) {
             const timeLeft = this.interactionCooldowns.get(cooldownKey) - Date.now();
             if (timeLeft > 0) {
-//                 this.showNotification(`⏰ Wait ${Math.ceil(timeLeft / 1000)}s before ${interaction.name} again`);
+                this.showNotification(`⏰ Wait ${Math.ceil(timeLeft / 1000)}s before ${interaction.name} again`);
                 return;
             }
         }
         
         // Check if target is required
         if (interaction.requiresTarget && !targetAvatarId) {
-//             this.showNotification(`🎯 Click on another avatar to ${interaction.name}`);
+            this.showNotification(`🎯 Click on another avatar to ${interaction.name}`);
             return;
         }
         
@@ -285,17 +285,17 @@ window.InteractionSystem = {
     requestConsent: function(interaction, myAvatar, targetAvatar) {
         // In a real app, this would send a request to the other user
         // For demo, we'll auto-accept after a short delay
-//         this.showNotification(`💭 Asking ${targetAvatar.customization.name} for ${interaction.name}...`);
+        this.showNotification(`💭 Asking ${targetAvatar.customization.name} for ${interaction.name}...`);
         
         setTimeout(() => {
             // Simulate consent response (for demo)
             const accepted = Math.random() > 0.3; // 70% acceptance rate
             
             if (accepted) {
-//                 this.showNotification(`✅ ${targetAvatar.customization.name} accepted your ${interaction.name}!`);
+                this.showNotification(`✅ ${targetAvatar.customization.name} accepted your ${interaction.name}!`);
                 this.executeInteraction(interaction, myAvatar, targetAvatar);
             } else {
-//                 this.showNotification(`❌ ${targetAvatar.customization.name} declined your ${interaction.name}`);
+                this.showNotification(`❌ ${targetAvatar.customization.name} declined your ${interaction.name}`);
             }
         }, 2000);
     },
@@ -320,7 +320,7 @@ window.InteractionSystem = {
         
         // Show notification
         const targetName = targetAvatar ? ` with ${targetAvatar.customization.name}` : '';
-//         this.showNotification(`${interaction.icon} ${myAvatar.customization.name} ${interaction.name.toLowerCase()}s${targetName}!`);
+        this.showNotification(`${interaction.icon} ${myAvatar.customization.name} ${interaction.name.toLowerCase()}s${targetName}!`);
         
         // Schedule interaction completion
         setTimeout(() => {
@@ -733,7 +733,7 @@ window.InteractionSystem = {
         console.log('Animation completed:', data);
     },
     
-//     showNotification: function(message) {
+    showNotification: function(message) {
         // Create notification element
         const notification = document.createElement('div');
         notification.style.cssText = `

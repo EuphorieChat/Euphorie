@@ -1848,7 +1848,7 @@ window.PetSystem = {
         console.log(`🎉 ${petData.options.name} leveled up to level ${petData.level}!`);
         
         if (window.RoomCore) {
-//             window.RoomCore.showNotification(`🎉 ${petData.options.name} reached level ${petData.level}!`);
+            window.RoomCore.showNotification(`🎉 ${petData.options.name} reached level ${petData.level}!`);
         }
     },
 
@@ -1965,7 +1965,7 @@ window.PetSystem = {
         const existingPets = this.getPetsForOwner(avatarId);
         if (existingPets.length >= 3) {
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification('🐾 You already have enough pets!');
+                window.RoomCore.showNotification('🐾 You already have enough pets!');
             }
             return null;
         }
@@ -1973,7 +1973,7 @@ window.PetSystem = {
         const pet = this.createPet(avatarId, randomType);
         
         if (pet && window.RoomCore) {
-//             window.RoomCore.showNotification(`🐾 ${pet.options.name} the ${pet.type} joined you!`);
+            window.RoomCore.showNotification(`🐾 ${pet.options.name} the ${pet.type} joined you!`);
         }
         
         return pet;
