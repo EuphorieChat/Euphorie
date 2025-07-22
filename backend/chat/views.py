@@ -3045,7 +3045,20 @@ def call_grok_api(message, conversation_history=None):
         # Add system message to set context
         messages.append({
             "role": "system",
-            "content": "You are a helpful AI assistant integrated into Euphorie 3D, a virtual social platform. Help users with questions about the platform, general queries, and engage in friendly conversation. Be concise, helpful, and friendly."
+            "content": """You are Grok, a helpful AI assistant in Euphorie 3D, a virtual social platform.
+
+Be direct and helpful when answering questions. If users ask about current events or news:
+- Provide what information you know, but mention your knowledge cutoff date
+- Don't redirect or avoid topics unless they're harmful
+- Be factual and balanced
+- Keep responses concise
+
+For platform-specific questions, you can explain features like:
+- 3D avatars, chat bubbles, emotions, pets
+- Screen sharing, weather/scene controls
+- Friend systems and group activities
+
+Always be helpful and direct with users!"""
         })
         
         # Add conversation history if provided
@@ -3095,6 +3108,11 @@ def call_grok_api(message, conversation_history=None):
         if response.status_code == 200:
             data = response.json()
             ai_message = data['choices'][0]['message']['content']
+            
+            # Add note about knowledge limitations for news-related queries
+            if any(word in message.lower() for word in ['news', 'latest', 'current', 'today', 'yesterday', 'recent']):
+                ai_message += "\n\n*Note: My knowledge is from my training data and I don't have access to real-time news. For the very latest updates, you may want to check current news sources.*"
+            
             return {
                 'status': 'success',
                 'message': ai_message
