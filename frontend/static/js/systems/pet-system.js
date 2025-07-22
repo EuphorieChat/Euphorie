@@ -2899,14 +2899,16 @@ window.PetSystem = {
         
         // Update panel styling based on device
         if (isMobile) {
-            // Mobile: Position below status menu
+            // Mobile: Position below status menu, half width
             petPanel.style.cssText = `
                 position: fixed;
                 top: 120px; /* Below status menu */
-                left: 10px;
                 right: 10px;
-                width: auto;
-                max-height: calc(100vh - 140px); /* Leave space for status menu */
+                width: calc(50% - 15px); /* Half width minus margins */
+                min-width: 200px; /* Minimum width */
+                max-width: 300px; /* Maximum width */
+                height: calc(100vh - 260px); /* Taller panel, leave space for status menu and bottom UI */
+                max-height: 500px; /* Cap maximum height */
                 background: rgba(20, 20, 30, 0.95);
                 border: 2px solid rgba(255, 255, 255, 0.2);
                 border-radius: 15px;
@@ -2919,7 +2921,7 @@ window.PetSystem = {
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 transition: all 0.3s ease;
-                animation: slideDown 0.3s ease;
+                animation: slideInRight 0.3s ease;
                 display: block !important;
             `;
         } else {
@@ -2950,6 +2952,16 @@ window.PetSystem = {
             const animStyle = document.createElement('style');
             animStyle.id = 'pet-panel-animations';
             animStyle.textContent = `
+                @keyframes slideInRight {
+                    from { 
+                        opacity: 0;
+                        transform: translateX(20px);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
                 @keyframes slideDown {
                     from { 
                         opacity: 0;
