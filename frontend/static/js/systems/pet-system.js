@@ -2530,93 +2530,162 @@ window.PetSystem = {
             return;
         }
         
+        // Check if mobile
+        const isMobile = window.innerWidth <= 768;
+        
         const panel = document.createElement('div');
         panel.id = 'pet-selection-panel';
         panel.style.cssText = `
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 30, 0.95);
+            ${isMobile ? `
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+                padding: 20px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            ` : `
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                min-width: 500px;
+                max-width: 700px;
+                max-height: 80vh;
+                border-radius: 15px;
+                padding: 25px;
+                overflow-y: auto;
+            `}
+            background: rgba(20, 20, 30, 0.98);
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            padding: 25px;
             z-index: 1500;
             color: white;
-            min-width: 500px;
-            max-width: 700px;
-            max-height: 80vh;
-            overflow-y: auto;
             backdrop-filter: blur(20px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.3s ease;
+            animation: ${isMobile ? 'slideUp' : 'fadeIn'} 0.3s ease;
         `;
         
-        const petTypesGrid = this.generatePetSelectionHTML();
+        const petTypesGrid = this.generatePetSelectionHTML(isMobile);
         
         panel.innerHTML = `
-            <h3 style="margin: 0 0 20px 0; color: #667eea; text-align: center; font-size: 24px;">
-                🐾 Choose Your Pet Companion
-            </h3>
+            ${isMobile ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #667eea; font-size: 20px;">
+                        🐾 Choose Your Pet
+                    </h3>
+                    <button onclick="document.getElementById('pet-selection-panel').remove()" 
+                            style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); 
+                                   border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; 
+                                   color: white; font-size: 24px; display: flex; align-items: center;
+                                   justify-content: center; cursor: pointer;">
+                        ×
+                    </button>
+                </div>
+            ` : `
+                <h3 style="margin: 0 0 20px 0; color: #667eea; text-align: center; font-size: 24px;">
+                    🐾 Choose Your Pet Companion
+                </h3>
+            `}
             
             <div style="margin-bottom: 20px;">
                 ${petTypesGrid}
             </div>
             
-            <div style="text-align: center;">
-                <button onclick="document.getElementById('pet-selection-panel').remove()" 
-                        style="padding: 12px 30px; background: rgba(255,255,255,0.2); 
-                               border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; 
-                               color: white; cursor: pointer; font-size: 16px;
-                               transition: all 0.3s;">
-                    Cancel
-                </button>
-            </div>
+            ${!isMobile ? `
+                <div style="text-align: center;">
+                    <button onclick="document.getElementById('pet-selection-panel').remove()" 
+                            style="padding: 12px 30px; background: rgba(255,255,255,0.2); 
+                                   border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; 
+                                   color: white; cursor: pointer; font-size: 16px;
+                                   transition: all 0.3s;">
+                        Cancel
+                    </button>
+                </div>
+            ` : ''}
             
             <style>
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translate(-50%, -48%); }
                     to { opacity: 1; transform: translate(-50%, -50%); }
                 }
+                @keyframes slideUp {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
+                }
                 .pet-type-button:hover {
                     transform: translateY(-5px);
                     box-shadow: 0 10px 20px rgba(0,0,0,0.3);
                     border-color: rgba(255,255,255,0.4) !important;
+                }
+                .pet-type-button:active {
+                    transform: translateY(-2px);
                 }
             </style>
         `;
         
         document.body.appendChild(panel);
         
+        // Prevent body scroll on mobile
+        if (isMobile) {
+            document.body.style.overflow = 'hidden';
+        }
+        
         // Add click handlers to pet type buttons
         panel.querySelectorAll('.pet-type-button').forEach(button => {
             button.addEventListener('click', () => {
                 const petType = button.dataset.petType;
                 this.createSpecificPet('default', petType);
+                
+                // Restore body scroll on mobile
+                if (isMobile) {
+                    document.body.style.overflow = '';
+                }
+                
                 panel.remove();
             });
         });
+        
+        // Close on escape key
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                if (isMobile) {
+                    document.body.style.overflow = '';
+                }
+                panel.remove();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
     },
 
-    generatePetSelectionHTML: function() {
+    generatePetSelectionHTML: function(isMobile) {
         return `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(${isMobile ? '100px' : '150px'}, 1fr)); 
+                        gap: ${isMobile ? '10px' : '15px'};">
                 ${Object.entries(this.petTypes).map(([type, config]) => `
                     <div class="pet-type-button" data-pet-type="${type}"
-                         style="padding: 20px 15px; background: rgba(255,255,255,0.1); 
-                                border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; 
+                         style="padding: ${isMobile ? '15px 10px' : '20px 15px'}; 
+                                background: rgba(255,255,255,0.1); 
+                                border: 2px solid rgba(255,255,255,0.2); 
+                                border-radius: 12px; 
                                 cursor: pointer; text-align: center; transition: all 0.3s;
                                 display: flex; flex-direction: column; align-items: center;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">${config.emoji}</div>
-                        <div style="font-size: 16px; font-weight: bold; color: #FFD700; margin-bottom: 5px;">
+                        <div style="font-size: ${isMobile ? '36px' : '48px'}; margin-bottom: ${isMobile ? '5px' : '10px'};">
+                            ${config.emoji}
+                        </div>
+                        <div style="font-size: ${isMobile ? '14px' : '16px'}; font-weight: bold; 
+                                    color: #FFD700; margin-bottom: ${isMobile ? '3px' : '5px'};">
                             ${config.name}
                         </div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">
-                            ${config.personality}
-                        </div>
-                        <div style="font-size: 11px; opacity: 0.6;">
-                            Speed: ${config.speed} • Size: ${config.size}
-                        </div>
+                        ${!isMobile ? `
+                            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">
+                                ${config.personality}
+                            </div>
+                            <div style="font-size: 11px; opacity: 0.6;">
+                                Speed: ${config.speed} • Size: ${config.size}
+                            </div>
+                        ` : ''}
                     </div>
                 `).join('')}
             </div>
@@ -2636,56 +2705,90 @@ window.PetSystem = {
             return;
         }
         
+        // Check if mobile
+        const isMobile = window.innerWidth <= 768;
+        
         const panel = document.createElement('div');
         panel.id = 'pet-management-panel';
         panel.style.cssText = `
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 30, 0.95);
+            ${isMobile ? `
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+                padding: 20px;
+            ` : `
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                min-width: 400px;
+                max-width: 600px;
+                max-height: 80vh;
+                border-radius: 15px;
+                padding: 25px;
+            `}
+            background: rgba(20, 20, 30, 0.98);
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            padding: 25px;
             z-index: 1500;
             color: white;
-            min-width: 400px;
-            max-width: 600px;
-            max-height: 80vh;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             backdrop-filter: blur(20px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            animation: ${isMobile ? 'slideUp' : 'fadeIn'} 0.3s ease;
         `;
         
-        const petsList = this.generatePetsListHTML();
+        const petsList = this.generatePetsListHTML(isMobile);
         
         panel.innerHTML = `
-            <h3 style="margin: 0 0 20px 0; color: #667eea; text-align: center;">🐾 Pet Management</h3>
+            ${isMobile ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #667eea; font-size: 20px;">🐾 Manage Pets</h3>
+                    <button onclick="document.getElementById('pet-management-panel').remove(); document.body.style.overflow = '';" 
+                            style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); 
+                                   border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; 
+                                   color: white; font-size: 24px; display: flex; align-items: center;
+                                   justify-content: center; cursor: pointer;">
+                        ×
+                    </button>
+                </div>
+            ` : `
+                <h3 style="margin: 0 0 20px 0; color: #667eea; text-align: center;">🐾 Pet Management</h3>
+            `}
             
             <div style="margin-bottom: 20px;">
-                <h4 style="color: #4CAF50; margin-bottom: 10px;">Your Pets:</h4>
+                <h4 style="color: #4CAF50; margin-bottom: 10px; font-size: ${isMobile ? '16px' : '18px'};">Your Pets:</h4>
                 ${petsList}
             </div>
             
-            <div style="text-align: center;">
-                <button onclick="window.PetSystem.showPetSelectionPanel()" 
-                        style="padding: 10px 20px; background: #4CAF50; border: none; 
-                               border-radius: 8px; color: white; cursor: pointer; margin-right: 10px;">
+            <div style="${isMobile ? 'position: sticky; bottom: 0; background: rgba(20, 20, 30, 0.98); padding: 10px 0;' : 'text-align: center;'}">
+                <button onclick="window.PetSystem.showPetSelectionPanel(); document.getElementById('pet-management-panel').remove(); ${isMobile ? "document.body.style.overflow = '';" : ""}" 
+                        style="padding: ${isMobile ? '12px 20px' : '10px 20px'}; background: #4CAF50; border: none; 
+                               border-radius: 8px; color: white; cursor: pointer; margin-right: 10px;
+                               font-size: ${isMobile ? '14px' : '16px'};">
                     🐾 Add New Pet
                 </button>
-                <button onclick="this.parentElement.parentElement.remove()" 
-                        style="padding: 10px 20px; background: rgba(255,255,255,0.2); 
+                <button onclick="document.getElementById('pet-management-panel').remove(); ${isMobile ? "document.body.style.overflow = '';" : ""}" 
+                        style="padding: ${isMobile ? '12px 20px' : '10px 20px'}; background: rgba(255,255,255,0.2); 
                                border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; 
-                               color: white; cursor: pointer;">
+                               color: white; cursor: pointer; font-size: ${isMobile ? '14px' : '16px'};">
                     Close
                 </button>
             </div>
         `;
         
+        // Prevent body scroll on mobile
+        if (isMobile) {
+            document.body.style.overflow = 'hidden';
+        }
+        
         document.body.appendChild(panel);
     },
 
-    generatePetsListHTML: function() {
+    generatePetsListHTML: function(isMobile) {
         const allPets = Array.from(this.activePets.values());
         
         if (allPets.length === 0) {
@@ -2693,29 +2796,40 @@ window.PetSystem = {
         }
         
         return allPets.map(pet => `
-            <div style="display: flex; align-items: center; gap: 15px; padding: 10px; margin: 5px 0; 
+            <div style="display: flex; align-items: center; gap: ${isMobile ? '10px' : '15px'}; 
+                        padding: ${isMobile ? '8px' : '10px'}; margin: 5px 0; 
                         background: rgba(255,255,255,0.05); border-radius: 8px; 
                         border-left: 3px solid ${this.getPetTypeColor(pet.type)};">
-                <div style="font-size: 24px;">${pet.config.emoji}</div>
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; color: #FFD700;">${pet.options.name}</div>
-                    <div style="font-size: 12px; opacity: 0.8;">Level ${pet.level} ${pet.type}</div>
-                    <div style="font-size: 11px; opacity: 0.6;">Mood: ${pet.mood} • Energy: ${Math.round(pet.energy)}%</div>
+                <div style="font-size: ${isMobile ? '20px' : '24px'};">${pet.config.emoji}</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: bold; color: #FFD700; font-size: ${isMobile ? '14px' : '16px'}; 
+                                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${pet.options.name}
+                    </div>
+                    <div style="font-size: ${isMobile ? '11px' : '12px'}; opacity: 0.8;">
+                        Level ${pet.level} ${pet.type}
+                    </div>
+                    <div style="font-size: ${isMobile ? '10px' : '11px'}; opacity: 0.6;">
+                        Mood: ${pet.mood} • Energy: ${Math.round(pet.energy)}%
+                    </div>
                 </div>
-                <div style="display: flex; gap: 5px;">
+                <div style="display: flex; ${isMobile ? 'flex-direction: column;' : ''} gap: 5px;">
                     <button onclick="window.PetSystem.feedPet('${pet.id}')" 
-                            style="padding: 5px 8px; background: #4CAF50; border: none; 
-                                   border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
-                        🍖 Feed
+                            style="padding: ${isMobile ? '6px 10px' : '5px 8px'}; background: #4CAF50; border: none; 
+                                   border-radius: 4px; color: white; cursor: pointer; 
+                                   font-size: ${isMobile ? '12px' : '11px'};">
+                        🍖 ${!isMobile ? 'Feed' : ''}
                     </button>
                     <button onclick="window.PetSystem.playWithPet('${pet.id}')" 
-                            style="padding: 5px 8px; background: #2196F3; border: none; 
-                                   border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
-                        🎾 Play
+                            style="padding: ${isMobile ? '6px 10px' : '5px 8px'}; background: #2196F3; border: none; 
+                                   border-radius: 4px; color: white; cursor: pointer; 
+                                   font-size: ${isMobile ? '12px' : '11px'};">
+                        🎾 ${!isMobile ? 'Play' : ''}
                     </button>
-                    <button onclick="window.PetSystem.removePet('${pet.id}')" 
-                            style="padding: 5px 8px; background: #f44336; border: none; 
-                                   border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
+                    <button onclick="if(confirm('Remove ${pet.options.name}?')) window.PetSystem.removePet('${pet.id}')" 
+                            style="padding: ${isMobile ? '6px 10px' : '5px 8px'}; background: #f44336; border: none; 
+                                   border-radius: 4px; color: white; cursor: pointer; 
+                                   font-size: ${isMobile ? '12px' : '11px'};">
                         ❌
                     </button>
                 </div>
