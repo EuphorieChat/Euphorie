@@ -6140,29 +6140,118 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
+
+<!-- Collapsible Status Panel Enhancement -->
 <style>
 /* Simple collapse styles */
 #status-panel.hide-panel {
     display: none !important;
 }
 
+/* Responsive width constraints for status panel */
+#status-panel {
+    max-width: 30vw !important;
+    min-width: 200px !important;
+    overflow: hidden;
+    word-wrap: break-word;
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+    #status-panel {
+        max-width: 40vw !important;
+        min-width: 150px !important;
+        font-size: 9px !important;
+        padding: 8px 10px !important;
+    }
+}
+
+/* For tablets */
+@media (min-width: 481px) and (max-width: 768px) {
+    #status-panel {
+        max-width: 35vw !important;
+    }
+}
+
+/* Text overflow handling */
+#status-panel .status-item {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#status-panel .status-value {
+    max-width: 100%;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+/* Pretty toggle button */
 .status-toggle-simple {
     position: fixed;
     top: 15px;
     left: 15px;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.85);
     color: white;
-    border: 1px solid #667eea;
-    border-radius: 8px;
-    padding: 8px 12px;
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    padding: 10px 16px;
     cursor: pointer;
     z-index: 101;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-toggle-simple:hover {
+    background: rgba(0,0,0,0.95);
+    border-color: #8b9dc3;
+    transform: translateY(-2px);
+}
+
+.status-toggle-simple:active {
+    transform: translateY(0);
+}
+
+/* Hide button styling */
+.status-hide-btn {
+    float: right;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 8px;
+    margin: -2px -4px 0 0;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.status-hide-btn:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.3);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .status-toggle-simple {
+        top: 10px;
+        left: 10px;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
 }
 </style>
 
 <script>
-// Simple toggle approach
+// Enhanced simple toggle approach
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const panel = document.getElementById('status-panel');
@@ -6171,26 +6260,32 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Create simple toggle button
+        // Create prettier toggle button
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'status-toggle-simple';
-        toggleBtn.textContent = '📊 Toggle Status';
+        toggleBtn.innerHTML = '<span style="font-size: 16px;">📊</span><span>Show Status</span>';
         toggleBtn.style.display = 'none';
         
         toggleBtn.onclick = () => {
             if (panel.classList.contains('hide-panel')) {
                 panel.classList.remove('hide-panel');
                 toggleBtn.style.display = 'none';
+                // Save preference
+                localStorage.setItem('statusPanelHidden', 'false');
             }
         };
         
-        // Add hide button to panel
+        // Add styled hide button to panel
         const hideBtn = document.createElement('button');
-        hideBtn.style.cssText = 'float: right; background: none; border: none; color: white; cursor: pointer; font-size: 16px;';
+        hideBtn.className = 'status-hide-btn';
         hideBtn.textContent = '×';
+        hideBtn.title = 'Hide Status Panel';
+        
         hideBtn.onclick = () => {
             panel.classList.add('hide-panel');
-            toggleBtn.style.display = 'block';
+            toggleBtn.style.display = 'flex';
+            // Save preference
+            localStorage.setItem('statusPanelHidden', 'true');
         };
         
         const header = panel.querySelector('.status-header');
@@ -6199,10 +6294,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         document.body.appendChild(toggleBtn);
-        console.log('✅ Simple toggle system added');
-    }, 2000); // Wait 2 seconds for everything to load
+        
+        // Load saved preference
+        const isHidden = localStorage.getItem('statusPanelHidden') === 'true';
+        if (isHidden) {
+            panel.classList.add('hide-panel');
+            toggleBtn.style.display = 'flex';
+        }
+        
+        // Add keyboard shortcut (Ctrl + `)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === '`') {
+                e.preventDefault();
+                if (panel.classList.contains('hide-panel')) {
+                    toggleBtn.click();
+                } else {
+                    hideBtn.click();
+                }
+            }
+        });
+        
+        console.log('✅ Enhanced toggle system added');
+        console.log('💡 Use Ctrl + ` to toggle status panel');
+    }, 2000);
 });
 </script>
+
+
 
 </body>
 </html>
