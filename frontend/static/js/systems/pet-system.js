@@ -2894,26 +2894,75 @@ window.PetSystem = {
         // Mark as enhanced
         petPanel.dataset.enhanced = 'true';
         
-        // Update panel styling to position above chatbox
-        petPanel.style.cssText = `
-            position: fixed;
-            bottom: 420px; /* Position above chatbox */
-            right: 20px;
-            width: 320px;
-            max-height: 400px;
-            background: rgba(20, 20, 30, 0.95);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            padding-top: 40px; /* Space for close button */
-            color: white;
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            overflow-y: auto;
-            transition: all 0.3s ease;
-            display: block !important; /* Override any display:none */
-        `;
+        // Check if mobile
+        const isMobile = window.innerWidth <= 768;
+        
+        // Update panel styling based on device
+        if (isMobile) {
+            // Mobile: Position below status menu
+            petPanel.style.cssText = `
+                position: fixed;
+                top: 120px; /* Below status menu */
+                left: 10px;
+                right: 10px;
+                width: auto;
+                max-height: calc(100vh - 140px); /* Leave space for status menu */
+                background: rgba(20, 20, 30, 0.95);
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-radius: 15px;
+                padding: 15px;
+                padding-top: 35px; /* Space for close button */
+                color: white;
+                z-index: 1000;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                transition: all 0.3s ease;
+                animation: slideDown 0.3s ease;
+                display: block !important;
+            `;
+        } else {
+            // Desktop: Position above chatbox
+            petPanel.style.cssText = `
+                position: fixed;
+                bottom: 420px; /* Position above chatbox */
+                right: 20px;
+                width: 320px;
+                max-height: 400px;
+                background: rgba(20, 20, 30, 0.95);
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-radius: 15px;
+                padding: 20px;
+                padding-top: 40px; /* Space for close button */
+                color: white;
+                z-index: 1000;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                overflow-y: auto;
+                transition: all 0.3s ease;
+                display: block !important;
+            `;
+        }
+        
+        // Add animation styles
+        if (!document.querySelector('#pet-panel-animations')) {
+            const animStyle = document.createElement('style');
+            animStyle.id = 'pet-panel-animations';
+            animStyle.textContent = `
+                @keyframes slideDown {
+                    from { 
+                        opacity: 0;
+                        transform: translateY(-20px);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `;
+            document.head.appendChild(animStyle);
+        }
         
         // Add close button
         const closeButton = document.createElement('button');
@@ -2921,15 +2970,15 @@ window.PetSystem = {
         closeButton.innerHTML = '×';
         closeButton.style.cssText = `
             position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
+            top: ${isMobile ? '8px' : '10px'};
+            right: ${isMobile ? '8px' : '10px'};
+            width: ${isMobile ? '28px' : '30px'};
+            height: ${isMobile ? '28px' : '30px'};
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             color: white;
-            font-size: 24px;
+            font-size: ${isMobile ? '20px' : '24px'};
             line-height: 1;
             cursor: pointer;
             display: flex;
@@ -2971,49 +3020,49 @@ window.PetSystem = {
             const header = document.createElement('div');
             header.className = 'pet-panel-header';
             header.style.cssText = `
-                margin-bottom: 15px;
-                padding-bottom: 10px;
+                margin-bottom: ${isMobile ? '10px' : '15px'};
+                padding-bottom: ${isMobile ? '8px' : '10px'};
                 border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             `;
             
             header.innerHTML = `
-                <h3 style="margin: 0 0 10px 0; color: #4CAF50; font-size: 18px;">
+                <h3 style="margin: 0 0 ${isMobile ? '8px' : '10px'} 0; color: #4CAF50; font-size: ${isMobile ? '16px' : '18px'};">
                     🐾 Your Pets
                     <span style="
                         background: rgba(76, 175, 80, 0.3);
                         border: 1px solid #4CAF50;
                         border-radius: 12px;
                         padding: 2px 8px;
-                        font-size: 12px;
-                        margin-left: 10px;
+                        font-size: ${isMobile ? '11px' : '12px'};
+                        margin-left: ${isMobile ? '8px' : '10px'};
                     ">${this.getActivePetCount()}</span>
                 </h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <div style="display: flex; gap: ${isMobile ? '8px' : '10px'}; margin-bottom: ${isMobile ? '8px' : '10px'};">
                     <button onclick="window.PetSystem.showPetSelectionPanel()" 
                             style="
                                 flex: 1;
-                                padding: 8px 12px;
+                                padding: ${isMobile ? '6px 10px' : '8px 12px'};
                                 background: rgba(76, 175, 80, 0.2);
                                 border: 1px solid #4CAF50;
                                 border-radius: 8px;
                                 color: white;
                                 cursor: pointer;
                                 transition: all 0.3s;
-                                font-size: 14px;
+                                font-size: ${isMobile ? '12px' : '14px'};
                             ">
                         + Add Pet
                     </button>
                     <button onclick="window.PetSystem.showPetManagementPanel()" 
                             style="
                                 flex: 1;
-                                padding: 8px 12px;
+                                padding: ${isMobile ? '6px 10px' : '8px 12px'};
                                 background: rgba(33, 150, 243, 0.2);
                                 border: 1px solid #2196F3;
                                 border-radius: 8px;
                                 color: white;
                                 cursor: pointer;
                                 transition: all 0.3s;
-                                font-size: 14px;
+                                font-size: ${isMobile ? '12px' : '14px'};
                             ">
                         Manage
                     </button>
@@ -3028,7 +3077,7 @@ window.PetSystem = {
         const style = document.createElement('style');
         style.textContent = `
             #pet-panel::-webkit-scrollbar {
-                width: 8px;
+                width: ${isMobile ? '6px' : '8px'};
             }
             #pet-panel::-webkit-scrollbar-track {
                 background: rgba(255, 255, 255, 0.1);
@@ -3046,8 +3095,8 @@ window.PetSystem = {
             .pet-item {
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                padding: 10px;
+                gap: ${isMobile ? '10px' : '15px'};
+                padding: ${isMobile ? '8px' : '10px'};
                 margin: 5px 0;
                 background: rgba(255, 255, 255, 0.05);
                 border-radius: 8px;
@@ -3062,9 +3111,9 @@ window.PetSystem = {
             
             .pet-stats {
                 display: flex;
-                gap: 10px;
-                font-size: 12px;
-                margin-top: 5px;
+                gap: ${isMobile ? '8px' : '10px'};
+                font-size: ${isMobile ? '11px' : '12px'};
+                margin-top: ${isMobile ? '3px' : '5px'};
             }
             
             .pet-stats span {
@@ -3082,13 +3131,14 @@ window.PetSystem = {
 
     generatePetPanelHTML: function() {
         const pets = Array.from(this.activePets.values());
+        const isMobile = window.innerWidth <= 768;
         
         if (pets.length === 0) {
             return `
-                <div style="text-align: center; opacity: 0.7; font-size: 14px; padding: 40px 20px;">
-                    <div style="font-size: 48px; margin-bottom: 10px;">🐾</div>
+                <div style="text-align: center; opacity: 0.7; font-size: ${isMobile ? '12px' : '14px'}; padding: ${isMobile ? '30px 15px' : '40px 20px'};">
+                    <div style="font-size: ${isMobile ? '36px' : '48px'}; margin-bottom: 10px;">🐾</div>
                     <p>No pets active yet!</p>
-                    <p style="font-size: 12px;">Click "Add Pet" to get a companion</p>
+                    <p style="font-size: ${isMobile ? '11px' : '12px'};">Click "Add Pet" to get a companion</p>
                 </div>
             `;
         }
@@ -3097,11 +3147,12 @@ window.PetSystem = {
             <div id="pet-list">
                 ${pets.map(pet => `
                     <div class="pet-item">
-                        <div style="font-size: 32px;">${pet.config.emoji}</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: bold; color: #FFD700; font-size: 14px;">
+                        <div style="font-size: ${isMobile ? '28px' : '32px'};">${pet.config.emoji}</div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: bold; color: #FFD700; font-size: ${isMobile ? '13px' : '14px'}; 
+                                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 ${pet.options.name}
-                                <span style="font-size: 11px; color: #888; font-weight: normal;">
+                                <span style="font-size: ${isMobile ? '10px' : '11px'}; color: #888; font-weight: normal;">
                                     Lv.${pet.level}
                                 </span>
                             </div>
@@ -3110,24 +3161,26 @@ window.PetSystem = {
                                 <span title="Energy">⚡ ${Math.round(pet.energy)}%</span>
                                 <span title="Happiness">😊 ${Math.round(pet.happiness)}%</span>
                             </div>
-                            <div style="font-size: 11px; opacity: 0.6; margin-top: 3px;">
+                            <div style="font-size: ${isMobile ? '10px' : '11px'}; opacity: 0.6; margin-top: 3px;">
                                 ${pet.mood} • ${pet.currentAction}
                             </div>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 5px;">
                             <button onclick="window.PetSystem.feedPet('${pet.id}')" 
                                     title="Feed Pet"
-                                    style="padding: 5px 8px; background: rgba(76, 175, 80, 0.2); 
+                                    style="padding: ${isMobile ? '4px 6px' : '5px 8px'}; 
+                                           background: rgba(76, 175, 80, 0.2); 
                                            border: 1px solid #4CAF50; border-radius: 5px; 
-                                           color: white; cursor: pointer; font-size: 12px;
+                                           color: white; cursor: pointer; font-size: ${isMobile ? '11px' : '12px'};
                                            transition: all 0.3s;">
                                 🍖
                             </button>
                             <button onclick="window.PetSystem.playWithPet('${pet.id}')" 
                                     title="Play with Pet"
-                                    style="padding: 5px 8px; background: rgba(33, 150, 243, 0.2); 
+                                    style="padding: ${isMobile ? '4px 6px' : '5px 8px'}; 
+                                           background: rgba(33, 150, 243, 0.2); 
                                            border: 1px solid #2196F3; border-radius: 5px; 
-                                           color: white; cursor: pointer; font-size: 12px;
+                                           color: white; cursor: pointer; font-size: ${isMobile ? '11px' : '12px'};
                                            transition: all 0.3s;">
                                 🎾
                             </button>
