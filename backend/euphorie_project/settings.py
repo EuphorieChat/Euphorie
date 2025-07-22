@@ -12,7 +12,8 @@ env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Grok API Configuration
-GROK_API_KEY = env('GROK_API_KEY', default='')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')  # Store in environment variable
+GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 # Load environment variables
 load_dotenv()
