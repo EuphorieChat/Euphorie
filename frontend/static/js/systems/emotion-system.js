@@ -624,7 +624,7 @@ class EuphorieEmotionSystem {
     
     createEmojiSprite(emotionData) {
         try {
-            // Create canvas for emoji with glow
+            // Create canvas for emoji with more subtle effects
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             const size = 256;
@@ -635,42 +635,44 @@ class EuphorieEmotionSystem {
             // Clear canvas
             context.clearRect(0, 0, size, size);
             
-            // Draw glow effect if enabled
+            // Draw subtle glow effect if enabled
             if (this.config.enableGlow && emotionData.glow) {
-                const glowSize = size * 0.8;
+                const glowSize = size * 0.6;
                 const glowGradient = context.createRadialGradient(
                     size/2, size/2, 0,
                     size/2, size/2, glowSize/2
                 );
                 
                 const color = new THREE.Color(emotionData.color);
-                glowGradient.addColorStop(0, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.8)`);
-                glowGradient.addColorStop(0.5, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.4)`);
+                // Much more subtle glow
+                glowGradient.addColorStop(0, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.2)`);
+                glowGradient.addColorStop(0.5, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.1)`);
                 glowGradient.addColorStop(1, `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0)`);
                 
                 context.fillStyle = glowGradient;
                 context.fillRect(0, 0, size, size);
             }
             
-            // Draw background circle with gradient
-            const gradient = context.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            // Draw subtle background circle
+            const gradient = context.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/3);
             const primaryColor = new THREE.Color(emotionData.color);
             const secondaryColor = new THREE.Color(emotionData.secondaryColor || emotionData.color);
             
-            gradient.addColorStop(0, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0.9)`);
-            gradient.addColorStop(0.7, `rgba(${secondaryColor.r*255}, ${secondaryColor.g*255}, ${secondaryColor.b*255}, 0.6)`);
-            gradient.addColorStop(1, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0.1)`);
+            // Much more transparent background
+            gradient.addColorStop(0, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0.3)`);
+            gradient.addColorStop(0.7, `rgba(${secondaryColor.r*255}, ${secondaryColor.g*255}, ${secondaryColor.b*255}, 0.2)`);
+            gradient.addColorStop(1, `rgba(${primaryColor.r*255}, ${primaryColor.g*255}, ${primaryColor.b*255}, 0)`);
             
             context.fillStyle = gradient;
             context.beginPath();
             context.arc(size/2, size/2, size/3, 0, Math.PI * 2);
             context.fill();
             
-            // Draw emoji with shadow
-            context.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            context.shadowBlur = 10;
-            context.shadowOffsetX = 2;
-            context.shadowOffsetY = 2;
+            // Draw emoji without shadow for better visibility
+            context.shadowColor = 'transparent';
+            context.shadowBlur = 0;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 0;
             
             context.font = `${size * 0.5}px Arial`;
             context.textAlign = 'center';
@@ -684,8 +686,8 @@ class EuphorieEmotionSystem {
             const material = new THREE.SpriteMaterial({
                 map: texture,
                 transparent: true,
-                opacity: 1,
-                blending: THREE.AdditiveBlending
+                opacity: 0.9, // Slightly less opaque
+                blending: THREE.NormalBlending // Normal blending instead of additive
             });
             
             const sprite = new THREE.Sprite(material);
@@ -1347,64 +1349,81 @@ class EuphorieEmotionSystem {
             background: rgba(0,0,0,0.9);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             z-index: 10000;
             backdrop-filter: blur(15px);
             animation: fadeIn 0.3s ease;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         `;
         
         const content = document.createElement('div');
         content.style.cssText = `
             background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
-            padding: 40px;
+            padding: 30px 20px;
             border-radius: 20px;
             max-width: 800px;
             width: 90%;
+            max-height: 90vh;
             color: white;
             text-align: center;
             box-shadow: 0 25px 50px rgba(0,0,0,0.7);
             border: 1px solid rgba(255,255,255,0.1);
             animation: slideIn 0.3s ease;
+            margin: 20px auto;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         `;
         
+        // Detect if mobile
+        const isMobile = window.innerWidth <= 768;
+        
         content.innerHTML = `
-            <h2 style="margin-top: 0; color: #4CAF50; font-size: 2.5em; margin-bottom: 10px;">
+            <h2 style="margin-top: 0; color: #4CAF50; font-size: ${isMobile ? '2em' : '2.5em'}; margin-bottom: 10px;">
                 🎭 Express Your Emotion
             </h2>
-            <p style="margin-bottom: 30px; color: #aaa; font-size: 1.1em;">
-                Choose an emotion to share with everyone in the room
+            <p style="margin-bottom: 20px; color: #aaa; font-size: ${isMobile ? '1em' : '1.1em'};">
+                Choose an emotion to share with everyone
             </p>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 40px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(${isMobile ? '100px' : '140px'}, 1fr)); 
+                        gap: ${isMobile ? '10px' : '20px'}; margin-bottom: 30px;">
                 ${Object.entries(this.emotions).map(([key, emotion]) => `
                     <div class="emotion-option" data-emotion="${key}" 
-                         style="padding: 25px 15px; background: linear-gradient(145deg, #2a2a2a, #333); 
+                         style="padding: ${isMobile ? '15px 10px' : '25px 15px'}; 
+                                background: linear-gradient(145deg, #2a2a2a, #333); 
                                 border-radius: 15px; cursor: pointer; 
                                 transition: all 0.3s; border: 2px solid transparent;
-                                box-shadow: 5px 5px 15px rgba(0,0,0,0.3), -5px -5px 15px rgba(255,255,255,0.05);">
-                        <div style="font-size: 3.5em; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));">
+                                box-shadow: 5px 5px 15px rgba(0,0,0,0.3), -5px -5px 15px rgba(255,255,255,0.05);
+                                user-select: none; -webkit-tap-highlight-color: transparent;">
+                        <div style="font-size: ${isMobile ? '2.5em' : '3.5em'}; margin-bottom: 5px; 
+                                    filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));">
                             ${emotion.emoji}
                         </div>
-                        <div style="font-weight: bold; text-transform: capitalize; font-size: 1.1em;">
+                        <div style="font-weight: bold; text-transform: capitalize; font-size: ${isMobile ? '0.9em' : '1.1em'};">
                             ${key}
                         </div>
-                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                        ${!isMobile ? `<div style="font-size: 0.9em; color: #666; margin-top: 5px;">
                             ${emotion.particleEmoji}
-                        </div>
+                        </div>` : ''}
                     </div>
                 `).join('')}
             </div>
             
-            <div style="display: flex; gap: 20px; justify-content: center;">
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
                 <button id="cancel-emotion" 
-                        style="padding: 15px 30px; background: #555; border: none; border-radius: 10px; 
-                               color: white; cursor: pointer; font-size: 1.1em; transition: all 0.3s;">
+                        style="padding: ${isMobile ? '12px 25px' : '15px 30px'}; 
+                               background: #555; border: none; border-radius: 10px; 
+                               color: white; cursor: pointer; font-size: ${isMobile ? '1em' : '1.1em'}; 
+                               transition: all 0.3s; -webkit-tap-highlight-color: transparent;">
                     Cancel
                 </button>
                 <button id="random-emotion" 
-                        style="padding: 15px 30px; background: linear-gradient(45deg, #4CAF50, #45a049); 
+                        style="padding: ${isMobile ? '12px 25px' : '15px 30px'}; 
+                               background: linear-gradient(45deg, #4CAF50, #45a049); 
                                border: none; border-radius: 10px; 
-                               color: white; cursor: pointer; font-size: 1.1em; transition: all 0.3s;">
+                               color: white; cursor: pointer; font-size: ${isMobile ? '1em' : '1.1em'}; 
+                               transition: all 0.3s; -webkit-tap-highlight-color: transparent;">
                     🎲 Random
                 </button>
             </div>
@@ -1415,12 +1434,28 @@ class EuphorieEmotionSystem {
                     to { opacity: 1; }
                 }
                 @keyframes slideIn {
-                    from { transform: translateY(-50px); opacity: 0; }
+                    from { transform: translateY(-30px); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
                 }
                 .emotion-option:hover {
-                    transform: translateY(-5px) scale(1.05) !important;
+                    transform: translateY(-3px) scale(1.02) !important;
                     box-shadow: 8px 8px 20px rgba(0,0,0,0.4), -8px -8px 20px rgba(255,255,255,0.1) !important;
+                }
+                .emotion-option:active {
+                    transform: translateY(-1px) scale(0.98) !important;
+                }
+                button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                }
+                button:active {
+                    transform: translateY(0);
+                }
+                /* Mobile touch feedback */
+                @media (max-width: 768px) {
+                    .emotion-option:active {
+                        background: linear-gradient(145deg, #444, #555) !important;
+                    }
                 }
             </style>
         `;
@@ -1434,17 +1469,20 @@ class EuphorieEmotionSystem {
             const emotionKey = option.dataset.emotion;
             const emotionData = this.emotions[emotionKey];
             
-            option.addEventListener('mouseenter', () => {
-                option.style.background = `linear-gradient(145deg, #333, #444)`;
-                option.style.borderColor = `#${emotionData.color.toString(16).padStart(6, '0')}`;
-                option.style.boxShadow = `0 0 20px rgba(${(emotionData.color >> 16) & 255}, ${(emotionData.color >> 8) & 255}, ${emotionData.color & 255}, 0.5)`;
-            });
-            
-            option.addEventListener('mouseleave', () => {
-                option.style.background = 'linear-gradient(145deg, #2a2a2a, #333)';
-                option.style.borderColor = 'transparent';
-                option.style.boxShadow = '5px 5px 15px rgba(0,0,0,0.3), -5px -5px 15px rgba(255,255,255,0.05)';
-            });
+            // Desktop hover effects
+            if (!isMobile) {
+                option.addEventListener('mouseenter', () => {
+                    option.style.background = `linear-gradient(145deg, #333, #444)`;
+                    option.style.borderColor = `#${emotionData.color.toString(16).padStart(6, '0')}`;
+                    option.style.boxShadow = `0 0 20px rgba(${(emotionData.color >> 16) & 255}, ${(emotionData.color >> 8) & 255}, ${emotionData.color & 255}, 0.5)`;
+                });
+                
+                option.addEventListener('mouseleave', () => {
+                    option.style.background = 'linear-gradient(145deg, #2a2a2a, #333)';
+                    option.style.borderColor = 'transparent';
+                    option.style.boxShadow = '5px 5px 15px rgba(0,0,0,0.3), -5px -5px 15px rgba(255,255,255,0.05)';
+                });
+            }
             
             option.addEventListener('click', () => {
                 this.triggerEmotion(emotionKey);
@@ -1482,6 +1520,25 @@ class EuphorieEmotionSystem {
             }
         };
         document.addEventListener('keydown', escapeHandler);
+        
+        // Prevent body scroll on mobile when modal is open
+        if (isMobile) {
+            document.body.style.overflow = 'hidden';
+            modal.addEventListener('touchmove', (e) => {
+                if (e.target === modal) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Re-enable body scroll when modal closes
+            const originalRemoveChild = document.body.removeChild;
+            document.body.removeChild = function(child) {
+                if (child === modal) {
+                    document.body.style.overflow = '';
+                }
+                return originalRemoveChild.call(this, child);
+            };
+        }
     }
     
     updateEmotionPositions(userId, newPosition) {
