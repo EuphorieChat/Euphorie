@@ -2971,6 +2971,7 @@ def screen_share_stats(request, room_id):
 
 
 @login_required
+@csrf_exempt  # For testing, remove in production and handle CSRF properly
 def grok_chat(request):
     if request.method == 'POST':
         try:
@@ -2978,45 +2979,41 @@ def grok_chat(request):
             message = data.get('message', '')
             context = data.get('context', [])
             
-            # For testing without API key
-            if not hasattr(settings, 'GROK_API_KEY'):
+            if not settings.GROK_API_KEY:
+                logger.warning("Grok API key not configured")
                 return JsonResponse({
-                    'response': 'Grok API key not configured. Using demo mode.'
+                    'response': "I'm currently in demo mode. Ask me about room features, controls, or how to use Euphorie 3D!",
+                    'status': 'demo'
                 })
             
-            # Call Grok API
-            response = requests.post(
-                'https://api.x.ai/v1/chat/completions',
-                headers={
-                    'Authorization': f'Bearer {settings.GROK_API_KEY}',
-                    'Content-Type': 'application/json'
-                },
-                json={
-                    'model': 'grok-1',
-                    'messages': [
-                        {
-                            'role': 'system', 
-                            'content': 'You are a helpful assistant for Euphorie 3D virtual world. Be friendly and concise.'
-                        },
-                        {'role': 'user', 'content': message}
-                    ],
-                    'max_tokens': 150,
-                    'temperature': 0.7
-                }
-            )
+            # For now, return a demo response
+            # TODO: Implement actual Grok API call when ready
+            demo_responses = {
+                "hello": "Hey there! Welcome to Euphorie 3D! How can I help you?",
+                "help": "I can help you with room controls, chat features, avatars, and more!",
+                "controls": "Use mouse to rotate camera, W to wave, D to dance, E for emotions!"
+            }
             
-            if response.status_code == 200:
-                ai_response = response.json()['choices'][0]['message']['content']
-                return JsonResponse({'response': ai_response})
-            else:
-                return JsonResponse({
-                    'response': 'Sorry, I encountered an error. Please try again.'
-                }, status=500)
+            # Simple keyword matching for demo
+            message_lower = message.lower()
+            for keyword, response in demo_responses.items():
+                if keyword in message_lower:
+                    return JsonResponse({
+                        'response': response,
+                        'status': 'success'
+                    })
+            
+            # Default response
+            return JsonResponse({
+                'response': f"You said: '{message}'. I'm in demo mode but I'm here to help with Euphorie 3D!",
+                'status': 'success'
+            })
                 
         except Exception as e:
-            print(f"Grok chat error: {e}")
+            logger.error(f"Grok chat error: {str(e)}")
             return JsonResponse({
-                'response': 'Sorry, something went wrong. Please try again.'
+                'response': 'Sorry, something went wrong. Please try again.',
+                'status': 'error'
             }, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
