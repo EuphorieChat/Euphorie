@@ -243,7 +243,7 @@ class EuphorieScreenSharingSystem {
         
         // Show notification with device type
         const deviceType = data.share_data?.mobile_device ? '📱 camera' : '🖥️ screen';
-//         this.showNotification(`📺 ${data.username} is sharing their ${deviceType}`);
+        this.showNotification(`📺 ${data.username} is sharing their ${deviceType}`);
         
         // Update projection mode if specified
         if (data.share_data?.projection_mode) {
@@ -297,7 +297,7 @@ class EuphorieScreenSharingSystem {
             this.streamStartTimes.delete(data.user_id);
             this.darkScreenDetection.delete(data.user_id);
             
-//             this.showNotification(`📺 ${data.username} stopped sharing`);
+            this.showNotification(`📺 ${data.username} stopped sharing`);
             this.hideViewerControls();
         }
     }
@@ -326,7 +326,7 @@ class EuphorieScreenSharingSystem {
         
         // Show notification
         const deviceType = data.share_data?.mobile_device ? '📱 camera' : '🖥️ screen';
-//         this.showNotification(`📺 ${data.username} is already sharing their ${deviceType}`);
+        this.showNotification(`📺 ${data.username} is already sharing their ${deviceType}`);
         
         // Auto-connect to ongoing share with proper flow
         this.setupViewerConnection(data.user_id, data.username, data.share_data);
@@ -436,7 +436,7 @@ class EuphorieScreenSharingSystem {
                 console.log(`📺 Receiving stream from ${sharerUsername}!`);
                 const stream = event.streams[0];
                 this.handleRemoteStreamEnhanced(stream, sharerUserId);
-//                 this.showNotification(`✅ Now showing ${sharerUsername}'s screen!`);
+                this.showNotification(`✅ Now showing ${sharerUsername}'s screen!`);
             };
             
             // Handle ICE candidates
@@ -455,9 +455,9 @@ class EuphorieScreenSharingSystem {
             pc.onconnectionstatechange = () => {
                 console.log(`🔗 Connection to ${sharerUsername}:`, pc.connectionState);
                 if (pc.connectionState === 'connected') {
-//                     this.showNotification(`✅ Connected to ${sharerUsername}'s screen`);
+                    this.showNotification(`✅ Connected to ${sharerUsername}'s screen`);
                 } else if (pc.connectionState === 'failed') {
-//                     this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
+                    this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
                     // Retry connection
                     setTimeout(() => {
                         this.retryConnection(sharerUserId, sharerUsername);
@@ -484,7 +484,7 @@ class EuphorieScreenSharingSystem {
             
         } catch (error) {
             console.error(`❌ Error auto-connecting to ${sharerUsername}:`, error);
-//             this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
+            this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
         }
     }
 
@@ -559,7 +559,7 @@ class EuphorieScreenSharingSystem {
         
         this.currentSharer = userId;
         this.showViewerControls(userId);
-//         this.showNotification(`📺 Now viewing ${userId}'s screen`);
+        this.showNotification(`📺 Now viewing ${userId}'s screen`);
         
         // Start monitoring for dark screen issues
         this.startDarkScreenMonitoring(userId);
@@ -956,7 +956,7 @@ class EuphorieScreenSharingSystem {
             
         } catch (error) {
             console.error('❌ [FIX] Fallback video setup also failed:', error);
-//             this.showNotification('❌ Video setup failed - trying test pattern');
+            this.showNotification('❌ Video setup failed - trying test pattern');
             this.showTestPattern();
         }
     }
@@ -1075,11 +1075,11 @@ class EuphorieScreenSharingSystem {
                 // Could trigger reconnection here
             }
             
-//             this.showNotification('🚑 Attempting to fix dark screen...');
+            this.showNotification('🚑 Attempting to fix dark screen...');
             
         } catch (error) {
             console.error('❌ [FIX] Dark screen recovery failed:', error);
-//             this.showNotification('❌ Could not fix dark screen - please refresh');
+            this.showNotification('❌ Could not fix dark screen - please refresh');
         }
     }
     
@@ -1142,7 +1142,7 @@ class EuphorieScreenSharingSystem {
             pc.ontrack = (event) => {
                 console.log(`📺 Connected to ongoing share from ${sharerUsername}!`);
                 this.handleRemoteStreamEnhanced(event.streams[0], sharerUserId);
-//                 this.showNotification(`✅ Joined ${sharerUsername}'s screen share!`);
+                this.showNotification(`✅ Joined ${sharerUsername}'s screen share!`);
             };
             
             pc.onicecandidate = (event) => {
@@ -1217,7 +1217,7 @@ class EuphorieScreenSharingSystem {
             pc.onconnectionstatechange = () => {
                 console.log(`🔗 Connection to viewer ${viewerId}: ${pc.connectionState}`);
                 if (pc.connectionState === 'connected') {
-//                     this.showNotification(`✅ New viewer connected`);
+                    this.showNotification(`✅ New viewer connected`);
                 }
             };
             
@@ -1504,12 +1504,12 @@ class EuphorieScreenSharingSystem {
                 await document.documentElement.msRequestFullscreen();
             }
             
-//             this.showNotification('🖥️ Fullscreen mode activated - Press ESC to exit');
+            this.showNotification('🖥️ Fullscreen mode activated - Press ESC to exit');
             
         } catch (error) {
             console.log('⚠️ Browser fullscreen not available, using overlay fullscreen');
             // Fallback to custom fullscreen overlay
-//             this.showNotification('🖥️ Fullscreen view activated - Click outside to exit');
+            this.showNotification('🖥️ Fullscreen view activated - Click outside to exit');
         }
     }
     
@@ -1726,7 +1726,7 @@ class EuphorieScreenSharingSystem {
         // Remove overlay
         this.removeFullscreenOverlay();
         
-//         this.showNotification('🖥️ Exited fullscreen mode');
+        this.showNotification('🖥️ Exited fullscreen mode');
     }
     
     // ENHANCED: Remove fullscreen overlay with better cleanup
@@ -2027,7 +2027,7 @@ class EuphorieScreenSharingSystem {
             this.cameraSettings = settings;
             this.cameraCapabilities = videoTrack.getCapabilities();
             
-//             this.showNotification('📱 Camera sharing started');
+            this.showNotification('📱 Camera sharing started');
             return stream;
             
         } catch (error) {
@@ -2081,7 +2081,7 @@ class EuphorieScreenSharingSystem {
             
             // Check if someone else is already sharing
             if (this.currentSharer && this.currentSharer !== window.WebSocketManager?.userId) {
-//                 this.showNotification('❌ Someone else is already sharing');
+                this.showNotification('❌ Someone else is already sharing');
                 return;
             }
             
@@ -2103,7 +2103,7 @@ class EuphorieScreenSharingSystem {
                     audio: false
                 });
                 console.log('🖥️ Screen stream obtained successfully');
-//                 this.showNotification('🖥️ Screen sharing started');
+                this.showNotification('🖥️ Screen sharing started');
             }
             
             this.localStream = stream;
@@ -2208,18 +2208,18 @@ class EuphorieScreenSharingSystem {
         console.error('❌ Error message:', error.message);
         
         if (error.name === 'NotAllowedError') {
-//             this.showNotification('❌ Camera/screen permission denied. Please allow access and try again.');
+            this.showNotification('❌ Camera/screen permission denied. Please allow access and try again.');
         } else if (error.name === 'NotFoundError') {
-//             this.showNotification('❌ No camera found on this device');
+            this.showNotification('❌ No camera found on this device');
         } else if (error.name === 'NotSupportedError') {
-//             this.showNotification('❌ Camera/screen sharing not supported on this device');
+            this.showNotification('❌ Camera/screen sharing not supported on this device');
         } else if (error.name === 'NotReadableError') {
-//             this.showNotification('❌ Camera is already in use by another app');
+            this.showNotification('❌ Camera is already in use by another app');
         } else if (error.name === 'OverconstrainedError') {
-//             this.showNotification('❌ Camera constraints not supported. Trying basic camera...');
+            this.showNotification('❌ Camera constraints not supported. Trying basic camera...');
             this.tryBasicCameraConstraints();
         } else {
-//             this.showNotification(`❌ Could not start sharing: ${error.message}`);
+            this.showNotification(`❌ Could not start sharing: ${error.message}`);
         }
     }
     
@@ -2253,11 +2253,11 @@ class EuphorieScreenSharingSystem {
             }
             
             this.isSharing = true;
-//             this.showNotification('📱 Basic camera sharing started');
+            this.showNotification('📱 Basic camera sharing started');
             
         } catch (basicError) {
             console.error('❌ Basic camera constraints also failed:', basicError);
-//             this.showNotification('❌ Camera access failed completely');
+            this.showNotification('❌ Camera access failed completely');
         }
     }
 
@@ -2510,10 +2510,10 @@ class EuphorieScreenSharingSystem {
                 console.log(`🔗 WebRTC connection to ${userData.user_id}: ${pc.connectionState}`);
                 if (pc.connectionState === 'connected') {
                     console.log(`✅ Screen sharing connection established with ${userData.user_id}`);
-//                     this.showNotification(`✅ Connected to ${userData.username || userData.user_id}`);
+                    this.showNotification(`✅ Connected to ${userData.username || userData.user_id}`);
                 } else if (pc.connectionState === 'failed') {
                     console.log(`❌ Screen sharing connection failed with ${userData.user_id}`);
-//                     this.showNotification(`❌ Connection failed to ${userData.username || userData.user_id}`);
+                    this.showNotification(`❌ Connection failed to ${userData.username || userData.user_id}`);
                 }
             };
             
@@ -2644,7 +2644,7 @@ class EuphorieScreenSharingSystem {
             this.updateProjectionSurface();
         }
         
-//         this.showNotification(`📺 ${data.username} is ready to share screen - waiting for connection...`);
+        this.showNotification(`📺 ${data.username} is ready to share screen - waiting for connection...`);
         
         console.log(`✅ Ready to receive screen share from ${data.user_id}`);
     }
@@ -2811,7 +2811,7 @@ class EuphorieScreenSharingSystem {
             
             this.hideSharingControls();
             
-//             this.showNotification('✅ Screen sharing stopped');
+            this.showNotification('✅ Screen sharing stopped');
             console.log('✅ Screen sharing stopped');
             
         } catch (error) {
@@ -3003,7 +3003,7 @@ class EuphorieScreenSharingSystem {
             this.showSharingControls();
         }
         
-//         this.showNotification(`📺 Projection mode changed to: ${mode}`);
+        this.showNotification(`📺 Projection mode changed to: ${mode}`);
         console.log(`📺 Projection mode changed to: ${mode}`);
     }
     
@@ -3170,7 +3170,7 @@ class EuphorieScreenSharingSystem {
         document.addEventListener('keydown', escapeHandler);
     }
     
-//     showNotification(message) {
+    showNotification(message) {
         const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
@@ -3229,7 +3229,7 @@ class EuphorieScreenSharingSystem {
                 this.enterFullscreen();
             } else {
                 console.log('❌ No screen share active to fullscreen');
-//                 this.showNotification('❌ No screen sharing active');
+                this.showNotification('❌ No screen sharing active');
             }
         };
         
@@ -3433,11 +3433,11 @@ class EuphorieScreenSharingSystem {
             
             stream.getTracks().forEach(track => track.stop());
             
-//             this.showNotification('✅ Camera test successful');
+            this.showNotification('✅ Camera test successful');
             return true;
         } catch (error) {
             console.error('❌ Camera test failed:', error);
-//             this.showNotification(`❌ Camera test failed: ${error.message}`);
+            this.showNotification(`❌ Camera test failed: ${error.message}`);
             return false;
         }
     }

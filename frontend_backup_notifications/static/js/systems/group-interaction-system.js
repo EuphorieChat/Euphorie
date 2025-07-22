@@ -160,7 +160,7 @@ window.GroupInteractionSystem = {
         
         if (avatars.length < 1) {
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification('👥 Need more people for group activities!');
+                window.RoomCore.showNotification('👥 Need more people for group activities!');
             }
             return;
         }
@@ -291,7 +291,7 @@ window.GroupInteractionSystem = {
         
         if (availableAvatars.length < formation.minParticipants) {
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification(`👥 Need at least ${formation.minParticipants} participants for ${activity.name}!`);
+                window.RoomCore.showNotification(`👥 Need at least ${formation.minParticipants} participants for ${activity.name}!`);
             }
             return;
         }
@@ -304,7 +304,7 @@ window.GroupInteractionSystem = {
         
         if (group) {
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification(`🎉 ${activity.name} started with ${participants.length} participants!`);
+                window.RoomCore.showNotification(`🎉 ${activity.name} started with ${participants.length} participants!`);
             }
         }
     },
@@ -326,7 +326,7 @@ window.GroupInteractionSystem = {
         
         if (availableAvatars.length < 2) {
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification('👥 Need more people for group activities!');
+                window.RoomCore.showNotification('👥 Need more people for group activities!');
             }
             return;
         }
@@ -339,7 +339,7 @@ window.GroupInteractionSystem = {
         
         if (suitableActivities.length === 0) {
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification('👥 No suitable activities for current group size!');
+                window.RoomCore.showNotification('👥 No suitable activities for current group size!');
             }
             return;
         }
@@ -826,7 +826,7 @@ window.GroupInteractionSystem = {
             }
             
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification(`📣 ${phases[phaseIndex]}`);
+                window.RoomCore.showNotification(`📣 ${phases[phaseIndex]}`);
             }
             
             phaseIndex++;
@@ -840,13 +840,13 @@ window.GroupInteractionSystem = {
         // Gentle notification reminders
         setTimeout(() => {
             if (this.activeGroups.has(groupData.id) && window.RoomCore) {
-//                 window.RoomCore.showNotification('🧘 Focus on your breathing...');
+                window.RoomCore.showNotification('🧘 Focus on your breathing...');
             }
         }, 5000);
         
         setTimeout(() => {
             if (this.activeGroups.has(groupData.id) && window.RoomCore) {
-//                 window.RoomCore.showNotification('🧘 Feel the peace and connection...');
+                window.RoomCore.showNotification('🧘 Feel the peace and connection...');
             }
         }, 12000);
     },
@@ -887,7 +887,7 @@ window.GroupInteractionSystem = {
             }
             
             if (window.RoomCore) {
-//                 window.RoomCore.showNotification(`⚡ Team ${currentTeam} is dancing!`);
+                window.RoomCore.showNotification(`⚡ Team ${currentTeam} is dancing!`);
             }
             
             currentTeam = currentTeam === 1 ? 2 : 1;
@@ -1071,7 +1071,7 @@ window.GroupInteractionSystem = {
         notifications.forEach(notification => {
             setTimeout(() => {
                 if (this.activeGroups.has(groupData.id) && window.RoomCore) {
-//                     window.RoomCore.showNotification(notification.message);
+                    window.RoomCore.showNotification(notification.message);
                 }
             }, notification.time);
         });
@@ -1109,7 +1109,7 @@ window.GroupInteractionSystem = {
         
         // Show completion message
         if (window.RoomCore) {
-//             window.RoomCore.showNotification(`🎉 ${groupData.activity.name} completed! Great job everyone!`);
+            window.RoomCore.showNotification(`🎉 ${groupData.activity.name} completed! Great job everyone!`);
         }
         
         // Remove group
@@ -1163,7 +1163,7 @@ window.GroupInteractionSystem = {
             if (availableParticipants.length >= 2 && Math.random() > 0.8) { // 20% chance
                 setTimeout(() => {
                     if (window.RoomCore) {
-//                         window.RoomCore.showNotification('💡 Press G to start a group activity!');
+                        window.RoomCore.showNotification('💡 Press G to start a group activity!');
                     }
                 }, 2000);
             }
