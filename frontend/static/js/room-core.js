@@ -663,6 +663,7 @@ window.RoomCore = {
     },
     
     showNotification: function(message) {
+        return; // Disabled to prevent blocking hamburger menu
         // Create notification element
         const notification = document.createElement('div');
         notification.style.cssText = `

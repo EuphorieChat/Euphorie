@@ -3171,7 +3171,7 @@ class EuphorieScreenSharingSystem {
     }
     
     showNotification(message) {
-        const notification = document.createElement('div');
+        return; // Disabled to prevent blocking hamburger menu        const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
             top: 20px;
