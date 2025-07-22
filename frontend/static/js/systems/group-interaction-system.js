@@ -1059,13 +1059,13 @@ window.GroupInteractionSystem = {
     },
     
     startActivityTimer: function(groupData) {
-        const duration = groupData.activity.duration;
+        return; // Disabled all group activity timers        const duration = groupData.activity.duration;
         
         // Countdown notifications
         const notifications = [
-            { time: duration - 5000, message: '⏰ 5 seconds remaining!' },
-            { time: duration - 10000, message: '⏰ 10 seconds remaining!' },
-            { time: duration / 2, message: `🎭 ${groupData.activity.name} halfway done!` }
+        //             { time: duration - 5000, message: '⏰ 5 seconds remaining!' },
+        //             { time: duration - 10000, message: '⏰ 10 seconds remaining!' },
+        //             { time: duration / 2, message: `🎭 ${groupData.activity.name} halfway done!` }
         ];
         
         notifications.forEach(notification => {
