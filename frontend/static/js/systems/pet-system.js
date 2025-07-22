@@ -2918,7 +2918,8 @@ window.PetSystem = {
                 -webkit-overflow-scrolling: touch;
                 transition: all 0.3s ease;
                 animation: slideInRight 0.3s ease;
-                display: block !important;
+                display: ${currentDisplay}; /* Preserve current display state */
+
             `;
         } else {
             // Desktop: Position above chatbox
@@ -2939,7 +2940,8 @@ window.PetSystem = {
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
                 overflow-y: auto;
                 transition: all 0.3s ease;
-                display: block !important;
+                display: ${currentDisplay}; /* Preserve current display state */
+
             `;
         }
         
