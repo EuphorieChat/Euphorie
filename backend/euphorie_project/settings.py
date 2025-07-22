@@ -3,6 +3,13 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+import environ
+
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+# Grok API Configuration
+GROK_API_KEY = env('GROK_API_KEY', default='')
 
 # Load environment variables
 load_dotenv()
@@ -14,10 +21,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = ['*']  # Allow all hosts - safe when behind reverse proxy
-
-
-# Grok API Configuration
-GROK_API_KEY = env('GROK_API_KEY', default='')
 
 # Applications
 INSTALLED_APPS = [
