@@ -273,12 +273,8 @@ window.PetSystem = {
         
         // Listen for avatar events
         window.EventBus.on('avatar:created', (data) => {
-            // 30% chance to auto-assign a pet to new avatars
-            if (Math.random() > 0.7) {
-                setTimeout(() => {
-                    this.assignRandomPet(data.id);
-                }, 2000);
-            }
+            // Removed automatic pet assignment for new avatars
+            // Users can manually add pets when they want
         });
         
         window.EventBus.on('avatar:removed', (data) => {
