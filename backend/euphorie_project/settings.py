@@ -5,6 +5,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 import environ
 
+# Build paths
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
@@ -13,9 +16,6 @@ GROK_API_KEY = env('GROK_API_KEY', default='')
 
 # Load environment variables
 load_dotenv()
-
-# Build paths
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-change-in-production')
