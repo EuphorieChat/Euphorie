@@ -6140,174 +6140,30 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
-
 <style>
 /* Simple collapse styles */
 #status-panel.hide-panel {
     display: none !important;
 }
 
-/* Fixed status panel - completely isolated from 3D scene */
-#status-panel {
-    max-width: 30vw !important;
-    min-width: 200px !important;
-    overflow: hidden;
-    word-wrap: break-word;
-    /* Solid background with no transparency */
-    background: #0a0a0a !important;
-    /* Simple border instead of shadows */
-    border: 1px solid #333 !important;
-    /* Remove ALL effects that might interfere with 3D */
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    filter: none !important;
-    mix-blend-mode: normal !important;
-    /* Keep it on its own layer */
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    /* Lower z-index to stay behind 3D canvas */
-    z-index: 10 !important;
-}
-
-/* Make sure the 3D container has higher z-index */
-#three-container {
-    position: relative;
-    z-index: 1;
-    isolation: isolate;
-}
-
-/* For very small screens */
-@media (max-width: 480px) {
-    #status-panel {
-        max-width: 40vw !important;
-        min-width: 150px !important;
-        font-size: 9px !important;
-        padding: 8px 10px !important;
-    }
-}
-
-/* For tablets */
-@media (min-width: 481px) and (max-width: 768px) {
-    #status-panel {
-        max-width: 35vw !important;
-    }
-}
-
-/* Text overflow handling */
-#status-panel .status-item {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-#status-panel .status-value {
-    max-width: 100%;
-    display: inline-block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    vertical-align: bottom;
-}
-
-/* Simple toggle button without effects */
 .status-toggle-simple {
     position: fixed;
     top: 15px;
     left: 15px;
-    background: #667eea;
+    background: rgba(0,0,0,0.8);
     color: white;
-    border: 2px solid #8b9dc3;
-    border-radius: 12px;
-    padding: 10px 16px;
+    border: 1px solid #667eea;
+    border-radius: 8px;
+    padding: 8px 12px;
     cursor: pointer;
-    z-index: 11;
-    font-size: 13px;
-    font-weight: 600;
-    /* No shadows or effects */
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    filter: none !important;
-    transition: opacity 0.3s ease, transform 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    opacity: 0.9;
-}
-
-.status-toggle-simple:hover {
-    opacity: 1;
-    transform: translateY(-2px);
-    background: #7c8ff0;
-}
-
-.status-toggle-simple:active {
-    transform: translateY(0);
-}
-
-/* Simple pulse without shadow effects */
-@keyframes pulse {
-    0% { opacity: 0.9; }
-    50% { opacity: 1; }
-    100% { opacity: 0.9; }
-}
-
-.status-toggle-simple.pulse {
-    animation: pulse 2s infinite ease-in-out;
-}
-
-/* Fade in animation */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* Hide button styling */
-.status-hide-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #333;
-    border: 1px solid #555;
-    border-radius: 6px;
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s ease;
-    line-height: 1;
-}
-
-.status-hide-btn:hover {
-    background: #555;
-}
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-    .status-toggle-simple {
-        top: 10px;
-        left: 10px;
-        padding: 8px 12px;
-        font-size: 12px;
-    }
+    z-index: 101;
+    font-size: 12px;
 }
 </style>
 
 <script>
-// Fix for 3D rendering issue
+// Simple toggle approach
 document.addEventListener('DOMContentLoaded', () => {
-    // First, ensure the 3D container is properly isolated
-    const threeContainer = document.getElementById('three-container');
-    if (threeContainer) {
-        threeContainer.style.isolation = 'isolate';
-        threeContainer.style.position = 'relative';
-        threeContainer.style.zIndex = '1';
-    }
-    
     setTimeout(() => {
         const panel = document.getElementById('status-panel');
         if (!panel) {
@@ -6315,77 +6171,38 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Force the panel to render on its own layer
-        panel.style.willChange = 'transform';
-        panel.style.transform = 'translate3d(0, 0, 0)';
-        
-        // Create enhanced toggle button
+        // Create simple toggle button
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'status-toggle-simple';
-        toggleBtn.innerHTML = `
-            <span style="font-size: 16px;">📊</span>
-            <span>Show Status</span>
-        `;
+        toggleBtn.textContent = '📊 Toggle Status';
         toggleBtn.style.display = 'none';
         
-        // Add click handler
         toggleBtn.onclick = () => {
             if (panel.classList.contains('hide-panel')) {
-                panel.style.animation = 'fadeIn 0.3s ease';
                 panel.classList.remove('hide-panel');
                 toggleBtn.style.display = 'none';
-                localStorage.setItem('statusPanelHidden', 'false');
             }
         };
         
         // Add hide button to panel
         const hideBtn = document.createElement('button');
-        hideBtn.className = 'status-hide-btn';
-        hideBtn.innerHTML = '×';
-        hideBtn.title = 'Hide Status Panel';
-        
+        hideBtn.style.cssText = 'float: right; background: none; border: none; color: white; cursor: pointer; font-size: 16px;';
+        hideBtn.textContent = '×';
         hideBtn.onclick = () => {
             panel.classList.add('hide-panel');
-            toggleBtn.style.display = 'flex';
-            
-            // Simple pulse effect
-            toggleBtn.classList.add('pulse');
-            setTimeout(() => {
-                toggleBtn.classList.remove('pulse');
-            }, 4000);
-            
-            localStorage.setItem('statusPanelHidden', 'true');
+            toggleBtn.style.display = 'block';
         };
         
-        panel.style.position = 'relative';
-        panel.appendChild(hideBtn);
-        document.body.appendChild(toggleBtn);
-        
-        // Load saved preference
-        const isHidden = localStorage.getItem('statusPanelHidden') === 'true';
-        if (isHidden) {
-            panel.classList.add('hide-panel');
-            toggleBtn.style.display = 'flex';
+        const header = panel.querySelector('.status-header');
+        if (header) {
+            header.appendChild(hideBtn);
         }
         
-        // Keyboard shortcut (Ctrl + `)
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === '`') {
-                e.preventDefault();
-                if (panel.classList.contains('hide-panel')) {
-                    toggleBtn.click();
-                } else {
-                    hideBtn.click();
-                }
-            }
-        });
-        
-        console.log('✅ Enhanced toggle system added');
-        console.log('💡 Use Ctrl + ` to toggle status panel');
-    }, 2000);
+        document.body.appendChild(toggleBtn);
+        console.log('✅ Simple toggle system added');
+    }, 2000); // Wait 2 seconds for everything to load
 });
 </script>
-
 
 </body>
 </html>
