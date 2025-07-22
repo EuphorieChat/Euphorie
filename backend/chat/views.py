@@ -3069,7 +3069,7 @@ def call_grok_api(message, conversation_history=None):
         }
         
         payload = {
-            "model": "mixtral-8x7b-32768",  # Fast and capable model
+            "model": "llama3-8b-8192",  # Updated to a supported model
             "messages": messages,
             "temperature": 0.7,
             "max_tokens": 500,
