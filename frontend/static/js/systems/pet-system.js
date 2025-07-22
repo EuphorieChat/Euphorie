@@ -1,8 +1,10 @@
-// Advanced Pet System - Virtual companions that follow and interact with avatars
+// Advanced Pet System - Complete Version with All Code
 // Features: 8 pet types, AI behaviors, interactions, customization, emotions
 
 window.PetSystem = {
     isInitialized: false,
+    initAttempts: 0,
+    maxInitAttempts: 20,
     activePets: new Map(),
     petAnimations: new Map(),
     interactionCooldowns: new Map(),
@@ -146,9 +148,24 @@ window.PetSystem = {
     },
 
     init: async function() {
-        if (this.isInitialized) return;
+        if (this.isInitialized) {
+            console.log('🐾 Pet System already initialized');
+            return;
+        }
         
-        console.log('🐾 Initializing Advanced Pet System');
+        console.log('🐾 Initializing Advanced Pet System...');
+        
+        // Check dependencies
+        if (!this.checkDependencies()) {
+            this.initAttempts++;
+            if (this.initAttempts < this.maxInitAttempts) {
+                console.log(`🐾 Dependencies not ready, retrying in 500ms... (attempt ${this.initAttempts}/${this.maxInitAttempts})`);
+                setTimeout(() => this.init(), 500);
+            } else {
+                console.error('❌ Pet System initialization failed after maximum attempts');
+            }
+            return;
+        }
         
         try {
             // Set up event listeners
@@ -160,21 +177,99 @@ window.PetSystem = {
             // Set up keyboard shortcuts
             this.setupKeyboardShortcuts();
             
+            // Set up UI buttons
+            this.setupUIButtons();
+            
             this.isInitialized = true;
-            console.log('✅ Advanced Pet System initialized');
+            console.log('✅ Advanced Pet System initialized successfully');
             
             // Emit initialization event
             if (window.EventBus) {
                 window.EventBus.emit('pet_system:initialized');
             }
             
+            // Show initialization notification
+            if (window.RoomCore?.showNotification) {
+                window.RoomCore.showNotification('🐾 Pet System Ready! Press P to add a pet');
+            }
+            
         } catch (error) {
             console.error('❌ Pet System initialization failed:', error);
+            this.initAttempts++;
+            if (this.initAttempts < this.maxInitAttempts) {
+                setTimeout(() => this.init(), 1000);
+            }
         }
     },
 
+    checkDependencies: function() {
+        const dependencies = {
+            'THREE': window.THREE,
+            'SceneManager': window.SceneManager?.scene,
+            'EventBus': window.EventBus,
+            'AvatarSystem': window.AvatarSystem
+        };
+        
+        let allReady = true;
+        for (const [name, dep] of Object.entries(dependencies)) {
+            if (!dep) {
+                console.log(`🐾 Waiting for dependency: ${name}`);
+                allReady = false;
+            }
+        }
+        
+        return allReady;
+    },
+
+    setupUIButtons: function() {
+        // Add pet button to main UI if not exists
+        const addPetButton = document.getElementById('add-pet-button');
+        if (!addPetButton) {
+            // Try to find a good place to add the button
+            const buttonContainer = document.querySelector('.scene-controls') || 
+                                  document.querySelector('.control-buttons') || 
+                                  document.querySelector('.ui-buttons');
+            
+            if (buttonContainer) {
+                const petButton = document.createElement('button');
+                petButton.id = 'add-pet-button';
+                petButton.className = 'control-button';
+                petButton.innerHTML = '🐾 Add Pet';
+                petButton.onclick = () => this.showPetSelectionPanel();
+                petButton.style.cssText = `
+                    background: rgba(76, 175, 80, 0.2);
+                    border: 1px solid #4CAF50;
+                    color: white;
+                    padding: 10px 15px;
+                    margin: 5px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: all 0.3s;
+                `;
+                
+                buttonContainer.appendChild(petButton);
+                console.log('🐾 Added pet button to UI');
+            }
+        }
+        
+        // Also check for any existing pet-related buttons and fix their click handlers
+        const existingPetButtons = document.querySelectorAll('[onclick*="PetSystem"]');
+        existingPetButtons.forEach(button => {
+            const onclickText = button.getAttribute('onclick');
+            if (onclickText && onclickText.includes('assignRandomPet')) {
+                button.onclick = () => this.assignRandomPet('default');
+            } else if (onclickText && onclickText.includes('showPetManagementPanel')) {
+                button.onclick = () => this.showPetManagementPanel();
+            }
+        });
+    },
+
     setupEventListeners: function() {
-        if (!window.EventBus) return;
+        if (!window.EventBus) {
+            console.warn('🐾 EventBus not available, skipping event listeners');
+            return;
+        }
         
         // Listen for avatar events
         window.EventBus.on('avatar:created', (data) => {
@@ -207,11 +302,13 @@ window.PetSystem = {
             
             switch(e.key.toLowerCase()) {
                 case 'p':
-                    e.preventDefault();
-                    this.assignRandomPet('default');
+                    if (!e.shiftKey && !e.ctrlKey) {
+                        e.preventDefault();
+                        this.showPetSelectionPanel();
+                    }
                     break;
-                case 'shift':
-                    if (e.shiftKey && e.key === 'P') {
+                case 'P':
+                    if (e.shiftKey) {
                         e.preventDefault();
                         this.showPetManagementPanel();
                     }
@@ -219,10 +316,20 @@ window.PetSystem = {
             }
         });
         
-        console.log('⌨️ Pet system keyboard shortcuts active');
+        console.log('⌨️ Pet system keyboard shortcuts active (P = add pet, Shift+P = manage)');
     },
 
     createPet: function(ownerId, petType, options = {}) {
+        if (!this.isInitialized) {
+            console.error('❌ Pet System not initialized');
+            return null;
+        }
+
+        if (!window.THREE || !window.SceneManager?.scene) {
+            console.error('❌ THREE.js or Scene not available');
+            return null;
+        }
+
         if (!this.petTypes[petType]) {
             console.error('❌ Unknown pet type:', petType);
             return null;
@@ -247,104 +354,115 @@ window.PetSystem = {
             mood: 'content'
         };
 
-        // Create enhanced 3D model
-        const petGroup = new THREE.Group();
-        const petMesh = this.createAdvancedPetMesh(petType, defaultOptions);
-        petGroup.add(petMesh);
+        try {
+            // Create enhanced 3D model
+            const petGroup = new THREE.Group();
+            const petMesh = this.createAdvancedPetMesh(petType, defaultOptions);
+            petGroup.add(petMesh);
 
-        // Create animated name label
-        const nameLabel = this.createAnimatedNameLabel(defaultOptions.name, petConfig.emoji);
-        nameLabel.position.y = petConfig.size + 0.4;
-        petGroup.add(nameLabel);
+            // Create animated name label
+            const nameLabel = this.createAnimatedNameLabel(defaultOptions.name, petConfig.emoji);
+            nameLabel.position.y = petConfig.size + 0.4;
+            petGroup.add(nameLabel);
 
-        // Create status indicators
-        const statusIndicators = this.createStatusIndicators();
-        statusIndicators.position.y = petConfig.size + 0.7;
-        petGroup.add(statusIndicators);
+            // Create status indicators
+            const statusIndicators = this.createStatusIndicators();
+            statusIndicators.position.y = petConfig.size + 0.7;
+            petGroup.add(statusIndicators);
 
-        // Position pet near owner
-        this.positionPetNearOwner(petGroup, ownerId);
+            // Position pet near owner
+            this.positionPetNearOwner(petGroup, ownerId);
 
-        // Create comprehensive pet data
-        const petData = {
-            id: petId,
-            ownerId: ownerId,
-            type: petType,
-            config: petConfig,
-            options: defaultOptions,
-            group: petGroup,
-            mesh: petMesh,
-            nameLabel: nameLabel,
-            statusIndicators: statusIndicators,
-            
-            // Enhanced AI State
-            currentAction: 'idle',
-            actionStartTime: Date.now(),
-            targetPosition: petGroup.position.clone(),
-            lastActionTime: Date.now(),
-            nextActionTime: Date.now() + this.getRandomActionDelay(),
-            
-            // Advanced Movement
-            velocity: new THREE.Vector3(),
-            acceleration: new THREE.Vector3(),
-            isMoving: false,
-            pathNodes: [],
-            currentPathIndex: 0,
-            
-            // Interaction System
-            lastInteractionTime: 0,
-            interactionCooldown: 5000,
-            availableInteractions: [...petConfig.interactions],
-            
-            // Status & Needs
-            happiness: defaultOptions.happiness,
-            energy: defaultOptions.energy,
-            hunger: defaultOptions.hunger,
-            health: defaultOptions.health,
-            affection: defaultOptions.affection,
-            mood: defaultOptions.mood,
-            
-            // Experience & Growth
-            level: defaultOptions.level,
-            experience: defaultOptions.experience,
-            skillPoints: 0,
-            
-            // Social
-            friendships: new Map(),
-            socialInteractions: 0,
-            
-            // Timestamps
-            lastUpdate: Date.now(),
-            createdAt: Date.now(),
-            lastFed: Date.now(),
-            lastPlayed: Date.now()
-        };
+            // Create comprehensive pet data
+            const petData = {
+                id: petId,
+                ownerId: ownerId,
+                type: petType,
+                config: petConfig,
+                options: defaultOptions,
+                group: petGroup,
+                mesh: petMesh,
+                nameLabel: nameLabel,
+                statusIndicators: statusIndicators,
+                
+                // Enhanced AI State
+                currentAction: 'idle',
+                actionStartTime: Date.now(),
+                targetPosition: petGroup.position.clone(),
+                lastActionTime: Date.now(),
+                nextActionTime: Date.now() + this.getRandomActionDelay(),
+                
+                // Advanced Movement
+                velocity: new THREE.Vector3(),
+                acceleration: new THREE.Vector3(),
+                isMoving: false,
+                pathNodes: [],
+                currentPathIndex: 0,
+                
+                // Interaction System
+                lastInteractionTime: 0,
+                interactionCooldown: 5000,
+                availableInteractions: [...petConfig.interactions],
+                
+                // Status & Needs
+                happiness: defaultOptions.happiness,
+                energy: defaultOptions.energy,
+                hunger: defaultOptions.hunger,
+                health: defaultOptions.health,
+                affection: defaultOptions.affection,
+                mood: defaultOptions.mood,
+                
+                // Experience & Growth
+                level: defaultOptions.level,
+                experience: defaultOptions.experience,
+                skillPoints: 0,
+                
+                // Social
+                friendships: new Map(),
+                socialInteractions: 0,
+                
+                // Timestamps
+                lastUpdate: Date.now(),
+                createdAt: Date.now(),
+                lastFed: Date.now(),
+                lastPlayed: Date.now()
+            };
 
-        // Store pet
-        this.activePets.set(petId, petData);
+            // Store pet
+            this.activePets.set(petId, petData);
 
-        // Add to scene
-        if (window.SceneManager && window.SceneManager.scene) {
-            window.SceneManager.addObject(petGroup);
+            // Add to scene
+            if (window.SceneManager && window.SceneManager.scene) {
+                window.SceneManager.scene.add(petGroup);
+            }
+
+            // Initialize pet-specific behaviors
+            this.initializePetBehavior(petData);
+            
+            console.log(`🐾 Created ${petType}: ${defaultOptions.name} for ${ownerId}`);
+            
+            // Create spawn effect
+            this.createPetSpawnEffect(petData);
+            
+            // Emit event
+            if (window.EventBus) {
+                window.EventBus.emit('pet:created', petData);
+            }
+            
+            // Show notification
+            if (window.RoomCore?.showNotification) {
+                window.RoomCore.showNotification(`🐾 ${defaultOptions.name} the ${petConfig.name} joined you!`);
+            }
+            
+            // Update UI
+            this.updatePetUI();
+
+            return petData;
+
+        } catch (error) {
+            console.error('❌ Error creating pet:', error);
+            return null;
         }
-
-        // Initialize pet-specific behaviors
-        this.initializePetBehavior(petData);
-        
-        console.log(`🐾 Created ${petType}: ${defaultOptions.name} for ${ownerId}`);
-        
-        // Create spawn effect
-        this.createPetSpawnEffect(petData);
-        
-        // Emit event
-        if (window.EventBus) {
-            window.EventBus.emit('pet:created', petData);
-        }
-        
-        // Update UI
-        this.updatePetUI();
-
-        return petData;
     },
 
     createAdvancedPetMesh: function(petType, options) {
@@ -599,6 +717,299 @@ window.PetSystem = {
         return group;
     },
 
+    createRabbitMesh: function(color, size, options) {
+        const group = new THREE.Group();
+        
+        // Rabbit body
+        const bodyGeometry = new THREE.SphereGeometry(size * 0.8, 16, 12);
+        bodyGeometry.scale(1.2, 1.0, 1.3);
+        const bodyMaterial = new THREE.MeshLambertMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 0.95
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.castShadow = true;
+        group.add(body);
+
+        // Head
+        const headGeometry = new THREE.SphereGeometry(size * 0.6, 16, 12);
+        const head = new THREE.Mesh(headGeometry, bodyMaterial);
+        head.position.set(0, size * 0.3, size * 0.8);
+        head.castShadow = true;
+        group.add(head);
+
+        // Long ears
+        const earGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.1, size * 0.8, 8);
+        const leftEar = new THREE.Mesh(earGeometry, bodyMaterial);
+        leftEar.position.set(-size * 0.2, size * 0.8, size * 0.7);
+        leftEar.rotation.z = 0.1;
+        group.add(leftEar);
+
+        const rightEar = new THREE.Mesh(earGeometry, bodyMaterial);
+        rightEar.position.set(size * 0.2, size * 0.8, size * 0.7);
+        rightEar.rotation.z = -0.1;
+        group.add(rightEar);
+
+        // Pink nose
+        const noseGeometry = new THREE.SphereGeometry(size * 0.05, 8, 8);
+        const noseMaterial = new THREE.MeshBasicMaterial({ color: 0xFFB6C1 });
+        const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+        nose.position.set(0, size * 0.25, size * 1.1);
+        group.add(nose);
+
+        // Fluffy tail
+        const tailGeometry = new THREE.SphereGeometry(size * 0.25, 12, 10);
+        const tail = new THREE.Mesh(tailGeometry, bodyMaterial);
+        tail.position.set(0, size * 0.3, -size * 0.9);
+        tail.castShadow = true;
+        group.add(tail);
+
+        // Eyes
+        const eyeGeometry = new THREE.SphereGeometry(size * 0.08, 8, 8);
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-size * 0.15, size * 0.4, size * 1.0);
+        group.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(size * 0.15, size * 0.4, size * 1.0);
+        group.add(rightEye);
+
+        group.userData.animationParts = {
+            body, head, ears: [leftEar, rightEar], 
+            nose, tail, eyes: [leftEye, rightEye]
+        };
+        
+        return group;
+    },
+
+    createFoxMesh: function(color, size, options) {
+        const group = new THREE.Group();
+        
+        // Fox body
+        const bodyGeometry = new THREE.SphereGeometry(size * 0.85, 16, 12);
+        bodyGeometry.scale(1.4, 0.95, 1.2);
+        const bodyMaterial = new THREE.MeshLambertMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 0.95
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.castShadow = true;
+        group.add(body);
+
+        // Pointed head
+        const headGeometry = new THREE.SphereGeometry(size * 0.65, 16, 12);
+        headGeometry.scale(1.2, 1.0, 1.5);
+        const head = new THREE.Mesh(headGeometry, bodyMaterial);
+        head.position.set(0, size * 0.35, size * 1.0);
+        head.castShadow = true;
+        group.add(head);
+
+        // Triangular ears
+        const earGeometry = new THREE.ConeGeometry(size * 0.2, size * 0.35, 4);
+        const leftEar = new THREE.Mesh(earGeometry, bodyMaterial);
+        leftEar.position.set(-size * 0.3, size * 0.75, size * 0.95);
+        leftEar.rotation.z = 0.2;
+        group.add(leftEar);
+
+        const rightEar = new THREE.Mesh(earGeometry, bodyMaterial);
+        rightEar.position.set(size * 0.3, size * 0.75, size * 0.95);
+        rightEar.rotation.z = -0.2;
+        group.add(rightEar);
+
+        // Black nose tip
+        const noseGeometry = new THREE.SphereGeometry(size * 0.06, 8, 8);
+        const noseMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+        nose.position.set(0, size * 0.25, size * 1.4);
+        group.add(nose);
+
+        // Bushy tail with white tip
+        const tailGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.25, size * 1.8, 8);
+        const tail = new THREE.Mesh(tailGeometry, bodyMaterial);
+        tail.position.set(0, size * 0.4, -size * 1.0);
+        tail.rotation.x = 0.5;
+        tail.castShadow = true;
+        group.add(tail);
+
+        // White tail tip
+        const tailTipGeometry = new THREE.SphereGeometry(size * 0.2, 8, 8);
+        const tailTipMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+        const tailTip = new THREE.Mesh(tailTipGeometry, tailTipMaterial);
+        tailTip.position.set(0, size * 0.1, -size * 1.7);
+        group.add(tailTip);
+
+        // Eyes
+        const eyeGeometry = new THREE.SphereGeometry(size * 0.07, 8, 8);
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xFFA500 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-size * 0.18, size * 0.45, size * 1.15);
+        group.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(size * 0.18, size * 0.45, size * 1.15);
+        group.add(rightEye);
+
+        group.userData.animationParts = {
+            body, head, ears: [leftEar, rightEar], 
+            nose, tail, tailTip, eyes: [leftEye, rightEye]
+        };
+        
+        return group;
+    },
+
+    createDragonMesh: function(color, size, options) {
+        const group = new THREE.Group();
+        
+        // Dragon body
+        const bodyGeometry = new THREE.SphereGeometry(size * 1.0, 16, 12);
+        bodyGeometry.scale(1.6, 1.2, 1.4);
+        const bodyMaterial = new THREE.MeshLambertMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 0.95
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.castShadow = true;
+        group.add(body);
+
+        // Dragon head
+        const headGeometry = new THREE.SphereGeometry(size * 0.8, 16, 12);
+        headGeometry.scale(1.3, 1.1, 1.5);
+        const head = new THREE.Mesh(headGeometry, bodyMaterial);
+        head.position.set(0, size * 0.5, size * 1.3);
+        head.castShadow = true;
+        group.add(head);
+
+        // Horns
+        const hornGeometry = new THREE.ConeGeometry(size * 0.1, size * 0.4, 6);
+        const hornMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+        
+        const leftHorn = new THREE.Mesh(hornGeometry, hornMaterial);
+        leftHorn.position.set(-size * 0.25, size * 0.9, size * 1.2);
+        leftHorn.rotation.z = -0.3;
+        group.add(leftHorn);
+
+        const rightHorn = new THREE.Mesh(hornGeometry, hornMaterial);
+        rightHorn.position.set(size * 0.25, size * 0.9, size * 1.2);
+        rightHorn.rotation.z = 0.3;
+        group.add(rightHorn);
+
+        // Wings
+        const wingGeometry = new THREE.SphereGeometry(size * 0.8, 12, 8);
+        wingGeometry.scale(0.3, 1.5, 2.5);
+        
+        const leftWing = new THREE.Mesh(wingGeometry, bodyMaterial);
+        leftWing.position.set(-size * 0.9, size * 0.3, 0);
+        leftWing.rotation.z = 0.5;
+        group.add(leftWing);
+
+        const rightWing = new THREE.Mesh(wingGeometry, bodyMaterial);
+        rightWing.position.set(size * 0.9, size * 0.3, 0);
+        rightWing.rotation.z = -0.5;
+        group.add(rightWing);
+
+        // Spiky tail
+        const tailGeometry = new THREE.CylinderGeometry(size * 0.2, size * 0.1, size * 2.0, 8);
+        const tail = new THREE.Mesh(tailGeometry, bodyMaterial);
+        tail.position.set(0, size * 0.3, -size * 1.3);
+        tail.rotation.x = 0.8;
+        tail.castShadow = true;
+        group.add(tail);
+
+        // Eyes (glowing)
+        const eyeGeometry = new THREE.SphereGeometry(size * 0.1, 8, 8);
+        const eyeMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xFF0000,
+            emissive: 0xFF0000,
+            emissiveIntensity: 0.5
+        });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-size * 0.2, size * 0.6, size * 1.5);
+        group.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(size * 0.2, size * 0.6, size * 1.5);
+        group.add(rightEye);
+
+        group.userData.animationParts = {
+            body, head, horns: [leftHorn, rightHorn],
+            wings: [leftWing, rightWing], tail, eyes: [leftEye, rightEye]
+        };
+        
+        return group;
+    },
+
+    createHamsterMesh: function(color, size, options) {
+        const group = new THREE.Group();
+        
+        // Chubby hamster body
+        const bodyGeometry = new THREE.SphereGeometry(size * 0.9, 16, 12);
+        bodyGeometry.scale(1.1, 1.0, 1.2);
+        const bodyMaterial = new THREE.MeshLambertMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 0.95
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.castShadow = true;
+        group.add(body);
+
+        // Small head
+        const headGeometry = new THREE.SphereGeometry(size * 0.5, 16, 12);
+        const head = new THREE.Mesh(headGeometry, bodyMaterial);
+        head.position.set(0, size * 0.2, size * 0.7);
+        head.castShadow = true;
+        group.add(head);
+
+        // Tiny round ears
+        const earGeometry = new THREE.SphereGeometry(size * 0.15, 8, 8);
+        const leftEar = new THREE.Mesh(earGeometry, bodyMaterial);
+        leftEar.position.set(-size * 0.25, size * 0.45, size * 0.6);
+        group.add(leftEar);
+
+        const rightEar = new THREE.Mesh(earGeometry, bodyMaterial);
+        rightEar.position.set(size * 0.25, size * 0.45, size * 0.6);
+        group.add(rightEar);
+
+        // Pink nose
+        const noseGeometry = new THREE.SphereGeometry(size * 0.04, 8, 8);
+        const noseMaterial = new THREE.MeshBasicMaterial({ color: 0xFFB6C1 });
+        const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+        nose.position.set(0, size * 0.15, size * 0.9);
+        group.add(nose);
+
+        // Tiny tail
+        const tailGeometry = new THREE.SphereGeometry(size * 0.08, 8, 8);
+        const tail = new THREE.Mesh(tailGeometry, bodyMaterial);
+        tail.position.set(0, size * 0.2, -size * 0.6);
+        group.add(tail);
+
+        // Beady eyes
+        const eyeGeometry = new THREE.SphereGeometry(size * 0.05, 8, 8);
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-size * 0.12, size * 0.25, size * 0.85);
+        group.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(size * 0.12, size * 0.25, size * 0.85);
+        group.add(rightEye);
+
+        group.userData.animationParts = {
+            body, head, ears: [leftEar, rightEar], 
+            nose, tail, eyes: [leftEye, rightEye]
+        };
+        
+        return group;
+    },
+
     createUnicornMesh: function(color, size, options) {
         const group = new THREE.Group();
         
@@ -654,6 +1065,24 @@ window.PetSystem = {
         tail.rotation.x = 0.3;
         group.add(tail);
 
+        // Legs
+        const legGeometry = new THREE.CylinderGeometry(size * 0.08, size * 0.1, size * 0.8, 8);
+        const legPositions = [
+            { x: -size * 0.35, z: size * 0.6 },
+            { x: size * 0.35, z: size * 0.6 },
+            { x: -size * 0.35, z: -size * 0.4 },
+            { x: size * 0.35, z: -size * 0.4 }
+        ];
+
+        const legs = [];
+        legPositions.forEach((pos) => {
+            const leg = new THREE.Mesh(legGeometry, bodyMaterial);
+            leg.position.set(pos.x, -size * 0.4, pos.z);
+            leg.castShadow = true;
+            legs.push(leg);
+            group.add(leg);
+        });
+
         // Magical aura
         const auraGeometry = new THREE.SphereGeometry(size * 1.5, 16, 12);
         const auraMaterial = new THREE.MeshBasicMaterial({
@@ -665,32 +1094,23 @@ window.PetSystem = {
         const aura = new THREE.Mesh(auraGeometry, auraMaterial);
         group.add(aura);
 
+        // Eyes
+        const eyeGeometry = new THREE.SphereGeometry(size * 0.08, 8, 8);
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x4B0082 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-size * 0.2, size * 0.5, size * 1.55);
+        group.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(size * 0.2, size * 0.5, size * 1.55);
+        group.add(rightEye);
+
         group.userData.animationParts = {
-            body, head, horn, mane, tail, aura
+            body, head, horn, mane, tail, aura, legs, eyes: [leftEye, rightEye]
         };
         
         return group;
-    },
-
-    // Additional mesh creation methods for other pet types...
-    createRabbitMesh: function(color, size, options) {
-        // Implementation similar to above but with rabbit-specific features
-        return this.createGenericPetMesh(color, size);
-    },
-
-    createFoxMesh: function(color, size, options) {
-        // Implementation similar to above but with fox-specific features
-        return this.createGenericPetMesh(color, size);
-    },
-
-    createDragonMesh: function(color, size, options) {
-        // Implementation similar to above but with dragon-specific features
-        return this.createGenericPetMesh(color, size);
-    },
-
-    createHamsterMesh: function(color, size, options) {
-        // Implementation similar to above but with hamster-specific features
-        return this.createGenericPetMesh(color, size);
     },
 
     createGenericPetMesh: function(color, size) {
@@ -794,8 +1214,8 @@ window.PetSystem = {
     },
 
     positionPetNearOwner: function(petGroup, ownerId) {
-        const owner = window.AvatarSystem?.getAvatar(ownerId);
-        if (owner) {
+        const owner = window.AvatarSystem?.getAvatar?.(ownerId);
+        if (owner && owner.group) {
             const angle = Math.random() * Math.PI * 2;
             const distance = 1.5 + Math.random() * 1.0;
             petGroup.position.copy(owner.group.position);
@@ -1072,7 +1492,7 @@ window.PetSystem = {
 
     executeFollowing: function(petData) {
         const owner = window.AvatarSystem?.getAvatar(petData.ownerId);
-        if (!owner) return;
+        if (!owner || !owner.group) return;
         
         const ownerPos = owner.group.position;
         const petPos = petData.group.position;
@@ -1138,9 +1558,11 @@ window.PetSystem = {
         
         // Near avatars
         if (window.AvatarSystem) {
-            const avatars = window.AvatarSystem.getAllAvatars();
+            const avatars = window.AvatarSystem.getAllAvatars?.() || [];
             avatars.forEach(avatar => {
-                spots.push(avatar.group.position.clone());
+                if (avatar.group) {
+                    spots.push(avatar.group.position.clone());
+                }
             });
         }
         
@@ -1210,7 +1632,7 @@ window.PetSystem = {
 
     executeInteracting: function(petData) {
         const owner = window.AvatarSystem?.getAvatar(petData.ownerId);
-        if (!owner) return;
+        if (!owner || !owner.group) return;
         
         const ownerPos = owner.group.position;
         const distance = petData.group.position.distanceTo(ownerPos);
@@ -1268,7 +1690,6 @@ window.PetSystem = {
         console.log(`💝 ${petData.options.name} performed ${randomInteraction}`);
     },
 
-    // Additional action execution methods...
     executeFlying: function(petData) {
         if (!petData.config.canFly) return;
         
@@ -1414,8 +1835,11 @@ window.PetSystem = {
         this.createParticleEffect(petData.group.position, 0xffd700, 'celebration');
     },
 
-    createParticleEffect: function(position, color, type, petSize = 0.5) {
+    createParticleEffect: function(position, color, type) {
         if (!window.SceneManager || !window.SceneManager.scene) return;
+        
+        const config = this.petTypes[Object.keys(this.petTypes)[0]]; // Get any pet config for size reference
+        const petSize = config ? config.size : 0.5;
         
         // Create particle system
         const particleCount = type === 'celebration' ? 20 : 10;
@@ -1446,7 +1870,7 @@ window.PetSystem = {
             particles.add(particle);
         }
         
-        window.SceneManager.addObject(particles);
+        window.SceneManager.scene.add(particles);
         
         // Animate particles
         let animationTime = 0;
@@ -1474,7 +1898,7 @@ window.PetSystem = {
             });
             
             if (animationTime >= 1.5) {
-                window.SceneManager.removeObject(particles);
+                window.SceneManager.scene.remove(particles);
             } else {
                 requestAnimationFrame(animateParticles);
             }
@@ -1847,7 +2271,7 @@ window.PetSystem = {
         
         console.log(`🎉 ${petData.options.name} leveled up to level ${petData.level}!`);
         
-        if (window.RoomCore) {
+        if (window.RoomCore?.showNotification) {
             window.RoomCore.showNotification(`🎉 ${petData.options.name} reached level ${petData.level}!`);
         }
     },
@@ -1957,14 +2381,20 @@ window.PetSystem = {
     },
 
     // Public API methods
-    assignRandomPet: function(avatarId) {
+    assignRandomPet: function(avatarId = 'default') {
+        if (!this.isInitialized) {
+            console.warn('🐾 Pet System not initialized yet');
+            this.init(); // Try to initialize
+            return null;
+        }
+
         const petTypes = Object.keys(this.petTypes);
         const randomType = petTypes[Math.floor(Math.random() * petTypes.length)];
         
         // Don't assign if user already has 3+ pets
         const existingPets = this.getPetsForOwner(avatarId);
         if (existingPets.length >= 3) {
-            if (window.RoomCore) {
+            if (window.RoomCore?.showNotification) {
                 window.RoomCore.showNotification('🐾 You already have enough pets!');
             }
             return null;
@@ -1972,14 +2402,16 @@ window.PetSystem = {
         
         const pet = this.createPet(avatarId, randomType);
         
-        if (pet && window.RoomCore) {
-            window.RoomCore.showNotification(`🐾 ${pet.options.name} the ${pet.type} joined you!`);
-        }
-        
         return pet;
     },
 
-    createSpecificPet: function(avatarId, petType, options = {}) {
+    createSpecificPet: function(avatarId = 'default', petType, options = {}) {
+        if (!this.isInitialized) {
+            console.warn('🐾 Pet System not initialized yet');
+            this.init(); // Try to initialize
+            return null;
+        }
+
         if (!this.petTypes[petType]) {
             console.error('Invalid pet type:', petType);
             return null;
@@ -1992,8 +2424,8 @@ window.PetSystem = {
         const pet = this.activePets.get(petId);
         if (pet) {
             // Cleanup
-            if (window.SceneManager && window.SceneManager.scene) {
-                window.SceneManager.removeObject(pet.group);
+            if (pet.group && pet.group.parent) {
+                pet.group.parent.remove(pet.group);
             }
             
             this.activePets.delete(petId);
@@ -2048,6 +2480,12 @@ window.PetSystem = {
         this.createEatingEffect(pet);
         
         console.log(`🍖 Fed ${pet.options.name} (${foodType} food)`);
+        
+        if (window.RoomCore?.showNotification) {
+            window.RoomCore.showNotification(`🍖 Fed ${pet.options.name}!`);
+        }
+        
+        this.updatePetUI();
         return true;
     },
 
@@ -2066,10 +2504,131 @@ window.PetSystem = {
         this.createPlayEffect(pet);
         
         console.log(`🎾 Played with ${pet.options.name}`);
+        
+        if (window.RoomCore?.showNotification) {
+            window.RoomCore.showNotification(`🎾 Played with ${pet.options.name}!`);
+        }
+        
+        this.updatePetUI();
         return true;
     },
 
+    showPetSelectionPanel: function() {
+        // First check if system is initialized
+        if (!this.isInitialized) {
+            console.warn('🐾 Pet System not initialized yet');
+            if (window.RoomCore?.showNotification) {
+                window.RoomCore.showNotification('⏳ Pet System is still loading...');
+            }
+            return;
+        }
+
+        // Remove existing panel if any
+        const existingPanel = document.getElementById('pet-selection-panel');
+        if (existingPanel) {
+            existingPanel.remove();
+            return;
+        }
+        
+        const panel = document.createElement('div');
+        panel.id = 'pet-selection-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 30, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            z-index: 1500;
+            color: white;
+            min-width: 500px;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        const petTypesGrid = this.generatePetSelectionHTML();
+        
+        panel.innerHTML = `
+            <h3 style="margin: 0 0 20px 0; color: #667eea; text-align: center; font-size: 24px;">
+                🐾 Choose Your Pet Companion
+            </h3>
+            
+            <div style="margin-bottom: 20px;">
+                ${petTypesGrid}
+            </div>
+            
+            <div style="text-align: center;">
+                <button onclick="document.getElementById('pet-selection-panel').remove()" 
+                        style="padding: 12px 30px; background: rgba(255,255,255,0.2); 
+                               border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; 
+                               color: white; cursor: pointer; font-size: 16px;
+                               transition: all 0.3s;">
+                    Cancel
+                </button>
+            </div>
+            
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translate(-50%, -48%); }
+                    to { opacity: 1; transform: translate(-50%, -50%); }
+                }
+                .pet-type-button:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+                    border-color: rgba(255,255,255,0.4) !important;
+                }
+            </style>
+        `;
+        
+        document.body.appendChild(panel);
+        
+        // Add click handlers to pet type buttons
+        panel.querySelectorAll('.pet-type-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const petType = button.dataset.petType;
+                this.createSpecificPet('default', petType);
+                panel.remove();
+            });
+        });
+    },
+
+    generatePetSelectionHTML: function() {
+        return `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                ${Object.entries(this.petTypes).map(([type, config]) => `
+                    <div class="pet-type-button" data-pet-type="${type}"
+                         style="padding: 20px 15px; background: rgba(255,255,255,0.1); 
+                                border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; 
+                                cursor: pointer; text-align: center; transition: all 0.3s;
+                                display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">${config.emoji}</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #FFD700; margin-bottom: 5px;">
+                            ${config.name}
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">
+                            ${config.personality}
+                        </div>
+                        <div style="font-size: 11px; opacity: 0.6;">
+                            Speed: ${config.speed} • Size: ${config.size}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    },
+
     showPetManagementPanel: function() {
+        if (!this.isInitialized) {
+            console.warn('🐾 Pet System not initialized yet');
+            return;
+        }
+
         // Remove existing panel
         const existingPanel = document.getElementById('pet-management-panel');
         if (existingPanel) {
@@ -2099,7 +2658,6 @@ window.PetSystem = {
         `;
         
         const petsList = this.generatePetsListHTML();
-        const petTypesGrid = this.generatePetTypesHTML();
         
         panel.innerHTML = `
             <h3 style="margin: 0 0 20px 0; color: #667eea; text-align: center;">🐾 Pet Management</h3>
@@ -2109,71 +2667,60 @@ window.PetSystem = {
                 ${petsList}
             </div>
             
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: #FF6B35; margin-bottom: 10px;">Add New Pet:</h4>
-                ${petTypesGrid}
-            </div>
-            
             <div style="text-align: center;">
+                <button onclick="window.PetSystem.showPetSelectionPanel()" 
+                        style="padding: 10px 20px; background: #4CAF50; border: none; 
+                               border-radius: 8px; color: white; cursor: pointer; margin-right: 10px;">
+                    🐾 Add New Pet
+                </button>
                 <button onclick="this.parentElement.parentElement.remove()" 
-                        style="padding: 10px 20px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white; cursor: pointer;">
+                        style="padding: 10px 20px; background: rgba(255,255,255,0.2); 
+                               border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; 
+                               color: white; cursor: pointer;">
                     Close
                 </button>
             </div>
         `;
         
         document.body.appendChild(panel);
-        
-        // Add event listeners for pet management
-        this.setupPetManagementListeners(panel);
     },
 
     generatePetsListHTML: function() {
         const allPets = Array.from(this.activePets.values());
         
         if (allPets.length === 0) {
-            return '<p style="text-align: center; opacity: 0.7;">No pets currently active</p>';
+            return '<p style="text-align: center; opacity: 0.7;">No pets currently active. Click "Add New Pet" to get started!</p>';
         }
         
         return allPets.map(pet => `
-            <div style="display: flex; align-items: center; gap: 15px; padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.05); border-radius: 8px; border-left: 3px solid ${this.getPetTypeColor(pet.type)};">
+            <div style="display: flex; align-items: center; gap: 15px; padding: 10px; margin: 5px 0; 
+                        background: rgba(255,255,255,0.05); border-radius: 8px; 
+                        border-left: 3px solid ${this.getPetTypeColor(pet.type)};">
                 <div style="font-size: 24px;">${pet.config.emoji}</div>
                 <div style="flex: 1;">
                     <div style="font-weight: bold; color: #FFD700;">${pet.options.name}</div>
-                    <div style="font-size: 12px; opacity: 0.8;">Level ${pet.level} ${pet.type} • Owner: ${pet.ownerId}</div>
+                    <div style="font-size: 12px; opacity: 0.8;">Level ${pet.level} ${pet.type}</div>
                     <div style="font-size: 11px; opacity: 0.6;">Mood: ${pet.mood} • Energy: ${Math.round(pet.energy)}%</div>
                 </div>
                 <div style="display: flex; gap: 5px;">
                     <button onclick="window.PetSystem.feedPet('${pet.id}')" 
-                            style="padding: 5px 8px; background: #4CAF50; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
+                            style="padding: 5px 8px; background: #4CAF50; border: none; 
+                                   border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
                         🍖 Feed
                     </button>
                     <button onclick="window.PetSystem.playWithPet('${pet.id}')" 
-                            style="padding: 5px 8px; background: #2196F3; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
+                            style="padding: 5px 8px; background: #2196F3; border: none; 
+                                   border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
                         🎾 Play
                     </button>
                     <button onclick="window.PetSystem.removePet('${pet.id}')" 
-                            style="padding: 5px 8px; background: #f44336; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
+                            style="padding: 5px 8px; background: #f44336; border: none; 
+                                   border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
                         ❌
                     </button>
                 </div>
             </div>
         `).join('');
-    },
-
-    generatePetTypesHTML: function() {
-        return `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
-                ${Object.entries(this.petTypes).map(([type, config]) => `
-                    <button onclick="window.PetSystem.createSpecificPet('default', '${type}')" 
-                            style="padding: 15px 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; cursor: pointer; text-align: center; transition: all 0.3s;">
-                        <div style="font-size: 24px; margin-bottom: 5px;">${config.emoji}</div>
-                        <div style="font-size: 12px; font-weight: bold;">${config.name}</div>
-                        <div style="font-size: 10px; opacity: 0.7;">${config.personality}</div>
-                    </button>
-                `).join('')}
-            </div>
-        `;
     },
 
     getPetTypeColor: function(petType) {
@@ -2190,13 +2737,24 @@ window.PetSystem = {
         return colors[petType] || '#FFFFFF';
     },
 
-    setupPetManagementListeners: function(panel) {
-        // Additional setup can be added here
-        console.log('🎮 Pet management panel listeners set up');
+    generatePetName: function(petType) {
+        const namesByType = {
+            cat: ['Whiskers', 'Mittens', 'Shadow', 'Luna', 'Tiger', 'Smokey', 'Felix', 'Garfield'],
+            dog: ['Buddy', 'Max', 'Bella', 'Charlie', 'Lucy', 'Cooper', 'Rex', 'Spot'],
+            bird: ['Tweety', 'Sky', 'Feather', 'Robin', 'Phoenix', 'Sunny', 'Echo', 'Aria'],
+            rabbit: ['Bunny', 'Hop', 'Cotton', 'Nibbles', 'Clover', 'Daisy', 'Snowball', 'Pepper'],
+            fox: ['Rusty', 'Amber', 'Scout', 'Flame', 'Copper', 'Swift', 'Vixen', 'Blaze'],
+            dragon: ['Ember', 'Draco', 'Flame', 'Storm', 'Crystal', 'Mystique', 'Inferno', 'Tempest'],
+            hamster: ['Hammy', 'Peanut', 'Gizmo', 'Squeaky', 'Nibbler', 'Tiny', 'Fuzzy', 'Pip'],
+            unicorn: ['Starlight', 'Rainbow', 'Celeste', 'Aurora', 'Prism', 'Moonbeam', 'Sparkle', 'Radiance']
+        };
+        
+        const names = namesByType[petType] || ['Pet', 'Buddy', 'Friend', 'Companion'];
+        return names[Math.floor(Math.random() * names.length)];
     },
 
     updatePetUI: function() {
-        // Update the pet count in the status panel
+        // Update any UI elements that show pet counts
         const petCountElement = document.getElementById('pet-count');
         if (petCountElement) {
             petCountElement.textContent = this.activePets.size;
@@ -2239,22 +2797,6 @@ window.PetSystem = {
         `).join('');
     },
 
-    generatePetName: function(petType) {
-        const namesByType = {
-            cat: ['Whiskers', 'Mittens', 'Shadow', 'Luna', 'Tiger', 'Smokey', 'Felix', 'Garfield'],
-            dog: ['Buddy', 'Max', 'Bella', 'Charlie', 'Lucy', 'Cooper', 'Rex', 'Spot'],
-            bird: ['Tweety', 'Sky', 'Feather', 'Robin', 'Phoenix', 'Sunny', 'Echo', 'Aria'],
-            rabbit: ['Bunny', 'Hop', 'Cotton', 'Nibbles', 'Clover', 'Daisy', 'Snowball', 'Pepper'],
-            fox: ['Rusty', 'Amber', 'Scout', 'Flame', 'Copper', 'Swift', 'Vixen', 'Blaze'],
-            dragon: ['Ember', 'Draco', 'Flame', 'Storm', 'Crystal', 'Mystique', 'Inferno', 'Tempest'],
-            hamster: ['Hammy', 'Peanut', 'Gizmo', 'Squeaky', 'Nibbler', 'Tiny', 'Fuzzy', 'Pip'],
-            unicorn: ['Starlight', 'Rainbow', 'Celeste', 'Aurora', 'Prism', 'Moonbeam', 'Sparkle', 'Radiance']
-        };
-        
-        const names = namesByType[petType] || ['Pet', 'Buddy', 'Friend', 'Companion'];
-        return names[Math.floor(Math.random() * names.length)];
-    },
-
     // Getters
     getAllPets: function() {
         return Array.from(this.activePets.values());
@@ -2293,11 +2835,15 @@ window.PetSystem = {
     }
 };
 
-// Auto-initialize when loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.PetSystem.init();
-    });
-} else {
+// Initialize when scene is ready
+if (window.SceneManager?.scene) {
     window.PetSystem.init();
+} else {
+    // Wait for scene to be ready
+    const checkScene = setInterval(() => {
+        if (window.SceneManager?.scene) {
+            clearInterval(checkScene);
+            window.PetSystem.init();
+        }
+    }, 500);
 }
