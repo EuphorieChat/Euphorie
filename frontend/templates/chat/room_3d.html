@@ -6140,479 +6140,68 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
-
-<!-- Collapsible Status Panel Enhancement -->
 <style>
-/* Enhanced Status Panel with Collapse Feature */
-#status-panel {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: absolute;
+/* Simple collapse styles */
+#status-panel.hide-panel {
+    display: none !important;
+}
+
+.status-toggle-simple {
+    position: fixed;
     top: 15px;
     left: 15px;
-    z-index: 100;
-}
-
-#status-panel.collapsed {
-    transform: translateX(-100%);
-    margin-left: 40px; /* Keep toggle button visible */
-}
-
-/* Status Panel Toggle Button */
-.status-panel-toggle {
-    position: absolute;
-    right: -35px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: linear-gradient(135deg, rgba(0,0,0,0.85), rgba(20,20,30,0.85));
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    border-radius: 0 8px 8px 0;
-    width: 30px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #667eea;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.3);
-}
-
-.status-panel-toggle:hover {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
-    border-color: #667eea;
-    transform: translateY(-50%) translateX(2px);
-}
-
-.status-panel-toggle.collapsed {
-    border-radius: 0 12px 12px 0;
-}
-
-/* Minimize Icon Animation */
-.status-panel-toggle-icon {
-    transition: transform 0.3s ease;
-}
-
-#status-panel.collapsed .status-panel-toggle-icon {
-    transform: rotate(180deg);
-}
-
-/* Compact Mode for Status Panel */
-#status-panel.compact {
+    background: rgba(0,0,0,0.8);
+    color: white;
+    border: 1px solid #667eea;
+    border-radius: 8px;
     padding: 8px 12px;
-    font-size: 10px;
-}
-
-#status-panel.compact .status-header {
-    margin-bottom: 4px;
-    padding-bottom: 2px;
-}
-
-#status-panel.compact .status-item {
-    margin-bottom: 1px;
-}
-
-/* Alternative: Floating Mini Status */
-.status-mini {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    border-radius: 20px;
-    padding: 6px 16px;
-    color: white;
-    font-size: 11px;
-    z-index: 100;
-    display: none;
     cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.status-mini:hover {
-    background: rgba(0,0,0,0.85);
-    transform: scale(1.05);
-}
-
-#status-panel.collapsed + .status-mini {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.status-mini-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.status-mini-item .icon {
-    opacity: 0.8;
-}
-
-.status-mini-item .value {
-    color: #4CAF50;
-    font-weight: bold;
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    #status-panel {
-        font-size: 9px;
-        padding: 6px 10px;
-        top: 10px;
-        left: 10px;
-        max-width: calc(100vw - 100px);
-    }
-    
-    #status-panel.collapsed {
-        transform: translateX(calc(-100% + 25px));
-        margin-left: 0;
-    }
-    
-    .status-panel-toggle {
-        right: -25px;
-        width: 25px;
-        height: 50px;
-        font-size: 12px;
-    }
-    
-    .status-mini {
-        font-size: 10px;
-        padding: 5px 12px;
-    }
-}
-
-/* Slide Animation */
-@keyframes slideIn {
-    from {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes slideOut {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-}
-
-/* Preferences Saved Indicator */
-.status-preference-saved {
-    position: absolute;
-    bottom: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #4CAF50;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 10px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.status-preference-saved.show {
-    opacity: 1;
+    z-index: 101;
+    font-size: 12px;
 }
 </style>
 
 <script>
-// Collapsible Status Panel System
-class CollapsibleStatusPanel {
-    constructor() {
-        this.isCollapsed = false;
-        this.isCompact = false;
-        this.panel = null;
-        this.toggleButton = null;
-        this.miniPanel = null;
-        
-        // Load saved preference
-        this.loadPreference();
-        
-        // Initialize when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.init());
-        } else {
-            this.init();
-        }
-    }
-    
-    init() {
-        console.log('🎯 Initializing Collapsible Status Panel');
-        
-        this.panel = document.getElementById('status-panel');
-        if (!this.panel) {
-            console.warn('Status panel not found');
+// Simple toggle approach
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const panel = document.getElementById('status-panel');
+        if (!panel) {
+            console.error('Status panel not found');
             return;
         }
         
-        // Add toggle button
-        this.createToggleButton();
-        
-        // Create mini status panel
-        this.createMiniPanel();
-        
-        // Apply saved state
-        if (this.isCollapsed) {
-            this.collapse(false); // Don't save again
-        }
-        
-        // Setup keyboard shortcuts
-        this.setupKeyboardShortcuts();
-        
-        console.log('✅ Collapsible Status Panel initialized');
-    }
-    
-    createToggleButton() {
+        // Create simple toggle button
         const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'status-panel-toggle';
-        toggleBtn.innerHTML = `<span class="status-panel-toggle-icon">◀</span>`;
-        toggleBtn.title = 'Toggle Status Panel';
+        toggleBtn.className = 'status-toggle-simple';
+        toggleBtn.textContent = '📊 Toggle Status';
+        toggleBtn.style.display = 'none';
         
-        toggleBtn.addEventListener('click', () => {
-            this.toggle();
-        });
-        
-        this.panel.appendChild(toggleBtn);
-        this.toggleButton = toggleBtn;
-    }
-    
-    createMiniPanel() {
-        const miniPanel = document.createElement('div');
-        miniPanel.className = 'status-mini';
-        miniPanel.title = 'Click to expand status panel';
-        
-        // This will be updated dynamically
-        miniPanel.innerHTML = `
-            <div class="status-mini-item">
-                <span class="icon">🏠</span>
-                <span class="value" id="mini-room-name">Room</span>
-            </div>
-            <div class="status-mini-item">
-                <span class="icon">👥</span>
-                <span class="value" id="mini-user-count">0</span>
-            </div>
-            <div class="status-mini-item">
-                <span class="icon">💬</span>
-                <span class="value" id="mini-bubble-count">0</span>
-            </div>
-        `;
-        
-        miniPanel.addEventListener('click', () => {
-            this.expand();
-        });
-        
-        // Insert after status panel
-        this.panel.parentNode.insertBefore(miniPanel, this.panel.nextSibling);
-        this.miniPanel = miniPanel;
-        
-        // Update mini panel values
-        this.updateMiniPanel();
-    }
-    
-    updateMiniPanel() {
-        if (!this.miniPanel) return;
-        
-        // Get values from main panel
-        const roomName = this.panel.querySelector('.status-item:nth-child(1) .status-value')?.textContent || 'Room';
-        const userCount = document.getElementById('user-count')?.textContent || '0';
-        const bubbleCount = document.getElementById('bubble-count')?.textContent || '0';
-        
-        // Update mini panel
-        const miniRoom = document.getElementById('mini-room-name');
-        const miniUsers = document.getElementById('mini-user-count');
-        const miniBubbles = document.getElementById('mini-bubble-count');
-        
-        if (miniRoom) miniRoom.textContent = roomName;
-        if (miniUsers) miniUsers.textContent = userCount;
-        if (miniBubbles) miniBubbles.textContent = bubbleCount;
-    }
-    
-    toggle() {
-        if (this.isCollapsed) {
-            this.expand();
-        } else {
-            this.collapse();
-        }
-    }
-    
-    collapse(save = true) {
-        this.isCollapsed = true;
-        this.panel.classList.add('collapsed');
-        this.toggleButton.classList.add('collapsed');
-        
-        // Update mini panel when collapsing
-        this.updateMiniPanel();
-        
-        if (save) {
-            this.savePreference();
-            this.showSavedIndicator();
-        }
-        
-        console.log('📌 Status panel collapsed');
-    }
-    
-    expand(save = true) {
-        this.isCollapsed = false;
-        this.panel.classList.remove('collapsed');
-        this.toggleButton.classList.remove('collapsed');
-        
-        if (save) {
-            this.savePreference();
-            this.showSavedIndicator();
-        }
-        
-        console.log('📌 Status panel expanded');
-    }
-    
-    toggleCompact() {
-        this.isCompact = !this.isCompact;
-        if (this.isCompact) {
-            this.panel.classList.add('compact');
-        } else {
-            this.panel.classList.remove('compact');
-        }
-        this.savePreference();
-    }
-    
-    setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Ctrl + \ to toggle status panel
-            if (e.ctrlKey && e.key === '\\') {
-                e.preventDefault();
-                this.toggle();
+        toggleBtn.onclick = () => {
+            if (panel.classList.contains('hide-panel')) {
+                panel.classList.remove('hide-panel');
+                toggleBtn.style.display = 'none';
             }
-            
-            // Ctrl + Shift + \ for compact mode
-            if (e.ctrlKey && e.shiftKey && e.key === '\\') {
-                e.preventDefault();
-                this.toggleCompact();
-            }
-        });
-    }
-    
-    savePreference() {
-        const preference = {
-            isCollapsed: this.isCollapsed,
-            isCompact: this.isCompact
         };
-        localStorage.setItem('statusPanelPreference', JSON.stringify(preference));
-    }
-    
-    loadPreference() {
-        try {
-            const saved = localStorage.getItem('statusPanelPreference');
-            if (saved) {
-                const preference = JSON.parse(saved);
-                this.isCollapsed = preference.isCollapsed || false;
-                this.isCompact = preference.isCompact || false;
-            }
-        } catch (error) {
-            console.warn('Error loading status panel preference:', error);
-        }
-    }
-    
-    showSavedIndicator() {
-        // Create or get saved indicator
-        let indicator = this.panel.querySelector('.status-preference-saved');
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.className = 'status-preference-saved';
-            indicator.textContent = 'Preference saved';
-            this.panel.appendChild(indicator);
+        
+        // Add hide button to panel
+        const hideBtn = document.createElement('button');
+        hideBtn.style.cssText = 'float: right; background: none; border: none; color: white; cursor: pointer; font-size: 16px;';
+        hideBtn.textContent = '×';
+        hideBtn.onclick = () => {
+            panel.classList.add('hide-panel');
+            toggleBtn.style.display = 'block';
+        };
+        
+        const header = panel.querySelector('.status-header');
+        if (header) {
+            header.appendChild(hideBtn);
         }
         
-        // Show briefly
-        indicator.classList.add('show');
-        setTimeout(() => {
-            indicator.classList.remove('show');
-        }, 2000);
-    }
-    
-    // Public method to update values (called from main app)
-    updateValues() {
-        this.updateMiniPanel();
-    }
-}
-
-// Initialize the system
-window.StatusPanelController = new CollapsibleStatusPanel();
-
-// Hook into existing update functions
-const originalUpdateCounter = window.updateCounter;
-if (originalUpdateCounter) {
-    window.updateCounter = function(elementId, count) {
-        originalUpdateCounter.call(this, elementId, count);
-        
-        // Update mini panel when values change
-        if (window.StatusPanelController) {
-            window.StatusPanelController.updateValues();
-        }
-    };
-}
-
-// Add context menu for additional options
-document.addEventListener('DOMContentLoaded', () => {
-    const statusPanel = document.getElementById('status-panel');
-    if (statusPanel) {
-        statusPanel.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            
-            // Create context menu
-            const existingMenu = document.getElementById('status-panel-context-menu');
-            if (existingMenu) existingMenu.remove();
-            
-            const menu = document.createElement('div');
-            menu.id = 'status-panel-context-menu';
-            menu.style.cssText = `
-                position: fixed;
-                left: ${e.clientX}px;
-                top: ${e.clientY}px;
-                background: rgba(0,0,0,0.9);
-                border: 1px solid rgba(102, 126, 234, 0.3);
-                border-radius: 8px;
-                padding: 8px 0;
-                z-index: 1000;
-                min-width: 150px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            `;
-            
-            menu.innerHTML = `
-                <div class="context-menu-item" onclick="window.StatusPanelController.toggleCompact(); document.getElementById('status-panel-context-menu').remove();" style="padding: 8px 16px; cursor: pointer; color: white; font-size: 12px;">
-                    ${window.StatusPanelController.isCompact ? '✓' : ''} Compact Mode
-                </div>
-                <div class="context-menu-item" onclick="window.StatusPanelController.toggle(); document.getElementById('status-panel-context-menu').remove();" style="padding: 8px 16px; cursor: pointer; color: white; font-size: 12px;">
-                    ${window.StatusPanelController.isCollapsed ? 'Expand' : 'Collapse'} Panel
-                </div>
-            `;
-            
-            document.body.appendChild(menu);
-            
-            // Remove menu when clicking elsewhere
-            setTimeout(() => {
-                document.addEventListener('click', function removeMenu() {
-                    menu.remove();
-                    document.removeEventListener('click', removeMenu);
-                }, { once: true });
-            }, 10);
-        });
-    }
+        document.body.appendChild(toggleBtn);
+        console.log('✅ Simple toggle system added');
+    }, 2000); // Wait 2 seconds for everything to load
 });
-
-console.log('📊 Collapsible Status Panel system loaded');
 </script>
 
 
