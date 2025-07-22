@@ -6140,24 +6140,41 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
+
 <style>
 /* Simple collapse styles */
 #status-panel.hide-panel {
     display: none !important;
 }
 
-/* Responsive width constraints for status panel */
+/* Fixed status panel - no backdrop effects that interfere with 3D */
 #status-panel {
-    max-width: 30vw !important; /* Maximum 30% of viewport width */
-    min-width: 200px !important; /* Minimum width for readability */
+    max-width: 30vw !important;
+    min-width: 200px !important;
     overflow: hidden;
     word-wrap: break-word;
+    /* Remove backdrop-filter to prevent 3D rendering issues */
+    backdrop-filter: none !important;
+    /* Use solid background instead of transparency */
+    background: rgba(0, 0, 0, 0.9) !important;
+    /* Limit shadow spread */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    /* Ensure it doesn't affect 3D layers */
+    will-change: transform;
+    transform: translateZ(0);
+    /* Prevent bleed-through */
+    isolation: isolate;
+}
+
+/* Remove any backdrop filters from child elements */
+#status-panel * {
+    backdrop-filter: none !important;
 }
 
 /* For very small screens, allow slightly more width */
 @media (max-width: 480px) {
     #status-panel {
-        max-width: 40vw !important; /* 40% on very small screens */
+        max-width: 40vw !important;
         min-width: 150px !important;
         font-size: 9px !important;
         padding: 8px 10px !important;
@@ -6167,7 +6184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* For tablets */
 @media (min-width: 481px) and (max-width: 768px) {
     #status-panel {
-        max-width: 35vw !important; /* 35% on tablets */
+        max-width: 35vw !important;
     }
 }
 
@@ -6187,12 +6204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     vertical-align: bottom;
 }
 
-/* Adjust location text if it's too long */
-#status-panel .status-item:last-child .status-value {
-    font-size: 0.9em;
-}
-
-/* Enhanced pretty toggle button */
+/* Enhanced pretty toggle button - also fixed */
 .status-toggle-simple {
     position: fixed;
     top: 15px;
@@ -6206,21 +6218,22 @@ document.addEventListener('DOMContentLoaded', () => {
     z-index: 101;
     font-size: 13px;
     font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 
-                0 0 20px rgba(102, 126, 234, 0.4);
-    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    /* Remove backdrop-filter */
+    backdrop-filter: none !important;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     gap: 8px;
     animation: fadeIn 0.3s ease;
+    /* Ensure isolation */
+    isolation: isolate;
 }
 
 .status-toggle-simple:hover {
     background: linear-gradient(135deg, rgba(118, 75, 162, 0.95), rgba(102, 126, 234, 0.95));
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 
-                0 0 30px rgba(102, 126, 234, 0.6);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
 }
 
 .status-toggle-simple:active {
@@ -6229,9 +6242,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Pulse animation for attention */
 @keyframes pulse {
-    0% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(102, 126, 234, 0.4); }
-    50% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 35px rgba(102, 126, 234, 0.8); }
-    100% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(102, 126, 234, 0.4); }
+    0% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+    50% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(102, 126, 234, 0.6); }
+    100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
 }
 
 .status-toggle-simple.pulse {
