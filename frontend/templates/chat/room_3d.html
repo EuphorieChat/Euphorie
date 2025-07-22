@@ -6327,27 +6327,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /* To hide ALL notifications */
-<style>
-/* Hide all notification-like elements */
-div[style*="position: fixed"][style*="right: 20px"] {
-    display: none !important;
-}
-
-/* Also try these variations */
-div[style*="position: fixed"][style*="z-index: 10000"] {
-    display: none !important;
-}
-
-/* Target notifications by their animation */
-div[style*="transform: translateX"] {
-    display: none !important;
-}
-
-/* Nuclear option - hide anything that looks like a notification */
-div[style*="backdrop-filter: blur(15px)"][style*="position: fixed"] {
-    display: none !important;
-}
-</style>
+<script>
+// Add this to your HTML
+document.addEventListener('DOMContentLoaded', () => {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1 && node.tagName === 'DIV') {
+                    const style = node.getAttribute('style') || '';
+                    const text = node.textContent || '';
+                    
+                    // Only remove if it matches notification pattern AND contains notification text
+                    if (style.includes('position: fixed') && 
+                        style.includes('right: 20px') &&
+                        style.includes('transform') &&
+                        (text.includes('dancing') || 
+                         text.includes('Dance') ||
+                         text.includes('group') ||
+                         text.includes('Team') ||
+                         text.includes('completed') ||
+                         text.includes('remaining') ||
+                         text.includes('joining'))) {
+                        
+                        node.remove();
+                        console.log('Blocked notification:', text);
+                    }
+                }
+            });
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+</script>
 
 </body>
 </html>
