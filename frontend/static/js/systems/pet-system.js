@@ -2763,10 +2763,206 @@ window.PetSystem = {
         // Update pet panel if visible
         const petPanel = document.getElementById('pet-panel');
         if (petPanel && petPanel.style.display !== 'none') {
+            // Update panel positioning and styling
+            this.enhancePetPanel(petPanel);
+            
             const petList = document.getElementById('pet-list');
             if (petList) {
                 petList.innerHTML = this.generatePetPanelHTML();
             }
+        }
+    },
+
+    enhancePetPanel: function(petPanel) {
+        // Check if we already enhanced this panel
+        if (petPanel.dataset.enhanced === 'true') return;
+        
+        // Mark as enhanced
+        petPanel.dataset.enhanced = 'true';
+        
+        // Update panel styling to position above chatbox
+        petPanel.style.cssText = `
+            position: fixed;
+            bottom: 420px; /* Position above chatbox */
+            right: 20px;
+            width: 320px;
+            max-height: 400px;
+            background: rgba(20, 20, 30, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            padding-top: 40px; /* Space for close button */
+            color: white;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            display: block !important; /* Override any display:none */
+        `;
+        
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'pet-panel-close';
+        closeButton.innerHTML = '×';
+        closeButton.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        `;
+        
+        // Add hover effect
+        closeButton.addEventListener('mouseenter', () => {
+            closeButton.style.background = 'rgba(255, 67, 54, 0.8)';
+            closeButton.style.transform = 'scale(1.1)';
+        });
+        
+        closeButton.addEventListener('mouseleave', () => {
+            closeButton.style.background = 'rgba(255, 255, 255, 0.1)';
+            closeButton.style.transform = 'scale(1)';
+        });
+        
+        // Add click handler to close panel
+        closeButton.addEventListener('click', () => {
+            petPanel.style.display = 'none';
+            petPanel.dataset.enhanced = 'false'; // Reset enhancement flag
+            
+            // Also update any toggle buttons
+            const toggleButtons = document.querySelectorAll('[onclick*="pet-panel"]');
+            toggleButtons.forEach(button => {
+                if (button.textContent.includes('Pets')) {
+                    button.classList.remove('active');
+                }
+            });
+        });
+        
+        petPanel.appendChild(closeButton);
+        
+        // Add header if not exists
+        if (!petPanel.querySelector('.pet-panel-header')) {
+            const header = document.createElement('div');
+            header.className = 'pet-panel-header';
+            header.style.cssText = `
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            `;
+            
+            header.innerHTML = `
+                <h3 style="margin: 0 0 10px 0; color: #4CAF50; font-size: 18px;">
+                    🐾 Your Pets
+                    <span style="
+                        background: rgba(76, 175, 80, 0.3);
+                        border: 1px solid #4CAF50;
+                        border-radius: 12px;
+                        padding: 2px 8px;
+                        font-size: 12px;
+                        margin-left: 10px;
+                    ">${this.getActivePetCount()}</span>
+                </h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button onclick="window.PetSystem.showPetSelectionPanel()" 
+                            style="
+                                flex: 1;
+                                padding: 8px 12px;
+                                background: rgba(76, 175, 80, 0.2);
+                                border: 1px solid #4CAF50;
+                                border-radius: 8px;
+                                color: white;
+                                cursor: pointer;
+                                transition: all 0.3s;
+                                font-size: 14px;
+                            ">
+                        + Add Pet
+                    </button>
+                    <button onclick="window.PetSystem.showPetManagementPanel()" 
+                            style="
+                                flex: 1;
+                                padding: 8px 12px;
+                                background: rgba(33, 150, 243, 0.2);
+                                border: 1px solid #2196F3;
+                                border-radius: 8px;
+                                color: white;
+                                cursor: pointer;
+                                transition: all 0.3s;
+                                font-size: 14px;
+                            ">
+                        Manage
+                    </button>
+                </div>
+            `;
+            
+            // Insert header at the beginning
+            petPanel.insertBefore(header, petPanel.firstChild);
+        }
+        
+        // Add custom scrollbar styling
+        const style = document.createElement('style');
+        style.textContent = `
+            #pet-panel::-webkit-scrollbar {
+                width: 8px;
+            }
+            #pet-panel::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+            }
+            #pet-panel::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 4px;
+            }
+            #pet-panel::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
+            
+            /* Pet item styling */
+            .pet-item {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                padding: 10px;
+                margin: 5px 0;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+                border-left: 3px solid #4CAF50;
+                transition: all 0.3s;
+            }
+            
+            .pet-item:hover {
+                background: rgba(255, 255, 255, 0.1);
+                transform: translateX(5px);
+            }
+            
+            .pet-stats {
+                display: flex;
+                gap: 10px;
+                font-size: 12px;
+                margin-top: 5px;
+            }
+            
+            .pet-stats span {
+                display: flex;
+                align-items: center;
+                gap: 3px;
+            }
+        `;
+        
+        if (!document.querySelector('#pet-panel-styles')) {
+            style.id = 'pet-panel-styles';
+            document.head.appendChild(style);
         }
     },
 
@@ -2775,26 +2971,57 @@ window.PetSystem = {
         
         if (pets.length === 0) {
             return `
-                <div style="text-align: center; opacity: 0.7; font-size: 11px; padding: 20px;">
-                    No pets active. Click "Add Pet" to get a companion!
+                <div style="text-align: center; opacity: 0.7; font-size: 14px; padding: 40px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">🐾</div>
+                    <p>No pets active yet!</p>
+                    <p style="font-size: 12px;">Click "Add Pet" to get a companion</p>
                 </div>
             `;
         }
         
-        return pets.map(pet => `
-            <div class="pet-item">
-                <div style="font-size: 20px;">${pet.config.emoji}</div>
-                <div class="pet-status">
-                    <div style="font-weight: bold; color: #FFD700;">${pet.options.name}</div>
-                    <div class="pet-stats">
-                        <span>❤️ ${Math.round(pet.health)}</span>
-                        <span>⚡ ${Math.round(pet.energy)}</span>
-                        <span>😊 ${Math.round(pet.happiness)}</span>
+        return `
+            <div id="pet-list">
+                ${pets.map(pet => `
+                    <div class="pet-item">
+                        <div style="font-size: 32px;">${pet.config.emoji}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #FFD700; font-size: 14px;">
+                                ${pet.options.name}
+                                <span style="font-size: 11px; color: #888; font-weight: normal;">
+                                    Lv.${pet.level}
+                                </span>
+                            </div>
+                            <div class="pet-stats">
+                                <span title="Health">❤️ ${Math.round(pet.health)}%</span>
+                                <span title="Energy">⚡ ${Math.round(pet.energy)}%</span>
+                                <span title="Happiness">😊 ${Math.round(pet.happiness)}%</span>
+                            </div>
+                            <div style="font-size: 11px; opacity: 0.6; margin-top: 3px;">
+                                ${pet.mood} • ${pet.currentAction}
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <button onclick="window.PetSystem.feedPet('${pet.id}')" 
+                                    title="Feed Pet"
+                                    style="padding: 5px 8px; background: rgba(76, 175, 80, 0.2); 
+                                           border: 1px solid #4CAF50; border-radius: 5px; 
+                                           color: white; cursor: pointer; font-size: 12px;
+                                           transition: all 0.3s;">
+                                🍖
+                            </button>
+                            <button onclick="window.PetSystem.playWithPet('${pet.id}')" 
+                                    title="Play with Pet"
+                                    style="padding: 5px 8px; background: rgba(33, 150, 243, 0.2); 
+                                           border: 1px solid #2196F3; border-radius: 5px; 
+                                           color: white; cursor: pointer; font-size: 12px;
+                                           transition: all 0.3s;">
+                                🎾
+                            </button>
+                        </div>
                     </div>
-                    <div style="font-size: 10px; opacity: 0.6;">${pet.mood} • Lv.${pet.level}</div>
-                </div>
+                `).join('')}
             </div>
-        `).join('');
+        `;
     },
 
     // Getters
