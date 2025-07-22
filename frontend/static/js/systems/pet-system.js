@@ -3143,16 +3143,20 @@ window.PetSystem = {
         
         if (pets.length === 0) {
             return `
-                <div style="text-align: center; opacity: 0.7; font-size: ${isMobile ? '12px' : '14px'}; padding: ${isMobile ? '30px 15px' : '40px 20px'};">
-                    <div style="font-size: ${isMobile ? '36px' : '48px'}; margin-bottom: 10px;">🐾</div>
-                    <p>No pets active yet!</p>
-                    <p style="font-size: ${isMobile ? '11px' : '12px'};">Click "Add Pet" to get a companion</p>
+                <div id="pet-list" style="display: flex; flex-direction: column;">
+                    <div style="text-align: center; opacity: 0.7; font-size: ${isMobile ? '12px' : '14px'}; 
+                                padding: ${isMobile ? '30px 15px' : '40px 20px'};
+                                display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: ${isMobile ? '36px' : '48px'}; margin-bottom: 10px;">🐾</div>
+                        <p style="margin: 5px 0;">No pets active yet!</p>
+                        <p style="font-size: ${isMobile ? '11px' : '12px'}; margin: 5px 0;">Click "Add Pet" to get a companion</p>
+                    </div>
                 </div>
             `;
         }
         
         return `
-            <div id="pet-list">
+            <div id="pet-list" style="display: flex; flex-direction: column;">
                 ${pets.map(pet => `
                     <div class="pet-item">
                         <div style="font-size: ${isMobile ? '28px' : '32px'};">${pet.config.emoji}</div>
