@@ -1273,87 +1273,161 @@
 
 
 
-<!-- AI Chat Tab Enhancement for Euphorie 3D -->
+<!-- AI Chat Tab Enhancement for Euphorie 3D - Separate Button Design -->
 <style>
-/* Enhanced Chat Panel with Tabs */
-.chat-tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 12px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 10px;
-    padding: 4px;
-    border: 1px solid rgba(102, 126, 234, 0.2);
-}
-
-.chat-tab {
-    flex: 1;
-    padding: 10px 16px;
-    background: transparent;
-    border: none;
-    color: rgba(255,255,255,0.7);
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
+/* AI Chat Button Styles */
+.ai-chat-toggle {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 152, 0, 0.3));
+    border: 2px solid rgba(255, 107, 53, 0.5);
     border-radius: 8px;
-    transition: all 0.3s ease;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.chat-tab:hover {
-    background: rgba(255,255,255,0.1);
-    color: white;
-}
-
-.chat-tab.active {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
-    color: white;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.chat-tab-icon {
-    font-size: 16px;
-}
-
-.chat-tab-badge {
-    position: absolute;
-    top: 4px;
-    right: 8px;
-    background: #FF6B35;
+    padding: 6px 12px;
     color: white;
     font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ai-chat-toggle:hover {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.5), rgba(255, 152, 0, 0.5));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
+.ai-chat-toggle.active {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.8), rgba(255, 152, 0, 0.8));
+    border-color: #FF6B35;
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+}
+
+.ai-chat-badge {
+    background: #4CAF50;
+    color: white;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 8px;
     font-weight: bold;
-    min-width: 16px;
+    min-width: 14px;
     text-align: center;
 }
 
-/* AI Chat Specific Styles */
-.ai-chat-container {
+/* AI Chat Container */
+.ai-chat-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, rgba(15, 15, 25, 0.98), rgba(25, 25, 40, 0.98));
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 20px;
     display: none;
     flex-direction: column;
-    height: 100%;
+    z-index: 10;
 }
 
-.ai-chat-container.active {
+.ai-chat-overlay.active {
     display: flex;
 }
 
-.room-chat-container {
+/* Mobile specific overlay */
+.mobile .ai-chat-overlay {
+    border-radius: 20px 20px 0 0;
+    padding: 16px;
+}
+
+/* AI Chat Header */
+.ai-chat-header {
     display: flex;
-    flex-direction: column;
-    height: 100%;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(255, 107, 53, 0.3);
 }
 
-.room-chat-container.hidden {
-    display: none;
+.ai-chat-header h3 {
+    margin: 0;
+    color: #FF6B35;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
+.ai-chat-back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ai-chat-back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* AI Status Indicator */
+.ai-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 8px;
+    font-size: 11px;
+    margin-bottom: 12px;
+    color: #4CAF50;
+}
+
+.ai-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+}
+
+/* AI Suggestions */
+.ai-suggestions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.ai-suggestion {
+    padding: 6px 12px;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 16px;
+    color: #FF6B35;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ai-suggestion:hover {
+    background: rgba(255, 107, 53, 0.2);
+    transform: translateY(-1px);
+}
+
+/* AI Messages Container */
 .ai-messages {
     flex: 1;
     overflow-y: auto;
@@ -1361,15 +1435,15 @@
     margin-bottom: 16px;
     padding: 12px;
     background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 50, 0.8));
-    border: 1px solid rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(255, 107, 53, 0.2);
     border-radius: 12px;
     font-size: 12px;
     line-height: 1.4;
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
-    max-height: 200px;
-    min-height: 100px;
+    max-height: 300px;
 }
 
+/* AI Message Styles */
 .ai-message {
     margin-bottom: 12px;
     padding: 10px 14px;
@@ -1421,6 +1495,7 @@
     white-space: pre-wrap;
 }
 
+/* AI Thinking Animation */
 .ai-thinking-indicator {
     display: flex;
     align-items: center;
@@ -1449,40 +1524,14 @@
     30% { opacity: 1; transform: scale(1.3); }
 }
 
-/* AI Status Indicator */
-.ai-status {
+/* AI Chat Input Container */
+.ai-chat-input-container {
     display: flex;
+    gap: 12px;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: rgba(255, 107, 53, 0.1);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    border-radius: 8px;
-    font-size: 11px;
-    margin-bottom: 12px;
+    flex-shrink: 0;
 }
 
-.ai-status.connected {
-    background: rgba(76, 175, 80, 0.1);
-    border-color: rgba(76, 175, 80, 0.3);
-    color: #4CAF50;
-}
-
-.ai-status.error {
-    background: rgba(244, 67, 54, 0.1);
-    border-color: rgba(244, 67, 54, 0.3);
-    color: #F44336;
-}
-
-.ai-status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: currentColor;
-    animation: pulse 2s infinite;
-}
-
-/* AI Chat Input */
 .ai-chat-input {
     flex: 1;
     padding: 12px 16px;
@@ -1531,61 +1580,23 @@
     transform: none;
 }
 
-/* AI Chat Input Container */
-.ai-chat-input-container {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-shrink: 0;
-    margin-top: auto;
-}
-
-/* AI Suggestions */
-.ai-suggestions {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-}
-
-.ai-suggestion {
-    padding: 6px 12px;
-    background: rgba(255, 107, 53, 0.1);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    border-radius: 16px;
-    color: #FF6B35;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.ai-suggestion:hover {
-    background: rgba(255, 107, 53, 0.2);
-    transform: translateY(-1px);
-}
-
-/* Mobile Styles */
+/* Mobile Responsive */
 @media (max-width: 768px) {
-    .chat-tabs {
-        margin-bottom: 8px;
-        padding: 3px;
-    }
-    
-    .chat-tab {
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-    
-    .chat-tab-icon {
-        font-size: 14px;
+    .ai-chat-toggle {
+        font-size: 9px;
+        padding: 4px 8px;
     }
     
     .ai-messages {
-        max-height: 160px;
+        max-height: 250px;
+    }
+    
+    .ai-chat-header h3 {
+        font-size: 14px;
     }
 }
 
-/* Scrollbar Styling for AI Messages */
+/* Scrollbar Styling */
 .ai-messages::-webkit-scrollbar {
     width: 6px;
 }
@@ -1604,7 +1615,6 @@
     background: linear-gradient(180deg, rgba(255, 107, 53, 0.8), rgba(255, 152, 0, 0.8));
 }
 </style>
-
 
 
 
@@ -4199,17 +4209,18 @@
         }, 100);
     </script>
 
-    
+
+
 
     <script>
-    // AI Chat System for Euphorie 3D
+    // AI Chat System for Euphorie 3D - Separate Button Design
     class AIGrokChat {
         constructor() {
             this.isConnected = false;
             this.messageHistory = [];
-            this.currentTab = 'room';
             this.unreadAIMessages = 0;
             this.isInitialized = false;
+            this.activePanel = null;
             
             console.log('🤖 AIGrokChat constructor called');
             this.init();
@@ -4217,7 +4228,6 @@
         
         init() {
             console.log('🤖 AIGrokChat init called');
-            // Setup UI when DOM is ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => this.setupUI());
             } else {
@@ -4233,7 +4243,7 @@
             
             console.log('🤖 Setting up AI Chat UI...');
             
-            // Add tabs to both desktop and mobile chat panels
+            // Add AI button and overlay to both panels
             const desktopEnhanced = this.enhanceChatPanel('chat-panel');
             const mobileEnhanced = this.enhanceChatPanel('mobile-chat-panel');
             
@@ -4245,7 +4255,7 @@
             // Setup event listeners
             this.setupEventListeners();
             
-            // Add initial AI welcome message
+            // Add initial welcome message to all AI containers
             setTimeout(() => {
                 this.addAIMessage('grok', "🤖 Hi! I'm Grok, your AI assistant. Ask me anything about the room, get help with features, or just chat!");
                 this.addSuggestions();
@@ -4265,59 +4275,68 @@
             }
             
             // Check if already enhanced
-            if (panel.querySelector('.chat-tabs')) {
-                console.log(`Panel ${panelId} already has tabs`);
+            if (panel.querySelector('.ai-chat-toggle')) {
+                console.log(`Panel ${panelId} already has AI button`);
                 return true;
             }
             
+            // Find the chat header
+            const chatHeader = panel.querySelector('.chat-header');
+            if (!chatHeader) {
+                console.warn(`No chat-header found in ${panelId}`);
+                return false;
+            }
+            
+            // Find the controls container
+            const controlsContainer = chatHeader.querySelector('.chat-controls');
+            if (!controlsContainer) {
+                console.warn(`No chat-controls found in ${panelId}`);
+                return false;
+            }
+            
+            // Create AI button
+            const aiButton = document.createElement('button');
+            aiButton.className = 'ai-chat-toggle';
+            aiButton.id = `${panelId}-ai-toggle`;
+            aiButton.innerHTML = `
+                <span>🤖</span>
+                <span>Ask AI</span>
+                <span class="ai-chat-badge" id="${panelId}-ai-badge" style="display: none;">0</span>
+            `;
+            
+            // Insert before the minimize button if it exists, otherwise at the end
+            const minimizeBtn = controlsContainer.querySelector('.chat-minimize-btn');
+            if (minimizeBtn) {
+                controlsContainer.insertBefore(aiButton, minimizeBtn);
+            } else {
+                controlsContainer.appendChild(aiButton);
+            }
+            
+            // Create AI chat overlay
             const chatContent = panel.querySelector('.chat-content');
             if (!chatContent) {
                 console.warn(`No chat-content found in ${panelId}`);
                 return false;
             }
             
-            // Create tabs
-            const tabsContainer = document.createElement('div');
-            tabsContainer.className = 'chat-tabs';
-            tabsContainer.innerHTML = `
-                <button class="chat-tab active" data-tab="room" data-panel="${panelId}">
-                    <span class="chat-tab-icon">💬</span>
-                    <span>Connected</span>
-                </button>
-                <button class="chat-tab" data-tab="ai" data-panel="${panelId}">
-                    <span class="chat-tab-icon">🤖</span>
-                    <span>Ask AI</span>
-                    <span class="chat-tab-badge" id="${panelId}-ai-badge" style="display: none;">0</span>
-                </button>
-            `;
-            
-            // Insert tabs at the beginning of chat content
-            chatContent.insertBefore(tabsContainer, chatContent.firstChild);
-            
-            // Wrap existing chat content (everything except tabs)
-            const existingElements = Array.from(chatContent.children).filter(child => 
-                !child.classList.contains('chat-tabs') && !child.classList.contains('ai-chat-container')
-            );
-            
-            const roomContainer = document.createElement('div');
-            roomContainer.className = 'room-chat-container';
-            roomContainer.id = `${panelId}-room-container`;
-            
-            // Move existing elements to room container
-            existingElements.forEach(element => {
-                roomContainer.appendChild(element);
-            });
-            
-            chatContent.appendChild(roomContainer);
-            
-            // Create AI chat container
-            const aiContainer = document.createElement('div');
-            aiContainer.className = 'ai-chat-container';
-            aiContainer.id = `${panelId}-ai-container`;
-            aiContainer.innerHTML = `
-                <div class="ai-status connected">
+            const aiOverlay = document.createElement('div');
+            aiOverlay.className = 'ai-chat-overlay';
+            aiOverlay.id = `${panelId}-ai-overlay`;
+            aiOverlay.innerHTML = `
+                <div class="ai-chat-header">
+                    <h3>
+                        <span>🤖</span>
+                        <span>Grok AI Assistant</span>
+                    </h3>
+                    <button class="ai-chat-back-btn" id="${panelId}-ai-back">
+                        <span>←</span>
+                        <span>Back to Chat</span>
+                    </button>
+                </div>
+                
+                <div class="ai-status">
                     <span class="ai-status-dot"></span>
-                    <span>Grok AI Connected</span>
+                    <span>AI Connected</span>
                 </div>
                 
                 <div class="ai-suggestions" id="${panelId}-ai-suggestions"></div>
@@ -4330,7 +4349,13 @@
                 </div>
             `;
             
-            chatContent.appendChild(aiContainer);
+            // Add overlay to panel (not inside chat-content)
+            panel.appendChild(aiOverlay);
+            
+            // Add mobile class if needed
+            if (panelId === 'mobile-chat-panel') {
+                aiOverlay.classList.add('mobile');
+            }
             
             console.log(`✅ Enhanced panel ${panelId} successfully`);
             return true;
@@ -4339,25 +4364,26 @@
         setupEventListeners() {
             console.log('🔧 Setting up event listeners...');
             
-            // Tab switching for both panels
-            document.querySelectorAll('.chat-tab').forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const tabName = e.currentTarget.getAttribute('data-tab');
-                    const panelId = e.currentTarget.getAttribute('data-panel');
-                    console.log(`Tab clicked: ${tabName} in panel ${panelId}`);
-                    this.switchTab(tabName, e.currentTarget);
-                });
-            });
-            
-            // AI input handlers for both panels
+            // AI toggle buttons
             ['chat-panel', 'mobile-chat-panel'].forEach(panelId => {
+                const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
+                const backBtn = document.getElementById(`${panelId}-ai-back`);
                 const input = document.getElementById(`${panelId}-ai-input`);
                 const sendBtn = document.getElementById(`${panelId}-ai-send`);
                 
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', () => {
+                        this.showAIChat(panelId);
+                    });
+                }
+                
+                if (backBtn) {
+                    backBtn.addEventListener('click', () => {
+                        this.hideAIChat(panelId);
+                    });
+                }
+                
                 if (input && sendBtn) {
-                    console.log(`Setting up handlers for ${panelId}`);
-                    
                     // Send on Enter
                     input.addEventListener('keypress', (e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -4370,8 +4396,6 @@
                     sendBtn.addEventListener('click', () => {
                         this.sendMessage(input.value, panelId);
                     });
-                } else {
-                    console.warn(`Input or button not found for ${panelId}`);
                 }
             });
             
@@ -4380,9 +4404,9 @@
                 if (e.target.classList.contains('ai-suggestion')) {
                     e.preventDefault();
                     const suggestion = e.target.textContent;
-                    const container = e.target.closest('.ai-chat-container');
-                    if (container) {
-                        const panelId = container.id.replace('-ai-container', '');
+                    const overlay = e.target.closest('.ai-chat-overlay');
+                    if (overlay) {
+                        const panelId = overlay.id.replace('-ai-overlay', '');
                         const input = document.getElementById(`${panelId}-ai-input`);
                         if (input) {
                             input.value = suggestion;
@@ -4393,44 +4417,46 @@
             });
         }
         
-        switchTab(tabName, tabElement) {
-            console.log(`Switching to tab: ${tabName}`);
+        showAIChat(panelId) {
+            console.log(`Showing AI chat for ${panelId}`);
             
-            const panel = tabElement.closest('.chat-panel, #chat-panel, #mobile-chat-panel');
-            if (!panel) {
-                console.error('Could not find parent panel');
-                return;
-            }
+            const overlay = document.getElementById(`${panelId}-ai-overlay`);
+            const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
             
-            const panelId = panel.id;
-            
-            // Update tab states
-            panel.querySelectorAll('.chat-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            tabElement.classList.add('active');
-            
-            // Show/hide content
-            const roomContainer = panel.querySelector('.room-chat-container');
-            const aiContainer = panel.querySelector('.ai-chat-container');
-            
-            if (tabName === 'room') {
-                if (roomContainer) roomContainer.classList.remove('hidden');
-                if (aiContainer) aiContainer.classList.remove('active');
-                this.currentTab = 'room';
-            } else if (tabName === 'ai') {
-                if (roomContainer) roomContainer.classList.add('hidden');
-                if (aiContainer) aiContainer.classList.add('active');
-                this.currentTab = 'ai';
+            if (overlay) {
+                overlay.classList.add('active');
+                this.activePanel = panelId;
+                
+                // Mark button as active
+                if (toggleBtn) {
+                    toggleBtn.classList.add('active');
+                }
                 
                 // Clear unread badge
                 this.unreadAIMessages = 0;
                 this.updateBadge(panelId);
                 
                 // Focus on input
-                const aiInput = document.getElementById(`${panelId}-ai-input`);
-                if (aiInput) {
-                    setTimeout(() => aiInput.focus(), 100);
+                const input = document.getElementById(`${panelId}-ai-input`);
+                if (input) {
+                    setTimeout(() => input.focus(), 100);
+                }
+            }
+        }
+        
+        hideAIChat(panelId) {
+            console.log(`Hiding AI chat for ${panelId}`);
+            
+            const overlay = document.getElementById(`${panelId}-ai-overlay`);
+            const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
+            
+            if (overlay) {
+                overlay.classList.remove('active');
+                this.activePanel = null;
+                
+                // Remove active state from button
+                if (toggleBtn) {
+                    toggleBtn.classList.remove('active');
                 }
             }
         }
@@ -4482,60 +4508,46 @@
         }
         
         async getGrokResponse(message) {
-            // Check if we have the API endpoint
-            if (window.location.pathname.includes('api/grok-chat/')) {
-                try {
-                    const response = await fetch('/api/grok-chat/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': this.getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({
-                            message: message,
-                            context: this.messageHistory.slice(-10)
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.response;
-                    }
-                } catch (error) {
-                    console.warn('API call failed, using local responses:', error);
+            // Try API first
+            try {
+                const response = await fetch('/api/grok-chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        context: this.messageHistory.slice(-10)
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.response;
                 }
+            } catch (error) {
+                console.warn('API call failed, using local responses:', error);
             }
             
-            // Local contextual responses
+            // Fallback to local responses
             return this.getLocalResponse(message);
         }
         
         getLocalResponse(message) {
             const responses = {
-                // Greetings
                 'hello': "Hey there! 👋 Welcome to Euphorie 3D! How can I help you navigate this virtual world?",
                 'hi': "Hi! 🎉 Great to see you here! Need help with anything?",
-                
-                // Help queries
                 'help': "I can help you with:\n\n🎮 **Controls**: Movement, camera, interactions\n💬 **Chat**: Messaging, bubbles, emotes\n🏠 **Rooms**: Navigation, features, settings\n👥 **Social**: Friends, groups, activities\n🎨 **Customization**: Avatar, pets, themes\n📺 **Screen Sharing**: Share your screen with others\n\nWhat would you like to know more about?",
-                
                 'controls': "Here are the main controls:\n\n🖱️ **Mouse**: Rotate camera, click to interact\n⌨️ **Keyboard**:\n• W/1: Wave\n• D/2: Dance\n• E: Emotions panel\n• G: Group activities\n• Ctrl+H: All shortcuts\n• Ctrl+G: Open AI chat\n• Ctrl+Shift+S: Screen share\n\n📱 **Mobile**: Touch & drag to rotate, pinch to zoom",
-                
                 'avatar': "You can customize your avatar by:\n\n1. Click the hamburger menu (☰)\n2. Select 'Avatar' option\n3. Choose colors, accessories, and styles\n\nYour nationality flag appears on your nametag! 🏳️",
-                
                 'bubbles': "3D Chat Bubbles float above avatars when you type! 💭\n\n• Toggle with the '3D Bubbles' button\n• Messages fade after 6 seconds\n• Everyone in the room can see them\n• Great for quick conversations!",
-                
                 'weather': "This room has synchronized weather! 🌦️\n\n• Click hamburger menu → Weather\n• Choose from: Sunny, Rainy, Snowy, Stormy\n• Changes apply to everyone in the room\n• Creates amazing atmospheric effects!",
-                
                 'pets': "Want a virtual pet? 🐾\n\n• Click hamburger menu → Get Pet\n• Pets follow you around the room\n• Each has unique personality\n• Collect multiple pets!\n• Other users can see your pets too",
-                
                 'screen': "You can share your screen! 📺\n\n• Click hamburger menu → Screen Share\n• Choose what to share\n• Others see it on virtual screens\n• Perfect for presentations or showing content\n• Press Ctrl+Shift+S for quick toggle",
-                
-                // Default contextual response
                 'default': this.generateContextualResponse.bind(this)
             };
             
-            // Check for keyword matches
             const lowercaseMessage = message.toLowerCase();
             for (const [keyword, response] of Object.entries(responses)) {
                 if (keyword !== 'default' && lowercaseMessage.includes(keyword)) {
@@ -4543,7 +4555,6 @@
                 }
             }
             
-            // Use default contextual response
             return responses.default(message);
         }
         
@@ -4566,15 +4577,6 @@
                 return "Your nationality flag appears on your nametag! 🌍\n\nTo change it:\n• Click hamburger menu → Nationality\n• Select your country\n• Your flag updates instantly\n\nIt's a great way to show where you're from!";
             }
             
-            if (lowercase.includes('music') || lowercase.includes('sound')) {
-                return "While this room doesn't have built-in music, you can:\n\n🎵 Share music via screen sharing\n🎤 Use voice chat (if enabled)\n🔊 Hear interaction sound effects\n\nSome rooms have ambient sounds based on the environment!";
-            }
-            
-            if (lowercase.includes('lag') || lowercase.includes('slow') || lowercase.includes('performance')) {
-                return "Experiencing performance issues? Try these:\n\n⚡ Reduce graphics quality in settings\n🔄 Refresh the page\n📱 Close other browser tabs\n🌐 Check your internet connection\n👥 Rooms with fewer users run smoother\n\nThe platform is optimized for modern browsers!";
-            }
-            
-            // Generic helpful response
             return "That's an interesting question! 🤔\n\nI'm here to help with anything about Euphorie 3D. You can ask me about:\n\n• Room features and controls\n• How to customize your avatar\n• Social interactions and activities\n• Technical help and tips\n\nWhat would you like to explore?";
         }
         
@@ -4598,7 +4600,6 @@
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
-            // Add to history
             this.messageHistory.push({ type: 'user', content: message });
         }
         
@@ -4624,11 +4625,10 @@
                 container.scrollTop = container.scrollHeight;
             });
             
-            // Add to history
             this.messageHistory.push({ type: 'ai', sender, content: message });
             
-            // Update badge if not in AI tab
-            if (this.currentTab !== 'ai') {
+            // Update badge if AI chat is not active
+            if (this.activePanel === null) {
                 this.unreadAIMessages++;
                 this.updateBadge('chat-panel');
                 this.updateBadge('mobile-chat-panel');
@@ -4636,7 +4636,6 @@
         }
         
         formatAIMessage(message) {
-            // Convert markdown-style formatting
             return message
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n/g, '<br>')
@@ -4696,7 +4695,7 @@
             
             if (this.unreadAIMessages > 0) {
                 badge.textContent = this.unreadAIMessages > 99 ? '99+' : this.unreadAIMessages;
-                badge.style.display = 'block';
+                badge.style.display = 'inline-block';
             } else {
                 badge.style.display = 'none';
             }
@@ -4729,24 +4728,16 @@
         }
     }
 
-    // Initialize AI Chat System with better timing
+    // Initialize AI Chat System
     document.addEventListener('DOMContentLoaded', () => {
         console.log('🔄 DOM loaded, waiting to initialize AI Chat...');
         
-        // Function to check if chat panels are ready
         const initializeWhenReady = () => {
             const desktopPanel = document.getElementById('chat-panel');
             const mobilePanel = document.getElementById('mobile-chat-panel');
             
-            console.log('Checking panels:', {
-                desktop: !!desktopPanel,
-                mobile: !!mobilePanel,
-                desktopContent: desktopPanel?.querySelector('.chat-content') ? true : false,
-                mobileContent: mobilePanel?.querySelector('.chat-content') ? true : false
-            });
-            
-            if ((desktopPanel && desktopPanel.querySelector('.chat-content')) || 
-                (mobilePanel && mobilePanel.querySelector('.chat-content'))) {
+            if ((desktopPanel && desktopPanel.querySelector('.chat-header')) || 
+                (mobilePanel && mobilePanel.querySelector('.chat-header'))) {
                 console.log('✅ Chat panels ready, initializing AI Chat...');
                 window.AIGrokChat = new AIGrokChat();
                 return true;
@@ -4754,9 +4745,7 @@
             return false;
         };
         
-        // Try to initialize immediately
         if (!initializeWhenReady()) {
-            // If not ready, wait a bit and try again
             let attempts = 0;
             const maxAttempts = 20;
             
@@ -4774,50 +4763,56 @@
         }
     });
 
-    // Add keyboard shortcut for AI chat
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         // Ctrl + G for Grok AI
         if (e.ctrlKey && e.key === 'g') {
             e.preventDefault();
-            // Find the active chat panel
+            
+            // Determine which panel is visible
             const desktopPanel = document.getElementById('chat-panel');
             const mobilePanel = document.getElementById('mobile-chat-panel');
             
-            // Determine which panel is visible
-            let activePanel = null;
+            let targetPanelId = null;
             if (desktopPanel && window.getComputedStyle(desktopPanel).display !== 'none') {
-                activePanel = desktopPanel;
+                targetPanelId = 'chat-panel';
             } else if (mobilePanel && mobilePanel.classList.contains('expanded')) {
-                activePanel = mobilePanel;
+                targetPanelId = 'mobile-chat-panel';
             }
             
-            if (activePanel) {
-                const aiTab = activePanel.querySelector('.chat-tab[data-tab="ai"]');
-                if (aiTab) {
-                    aiTab.click();
-                }
+            if (targetPanelId && window.AIGrokChat) {
+                window.AIGrokChat.showAIChat(targetPanelId);
             }
         }
     });
 
-    // Debug helper
-    window.debugAIChat = function() {
-        console.log('🔍 AI Chat Debug Info:');
-        console.log('AIGrokChat exists:', !!window.AIGrokChat);
-        console.log('Chat panels:', {
-            desktop: document.getElementById('chat-panel'),
-            mobile: document.getElementById('mobile-chat-panel')
-        });
-        console.log('AI containers:', {
-            desktop: document.getElementById('chat-panel-ai-container'),
-            mobile: document.getElementById('mobile-chat-panel-ai-container')
-        });
-        console.log('Chat tabs:', document.querySelectorAll('.chat-tabs').length);
-        console.log('AI tabs:', document.querySelectorAll('.chat-tab[data-tab="ai"]').length);
+    // Quick access functions
+    window.openAIChat = function() {
+        if (window.AIGrokChat) {
+            // Try desktop first, then mobile
+            if (document.getElementById('chat-panel')) {
+                window.AIGrokChat.showAIChat('chat-panel');
+            } else if (document.getElementById('mobile-chat-panel')) {
+                window.AIGrokChat.showAIChat('mobile-chat-panel');
+            }
+        }
     };
 
-    console.log('🤖 AI Grok Chat script loaded');
+    window.closeAIChat = function() {
+        if (window.AIGrokChat) {
+            if (window.AIGrokChat.activePanel) {
+                window.AIGrokChat.hideAIChat(window.AIGrokChat.activePanel);
+            }
+        }
+    };
+
+    console.log('🤖 AI Grok Chat (Separate Button Design) loaded');
     </script>
+
+
+
+
+
 
 
 
