@@ -2976,9 +2976,13 @@ def screen_share_stats(request, room_id):
 @require_http_methods(["POST"])
 def grok_chat(request):
     """Handle Grok AI chat requests by forwarding to the Groq API"""
+    logger.info("Grok chat endpoint called")  # Add this
+    
     try:
         # Parse the request body
         data = json.loads(request.body)
+        logger.info(f"Received data: {data}")  # Add this
+        
         user_message = data.get('message', '').strip()
         room_id = data.get('room_id')
         conversation_history = data.get('history', [])
@@ -2990,7 +2994,9 @@ def grok_chat(request):
             }, status=400)
         
         # Call the Groq API
+        logger.info("Calling Groq API...")  # Add this
         grok_response = call_grok_api(user_message, conversation_history)
+        logger.info(f"Groq response: {grok_response}")  # Add this
         
         if grok_response['status'] == 'success':
             return JsonResponse({
@@ -3004,6 +3010,7 @@ def grok_chat(request):
             }, status=500)
             
     except json.JSONDecodeError:
+        logger.error("JSON decode error")  # Add this
         return JsonResponse({
             'status': 'error',
             'message': 'Invalid JSON'
