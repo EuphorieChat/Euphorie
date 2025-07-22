@@ -3036,6 +3036,9 @@ def call_grok_api(message, conversation_history=None):
                 'error': 'Groq API not configured'
             }
         
+        # Log API key info (first few chars only for security)
+        logger.info(f"Using Groq API key starting with: {api_key[:10]}...")
+        
         # Prepare the conversation context
         messages = []
         
@@ -3074,12 +3077,20 @@ def call_grok_api(message, conversation_history=None):
             "top_p": 0.9
         }
         
+        # Log the request details
+        logger.info(f"Sending request to Groq API: {api_url}")
+        logger.info(f"Payload: {json.dumps(payload, indent=2)}")
+        
         response = requests.post(
             api_url,
             headers=headers,
             json=payload,
             timeout=30
         )
+        
+        # Log response details
+        logger.info(f"Groq API response status: {response.status_code}")
+        logger.info(f"Groq API response headers: {dict(response.headers)}")
         
         if response.status_code == 200:
             data = response.json()
@@ -3089,13 +3100,26 @@ def call_grok_api(message, conversation_history=None):
                 'message': ai_message
             }
         else:
-            logger.error(f"Groq API error: {response.status_code} - {response.text}")
+            # Log the full error response
+            logger.error(f"Groq API error: {response.status_code}")
+            logger.error(f"Error response: {response.text}")
+            
+            # Try to parse error message
+            try:
+                error_data = response.json()
+                error_message = error_data.get('error', {}).get('message', 'Unknown error')
+                logger.error(f"Error message: {error_message}")
+            except:
+                error_message = response.text
+            
             return {
                 'status': 'error',
-                'error': f'API error: {response.status_code}'
+                'error': f'API error: {response.status_code}',
+                'details': error_message
             }
             
     except requests.exceptions.Timeout:
+        logger.error("Groq API timeout")
         return {
             'status': 'error',
             'error': 'Request timed out. Please try again.'
@@ -3108,6 +3132,7 @@ def call_grok_api(message, conversation_history=None):
         }
     except Exception as e:
         logger.error(f"Unexpected error calling Groq API: {str(e)}")
+        logger.exception("Full traceback:")
         return {
             'status': 'error',
             'error': 'An unexpected error occurred'
