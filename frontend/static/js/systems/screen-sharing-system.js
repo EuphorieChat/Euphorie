@@ -2929,7 +2929,7 @@ class EuphorieScreenSharingSystem {
                 color: white;
                 z-index: 1000;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-                animation: slideInFromTop 0.3s ease-out;
+                animation: slideInFromTopCentered 0.3s ease-out;
                 transition: all 0.3s ease;
                 cursor: pointer;
                 font-size: ${isMobile ? '11px' : '12px'};
@@ -2976,7 +2976,7 @@ class EuphorieScreenSharingSystem {
                 box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
                 ${!isMobile ? 'min-width: 300px;' : ''}
                 text-align: center;
-                animation: slideInFromTop 0.3s ease-out;
+                animation: ${isMobile ? 'slideInFromTop' : 'slideInFromTopCentered'} 0.3s ease-out;
                 transition: all 0.3s ease;
             `;
             
@@ -3084,21 +3084,41 @@ class EuphorieScreenSharingSystem {
                 @keyframes slideInFromTop {
                     from { 
                         opacity: 0;
-                        ${isMobile ? 'transform: translateX(-50%) translateY(-30px);' : 'transform: translateX(-50%) translateY(-100px);'}
+                        transform: translateY(-30px);
                     }
                     to { 
                         opacity: 1;
-                        ${isMobile ? 'transform: translateX(-50%) translateY(0);' : 'transform: translateX(-50%) translateY(0);'}
+                        transform: translateY(0);
+                    }
+                }
+                @keyframes slideInFromTopCentered {
+                    from { 
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-30px);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
                     }
                 }
                 @keyframes slideOutToTop {
+                    from { 
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                    to { 
+                        opacity: 0;
+                        transform: translateY(-30px);
+                    }
+                }
+                @keyframes slideOutToTopCentered {
                     from { 
                         opacity: 1;
                         transform: translateX(-50%) translateY(0);
                     }
                     to { 
                         opacity: 0;
-                        transform: translateX(-50%) translateY(-100px);
+                        transform: translateX(-50%) translateY(-30px);
                     }
                 }
                 @keyframes pulse {
@@ -3109,8 +3129,6 @@ class EuphorieScreenSharingSystem {
             document.head.appendChild(style);
         }
     }
-
-    // Add these new methods to the class:
 
     minimizeControlPanel() {
         localStorage.setItem('screenShareControlMinimized', 'true');
@@ -3130,11 +3148,15 @@ class EuphorieScreenSharingSystem {
         }
     }
 
-    // Also update the removeControlPanel method to clear the stored state:
     removeControlPanel() {
         const panel = document.getElementById('screen-share-controls');
         if (panel) {
-            panel.style.animation = 'slideOutToTop 0.3s ease-in';
+            const isMobile = window.innerWidth <= 768;
+            const isCentered = panel.style.transform && panel.style.transform.includes('translateX');
+            
+            // Use the appropriate exit animation
+            panel.style.animation = isCentered ? 'slideOutToTopCentered 0.3s ease-in' : 'slideOutToTop 0.3s ease-in';
+            
             setTimeout(() => {
                 panel.remove();
             }, 300);
