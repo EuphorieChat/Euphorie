@@ -428,15 +428,21 @@ class EuphorieScreenSharingSystem {
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'stun:stun2.l.google.com:19302' }
-                ]
+                ],
+                iceCandidatePoolSize: 10
             });
             
-            // CRITICAL FIX: Handle incoming stream with enhanced processing
+            // CRITICAL: Set up track handler BEFORE anything else
+            let streamReceived = false;
             pc.ontrack = (event) => {
-                console.log(`📺 Receiving stream from ${sharerUsername}!`);
-                const stream = event.streams[0];
-                this.handleRemoteStreamEnhanced(stream, sharerUserId);
-                this.showNotification(`✅ Now showing ${sharerUsername}'s screen!`);
+                console.log(`📺 Track event from ${sharerUsername}:`, event);
+                if (event.streams && event.streams[0]) {
+                    console.log(`📺 Receiving stream from ${sharerUsername}!`);
+                    const stream = event.streams[0];
+                    streamReceived = true;
+                    this.handleRemoteStreamEnhanced(stream, sharerUserId);
+                    this.showNotification(`✅ Now showing ${sharerUsername}'s screen!`);
+                }
             };
             
             // Handle ICE candidates
@@ -456,16 +462,35 @@ class EuphorieScreenSharingSystem {
                 console.log(`🔗 Connection to ${sharerUsername}:`, pc.connectionState);
                 if (pc.connectionState === 'connected') {
                     this.showNotification(`✅ Connected to ${sharerUsername}'s screen`);
+                    
+                    // If we haven't received stream yet, there might be an issue
+                    setTimeout(() => {
+                        if (!streamReceived) {
+                            console.warn('⚠️ Connected but no stream received yet');
+                        }
+                    }, 2000);
+                    
                 } else if (pc.connectionState === 'failed') {
                     this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
-                    // Retry connection
+                    
+                    // Clean up
+                    pc.close();
+                    this.peerConnections.delete(sharerUserId);
+                    
+                    // Try again
                     setTimeout(() => {
-                        this.retryConnection(sharerUserId, sharerUsername);
+                        console.log('🔄 Retrying connection...');
+                        this.autoConnectToSharer(sharerUserId, sharerUsername, shareData);
                     }, 2000);
                 }
             };
             
-            // Store peer connection
+            // ICE connection state for debugging
+            pc.oniceconnectionstatechange = () => {
+                console.log(`🧊 ICE connection to ${sharerUsername}:`, pc.iceConnectionState);
+            };
+            
+            // Store peer connection IMMEDIATELY
             this.peerConnections.set(sharerUserId, pc);
             
             // Set current sharer
@@ -477,10 +502,15 @@ class EuphorieScreenSharingSystem {
                 this.updateProjectionSurface();
             }
             
-            // Send join request to notify sharer
-            window.WebSocketManager.sendJoinOngoingShare(sharerUserId);
+            // IMPORTANT: Don't send join request yet - wait for WebRTC to be ready
+            console.log(`✅ Viewer peer connection created for ${sharerUsername}`);
             
-            console.log(`✅ Auto-connection setup complete for ${sharerUsername} - waiting for offer`);
+            // The sharer should send us an offer when they receive our join request
+            // Send join request after a small delay to ensure PC is ready
+            setTimeout(() => {
+                window.WebSocketManager.sendJoinOngoingShare(sharerUserId);
+                console.log(`📤 Sent join request to ${sharerUsername}`);
+            }, 500);
             
         } catch (error) {
             console.error(`❌ Error auto-connecting to ${sharerUsername}:`, error);
