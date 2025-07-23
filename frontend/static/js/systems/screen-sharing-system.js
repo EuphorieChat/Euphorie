@@ -3199,12 +3199,11 @@ class EuphorieScreenSharingSystem {
         `;
         
         const content = document.createElement('div');
-        const isMobile = this.isMobile();
         content.style.cssText = `
             background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
-            padding: ${isMobile ? '20px' : '30px'};
+            padding: 30px;
             border-radius: 15px;
-            max-width: ${isMobile ? '320px' : '500px'};
+            max-width: 500px;
             width: 90%;
             color: white;
             text-align: center;
@@ -3231,10 +3230,10 @@ class EuphorieScreenSharingSystem {
                 Choose where to display it:
             </p>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: ${isMobile ? '10px' : '15px'}; margin-bottom: ${isMobile ? '20px' : '30px'};">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 30px;">
                 <div class="projection-option" data-mode="ceiling" 
-                    style="padding: ${isMobile ? '15px 10px' : '20px'}; background: #333; border-radius: 10px; cursor: pointer; transition: all 0.3s;">
-                    <div style="font-size: ${isMobile ? '1.5em' : '2em'}; margin-bottom: ${isMobile ? '5px' : '10px'};">📺</div>
+                     style="padding: 20px; background: #333; border-radius: 10px; cursor: pointer; transition: all 0.3s;">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📺</div>
                     <div style="font-weight: bold;">Ceiling</div>
                     <div style="font-size: 12px; opacity: 0.7;">Above everyone</div>
                 </div>
@@ -3255,7 +3254,7 @@ class EuphorieScreenSharingSystem {
             </div>
             
             ${isMobile ? `
-                <div style="margin-bottom: ${isMobile ? '15px' : '20px'}; padding: ${isMobile ? '10px' : '15px'}; background: rgba(74, 144, 226, 0.1); border-radius: 8px; border: 1px solid rgba(74, 144, 226, 0.3);">
+                <div style="margin-bottom: 20px; padding: 15px; background: rgba(74, 144, 226, 0.1); border-radius: 8px; border: 1px solid rgba(74, 144, 226, 0.3);">
                     <div style="font-size: 14px; color: #4a90e2; margin-bottom: 8px;">📱 Mobile Camera Options</div>
                     <div style="display: flex; gap: 10px; justify-content: center;">
                         <button id="front-camera" style="padding: 8px 16px; background: #4a90e2; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 12px;">
