@@ -137,6 +137,7 @@ window.AmongUsAvatarSystem = {
             hat: options.hat || this.getRandomChoice('hats'),
             clothes: options.clothes || 'none',
             accessory: options.accessory || 'none',
+            expression: options.expression || 'neutral',
             scale: options.scale || 1.0,
             isImpostor: options.isImpostor || false,
             isDead: options.isDead || false
@@ -176,6 +177,7 @@ window.AmongUsAvatarSystem = {
             position: avatarGroup.position.clone(),
             rotation: avatarGroup.rotation.clone(),
             customization: { ...defaultOptions },
+            expression: defaultOptions.expression,
             lastUpdate: Date.now(),
             walkPhase: Math.random() * Math.PI * 2,
             floatPhase: Math.random() * Math.PI * 2,
@@ -276,8 +278,8 @@ window.AmongUsAvatarSystem = {
         group.add(createLeg(-0.15));
         group.add(createLeg(0.15));
         
-        // Visor
-        const visor = this.createVisor(options.isDead);
+        // Visor with expression
+        const visor = this.createVisor(options.isDead, options.expression || 'neutral');
         visor.position.set(0, 0.55, 0.38);
         group.add(visor);
         
@@ -316,7 +318,7 @@ window.AmongUsAvatarSystem = {
         return group;
     },
     
-    createVisor: function(isDead = false) {
+    createVisor: function(isDead = false, expression = 'neutral') {
         const visorGroup = new THREE.Group();
         
         // Visor glass
@@ -324,7 +326,7 @@ window.AmongUsAvatarSystem = {
         const visorMaterial = new THREE.MeshPhongMaterial({ 
             color: isDead ? 0x666666 : 0x7FBFFF,
             transparent: true,
-            opacity: 0.8,
+            opacity: 0.6,
             shininess: 200,
             specular: 0xFFFFFF,
             side: THREE.DoubleSide
@@ -349,8 +351,9 @@ window.AmongUsAvatarSystem = {
         highlight.rotation.z = -0.3;
         visorGroup.add(highlight);
         
-        // Dead X eyes
+        // Face/Expression system
         if (isDead) {
+            // Dead X eyes
             const xMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
             
             // Left X
@@ -378,10 +381,327 @@ window.AmongUsAvatarSystem = {
             rightX2Mesh.position.set(0.08, 0, 0.1);
             rightX2Mesh.rotation.z = -Math.PI / 4;
             visorGroup.add(rightX2Mesh);
+        } else {
+            // Living expressions
+            this.addExpression(visorGroup, expression);
         }
         
         visorGroup.name = 'visor';
         return visorGroup;
+    },
+    
+    addExpression: function(visorGroup, expression) {
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+        const blushMaterial = new THREE.MeshBasicMaterial({ color: 0xFFB6C1, transparent: true, opacity: 0.6 });
+        
+        switch(expression) {
+            case 'happy':
+                // Happy curved eyes
+                const happyEyeGeometry = new THREE.TorusGeometry(0.04, 0.01, 8, 16, Math.PI);
+                
+                const leftHappyEye = new THREE.Mesh(happyEyeGeometry, eyeMaterial);
+                leftHappyEye.position.set(-0.08, 0.02, 0.12);
+                leftHappyEye.rotation.z = Math.PI;
+                visorGroup.add(leftHappyEye);
+                
+                const rightHappyEye = new THREE.Mesh(happyEyeGeometry, eyeMaterial);
+                rightHappyEye.position.set(0.08, 0.02, 0.12);
+                rightHappyEye.rotation.z = Math.PI;
+                visorGroup.add(rightHappyEye);
+                
+                // Smile
+                const smileGeometry = new THREE.TorusGeometry(0.06, 0.01, 8, 16, Math.PI);
+                const smile = new THREE.Mesh(smileGeometry, eyeMaterial);
+                smile.position.set(0, -0.05, 0.12);
+                smile.rotation.z = Math.PI;
+                visorGroup.add(smile);
+                break;
+                
+            case 'sad':
+                // Sad eyes (teardrops)
+                const sadEyeGeometry = new THREE.CircleGeometry(0.03, 8);
+                
+                const leftSadEye = new THREE.Mesh(sadEyeGeometry, eyeMaterial);
+                leftSadEye.position.set(-0.08, 0, 0.12);
+                leftSadEye.scale.set(1, 0.6, 1);
+                visorGroup.add(leftSadEye);
+                
+                const rightSadEye = new THREE.Mesh(sadEyeGeometry, eyeMaterial);
+                rightSadEye.position.set(0.08, 0, 0.12);
+                rightSadEye.scale.set(1, 0.6, 1);
+                visorGroup.add(rightSadEye);
+                
+                // Tears
+                const tearGeometry = new THREE.SphereGeometry(0.01, 8, 8);
+                const tearMaterial = new THREE.MeshBasicMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.8 });
+                
+                const leftTear = new THREE.Mesh(tearGeometry, tearMaterial);
+                leftTear.position.set(-0.08, -0.03, 0.13);
+                leftTear.scale.set(1, 2, 1);
+                visorGroup.add(leftTear);
+                
+                const rightTear = new THREE.Mesh(tearGeometry, tearMaterial);
+                rightTear.position.set(0.08, -0.03, 0.13);
+                rightTear.scale.set(1, 2, 1);
+                visorGroup.add(rightTear);
+                
+                // Frown
+                const frownGeometry = new THREE.TorusGeometry(0.05, 0.01, 8, 16, Math.PI);
+                const frown = new THREE.Mesh(frownGeometry, eyeMaterial);
+                frown.position.set(0, -0.08, 0.12);
+                visorGroup.add(frown);
+                break;
+                
+            case 'angry':
+                // Angry slanted eyes
+                const angryEyeGeometry = new THREE.BoxGeometry(0.08, 0.015, 0.01);
+                
+                const leftAngryEye = new THREE.Mesh(angryEyeGeometry, eyeMaterial);
+                leftAngryEye.position.set(-0.08, 0, 0.12);
+                leftAngryEye.rotation.z = 0.3;
+                visorGroup.add(leftAngryEye);
+                
+                const rightAngryEye = new THREE.Mesh(angryEyeGeometry, eyeMaterial);
+                rightAngryEye.position.set(0.08, 0, 0.12);
+                rightAngryEye.rotation.z = -0.3;
+                visorGroup.add(rightAngryEye);
+                
+                // Angry eyebrows
+                const eyebrowGeometry = new THREE.BoxGeometry(0.06, 0.01, 0.01);
+                
+                const leftBrow = new THREE.Mesh(eyebrowGeometry, eyeMaterial);
+                leftBrow.position.set(-0.08, 0.06, 0.12);
+                leftBrow.rotation.z = -0.3;
+                visorGroup.add(leftBrow);
+                
+                const rightBrow = new THREE.Mesh(eyebrowGeometry, eyeMaterial);
+                rightBrow.position.set(0.08, 0.06, 0.12);
+                rightBrow.rotation.z = 0.3;
+                visorGroup.add(rightBrow);
+                
+                // Angry mouth
+                const angryMouth = new THREE.BoxGeometry(0.04, 0.01, 0.01);
+                const angryMouthMesh = new THREE.Mesh(angryMouth, eyeMaterial);
+                angryMouthMesh.position.set(0, -0.06, 0.12);
+                visorGroup.add(angryMouthMesh);
+                break;
+                
+            case 'surprised':
+                // Wide open eyes
+                const surprisedEyeGeometry = new THREE.CircleGeometry(0.04, 16);
+                
+                const leftSurprisedEye = new THREE.Mesh(surprisedEyeGeometry, whiteMaterial);
+                leftSurprisedEye.position.set(-0.08, 0.02, 0.11);
+                visorGroup.add(leftSurprisedEye);
+                
+                const rightSurprisedEye = new THREE.Mesh(surprisedEyeGeometry, whiteMaterial);
+                rightSurprisedEye.position.set(0.08, 0.02, 0.11);
+                visorGroup.add(rightSurprisedEye);
+                
+                // Pupils
+                const pupilGeometry = new THREE.CircleGeometry(0.015, 8);
+                
+                const leftPupil = new THREE.Mesh(pupilGeometry, eyeMaterial);
+                leftPupil.position.set(-0.08, 0.02, 0.12);
+                visorGroup.add(leftPupil);
+                
+                const rightPupil = new THREE.Mesh(pupilGeometry, eyeMaterial);
+                rightPupil.position.set(0.08, 0.02, 0.12);
+                visorGroup.add(rightPupil);
+                
+                // O mouth
+                const oMouthGeometry = new THREE.TorusGeometry(0.025, 0.01, 8, 16);
+                const oMouth = new THREE.Mesh(oMouthGeometry, eyeMaterial);
+                oMouth.position.set(0, -0.06, 0.12);
+                visorGroup.add(oMouth);
+                break;
+                
+            case 'love':
+                // Heart eyes
+                const heartShape = new THREE.Shape();
+                heartShape.moveTo(0, 0.015);
+                heartShape.bezierCurveTo(0, 0.025, -0.02, 0.025, -0.02, 0.015);
+                heartShape.bezierCurveTo(-0.02, 0.005, 0, -0.005, 0, -0.015);
+                heartShape.bezierCurveTo(0, -0.005, 0.02, 0.005, 0.02, 0.015);
+                heartShape.bezierCurveTo(0.02, 0.025, 0, 0.025, 0, 0.015);
+                
+                const heartGeometry = new THREE.ShapeGeometry(heartShape);
+                const heartMaterial = new THREE.MeshBasicMaterial({ color: 0xFF1493 });
+                
+                const leftHeart = new THREE.Mesh(heartGeometry, heartMaterial);
+                leftHeart.position.set(-0.08, 0, 0.12);
+                visorGroup.add(leftHeart);
+                
+                const rightHeart = new THREE.Mesh(heartGeometry, heartMaterial);
+                rightHeart.position.set(0.08, 0, 0.12);
+                visorGroup.add(rightHeart);
+                
+                // Blush
+                const blushGeometry = new THREE.CircleGeometry(0.025, 8);
+                
+                const leftBlush = new THREE.Mesh(blushGeometry, blushMaterial);
+                leftBlush.position.set(-0.12, -0.03, 0.11);
+                visorGroup.add(leftBlush);
+                
+                const rightBlush = new THREE.Mesh(blushGeometry, blushMaterial);
+                rightBlush.position.set(0.12, -0.03, 0.11);
+                visorGroup.add(rightBlush);
+                
+                // Cute smile
+                const cuteSmileGeometry = new THREE.TorusGeometry(0.04, 0.008, 8, 16, Math.PI);
+                const cuteSmile = new THREE.Mesh(cuteSmileGeometry, eyeMaterial);
+                cuteSmile.position.set(0, -0.05, 0.12);
+                cuteSmile.rotation.z = Math.PI;
+                visorGroup.add(cuteSmile);
+                break;
+                
+            case 'sleepy':
+                // Half-closed eyes
+                const sleepyEyeGeometry = new THREE.BoxGeometry(0.06, 0.01, 0.01);
+                
+                const leftSleepyEye = new THREE.Mesh(sleepyEyeGeometry, eyeMaterial);
+                leftSleepyEye.position.set(-0.08, 0, 0.12);
+                visorGroup.add(leftSleepyEye);
+                
+                const rightSleepyEye = new THREE.Mesh(sleepyEyeGeometry, eyeMaterial);
+                rightSleepyEye.position.set(0.08, 0, 0.12);
+                visorGroup.add(rightSleepyEye);
+                
+                // Zzz
+                const zText = new THREE.BoxGeometry(0.02, 0.002, 0.01);
+                for (let i = 0; i < 3; i++) {
+                    const z = new THREE.Mesh(zText, eyeMaterial);
+                    z.position.set(0.15, 0.1 - i * 0.02, 0.12);
+                    z.scale.setScalar(1 - i * 0.2);
+                    visorGroup.add(z);
+                }
+                
+                // Drool
+                const droolGeometry = new THREE.SphereGeometry(0.008, 6, 6);
+                const droolMaterial = new THREE.MeshBasicMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.6 });
+                const drool = new THREE.Mesh(droolGeometry, droolMaterial);
+                drool.position.set(0.04, -0.08, 0.12);
+                drool.scale.set(1, 2, 1);
+                visorGroup.add(drool);
+                break;
+                
+            case 'wink':
+                // Normal eye
+                const normalEyeGeometry = new THREE.CircleGeometry(0.025, 8);
+                const normalEye = new THREE.Mesh(normalEyeGeometry, eyeMaterial);
+                normalEye.position.set(-0.08, 0, 0.12);
+                visorGroup.add(normalEye);
+                
+                // Winking eye (curved line)
+                const winkGeometry = new THREE.TorusGeometry(0.03, 0.01, 8, 16, Math.PI);
+                const wink = new THREE.Mesh(winkGeometry, eyeMaterial);
+                wink.position.set(0.08, 0, 0.12);
+                wink.rotation.z = Math.PI;
+                visorGroup.add(wink);
+                
+                // Cheeky smile
+                const cheekySmileGeometry = new THREE.TorusGeometry(0.05, 0.01, 8, 16, Math.PI * 0.7);
+                const cheekySmile = new THREE.Mesh(cheekySmileGeometry, eyeMaterial);
+                cheekySmile.position.set(0.02, -0.05, 0.12);
+                cheekySmile.rotation.z = Math.PI + 0.2;
+                visorGroup.add(cheekySmile);
+                break;
+                
+            case 'confused':
+                // Spiral eyes
+                const spiralMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                
+                for (let eye = 0; eye < 2; eye++) {
+                    const xPos = eye === 0 ? -0.08 : 0.08;
+                    
+                    // Create spiral with small circles
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const radius = 0.015 + i * 0.003;
+                        const dotGeometry = new THREE.CircleGeometry(0.005, 6);
+                        const dot = new THREE.Mesh(dotGeometry, spiralMaterial);
+                        dot.position.set(
+                            xPos + Math.cos(angle) * radius,
+                            Math.sin(angle) * radius,
+                            0.12
+                        );
+                        visorGroup.add(dot);
+                    }
+                }
+                
+                // Wavy mouth
+                const wavyMouthGeometry = new THREE.TorusGeometry(0.04, 0.01, 8, 16, Math.PI * 1.5);
+                const wavyMouth = new THREE.Mesh(wavyMouthGeometry, eyeMaterial);
+                wavyMouth.position.set(0, -0.06, 0.12);
+                wavyMouth.rotation.z = Math.PI * 0.75;
+                visorGroup.add(wavyMouth);
+                break;
+                
+            default: // neutral
+                // Normal eyes
+                const neutralEyeGeometry = new THREE.CircleGeometry(0.025, 8);
+                
+                const leftNeutralEye = new THREE.Mesh(neutralEyeGeometry, eyeMaterial);
+                leftNeutralEye.position.set(-0.08, 0, 0.12);
+                visorGroup.add(leftNeutralEye);
+                
+                const rightNeutralEye = new THREE.Mesh(neutralEyeGeometry, eyeMaterial);
+                rightNeutralEye.position.set(0.08, 0, 0.12);
+                visorGroup.add(rightNeutralEye);
+                
+                // Neutral mouth (small line)
+                const neutralMouth = new THREE.BoxGeometry(0.04, 0.008, 0.01);
+                const neutralMouthMesh = new THREE.Mesh(neutralMouth, eyeMaterial);
+                neutralMouthMesh.position.set(0, -0.06, 0.12);
+                visorGroup.add(neutralMouthMesh);
+                break;
+        }
+    },
+    
+    // Update avatar expression
+    setExpression: function(avatarId, expression) {
+        const avatar = this.avatars.get(avatarId);
+        if (!avatar || !avatar.mesh) return;
+        
+        // Find and remove old visor
+        const oldVisor = avatar.mesh.getObjectByName('visor');
+        if (oldVisor) {
+            avatar.mesh.remove(oldVisor);
+        }
+        
+        // Create new visor with expression
+        const newVisor = this.createVisor(avatar.isDead, expression);
+        newVisor.position.set(0, 0.55, 0.38);
+        avatar.mesh.add(newVisor);
+        
+        // Store current expression
+        avatar.expression = expression;
+        
+        // Play expression animation
+        this.playExpressionAnimation(avatar, expression);
+    },
+    
+    playExpressionAnimation: function(avatar, expression) {
+        // Add some bounce or effect when changing expression
+        const originalScale = avatar.group.scale.x;
+        let animPhase = 0;
+        
+        const animate = () => {
+            animPhase += 0.1;
+            
+            // Bounce effect
+            const scale = originalScale * (1 + Math.sin(animPhase * Math.PI) * 0.1);
+            avatar.group.scale.setScalar(scale);
+            
+            if (animPhase < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                avatar.group.scale.setScalar(originalScale);
+            }
+        };
+        
+        requestAnimationFrame(animate);
     },
     
     createBackpack: function(bodyMaterial) {
