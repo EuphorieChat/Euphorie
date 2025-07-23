@@ -2,6 +2,7 @@
 // FIXED: Completely resolved all scale issues that were causing chat bubble warnings
 // Integrated with Advanced Scene System and Avatar System
 // NEW: Added double-tap to reset zoom for mobile devices
+// NEW: Added avatar collision prevention system
 
 window.SceneManager = {
     scene: null,
@@ -37,7 +38,180 @@ window.SceneManager = {
         rimLights: []
     },
     
-    // Double-tap zoom reset feature for mobile
+    // Avatar collision prevention system
+    avatarCollisionSystem: {
+        enabled: true,
+        avatarRadius: 1.0, // Collision radius for each avatar
+        separationForce: 0.15, // How strongly avatars push apart
+        gridSize: 50, // Size of spatial partitioning grid
+        spatialGrid: new Map(),
+        
+        init: function() {
+            console.log('🚶 Initializing avatar collision system...');
+            this.enabled = true;
+            
+            // Start collision checking loop
+            this.startCollisionChecking();
+        },
+        
+        startCollisionChecking: function() {
+            const checkCollisions = () => {
+                if (!this.enabled || !window.SceneManager.isInitialized) return;
+                
+                // Get all avatars in the scene
+                const avatars = this.getAllAvatars();
+                
+                if (avatars.length > 1) {
+                    // Update spatial grid
+                    this.updateSpatialGrid(avatars);
+                    
+                    // Check and resolve collisions
+                    this.checkAndResolveCollisions(avatars);
+                }
+                
+                // Continue checking
+                setTimeout(checkCollisions, 100); // Check 10 times per second
+            };
+            
+            checkCollisions();
+        },
+        
+        getAllAvatars: function() {
+            const avatars = [];
+            
+            if (!window.SceneManager.scene) return avatars;
+            
+            window.SceneManager.scene.traverse((child) => {
+                // Look for avatar objects by various indicators
+                if (child.userData && (
+                    child.userData.isAvatar || 
+                    child.userData.userId || 
+                    child.userData.type === 'avatar' ||
+                    (child.name && child.name.includes('avatar'))
+                )) {
+                    // Make sure it has a position
+                    if (child.position) {
+                        avatars.push(child);
+                    }
+                }
+            });
+            
+            return avatars;
+        },
+        
+        updateSpatialGrid: function(avatars) {
+            // Clear grid
+            this.spatialGrid.clear();
+            
+            // Add avatars to grid cells
+            avatars.forEach(avatar => {
+                const gridKey = this.getGridKey(avatar.position);
+                
+                if (!this.spatialGrid.has(gridKey)) {
+                    this.spatialGrid.set(gridKey, []);
+                }
+                
+                this.spatialGrid.get(gridKey).push(avatar);
+            });
+        },
+        
+        getGridKey: function(position) {
+            const x = Math.floor(position.x / this.gridSize);
+            const z = Math.floor(position.z / this.gridSize);
+            return `${x},${z}`;
+        },
+        
+        checkAndResolveCollisions: function(avatars) {
+            // Check each avatar against others in nearby grid cells
+            avatars.forEach(avatar1 => {
+                const nearbyAvatars = this.getNearbyAvatars(avatar1);
+                
+                nearbyAvatars.forEach(avatar2 => {
+                    if (avatar1 !== avatar2) {
+                        this.resolveCollision(avatar1, avatar2);
+                    }
+                });
+            });
+        },
+        
+        getNearbyAvatars: function(avatar) {
+            const nearbyAvatars = [];
+            const pos = avatar.position;
+            
+            // Check avatar's grid cell and adjacent cells
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                    const x = Math.floor(pos.x / this.gridSize) + dx;
+                    const z = Math.floor(pos.z / this.gridSize) + dz;
+                    const gridKey = `${x},${z}`;
+                    
+                    const avatarsInCell = this.spatialGrid.get(gridKey);
+                    if (avatarsInCell) {
+                        nearbyAvatars.push(...avatarsInCell);
+                    }
+                }
+            }
+            
+            return nearbyAvatars;
+        },
+        
+        resolveCollision: function(avatar1, avatar2) {
+            // Calculate distance between avatars
+            const dx = avatar2.position.x - avatar1.position.x;
+            const dz = avatar2.position.z - avatar1.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            // Check if collision is happening
+            const minDistance = this.avatarRadius * 2;
+            
+            if (distance < minDistance && distance > 0.01) {
+                // Calculate separation vector
+                const separationX = (dx / distance) * (minDistance - distance) * this.separationForce;
+                const separationZ = (dz / distance) * (minDistance - distance) * this.separationForce;
+                
+                // Apply separation - move each avatar away from the other
+                avatar1.position.x -= separationX;
+                avatar1.position.z -= separationZ;
+                avatar2.position.x += separationX;
+                avatar2.position.z += separationZ;
+                
+                // Optional: Add smooth interpolation for less jerky movement
+                this.smoothPosition(avatar1);
+                this.smoothPosition(avatar2);
+            }
+        },
+        
+        smoothPosition: function(avatar) {
+            // Store target position if not exists
+            if (!avatar.userData.targetPosition) {
+                avatar.userData.targetPosition = avatar.position.clone();
+            }
+            
+            // Smoothly interpolate to target position
+            avatar.userData.targetPosition.copy(avatar.position);
+            
+            // Apply smooth movement (optional, can be removed if movement is too slow)
+            const smoothFactor = 0.3;
+            avatar.position.lerp(avatar.userData.targetPosition, smoothFactor);
+        },
+        
+        setEnabled: function(enabled) {
+            this.enabled = enabled;
+            console.log(`🚶 Avatar collision system ${enabled ? 'enabled' : 'disabled'}`);
+        },
+        
+        setAvatarRadius: function(radius) {
+            this.avatarRadius = Math.max(0.5, Math.min(3, radius));
+            console.log(`🚶 Avatar collision radius set to ${this.avatarRadius}`);
+        },
+        
+        setSeparationForce: function(force) {
+            this.separationForce = Math.max(0.05, Math.min(0.5, force));
+            console.log(`🚶 Avatar separation force set to ${this.separationForce}`);
+        }
+    },
+    
+    // Double-tap zoom reset feature for mobile - FIXED VERSION
     doubleTapZoom: {
         isEnabled: true,
         lastTapTime: 0,
@@ -105,7 +279,7 @@ window.SceneManager = {
             // Show visual feedback
             this.showFeedback(event.changedTouches[0]);
             
-            // Reset zoom and camera position
+            // Reset zoom and camera position - FIXED
             this.resetZoom();
             
             // Haptic feedback if available
@@ -125,31 +299,26 @@ window.SceneManager = {
             const currentPreset = window.SceneManager.presets[window.SceneManager.currentPreset];
             if (!currentPreset) return;
             
-            // Animate the zoom reset
-            this.animateZoomReset(
-                camera,
-                currentPreset.cameraPosition,
-                75 // Default FOV
+            // FIXED: Use the global camera control values
+            const targetAngle = 0; // Reset to front view
+            const targetHeight = currentPreset.cameraPosition.y;
+            const targetDistance = Math.sqrt(
+                currentPreset.cameraPosition.x * currentPreset.cameraPosition.x + 
+                currentPreset.cameraPosition.z * currentPreset.cameraPosition.z
             );
+            
+            // Animate the zoom reset using camera controls
+            this.animateZoomReset(targetAngle, targetHeight, targetDistance);
         },
         
-        animateZoomReset: function(camera, targetPosition, targetFov) {
+        animateZoomReset: function(targetAngle, targetHeight, targetDistance) {
             const startTime = Date.now();
             const duration = 500; // milliseconds
             
-            // Store initial values
-            const startPos = camera.position.clone();
-            const startFov = camera.fov || 75;
-            
-            // Target values
-            const targetX = targetPosition.x;
-            const targetY = targetPosition.y;
-            const targetZ = targetPosition.z;
-            
-            // Reset camera control state
-            window.SceneManager.cameraControls.angle = 0;
-            window.SceneManager.cameraControls.height = targetY;
-            window.SceneManager.cameraControls.distance = Math.sqrt(targetX * targetX + targetZ * targetZ);
+            // Get current camera control values
+            const startAngle = window.SceneManager.cameraControls.angle;
+            const startHeight = window.SceneManager.cameraControls.height;
+            const startDistance = window.SceneManager.cameraControls.distance;
             
             const animate = () => {
                 const elapsed = Date.now() - startTime;
@@ -158,25 +327,24 @@ window.SceneManager = {
                 // Easing function (ease-out cubic)
                 const eased = 1 - Math.pow(1 - progress, 3);
                 
-                // Update camera position
-                camera.position.x = startPos.x + (targetX - startPos.x) * eased;
-                camera.position.y = startPos.y + (targetY - startPos.y) * eased;
-                camera.position.z = startPos.z + (targetZ - startPos.z) * eased;
+                // Update camera controls
+                window.SceneManager.cameraControls.angle = startAngle + (targetAngle - startAngle) * eased;
+                window.SceneManager.cameraControls.height = startHeight + (targetHeight - startHeight) * eased;
+                window.SceneManager.cameraControls.distance = startDistance + (targetDistance - startDistance) * eased;
                 
-                // Update camera FOV
-                if (camera.fov !== undefined) {
-                    camera.fov = startFov + (targetFov - startFov) * eased;
-                    camera.updateProjectionMatrix();
-                }
-                
-                // Look at center
-                camera.lookAt(0, 1, 0);
+                // Apply the camera position using the existing updateCameraPosition method
+                window.SceneManager.updateCameraPosition(
+                    window.SceneManager.cameraControls.angle,
+                    window.SceneManager.cameraControls.height,
+                    window.SceneManager.cameraControls.distance
+                );
                 
                 // Continue animation
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
                     console.log('✅ Zoom reset complete');
+                    console.log('Final camera controls:', window.SceneManager.cameraControls);
                 }
             };
             
@@ -518,6 +686,9 @@ window.SceneManager = {
             
             // Initialize double-tap zoom for mobile
             this.doubleTapZoom.init();
+            
+            // Initialize avatar collision system
+            this.avatarCollisionSystem.init();
             
             // Start render loop
             this.animate();
@@ -1397,7 +1568,8 @@ window.SceneManager = {
             calls: this.renderer.info.render.calls,
             memory: this.renderer.info.memory,
             postProcessing: this.postProcessing.enabled,
-            lights: this.lightingSystem.pointLights.length + this.lightingSystem.rimLights.length + 2
+            lights: this.lightingSystem.pointLights.length + this.lightingSystem.rimLights.length + 2,
+            avatarCollision: this.avatarCollisionSystem.enabled
         };
     },
     
@@ -1447,6 +1619,19 @@ window.SceneManager = {
             this.doubleTapZoom.enable();
             console.log('✅ Double tap zoom enabled');
         }
+    },
+    
+    // Avatar collision utilities
+    toggleAvatarCollision: function() {
+        this.avatarCollisionSystem.setEnabled(!this.avatarCollisionSystem.enabled);
+    },
+    
+    setAvatarCollisionRadius: function(radius) {
+        this.avatarCollisionSystem.setAvatarRadius(radius);
+    },
+    
+    setAvatarSeparationForce: function(force) {
+        this.avatarCollisionSystem.setSeparationForce(force);
     },
     
     // Cleanup method
