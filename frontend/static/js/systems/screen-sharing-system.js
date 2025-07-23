@@ -2903,83 +2903,122 @@ class EuphorieScreenSharingSystem {
         
         // Check if panel should be minimized from previous state
         const isMinimized = localStorage.getItem('screenShareControlMinimized') === 'true';
+        const isMobile = window.innerWidth <= 768;
         
         const panel = document.createElement('div');
         panel.id = 'screen-share-controls';
-        panel.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(255, 107, 53, 0.3);
-            border-radius: 16px;
-            padding: ${isMinimized ? '12px 20px' : '20px'};
-            color: white;
-            z-index: 1000;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
-            min-width: ${isMinimized ? 'auto' : '300px'};
-            text-align: center;
-            animation: slideInFromTop 0.3s ease-out;
-            transition: all 0.3s ease;
-        `;
         
         if (isMinimized) {
-            // Minimized view - just a small indicator
+            // Minimized view - much smaller and positioned for mobile
+            panel.style.cssText = `
+                position: fixed;
+                ${isMobile ? `
+                    top: 10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                ` : `
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                `}
+                background: linear-gradient(145deg, rgba(15, 15, 25, 0.9), rgba(25, 25, 40, 0.9));
+                backdrop-filter: blur(15px);
+                border: 1px solid rgba(255, 107, 53, 0.4);
+                border-radius: 20px;
+                padding: ${isMobile ? '6px 14px' : '8px 16px'};
+                color: white;
+                z-index: 1000;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                animation: slideInFromTop 0.3s ease-out;
+                transition: all 0.3s ease;
+                cursor: pointer;
+                font-size: ${isMobile ? '11px' : '12px'};
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                max-width: ${isMobile ? '120px' : '150px'};
+            `;
+            
             panel.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; cursor: pointer;" 
+                <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap;" 
                     onclick="window.ScreenSharingSystem.expandControlPanel()">
-                    <div style="width: 10px; height: 10px; background: ${type === 'sharing' ? '#ff4444' : '#4CAF50'}; 
-                        border-radius: 50%; animation: pulse 1s infinite;"></div>
-                    <span style="font-size: 13px;">
+                    <div style="width: 6px; height: 6px; background: ${type === 'sharing' ? '#ff4444' : '#4CAF50'}; 
+                        border-radius: 50%; animation: pulse 1s infinite; flex-shrink: 0;"></div>
+                    <span style="font-weight: 600;">
                         ${type === 'sharing' ? 
                             `${this.isMobile() ? '📱' : '🖥️'} Sharing` : 
                             `📺 Viewing`}
                     </span>
-                    <span style="font-size: 11px; opacity: 0.7;">Click to expand</span>
+                    <span style="font-size: ${isMobile ? '16px' : '14px'}; opacity: 0.7; margin-left: 2px;">›</span>
                 </div>
             `;
         } else {
-            // Full view
+            // Full view - also check for mobile positioning
+            panel.style.cssText = `
+                position: fixed;
+                ${isMobile ? `
+                    top: 10px;
+                    left: 10px;
+                    right: 10px;
+                    transform: none;
+                ` : `
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                `}
+                background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
+                backdrop-filter: blur(20px);
+                border: 2px solid rgba(255, 107, 53, 0.3);
+                border-radius: 16px;
+                padding: ${isMobile ? '16px' : '20px'};
+                color: white;
+                z-index: 1000;
+                box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+                ${!isMobile ? 'min-width: 300px;' : ''}
+                text-align: center;
+                animation: slideInFromTop 0.3s ease-out;
+                transition: all 0.3s ease;
+            `;
+            
             if (type === 'sharing') {
                 panel.innerHTML = `
                     <div style="position: relative;">
                         <button onclick="window.ScreenSharingSystem.minimizeControlPanel()" 
-                                style="position: absolute; top: -10px; right: -10px; 
+                                style="position: absolute; top: -8px; right: -8px; 
                                     background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-                                    border-radius: 6px; padding: 2px 8px; cursor: pointer;
-                                    font-size: 14px; color: white; transition: all 0.2s;">
+                                    border-radius: 6px; padding: ${isMobile ? '4px 10px' : '2px 8px'}; cursor: pointer;
+                                    font-size: ${isMobile ? '16px' : '14px'}; color: white; transition: all 0.2s;
+                                    line-height: 1;">
                             −
                         </button>
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: ${isMobile ? '12px' : '16px'}; justify-content: center;">
                             <div style="width: 12px; height: 12px; background: #ff4444; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                            <strong>${this.isMobile() ? '📱' : '🖥️'} You're sharing your ${this.isMobile() ? 'camera' : 'screen'}</strong>
+                            <strong style="font-size: ${isMobile ? '14px' : '16px'};">${this.isMobile() ? '📱' : '🖥️'} You're sharing your ${this.isMobile() ? 'camera' : 'screen'}</strong>
                         </div>
-                        <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 16px;">
+                        <div style="display: flex; gap: ${isMobile ? '8px' : '12px'}; justify-content: center; margin-bottom: ${isMobile ? '12px' : '16px'}; flex-wrap: wrap;">
                             <button onclick="window.ScreenSharingSystem.changeProjectionMode('ceiling')" 
-                                    style="padding: 8px 16px; background: ${this.projectionMode === 'ceiling' ? '#4CAF50' : '#555'}; 
+                                    style="padding: ${isMobile ? '6px 12px' : '8px 16px'}; background: ${this.projectionMode === 'ceiling' ? '#4CAF50' : '#555'}; 
                                         border: none; border-radius: 8px; color: white; cursor: pointer;
-                                        transition: all 0.2s;">
+                                        transition: all 0.2s; font-size: ${isMobile ? '12px' : '14px'};">
                                 📺 Ceiling
                             </button>
                             <button onclick="window.ScreenSharingSystem.changeProjectionMode('wall')" 
-                                    style="padding: 8px 16px; background: ${this.projectionMode === 'wall' ? '#4CAF50' : '#555'}; 
+                                    style="padding: ${isMobile ? '6px 12px' : '8px 16px'}; background: ${this.projectionMode === 'wall' ? '#4CAF50' : '#555'}; 
                                         border: none; border-radius: 8px; color: white; cursor: pointer;
-                                        transition: all 0.2s;">
+                                        transition: all 0.2s; font-size: ${isMobile ? '12px' : '14px'};">
                                 🖼️ Wall
                             </button>
                             <button onclick="window.ScreenSharingSystem.changeProjectionMode('floating')" 
-                                    style="padding: 8px 16px; background: ${this.projectionMode === 'floating' ? '#4CAF50' : '#555'}; 
+                                    style="padding: ${isMobile ? '6px 12px' : '8px 16px'}; background: ${this.projectionMode === 'floating' ? '#4CAF50' : '#555'}; 
                                         border: none; border-radius: 8px; color: white; cursor: pointer;
-                                        transition: all 0.2s;">
+                                        transition: all 0.2s; font-size: ${isMobile ? '12px' : '14px'};">
                                 ✨ Floating
                             </button>
                         </div>
                         <button onclick="window.ScreenSharingSystem.stopScreenShare()" 
-                                style="padding: 12px 24px; background: #ff4444; border: none; border-radius: 8px; 
+                                style="padding: ${isMobile ? '10px 20px' : '12px 24px'}; background: #ff4444; border: none; border-radius: 8px; 
                                     color: white; cursor: pointer; font-weight: bold;
-                                    transition: all 0.2s;">
+                                    transition: all 0.2s; font-size: ${isMobile ? '14px' : '16px'};">
                             ⏹️ Stop Sharing
                         </button>
                     </div>
@@ -2988,25 +3027,27 @@ class EuphorieScreenSharingSystem {
                 panel.innerHTML = `
                     <div style="position: relative;">
                         <button onclick="window.ScreenSharingSystem.minimizeControlPanel()" 
-                                style="position: absolute; top: -10px; right: -10px; 
+                                style="position: absolute; top: -8px; right: -8px; 
                                     background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-                                    border-radius: 6px; padding: 2px 8px; cursor: pointer;
-                                    font-size: 14px; color: white; transition: all 0.2s;">
+                                    border-radius: 6px; padding: ${isMobile ? '4px 10px' : '2px 8px'}; cursor: pointer;
+                                    font-size: ${isMobile ? '16px' : '14px'}; color: white; transition: all 0.2s;
+                                    line-height: 1;">
                             −
                         </button>
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: ${isMobile ? '12px' : '16px'}; justify-content: center;">
                             <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                            <strong>📺 Watching ${sharerName}'s screen</strong>
+                            <strong style="font-size: ${isMobile ? '14px' : '16px'};">📺 Watching ${sharerName}'s screen</strong>
                         </div>
-                        <div style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
+                        <div style="font-size: ${isMobile ? '12px' : '14px'}; opacity: 0.8; margin-bottom: ${isMobile ? '8px' : '12px'};">
                             Displayed on ${this.projectionMode}
                         </div>
-                        <div style="font-size: 12px; opacity: 0.6; margin-bottom: 12px;">
-                            Double-click screen for fullscreen
+                        <div style="font-size: ${isMobile ? '11px' : '12px'}; opacity: 0.6; margin-bottom: ${isMobile ? '12px' : '12px'};">
+                            Double-tap screen for fullscreen
                         </div>
                         <button onclick="window.ScreenSharingSystem.hideViewerControls()" 
-                                style="padding: 8px 16px; background: #666; border: none; border-radius: 8px; 
-                                    color: white; cursor: pointer; transition: all 0.2s;">
+                                style="padding: ${isMobile ? '8px 14px' : '8px 16px'}; background: #666; border: none; border-radius: 8px; 
+                                    color: white; cursor: pointer; transition: all 0.2s;
+                                    font-size: ${isMobile ? '12px' : '14px'};">
                             ✕ Hide Controls
                         </button>
                     </div>
@@ -3020,27 +3061,45 @@ class EuphorieScreenSharingSystem {
         this.currentControlPanelType = type;
         this.currentControlPanelSharerName = sharerName;
         
-        // Add hover effects to buttons
-        const buttons = panel.querySelectorAll('button');
-        buttons.forEach(btn => {
-            btn.addEventListener('mouseenter', () => {
-                btn.style.transform = 'translateY(-1px)';
-                btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        // Add hover effects to buttons (desktop only)
+        if (!isMobile) {
+            const buttons = panel.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.transform = 'translateY(-1px)';
+                    btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = 'translateY(0)';
+                    btn.style.boxShadow = 'none';
+                });
             });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = 'translateY(0)';
-                btn.style.boxShadow = 'none';
-            });
-        });
+        }
         
-        // Add animations
+        // Add animations if not already present
         if (!document.getElementById('screen-share-animations')) {
             const style = document.createElement('style');
             style.id = 'screen-share-animations';
             style.textContent = `
                 @keyframes slideInFromTop {
-                    from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
-                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                    from { 
+                        opacity: 0;
+                        ${isMobile ? 'transform: translateX(-50%) translateY(-30px);' : 'transform: translateX(-50%) translateY(-100px);'}
+                    }
+                    to { 
+                        opacity: 1;
+                        ${isMobile ? 'transform: translateX(-50%) translateY(0);' : 'transform: translateX(-50%) translateY(0);'}
+                    }
+                }
+                @keyframes slideOutToTop {
+                    from { 
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                    to { 
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-100px);
+                    }
                 }
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
