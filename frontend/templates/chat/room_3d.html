@@ -1283,10 +1283,10 @@
 
 
 
-<!-- AI Chat Tab Enhancement for Euphorie 3D - Separate Button Design -->
+<!-- AI Chat Tab Enhancement for Euphorie 3D - Mobile-Consistent Design -->
 <style>
 /* ===================================
-   AI CHAT ENHANCED STYLES ONLY
+   AI CHAT ENHANCED STYLES WITH MOBILE FIX
    =================================== */
 
 /* AI Chat Button - Enhanced */
@@ -1355,7 +1355,7 @@
     animation: badgePulse 0.5s ease;
 }
 
-/* AI Chat Overlay - Enhanced */
+/* AI Chat Overlay - Base Styles */
 .ai-chat-overlay {
     position: absolute;
     top: 0;
@@ -1406,21 +1406,12 @@
     }
 }
 
-/* Mobile specific overlay */
-.mobile .ai-chat-overlay {
-    border-radius: 20px 20px 0 0;
-}
-
 /* AI Chat Inner Container */
 .ai-chat-inner {
     padding: 20px;
     display: flex;
     flex-direction: column;
     height: 100%;
-}
-
-.mobile .ai-chat-inner {
-    padding: 16px;
 }
 
 /* AI Chat Header - Enhanced */
@@ -1524,44 +1515,6 @@
     gap: 8px;
     margin-bottom: 12px;
     flex-wrap: wrap;
-}
-
-.ai-suggestion {
-    padding: 6px 12px;
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 152, 0, 0.1));
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    border-radius: 20px;
-    color: #FFB74D;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.ai-suggestion::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    background: rgba(255, 107, 53, 0.2);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.4s, height 0.4s;
-}
-
-.ai-suggestion:hover::before {
-    width: 100%;
-    height: 100%;
-}
-
-.ai-suggestion:hover {
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 152, 0, 0.2));
-    transform: translateY(-1px);
-    color: #FFA726;
-    border-color: rgba(255, 107, 53, 0.5);
 }
 
 /* AI Messages Container - Enhanced */
@@ -1810,24 +1763,127 @@
     background: linear-gradient(180deg, rgba(255, 107, 53, 0.6), rgba(255, 152, 0, 0.6));
 }
 
-/* Mobile Responsive */
+/* ===================================
+   MOBILE SPECIFIC OVERRIDES
+   =================================== */
+
+/* Fix AI Chat Overlay for Mobile - Make it match normal chat panel */
+#mobile-chat-panel-ai-overlay.ai-chat-overlay {
+    /* Match mobile chat panel styling */
+    background: linear-gradient(180deg, rgba(15, 15, 25, 0.98), rgba(25, 25, 40, 0.98)) !important;
+    backdrop-filter: blur(20px) !important;
+    border-radius: 20px 20px 0 0 !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-chat-inner {
+    background: transparent !important;
+    padding: 16px !important;
+}
+
+/* Fix AI chat header to match normal chat header on mobile */
+#mobile-chat-panel-ai-overlay .ai-chat-header {
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-chat-header h3 {
+    font-size: 14px !important;
+    color: #667eea !important;
+    background: none !important;
+    -webkit-text-fill-color: #667eea !important;
+}
+
+/* Fix AI back button to match normal chat controls */
+#mobile-chat-panel-ai-overlay .ai-chat-back-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+}
+
+/* Fix AI messages container to match normal chat on mobile */
+#mobile-chat-panel-ai-overlay .ai-messages {
+    background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 50, 0.8)) !important;
+    border: 1px solid rgba(102, 126, 234, 0.2) !important;
+    border-radius: 12px !important;
+    max-height: 180px !important; /* Match mobile chat messages height */
+}
+
+/* Fix AI input to match normal chat input on mobile */
+#mobile-chat-panel-ai-overlay .ai-chat-input {
+    padding: 14px 16px !important;
+    background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08)) !important;
+    border: 2px solid rgba(102, 126, 234, 0.3) !important;
+    border-radius: 10px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+}
+
+#mobile-chat-panel-ai-overlay .ai-chat-input:focus {
+    border-color: #4CAF50 !important;
+    background: linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1)) !important;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.4) !important;
+}
+
+/* Fix AI send button to match normal chat on mobile */
+#mobile-chat-panel-ai-overlay .ai-send-btn {
+    padding: 14px 20px !important;
+    background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-send-btn:hover {
+    background: linear-gradient(135deg, #45a049, #4CAF50) !important;
+}
+
+/* Hide AI status and suggestions on mobile for cleaner look */
 @media (max-width: 768px) {
+    #mobile-chat-panel-ai-overlay .ai-status {
+        display: none !important;
+    }
+    
+    #mobile-chat-panel-ai-overlay .ai-suggestions {
+        display: none !important;
+    }
+    
     .ai-chat-toggle {
         font-size: 9px;
         padding: 4px 8px;
     }
     
-    .ai-messages {
-        max-height: 250px;
+    .ai-chat-badge {
+        font-size: 8px;
+        padding: 1px 4px;
+        min-width: 14px;
     }
-    
-    .ai-chat-header h3 {
-        font-size: 14px;
-    }
-    
-    .ai-chat-input {
-        font-size: 16px; /* Prevents zoom on iOS */
-    }
+}
+
+/* Fix message styling to be consistent on mobile */
+#mobile-chat-panel-ai-overlay .ai-message {
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message.user {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25)) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message.grok {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 152, 0, 0.15)) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message .sender {
+    font-size: 10px !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message .content {
+    font-size: 11px !important;
+}
+
+/* Remove the full-screen overlay animation on mobile */
+#mobile-chat-panel-ai-overlay.ai-chat-overlay.active {
+    animation: none !important;
 }
 
 /* Animation Keyframes */
@@ -1859,6 +1915,7 @@
     50% { transform: scale(0.95); }
     100% { transform: scale(1); }
 }
+
 /* Optimize AI chat for larger laptop screens */
 @media (min-width: 1440px) {
     .ai-messages {
@@ -1867,7 +1924,6 @@
     }
 }
 </style>
-
 
 </head>
 <body>
@@ -4467,462 +4523,1143 @@
 
 
 
-    <script>
-    // AI Chat System for Euphorie 3D - Separate Button Design
+<!-- AI Chat Tab Enhancement for Euphorie 3D - Mobile-Consistent Design -->
+<style>
+/* ===================================
+   AI CHAT ENHANCED STYLES WITH MOBILE FIX
+   =================================== */
 
-    class AIGrokChat {
-        constructor() {
-            this.isConnected = false;
-            this.messageHistory = [];
-            this.unreadAIMessages = 0;
-            this.isInitialized = false;
-            this.activePanel = null;
-            
-            console.log('🤖 Enhanced AIGrokChat constructor called');
-            this.init();
+/* AI Chat Button - Enhanced */
+.ai-chat-toggle {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 152, 0, 0.3));
+    border: 1px solid rgba(255, 107, 53, 0.5);
+    border-radius: 20px;
+    padding: 6px 12px;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-chat-toggle::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 107, 53, 0.3), transparent 70%);
+    transform: rotate(45deg);
+    transition: transform 0.6s;
+}
+
+.ai-chat-toggle:hover::before {
+    transform: rotate(225deg);
+}
+
+.ai-chat-toggle:hover {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.5), rgba(255, 152, 0, 0.5));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+    border-color: rgba(255, 107, 53, 0.7);
+}
+
+.ai-chat-toggle.active {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.8), rgba(255, 152, 0, 0.8));
+    border-color: #FF6B35;
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+}
+
+.ai-chat-badge {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 10px;
+    font-weight: bold;
+    min-width: 16px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    animation: none;
+}
+
+.ai-chat-badge.pulse {
+    animation: badgePulse 0.5s ease;
+}
+
+/* AI Chat Overlay - Base Styles */
+.ai-chat-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, rgba(25, 25, 40, 0.99), rgba(35, 35, 55, 0.99));
+    backdrop-filter: blur(30px) saturate(1.5);
+    border-radius: 20px;
+    padding: 0;
+    display: none;
+    flex-direction: column;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.ai-chat-overlay::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 107, 53, 0.03) 0%, transparent 70%);
+    animation: aiGlow 25s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes aiGlow {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(-10%, 10%) rotate(120deg); }
+    66% { transform: translate(10%, -10%) rotate(240deg); }
+}
+
+.ai-chat-overlay.active {
+    display: flex;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* AI Chat Inner Container */
+.ai-chat-inner {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* AI Chat Header - Enhanced */
+.ai-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+    position: relative;
+}
+
+.ai-chat-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.6), rgba(255, 152, 0, 0.6), transparent);
+    animation: aiShimmer 3s ease-in-out infinite;
+}
+
+@keyframes aiShimmer {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+}
+
+.ai-chat-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #FF6B35, #ff8a50);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-chat-header h3 span:first-child {
+    font-size: 20px;
+    filter: drop-shadow(0 2px 4px rgba(255, 107, 53, 0.3));
+}
+
+.ai-chat-back-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px 16px;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    backdrop-filter: blur(10px);
+}
+
+.ai-chat-back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(-2px);
+}
+
+/* AI Status Indicator - Enhanced */
+.ai-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(56, 142, 60, 0.1));
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 20px;
+    font-size: 11px;
+    margin-bottom: 12px;
+    color: #81C784;
+}
+
+.ai-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4CAF50;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.9); }
+}
+
+/* AI Suggestions - Enhanced */
+.ai-suggestions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+/* AI Messages Container - Enhanced */
+.ai-messages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    font-size: 12px;
+    line-height: 1.4;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+    max-height: 350px;
+    min-height: 200px;
+    position: relative;
+}
+
+.ai-messages::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at bottom left, rgba(255, 107, 53, 0.05), transparent 50%);
+    pointer-events: none;
+}
+
+/* AI Message Styles - Enhanced */
+.ai-message {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 3px solid #667eea;
+    position: relative;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    animation: aiMessageSlideIn 0.4s ease;
+}
+
+@keyframes aiMessageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ai-message:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(2px);
+}
+
+.ai-message.user {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+    border-left: 3px solid #4CAF50;
+    margin-left: 15px;
+}
+
+.ai-message.grok {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 152, 0, 0.1));
+    border-left: 3px solid #FF6B35;
+}
+
+.ai-message.thinking {
+    background: linear-gradient(135deg, rgba(255, 167, 38, 0.1), rgba(255, 152, 0, 0.1));
+    border-left: 3px solid #FFA726;
+}
+
+.ai-message .sender {
+    font-weight: 700;
+    font-size: 11px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-message.user .sender {
+    color: #9FA8DA;
+}
+
+.ai-message.grok .sender {
+    color: #FFB74D;
+}
+
+.ai-message .content {
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.95);
+    white-space: pre-wrap;
+}
+
+.ai-message .content strong {
+    color: #FFB74D;
+    font-weight: 600;
+}
+
+/* AI Thinking Animation - Enhanced */
+.ai-thinking-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #FFA726;
+    padding: 10px;
+}
+
+.ai-thinking-dots {
+    display: flex;
+    gap: 3px;
+}
+
+.ai-thinking-dot {
+    width: 6px;
+    height: 6px;
+    background: linear-gradient(135deg, #FF6B35, #ff8a50);
+    border-radius: 50%;
+    animation: aiThinking 1.5s infinite;
+    box-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
+}
+
+.ai-thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.ai-thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes aiThinking {
+    0%, 60%, 100% { 
+        opacity: 0.3; 
+        transform: scale(1); 
+    }
+    30% { 
+        opacity: 1; 
+        transform: scale(1.3); 
+    }
+}
+
+/* AI Chat Input Container */
+.ai-chat-input-container {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* AI Chat Input - Enhanced */
+.ai-chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: white;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.ai-chat-input:focus {
+    outline: none;
+    border-color: rgba(255, 107, 53, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1), 0 0 30px rgba(255, 107, 53, 0.2);
+    transform: translateY(-1px);
+}
+
+.ai-chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
+/* AI Send Button - Enhanced */
+.ai-send-btn {
+    padding: 12px 18px;
+    background: linear-gradient(135deg, #FF6B35, #ff8a50);
+    border: none;
+    border-radius: 16px;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-send-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.ai-send-btn:hover::before {
+    width: 100px;
+    height: 100px;
+}
+
+.ai-send-btn:hover {
+    background: linear-gradient(135deg, #ff8a50, #FF6B35);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.ai-send-btn:active {
+    transform: translateY(0);
+}
+
+.ai-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* AI Scrollbar Styling */
+.ai-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ai-messages::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+}
+
+.ai-messages::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(255, 107, 53, 0.4), rgba(255, 152, 0, 0.4));
+    border-radius: 3px;
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.ai-messages::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(255, 107, 53, 0.6), rgba(255, 152, 0, 0.6));
+}
+
+/* ===================================
+   MOBILE SPECIFIC OVERRIDES
+   =================================== */
+
+/* Fix AI Chat Overlay for Mobile - Make it match normal chat panel */
+#mobile-chat-panel-ai-overlay.ai-chat-overlay {
+    /* Match mobile chat panel styling */
+    background: linear-gradient(180deg, rgba(15, 15, 25, 0.98), rgba(25, 25, 40, 0.98)) !important;
+    backdrop-filter: blur(20px) !important;
+    border-radius: 20px 20px 0 0 !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-chat-inner {
+    background: transparent !important;
+    padding: 16px !important;
+}
+
+/* Fix AI chat header to match normal chat header on mobile */
+#mobile-chat-panel-ai-overlay .ai-chat-header {
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-chat-header h3 {
+    font-size: 14px !important;
+    color: #667eea !important;
+    background: none !important;
+    -webkit-text-fill-color: #667eea !important;
+}
+
+/* Fix AI back button to match normal chat controls */
+#mobile-chat-panel-ai-overlay .ai-chat-back-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+}
+
+/* Fix AI messages container to match normal chat on mobile */
+#mobile-chat-panel-ai-overlay .ai-messages {
+    background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 50, 0.8)) !important;
+    border: 1px solid rgba(102, 126, 234, 0.2) !important;
+    border-radius: 12px !important;
+    max-height: 180px !important; /* Match mobile chat messages height */
+}
+
+/* Fix AI input to match normal chat input on mobile */
+#mobile-chat-panel-ai-overlay .ai-chat-input {
+    padding: 14px 16px !important;
+    background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08)) !important;
+    border: 2px solid rgba(102, 126, 234, 0.3) !important;
+    border-radius: 10px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+}
+
+#mobile-chat-panel-ai-overlay .ai-chat-input:focus {
+    border-color: #4CAF50 !important;
+    background: linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1)) !important;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.4) !important;
+}
+
+/* Fix AI send button to match normal chat on mobile */
+#mobile-chat-panel-ai-overlay .ai-send-btn {
+    padding: 14px 20px !important;
+    background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-send-btn:hover {
+    background: linear-gradient(135deg, #45a049, #4CAF50) !important;
+}
+
+/* Hide AI status and suggestions on mobile for cleaner look */
+@media (max-width: 768px) {
+    #mobile-chat-panel-ai-overlay .ai-status {
+        display: none !important;
+    }
+    
+    #mobile-chat-panel-ai-overlay .ai-suggestions {
+        display: none !important;
+    }
+    
+    .ai-chat-toggle {
+        font-size: 9px;
+        padding: 4px 8px;
+    }
+    
+    .ai-chat-badge {
+        font-size: 8px;
+        padding: 1px 4px;
+        min-width: 14px;
+    }
+}
+
+/* Fix message styling to be consistent on mobile */
+#mobile-chat-panel-ai-overlay .ai-message {
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message.user {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25)) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message.grok {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 152, 0, 0.15)) !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message .sender {
+    font-size: 10px !important;
+}
+
+#mobile-chat-panel-ai-overlay .ai-message .content {
+    font-size: 11px !important;
+}
+
+/* Remove the full-screen overlay animation on mobile */
+#mobile-chat-panel-ai-overlay.ai-chat-overlay.active {
+    animation: none !important;
+}
+
+/* Animation Keyframes */
+@keyframes badgePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes slideOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(20px); }
+}
+
+@keyframes rippleEffect {
+    to {
+        transform: translate(var(--x, 0), var(--y, 0)) scale(4);
+        opacity: 0;
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.4); }
+    50% { box-shadow: 0 0 30px rgba(255, 107, 53, 0.6); }
+}
+
+@keyframes messageSent {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* Optimize AI chat for larger laptop screens */
+@media (min-width: 1440px) {
+    .ai-messages {
+        max-height: 450px;
+        min-height: 250px;
+    }
+}
+</style>
+
+<script>
+// AI Chat System for Euphorie 3D - Mobile-Consistent Design
+
+class AIGrokChat {
+    constructor() {
+        this.isConnected = false;
+        this.messageHistory = [];
+        this.unreadAIMessages = 0;
+        this.isInitialized = false;
+        this.activePanel = null;
+        
+        console.log('🤖 Enhanced AIGrokChat constructor called');
+        this.init();
+    }
+    
+    init() {
+        console.log('🤖 AIGrokChat init called');
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.setupUI());
+        } else {
+            this.setupUI();
+        }
+    }
+    
+    setupUI() {
+        if (this.isInitialized) {
+            console.log('🤖 AI Chat already initialized');
+            return;
         }
         
-        init() {
-            console.log('🤖 AIGrokChat init called');
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => this.setupUI());
-            } else {
-                this.setupUI();
-            }
+        console.log('🤖 Setting up AI Chat UI...');
+        
+        // Add AI button and overlay to both panels
+        const desktopEnhanced = this.enhanceChatPanel('chat-panel');
+        const mobileEnhanced = this.enhanceChatPanel('mobile-chat-panel');
+        
+        if (!desktopEnhanced && !mobileEnhanced) {
+            console.error('❌ Failed to enhance any chat panels');
+            return;
         }
         
-        setupUI() {
-            if (this.isInitialized) {
-                console.log('🤖 AI Chat already initialized');
-                return;
-            }
-            
-            console.log('🤖 Setting up AI Chat UI...');
-            
-            // Add AI button and overlay to both panels
-            const desktopEnhanced = this.enhanceChatPanel('chat-panel');
-            const mobileEnhanced = this.enhanceChatPanel('mobile-chat-panel');
-            
-            if (!desktopEnhanced && !mobileEnhanced) {
-                console.error('❌ Failed to enhance any chat panels');
-                return;
-            }
-            
-            // Setup event listeners
-            this.setupEventListeners();
-            
-            // Add initial welcome message with delay
-            setTimeout(() => {
-                this.addAIMessageWithTyping('grok', "🤖 Hi! I'm Grok, your AI assistant. Ask me anything about the room, get help with features, or just chat!");
-                // Removed addSuggestions() call
-            }, 1000);
-            
-            this.isInitialized = true;
-            console.log('✅ AI Grok Chat system initialized');
+        // Setup event listeners
+        this.setupEventListeners();
+        
+        // Add initial welcome message with delay
+        setTimeout(() => {
+            this.addAIMessageWithTyping('grok', "🤖 Hi! I'm Grok, your AI assistant. Ask me anything about the room, get help with features, or just chat!");
+        }, 1000);
+        
+        this.isInitialized = true;
+        console.log('✅ AI Grok Chat system initialized');
+    }
+    
+    enhanceChatPanel(panelId) {
+        console.log(`🔧 Attempting to enhance panel: ${panelId}`);
+        
+        const panel = document.getElementById(panelId);
+        if (!panel) {
+            console.warn(`Panel ${panelId} not found`);
+            return false;
         }
         
-        enhanceChatPanel(panelId) {
-            console.log(`🔧 Attempting to enhance panel: ${panelId}`);
-            
-            const panel = document.getElementById(panelId);
-            if (!panel) {
-                console.warn(`Panel ${panelId} not found`);
-                return false;
-            }
-            
-            // Check if already enhanced
-            if (panel.querySelector('.ai-chat-toggle')) {
-                console.log(`Panel ${panelId} already has AI button`);
-                return true;
-            }
-            
-            // Find the chat header
-            const chatHeader = panel.querySelector('.chat-header');
-            if (!chatHeader) {
-                console.warn(`No chat-header found in ${panelId}`);
-                return false;
-            }
-            
-            // Find the controls container
-            const controlsContainer = chatHeader.querySelector('.chat-controls');
-            if (!controlsContainer) {
-                console.warn(`No chat-controls found in ${panelId}`);
-                return false;
-            }
-            
-            // Create AI button
-            const aiButton = document.createElement('button');
-            aiButton.className = 'ai-chat-toggle';
-            aiButton.id = `${panelId}-ai-toggle`;
-            aiButton.innerHTML = `
-                <span>🤖</span>
-                <span>Ask AI</span>
-                <span class="ai-chat-badge" id="${panelId}-ai-badge" style="display: none;">0</span>
-            `;
-            
-            // Insert before the minimize button if it exists, otherwise at the end
-            const minimizeBtn = controlsContainer.querySelector('.chat-minimize-btn');
-            if (minimizeBtn) {
-                controlsContainer.insertBefore(aiButton, minimizeBtn);
-            } else {
-                controlsContainer.appendChild(aiButton);
-            }
-            
-            // Create AI chat overlay
-            const aiOverlay = document.createElement('div');
-            aiOverlay.className = 'ai-chat-overlay';
-            aiOverlay.id = `${panelId}-ai-overlay`;
-            aiOverlay.innerHTML = `
-                <div class="ai-chat-inner">
-                    <div class="ai-chat-header">
-                        <h3>
-                            <span>🤖</span>
-                            <span>Grok AI Assistant</span>
-                        </h3>
-                        <button class="ai-chat-back-btn" id="${panelId}-ai-back">
-                            <span>←</span>
-                            <span>Back to Chat</span>
-                        </button>
-                    </div>
-                    
-                    <div class="ai-status">
-                        <span class="ai-status-dot"></span>
-                        <span>AI Connected</span>
-                    </div>
-                    
-                    <div class="ai-suggestions" id="${panelId}-ai-suggestions"></div>
-                    
-                    <div id="${panelId}-ai-messages" class="ai-messages"></div>
-                    
-                    <div class="ai-chat-input-container">
-                        <input type="text" id="${panelId}-ai-input" class="ai-chat-input" placeholder="Ask Grok anything..." maxlength="500">
-                        <button id="${panelId}-ai-send" class="ai-send-btn">Send</button>
-                    </div>
-                </div>
-            `;
-            
-            // Add overlay to panel (not inside chat-content)
-            panel.appendChild(aiOverlay);
-            
-            // Add mobile class if needed
-            if (panelId === 'mobile-chat-panel') {
-                aiOverlay.classList.add('mobile');
-            }
-            
-            console.log(`✅ Enhanced panel ${panelId} successfully`);
+        // Check if already enhanced
+        if (panel.querySelector('.ai-chat-toggle')) {
+            console.log(`Panel ${panelId} already has AI button`);
             return true;
         }
         
-        setupEventListeners() {
-            console.log('🔧 Setting up event listeners...');
-            
-            // AI toggle buttons
-            ['chat-panel', 'mobile-chat-panel'].forEach(panelId => {
-                const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
-                const backBtn = document.getElementById(`${panelId}-ai-back`);
-                const input = document.getElementById(`${panelId}-ai-input`);
-                const sendBtn = document.getElementById(`${panelId}-ai-send`);
-                
-                if (toggleBtn) {
-                    toggleBtn.addEventListener('click', (e) => {
-                        this.createRipple(e);
-                        this.showAIChat(panelId);
-                    });
-                }
-                
-                if (backBtn) {
-                    backBtn.addEventListener('click', (e) => {
-                        this.createRipple(e);
-                        this.hideAIChat(panelId);
-                    });
-                }
-                
-                if (input && sendBtn) {
-                    // Send on Enter
-                    input.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            this.sendMessage(input.value, panelId);
-                        }
-                    });
-                    
-                    // Send on button click
-                    sendBtn.addEventListener('click', (e) => {
-                        this.createRipple(e);
-                        this.sendMessage(input.value, panelId);
-                    });
-                }
-            });
-            
-            // Suggestion clicks
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('ai-suggestion')) {
-                    e.preventDefault();
-                    this.createRipple(e);
-                    const suggestion = e.target.textContent;
-                    const overlay = e.target.closest('.ai-chat-overlay');
-                    if (overlay) {
-                        const panelId = overlay.id.replace('-ai-overlay', '');
-                        const input = document.getElementById(`${panelId}-ai-input`);
-                        if (input) {
-                            // Animate text input
-                            this.animateTextInput(input, suggestion);
-                            setTimeout(() => {
-                                this.sendMessage(suggestion, panelId);
-                            }, 300);
-                        }
-                    }
-                }
-            });
+        // Find the chat header
+        const chatHeader = panel.querySelector('.chat-header');
+        if (!chatHeader) {
+            console.warn(`No chat-header found in ${panelId}`);
+            return false;
         }
         
-        createRipple(e) {
-            const button = e.currentTarget || e.target;
-            const ripple = document.createElement('span');
-            const rect = button.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = e.clientX - rect.left - size / 2;
-            const y = e.clientY - rect.top - size / 2;
-            
-            ripple.style.cssText = `
-                position: absolute;
-                width: ${size}px;
-                height: ${size}px;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.4);
-                transform: translate(${x}px, ${y}px) scale(0);
-                animation: rippleEffect 0.6s ease-out;
-                pointer-events: none;
-            `;
-            
-            button.style.position = 'relative';
-            button.style.overflow = 'hidden';
-            button.appendChild(ripple);
-            
-            setTimeout(() => ripple.remove(), 600);
+        // Find the controls container
+        const controlsContainer = chatHeader.querySelector('.chat-controls');
+        if (!controlsContainer) {
+            console.warn(`No chat-controls found in ${panelId}`);
+            return false;
         }
         
-        animateTextInput(input, text) {
-            input.value = '';
-            let i = 0;
-            const typeInterval = setInterval(() => {
-                if (i < text.length) {
-                    input.value += text.charAt(i);
-                    i++;
-                } else {
-                    clearInterval(typeInterval);
-                }
-            }, 30);
+        // Create AI button
+        const aiButton = document.createElement('button');
+        aiButton.className = 'ai-chat-toggle';
+        aiButton.id = `${panelId}-ai-toggle`;
+        aiButton.innerHTML = `
+            <span>🤖</span>
+            <span>Ask AI</span>
+            <span class="ai-chat-badge" id="${panelId}-ai-badge" style="display: none;">0</span>
+        `;
+        
+        // Insert before the minimize button if it exists, otherwise at the end
+        const minimizeBtn = controlsContainer.querySelector('.chat-minimize-btn');
+        if (minimizeBtn) {
+            controlsContainer.insertBefore(aiButton, minimizeBtn);
+        } else {
+            controlsContainer.appendChild(aiButton);
         }
         
-        showAIChat(panelId) {
-            console.log(`Showing AI chat for ${panelId}`);
-            
-            const overlay = document.getElementById(`${panelId}-ai-overlay`);
+        // Create AI chat overlay
+        const aiOverlay = document.createElement('div');
+        aiOverlay.className = 'ai-chat-overlay';
+        aiOverlay.id = `${panelId}-ai-overlay`;
+        aiOverlay.innerHTML = `
+            <div class="ai-chat-inner">
+                <div class="ai-chat-header">
+                    <h3>
+                        <span>🤖</span>
+                        <span>Grok AI Assistant</span>
+                    </h3>
+                    <button class="ai-chat-back-btn" id="${panelId}-ai-back">
+                        <span>←</span>
+                        <span>Back to Chat</span>
+                    </button>
+                </div>
+                
+                <div class="ai-status">
+                    <span class="ai-status-dot"></span>
+                    <span>AI Connected</span>
+                </div>
+                
+                <div class="ai-suggestions" id="${panelId}-ai-suggestions"></div>
+                
+                <div id="${panelId}-ai-messages" class="ai-messages"></div>
+                
+                <div class="ai-chat-input-container">
+                    <input type="text" id="${panelId}-ai-input" class="ai-chat-input" placeholder="Ask Grok anything..." maxlength="500">
+                    <button id="${panelId}-ai-send" class="ai-send-btn">Send</button>
+                </div>
+            </div>
+        `;
+        
+        // Add overlay to panel (not inside chat-content)
+        panel.appendChild(aiOverlay);
+        
+        // Add mobile class if needed
+        if (panelId === 'mobile-chat-panel') {
+            aiOverlay.classList.add('mobile');
+        }
+        
+        console.log(`✅ Enhanced panel ${panelId} successfully`);
+        return true;
+    }
+    
+    setupEventListeners() {
+        console.log('🔧 Setting up event listeners...');
+        
+        // AI toggle buttons
+        ['chat-panel', 'mobile-chat-panel'].forEach(panelId => {
             const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
-            
-            if (overlay) {
-                overlay.classList.add('active');
-                this.activePanel = panelId;
-                
-                // Mark button as active
-                if (toggleBtn) {
-                    toggleBtn.classList.add('active');
-                }
-                
-                // Clear unread badge
-                this.unreadAIMessages = 0;
-                this.updateBadge(panelId);
-                
-                // Focus on input with animation
-                const input = document.getElementById(`${panelId}-ai-input`);
-                if (input) {
-                    setTimeout(() => {
-                        input.focus();
-                        input.style.animation = 'pulseGlow 0.5s ease';
-                        setTimeout(() => {
-                            input.style.animation = '';
-                        }, 500);
-                    }, 300);
-                }
-            }
-        }
-        
-        hideAIChat(panelId) {
-            console.log(`Hiding AI chat for ${panelId}`);
-            
-            const overlay = document.getElementById(`${panelId}-ai-overlay`);
-            const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
-            
-            if (overlay) {
-                overlay.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => {
-                    overlay.classList.remove('active');
-                    overlay.style.animation = '';
-                    this.activePanel = null;
-                }, 300);
-                
-                // Remove active state from button
-                if (toggleBtn) {
-                    toggleBtn.classList.remove('active');
-                }
-            }
-        }
-        
-        async sendMessage(message, panelId) {
-            message = message.trim();
-            if (!message) return;
-            
-            console.log(`Sending message: "${message}" from panel ${panelId}`);
-            
+            const backBtn = document.getElementById(`${panelId}-ai-back`);
             const input = document.getElementById(`${panelId}-ai-input`);
             const sendBtn = document.getElementById(`${panelId}-ai-send`);
             
-            // Clear input with animation
-            if (input) {
-                input.style.animation = 'messageSent 0.3s ease';
-                setTimeout(() => {
-                    input.value = '';
-                    input.style.animation = '';
-                }, 300);
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', (e) => {
+                    this.createRipple(e);
+                    this.showAIChat(panelId);
+                });
             }
             
-            // Add user message
-            this.addUserMessage(message, panelId);
-            
-            // Show thinking indicator
-            this.showThinking(panelId);
-            
-            // Disable input while processing
-            if (input) input.disabled = true;
-            if (sendBtn) sendBtn.disabled = true;
-            
-            try {
-                // Get AI response
-                const response = await this.getGrokResponse(message);
-                
-                // Remove thinking indicator
-                this.hideThinking(panelId);
-                
-                // Add AI response with typing effect
-                this.addAIMessageWithTyping('grok', response, panelId);
-                
-            } catch (error) {
-                console.error('Error getting AI response:', error);
-                this.hideThinking(panelId);
-                this.addAIMessage('grok', "Sorry, I'm having trouble connecting right now. Please try again later.", panelId);
-            } finally {
-                // Re-enable input
-                if (input) {
-                    input.disabled = false;
-                    input.focus();
-                }
-                if (sendBtn) sendBtn.disabled = false;
+            if (backBtn) {
+                backBtn.addEventListener('click', (e) => {
+                    this.createRipple(e);
+                    this.hideAIChat(panelId);
+                });
             }
-        }
-        
-        async getGrokResponse(message) {
-            console.log('🤖 Getting AI response for:', message);
             
-            try {
-                console.log('📤 Sending request to /api/grok-chat/');
-                
-                const response = await fetch('/api/grok-chat/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': this.getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        context: this.messageHistory.slice(-10)
-                    })
+            if (input && sendBtn) {
+                // Send on Enter
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage(input.value, panelId);
+                    }
                 });
                 
-                console.log('📥 Response status:', response.status);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ AI response data:', data);
-                    return data.response;
-                } else {
-                    const errorText = await response.text();
-                    console.error('❌ API error:', response.status, errorText);
-                }
-            } catch (error) {
-                console.error('❌ Network error:', error);
+                // Send on button click
+                sendBtn.addEventListener('click', (e) => {
+                    this.createRipple(e);
+                    this.sendMessage(input.value, panelId);
+                });
             }
-            
-            // Fallback to local responses
-            console.log('⚠️ Using fallback local response');
-            return this.getLocalResponse(message);
-        }
+        });
         
-        getLocalResponse(message) {
-            const responses = {
-                'hello': "Hey there! 👋 Welcome to Euphorie 3D! How can I help you navigate this virtual world?",
-                'hi': "Hi! 🎉 Great to see you here! Need help with anything?",
-                'help': "I can help you with:\n\n🎮 **Controls**: Movement, camera, interactions\n💬 **Chat**: Messaging, bubbles, emotes\n🏠 **Rooms**: Navigation, features, settings\n👥 **Social**: Friends, groups, activities\n🎨 **Customization**: Avatar, pets, themes\n📺 **Screen Sharing**: Share your screen with others\n\nWhat would you like to know more about?",
-                'controls': "Here are the main controls:\n\n🖱️ **Mouse**: Rotate camera, click to interact\n⌨️ **Keyboard**:\n• W/1: Wave\n• D/2: Dance\n• E: Emotions panel\n• G: Group activities\n• Ctrl+H: All shortcuts\n• Ctrl+G: Open AI chat\n• Ctrl+Shift+S: Screen share\n\n📱 **Mobile**: Touch & drag to rotate, pinch to zoom",
-                'avatar': "You can customize your avatar by:\n\n1. Click the hamburger menu (☰)\n2. Select 'Avatar' option\n3. Choose colors, accessories, and styles\n\nYour nationality flag appears on your nametag! 🏳️",
-                'bubbles': "3D Chat Bubbles float above avatars when you type! 💭\n\n• Toggle with the '3D Bubbles' button\n• Messages fade after 6 seconds\n• Everyone in the room can see them\n• Great for quick conversations!",
-                'weather': "This room has synchronized weather! 🌦️\n\n• Click hamburger menu → Weather\n• Choose from: Sunny, Rainy, Snowy, Stormy\n• Changes apply to everyone in the room\n• Creates amazing atmospheric effects!",
-                'pets': "Want a virtual pet? 🐾\n\n• Click hamburger menu → Get Pet\n• Pets follow you around the room\n• Each has unique personality\n• Collect multiple pets!\n• Other users can see your pets too",
-                'screen': "You can share your screen! 📺\n\n• Click hamburger menu → Screen Share\n• Choose what to share\n• Others see it on virtual screens\n• Perfect for presentations or showing content\n• Press Ctrl+Shift+S for quick toggle",
-                'default': this.generateContextualResponse.bind(this)
-            };
-            
-            const lowercaseMessage = message.toLowerCase();
-            for (const [keyword, response] of Object.entries(responses)) {
-                if (keyword !== 'default' && lowercaseMessage.includes(keyword)) {
-                    return typeof response === 'function' ? response(message) : response;
+        // Suggestion clicks
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('ai-suggestion')) {
+                e.preventDefault();
+                this.createRipple(e);
+                const suggestion = e.target.textContent;
+                const overlay = e.target.closest('.ai-chat-overlay');
+                if (overlay) {
+                    const panelId = overlay.id.replace('-ai-overlay', '');
+                    const input = document.getElementById(`${panelId}-ai-input`);
+                    if (input) {
+                        // Animate text input
+                        this.animateTextInput(input, suggestion);
+                        setTimeout(() => {
+                            this.sendMessage(suggestion, panelId);
+                        }, 300);
+                    }
                 }
             }
+        });
+    }
+    
+    createRipple(e) {
+        const button = e.currentTarget || e.target;
+        const ripple = document.createElement('span');
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: translate(${x}px, ${y}px) scale(0);
+            animation: rippleEffect 0.6s ease-out;
+            pointer-events: none;
+        `;
+        
+        button.style.position = 'relative';
+        button.style.overflow = 'hidden';
+        button.appendChild(ripple);
+        
+        setTimeout(() => ripple.remove(), 600);
+    }
+    
+    animateTextInput(input, text) {
+        input.value = '';
+        let i = 0;
+        const typeInterval = setInterval(() => {
+            if (i < text.length) {
+                input.value += text.charAt(i);
+                i++;
+            } else {
+                clearInterval(typeInterval);
+            }
+        }, 30);
+    }
+    
+    showAIChat(panelId) {
+        console.log(`Showing AI chat for ${panelId}`);
+        
+        const overlay = document.getElementById(`${panelId}-ai-overlay`);
+        const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
+        
+        if (overlay) {
+            overlay.classList.add('active');
+            this.activePanel = panelId;
             
-            return responses.default(message);
+            // Mark button as active
+            if (toggleBtn) {
+                toggleBtn.classList.add('active');
+            }
+            
+            // For mobile, ensure the panel is expanded when showing AI
+            if (panelId === 'mobile-chat-panel') {
+                const mobilePanel = document.getElementById('mobile-chat-panel');
+                if (mobilePanel && !mobilePanel.classList.contains('expanded')) {
+                    mobilePanel.classList.add('expanded');
+                }
+            }
+            
+            // Clear unread badge
+            this.unreadAIMessages = 0;
+            this.updateBadge(panelId);
+            
+            // Focus on input with animation
+            const input = document.getElementById(`${panelId}-ai-input`);
+            if (input) {
+                setTimeout(() => {
+                    input.focus();
+                    input.style.animation = 'pulseGlow 0.5s ease';
+                    setTimeout(() => {
+                        input.style.animation = '';
+                    }, 500);
+                }, 300);
+            }
+        }
+    }
+    
+    hideAIChat(panelId) {
+        console.log(`Hiding AI chat for ${panelId}`);
+        
+        const overlay = document.getElementById(`${panelId}-ai-overlay`);
+        const toggleBtn = document.getElementById(`${panelId}-ai-toggle`);
+        
+        if (overlay) {
+            overlay.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                overlay.style.animation = '';
+                this.activePanel = null;
+            }, 300);
+            
+            // Remove active state from button
+            if (toggleBtn) {
+                toggleBtn.classList.remove('active');
+            }
+        }
+    }
+    
+    async sendMessage(message, panelId) {
+        message = message.trim();
+        if (!message) return;
+        
+        console.log(`Sending message: "${message}" from panel ${panelId}`);
+        
+        const input = document.getElementById(`${panelId}-ai-input`);
+        const sendBtn = document.getElementById(`${panelId}-ai-send`);
+        
+        // Clear input with animation
+        if (input) {
+            input.style.animation = 'messageSent 0.3s ease';
+            setTimeout(() => {
+                input.value = '';
+                input.style.animation = '';
+            }, 300);
         }
         
-        generateContextualResponse(message) {
-            const lowercase = message.toLowerCase();
+        // Add user message
+        this.addUserMessage(message, panelId);
+        
+        // Show thinking indicator
+        this.showThinking(panelId);
+        
+        // Disable input while processing
+        if (input) input.disabled = true;
+        if (sendBtn) sendBtn.disabled = true;
+        
+        try {
+            // Get AI response
+            const response = await this.getGrokResponse(message);
             
-            if (lowercase.includes('screen') || lowercase.includes('share')) {
-                return "Screen sharing lets you show your screen to others in the room! 📺\n\nClick the hamburger menu and select 'Screen Share', or press Ctrl+Shift+S. Your content appears on virtual screens in the 3D space. Perfect for presentations or showing videos!";
+            // Remove thinking indicator
+            this.hideThinking(panelId);
+            
+            // Add AI response with typing effect
+            this.addAIMessageWithTyping('grok', response, panelId);
+            
+        } catch (error) {
+            console.error('Error getting AI response:', error);
+            this.hideThinking(panelId);
+            this.addAIMessage('grok', "Sorry, I'm having trouble connecting right now. Please try again later.", panelId);
+        } finally {
+            // Re-enable input
+            if (input) {
+                input.disabled = false;
+                input.focus();
             }
+            if (sendBtn) sendBtn.disabled = false;
+        }
+    }
+    
+    async getGrokResponse(message) {
+        console.log('🤖 Getting AI response for:', message);
+        
+        try {
+            console.log('📤 Sending request to /api/grok-chat/');
             
-            if (lowercase.includes('emotion') || lowercase.includes('feel')) {
-                return "Express yourself with emotions! 🎭\n\nPress 'E' or click Emotions in the menu. Choose from happy, sad, excited, angry, love, and more. Emotions appear as visual effects around your avatar!";
+            const response = await fetch('/api/grok-chat/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    message: message,
+                    context: this.messageHistory.slice(-10)
+                })
+            });
+            
+            console.log('📥 Response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ AI response data:', data);
+                return data.response;
+            } else {
+                const errorText = await response.text();
+                console.error('❌ API error:', response.status, errorText);
             }
-            
-            if (lowercase.includes('friend') || lowercase.includes('user')) {
-                return `There are currently ${this.getRoomUserCount()} users in this room! 👥\n\nYou can:\n• Click on avatars to interact\n• Send friend requests\n• Form groups for activities\n• See user nationalities on nametags\n\nThe room supports up to ${window.ROOM_CONFIG?.maxUsers || 10} users.`;
-            }
-            
-            if (lowercase.includes('flag') || lowercase.includes('country') || lowercase.includes('nationality')) {
-                return "Your nationality flag appears on your nametag! 🌍\n\nTo change it:\n• Click hamburger menu → Nationality\n• Select your country\n• Your flag updates instantly\n\nIt's a great way to show where you're from!";
-            }
-            
-            return "That's an interesting question! 🤔\n\nI'm here to help with anything about Euphorie 3D. You can ask me about:\n\n• Room features and controls\n• How to customize your avatar\n• Social interactions and activities\n• Technical help and tips\n\nWhat would you like to explore?";
+        } catch (error) {
+            console.error('❌ Network error:', error);
         }
         
-        getRoomUserCount() {
-            return window.WebSocketManager?.connectedUsers?.size + 1 || 1;
+        // Fallback to local responses
+        console.log('⚠️ Using fallback local response');
+        return this.getLocalResponse(message);
+    }
+    
+    getLocalResponse(message) {
+        const responses = {
+            'hello': "Hey there! 👋 Welcome to Euphorie 3D! How can I help you navigate this virtual world?",
+            'hi': "Hi! 🎉 Great to see you here! Need help with anything?",
+            'help': "I can help you with:\n\n🎮 **Controls**: Movement, camera, interactions\n💬 **Chat**: Messaging, bubbles, emotes\n🏠 **Rooms**: Navigation, features, settings\n👥 **Social**: Friends, groups, activities\n🎨 **Customization**: Avatar, pets, themes\n📺 **Screen Sharing**: Share your screen with others\n\nWhat would you like to know more about?",
+            'controls': "Here are the main controls:\n\n🖱️ **Mouse**: Rotate camera, click to interact\n⌨️ **Keyboard**:\n• W/1: Wave\n• D/2: Dance\n• E: Emotions panel\n• G: Group activities\n• Ctrl+H: All shortcuts\n• Ctrl+G: Open AI chat\n• Ctrl+Shift+S: Screen share\n\n📱 **Mobile**: Touch & drag to rotate, pinch to zoom",
+            'avatar': "You can customize your avatar by:\n\n1. Click the hamburger menu (☰)\n2. Select 'Avatar' option\n3. Choose colors, accessories, and styles\n\nYour nationality flag appears on your nametag! 🏳️",
+            'bubbles': "3D Chat Bubbles float above avatars when you type! 💭\n\n• Toggle with the '3D Bubbles' button\n• Messages fade after 6 seconds\n• Everyone in the room can see them\n• Great for quick conversations!",
+            'weather': "This room has synchronized weather! 🌦️\n\n• Click hamburger menu → Weather\n• Choose from: Sunny, Rainy, Snowy, Stormy\n• Changes apply to everyone in the room\n• Creates amazing atmospheric effects!",
+            'pets': "Want a virtual pet? 🐾\n\n• Click hamburger menu → Get Pet\n• Pets follow you around the room\n• Each has unique personality\n• Collect multiple pets!\n• Other users can see your pets too",
+            'screen': "You can share your screen! 📺\n\n• Click hamburger menu → Screen Share\n• Choose what to share\n• Others see it on virtual screens\n• Perfect for presentations or showing content\n• Press Ctrl+Shift+S for quick toggle",
+            'default': this.generateContextualResponse.bind(this)
+        };
+        
+        const lowercaseMessage = message.toLowerCase();
+        for (const [keyword, response] of Object.entries(responses)) {
+            if (keyword !== 'default' && lowercaseMessage.includes(keyword)) {
+                return typeof response === 'function' ? response(message) : response;
+            }
         }
         
-        addUserMessage(message, panelId) {
-            const messagesContainer = document.getElementById(`${panelId}-ai-messages`);
-            if (!messagesContainer) return;
+        return responses.default(message);
+    }
+    
+    generateContextualResponse(message) {
+        const lowercase = message.toLowerCase();
+        
+        if (lowercase.includes('screen') || lowercase.includes('share')) {
+            return "Screen sharing lets you show your screen to others in the room! 📺\n\nClick the hamburger menu and select 'Screen Share', or press Ctrl+Shift+S. Your content appears on virtual screens in the 3D space. Perfect for presentations or showing videos!";
+        }
+        
+        if (lowercase.includes('emotion') || lowercase.includes('feel')) {
+            return "Express yourself with emotions! 🎭\n\nPress 'E' or click Emotions in the menu. Choose from happy, sad, excited, angry, love, and more. Emotions appear as visual effects around your avatar!";
+        }
+        
+        if (lowercase.includes('friend') || lowercase.includes('user')) {
+            return `There are currently ${this.getRoomUserCount()} users in this room! 👥\n\nYou can:\n• Click on avatars to interact\n• Send friend requests\n• Form groups for activities\n• See user nationalities on nametags\n\nThe room supports up to ${window.ROOM_CONFIG?.maxUsers || 10} users.`;
+        }
+        
+        if (lowercase.includes('flag') || lowercase.includes('country') || lowercase.includes('nationality')) {
+            return "Your nationality flag appears on your nametag! 🌍\n\nTo change it:\n• Click hamburger menu → Nationality\n• Select your country\n• Your flag updates instantly\n\nIt's a great way to show where you're from!";
+        }
+        
+        return "That's an interesting question! 🤔\n\nI'm here to help with anything about Euphorie 3D. You can ask me about:\n\n• Room features and controls\n• How to customize your avatar\n• Social interactions and activities\n• Technical help and tips\n\nWhat would you like to explore?";
+    }
+    
+    getRoomUserCount() {
+        return window.WebSocketManager?.connectedUsers?.size + 1 || 1;
+    }
+    
+    addUserMessage(message, panelId) {
+        const messagesContainer = document.getElementById(`${panelId}-ai-messages`);
+        if (!messagesContainer) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'ai-message user';
+        messageDiv.style.opacity = '0';
+        messageDiv.innerHTML = `
+            <div class="sender">
+                <span>You</span>
+            </div>
+            <div class="content">${this.escapeHtml(message)}</div>
+        `;
+        
+        messagesContainer.appendChild(messageDiv);
+        
+        // Animate message appearance
+        setTimeout(() => {
+            messageDiv.style.transition = 'opacity 0.3s ease';
+            messageDiv.style.opacity = '1';
+        }, 10);
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        this.messageHistory.push({ type: 'user', content: message });
+    }
+    
+    addAIMessage(sender, message, panelId = null) {
+        const containers = panelId ? 
+            [document.getElementById(`${panelId}-ai-messages`)] : 
+            [document.getElementById('chat-panel-ai-messages'), 
+            document.getElementById('mobile-chat-panel-ai-messages')];
+        
+        containers.forEach(container => {
+            if (!container) return;
             
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'ai-message user';
+            messageDiv.className = `ai-message ${sender}`;
             messageDiv.style.opacity = '0';
             messageDiv.innerHTML = `
                 <div class="sender">
-                    <span>You</span>
+                    <span>${sender === 'grok' ? '🤖 Grok AI' : sender}</span>
                 </div>
-                <div class="content">${this.escapeHtml(message)}</div>
+                <div class="content">${this.formatAIMessage(message)}</div>
             `;
             
-            messagesContainer.appendChild(messageDiv);
+            container.appendChild(messageDiv);
             
             // Animate message appearance
             setTimeout(() => {
@@ -4930,319 +5667,285 @@
                 messageDiv.style.opacity = '1';
             }, 10);
             
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            this.messageHistory.push({ type: 'user', content: message });
-        }
+            container.scrollTop = container.scrollHeight;
+        });
         
-        addAIMessage(sender, message, panelId = null) {
-            const containers = panelId ? 
-                [document.getElementById(`${panelId}-ai-messages`)] : 
-                [document.getElementById('chat-panel-ai-messages'), 
-                document.getElementById('mobile-chat-panel-ai-messages')];
-            
-            containers.forEach(container => {
-                if (!container) return;
-                
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `ai-message ${sender}`;
-                messageDiv.style.opacity = '0';
-                messageDiv.innerHTML = `
-                    <div class="sender">
-                        <span>${sender === 'grok' ? '🤖 Grok AI' : sender}</span>
-                    </div>
-                    <div class="content">${this.formatAIMessage(message)}</div>
-                `;
-                
-                container.appendChild(messageDiv);
-                
-                // Animate message appearance
-                setTimeout(() => {
-                    messageDiv.style.transition = 'opacity 0.3s ease';
-                    messageDiv.style.opacity = '1';
-                }, 10);
-                
-                container.scrollTop = container.scrollHeight;
-            });
-            
-            this.messageHistory.push({ type: 'ai', sender, content: message });
-            
-            // Update badge if AI chat is not active
-            if (this.activePanel === null) {
-                this.unreadAIMessages++;
-                this.updateBadge('chat-panel');
-                this.updateBadge('mobile-chat-panel');
-            }
-        }
+        this.messageHistory.push({ type: 'ai', sender, content: message });
         
-        addAIMessageWithTyping(sender, message, panelId = null) {
-            const containers = panelId ? 
-                [document.getElementById(`${panelId}-ai-messages`)] : 
-                [document.getElementById('chat-panel-ai-messages'), 
-                document.getElementById('mobile-chat-panel-ai-messages')];
-            
-            containers.forEach(container => {
-                if (!container) return;
-                
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `ai-message ${sender}`;
-                messageDiv.style.opacity = '0';
-                messageDiv.innerHTML = `
-                    <div class="sender">
-                        <span>${sender === 'grok' ? '🤖 Grok AI' : sender}</span>
-                    </div>
-                    <div class="content"></div>
-                `;
-                
-                container.appendChild(messageDiv);
-                const contentDiv = messageDiv.querySelector('.content');
-                
-                // Animate message appearance
-                setTimeout(() => {
-                    messageDiv.style.transition = 'opacity 0.3s ease';
-                    messageDiv.style.opacity = '1';
-                    
-                    // Type out the message
-                    this.typeMessage(contentDiv, this.formatAIMessage(message), () => {
-                        container.scrollTop = container.scrollHeight;
-                    });
-                }, 10);
-                
-                container.scrollTop = container.scrollHeight;
-            });
-            
-            this.messageHistory.push({ type: 'ai', sender, content: message });
-            
-            // Update badge if AI chat is not active
-            if (this.activePanel === null) {
-                this.unreadAIMessages++;
-                this.updateBadge('chat-panel');
-                this.updateBadge('mobile-chat-panel');
-            }
+        // Update badge if AI chat is not active
+        if (this.activePanel === null) {
+            this.unreadAIMessages++;
+            this.updateBadge('chat-panel');
+            this.updateBadge('mobile-chat-panel');
         }
+    }
+    
+    addAIMessageWithTyping(sender, message, panelId = null) {
+        const containers = panelId ? 
+            [document.getElementById(`${panelId}-ai-messages`)] : 
+            [document.getElementById('chat-panel-ai-messages'), 
+            document.getElementById('mobile-chat-panel-ai-messages')];
         
-        typeMessage(element, text, callback) {
-            let i = 0;
-            const speed = 20; // milliseconds per character
+        containers.forEach(container => {
+            if (!container) return;
             
-            const typeWriter = () => {
-                if (i < text.length) {
-                    if (text.charAt(i) === '<') {
-                        // Handle HTML tags
-                        const tagEnd = text.indexOf('>', i);
-                        if (tagEnd !== -1) {
-                            element.innerHTML += text.substring(i, tagEnd + 1);
-                            i = tagEnd + 1;
-                        } else {
-                            element.innerHTML += text.charAt(i);
-                            i++;
-                        }
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${sender}`;
+            messageDiv.style.opacity = '0';
+            messageDiv.innerHTML = `
+                <div class="sender">
+                    <span>${sender === 'grok' ? '🤖 Grok AI' : sender}</span>
+                </div>
+                <div class="content"></div>
+            `;
+            
+            container.appendChild(messageDiv);
+            const contentDiv = messageDiv.querySelector('.content');
+            
+            // Animate message appearance
+            setTimeout(() => {
+                messageDiv.style.transition = 'opacity 0.3s ease';
+                messageDiv.style.opacity = '1';
+                
+                // Type out the message
+                this.typeMessage(contentDiv, this.formatAIMessage(message), () => {
+                    container.scrollTop = container.scrollHeight;
+                });
+            }, 10);
+            
+            container.scrollTop = container.scrollHeight;
+        });
+        
+        this.messageHistory.push({ type: 'ai', sender, content: message });
+        
+        // Update badge if AI chat is not active
+        if (this.activePanel === null) {
+            this.unreadAIMessages++;
+            this.updateBadge('chat-panel');
+            this.updateBadge('mobile-chat-panel');
+        }
+    }
+    
+    typeMessage(element, text, callback) {
+        let i = 0;
+        const speed = 20; // milliseconds per character
+        
+        const typeWriter = () => {
+            if (i < text.length) {
+                if (text.charAt(i) === '<') {
+                    // Handle HTML tags
+                    const tagEnd = text.indexOf('>', i);
+                    if (tagEnd !== -1) {
+                        element.innerHTML += text.substring(i, tagEnd + 1);
+                        i = tagEnd + 1;
                     } else {
                         element.innerHTML += text.charAt(i);
                         i++;
                     }
-                    
-                    // Scroll to bottom while typing
-                    if (element.closest('.ai-messages')) {
-                        element.closest('.ai-messages').scrollTop = element.closest('.ai-messages').scrollHeight;
-                    }
-                    
-                    setTimeout(typeWriter, speed);
-                } else if (callback) {
-                    callback();
+                } else {
+                    element.innerHTML += text.charAt(i);
+                    i++;
                 }
-            };
-            
-            typeWriter();
-        }
-        
-        formatAIMessage(message) {
-            return message
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\n/g, '<br>')
-                .replace(/•/g, '&bull;');
-        }
-        
-        showThinking(panelId) {
-            const messagesContainer = document.getElementById(`${panelId}-ai-messages`);
-            if (!messagesContainer) return;
-            
-            const thinkingDiv = document.createElement('div');
-            thinkingDiv.className = 'ai-message thinking';
-            thinkingDiv.id = `${panelId}-thinking`;
-            thinkingDiv.style.opacity = '0';
-            thinkingDiv.innerHTML = `
-                <div class="ai-thinking-indicator">
-                    <span>Grok is thinking</span>
-                    <div class="ai-thinking-dots">
-                        <div class="ai-thinking-dot"></div>
-                        <div class="ai-thinking-dot"></div>
-                        <div class="ai-thinking-dot"></div>
-                    </div>
-                </div>
-            `;
-            
-            messagesContainer.appendChild(thinkingDiv);
-            
-            // Animate appearance
-            setTimeout(() => {
-                thinkingDiv.style.transition = 'opacity 0.3s ease';
-                thinkingDiv.style.opacity = '1';
-            }, 10);
-            
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-        
-        hideThinking(panelId) {
-            const thinkingDiv = document.getElementById(`${panelId}-thinking`);
-            if (thinkingDiv) {
-                thinkingDiv.style.transition = 'opacity 0.3s ease';
-                thinkingDiv.style.opacity = '0';
-                setTimeout(() => {
-                    thinkingDiv.remove();
-                }, 300);
-            }
-        }
-        
-        addSuggestions() {
-            // Remove all suggestions - keep containers empty
-            ['chat-panel', 'mobile-chat-panel'].forEach(panelId => {
-                const container = document.getElementById(`${panelId}-ai-suggestions`);
-                if (container) {
-                    container.innerHTML = '';
-                    // Hide the container since it's empty
-                    container.style.display = 'none';
-                }
-            });
-        }
-        
-        updateBadge(panelId) {
-            const badge = document.getElementById(`${panelId}-ai-badge`);
-            if (!badge) return;
-            
-            if (this.unreadAIMessages > 0) {
-                badge.textContent = this.unreadAIMessages > 99 ? '99+' : this.unreadAIMessages;
-                badge.style.display = 'inline-block';
                 
-                // Add pulse animation
-                badge.classList.add('pulse');
-                setTimeout(() => {
-                    badge.classList.remove('pulse');
-                }, 500);
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-        
-        getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
+                // Scroll to bottom while typing
+                if (element.closest('.ai-messages')) {
+                    element.closest('.ai-messages').scrollTop = element.closest('.ai-messages').scrollHeight;
                 }
+                
+                setTimeout(typeWriter, speed);
+            } else if (callback) {
+                callback();
             }
-            return cookieValue;
-        }
-        
-        escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-    }
-
-    // Initialize AI Chat System with enhanced animations
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('🔄 DOM loaded, waiting to initialize Enhanced AI Chat...');
-        
-        const initializeWhenReady = () => {
-            const desktopPanel = document.getElementById('chat-panel');
-            const mobilePanel = document.getElementById('mobile-chat-panel');
-            
-            if ((desktopPanel && desktopPanel.querySelector('.chat-header')) || 
-                (mobilePanel && mobilePanel.querySelector('.chat-header'))) {
-                console.log('✅ Chat panels ready, initializing Enhanced AI Chat...');
-                window.AIGrokChat = new AIGrokChat();
-                return true;
-            }
-            return false;
         };
         
-        if (!initializeWhenReady()) {
-            let attempts = 0;
-            const maxAttempts = 20;
+        typeWriter();
+    }
+    
+    formatAIMessage(message) {
+        return message
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>')
+            .replace(/•/g, '&bull;');
+    }
+    
+    showThinking(panelId) {
+        const messagesContainer = document.getElementById(`${panelId}-ai-messages`);
+        if (!messagesContainer) return;
+        
+        const thinkingDiv = document.createElement('div');
+        thinkingDiv.className = 'ai-message thinking';
+        thinkingDiv.id = `${panelId}-thinking`;
+        thinkingDiv.style.opacity = '0';
+        thinkingDiv.innerHTML = `
+            <div class="ai-thinking-indicator">
+                <span>Grok is thinking</span>
+                <div class="ai-thinking-dots">
+                    <div class="ai-thinking-dot"></div>
+                    <div class="ai-thinking-dot"></div>
+                    <div class="ai-thinking-dot"></div>
+                </div>
+            </div>
+        `;
+        
+        messagesContainer.appendChild(thinkingDiv);
+        
+        // Animate appearance
+        setTimeout(() => {
+            thinkingDiv.style.transition = 'opacity 0.3s ease';
+            thinkingDiv.style.opacity = '1';
+        }, 10);
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    hideThinking(panelId) {
+        const thinkingDiv = document.getElementById(`${panelId}-thinking`);
+        if (thinkingDiv) {
+            thinkingDiv.style.transition = 'opacity 0.3s ease';
+            thinkingDiv.style.opacity = '0';
+            setTimeout(() => {
+                thinkingDiv.remove();
+            }, 300);
+        }
+    }
+    
+    addSuggestions() {
+        // Remove all suggestions - keep containers empty
+        ['chat-panel', 'mobile-chat-panel'].forEach(panelId => {
+            const container = document.getElementById(`${panelId}-ai-suggestions`);
+            if (container) {
+                container.innerHTML = '';
+                // Hide the container since it's empty
+                container.style.display = 'none';
+            }
+        });
+    }
+    
+    updateBadge(panelId) {
+        const badge = document.getElementById(`${panelId}-ai-badge`);
+        if (!badge) return;
+        
+        if (this.unreadAIMessages > 0) {
+            badge.textContent = this.unreadAIMessages > 99 ? '99+' : this.unreadAIMessages;
+            badge.style.display = 'inline-block';
             
-            const tryInit = setInterval(() => {
-                attempts++;
-                console.log(`🔄 Attempt ${attempts}/${maxAttempts} to initialize AI Chat...`);
-                
-                if (initializeWhenReady() || attempts >= maxAttempts) {
-                    clearInterval(tryInit);
-                    if (attempts >= maxAttempts) {
-                        console.error('❌ Failed to initialize AI Chat after maximum attempts');
-                    }
-                }
+            // Add pulse animation
+            badge.classList.add('pulse');
+            setTimeout(() => {
+                badge.classList.remove('pulse');
             }, 500);
+        } else {
+            badge.style.display = 'none';
         }
-    });
+    }
+    
+    getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+}
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        // Ctrl + G for Grok AI
-        if (e.ctrlKey && e.key === 'g') {
-            e.preventDefault();
-            
-            // Determine which panel is visible
-            const desktopPanel = document.getElementById('chat-panel');
-            const mobilePanel = document.getElementById('mobile-chat-panel');
-            
-            let targetPanelId = null;
-            if (desktopPanel && window.getComputedStyle(desktopPanel).display !== 'none') {
-                targetPanelId = 'chat-panel';
-            } else if (mobilePanel && mobilePanel.classList.contains('expanded')) {
-                targetPanelId = 'mobile-chat-panel';
-            }
-            
-            if (targetPanelId && window.AIGrokChat) {
-                window.AIGrokChat.showAIChat(targetPanelId);
-            }
+// Initialize AI Chat System with enhanced animations
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔄 DOM loaded, waiting to initialize Enhanced AI Chat...');
+    
+    const initializeWhenReady = () => {
+        const desktopPanel = document.getElementById('chat-panel');
+        const mobilePanel = document.getElementById('mobile-chat-panel');
+        
+        if ((desktopPanel && desktopPanel.querySelector('.chat-header')) || 
+            (mobilePanel && mobilePanel.querySelector('.chat-header'))) {
+            console.log('✅ Chat panels ready, initializing Enhanced AI Chat...');
+            window.AIGrokChat = new AIGrokChat();
+            return true;
         }
-    });
-
-    // Quick access functions
-    window.openAIChat = function() {
-        if (window.AIGrokChat) {
-            // Try desktop first, then mobile
-            if (document.getElementById('chat-panel')) {
-                window.AIGrokChat.showAIChat('chat-panel');
-            } else if (document.getElementById('mobile-chat-panel')) {
-                window.AIGrokChat.showAIChat('mobile-chat-panel');
-            }
-        }
+        return false;
     };
-
-    window.closeAIChat = function() {
-        if (window.AIGrokChat) {
-            if (window.AIGrokChat.activePanel) {
-                window.AIGrokChat.hideAIChat(window.AIGrokChat.activePanel);
+    
+    if (!initializeWhenReady()) {
+        let attempts = 0;
+        const maxAttempts = 20;
+        
+        const tryInit = setInterval(() => {
+            attempts++;
+            console.log(`🔄 Attempt ${attempts}/${maxAttempts} to initialize AI Chat...`);
+            
+            if (initializeWhenReady() || attempts >= maxAttempts) {
+                clearInterval(tryInit);
+                if (attempts >= maxAttempts) {
+                    console.error('❌ Failed to initialize AI Chat after maximum attempts');
+                }
             }
+        }, 500);
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ctrl + G for Grok AI
+    if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault();
+        
+        // Determine which panel is visible
+        const desktopPanel = document.getElementById('chat-panel');
+        const mobilePanel = document.getElementById('mobile-chat-panel');
+        
+        let targetPanelId = null;
+        if (desktopPanel && window.getComputedStyle(desktopPanel).display !== 'none') {
+            targetPanelId = 'chat-panel';
+        } else if (mobilePanel && mobilePanel.classList.contains('expanded')) {
+            targetPanelId = 'mobile-chat-panel';
         }
-    };
+        
+        if (targetPanelId && window.AIGrokChat) {
+            window.AIGrokChat.showAIChat(targetPanelId);
+        }
+    }
+});
 
-    console.log('🤖 Enhanced AI Grok Chat loaded');
-    </script>
+// Quick access functions
+window.openAIChat = function() {
+    if (window.AIGrokChat) {
+        // Try desktop first, then mobile
+        if (document.getElementById('chat-panel')) {
+            window.AIGrokChat.showAIChat('chat-panel');
+        } else if (document.getElementById('mobile-chat-panel')) {
+            window.AIGrokChat.showAIChat('mobile-chat-panel');
+        }
+    }
+};
 
+window.closeAIChat = function() {
+    if (window.AIGrokChat) {
+        if (window.AIGrokChat.activePanel) {
+            window.AIGrokChat.hideAIChat(window.AIGrokChat.activePanel);
+        }
+    }
+};
 
+console.log('🤖 Enhanced AI Grok Chat with Mobile UI Fix loaded');
+</script>
 
 
 
