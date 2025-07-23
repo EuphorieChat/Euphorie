@@ -298,8 +298,8 @@ window.AmongUsAvatarSystem = {
         }
         
         // Add clothes/outfit if specified
-        if (options.clothes !== 'none') {
-            this.addClothes(group, options.clothes, bodyMaterial);
+        if (defaultOptions.clothes && defaultOptions.clothes !== 'none') {
+            this.addClothes(character, defaultOptions.clothes, bodyMaterial);
         }
         
         // Add accessory if specified
@@ -1317,6 +1317,7 @@ window.AmongUsAvatarSystem = {
                 const tieMaterial = new THREE.MeshPhongMaterial({ color: 0xFF0000 });
                 const tie = new THREE.Mesh(tieGeometry, tieMaterial);
                 tie.position.set(0, 0.3, 0.41);
+                tie.name = 'clothes-tie';
                 group.add(tie);
                 
                 // Add collar
@@ -1324,6 +1325,7 @@ window.AmongUsAvatarSystem = {
                 const collarMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
                 const collar = new THREE.Mesh(collarGeometry, collarMaterial);
                 collar.position.set(0, 0.65, 0.38);
+                collar.name = 'clothes-collar';
                 group.add(collar);
                 
                 // Add suit jacket lines
@@ -1332,12 +1334,14 @@ window.AmongUsAvatarSystem = {
                 const leftLapelMesh = new THREE.Mesh(leftLapel, lapelMaterial);
                 leftLapelMesh.position.set(-0.15, 0.4, 0.41);
                 leftLapelMesh.rotation.z = 0.1;
+                leftLapelMesh.name = 'clothes-lapel';
                 group.add(leftLapelMesh);
                 
                 const rightLapel = new THREE.BoxGeometry(0.02, 0.3, 0.02);
                 const rightLapelMesh = new THREE.Mesh(rightLapel, lapelMaterial);
                 rightLapelMesh.position.set(0.15, 0.4, 0.41);
                 rightLapelMesh.rotation.z = -0.1;
+                rightLapelMesh.name = 'clothes-lapel';
                 group.add(rightLapelMesh);
                 break;
                 
@@ -2488,7 +2492,7 @@ window.AmongUsAvatarSystem = {
             document.body.removeChild(modal);
             
             // Show success notification
-            // this.showNotification('🎨 Avatar customized!');
+            this.showNotification('🎨 Avatar customized!');
         };
         
         // Close on background click
