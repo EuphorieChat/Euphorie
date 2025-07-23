@@ -1,5 +1,5 @@
-// Among Us Avatar System - Fun crewmate avatars for the 3D room
-// Replaces the realistic human avatars with Among Us style characters
+// Among Us Avatar System - Fixed for Three.js r128
+// Replaces CapsuleGeometry with compatible alternatives
 
 window.AmongUsAvatarSystem = {
     avatars: new Map(),
@@ -34,13 +34,15 @@ window.AmongUsAvatarSystem = {
         hats: ['none', 'astronaut', 'captain', 'police', 'chef', 'party', 'flower', 'paper', 'crown', 'horns', 'ninja', 'dum'],
         skins: ['none', 'suit', 'doctor', 'police', 'mechanic', 'astronaut', 'captain', 'military'],
         pets: ['none', 'mini_crewmate', 'dog', 'robot', 'ufo', 'hamster', 'bedcrab', 'snow'],
-        accessories: ['none', 'glasses', 'monocle', 'mask', 'bandana', 'beard']
+        accessories: ['none', 'glasses', 'sunglasses', 'hat', 'cap', 'necklace', 'earrings', 'watch', 'backpack'],
+        bodyTypes: ['slim', 'average', 'athletic', 'curvy'],
+        heights: ['short', 'average', 'tall']
     },
     
     init: async function() {
         if (this.isInitialized) return;
         
-        console.log('🚀 Initializing Among Us Avatar System');
+        console.log('🚀 Initializing Among Us Avatar System (r128 compatible)');
         
         this.isInitialized = true;
         this.clock = new THREE.Clock();
@@ -75,7 +77,53 @@ window.AmongUsAvatarSystem = {
         // Integrate with WebSocket
         this.integrateWithWebSocket();
         
-        console.log('✅ Among Us Avatar System initialized');
+        console.log('✅ Among Us Avatar System initialized (r128 compatible)');
+    },
+    
+    // Helper to create capsule-like shape using available geometries
+    createCapsuleShape: function(radiusTop, radiusBottom, height, radialSegments = 16) {
+        const group = new THREE.Group();
+        
+        // Middle cylinder
+        const cylinderHeight = height * 0.6;
+        const cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, cylinderHeight, radialSegments);
+        const cylinder = new THREE.Mesh(cylinderGeometry);
+        group.add(cylinder);
+        
+        // Top hemisphere
+        const topSphereGeometry = new THREE.SphereGeometry(radiusTop, radialSegments, radialSegments / 2, 0, Math.PI * 2, 0, Math.PI / 2);
+        const topSphere = new THREE.Mesh(topSphereGeometry);
+        topSphere.position.y = cylinderHeight / 2;
+        group.add(topSphere);
+        
+        // Bottom hemisphere
+        const bottomSphereGeometry = new THREE.SphereGeometry(radiusBottom, radialSegments, radialSegments / 2, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+        const bottomSphere = new THREE.Mesh(bottomSphereGeometry);
+        bottomSphere.position.y = -cylinderHeight / 2;
+        group.add(bottomSphere);
+        
+        // Merge geometries for single mesh
+        const mergedGeometry = new THREE.Geometry();
+        
+        cylinder.updateMatrix();
+        mergedGeometry.merge(new THREE.Geometry().fromBufferGeometry(cylinderGeometry), cylinder.matrix);
+        
+        topSphere.updateMatrix();
+        mergedGeometry.merge(new THREE.Geometry().fromBufferGeometry(topSphereGeometry), topSphere.matrix);
+        
+        bottomSphere.updateMatrix();
+        mergedGeometry.merge(new THREE.Geometry().fromBufferGeometry(bottomSphereGeometry), bottomSphere.matrix);
+        
+        // Convert back to BufferGeometry
+        const bufferGeometry = new THREE.BufferGeometry().fromGeometry(mergedGeometry);
+        
+        // Clean up
+        mergedGeometry.dispose();
+        cylinderGeometry.dispose();
+        topSphereGeometry.dispose();
+        bottomSphereGeometry.dispose();
+        
+        return bufferGeometry;
     },
     
     createAvatar: function(userId, options = {}) {
@@ -170,7 +218,7 @@ window.AmongUsAvatarSystem = {
         return avatarData;
     },
     
-    createAmongUsCharacter: function(options) {
+    createAmongUsCharacter: function(options = {}) {
         const group = new THREE.Group();
         const color = parseInt(options.color.replace('#', '0x'));
         
@@ -181,29 +229,55 @@ window.AmongUsAvatarSystem = {
             specular: 0x222222
         });
         
-        // Main body (bean shape)
-        const bodyGeometry = new THREE.CapsuleGeometry(0.4, 0.5, 16, 32);
-        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.y = 0.45;
-        body.castShadow = true;
-        body.receiveShadow = true;
-        body.name = 'body';
-        group.add(body);
+        // Main body (bean shape) - Using cylinder + spheres instead of CapsuleGeometry
+        const bodyGroup = new THREE.Group();
         
-        // Legs
-        const legGeometry = new THREE.CapsuleGeometry(0.12, 0.2, 8, 16);
+        // Body cylinder
+        const bodyCylinder = new THREE.CylinderGeometry(0.4, 0.4, 0.5, 16);
+        const bodyMiddle = new THREE.Mesh(bodyCylinder, bodyMaterial);
+        bodyMiddle.position.y = 0.45;
+        bodyGroup.add(bodyMiddle);
         
-        const leftLeg = new THREE.Mesh(legGeometry, bodyMaterial);
-        leftLeg.position.set(-0.15, 0, 0);
-        leftLeg.castShadow = true;
-        leftLeg.name = 'leftLeg';
-        group.add(leftLeg);
+        // Body top (half sphere)
+        const bodyTopGeometry = new THREE.SphereGeometry(0.4, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const bodyTop = new THREE.Mesh(bodyTopGeometry, bodyMaterial);
+        bodyTop.position.y = 0.7;
+        bodyGroup.add(bodyTop);
         
-        const rightLeg = new THREE.Mesh(legGeometry, bodyMaterial);
-        rightLeg.position.set(0.15, 0, 0);
-        rightLeg.castShadow = true;
-        rightLeg.name = 'rightLeg';
-        group.add(rightLeg);
+        // Body bottom (half sphere)
+        const bodyBottomGeometry = new THREE.SphereGeometry(0.4, 16, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+        const bodyBottom = new THREE.Mesh(bodyBottomGeometry, bodyMaterial);
+        bodyBottom.position.y = 0.2;
+        bodyGroup.add(bodyBottom);
+        
+        bodyGroup.castShadow = true;
+        bodyGroup.receiveShadow = true;
+        bodyGroup.name = 'body';
+        group.add(bodyGroup);
+        
+        // Legs - Using cylinders with spheres at ends
+        const createLeg = (xPos) => {
+            const legGroup = new THREE.Group();
+            
+            // Leg cylinder
+            const legCylinder = new THREE.CylinderGeometry(0.12, 0.12, 0.2, 8);
+            const legMiddle = new THREE.Mesh(legCylinder, bodyMaterial);
+            legGroup.add(legMiddle);
+            
+            // Leg bottom (hemisphere)
+            const legBottom = new THREE.SphereGeometry(0.12, 8, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+            const legEnd = new THREE.Mesh(legBottom, bodyMaterial);
+            legEnd.position.y = -0.1;
+            legGroup.add(legEnd);
+            
+            legGroup.position.set(xPos, 0, 0);
+            legGroup.castShadow = true;
+            legGroup.name = xPos < 0 ? 'leftLeg' : 'rightLeg';
+            return legGroup;
+        };
+        
+        group.add(createLeg(-0.15));
+        group.add(createLeg(0.15));
         
         // Visor
         const visor = this.createVisor(options.isDead);
@@ -520,22 +594,38 @@ window.AmongUsAvatarSystem = {
                     shininess: 100
                 });
                 
-                const miniBody = new THREE.CapsuleGeometry(0.2, 0.25, 8, 16);
-                const miniBodyMesh = new THREE.Mesh(miniBody, miniMaterial);
-                miniBodyMesh.position.y = 0.25;
-                petGroup.add(miniBodyMesh);
+                // Mini body using cylinders and spheres
+                const miniBodyGroup = new THREE.Group();
+                
+                const miniBodyCyl = new THREE.CylinderGeometry(0.2, 0.2, 0.25, 8);
+                const miniBodyMiddle = new THREE.Mesh(miniBodyCyl, miniMaterial);
+                miniBodyMiddle.position.y = 0.25;
+                miniBodyGroup.add(miniBodyMiddle);
+                
+                const miniBodyTop = new THREE.SphereGeometry(0.2, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+                const miniTop = new THREE.Mesh(miniBodyTop, miniMaterial);
+                miniTop.position.y = 0.375;
+                miniBodyGroup.add(miniTop);
+                
+                const miniBodyBot = new THREE.SphereGeometry(0.2, 8, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+                const miniBot = new THREE.Mesh(miniBodyBot, miniMaterial);
+                miniBot.position.y = 0.125;
+                miniBodyGroup.add(miniBot);
+                
+                petGroup.add(miniBodyGroup);
                 
                 const miniVisor = this.createVisor().clone();
                 miniVisor.scale.setScalar(0.5);
                 miniVisor.position.set(0, 0.3, 0.19);
                 petGroup.add(miniVisor);
                 
-                const miniLegGeometry = new THREE.CapsuleGeometry(0.06, 0.1, 4, 8);
-                const miniLeftLeg = new THREE.Mesh(miniLegGeometry, miniMaterial);
+                // Mini legs
+                const miniLegCyl = new THREE.CylinderGeometry(0.06, 0.06, 0.1, 4);
+                const miniLeftLeg = new THREE.Mesh(miniLegCyl, miniMaterial);
                 miniLeftLeg.position.set(-0.075, 0, 0);
                 petGroup.add(miniLeftLeg);
                 
-                const miniRightLeg = new THREE.Mesh(miniLegGeometry, miniMaterial);
+                const miniRightLeg = new THREE.Mesh(miniLegCyl, miniMaterial);
                 miniRightLeg.position.set(0.075, 0, 0);
                 petGroup.add(miniRightLeg);
                 break;
@@ -1026,6 +1116,7 @@ window.AmongUsAvatarSystem = {
         requestAnimationFrame(animateSpawn);
     },
     
+    // All other methods remain the same...
     playKillAnimation: function(avatarId, killerId) {
         const avatar = this.avatars.get(avatarId);
         const killer = this.avatars.get(killerId);
@@ -1651,21 +1742,7 @@ window.AmongUsAvatarSystem = {
 // Auto-integration with existing systems
 if (typeof window !== 'undefined') {
     // Replace the old avatar system
-    if (window.AvatarSystem) {
-        console.log('🔄 Replacing old avatar system with Among Us avatars');
-        
-        // Clear old avatars
-        if (window.AvatarSystem.avatars) {
-            window.AvatarSystem.avatars.forEach(avatar => {
-                if (avatar.group && window.SceneManager) {
-                    window.SceneManager.removeObject(avatar.group);
-                }
-            });
-        }
-        
-        // Replace with Among Us system
-        window.AvatarSystem = window.AmongUsAvatarSystem;
-    }
+    window.AvatarSystem = window.AmongUsAvatarSystem;
     
     // Try immediate integration
     if (window.WebSocketManager) {
@@ -1694,4 +1771,4 @@ if (typeof window !== 'undefined') {
     }, 30000);
 }
 
-console.log('✅ Among Us Avatar System loaded and ready!');
+console.log('✅ Among Us Avatar System (r128 compatible) loaded and ready!');
