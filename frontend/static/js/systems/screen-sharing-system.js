@@ -2901,6 +2901,9 @@ class EuphorieScreenSharingSystem {
     createControlPanel(type, sharerName = '') {
         this.removeControlPanel();
         
+        // Check if panel should be minimized from previous state
+        const isMinimized = localStorage.getItem('screenShareControlMinimized') === 'true';
+        
         const panel = document.createElement('div');
         panel.id = 'screen-share-controls';
         panel.style.cssText = `
@@ -2912,87 +2915,177 @@ class EuphorieScreenSharingSystem {
             backdrop-filter: blur(20px);
             border: 2px solid rgba(255, 107, 53, 0.3);
             border-radius: 16px;
-            padding: 20px;
+            padding: ${isMinimized ? '12px 20px' : '20px'};
             color: white;
             z-index: 1000;
             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
-            min-width: 300px;
+            min-width: ${isMinimized ? 'auto' : '300px'};
             text-align: center;
             animation: slideInFromTop 0.3s ease-out;
+            transition: all 0.3s ease;
         `;
         
-        if (type === 'sharing') {
-            // Clean sharing controls without orientation buttons
+        if (isMinimized) {
+            // Minimized view - just a small indicator
             panel.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                    <div style="width: 12px; height: 12px; background: #ff4444; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                    <strong>${this.isMobile() ? '📱' : '🖥️'} You're sharing your ${this.isMobile() ? 'camera' : 'screen'}</strong>
+                <div style="display: flex; align-items: center; gap: 12px; cursor: pointer;" 
+                    onclick="window.ScreenSharingSystem.expandControlPanel()">
+                    <div style="width: 10px; height: 10px; background: ${type === 'sharing' ? '#ff4444' : '#4CAF50'}; 
+                        border-radius: 50%; animation: pulse 1s infinite;"></div>
+                    <span style="font-size: 13px;">
+                        ${type === 'sharing' ? 
+                            `${this.isMobile() ? '📱' : '🖥️'} Sharing` : 
+                            `📺 Viewing`}
+                    </span>
+                    <span style="font-size: 11px; opacity: 0.7;">Click to expand</span>
                 </div>
-                <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 16px;">
-                    <button onclick="window.ScreenSharingSystem.changeProjectionMode('ceiling')" 
-                            style="padding: 8px 16px; background: ${this.projectionMode === 'ceiling' ? '#4CAF50' : '#555'}; 
-                                   border: none; border-radius: 8px; color: white; cursor: pointer;">
-                        📺 Ceiling
-                    </button>
-                    <button onclick="window.ScreenSharingSystem.changeProjectionMode('wall')" 
-                            style="padding: 8px 16px; background: ${this.projectionMode === 'wall' ? '#4CAF50' : '#555'}; 
-                                   border: none; border-radius: 8px; color: white; cursor: pointer;">
-                        🖼️ Wall
-                    </button>
-                    <button onclick="window.ScreenSharingSystem.changeProjectionMode('floating')" 
-                            style="padding: 8px 16px; background: ${this.projectionMode === 'floating' ? '#4CAF50' : '#555'}; 
-                                   border: none; border-radius: 8px; color: white; cursor: pointer;">
-                        ✨ Floating
-                    </button>
-                </div>
-                <button onclick="window.ScreenSharingSystem.stopScreenShare()" 
-                        style="padding: 12px 24px; background: #ff4444; border: none; border-radius: 8px; 
-                               color: white; cursor: pointer; font-weight: bold;">
-                    ⏹️ Stop Sharing
-                </button>
             `;
-        } else if (type === 'viewing') {
-            // Clean viewer controls without orientation buttons
-            panel.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                    <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                    <strong>📺 Watching ${sharerName}'s screen</strong>
-                </div>
-                <div style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
-                    Displayed on ${this.projectionMode}
-                </div>
-                <button onclick="window.ScreenSharingSystem.hideViewerControls()" 
-                        style="padding: 8px 16px; background: #666; border: none; border-radius: 8px; 
-                               color: white; cursor: pointer;">
-                    ✕ Hide Controls
-                </button>
-            `;
+        } else {
+            // Full view
+            if (type === 'sharing') {
+                panel.innerHTML = `
+                    <div style="position: relative;">
+                        <button onclick="window.ScreenSharingSystem.minimizeControlPanel()" 
+                                style="position: absolute; top: -10px; right: -10px; 
+                                    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+                                    border-radius: 6px; padding: 2px 8px; cursor: pointer;
+                                    font-size: 14px; color: white; transition: all 0.2s;">
+                            −
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 12px; height: 12px; background: #ff4444; border-radius: 50%; animation: pulse 1s infinite;"></div>
+                            <strong>${this.isMobile() ? '📱' : '🖥️'} You're sharing your ${this.isMobile() ? 'camera' : 'screen'}</strong>
+                        </div>
+                        <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 16px;">
+                            <button onclick="window.ScreenSharingSystem.changeProjectionMode('ceiling')" 
+                                    style="padding: 8px 16px; background: ${this.projectionMode === 'ceiling' ? '#4CAF50' : '#555'}; 
+                                        border: none; border-radius: 8px; color: white; cursor: pointer;
+                                        transition: all 0.2s;">
+                                📺 Ceiling
+                            </button>
+                            <button onclick="window.ScreenSharingSystem.changeProjectionMode('wall')" 
+                                    style="padding: 8px 16px; background: ${this.projectionMode === 'wall' ? '#4CAF50' : '#555'}; 
+                                        border: none; border-radius: 8px; color: white; cursor: pointer;
+                                        transition: all 0.2s;">
+                                🖼️ Wall
+                            </button>
+                            <button onclick="window.ScreenSharingSystem.changeProjectionMode('floating')" 
+                                    style="padding: 8px 16px; background: ${this.projectionMode === 'floating' ? '#4CAF50' : '#555'}; 
+                                        border: none; border-radius: 8px; color: white; cursor: pointer;
+                                        transition: all 0.2s;">
+                                ✨ Floating
+                            </button>
+                        </div>
+                        <button onclick="window.ScreenSharingSystem.stopScreenShare()" 
+                                style="padding: 12px 24px; background: #ff4444; border: none; border-radius: 8px; 
+                                    color: white; cursor: pointer; font-weight: bold;
+                                    transition: all 0.2s;">
+                            ⏹️ Stop Sharing
+                        </button>
+                    </div>
+                `;
+            } else if (type === 'viewing') {
+                panel.innerHTML = `
+                    <div style="position: relative;">
+                        <button onclick="window.ScreenSharingSystem.minimizeControlPanel()" 
+                                style="position: absolute; top: -10px; right: -10px; 
+                                    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+                                    border-radius: 6px; padding: 2px 8px; cursor: pointer;
+                                    font-size: 14px; color: white; transition: all 0.2s;">
+                            −
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%; animation: pulse 1s infinite;"></div>
+                            <strong>📺 Watching ${sharerName}'s screen</strong>
+                        </div>
+                        <div style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
+                            Displayed on ${this.projectionMode}
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.6; margin-bottom: 12px;">
+                            Double-click screen for fullscreen
+                        </div>
+                        <button onclick="window.ScreenSharingSystem.hideViewerControls()" 
+                                style="padding: 8px 16px; background: #666; border: none; border-radius: 8px; 
+                                    color: white; cursor: pointer; transition: all 0.2s;">
+                            ✕ Hide Controls
+                        </button>
+                    </div>
+                `;
+            }
         }
         
         document.body.appendChild(panel);
         
+        // Store the current panel type for restoration
+        this.currentControlPanelType = type;
+        this.currentControlPanelSharerName = sharerName;
+        
+        // Add hover effects to buttons
+        const buttons = panel.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'translateY(-1px)';
+                btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translateY(0)';
+                btn.style.boxShadow = 'none';
+            });
+        });
+        
         // Add animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideInFromTop {
-                from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
-                to { transform: translateX(-50%) translateY(0); opacity: 1; }
-            }
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-            }
-        `;
-        document.head.appendChild(style);
+        if (!document.getElementById('screen-share-animations')) {
+            const style = document.createElement('style');
+            style.id = 'screen-share-animations';
+            style.textContent = `
+                @keyframes slideInFromTop {
+                    from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
-    
+
+    // Add these new methods to the class:
+
+    minimizeControlPanel() {
+        localStorage.setItem('screenShareControlMinimized', 'true');
+        
+        // Recreate the panel in minimized state
+        if (this.currentControlPanelType) {
+            this.createControlPanel(this.currentControlPanelType, this.currentControlPanelSharerName);
+        }
+    }
+
+    expandControlPanel() {
+        localStorage.setItem('screenShareControlMinimized', 'false');
+        
+        // Recreate the panel in expanded state
+        if (this.currentControlPanelType) {
+            this.createControlPanel(this.currentControlPanelType, this.currentControlPanelSharerName);
+        }
+    }
+
+    // Also update the removeControlPanel method to clear the stored state:
     removeControlPanel() {
         const panel = document.getElementById('screen-share-controls');
         if (panel) {
-            panel.remove();
+            panel.style.animation = 'slideOutToTop 0.3s ease-in';
+            setTimeout(() => {
+                panel.remove();
+            }, 300);
         }
+        
+        // Clear stored panel type
+        this.currentControlPanelType = null;
+        this.currentControlPanelSharerName = null;
     }
-    
+        
     changeProjectionMode(mode) {
         if (this.projectionMode === mode) return;
         
