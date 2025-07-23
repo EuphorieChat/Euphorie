@@ -1,4 +1,4 @@
-// Event Bus for cross-module communication - Complete Integration Version
+// Event Bus for cross-module communication - Fixed for Chat Bubbles
 
 window.EventBus = {
     events: new Map(),
@@ -30,6 +30,14 @@ window.EventBus = {
         // Scene lifecycle
         this.on('scene:initialized', (data) => {
             console.log('🎬 Scene initialized:', data);
+            
+            // IMPORTANT: Initialize ChatBubbleSystem after scene is ready
+            setTimeout(() => {
+                if (window.ChatBubbleSystem && !window.ChatBubbleSystem.isInitialized) {
+                    console.log('🔧 Initializing ChatBubbleSystem after scene ready');
+                    window.ChatBubbleSystem.init();
+                }
+            }, 1000);
         });
         
         this.on('scene:frame', (data) => {
@@ -67,11 +75,40 @@ window.EventBus = {
             // Silent - too frequent for logging
         });
         
-        // ===== CHAT BUBBLE EVENTS =====
+        // ===== CHAT BUBBLE EVENTS - FIXED =====
         
-        // Chat messages
+        // Chat messages - with better handling
         this.on('chat_message', (data) => {
-            console.log('💬 Chat message:', data.username, ':', data.message);
+            console.log('💬 Chat message event received:', data.username, ':', data.message);
+            
+            // Ensure ChatBubbleSystem is initialized and ready
+            if (!window.ChatBubbleSystem) {
+                console.warn('⚠️ ChatBubbleSystem not found');
+                return;
+            }
+            
+            if (!window.ChatBubbleSystem.isInitialized) {
+                console.warn('⚠️ ChatBubbleSystem not ready, queueing message');
+                
+                // Queue the message for later
+                if (!window.ChatBubbleSystem._messageQueue) {
+                    window.ChatBubbleSystem._messageQueue = [];
+                }
+                window.ChatBubbleSystem._messageQueue.push(data);
+                
+                // Try to initialize ChatBubbleSystem
+                window.ChatBubbleSystem.init();
+                
+                return;
+            }
+            
+            // ChatBubbleSystem should handle this internally via its own event listener
+            // We're just logging here for debugging
+        });
+        
+        // Also support alternative event name for compatibility
+        this.on('chat:message', (data) => {
+            this.emit('chat_message', data);
         });
         
         this.on('chat:bubble-created', (data) => {
@@ -220,10 +257,13 @@ window.EventBus = {
     
     // Emit an event
     emit: function(eventName, data = null) {
-        // Add to history for debugging
+        // Add to history for debugging (skip high-frequency events)
         this.addToHistory(eventName, data);
         
-        if (!this.events.has(eventName)) return;
+        if (!this.events.has(eventName)) {
+            // No handlers for this event
+            return;
+        }
         
         const handlers = [...this.events.get(eventName)]; // Copy array to avoid modification during iteration
         const handlersToRemove = [];
@@ -238,7 +278,10 @@ window.EventBus = {
                 }
             } catch (error) {
                 console.error(`Error in event handler for ${eventName}:`, error);
-                this.emit('error', { eventName, error, data });
+                // Don't emit error event for error handlers to avoid infinite loop
+                if (eventName !== 'error') {
+                    this.emit('error', { eventName, error, data });
+                }
             }
         });
         
@@ -337,5 +380,37 @@ window.EventBus = {
             
             this.once(eventName, handler);
         });
+    },
+    
+    // Test utilities for chat bubbles
+    testChatBubble: function(message = "Test message from EventBus! 🎉") {
+        console.log('🧪 Testing chat bubble via EventBus...');
+        
+        this.emit('chat_message', {
+            userId: 'test_' + Date.now(),
+            username: 'EventBus Test',
+            message: message
+        });
+        
+        return 'Chat message event emitted';
     }
+};
+
+// Auto-initialize EventBus when script loads
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            window.EventBus.init();
+        });
+    } else {
+        // Small delay to ensure other scripts might be loaded
+        setTimeout(() => {
+            window.EventBus.init();
+        }, 100);
+    }
+})();
+
+// Add debug helper
+window.testChatBubble = function(message) {
+    return window.EventBus.testChatBubble(message);
 };
