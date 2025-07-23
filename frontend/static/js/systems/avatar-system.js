@@ -1,59 +1,57 @@
-// Enhanced Avatar System v2.2 - COMPLETE with all missing methods implemented
-// Compatible with room-core.js and room_3d.html
+// Among Us Avatar System - Fun crewmate avatars for the 3D room
+// Replaces the realistic human avatars with Among Us style characters
 
-window.AvatarSystem = {
+window.AmongUsAvatarSystem = {
     avatars: new Map(),
     isInitialized: false,
     animationMixers: new Map(),
     clock: new THREE.Clock(),
     
-    // Enhanced avatar customization presets with more options
-    customization: {
-        hairStyles: ['short_clean', 'long_wavy', 'curly_afro', 'pixie_cut', 'bob_cut', 'man_bun', 'buzz_cut', 'ponytail'],
-        hairColors: ['#2C1B18', '#8B4513', '#DEB887', '#FFD700', '#000000', '#654321', '#FF4500', '#800080', '#4169E1', '#228B22'],
-        skinTones: ['#FDBCB4', '#F1C27D', '#E0AC69', '#C68642', '#8D5524', '#F3D7A7', '#E8B88F', '#D2945B', '#A0522D', '#654321'],
-        shirtStyles: ['t_shirt', 'polo', 'button_down', 'hoodie', 'tank_top', 'sweater'],
-        shirtColors: ['#4169E1', '#FF0000', '#00FF00', '#FFFF00', '#FF69B4', '#800080', '#FF4500', '#00CED1', '#32CD32', '#1E90FF'],
-        pantsStyles: ['jeans', 'chinos', 'shorts', 'dress_pants', 'cargo'],
-        pantsColors: ['#000080', '#8B4513', '#000000', '#696969', '#2F4F4F', '#483D8B', '#556B2F', '#8B0000'],
-        shoeStyles: ['sneakers', 'dress_shoes', 'boots', 'sandals'],
-        shoeColors: ['#654321', '#000000', '#8B4513', '#2F4F4F', '#800000', '#191970'],
-        eyeColors: ['#654321', '#4169E1', '#228B22', '#8B4513', '#800080', '#DC143C', '#32CD32', '#FF8C00'],
-        emotions: ['happy', 'sad', 'excited', 'angry', 'surprised', 'neutral', 'love', 'confused', 'determined', 'sleepy'],
-        accessories: ['none', 'glasses', 'sunglasses', 'hat', 'cap', 'necklace', 'earrings', 'watch', 'backpack'],
-        bodyTypes: ['slim', 'average', 'athletic', 'curvy'],
-        heights: ['short', 'average', 'tall']
+    // Among Us color palette
+    colors: {
+        red: '#C51111',
+        blue: '#132ED1',
+        green: '#117F2D',
+        pink: '#ED54BA',
+        orange: '#EF7D0D',
+        yellow: '#F6F657',
+        black: '#3F474E',
+        white: '#D7E1F1',
+        purple: '#6B2FBB',
+        brown: '#71491E',
+        cyan: '#38FEDC',
+        lime: '#50EF39',
+        maroon: '#5E2615',
+        rose: '#F5B6CD',
+        banana: '#FFFF99',
+        gray: '#8395A7',
+        tan: '#928776',
+        coral: '#EC7C7C'
     },
     
-    // Improved body proportions based on real human anatomy
-    bodyProportions: {
-        head: { width: 0.25, height: 0.25, depth: 0.22 },
-        neck: { topRadius: 0.08, bottomRadius: 0.1, height: 0.15 },
-        torso: { width: 0.65, height: 0.9, depth: 0.35 },
-        upperArm: { topRadius: 0.08, bottomRadius: 0.07, length: 0.42 },
-        lowerArm: { topRadius: 0.06, bottomRadius: 0.055, length: 0.38 },
-        hand: { width: 0.09, height: 0.15, depth: 0.04 },
-        upperLeg: { topRadius: 0.12, bottomRadius: 0.10, length: 0.48 },
-        lowerLeg: { topRadius: 0.09, bottomRadius: 0.07, length: 0.42 },
-        foot: { width: 0.12, height: 0.08, length: 0.28 }
+    // Customization options
+    customization: {
+        hats: ['none', 'astronaut', 'captain', 'police', 'chef', 'party', 'flower', 'paper', 'crown', 'horns', 'ninja', 'dum'],
+        skins: ['none', 'suit', 'doctor', 'police', 'mechanic', 'astronaut', 'captain', 'military'],
+        pets: ['none', 'mini_crewmate', 'dog', 'robot', 'ufo', 'hamster', 'bedcrab', 'snow'],
+        accessories: ['none', 'glasses', 'monocle', 'mask', 'bandana', 'beard']
     },
     
     init: async function() {
         if (this.isInitialized) return;
         
-        console.log('👤 Initializing Enhanced Avatar System v2.2 - COMPLETE');
+        console.log('🚀 Initializing Among Us Avatar System');
         
         this.isInitialized = true;
         this.clock = new THREE.Clock();
         
-        // Create default avatar immediately if scene is ready
+        // Create default avatar if scene is ready
         if (window.SceneManager && window.SceneManager.isInitialized) {
             this.createDefaultAvatar();
         } else {
-            // Wait for scene to be ready
             if (window.EventBus) {
                 window.EventBus.on('scene:initialized', () => {
-                    console.log('🎬 Scene ready, creating enhanced realistic avatar...');
+                    console.log('🎬 Scene ready, creating Among Us avatar...');
                     this.createDefaultAvatar();
                 });
             }
@@ -70,108 +68,99 @@ window.AvatarSystem = {
             });
         }
         
-        // Start enhanced animation loops
+        // Start animation loops
         this.startIdleAnimations();
-        this.startBlinkingAnimation();
-        this.startSubtleMovements();
+        this.startWalkAnimation();
         
-        // Integrate with WebSocket if available
+        // Integrate with WebSocket
         this.integrateWithWebSocket();
         
-        console.log('✅ Enhanced Avatar System v2.2 - COMPLETE initialized');
+        console.log('✅ Among Us Avatar System initialized');
     },
     
     createAvatar: function(userId, options = {}) {
         const avatarId = userId || this.generateId();
         
-        // Enhanced default customization options
+        // Default options with Among Us style
         const defaultOptions = {
-            name: options.name || `User ${avatarId.slice(0, 4)}`,
+            name: options.name || `Crewmate ${avatarId.slice(0, 4)}`,
             nationality: options.nationality || 'UN',
             position: options.position || { x: 0, y: 0, z: 0 },
-            hairStyle: options.hairStyle || this.getRandomChoice('hairStyles'),
-            hairColor: options.hairColor || this.getRandomChoice('hairColors'),
-            skinTone: options.skinTone || this.getRandomChoice('skinTones'),
-            shirtStyle: options.shirtStyle || this.getRandomChoice('shirtStyles'),
-            shirtColor: options.shirtColor || this.getRandomChoice('shirtColors'),
-            pantsStyle: options.pantsStyle || this.getRandomChoice('pantsStyles'),
-            pantsColor: options.pantsColor || this.getRandomChoice('pantsColors'),
-            shoeStyle: options.shoeStyle || this.getRandomChoice('shoeStyles'),
-            shoeColor: options.shoeColor || this.getRandomChoice('shoeColors'),
-            eyeColor: options.eyeColor || this.getRandomChoice('eyeColors'),
-            emotion: options.emotion || 'neutral',
+            color: options.color || this.getRandomColor(),
+            hat: options.hat || this.getRandomChoice('hats'),
+            skin: options.skin || 'none',
+            pet: options.pet || 'none',
             accessory: options.accessory || 'none',
-            bodyType: options.bodyType || 'average',
-            height: options.height || 'average',
-            scale: options.scale || 1.0
+            scale: options.scale || 1.0,
+            isImpostor: options.isImpostor || false,
+            isDead: options.isDead || false
         };
         
         // Create avatar group
         const avatarGroup = new THREE.Group();
         
-        // Create enhanced realistic human avatar
-        const avatar = this.createEnhancedHuman(defaultOptions);
-        avatarGroup.add(avatar);
+        // Create Among Us character
+        const character = this.createAmongUsCharacter(defaultOptions);
+        avatarGroup.add(character);
         
-        // Add enhanced name label with nationality flag
-        const nameLabel = this.createNameLabelWithFlag(defaultOptions.name, defaultOptions.nationality);
-        nameLabel.position.y = 2.8;
+        // Add name label
+        const nameLabel = this.createNameLabel(defaultOptions.name, defaultOptions.nationality);
+        nameLabel.position.y = 1.8;
         avatarGroup.add(nameLabel);
         
-        // Add subtle particle effect
-        const particleEffect = this.createParticleEffect();
-        particleEffect.position.y = 1;
-        avatarGroup.add(particleEffect);
+        // Add shadow
+        const shadow = this.createShadow();
+        avatarGroup.add(shadow);
         
-        // Set initial position and scale based on height
-        const heightMultiplier = this.getHeightMultiplier(defaultOptions.height);
+        // Set position
         avatarGroup.position.set(
             defaultOptions.position.x,
             defaultOptions.position.y,
             defaultOptions.position.z
         );
-        avatarGroup.scale.setScalar(defaultOptions.scale * heightMultiplier);
+        avatarGroup.scale.setScalar(defaultOptions.scale);
         
-        // Store comprehensive avatar data
+        // Store avatar data
         const avatarData = {
             id: avatarId,
             group: avatarGroup,
-            mesh: avatar,
+            mesh: character,
             nameLabel: nameLabel,
-            particleEffect: particleEffect,
+            shadow: shadow,
             position: avatarGroup.position.clone(),
             rotation: avatarGroup.rotation.clone(),
-            animation: 'idle',
-            emotion: defaultOptions.emotion,
             customization: { ...defaultOptions },
             lastUpdate: Date.now(),
-            animationPhase: Math.random() * Math.PI * 2,
-            blinkPhase: Math.random() * Math.PI * 2,
-            breathPhase: Math.random() * Math.PI * 2,
-            isBreathing: true,
-            isBlinking: true,
-            scale: defaultOptions.scale * heightMultiplier,
-            bones: new Map(), // Store bone references for advanced animations
-            mixer: null // For future skeletal animations
+            walkPhase: Math.random() * Math.PI * 2,
+            floatPhase: Math.random() * Math.PI * 2,
+            isWalking: false,
+            isDead: defaultOptions.isDead,
+            isImpostor: defaultOptions.isImpostor,
+            pet: null,
+            hatMesh: null,
+            visor: null
         };
         
-        // Store bone references for animations
-        this.storeBoneReferences(avatarData);
+        // Add pet if specified
+        if (defaultOptions.pet !== 'none') {
+            const pet = this.createPet(defaultOptions.pet, defaultOptions.color);
+            if (pet) {
+                pet.position.set(-0.8, 0, 0.3);
+                avatarGroup.add(pet);
+                avatarData.pet = pet;
+            }
+        }
         
         this.avatars.set(avatarId, avatarData);
         
         // Add to scene
         if (window.SceneManager && window.SceneManager.scene) {
             window.SceneManager.addObject(avatarGroup);
-            console.log(`👤 Added enhanced avatar ${avatarId} to scene at position:`, defaultOptions.position);
-        } else {
-            console.error('❌ Scene not ready when trying to add avatar');
+            console.log(`🚀 Added Among Us avatar ${avatarId} to scene`);
         }
         
-        console.log(`👤 Created enhanced realistic avatar: ${avatarId}`);
-        
-        // Add entrance animation
-        this.playEnhancedEntranceAnimation(avatarData);
+        // Play spawn animation
+        this.playSpawnAnimation(avatarData);
         
         // Emit event
         if (window.EventBus) {
@@ -181,1407 +170,1247 @@ window.AvatarSystem = {
         return avatarData;
     },
     
-    createEnhancedHuman: function(options = {}) {
+    createAmongUsCharacter: function(options) {
         const group = new THREE.Group();
+        const color = parseInt(options.color.replace('#', '0x'));
         
-        // Parse colors
-        const skinColor = parseInt(options.skinTone.replace('#', '0x'));
-        const shirtColor = parseInt(options.shirtColor.replace('#', '0x'));
-        const pantsColor = parseInt(options.pantsColor.replace('#', '0x'));
-        const shoeColor = parseInt(options.shoeColor.replace('#', '0x'));
-        const eyeColor = parseInt(options.eyeColor.replace('#', '0x'));
-        
-        // Enhanced materials with better lighting
-        const skinMaterial = new THREE.MeshLambertMaterial({ 
-            color: skinColor,
-            shininess: 10
+        // Body material
+        const bodyMaterial = new THREE.MeshPhongMaterial({ 
+            color: color,
+            shininess: 100,
+            specular: 0x222222
         });
         
-        const shirtMaterial = new THREE.MeshLambertMaterial({ 
-            color: shirtColor,
-            shininess: 5
-        });
-        
-        // Get body type modifiers
-        const bodyMod = this.getBodyTypeModifiers(options.bodyType);
-        const props = this.bodyProportions;
-        
-        // Create body parts with improved proportions
-        this.createHead(group, skinMaterial, eyeColor, options);
-        this.createNeck(group, skinMaterial, bodyMod);
-        this.createTorso(group, shirtMaterial, bodyMod, options.shirtStyle);
-        this.createArms(group, skinMaterial, shirtMaterial, bodyMod);
-        this.createLegs(group, skinMaterial, pantsColor, bodyMod, options.pantsStyle);
-        this.createFeet(group, shoeColor, options.shoeStyle);
-        
-        // Add hair with error handling
-        try {
-            const hair = this.createAdvancedHair(options.hairStyle, options.hairColor);
-            if (hair) {
-                hair.position.set(0, 1.85, 0);
-                group.add(hair);
-            }
-        } catch (error) {
-            console.warn('Error creating hair:', error);
-        }
-        
-        // Add accessory with error handling
-        try {
-            const accessory = this.createAdvancedAccessory(options.accessory);
-            if (accessory) {
-                accessory.position.set(0, 1.85, 0);
-                group.add(accessory);
-            }
-        } catch (error) {
-            console.warn('Error creating accessory:', error);
-        }
-        
-        return group;
-    },
-    
-    createHead: function(group, skinMaterial, eyeColor, options) {
-        const props = this.bodyProportions;
-        
-        // Head with better shape
-        const headGeometry = new THREE.SphereGeometry(props.head.width, 32, 32);
-        headGeometry.scale(1, 1.1, 0.9); // More realistic head shape
-        const head = new THREE.Mesh(headGeometry, skinMaterial);
-        head.position.set(0, 1.85, 0);
-        head.castShadow = true;
-        head.receiveShadow = true;
-        head.name = 'head';
-        group.add(head);
-        
-        // Enhanced facial features
-        this.addEnhancedFacialFeatures(group, eyeColor, options.emotion, options.skinTone);
-    },
-    
-    createNeck: function(group, skinMaterial, bodyMod) {
-        const props = this.bodyProportions;
-        
-        const neckGeometry = new THREE.CylinderGeometry(
-            props.neck.topRadius * bodyMod.neck,
-            props.neck.bottomRadius * bodyMod.neck,
-            props.neck.height,
-            16
-        );
-        const neck = new THREE.Mesh(neckGeometry, skinMaterial);
-        neck.position.set(0, 1.62, 0);
-        neck.castShadow = true;
-        neck.receiveShadow = true;
-        neck.name = 'neck';
-        group.add(neck);
-    },
-    
-    createTorso: function(group, shirtMaterial, bodyMod, shirtStyle) {
-        const props = this.bodyProportions;
-        
-        // Enhanced torso based on shirt style
-        let torsoGeometry;
-        
-        switch(shirtStyle) {
-            case 'hoodie':
-                torsoGeometry = new THREE.BoxGeometry(
-                    props.torso.width * bodyMod.torso * 1.1,
-                    props.torso.height * bodyMod.torso,
-                    props.torso.depth * bodyMod.torso * 1.1
-                );
-                break;
-            case 'tank_top':
-                torsoGeometry = new THREE.BoxGeometry(
-                    props.torso.width * bodyMod.torso * 0.9,
-                    props.torso.height * bodyMod.torso,
-                    props.torso.depth * bodyMod.torso * 0.9
-                );
-                break;
-            default:
-                torsoGeometry = new THREE.BoxGeometry(
-                    props.torso.width * bodyMod.torso,
-                    props.torso.height * bodyMod.torso,
-                    props.torso.depth * bodyMod.torso
-                );
-        }
-        
-        const torso = new THREE.Mesh(torsoGeometry, shirtMaterial);
-        torso.position.set(0, 1.1, 0);
-        torso.castShadow = true;
-        torso.receiveShadow = true;
-        torso.name = 'torso';
-        group.add(torso);
-        
-        // Add shirt details based on style
-        this.addShirtDetails(group, shirtStyle, shirtMaterial, bodyMod);
-    },
-    
-    createArms: function(group, skinMaterial, shirtMaterial, bodyMod) {
-        const props = this.bodyProportions;
-        
-        // Enhanced arm creation with better positioning
-        ['left', 'right'].forEach(side => {
-            const multiplier = side === 'left' ? -1 : 1;
-            
-            // Upper arm
-            const upperArmGeometry = new THREE.CylinderGeometry(
-                props.upperArm.topRadius * bodyMod.arms,
-                props.upperArm.bottomRadius * bodyMod.arms,
-                props.upperArm.length,
-                16
-            );
-            const upperArm = new THREE.Mesh(upperArmGeometry, shirtMaterial);
-            upperArm.position.set(multiplier * 0.42, 1.25, 0.02);
-            upperArm.rotation.z = multiplier * -0.1;
-            upperArm.rotation.x = 0.05;
-            upperArm.castShadow = true;
-            upperArm.receiveShadow = true;
-            upperArm.name = `${side}UpperArm`;
-            group.add(upperArm);
-            
-            // Lower arm (forearm)
-            const lowerArmGeometry = new THREE.CylinderGeometry(
-                props.lowerArm.topRadius * bodyMod.arms,
-                props.lowerArm.bottomRadius * bodyMod.arms,
-                props.lowerArm.length,
-                16
-            );
-            const lowerArm = new THREE.Mesh(lowerArmGeometry, skinMaterial);
-            lowerArm.position.set(multiplier * 0.52, 0.85, 0.08);
-            lowerArm.rotation.z = multiplier * -0.05;
-            lowerArm.rotation.x = 0.1;
-            lowerArm.castShadow = true;
-            lowerArm.receiveShadow = true;
-            lowerArm.name = `${side}LowerArm`;
-            group.add(lowerArm);
-            
-            // Hand with improved shape
-            this.createDetailedHand(group, side, skinMaterial, bodyMod);
-        });
-    },
-    
-    createDetailedHand: function(group, side, skinMaterial, bodyMod) {
-        const multiplier = side === 'left' ? -1 : 1;
-        const props = this.bodyProportions;
-        
-        // Palm
-        const palmGeometry = new THREE.BoxGeometry(
-            props.hand.width * bodyMod.hands,
-            props.hand.height * bodyMod.hands,
-            props.hand.depth * bodyMod.hands
-        );
-        const palm = new THREE.Mesh(palmGeometry, skinMaterial);
-        palm.position.set(multiplier * 0.62, 0.58, 0.12);
-        palm.rotation.x = 0.15;
-        palm.rotation.z = multiplier * 0.05;
-        palm.castShadow = true;
-        palm.name = `${side}Hand`;
-        group.add(palm);
-        
-        // Fingers (simplified but more realistic)
-        for (let i = 0; i < 4; i++) {
-            const fingerGeometry = new THREE.CylinderGeometry(0.01, 0.012, 0.08, 8);
-            const finger = new THREE.Mesh(fingerGeometry, skinMaterial);
-            finger.position.set(
-                multiplier * (0.58 + (i - 1.5) * 0.02),
-                0.52,
-                0.14
-            );
-            finger.rotation.x = 0.3;
-            finger.castShadow = true;
-            group.add(finger);
-        }
-        
-        // Thumb
-        const thumbGeometry = new THREE.CylinderGeometry(0.012, 0.015, 0.06, 8);
-        const thumb = new THREE.Mesh(thumbGeometry, skinMaterial);
-        thumb.position.set(multiplier * 0.66, 0.60, 0.10);
-        thumb.rotation.z = multiplier * 0.8;
-        thumb.rotation.x = 0.2;
-        thumb.castShadow = true;
-        group.add(thumb);
-    },
-    
-    createLegs: function(group, skinMaterial, pantsColor, bodyMod, pantsStyle) {
-        const pantsMaterial = new THREE.MeshLambertMaterial({ color: pantsColor });
-        const props = this.bodyProportions;
-        
-        ['left', 'right'].forEach(side => {
-            const multiplier = side === 'left' ? -1 : 1;
-            
-            // Upper leg (thigh)
-            const upperLegGeometry = new THREE.CylinderGeometry(
-                props.upperLeg.topRadius * bodyMod.legs,
-                props.upperLeg.bottomRadius * bodyMod.legs,
-                props.upperLeg.length,
-                16
-            );
-            const upperLeg = new THREE.Mesh(upperLegGeometry, pantsMaterial);
-            upperLeg.position.set(multiplier * 0.18, 0.41, 0);
-            upperLeg.castShadow = true;
-            upperLeg.receiveShadow = true;
-            upperLeg.name = `${side}UpperLeg`;
-            group.add(upperLeg);
-            
-            // Lower leg (shin)
-            const lowerLegGeometry = new THREE.CylinderGeometry(
-                props.lowerLeg.topRadius * bodyMod.legs,
-                props.lowerLeg.bottomRadius * bodyMod.legs,
-                props.lowerLeg.length,
-                16
-            );
-            const lowerLeg = new THREE.Mesh(lowerLegGeometry, pantsMaterial);
-            lowerLeg.position.set(multiplier * 0.18, -0.1, 0);
-            lowerLeg.castShadow = true;
-            lowerLeg.receiveShadow = true;
-            lowerLeg.name = `${side}LowerLeg`;
-            group.add(lowerLeg);
-        });
-        
-        // Add pants details
-        this.addPantsDetails(group, pantsStyle, pantsMaterial, bodyMod);
-    },
-    
-    createFeet: function(group, shoeColor, shoeStyle) {
-        const shoeMaterial = new THREE.MeshLambertMaterial({ color: shoeColor });
-        const props = this.bodyProportions;
-        
-        ['left', 'right'].forEach(side => {
-            const multiplier = side === 'left' ? -1 : 1;
-            
-            let shoeGeometry;
-            
-            switch(shoeStyle) {
-                case 'boots':
-                    shoeGeometry = new THREE.BoxGeometry(
-                        props.foot.width * 1.1,
-                        props.foot.height * 1.3,
-                        props.foot.length * 1.1
-                    );
-                    break;
-                case 'sandals':
-                    shoeGeometry = new THREE.BoxGeometry(
-                        props.foot.width * 0.9,
-                        props.foot.height * 0.6,
-                        props.foot.length * 0.9
-                    );
-                    break;
-                default: // sneakers, dress_shoes
-                    shoeGeometry = new THREE.BoxGeometry(
-                        props.foot.width,
-                        props.foot.height,
-                        props.foot.length
-                    );
-            }
-            
-            const shoe = new THREE.Mesh(shoeGeometry, shoeMaterial);
-            shoe.position.set(multiplier * 0.18, -0.36, 0.05);
-            shoe.castShadow = true;
-            shoe.receiveShadow = true;
-            shoe.name = `${side}Shoe`;
-            group.add(shoe);
-            
-            // Add shoe details
-            this.addShoeDetails(group, side, shoeStyle, shoeMaterial);
-        });
-    },
-    
-    addEnhancedFacialFeatures: function(group, eyeColor, emotion, skinTone) {
-        // Enhanced eyes with more detail
-        const eyeWhiteGeometry = new THREE.SphereGeometry(0.035, 16, 16);
-        const eyeWhiteMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
-        
-        const leftEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
-        leftEyeWhite.position.set(-0.09, 1.88, 0.22);
-        leftEyeWhite.scale.set(1, 0.8, 0.7);
-        leftEyeWhite.name = 'leftEyeWhite';
-        group.add(leftEyeWhite);
-        
-        const rightEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
-        rightEyeWhite.position.set(0.09, 1.88, 0.22);
-        rightEyeWhite.scale.set(1, 0.8, 0.7);
-        rightEyeWhite.name = 'rightEyeWhite';
-        group.add(rightEyeWhite);
-        
-        // Improved pupils with iris
-        const irisGeometry = new THREE.SphereGeometry(0.018, 12, 12);
-        const irisMaterial = new THREE.MeshLambertMaterial({ color: eyeColor });
-        
-        const leftIris = new THREE.Mesh(irisGeometry, irisMaterial);
-        leftIris.position.set(-0.09, 1.88, 0.24);
-        leftIris.name = 'leftIris';
-        group.add(leftIris);
-        
-        const rightIris = new THREE.Mesh(irisGeometry, irisMaterial);
-        rightIris.position.set(0.09, 1.88, 0.24);
-        rightIris.name = 'rightIris';
-        group.add(rightIris);
-        
-        // Pupils
-        const pupilGeometry = new THREE.SphereGeometry(0.008, 8, 8);
-        const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
-        
-        const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-        leftPupil.position.set(-0.09, 1.88, 0.245);
-        leftPupil.name = 'leftPupil';
-        group.add(leftPupil);
-        
-        const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-        rightPupil.position.set(0.09, 1.88, 0.245);
-        rightPupil.name = 'rightPupil';
-        group.add(rightPupil);
-        
-        // Enhanced eyebrows
-        this.addEyebrows(group, skinTone);
-        
-        // Enhanced nose
-        this.addDetailedNose(group, skinTone);
-        
-        // Emotion-based mouth
-        this.addEmotionalMouth(group, emotion, skinTone);
-        
-        // Add eyelids for blinking
-        this.addEyelids(group, skinTone);
-    },
-    
-    addEyebrows: function(group, skinTone) {
-        const browColor = this.darkenColor(skinTone, 0.3);
-        const browMaterial = new THREE.MeshLambertMaterial({ color: parseInt(browColor.replace('#', '0x')) });
-        
-        const browGeometry = new THREE.BoxGeometry(0.08, 0.015, 0.01);
-        
-        const leftBrow = new THREE.Mesh(browGeometry, browMaterial);
-        leftBrow.position.set(-0.09, 1.92, 0.22);
-        leftBrow.rotation.z = -0.1;
-        leftBrow.name = 'leftBrow';
-        group.add(leftBrow);
-        
-        const rightBrow = new THREE.Mesh(browGeometry, browMaterial);
-        rightBrow.position.set(0.09, 1.92, 0.22);
-        rightBrow.rotation.z = 0.1;
-        rightBrow.name = 'rightBrow';
-        group.add(rightBrow);
-    },
-    
-    addDetailedNose: function(group, skinTone) {
-        const noseMaterial = new THREE.MeshLambertMaterial({ 
-            color: parseInt(skinTone.replace('#', '0x'))
-        });
-        
-        // Nose bridge
-        const bridgeGeometry = new THREE.BoxGeometry(0.02, 0.08, 0.03);
-        const bridge = new THREE.Mesh(bridgeGeometry, noseMaterial);
-        bridge.position.set(0, 1.84, 0.23);
-        bridge.name = 'noseBridge';
-        group.add(bridge);
-        
-        // Nose tip
-        const tipGeometry = new THREE.SphereGeometry(0.018, 8, 8);
-        const tip = new THREE.Mesh(tipGeometry, noseMaterial);
-        tip.position.set(0, 1.80, 0.24);
-        tip.scale.set(1, 0.8, 1.2);
-        tip.name = 'noseTip';
-        group.add(tip);
-        
-        // Nostrils
-        const nostrilGeometry = new THREE.SphereGeometry(0.006, 6, 6);
-        const nostrilMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-        
-        const leftNostril = new THREE.Mesh(nostrilGeometry, nostrilMaterial);
-        leftNostril.position.set(-0.01, 1.79, 0.245);
-        group.add(leftNostril);
-        
-        const rightNostril = new THREE.Mesh(nostrilGeometry, nostrilMaterial);
-        rightNostril.position.set(0.01, 1.79, 0.245);
-        group.add(rightNostril);
-    },
-    
-    addEmotionalMouth: function(group, emotion, skinTone) {
-        const lipMaterial = new THREE.MeshLambertMaterial({ color: 0xcc6666 });
-        
-        let mouthGeometry;
-        let mouthRotation = { x: 0, y: 0, z: 0 };
-        let mouthPosition = { x: 0, y: 1.75, z: 0.22 };
-        
-        switch(emotion) {
-            case 'happy':
-            case 'excited':
-                mouthGeometry = new THREE.TorusGeometry(0.04, 0.008, 4, 8, Math.PI);
-                mouthRotation.x = Math.PI;
-                break;
-            case 'sad':
-                mouthGeometry = new THREE.TorusGeometry(0.04, 0.008, 4, 8, Math.PI);
-                mouthRotation.x = 0;
-                break;
-            case 'surprised':
-                mouthGeometry = new THREE.SphereGeometry(0.025, 8, 8);
-                mouthPosition.z = 0.21;
-                break;
-            case 'angry':
-                mouthGeometry = new THREE.BoxGeometry(0.05, 0.008, 0.01);
-                break;
-            case 'love':
-                mouthGeometry = new THREE.SphereGeometry(0.02, 8, 8);
-                mouthPosition.z = 0.23;
-                break;
-            default: // neutral
-                mouthGeometry = new THREE.BoxGeometry(0.06, 0.01, 0.01);
-        }
-        
-        const mouth = new THREE.Mesh(mouthGeometry, lipMaterial);
-        mouth.position.set(mouthPosition.x, mouthPosition.y, mouthPosition.z);
-        mouth.rotation.set(mouthRotation.x, mouthRotation.y, mouthRotation.z);
-        mouth.name = 'mouth';
-        group.add(mouth);
-    },
-    
-    addEyelids: function(group, skinTone) {
-        const eyelidMaterial = new THREE.MeshLambertMaterial({ 
-            color: parseInt(skinTone.replace('#', '0x'))
-        });
-        
-        const eyelidGeometry = new THREE.SphereGeometry(0.038, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5);
-        
-        const leftEyelid = new THREE.Mesh(eyelidGeometry, eyelidMaterial);
-        leftEyelid.position.set(-0.09, 1.88, 0.22);
-        leftEyelid.scale.set(1, 0.3, 0.7);
-        leftEyelid.name = 'leftEyelid';
-        leftEyelid.visible = false; // Hidden by default, shown during blink
-        group.add(leftEyelid);
-        
-        const rightEyelid = new THREE.Mesh(eyelidGeometry, eyelidMaterial);
-        rightEyelid.position.set(0.09, 1.88, 0.22);
-        rightEyelid.scale.set(1, 0.3, 0.7);
-        rightEyelid.name = 'rightEyelid';
-        rightEyelid.visible = false;
-        group.add(rightEyelid);
-    },
-    
-    addShirtDetails: function(group, shirtStyle, shirtMaterial, bodyMod) {
-        // Add collar for button-down shirts
-        if (shirtStyle === 'button_down') {
-            const collarGeometry = new THREE.BoxGeometry(0.15, 0.05, 0.02);
-            const collar = new THREE.Mesh(collarGeometry, shirtMaterial);
-            collar.position.set(0, 1.45, 0.17);
-            collar.name = 'collar';
-            group.add(collar);
-        }
-        
-        // Add hood for hoodie
-        if (shirtStyle === 'hoodie') {
-            const hoodGeometry = new THREE.SphereGeometry(0.35, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
-            const hood = new THREE.Mesh(hoodGeometry, shirtMaterial);
-            hood.position.set(0, 1.85, -0.2);
-            hood.name = 'hood';
-            group.add(hood);
-        }
-    },
-    
-    addPantsDetails: function(group, pantsStyle, pantsMaterial, bodyMod) {
-        // Add belt for appropriate styles
-        if (['jeans', 'chinos', 'dress_pants'].includes(pantsStyle)) {
-            const beltGeometry = new THREE.TorusGeometry(0.35, 0.02, 4, 16);
-            const beltMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-            const belt = new THREE.Mesh(beltGeometry, beltMaterial);
-            belt.position.set(0, 0.65, 0);
-            belt.rotation.x = Math.PI / 2;
-            belt.name = 'belt';
-            group.add(belt);
-        }
-        
-        // Add cargo pockets for cargo pants
-        if (pantsStyle === 'cargo') {
-            ['left', 'right'].forEach(side => {
-                const multiplier = side === 'left' ? -1 : 1;
-                const pocketGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.04);
-                const pocket = new THREE.Mesh(pocketGeometry, pantsMaterial);
-                pocket.position.set(multiplier * 0.25, 0.3, 0.18);
-                pocket.name = `${side}CargoPocket`;
-                group.add(pocket);
-            });
-        }
-    },
-    
-    addShoeDetails: function(group, side, shoeStyle, shoeMaterial) {
-        const multiplier = side === 'left' ? -1 : 1;
-        
-        // Add laces for sneakers
-        if (shoeStyle === 'sneakers') {
-            const laceGeometry = new THREE.CylinderGeometry(0.002, 0.002, 0.15, 6);
-            const laceMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
-            
-            for (let i = 0; i < 3; i++) {
-                const lace = new THREE.Mesh(laceGeometry, laceMaterial);
-                lace.position.set(
-                    multiplier * 0.18,
-                    -0.32 + i * 0.03,
-                    0.12
-                );
-                lace.rotation.z = Math.PI / 2;
-                group.add(lace);
-            }
-        }
-        
-        // Add sole for boots
-        if (shoeStyle === 'boots') {
-            const soleGeometry = new THREE.BoxGeometry(0.14, 0.03, 0.32);
-            const soleMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-            const sole = new THREE.Mesh(soleGeometry, soleMaterial);
-            sole.position.set(multiplier * 0.18, -0.42, 0.05);
-            sole.name = `${side}Sole`;
-            group.add(sole);
-        }
-    },
-    
-    // COMPLETE HAIR CREATION METHODS - All missing methods implemented
-    createAdvancedHair: function(style, color) {
-        const hairColor = parseInt(color.replace('#', '0x'));
-        const hairMaterial = new THREE.MeshLambertMaterial({ 
-            color: hairColor,
-            shininess: 60
-        });
-        
-        try {
-            switch(style) {
-                case 'long_wavy':
-                    return this.createLongWavyHair(hairMaterial);
-                case 'curly_afro':
-                    return this.createCurlyAfroHair(hairMaterial);
-                case 'pixie_cut':
-                    return this.createPixieCutHair(hairMaterial);
-                case 'bob_cut':
-                    return this.createBobCutHair(hairMaterial);
-                case 'man_bun':
-                    return this.createManBunHair(hairMaterial);
-                case 'buzz_cut':
-                    return this.createBuzzCutHair(hairMaterial);
-                case 'ponytail':
-                    return this.createPonytailHair(hairMaterial);
-                default: // short_clean
-                    return this.createShortCleanHair(hairMaterial);
-            }
-        } catch (error) {
-            console.warn(`Error creating hair style ${style}:`, error);
-            return this.createShortCleanHair(hairMaterial);
-        }
-    },
-    
-    createShortCleanHair: function(hairMaterial) {
-        const hairGeometry = new THREE.SphereGeometry(0.26, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.65);
-        const hair = new THREE.Mesh(hairGeometry, hairMaterial);
-        hair.position.y = 0.08;
-        hair.castShadow = true;
-        return hair;
-    },
-    
-    createLongWavyHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Top hair
-        const topGeometry = new THREE.SphereGeometry(0.28, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.7);
-        const topHair = new THREE.Mesh(topGeometry, hairMaterial);
-        topHair.position.y = 0.1;
-        group.add(topHair);
-        
-        // Side hair (wavy)
-        for (let i = 0; i < 8; i++) {
-            const strandGeometry = new THREE.CylinderGeometry(0.02, 0.015, 0.6, 8);
-            const strand = new THREE.Mesh(strandGeometry, hairMaterial);
-            const angle = (i / 8) * Math.PI * 2;
-            strand.position.set(
-                Math.cos(angle) * 0.22,
-                -0.15,
-                Math.sin(angle) * 0.22
-            );
-            strand.rotation.z = Math.sin(i) * 0.3;
-            group.add(strand);
-        }
-        
-        return group;
-    },
-    
-    createCurlyAfroHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Base afro shape
-        const baseGeometry = new THREE.SphereGeometry(0.32, 20, 20);
-        const baseHair = new THREE.Mesh(baseGeometry, hairMaterial);
-        baseHair.position.y = 0.15;
-        baseHair.scale.set(1, 1.2, 1);
-        group.add(baseHair);
-        
-        // Add curly texture
-        for (let i = 0; i < 12; i++) {
-            const curlGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-            const curl = new THREE.Mesh(curlGeometry, hairMaterial);
-            const angle = (i / 12) * Math.PI * 2;
-            curl.position.set(
-                Math.cos(angle) * 0.3,
-                0.1 + Math.random() * 0.15,
-                Math.sin(angle) * 0.3
-            );
-            group.add(curl);
-        }
-        
-        return group;
-    },
-    
-    createPixieCutHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Short hair base
-        const baseGeometry = new THREE.SphereGeometry(0.25, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const baseHair = new THREE.Mesh(baseGeometry, hairMaterial);
-        baseHair.position.y = 0.05;
-        group.add(baseHair);
-        
-        // Side swept bangs
-        const bangGeometry = new THREE.BoxGeometry(0.15, 0.04, 0.08);
-        const bang = new THREE.Mesh(bangGeometry, hairMaterial);
-        bang.position.set(0.08, 0.22, 0.18);
-        bang.rotation.z = -0.2;
-        group.add(bang);
-        
-        return group;
-    },
-    
-    createBobCutHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Main hair volume
-        const mainGeometry = new THREE.SphereGeometry(0.27, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.8);
-        const mainHair = new THREE.Mesh(mainGeometry, hairMaterial);
-        mainHair.position.y = 0.05;
-        group.add(mainHair);
-        
-        // Side sections for bob shape
-        const sideGeometry = new THREE.BoxGeometry(0.15, 0.3, 0.25);
-        
-        const leftSide = new THREE.Mesh(sideGeometry, hairMaterial);
-        leftSide.position.set(-0.25, 0, 0);
-        group.add(leftSide);
-        
-        const rightSide = new THREE.Mesh(sideGeometry, hairMaterial);
-        rightSide.position.set(0.25, 0, 0);
-        group.add(rightSide);
-        
-        return group;
-    },
-    
-    createManBunHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Base hair
-        const baseGeometry = new THREE.SphereGeometry(0.26, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const baseHair = new THREE.Mesh(baseGeometry, hairMaterial);
-        baseHair.position.y = 0.08;
-        group.add(baseHair);
-        
-        // Bun at the back
-        const bunGeometry = new THREE.SphereGeometry(0.08, 12, 12);
-        const bun = new THREE.Mesh(bunGeometry, hairMaterial);
-        bun.position.set(0, 0.15, -0.2);
-        group.add(bun);
-        
-        return group;
-    },
-    
-    createBuzzCutHair: function(hairMaterial) {
-        const hairGeometry = new THREE.SphereGeometry(0.255, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const hair = new THREE.Mesh(hairGeometry, hairMaterial);
-        hair.position.y = 0.05;
-        hair.castShadow = true;
-        return hair;
-    },
-    
-    createPonytailHair: function(hairMaterial) {
-        const group = new THREE.Group();
-        
-        // Front hair
-        const frontGeometry = new THREE.SphereGeometry(0.27, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.65);
-        const frontHair = new THREE.Mesh(frontGeometry, hairMaterial);
-        frontHair.position.y = 0.08;
-        group.add(frontHair);
-        
-        // Ponytail
-        const tailGeometry = new THREE.CylinderGeometry(0.04, 0.02, 0.5, 12);
-        const tail = new THREE.Mesh(tailGeometry, hairMaterial);
-        tail.position.set(0, -0.1, -0.22);
-        tail.rotation.x = 0.3;
-        group.add(tail);
-        
-        return group;
-    },
-    
-    // COMPLETE ACCESSORY CREATION METHODS - All missing methods implemented
-    createAdvancedAccessory: function(type) {
-        try {
-            switch(type) {
-                case 'glasses':
-                    return this.createDetailedGlasses();
-                case 'sunglasses':
-                    return this.createSunglasses();
-                case 'hat':
-                    return this.createDetailedHat();
-                case 'cap':
-                    return this.createBaseballCap();
-                case 'necklace':
-                    return this.createNecklace();
-                case 'earrings':
-                    return this.createEarrings();
-                case 'watch':
-                    return this.createWatch();
-                case 'backpack':
-                    return this.createBackpack();
-                default:
-                    return null;
-            }
-        } catch (error) {
-            console.warn(`Error creating accessory ${type}:`, error);
-            return null;
-        }
-    },
-    
-    createDetailedGlasses: function() {
-        const group = new THREE.Group();
-        const frameMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-        const lensMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0xffffff, 
-            transparent: true, 
-            opacity: 0.3 
-        });
-        
-        // Frames
-        const frameGeometry = new THREE.TorusGeometry(0.065, 0.008, 8, 16);
-        
-        const leftFrame = new THREE.Mesh(frameGeometry, frameMaterial);
-        leftFrame.position.set(-0.08, 0.03, 0.22);
-        group.add(leftFrame);
-        
-        const rightFrame = new THREE.Mesh(frameGeometry, frameMaterial);
-        rightFrame.position.set(0.08, 0.03, 0.22);
-        group.add(rightFrame);
-        
-        // Lenses
-        const lensGeometry = new THREE.CircleGeometry(0.06, 16);
-        
-        const leftLens = new THREE.Mesh(lensGeometry, lensMaterial);
-        leftLens.position.set(-0.08, 0.03, 0.225);
-        group.add(leftLens);
-        
-        const rightLens = new THREE.Mesh(lensGeometry, lensMaterial);
-        rightLens.position.set(0.08, 0.03, 0.225);
-        group.add(rightLens);
-        
-        // Bridge
-        const bridgeGeometry = new THREE.CylinderGeometry(0.005, 0.005, 0.08, 6);
-        const bridge = new THREE.Mesh(bridgeGeometry, frameMaterial);
-        bridge.position.set(0, 0.03, 0.22);
-        bridge.rotation.z = Math.PI / 2;
-        group.add(bridge);
-        
-        return group;
-    },
-    
-    createSunglasses: function() {
-        const group = new THREE.Group();
-        const frameMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
-        const lensMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x111111, 
-            transparent: true, 
-            opacity: 0.8 
-        });
-        
-        // Larger frames for sunglasses
-        const frameGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 16);
-        
-        const leftFrame = new THREE.Mesh(frameGeometry, frameMaterial);
-        leftFrame.position.set(-0.08, 0.03, 0.22);
-        group.add(leftFrame);
-        
-        const rightFrame = new THREE.Mesh(frameGeometry, frameMaterial);
-        rightFrame.position.set(0.08, 0.03, 0.22);
-        group.add(rightFrame);
-        
-        // Dark lenses
-        const lensGeometry = new THREE.CircleGeometry(0.065, 16);
-        
-        const leftLens = new THREE.Mesh(lensGeometry, lensMaterial);
-        leftLens.position.set(-0.08, 0.03, 0.225);
-        group.add(leftLens);
-        
-        const rightLens = new THREE.Mesh(lensGeometry, lensMaterial);
-        rightLens.position.set(0.08, 0.03, 0.225);
-        group.add(rightLens);
-        
-        // Bridge
-        const bridgeGeometry = new THREE.CylinderGeometry(0.006, 0.006, 0.08, 6);
-        const bridge = new THREE.Mesh(bridgeGeometry, frameMaterial);
-        bridge.position.set(0, 0.03, 0.22);
-        bridge.rotation.z = Math.PI / 2;
-        group.add(bridge);
-        
-        return group;
-    },
-    
-    createDetailedHat: function() {
-        const group = new THREE.Group();
-        const hatMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-        
-        // Hat crown
-        const crownGeometry = new THREE.CylinderGeometry(0.22, 0.25, 0.15, 16);
-        const crown = new THREE.Mesh(crownGeometry, hatMaterial);
-        crown.position.y = 0.22;
-        group.add(crown);
-        
-        // Hat brim
-        const brimGeometry = new THREE.CylinderGeometry(0.35, 0.35, 0.02, 24);
-        const brim = new THREE.Mesh(brimGeometry, hatMaterial);
-        brim.position.y = 0.15;
-        group.add(brim);
-        
-        // Hat band
-        const bandGeometry = new THREE.CylinderGeometry(0.255, 0.255, 0.03, 16);
-        const bandMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-        const band = new THREE.Mesh(bandGeometry, bandMaterial);
-        band.position.y = 0.16;
-        group.add(band);
-        
-        return group;
-    },
-    
-    createBaseballCap: function() {
-        const group = new THREE.Group();
-        const capMaterial = new THREE.MeshLambertMaterial({ color: 0x000080 });
-        
-        // Cap crown
-        const crownGeometry = new THREE.SphereGeometry(0.24, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const crown = new THREE.Mesh(crownGeometry, capMaterial);
-        crown.position.y = 0.15;
-        group.add(crown);
+        // Main body (bean shape)
+        const bodyGeometry = new THREE.CapsuleGeometry(0.4, 0.5, 16, 32);
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = 0.45;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        body.name = 'body';
+        group.add(body);
+        
+        // Legs
+        const legGeometry = new THREE.CapsuleGeometry(0.12, 0.2, 8, 16);
+        
+        const leftLeg = new THREE.Mesh(legGeometry, bodyMaterial);
+        leftLeg.position.set(-0.15, 0, 0);
+        leftLeg.castShadow = true;
+        leftLeg.name = 'leftLeg';
+        group.add(leftLeg);
+        
+        const rightLeg = new THREE.Mesh(legGeometry, bodyMaterial);
+        rightLeg.position.set(0.15, 0, 0);
+        rightLeg.castShadow = true;
+        rightLeg.name = 'rightLeg';
+        group.add(rightLeg);
         
         // Visor
-        const visorGeometry = new THREE.CylinderGeometry(0.28, 0.32, 0.02, 16, 1, false, 0, Math.PI);
-        const visor = new THREE.Mesh(visorGeometry, capMaterial);
-        visor.position.set(0, 0.05, 0.15);
-        visor.rotation.x = -Math.PI / 6;
+        const visor = this.createVisor(options.isDead);
+        visor.position.set(0, 0.55, 0.38);
         group.add(visor);
         
-        return group;
-    },
-    
-    createNecklace: function() {
-        const group = new THREE.Group();
-        const chainMaterial = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
+        // Backpack
+        const backpack = this.createBackpack(bodyMaterial);
+        backpack.position.set(0, 0.4, -0.35);
+        group.add(backpack);
         
-        // Simple chain necklace
-        const chainGeometry = new THREE.TorusGeometry(0.18, 0.004, 8, 32);
-        const chain = new THREE.Mesh(chainGeometry, chainMaterial);
-        chain.position.set(0, 1.55, 0.15);
-        chain.rotation.x = Math.PI / 2;
-        group.add(chain);
+        // Add hat if specified
+        if (options.hat !== 'none') {
+            const hat = this.createHat(options.hat);
+            if (hat) {
+                hat.position.set(0, 0.9, 0);
+                group.add(hat);
+            }
+        }
         
-        // Pendant
-        const pendantGeometry = new THREE.SphereGeometry(0.012, 8, 8);
-        const pendant = new THREE.Mesh(pendantGeometry, chainMaterial);
-        pendant.position.set(0, 1.45, 0.16);
-        group.add(pendant);
+        // Add skin/outfit if specified
+        if (options.skin !== 'none') {
+            this.addSkin(group, options.skin);
+        }
         
-        return group;
-    },
-    
-    createEarrings: function() {
-        const group = new THREE.Group();
-        const earringMaterial = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
+        // Add accessory if specified
+        if (options.accessory !== 'none') {
+            const accessory = this.createAccessory(options.accessory);
+            if (accessory) {
+                group.add(accessory);
+            }
+        }
         
-        // Simple stud earrings
-        const studGeometry = new THREE.SphereGeometry(0.008, 8, 8);
-        
-        const leftEarring = new THREE.Mesh(studGeometry, earringMaterial);
-        leftEarring.position.set(-0.22, 1.85, 0.15);
-        group.add(leftEarring);
-        
-        const rightEarring = new THREE.Mesh(studGeometry, earringMaterial);
-        rightEarring.position.set(0.22, 1.85, 0.15);
-        group.add(rightEarring);
+        // If dead, add ghost effect
+        if (options.isDead) {
+            this.makeGhost(group);
+        }
         
         return group;
     },
     
-    createWatch: function() {
-        const group = new THREE.Group();
-        const watchMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-        const bandMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+    createVisor: function(isDead = false) {
+        const visorGroup = new THREE.Group();
         
-        // Watch face
-        const faceGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.01, 16);
-        const face = new THREE.Mesh(faceGeometry, watchMaterial);
-        face.position.set(0.62, 0.55, 0.12);
-        face.rotation.z = Math.PI / 2;
-        group.add(face);
+        // Visor glass
+        const visorGeometry = new THREE.SphereGeometry(0.25, 16, 8, 0, Math.PI, 0, Math.PI * 0.4);
+        const visorMaterial = new THREE.MeshPhongMaterial({ 
+            color: isDead ? 0x666666 : 0x7FBFFF,
+            transparent: true,
+            opacity: 0.8,
+            shininess: 200,
+            specular: 0xFFFFFF,
+            side: THREE.DoubleSide
+        });
         
-        // Watch band
-        const bandGeometry = new THREE.TorusGeometry(0.04, 0.008, 8, 16);
-        const band = new THREE.Mesh(bandGeometry, bandMaterial);
-        band.position.set(0.62, 0.55, 0.12);
-        band.rotation.x = Math.PI / 2;
-        group.add(band);
+        const visor = new THREE.Mesh(visorGeometry, visorMaterial);
+        visor.rotation.x = -0.3;
+        visor.scale.set(1, 0.6, 0.8);
+        visor.name = 'visorGlass';
+        visorGroup.add(visor);
         
-        return group;
+        // Visor highlight
+        const highlightGeometry = new THREE.TorusGeometry(0.15, 0.02, 8, 16, Math.PI * 0.5);
+        const highlightMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xFFFFFF,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+        highlight.position.set(-0.05, 0.05, 0.05);
+        highlight.rotation.z = -0.3;
+        visorGroup.add(highlight);
+        
+        // Dead X eyes
+        if (isDead) {
+            const xMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+            
+            // Left X
+            const leftX1 = new THREE.BoxGeometry(0.15, 0.02, 0.02);
+            const leftX1Mesh = new THREE.Mesh(leftX1, xMaterial);
+            leftX1Mesh.position.set(-0.08, 0, 0.1);
+            leftX1Mesh.rotation.z = Math.PI / 4;
+            visorGroup.add(leftX1Mesh);
+            
+            const leftX2 = new THREE.BoxGeometry(0.15, 0.02, 0.02);
+            const leftX2Mesh = new THREE.Mesh(leftX2, xMaterial);
+            leftX2Mesh.position.set(-0.08, 0, 0.1);
+            leftX2Mesh.rotation.z = -Math.PI / 4;
+            visorGroup.add(leftX2Mesh);
+            
+            // Right X
+            const rightX1 = new THREE.BoxGeometry(0.15, 0.02, 0.02);
+            const rightX1Mesh = new THREE.Mesh(rightX1, xMaterial);
+            rightX1Mesh.position.set(0.08, 0, 0.1);
+            rightX1Mesh.rotation.z = Math.PI / 4;
+            visorGroup.add(rightX1Mesh);
+            
+            const rightX2 = new THREE.BoxGeometry(0.15, 0.02, 0.02);
+            const rightX2Mesh = new THREE.Mesh(rightX2, xMaterial);
+            rightX2Mesh.position.set(0.08, 0, 0.1);
+            rightX2Mesh.rotation.z = -Math.PI / 4;
+            visorGroup.add(rightX2Mesh);
+        }
+        
+        visorGroup.name = 'visor';
+        return visorGroup;
     },
     
-    createBackpack: function() {
-        const group = new THREE.Group();
-        const packMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-        
-        // Main compartment
-        const mainGeometry = new THREE.BoxGeometry(0.3, 0.4, 0.15);
-        const main = new THREE.Mesh(mainGeometry, packMaterial);
-        main.position.set(0, 1.2, -0.25);
-        group.add(main);
-        
-        // Straps
-        const strapGeometry = new THREE.BoxGeometry(0.03, 0.3, 0.02);
-        
-        const leftStrap = new THREE.Mesh(strapGeometry, packMaterial);
-        leftStrap.position.set(-0.1, 1.35, -0.18);
-        group.add(leftStrap);
-        
-        const rightStrap = new THREE.Mesh(strapGeometry, packMaterial);
-        rightStrap.position.set(0.1, 1.35, -0.18);
-        group.add(rightStrap);
-        
-        return group;
+    createBackpack: function(bodyMaterial) {
+        const backpackGeometry = new THREE.BoxGeometry(0.2, 0.3, 0.15);
+        const backpack = new THREE.Mesh(backpackGeometry, bodyMaterial);
+        backpack.castShadow = true;
+        backpack.name = 'backpack';
+        return backpack;
     },
     
-    createNameLabelWithFlag: function(name, nationality) {
+    createHat: function(hatType) {
+        const hatGroup = new THREE.Group();
+        
+        switch(hatType) {
+            case 'astronaut':
+                const helmetGeometry = new THREE.SphereGeometry(0.35, 16, 16);
+                const helmetMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF,
+                    transparent: true,
+                    opacity: 0.3,
+                    shininess: 100
+                });
+                const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
+                helmet.scale.set(1, 1.1, 1);
+                hatGroup.add(helmet);
+                break;
+                
+            case 'captain':
+                const capGeometry = new THREE.CylinderGeometry(0.25, 0.3, 0.15, 16);
+                const capMaterial = new THREE.MeshPhongMaterial({ color: 0x1E3A8A });
+                const cap = new THREE.Mesh(capGeometry, capMaterial);
+                cap.position.y = -0.1;
+                hatGroup.add(cap);
+                
+                const visorGeometry = new THREE.BoxGeometry(0.35, 0.02, 0.2);
+                const visorMat = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const capVisor = new THREE.Mesh(visorGeometry, visorMat);
+                capVisor.position.set(0, -0.1, 0.15);
+                hatGroup.add(capVisor);
+                break;
+                
+            case 'party':
+                const coneGeometry = new THREE.ConeGeometry(0.15, 0.4, 8);
+                const partyMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFF69B4,
+                    shininess: 100
+                });
+                const cone = new THREE.Mesh(coneGeometry, partyMaterial);
+                cone.position.y = 0.2;
+                hatGroup.add(cone);
+                
+                // Party stripes
+                for (let i = 0; i < 3; i++) {
+                    const stripeGeometry = new THREE.TorusGeometry(0.12 - i * 0.03, 0.02, 8, 16);
+                    const stripeMaterial = new THREE.MeshPhongMaterial({ 
+                        color: i % 2 === 0 ? 0xFFFF00 : 0x00FFFF 
+                    });
+                    const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
+                    stripe.position.y = 0.1 + i * 0.1;
+                    hatGroup.add(stripe);
+                }
+                break;
+                
+            case 'chef':
+                const chefHatGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.35, 16);
+                const chefMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
+                const chefHat = new THREE.Mesh(chefHatGeometry, chefMaterial);
+                hatGroup.add(chefHat);
+                
+                const puffGeometry = new THREE.SphereGeometry(0.28, 16, 8);
+                const puff = new THREE.Mesh(puffGeometry, chefMaterial);
+                puff.position.y = 0.15;
+                puff.scale.y = 0.6;
+                hatGroup.add(puff);
+                break;
+                
+            case 'crown':
+                const crownGroup = new THREE.Group();
+                const crownBase = new THREE.CylinderGeometry(0.2, 0.25, 0.1, 8);
+                const crownMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFD700,
+                    shininess: 200
+                });
+                const base = new THREE.Mesh(crownBase, crownMaterial);
+                crownGroup.add(base);
+                
+                // Crown points
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const pointGeometry = new THREE.ConeGeometry(0.05, 0.15, 4);
+                    const point = new THREE.Mesh(pointGeometry, crownMaterial);
+                    point.position.set(
+                        Math.cos(angle) * 0.2,
+                        0.1,
+                        Math.sin(angle) * 0.2
+                    );
+                    crownGroup.add(point);
+                }
+                hatGroup.add(crownGroup);
+                break;
+                
+            case 'flower':
+                // Flower petals
+                const petalMaterial = new THREE.MeshPhongMaterial({ color: 0xFF69B4 });
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const petalGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+                    const petal = new THREE.Mesh(petalGeometry, petalMaterial);
+                    petal.position.set(
+                        Math.cos(angle) * 0.15,
+                        0,
+                        Math.sin(angle) * 0.15
+                    );
+                    petal.scale.set(1.5, 0.8, 1);
+                    hatGroup.add(petal);
+                }
+                
+                // Flower center
+                const centerGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const centerMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFF00 });
+                const center = new THREE.Mesh(centerGeometry, centerMaterial);
+                hatGroup.add(center);
+                break;
+                
+            case 'paper':
+                const paperGeometry = new THREE.ConeGeometry(0.25, 0.02, 4);
+                const paperMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF,
+                    side: THREE.DoubleSide
+                });
+                const paper = new THREE.Mesh(paperGeometry, paperMaterial);
+                paper.rotation.y = Math.PI / 4;
+                hatGroup.add(paper);
+                break;
+                
+            case 'horns':
+                const hornMaterial = new THREE.MeshPhongMaterial({ color: 0x8B0000 });
+                
+                const leftHorn = new THREE.ConeGeometry(0.05, 0.2, 8);
+                const leftHornMesh = new THREE.Mesh(leftHorn, hornMaterial);
+                leftHornMesh.position.set(-0.15, 0.1, 0);
+                leftHornMesh.rotation.z = -0.3;
+                hatGroup.add(leftHornMesh);
+                
+                const rightHorn = new THREE.ConeGeometry(0.05, 0.2, 8);
+                const rightHornMesh = new THREE.Mesh(rightHorn, hornMaterial);
+                rightHornMesh.position.set(0.15, 0.1, 0);
+                rightHornMesh.rotation.z = 0.3;
+                hatGroup.add(rightHornMesh);
+                break;
+                
+            case 'ninja':
+                const ninjaMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const headband = new THREE.TorusGeometry(0.28, 0.03, 8, 16);
+                const headbandMesh = new THREE.Mesh(headband, ninjaMaterial);
+                headbandMesh.position.y = -0.05;
+                hatGroup.add(headbandMesh);
+                
+                // Bandana tails
+                const tailGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.3);
+                const leftTail = new THREE.Mesh(tailGeometry, ninjaMaterial);
+                leftTail.position.set(-0.25, -0.05, -0.15);
+                leftTail.rotation.y = 0.3;
+                hatGroup.add(leftTail);
+                
+                const rightTail = new THREE.Mesh(tailGeometry, ninjaMaterial);
+                rightTail.position.set(0.25, -0.05, -0.15);
+                rightTail.rotation.y = -0.3;
+                hatGroup.add(rightTail);
+                break;
+                
+            case 'dum':
+                // Sticky note with "dum" text
+                const stickyGeometry = new THREE.BoxGeometry(0.2, 0.15, 0.01);
+                const stickyMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFF99 });
+                const sticky = new THREE.Mesh(stickyGeometry, stickyMaterial);
+                sticky.position.set(0, 0.15, 0.1);
+                sticky.rotation.x = -0.3;
+                hatGroup.add(sticky);
+                
+                // Add "DUM" text (simplified representation)
+                const textGeometry = new THREE.BoxGeometry(0.15, 0.02, 0.005);
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                for (let i = 0; i < 3; i++) {
+                    const letter = new THREE.Mesh(textGeometry, textMaterial);
+                    letter.position.set(-0.05 + i * 0.05, 0.15, 0.11);
+                    letter.scale.x = 0.3;
+                    hatGroup.add(letter);
+                }
+                break;
+        }
+        
+        hatGroup.name = 'hat';
+        return hatGroup;
+    },
+    
+    createPet: function(petType, ownerColor) {
+        const petGroup = new THREE.Group();
+        const scale = 0.5;
+        
+        switch(petType) {
+            case 'mini_crewmate':
+                // Mini version of the crewmate
+                const miniColor = parseInt(ownerColor.replace('#', '0x'));
+                const miniMaterial = new THREE.MeshPhongMaterial({ 
+                    color: miniColor,
+                    shininess: 100
+                });
+                
+                const miniBody = new THREE.CapsuleGeometry(0.2, 0.25, 8, 16);
+                const miniBodyMesh = new THREE.Mesh(miniBody, miniMaterial);
+                miniBodyMesh.position.y = 0.25;
+                petGroup.add(miniBodyMesh);
+                
+                const miniVisor = this.createVisor().clone();
+                miniVisor.scale.setScalar(0.5);
+                miniVisor.position.set(0, 0.3, 0.19);
+                petGroup.add(miniVisor);
+                
+                const miniLegGeometry = new THREE.CapsuleGeometry(0.06, 0.1, 4, 8);
+                const miniLeftLeg = new THREE.Mesh(miniLegGeometry, miniMaterial);
+                miniLeftLeg.position.set(-0.075, 0, 0);
+                petGroup.add(miniLeftLeg);
+                
+                const miniRightLeg = new THREE.Mesh(miniLegGeometry, miniMaterial);
+                miniRightLeg.position.set(0.075, 0, 0);
+                petGroup.add(miniRightLeg);
+                break;
+                
+            case 'dog':
+                const dogMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                
+                // Dog body
+                const dogBody = new THREE.BoxGeometry(0.3, 0.15, 0.2);
+                const dogBodyMesh = new THREE.Mesh(dogBody, dogMaterial);
+                dogBodyMesh.position.y = 0.1;
+                petGroup.add(dogBodyMesh);
+                
+                // Dog head
+                const dogHead = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+                const dogHeadMesh = new THREE.Mesh(dogHead, dogMaterial);
+                dogHeadMesh.position.set(0.15, 0.15, 0);
+                petGroup.add(dogHeadMesh);
+                
+                // Dog ears
+                const earGeometry = new THREE.ConeGeometry(0.05, 0.1, 4);
+                const leftEar = new THREE.Mesh(earGeometry, dogMaterial);
+                leftEar.position.set(0.1, 0.25, -0.05);
+                leftEar.rotation.z = -0.5;
+                petGroup.add(leftEar);
+                
+                const rightEar = new THREE.Mesh(earGeometry, dogMaterial);
+                rightEar.position.set(0.1, 0.25, 0.05);
+                rightEar.rotation.z = -0.5;
+                petGroup.add(rightEar);
+                
+                // Tail
+                const tailGeometry = new THREE.CylinderGeometry(0.03, 0.02, 0.15, 6);
+                const tail = new THREE.Mesh(tailGeometry, dogMaterial);
+                tail.position.set(-0.2, 0.15, 0);
+                tail.rotation.z = -0.7;
+                petGroup.add(tail);
+                break;
+                
+            case 'robot':
+                const robotMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x888888,
+                    metalness: 0.8
+                });
+                
+                // Robot body
+                const robotBody = new THREE.BoxGeometry(0.2, 0.25, 0.15);
+                const robotBodyMesh = new THREE.Mesh(robotBody, robotMaterial);
+                robotBodyMesh.position.y = 0.15;
+                petGroup.add(robotBodyMesh);
+                
+                // Robot head
+                const robotHead = new THREE.BoxGeometry(0.15, 0.1, 0.1);
+                const robotHeadMesh = new THREE.Mesh(robotHead, robotMaterial);
+                robotHeadMesh.position.y = 0.3;
+                petGroup.add(robotHeadMesh);
+                
+                // Robot eyes
+                const eyeMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xFF0000,
+                    emissive: 0xFF0000
+                });
+                const eyeGeometry = new THREE.BoxGeometry(0.03, 0.03, 0.01);
+                
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.04, 0.3, 0.06);
+                petGroup.add(leftEye);
+                
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.04, 0.3, 0.06);
+                petGroup.add(rightEye);
+                
+                // Antenna
+                const antennaGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.1, 4);
+                const antenna = new THREE.Mesh(antennaGeometry, robotMaterial);
+                antenna.position.y = 0.4;
+                petGroup.add(antenna);
+                
+                const antennaball = new THREE.SphereGeometry(0.02, 6, 6);
+                const antennaBallMesh = new THREE.Mesh(antennaball, eyeMaterial);
+                antennaBallMesh.position.y = 0.45;
+                petGroup.add(antennaBallMesh);
+                break;
+                
+            case 'ufo':
+                const ufoMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x00FF00,
+                    emissive: 0x00FF00,
+                    emissiveIntensity: 0.2
+                });
+                
+                // UFO disc
+                const ufoGeometry = new THREE.CylinderGeometry(0.2, 0.15, 0.08, 16);
+                const ufo = new THREE.Mesh(ufoGeometry, ufoMaterial);
+                ufo.position.y = 0.15;
+                petGroup.add(ufo);
+                
+                // UFO dome
+                const domeGeometry = new THREE.SphereGeometry(0.1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+                const domeMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x7FBFFF,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const dome = new THREE.Mesh(domeGeometry, domeMaterial);
+                dome.position.y = 0.18;
+                petGroup.add(dome);
+                
+                // Lights
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const lightGeometry = new THREE.SphereGeometry(0.02, 4, 4);
+                    const lightMaterial = new THREE.MeshBasicMaterial({ 
+                        color: 0xFFFF00,
+                        emissive: 0xFFFF00
+                    });
+                    const light = new THREE.Mesh(lightGeometry, lightMaterial);
+                    light.position.set(
+                        Math.cos(angle) * 0.15,
+                        0.15,
+                        Math.sin(angle) * 0.15
+                    );
+                    petGroup.add(light);
+                }
+                break;
+                
+            case 'hamster':
+                const hamsterMaterial = new THREE.MeshPhongMaterial({ color: 0xD2691E });
+                
+                // Hamster ball
+                const ballGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                const ballMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+                ball.position.y = 0.15;
+                petGroup.add(ball);
+                
+                // Hamster inside
+                const hamsterGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+                const hamster = new THREE.Mesh(hamsterGeometry, hamsterMaterial);
+                hamster.position.y = 0.1;
+                hamster.scale.set(1, 0.8, 0.9);
+                petGroup.add(hamster);
+                break;
+        }
+        
+        petGroup.scale.setScalar(scale);
+        petGroup.name = 'pet';
+        return petGroup;
+    },
+    
+    createAccessory: function(accessoryType) {
+        const accessoryGroup = new THREE.Group();
+        
+        switch(accessoryType) {
+            case 'glasses':
+                const framesMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const glassMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x7FBFFF,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                
+                // Glasses frames
+                const leftFrame = new THREE.TorusGeometry(0.08, 0.01, 8, 16);
+                const leftFrameMesh = new THREE.Mesh(leftFrame, framesMaterial);
+                leftFrameMesh.position.set(-0.1, 0.55, 0.38);
+                accessoryGroup.add(leftFrameMesh);
+                
+                const rightFrame = new THREE.TorusGeometry(0.08, 0.01, 8, 16);
+                const rightFrameMesh = new THREE.Mesh(rightFrame, framesMaterial);
+                rightFrameMesh.position.set(0.1, 0.55, 0.38);
+                accessoryGroup.add(rightFrameMesh);
+                
+                // Bridge
+                const bridgeGeometry = new THREE.CylinderGeometry(0.005, 0.005, 0.1, 4);
+                const bridge = new THREE.Mesh(bridgeGeometry, framesMaterial);
+                bridge.position.set(0, 0.55, 0.38);
+                bridge.rotation.z = Math.PI / 2;
+                accessoryGroup.add(bridge);
+                break;
+                
+            case 'monocle':
+                const monocleFrame = new THREE.TorusGeometry(0.1, 0.015, 8, 16);
+                const monocleMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFD700,
+                    shininess: 100
+                });
+                const monocle = new THREE.Mesh(monocleFrame, monocleMaterial);
+                monocle.position.set(0.12, 0.55, 0.38);
+                accessoryGroup.add(monocle);
+                
+                // Chain
+                const chainGeometry = new THREE.CylinderGeometry(0.002, 0.002, 0.3, 4);
+                const chain = new THREE.Mesh(chainGeometry, monocleMaterial);
+                chain.position.set(0.15, 0.4, 0.35);
+                chain.rotation.z = 0.2;
+                accessoryGroup.add(chain);
+                break;
+                
+            case 'mask':
+                const maskGeometry = new THREE.BoxGeometry(0.3, 0.15, 0.05);
+                const maskMaterial = new THREE.MeshPhongMaterial({ color: 0x4169E1 });
+                const mask = new THREE.Mesh(maskGeometry, maskMaterial);
+                mask.position.set(0, 0.45, 0.38);
+                accessoryGroup.add(mask);
+                break;
+                
+            case 'bandana':
+                const bandanaGeometry = new THREE.BoxGeometry(0.35, 0.1, 0.02);
+                const bandanaMaterial = new THREE.MeshPhongMaterial({ color: 0xFF0000 });
+                const bandana = new THREE.Mesh(bandanaGeometry, bandanaMaterial);
+                bandana.position.set(0, 0.35, 0.38);
+                accessoryGroup.add(bandana);
+                break;
+        }
+        
+        accessoryGroup.name = 'accessory';
+        return accessoryGroup;
+    },
+    
+    addSkin: function(group, skinType) {
+        const body = group.getObjectByName('body');
+        if (!body) return;
+        
+        switch(skinType) {
+            case 'suit':
+                // Add tie
+                const tieGeometry = new THREE.BoxGeometry(0.05, 0.4, 0.02);
+                const tieMaterial = new THREE.MeshPhongMaterial({ color: 0xFF0000 });
+                const tie = new THREE.Mesh(tieGeometry, tieMaterial);
+                tie.position.set(0, 0.3, 0.41);
+                group.add(tie);
+                
+                // Add collar
+                const collarGeometry = new THREE.BoxGeometry(0.35, 0.05, 0.02);
+                const collarMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
+                const collar = new THREE.Mesh(collarGeometry, collarMaterial);
+                collar.position.set(0, 0.65, 0.38);
+                group.add(collar);
+                break;
+                
+            case 'doctor':
+                // Add stethoscope
+                const stethoscopeMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const neckband = new THREE.TorusGeometry(0.25, 0.01, 8, 16, Math.PI);
+                const neckbandMesh = new THREE.Mesh(neckband, stethoscopeMaterial);
+                neckbandMesh.position.set(0, 0.5, 0);
+                neckbandMesh.rotation.x = Math.PI / 2;
+                neckbandMesh.rotation.z = Math.PI;
+                group.add(neckbandMesh);
+                
+                // Stethoscope chest piece
+                const chestPiece = new THREE.CylinderGeometry(0.03, 0.03, 0.01, 16);
+                const chestPieceMesh = new THREE.Mesh(chestPiece, stethoscopeMaterial);
+                chestPieceMesh.position.set(0, 0.3, 0.38);
+                chestPieceMesh.rotation.x = Math.PI / 2;
+                group.add(chestPieceMesh);
+                break;
+                
+            case 'police':
+                // Add badge
+                const badgeGeometry = new THREE.CircleGeometry(0.05, 8);
+                const badgeMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFD700,
+                    shininess: 200
+                });
+                const badge = new THREE.Mesh(badgeGeometry, badgeMaterial);
+                badge.position.set(-0.15, 0.6, 0.41);
+                group.add(badge);
+                
+                // Add belt
+                const beltGeometry = new THREE.TorusGeometry(0.35, 0.02, 8, 16);
+                const beltMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const belt = new THREE.Mesh(beltGeometry, beltMaterial);
+                belt.position.set(0, 0.2, 0);
+                belt.rotation.x = Math.PI / 2;
+                group.add(belt);
+                break;
+        }
+    },
+    
+    makeGhost: function(group) {
+        // Make all materials semi-transparent
+        group.traverse((child) => {
+            if (child.isMesh && child.material) {
+                child.material.transparent = true;
+                child.material.opacity = 0.7;
+            }
+        });
+        
+        // Add floating effect
+        group.position.y = 0.3;
+    },
+    
+    createShadow: function() {
+        const shadowGeometry = new THREE.PlaneGeometry(0.8, 0.8);
+        const shadowMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.3
+        });
+        
+        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.y = 0.01;
+        shadow.receiveShadow = true;
+        shadow.name = 'shadow';
+        
+        return shadow;
+    },
+    
+    createNameLabel: function(name, nationality) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        canvas.width = 512;
-        canvas.height = 128;
+        canvas.width = 256;
+        canvas.height = 64;
         
-        // Enhanced gradient background
-        const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
-        gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.85)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
-        
-        // Draw background
-        context.fillStyle = gradient;
-        this.roundRect(context, 15, 15, canvas.width - 30, canvas.height - 30, 25);
+        // Background
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.roundRect(context, 10, 10, canvas.width - 20, canvas.height - 20, 15);
         context.fill();
         
-        // Enhanced border
-        context.strokeStyle = 'rgba(102, 126, 234, 0.8)';
-        context.lineWidth = 3;
-        context.shadowColor = 'rgba(102, 126, 234, 0.6)';
-        context.shadowBlur = 10;
-        this.roundRect(context, 15, 15, canvas.width - 30, canvas.height - 30, 25);
+        // Border
+        context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        context.lineWidth = 2;
+        this.roundRect(context, 10, 10, canvas.width - 20, canvas.height - 20, 15);
         context.stroke();
         
-        // Reset shadow
-        context.shadowColor = 'transparent';
-        context.shadowBlur = 0;
-        
-        // Use emoji flags to avoid CORS issues
+        // Flag emoji
         const flagEmojis = {
             'KR': '🇰🇷', 'US': '🇺🇸', 'GB': '🇬🇧', 'JP': '🇯🇵', 'CN': '🇨🇳',
             'DE': '🇩🇪', 'FR': '🇫🇷', 'CA': '🇨🇦', 'AU': '🇦🇺', 'BR': '🇧🇷',
-            'IN': '🇮🇳', 'RU': '🇷🇺', 'MX': '🇲🇽', 'IT': '🇮🇹', 'ES': '🇪🇸',
-            'NL': '🇳🇱', 'SE': '🇸🇪', 'NO': '🇳🇴', 'FI': '🇫🇮', 'DK': '🇩🇰',
-            'BE': '🇧🇪', 'CH': '🇨🇭', 'AT': '🇦🇹', 'PL': '🇵🇱', 'TR': '🇹🇷',
-            'GR': '🇬🇷', 'PT': '🇵🇹', 'IE': '🇮🇪', 'CZ': '🇨🇿', 'HU': '🇭🇺'
+            'IN': '🇮🇳', 'RU': '🇷🇺', 'MX': '🇲🇽', 'IT': '🇮🇹', 'ES': '🇪🇸'
         };
         
         const flagEmoji = flagEmojis[nationality] || '🌍';
         
-        // Draw flag emoji
-        context.font = 'bold 32px Arial';
+        // Draw flag
+        context.font = 'bold 20px Arial';
         context.textAlign = 'left';
         context.fillStyle = 'white';
-        context.fillText(flagEmoji, 30, 60);
+        context.fillText(flagEmoji, 20, 38);
         
-        // Draw name with shadow
-        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        context.font = 'bold 28px Arial';
+        // Draw name
+        context.font = 'bold 18px Arial';
         context.textAlign = 'center';
-        context.fillText(name, canvas.width / 2 + 2, canvas.height / 2 + 12);
-        
         context.fillStyle = 'white';
-        context.fillText(name, canvas.width / 2, canvas.height / 2 + 10);
+        context.fillText(name, canvas.width / 2 + 10, 38);
         
-        // Create texture and material
+        // Create texture
         const texture = new THREE.CanvasTexture(canvas);
-        texture.generateMipmaps = false;
         texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
         
         const material = new THREE.SpriteMaterial({ 
             map: texture,
-            transparent: true,
-            alphaTest: 0.001
+            transparent: true
         });
         const sprite = new THREE.Sprite(material);
-        sprite.scale.set(2.2, 0.55, 1);
+        sprite.scale.set(1.5, 0.375, 1);
         
         return sprite;
-    },
-    
-    createParticleEffect: function() {
-        const particleCount = 20;
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        
-        for (let i = 0; i < particleCount * 3; i += 3) {
-            positions[i] = (Math.random() - 0.5) * 2;
-            positions[i + 1] = Math.random() * 2;
-            positions[i + 2] = (Math.random() - 0.5) * 2;
-        }
-        
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        
-        const material = new THREE.PointsMaterial({
-            color: 0x4CAF50,
-            size: 0.02,
-            transparent: true,
-            opacity: 0.6
-        });
-        
-        const particles = new THREE.Points(geometry, material);
-        particles.name = 'particles';
-        return particles;
     },
     
     // Animation methods
     startIdleAnimations: function() {
         setInterval(() => {
+            const time = Date.now() * 0.001;
+            
             this.avatars.forEach(avatar => {
-                if (avatar.isBreathing && avatar.mesh) {
-                    avatar.breathPhase += 0.025;
+                if (!avatar.isWalking && avatar.mesh) {
+                    // Floating animation
+                    avatar.floatPhase += 0.02;
+                    avatar.group.position.y = Math.sin(avatar.floatPhase) * 0.05;
                     
-                    // Enhanced breathing with chest movement
-                    const torso = avatar.mesh.getObjectByName('torso');
-                    if (torso) {
-                        torso.scale.x = 1 + Math.sin(avatar.breathPhase) * 0.005;
+                    // Slight rotation
+                    avatar.group.rotation.y = Math.sin(avatar.floatPhase * 0.5) * 0.05;
+                    
+                    // Visor shine animation
+                    const visor = avatar.mesh.getObjectByName('visor');
+                    if (visor) {
+                        const highlight = visor.children.find(child => child.geometry instanceof THREE.TorusGeometry);
+                        if (highlight) {
+                            highlight.material.opacity = 0.7 + Math.sin(time * 3) * 0.3;
+                        }
                     }
                     
-                    // Subtle shoulder movement
-                    const leftUpperArm = avatar.mesh.getObjectByName('leftUpperArm');
-                    const rightUpperArm = avatar.mesh.getObjectByName('rightUpperArm');
-                    
-                    if (leftUpperArm && rightUpperArm) {
-                        leftUpperArm.rotation.x = 0.05 + Math.sin(avatar.breathPhase * 0.8) * 0.02;
-                        rightUpperArm.rotation.x = 0.05 + Math.sin(avatar.breathPhase * 0.8 + Math.PI) * 0.02;
+                    // Pet animation
+                    if (avatar.pet) {
+                        avatar.pet.position.y = Math.sin(avatar.floatPhase * 1.5) * 0.02;
+                        avatar.pet.rotation.y = Math.sin(avatar.floatPhase * 0.7) * 0.1;
                     }
                 }
             });
         }, 50);
     },
     
-    startBlinkingAnimation: function() {
+    startWalkAnimation: function() {
         setInterval(() => {
             this.avatars.forEach(avatar => {
-                if (avatar.isBlinking && avatar.mesh) {
-                    // Random blinking
-                    if (Math.random() < 0.02) { // 2% chance per frame
-                        this.performBlink(avatar);
+                if (avatar.isWalking && avatar.mesh) {
+                    avatar.walkPhase += 0.15;
+                    
+                    // Leg animation
+                    const leftLeg = avatar.mesh.getObjectByName('leftLeg');
+                    const rightLeg = avatar.mesh.getObjectByName('rightLeg');
+                    
+                    if (leftLeg && rightLeg) {
+                        leftLeg.rotation.x = Math.sin(avatar.walkPhase) * 0.5;
+                        rightLeg.rotation.x = Math.sin(avatar.walkPhase + Math.PI) * 0.5;
+                    }
+                    
+                    // Body wobble
+                    avatar.mesh.rotation.z = Math.sin(avatar.walkPhase * 0.5) * 0.05;
+                    
+                    // Pet following
+                    if (avatar.pet) {
+                        avatar.pet.position.x = -0.8 + Math.sin(avatar.walkPhase * 0.3) * 0.1;
+                        avatar.pet.position.z = 0.3 + Math.sin(avatar.walkPhase * 0.5) * 0.05;
                     }
                 }
             });
-        }, 100);
+        }, 50);
     },
     
-    performBlink: function(avatar) {
-        const leftEyelid = avatar.mesh.getObjectByName('leftEyelid');
-        const rightEyelid = avatar.mesh.getObjectByName('rightEyelid');
-        const leftEyeWhite = avatar.mesh.getObjectByName('leftEyeWhite');
-        const rightEyeWhite = avatar.mesh.getObjectByName('rightEyeWhite');
-        
-        if (leftEyelid && rightEyelid && leftEyeWhite && rightEyeWhite) {
-            // Show eyelids, hide eyes
-            leftEyelid.visible = true;
-            rightEyelid.visible = true;
-            leftEyeWhite.visible = false;
-            rightEyeWhite.visible = false;
-            
-            // Hide again after 150ms
-            setTimeout(() => {
-                leftEyelid.visible = false;
-                rightEyelid.visible = false;
-                leftEyeWhite.visible = true;
-                rightEyeWhite.visible = true;
-            }, 150);
-        }
-    },
-    
-    startSubtleMovements: function() {
-        setInterval(() => {
-            this.avatars.forEach(avatar => {
-                if (avatar.mesh) {
-                    avatar.animationPhase += 0.02;
-                    
-                    // Subtle weight shifting
-                    avatar.group.rotation.z = Math.sin(avatar.animationPhase * 0.3) * 0.008;
-                    
-                    // Subtle head movements
-                    const head = avatar.mesh.getObjectByName('head');
-                    if (head) {
-                        head.rotation.y = Math.sin(avatar.animationPhase * 0.4) * 0.03;
-                        head.rotation.x = Math.sin(avatar.animationPhase * 0.5) * 0.01;
-                    }
-                    
-                    // Particle animation
-                    if (avatar.particleEffect) {
-                        avatar.particleEffect.rotation.y += 0.005;
-                        const positions = avatar.particleEffect.geometry.attributes.position.array;
-                        for (let i = 1; i < positions.length; i += 3) {
-                            positions[i] = Math.sin(Date.now() * 0.001 + i) * 0.5 + 1;
-                        }
-                        avatar.particleEffect.geometry.attributes.position.needsUpdate = true;
-                    }
-                }
-            });
-        }, 60);
-    },
-    
-    playEnhancedEntranceAnimation: function(avatarData) {
+    playSpawnAnimation: function(avatarData) {
         const group = avatarData.group;
         
         // Start invisible and small
         group.scale.setScalar(0);
-        group.rotation.y = Math.PI * 2;
+        group.rotation.y = 0;
         
-        let animationPhase = 0;
-        const animateEntrance = () => {
-            animationPhase += 0.06;
+        // Teleport effect particles
+        const particleCount = 20;
+        const particles = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particleGeometry = new THREE.SphereGeometry(0.05, 4, 4);
+            const particleMaterial = new THREE.MeshBasicMaterial({
+                color: new THREE.Color(avatarData.customization.color),
+                transparent: true,
+                opacity: 0.8
+            });
             
-            // Scale animation with easing
-            const scale = Math.min(avatarData.scale, animationPhase * avatarData.scale);
-            const easeScale = this.easeOutBounce(scale / avatarData.scale) * avatarData.scale;
-            group.scale.setScalar(easeScale);
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            particle.position.copy(group.position);
+            particle.position.x += (Math.random() - 0.5) * 2;
+            particle.position.y += Math.random() * 2;
+            particle.position.z += (Math.random() - 0.5) * 2;
             
-            // Rotation animation
-            group.rotation.y = (1 - animationPhase) * Math.PI * 2;
+            particles.push(particle);
             
-            // Bounce effect
-            group.position.y = Math.sin(animationPhase * Math.PI) * 0.2;
-            
-            // Particle burst effect
-            if (animationPhase > 0.5 && avatarData.particleEffect) {
-                avatarData.particleEffect.material.opacity = Math.min(0.6, (animationPhase - 0.5) * 1.2);
+            if (window.SceneManager) {
+                window.SceneManager.addObject(particle);
             }
+        }
+        
+        // Animate spawn
+        let animationPhase = 0;
+        const animateSpawn = () => {
+            animationPhase += 0.05;
+            
+            // Scale up with bounce
+            const scale = this.easeOutBounce(Math.min(animationPhase, 1)) * avatarData.customization.scale;
+            group.scale.setScalar(scale);
+            
+            // Particle animation
+            particles.forEach((particle, index) => {
+                particle.position.y -= 0.05;
+                particle.scale.setScalar(1 - animationPhase);
+                particle.material.opacity = 0.8 - animationPhase * 0.8;
+                
+                if (animationPhase >= 1 && window.SceneManager) {
+                    window.SceneManager.removeObject(particle);
+                    particle.geometry.dispose();
+                    particle.material.dispose();
+                }
+            });
             
             if (animationPhase < 1) {
-                requestAnimationFrame(animateEntrance);
-            } else {
-                group.position.y = 0;
-                group.rotation.y = 0;
-                group.scale.setScalar(avatarData.scale);
+                requestAnimationFrame(animateSpawn);
             }
         };
         
-        requestAnimationFrame(animateEntrance);
+        requestAnimationFrame(animateSpawn);
     },
     
-    // Enhanced wave animation with realistic arm movement
-    waveAnimation: function(avatarId, duration = 3000) {
+    playKillAnimation: function(avatarId, killerId) {
+        const avatar = this.avatars.get(avatarId);
+        const killer = this.avatars.get(killerId);
+        
+        if (!avatar || !killer) return;
+        
+        // Killer animation
+        if (killer.mesh) {
+            // Quick stab motion
+            const originalPos = killer.group.position.clone();
+            const direction = new THREE.Vector3()
+                .subVectors(avatar.group.position, killer.group.position)
+                .normalize();
+            
+            // Move forward quickly
+            killer.group.position.add(direction.multiplyScalar(0.5));
+            
+            // Return to position
+            setTimeout(() => {
+                killer.group.position.copy(originalPos);
+            }, 200);
+        }
+        
+        // Victim animation
+        if (avatar.mesh) {
+            // Change to dead state
+            avatar.isDead = true;
+            avatar.customization.isDead = true;
+            
+            // Replace visor with dead version
+            const visor = avatar.mesh.getObjectByName('visor');
+            if (visor && visor.parent) {
+                visor.parent.remove(visor);
+                const deadVisor = this.createVisor(true);
+                deadVisor.position.set(0, 0.55, 0.38);
+                avatar.mesh.add(deadVisor);
+            }
+            
+            // Death animation
+            let deathPhase = 0;
+            const animateDeath = () => {
+                deathPhase += 0.1;
+                
+                // Fall over
+                avatar.group.rotation.z = Math.min(deathPhase * Math.PI / 2, Math.PI / 2);
+                avatar.group.position.y = Math.max(0, 0.5 - deathPhase * 0.5);
+                
+                if (deathPhase < 1) {
+                    requestAnimationFrame(animateDeath);
+                } else {
+                    // Convert to ghost after delay
+                    setTimeout(() => {
+                        this.makeGhost(avatar.mesh);
+                        avatar.group.rotation.z = 0;
+                        avatar.group.position.y = 0.3; // Float
+                    }, 1000);
+                }
+            };
+            
+            requestAnimationFrame(animateDeath);
+        }
+    },
+    
+    playTaskAnimation: function(avatarId, taskType) {
+        const avatar = this.avatars.get(avatarId);
+        if (!avatar || !avatar.mesh) return;
+        
+        // Simple task animation - avatar looks busy
+        const originalRotation = avatar.group.rotation.y;
+        let taskPhase = 0;
+        
+        const animateTask = () => {
+            taskPhase += 0.05;
+            
+            // Wiggle while doing task
+            avatar.group.rotation.y = originalRotation + Math.sin(taskPhase * 10) * 0.1;
+            
+            if (taskPhase < 1) {
+                requestAnimationFrame(animateTask);
+            } else {
+                avatar.group.rotation.y = originalRotation;
+            }
+        };
+        
+        requestAnimationFrame(animateTask);
+    },
+    
+    // Movement methods
+    setWalking: function(avatarId, isWalking) {
+        const avatar = this.avatars.get(avatarId);
+        if (avatar) {
+            avatar.isWalking = isWalking;
+        }
+    },
+    
+    moveAvatar: function(avatarId, targetPosition, duration = 1000) {
         const avatar = this.avatars.get(avatarId);
         if (!avatar) return;
         
+        const startPosition = avatar.group.position.clone();
         const startTime = Date.now();
         
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = elapsed / duration;
-            const wavePhase = (elapsed / 250) % (Math.PI * 2);
-            
-            // Enhanced wave animation
-            const rightUpperArm = avatar.mesh.getObjectByName('rightUpperArm');
-            const rightLowerArm = avatar.mesh.getObjectByName('rightLowerArm');
-            const rightHand = avatar.mesh.getObjectByName('rightHand');
-            
-            if (rightUpperArm && rightLowerArm) {
-                rightUpperArm.rotation.z = -1.2 + Math.sin(wavePhase * 2) * 0.3;
-                rightUpperArm.rotation.x = 0.2 + Math.sin(wavePhase * 3) * 0.1;
-                rightLowerArm.rotation.x = 0.3 + Math.sin(wavePhase * 4) * 0.2;
-                
-                if (rightHand) {
-                    rightHand.rotation.y = Math.sin(wavePhase * 5) * 0.3;
-                }
-            }
-            
-            // Head follows hand
-            const head = avatar.mesh.getObjectByName('head');
-            if (head) {
-                head.rotation.y = Math.sin(wavePhase * 0.5) * 0.1;
-                head.rotation.x = Math.sin(wavePhase * 0.3) * 0.05;
-            }
-            
-            // Torso slight movement
-            const torso = avatar.mesh.getObjectByName('torso');
-            if (torso) {
-                torso.rotation.z = Math.sin(wavePhase * 0.8) * 0.02;
-            }
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.resetToIdlePose(avatar);
-            }
-        };
+        // Face direction of movement
+        const direction = new THREE.Vector3()
+            .subVectors(targetPosition, startPosition)
+            .normalize();
+        const targetRotation = Math.atan2(direction.x, direction.z);
         
-        requestAnimationFrame(animate);
-    },
-    
-    // Enhanced dance animation with full body movement
-    danceAnimation: function(avatarId, duration = 6000) {
-        const avatar = this.avatars.get(avatarId);
-        if (!avatar) return;
-        
-        const startTime = Date.now();
-        
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = elapsed / duration;
-            const dancePhase = (elapsed / 400) % (Math.PI * 2);
-            
-            // Arms dancing
-            const leftUpperArm = avatar.mesh.getObjectByName('leftUpperArm');
-            const rightUpperArm = avatar.mesh.getObjectByName('rightUpperArm');
-            const leftLowerArm = avatar.mesh.getObjectByName('leftLowerArm');
-            const rightLowerArm = avatar.mesh.getObjectByName('rightLowerArm');
-            
-            if (leftUpperArm && rightUpperArm) {
-                leftUpperArm.rotation.z = 0.15 + Math.sin(dancePhase) * 0.9;
-                rightUpperArm.rotation.z = -0.15 + Math.sin(dancePhase + Math.PI) * 0.9;
-                leftUpperArm.rotation.x = Math.sin(dancePhase * 1.3) * 0.4;
-                rightUpperArm.rotation.x = Math.sin(dancePhase * 1.3 + Math.PI) * 0.4;
-                
-                if (leftLowerArm && rightLowerArm) {
-                    leftLowerArm.rotation.x = 0.1 + Math.sin(dancePhase * 2) * 0.3;
-                    rightLowerArm.rotation.x = 0.1 + Math.sin(dancePhase * 2 + Math.PI) * 0.3;
-                }
-            }
-            
-            // Body movement
-            avatar.group.rotation.y = Math.sin(dancePhase * 0.6) * 0.3;
-            avatar.group.rotation.z = Math.sin(dancePhase * 1.5) * 0.08;
-            avatar.group.position.y = Math.abs(Math.sin(dancePhase * 2.5)) * 0.15;
-            
-            // Head movement
-            const head = avatar.mesh.getObjectByName('head');
-            if (head) {
-                head.rotation.y = Math.sin(dancePhase * 1.1) * 0.2;
-                head.rotation.x = Math.sin(dancePhase * 0.9) * 0.1;
-            }
-            
-            // Torso movement
-            const torso = avatar.mesh.getObjectByName('torso');
-            if (torso) {
-                torso.rotation.z = Math.sin(dancePhase * 1.8) * 0.1;
-                torso.rotation.x = Math.sin(dancePhase * 0.7) * 0.05;
-            }
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.resetToIdlePose(avatar);
-            }
-        };
-        
-        requestAnimationFrame(animate);
-    },
-    
-    resetToIdlePose: function(avatar) {
-        // Smoothly return to idle pose
-        const duration = 1000;
-        const startTime = Date.now();
+        this.setWalking(avatarId, true);
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            const easeProgress = this.easeOutCubic(progress);
             
-            // Reset all parts to neutral positions
-            const parts = [
-                'leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm',
-                'leftHand', 'rightHand', 'head', 'torso'
-            ];
+            // Interpolate position
+            avatar.group.position.lerpVectors(startPosition, targetPosition, progress);
             
-            parts.forEach(partName => {
-                const part = avatar.mesh.getObjectByName(partName);
-                if (part) {
-                    // Interpolate back to neutral pose
-                    if (partName === 'leftUpperArm') {
-                        part.rotation.x = this.lerp(part.rotation.x, 0.05, easeProgress);
-                        part.rotation.z = this.lerp(part.rotation.z, 0.1, easeProgress);
-                    } else if (partName === 'rightUpperArm') {
-                        part.rotation.x = this.lerp(part.rotation.x, 0.05, easeProgress);
-                        part.rotation.z = this.lerp(part.rotation.z, -0.1, easeProgress);
-                    } else {
-                        part.rotation.x = this.lerp(part.rotation.x, 0, easeProgress);
-                        part.rotation.y = this.lerp(part.rotation.y, 0, easeProgress);
-                        part.rotation.z = this.lerp(part.rotation.z, 0, easeProgress);
-                    }
-                }
-            });
-            
-            // Reset group transformations
-            avatar.group.rotation.y = this.lerp(avatar.group.rotation.y, 0, easeProgress);
-            avatar.group.rotation.z = this.lerp(avatar.group.rotation.z, 0, easeProgress);
-            avatar.group.position.y = this.lerp(avatar.group.position.y, 0, easeProgress);
+            // Interpolate rotation
+            avatar.group.rotation.y = this.lerpAngle(
+                avatar.group.rotation.y,
+                targetRotation,
+                progress
+            );
             
             if (progress < 1) {
                 requestAnimationFrame(animate);
+            } else {
+                this.setWalking(avatarId, false);
+                avatar.position = avatar.group.position.clone();
             }
         };
         
         requestAnimationFrame(animate);
     },
     
-    // Utility functions
-    getRandomChoice: function(categoryName) {
-        const choices = this.customization[categoryName];
+    // Customization methods
+    customizeAvatar: function(avatarId, options) {
+        const avatar = this.avatars.get(avatarId);
+        if (!avatar) return;
+        
+        // Update customization
+        Object.assign(avatar.customization, options);
+        
+        // Rebuild character
+        avatar.group.remove(avatar.mesh);
+        const newMesh = this.createAmongUsCharacter(avatar.customization);
+        avatar.group.add(newMesh);
+        avatar.mesh = newMesh;
+        
+        // Update name label if needed
+        if (options.name || options.nationality) {
+            avatar.group.remove(avatar.nameLabel);
+            const newLabel = this.createNameLabel(
+                avatar.customization.name,
+                avatar.customization.nationality
+            );
+            newLabel.position.y = 1.8;
+            avatar.group.add(newLabel);
+            avatar.nameLabel = newLabel;
+        }
+        
+        // Play customization effect
+        this.playCustomizationEffect(avatar);
+    },
+    
+    playCustomizationEffect: function(avatar) {
+        // Sparkle effect
+        const sparkleCount = 15;
+        const sparkles = [];
+        
+        for (let i = 0; i < sparkleCount; i++) {
+            const sparkleGeometry = new THREE.SphereGeometry(0.02, 4, 4);
+            const sparkleColor = new THREE.Color().setHSL(Math.random(), 1, 0.5);
+            const sparkleMaterial = new THREE.MeshBasicMaterial({
+                color: sparkleColor,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const sparkle = new THREE.Mesh(sparkleGeometry, sparkleMaterial);
+            sparkle.position.copy(avatar.group.position);
+            sparkle.position.x += (Math.random() - 0.5) * 1;
+            sparkle.position.y += Math.random() * 1.5;
+            sparkle.position.z += (Math.random() - 0.5) * 1;
+            
+            sparkles.push(sparkle);
+            
+            if (window.SceneManager) {
+                window.SceneManager.addObject(sparkle);
+            }
+        }
+        
+        // Animate sparkles
+        let sparklePhase = 0;
+        const animateSparkles = () => {
+            sparklePhase += 0.05;
+            
+            sparkles.forEach((sparkle) => {
+                sparkle.position.y += 0.02;
+                sparkle.scale.setScalar(1 - sparklePhase);
+                sparkle.material.opacity = 0.8 - sparklePhase * 0.8;
+                sparkle.rotation.y += 0.1;
+                
+                if (sparklePhase >= 1 && window.SceneManager) {
+                    window.SceneManager.removeObject(sparkle);
+                    sparkle.geometry.dispose();
+                    sparkle.material.dispose();
+                }
+            });
+            
+            if (sparklePhase < 1) {
+                requestAnimationFrame(animateSparkles);
+            }
+        };
+        
+        requestAnimationFrame(animateSparkles);
+    },
+    
+    // Default avatar
+    createDefaultAvatar: function() {
+        if (this.avatars.has('default')) {
+            console.log('🚀 Default Among Us avatar already exists');
+            return this.avatars.get('default');
+        }
+        
+        const defaultAvatar = this.createAvatar('default', {
+            name: window.ROOM_CONFIG?.username || 'You',
+            nationality: window.ROOM_CONFIG?.userNationality || 'UN',
+            position: { x: 0, y: 0, z: 0 },
+            color: this.colors.red,
+            hat: 'none',
+            skin: 'none',
+            pet: 'none',
+            accessory: 'none'
+        });
+        
+        console.log('🚀 Created default Among Us avatar');
+        return defaultAvatar;
+    },
+    
+    // Remote avatar creation
+    createRemoteAvatarSafe: function(userData) {
+        console.log(`🚀 Creating Among Us avatar for: ${userData.username}`);
+        
+        // Prevent creating avatar for current user
+        if (userData.user_id === (window.ROOM_CONFIG?.userId || window.WebSocketManager?.userId)) {
+            console.warn('❌ Attempted to create avatar for current user - skipping');
+            return null;
+        }
+        
+        try {
+            // Generate position based on user ID
+            const hash = userData.user_id.split('').reduce((a, b) => {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a;
+            }, 0);
+            
+            const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+            const radius = 3 + (Math.abs(hash) % 4);
+            
+            const position = userData.position || {
+                x: Math.cos(angle) * radius,
+                y: 0,
+                z: Math.sin(angle) * radius
+            };
+            
+            // Pick random color based on hash
+            const colorKeys = Object.keys(this.colors);
+            const colorIndex = Math.abs(hash) % colorKeys.length;
+            const color = this.colors[colorKeys[colorIndex]];
+            
+            // Create avatar
+            const avatarData = this.createAvatar(userData.user_id, {
+                name: userData.username,
+                nationality: userData.nationality || 'UN',
+                position: position,
+                color: color,
+                hat: Math.random() > 0.7 ? this.getRandomChoice('hats') : 'none',
+                pet: Math.random() > 0.8 ? this.getRandomChoice('pets') : 'none',
+                accessory: Math.random() > 0.8 ? this.getRandomChoice('accessories') : 'none'
+            });
+            
+            return avatarData;
+            
+        } catch (error) {
+            console.error('❌ Error creating Among Us avatar:', error);
+            return null;
+        }
+    },
+    
+    // WebSocket integration
+    integrateWithWebSocket: function() {
+        if (window.WebSocketManager) {
+            console.log('🔗 Integrating Among Us avatar system with WebSocket');
+            
+            // Override WebSocket avatar methods
+            window.WebSocketManager.createRemoteAvatar = (userData) => {
+                return window.AmongUsAvatarSystem.createRemoteAvatarSafe(userData);
+            };
+            
+            window.WebSocketManager.removeRemoteAvatar = (userId) => {
+                return window.AmongUsAvatarSystem.removeAvatar(userId);
+            };
+            
+            console.log('✅ Among Us avatar system integrated');
+        }
+    },
+    
+    // Management methods
+    updateAvatarPosition: function(avatarId, position) {
+        const avatar = this.avatars.get(avatarId);
+        if (avatar && position) {
+            avatar.group.position.set(position.x, position.y, position.z);
+            avatar.position = avatar.group.position.clone();
+            avatar.lastUpdate = Date.now();
+        }
+    },
+    
+    removeAvatar: function(avatarId) {
+        const avatar = this.avatars.get(avatarId);
+        if (avatar) {
+            // Play despawn animation
+            let despawnPhase = 0;
+            const animateDespawn = () => {
+                despawnPhase += 0.05;
+                
+                avatar.group.scale.setScalar(
+                    avatar.customization.scale * (1 - despawnPhase)
+                );
+                avatar.group.rotation.y += 0.2;
+                
+                if (despawnPhase >= 1) {
+                    // Clean up
+                    this.cleanupAvatar(avatar);
+                    
+                    if (window.SceneManager) {
+                        window.SceneManager.removeObject(avatar.group);
+                    }
+                    
+                    this.avatars.delete(avatarId);
+                    console.log(`🚀 Removed Among Us avatar: ${avatarId}`);
+                    
+                    if (window.EventBus) {
+                        window.EventBus.emit('avatar:removed', { avatarId });
+                    }
+                } else {
+                    requestAnimationFrame(animateDespawn);
+                }
+            };
+            
+            requestAnimationFrame(animateDespawn);
+        }
+    },
+    
+    cleanupAvatar: function(avatar) {
+        avatar.group.traverse((child) => {
+            if (child.geometry) {
+                child.geometry.dispose();
+            }
+            if (child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(mat => mat.dispose());
+                } else {
+                    child.material.dispose();
+                }
+            }
+        });
+        
+        if (avatar.nameLabel && avatar.nameLabel.material) {
+            if (avatar.nameLabel.material.map) {
+                avatar.nameLabel.material.map.dispose();
+            }
+            avatar.nameLabel.material.dispose();
+        }
+    },
+    
+    // Utility methods
+    getRandomColor: function() {
+        const colorKeys = Object.keys(this.colors);
+        return this.colors[colorKeys[Math.floor(Math.random() * colorKeys.length)]];
+    },
+    
+    getRandomChoice: function(category) {
+        const choices = this.customization[category];
         return choices[Math.floor(Math.random() * choices.length)];
-    },
-    
-    getBodyTypeModifiers: function(bodyType) {
-        switch(bodyType) {
-            case 'slim':
-                return { torso: 0.85, arms: 0.9, legs: 0.9, hands: 0.95, neck: 0.9 };
-            case 'athletic':
-                return { torso: 1.1, arms: 1.15, legs: 1.1, hands: 1.05, neck: 1.1 };
-            case 'curvy':
-                return { torso: 1.2, arms: 1.05, legs: 1.15, hands: 1.0, neck: 1.0 };
-            default: // average
-                return { torso: 1.0, arms: 1.0, legs: 1.0, hands: 1.0, neck: 1.0 };
-        }
-    },
-    
-    getHeightMultiplier: function(height) {
-        switch(height) {
-            case 'short': return 0.85;
-            case 'tall': return 1.15;
-            default: return 1.0; // average
-        }
-    },
-    
-    darkenColor: function(color, factor) {
-        const hex = color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
-        
-        const newR = Math.floor(r * (1 - factor));
-        const newG = Math.floor(g * (1 - factor));
-        const newB = Math.floor(b * (1 - factor));
-        
-        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
-    },
-    
-    lerp: function(a, b, t) {
-        return a + (b - a) * t;
-    },
-    
-    easeOutCubic: function(t) {
-        return 1 - Math.pow(1 - t, 3);
     },
     
     easeOutBounce: function(t) {
@@ -1594,6 +1423,12 @@ window.AvatarSystem = {
         } else {
             return 7.5625 * (t -= 2.625 / 2.75) * t + 0.984375;
         }
+    },
+    
+    lerpAngle: function(a, b, t) {
+        const difference = b - a;
+        const wrapped = ((difference + Math.PI) % (Math.PI * 2)) - Math.PI;
+        return a + wrapped * t;
     },
     
     roundRect: function(ctx, x, y, width, height, radius) {
@@ -1610,461 +1445,20 @@ window.AvatarSystem = {
         ctx.closePath();
     },
     
-    storeBoneReferences: function(avatarData) {
-        // Store references to important bones/parts for easier animation
-        const mesh = avatarData.mesh;
-        const bones = avatarData.bones;
+    updateAnimations: function() {
+        const delta = this.clock.getDelta();
         
-        const boneNames = [
-            'head', 'neck', 'torso',
-            'leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm',
-            'leftHand', 'rightHand', 'leftUpperLeg', 'rightUpperLeg',
-            'leftLowerLeg', 'rightLowerLeg', 'leftShoe', 'rightShoe'
-        ];
-        
-        boneNames.forEach(boneName => {
-            const bone = mesh.getObjectByName(boneName);
-            if (bone) {
-                bones.set(boneName, bone);
-            }
+        // Update any specific animations
+        this.animationMixers.forEach(mixer => {
+            mixer.update(delta);
         });
     },
     
-    // Enhanced customization methods
-    customizeAvatar: function(avatarId, options) {
-        const avatar = this.avatars.get(avatarId);
-        if (!avatar) {
-            console.warn(`Avatar ${avatarId} not found for customization`);
-            return;
-        }
-        
-        // Update customization options
-        Object.assign(avatar.customization, options);
-        
-        // Remove old avatar mesh
-        avatar.group.remove(avatar.mesh);
-        
-        // Create new avatar with updated options
-        const newMesh = this.createEnhancedHuman(avatar.customization);
-        avatar.group.add(newMesh);
-        avatar.mesh = newMesh;
-        
-        // Update bone references
-        avatar.bones.clear();
-        this.storeBoneReferences(avatar);
-        
-        // Update emotion if specified
-        if (options.emotion) {
-            avatar.emotion = options.emotion;
-        }
-        
-        // Update scale if height changed
-        if (options.height) {
-            const heightMultiplier = this.getHeightMultiplier(options.height);
-            avatar.scale = avatar.customization.scale * heightMultiplier;
-            avatar.group.scale.setScalar(avatar.scale);
-        }
-        
-        // Update name label if name or nationality changed
-        if (options.name || options.nationality) {
-            avatar.group.remove(avatar.nameLabel);
-            const newNameLabel = this.createNameLabelWithFlag(
-                avatar.customization.name, 
-                avatar.customization.nationality
-            );
-            newNameLabel.position.y = 2.8;
-            avatar.group.add(newNameLabel);
-            avatar.nameLabel = newNameLabel;
-        }
-        
-        console.log(`👤 Customized enhanced avatar: ${avatarId}`, options);
-        
-        // Add customization effect
-        this.playCustomizationEffect(avatar);
-        
-        // Emit event
-        if (window.EventBus) {
-            window.EventBus.emit('avatar:customized', { avatar, options });
-        }
+    generateId: function() {
+        return Math.random().toString(36).substr(2, 9);
     },
     
-    playCustomizationEffect: function(avatar) {
-        // Enhanced sparkle effect during customization
-        const sparkleCount = 25;
-        const sparkles = [];
-        
-        for (let i = 0; i < sparkleCount; i++) {
-            const sparkleGeometry = new THREE.SphereGeometry(0.01 + Math.random() * 0.01, 6, 6);
-            const sparkleMaterial = new THREE.MeshBasicMaterial({
-                color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6),
-                transparent: true,
-                opacity: 0.9
-            });
-            
-            const sparkle = new THREE.Mesh(sparkleGeometry, sparkleMaterial);
-            
-            sparkle.position.set(
-                avatar.group.position.x + (Math.random() - 0.5) * 3,
-                avatar.group.position.y + Math.random() * 2.5,
-                avatar.group.position.z + (Math.random() - 0.5) * 3
-            );
-            
-            sparkle.velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 0.02,
-                0.02 + Math.random() * 0.02,
-                (Math.random() - 0.5) * 0.02
-            );
-            
-            sparkles.push(sparkle);
-            
-            if (window.SceneManager) {
-                window.SceneManager.addObject(sparkle);
-            }
-        }
-        
-        // Animate sparkles
-        let sparklePhase = 0;
-        const animateSparkles = () => {
-            sparklePhase += 0.04;
-            
-            sparkles.forEach((sparkle, index) => {
-                if (sparkle.parent) {
-                    sparkle.position.add(sparkle.velocity);
-                    sparkle.material.opacity = 0.9 - sparklePhase;
-                    sparkle.rotation.y += 0.1;
-                    sparkle.rotation.x += 0.15;
-                    sparkle.scale.setScalar(1 + sparklePhase * 0.8);
-                    
-                    // Add slight gravity
-                    sparkle.velocity.y -= 0.001;
-                    
-                    if (sparklePhase > 0.9) {
-                        if (window.SceneManager) {
-                            window.SceneManager.removeObject(sparkle);
-                        }
-                        sparkle.geometry.dispose();
-                        sparkle.material.dispose();
-                    }
-                }
-            });
-            
-            if (sparklePhase < 0.9) {
-                requestAnimationFrame(animateSparkles);
-            }
-        };
-        
-        requestAnimationFrame(animateSparkles);
-        
-        // Add energy wave effect
-        this.createEnergyWave(avatar);
-    },
-    
-    createEnergyWave: function(avatar) {
-        const waveGeometry = new THREE.RingGeometry(0.1, 0.2, 32);
-        const waveMaterial = new THREE.MeshBasicMaterial({
-            color: 0x4CAF50,
-            transparent: true,
-            opacity: 0.6,
-            side: THREE.DoubleSide
-        });
-        
-        const wave = new THREE.Mesh(waveGeometry, waveMaterial);
-        wave.position.copy(avatar.group.position);
-        wave.rotation.x = -Math.PI / 2;
-        
-        if (window.SceneManager) {
-            window.SceneManager.addObject(wave);
-        }
-        
-        // Animate wave
-        let wavePhase = 0;
-        const animateWave = () => {
-            wavePhase += 0.08;
-            
-            const scale = wavePhase * 5;
-            wave.scale.setScalar(scale);
-            wave.material.opacity = 0.6 - (wavePhase * 0.6);
-            
-            if (wavePhase < 1) {
-                requestAnimationFrame(animateWave);
-            } else {
-                if (window.SceneManager) {
-                    window.SceneManager.removeObject(wave);
-                }
-                wave.geometry.dispose();
-                wave.material.dispose();
-            }
-        };
-        
-        requestAnimationFrame(animateWave);
-    },
-    
-    // Default avatar creation
-    createDefaultAvatar: function() {
-        if (this.avatars.has('default')) {
-            console.log('👤 Enhanced default avatar already exists');
-            return this.avatars.get('default');
-        }
-        
-        const defaultAvatar = this.createAvatar('default', {
-            name: window.ROOM_CONFIG?.username || 'You',
-            nationality: window.ROOM_CONFIG?.userNationality || 'UN',
-            position: { x: 0, y: 0, z: 0 },
-            hairStyle: 'short_clean',
-            hairColor: '#8B4513',
-            shirtStyle: 't_shirt',
-            shirtColor: '#4169E1',
-            pantsStyle: 'jeans',
-            pantsColor: '#000080',
-            shoeStyle: 'sneakers',
-            shoeColor: '#654321',
-            skinTone: '#FDBCB4',
-            eyeColor: '#654321',
-            emotion: 'happy',
-            accessory: 'none',
-            bodyType: 'average',
-            height: 'average'
-        });
-        
-        console.log('👤 Created enhanced realistic default avatar successfully');
-        return defaultAvatar;
-    },
-    
-    // Position and management methods
-    updateAvatarPosition: function(avatarId, position) {
-        const avatar = this.avatars.get(avatarId);
-        if (avatar && position) {
-            avatar.group.position.set(position.x, position.y, position.z);
-            avatar.position = avatar.group.position.clone();
-            avatar.lastUpdate = Date.now();
-        }
-    },
-    
-    getAvatarPosition: function(avatarId) {
-        const avatar = this.avatars.get(avatarId);
-        return avatar ? avatar.group.position.clone() : null;
-    },
-    
-    removeAvatar: function(avatarId) {
-        const avatar = this.avatars.get(avatarId);
-        if (avatar) {
-            // Clean up resources
-            this.cleanupAvatar(avatar);
-            
-            if (window.SceneManager && window.SceneManager.scene) {
-                window.SceneManager.removeObject(avatar.group);
-            }
-            this.avatars.delete(avatarId);
-            console.log(`👤 Removed enhanced avatar: ${avatarId}`);
-            
-            // Emit event
-            if (window.EventBus) {
-                window.EventBus.emit('avatar:removed', { avatarId });
-            }
-        }
-    },
-    
-    cleanupAvatar: function(avatar) {
-        // Dispose of all geometries and materials
-        avatar.group.traverse((child) => {
-            if (child.geometry) {
-                child.geometry.dispose();
-            }
-            if (child.material) {
-                if (Array.isArray(child.material)) {
-                    child.material.forEach(material => material.dispose());
-                } else {
-                    child.material.dispose();
-                }
-            }
-        });
-        
-        // Clean up particle effect
-        if (avatar.particleEffect) {
-            avatar.particleEffect.geometry.dispose();
-            avatar.particleEffect.material.dispose();
-        }
-        
-        // Clean up name label
-        if (avatar.nameLabel && avatar.nameLabel.material) {
-            if (avatar.nameLabel.material.map) {
-                avatar.nameLabel.material.map.dispose();
-            }
-            avatar.nameLabel.material.dispose();
-        }
-    },
-    
-    // Get random customization for variety
-    getRandomCustomization: function() {
-        return {
-            hairStyle: this.getRandomChoice('hairStyles'),
-            hairColor: this.getRandomChoice('hairColors'),
-            skinTone: this.getRandomChoice('skinTones'),
-            shirtStyle: this.getRandomChoice('shirtStyles'),
-            shirtColor: this.getRandomChoice('shirtColors'),
-            pantsStyle: this.getRandomChoice('pantsStyles'),
-            pantsColor: this.getRandomChoice('pantsColors'),
-            shoeStyle: this.getRandomChoice('shoeStyles'),
-            shoeColor: this.getRandomChoice('shoeColors'),
-            eyeColor: this.getRandomChoice('eyeColors'),
-            emotion: this.getRandomChoice('emotions'),
-            accessory: this.getRandomChoice('accessories'),
-            bodyType: this.getRandomChoice('bodyTypes'),
-            height: this.getRandomChoice('heights')
-        };
-    },
-    
-    // WebSocket Integration Methods
-    integrateWithWebSocket: function() {
-        if (window.WebSocketManager) {
-            console.log('🔗 Integrating enhanced avatar system with WebSocket');
-            
-            // Override the WebSocket createRemoteAvatar method
-            const originalCreateRemoteAvatar = window.WebSocketManager.createRemoteAvatar;
-            
-            window.WebSocketManager.createRemoteAvatar = (userData) => {
-                console.log(`🔄 Using enhanced avatar creation for ${userData.username}`);
-                
-                // Use our enhanced creation method
-                return window.AvatarSystem.createRemoteAvatarSafe(userData);
-            };
-            
-            // Override the remove method too
-            const originalRemoveRemoteAvatar = window.WebSocketManager.removeRemoteAvatar;
-            
-            window.WebSocketManager.removeRemoteAvatar = (userId) => {
-                console.log(`🗑️ Using enhanced avatar removal for ${userId}`);
-                return window.AvatarSystem.removeAvatar(userId);
-            };
-            
-            console.log('✅ Enhanced avatar system integrated with WebSocket');
-        }
-    },
-    
-    // Safe avatar creation with error handling for remote avatars
-    createRemoteAvatarSafe: function(userData) {
-        console.log(`👤 Creating safe remote avatar for: ${userData.username} (${userData.user_id}) from ${userData.nationality || 'UN'}`);
-        
-        // Double-check we're not creating avatar for current user
-        if (userData.user_id === (window.ROOM_CONFIG?.userId || window.WebSocketManager?.userId)) {
-            console.warn(`❌ Attempted to create avatar for current user - skipping`);
-            return null;
-        }
-        
-        try {
-            // Generate consistent position
-            const hash = userData.user_id.split('').reduce((a, b) => {
-                a = ((a << 5) - a) + b.charCodeAt(0);
-                return a & a;
-            }, 0);
-            
-            const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-            const radius = 3 + (Math.abs(hash) % 4);
-            
-            const position = {
-                x: Math.cos(angle) * radius,
-                y: 0,
-                z: Math.sin(angle) * radius
-            };
-            
-            // Use existing position if available
-            if (userData.position) {
-                position.x = userData.position.x;
-                position.y = userData.position.y;
-                position.z = userData.position.z;
-            }
-            
-            // Create avatar using enhanced system with nationality
-            const avatarData = this.createAvatar(userData.user_id, {
-                name: userData.username,
-                nationality: userData.nationality || 'UN',
-                position: position,
-                // Add random customization for variety
-                ...this.getRandomCustomization()
-            });
-            
-            if (avatarData) {
-                console.log(`✅ Created enhanced avatar for ${userData.username}`);
-                return avatarData;
-            }
-            
-        } catch (error) {
-            console.error(`❌ Error creating enhanced avatar:`, error);
-            return this.createFallbackAvatar(userData.user_id, {
-                name: userData.username,
-                nationality: userData.nationality,
-                position: userData.position
-            });
-        }
-        
-        return null;
-    },
-    
-    // Fallback avatar for when main creation fails
-    createFallbackAvatar: function(userId, options = {}) {
-        console.log(`🔄 Creating fallback avatar for ${userId}`);
-        
-        try {
-            // Create simple but recognizable avatar
-            const group = new THREE.Group();
-            
-            // Simple humanoid shape
-            const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xFFCBA4 });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 1.7;
-            group.add(head);
-            
-            const bodyGeometry = new THREE.BoxGeometry(0.4, 0.8, 0.2);
-            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x4169E1 });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 1.0;
-            group.add(body);
-            
-            // Simple position
-            const position = options.position || { 
-                x: (Math.random() - 0.5) * 10, 
-                y: 0, 
-                z: (Math.random() - 0.5) * 10 
-            };
-            group.position.set(position.x, position.y, position.z);
-            
-            // Add simple name label
-            const nameLabel = this.createNameLabelWithFlag(
-                options.name || userId, 
-                options.nationality || 'UN'
-            );
-            nameLabel.position.y = 2.2;
-            group.add(nameLabel);
-            
-            // Add to scene
-            if (window.SceneManager && window.SceneManager.scene) {
-                window.SceneManager.addObject(group);
-            }
-            
-            // Store minimal data
-            const avatarData = {
-                id: userId,
-                group: group,
-                mesh: body,
-                nameLabel: nameLabel,
-                position: group.position.clone(),
-                isFallback: true,
-                customization: { ...options }
-            };
-            
-            this.avatars.set(userId, avatarData);
-            
-            console.log(`✅ Fallback avatar created for ${userId}`);
-            return avatarData;
-            
-        } catch (error) {
-            console.error(`❌ Even fallback avatar creation failed:`, error);
-            return null;
-        }
-    },
-    
-    // Public API methods
+    // Public API
     getAvatar: function(avatarId) {
         return this.avatars.get(avatarId);
     },
@@ -2077,57 +1471,227 @@ window.AvatarSystem = {
         return this.avatars.size;
     },
     
-    updateAnimations: function() {
-        const delta = this.clock.getDelta();
-        
-        // Update any animation mixers if we add skeletal animation later
-        this.animationMixers.forEach(mixer => {
-            mixer.update(delta);
-        });
-        
-        // Update particle effects
-        this.avatars.forEach(avatar => {
-            if (avatar.particleEffect) {
-                const positions = avatar.particleEffect.geometry.attributes.position;
-                if (positions) {
-                    positions.needsUpdate = true;
+    // Emergency meeting animation
+    playEmergencyMeetingAnimation: function() {
+        // Flash red lights
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+            this.avatars.forEach(avatar => {
+                if (avatar.mesh) {
+                    const body = avatar.mesh.getObjectByName('body');
+                    if (body) {
+                        body.material.emissive = flashCount % 2 === 0 ? 
+                            new THREE.Color(0xFF0000) : new THREE.Color(0x000000);
+                        body.material.emissiveIntensity = 0.5;
+                    }
                 }
+            });
+            
+            flashCount++;
+            if (flashCount > 6) {
+                clearInterval(flashInterval);
+                // Reset emissive
+                this.avatars.forEach(avatar => {
+                    if (avatar.mesh) {
+                        const body = avatar.mesh.getObjectByName('body');
+                        if (body) {
+                            body.material.emissive = new THREE.Color(0x000000);
+                            body.material.emissiveIntensity = 0;
+                        }
+                    }
+                });
             }
-        });
+        }, 200);
     },
     
-    generateId: function() {
-        return Math.random().toString(36).substr(2, 9);
+    // Voting animation
+    playVoteAnimation: function(voterId, targetId) {
+        const voter = this.avatars.get(voterId);
+        if (!voter) return;
+        
+        // Create vote indicator
+        const voteGeometry = new THREE.BoxGeometry(0.3, 0.4, 0.02);
+        const voteMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xFFFFFF,
+            side: THREE.DoubleSide
+        });
+        
+        const vote = new THREE.Mesh(voteGeometry, voteMaterial);
+        vote.position.copy(voter.group.position);
+        vote.position.y = 1;
+        
+        // Add "I VOTED" text representation
+        const textGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.01);
+        const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const text = new THREE.Mesh(textGeometry, textMaterial);
+        text.position.z = 0.02;
+        vote.add(text);
+        
+        if (window.SceneManager) {
+            window.SceneManager.addObject(vote);
+        }
+        
+        // Animate vote flying up
+        let votePhase = 0;
+        const animateVote = () => {
+            votePhase += 0.05;
+            
+            vote.position.y = 1 + votePhase * 2;
+            vote.material.opacity = 1 - votePhase;
+            vote.rotation.y += 0.1;
+            
+            if (votePhase >= 1) {
+                if (window.SceneManager) {
+                    window.SceneManager.removeObject(vote);
+                }
+                vote.geometry.dispose();
+                vote.material.dispose();
+            } else {
+                requestAnimationFrame(animateVote);
+            }
+        };
+        
+        requestAnimationFrame(animateVote);
+    },
+    
+    // Eject animation
+    playEjectAnimation: function(avatarId, wasImpostor) {
+        const avatar = this.avatars.get(avatarId);
+        if (!avatar) return;
+        
+        const originalPosition = avatar.group.position.clone();
+        
+        // Spinning eject animation
+        let ejectPhase = 0;
+        const animateEject = () => {
+            ejectPhase += 0.02;
+            
+            // Spin and fly away
+            avatar.group.rotation.z += 0.2;
+            avatar.group.rotation.y += 0.3;
+            avatar.group.position.x = originalPosition.x + ejectPhase * 10;
+            avatar.group.position.y = originalPosition.y + Math.sin(ejectPhase * 3) * 2;
+            avatar.group.scale.setScalar(avatar.customization.scale * (1 - ejectPhase * 0.5));
+            
+            if (ejectPhase >= 1) {
+                // Show result text
+                this.showEjectResult(avatarId, wasImpostor);
+                
+                // Remove avatar
+                setTimeout(() => {
+                    this.removeAvatar(avatarId);
+                }, 2000);
+            } else {
+                requestAnimationFrame(animateEject);
+            }
+        };
+        
+        requestAnimationFrame(animateEject);
+    },
+    
+    showEjectResult: function(avatarId, wasImpostor) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 512;
+        canvas.height = 128;
+        
+        // Background
+        context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Text
+        context.font = 'bold 24px Arial';
+        context.textAlign = 'center';
+        context.fillStyle = 'white';
+        
+        const avatar = this.avatars.get(avatarId);
+        const name = avatar ? avatar.customization.name : 'Unknown';
+        
+        context.fillText(
+            `${name} was ${wasImpostor ? '' : 'not '}The Impostor`,
+            canvas.width / 2,
+            canvas.height / 2
+        );
+        
+        // Remaining impostors text
+        if (wasImpostor) {
+            context.font = '18px Arial';
+            context.fillText(
+                '0 Impostors remain',
+                canvas.width / 2,
+                canvas.height / 2 + 30
+            );
+        }
+        
+        // Create sprite
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ 
+            map: texture,
+            transparent: true
+        });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(8, 2, 1);
+        sprite.position.set(0, 3, 0);
+        
+        if (window.SceneManager) {
+            window.SceneManager.addObject(sprite);
+        }
+        
+        // Remove after delay
+        setTimeout(() => {
+            if (window.SceneManager) {
+                window.SceneManager.removeObject(sprite);
+            }
+            texture.dispose();
+            material.dispose();
+        }, 3000);
     }
 };
 
-// Auto-integration when WebSocket becomes available
+// Auto-integration with existing systems
 if (typeof window !== 'undefined') {
+    // Replace the old avatar system
+    if (window.AvatarSystem) {
+        console.log('🔄 Replacing old avatar system with Among Us avatars');
+        
+        // Clear old avatars
+        if (window.AvatarSystem.avatars) {
+            window.AvatarSystem.avatars.forEach(avatar => {
+                if (avatar.group && window.SceneManager) {
+                    window.SceneManager.removeObject(avatar.group);
+                }
+            });
+        }
+        
+        // Replace with Among Us system
+        window.AvatarSystem = window.AmongUsAvatarSystem;
+    }
+    
     // Try immediate integration
     if (window.WebSocketManager) {
-        window.AvatarSystem.integrateWithWebSocket();
+        window.AmongUsAvatarSystem.integrateWithWebSocket();
     }
     
     // Also listen for when WebSocket becomes available
     const checkWebSocket = () => {
-        if (window.WebSocketManager && !window.AvatarSystem._webSocketIntegrated) {
-            window.AvatarSystem.integrateWithWebSocket();
-            window.AvatarSystem._webSocketIntegrated = true;
+        if (window.WebSocketManager && !window.AmongUsAvatarSystem._webSocketIntegrated) {
+            window.AmongUsAvatarSystem.integrateWithWebSocket();
+            window.AmongUsAvatarSystem._webSocketIntegrated = true;
         }
     };
     
-    // Check periodically for WebSocket availability
+    // Check periodically
     const integrationInterval = setInterval(() => {
         checkWebSocket();
-        if (window.AvatarSystem._webSocketIntegrated) {
+        if (window.AmongUsAvatarSystem._webSocketIntegrated) {
             clearInterval(integrationInterval);
         }
     }, 1000);
     
-    // Stop checking after 30 seconds
+    // Stop after 30 seconds
     setTimeout(() => {
         clearInterval(integrationInterval);
     }, 30000);
 }
 
-console.log('✅ Enhanced Avatar System v2.2 - COMPLETE loaded with all missing methods implemented');
+console.log('✅ Among Us Avatar System loaded and ready!');

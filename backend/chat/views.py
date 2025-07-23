@@ -3046,7 +3046,7 @@ def call_grok_api(message, conversation_history=None):
         # Add system message to set context
         messages.append({
             "role": "system",
-            "content": """You are Grok, a helpful AI assistant in Euphorie 3D, a virtual social platform.
+            "content": """You are Euphorie, a helpful AI assistant in Euphorie 3D, a virtual social platform.
 
             Be direct and helpful when answering questions. If users ask about current events or news:
             - Provide what information you know, but mention your knowledge cutoff date
