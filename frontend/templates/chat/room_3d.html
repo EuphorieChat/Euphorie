@@ -5743,7 +5743,14 @@
                 
                 // Avatar
                 window.customizeAvatar = () => this.executeWithFallback(
-                    () => this.loader.getModuleObject('room-core')?.showAvatarCustomizationPanel?.(),
+                    () => {
+                        // Use the new Among Us customization
+                        if (this.loader.getModuleObject('avatar-system')?.showCustomizationPanel) {
+                            this.loader.getModuleObject('avatar-system').showCustomizationPanel();
+                        } else {
+                            this.loader.getModuleObject('room-core')?.showAvatarCustomizationPanel?.();
+                        }
+                    },
                     'Avatar customization',
                     '👤 Avatar customization loading...'
                 );

@@ -1562,7 +1562,250 @@ window.AmongUsAvatarSystem = {
         return this.avatars.size;
     },
     
-    // Emergency meeting animation
+    // Compatibility methods for room-core.js
+    getRandomCustomization: function() {
+        return {
+            color: this.getRandomColor(),
+            hat: this.getRandomChoice('hats'),
+            skin: this.getRandomChoice('skins'),
+            pet: this.getRandomChoice('pets'),
+            accessory: this.getRandomChoice('accessories')
+        };
+    },
+    
+    // Get avatar by name for friend system
+    getAvatarByName: function(name) {
+        for (const [id, avatar] of this.avatars) {
+            if (avatar.customization.name === name) {
+                return avatar;
+            }
+        }
+        return null;
+    },
+    
+    // Check if system is ready
+    isReady: function() {
+        return this.isInitialized && window.SceneManager && window.SceneManager.scene;
+    },
+    
+    // Customization UI
+    showCustomizationPanel: function() {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+        
+        const panel = document.createElement('div');
+        panel.style.cssText = `
+            background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            color: white;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            max-height: 80vh;
+            overflow-y: auto;
+        `;
+        
+        const currentAvatar = this.getAvatar('default') || this.avatars.values().next().value;
+        const currentCustom = currentAvatar ? currentAvatar.customization : {};
+        
+        panel.innerHTML = `
+            <h2 style="margin-top: 0; color: #FF6B35;">🎮 Customize Your Among Us Avatar</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4CAF50;">Color</h3>
+                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
+                    ${Object.entries(this.colors).map(([name, color]) => `
+                        <button class="color-btn" data-color="${name}" style="
+                            background: ${color};
+                            border: ${currentCustom.color === color ? '3px solid white' : '1px solid #666'};
+                            width: 60px;
+                            height: 40px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        " title="${name}"></button>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4CAF50;">Hat</h3>
+                <select id="hat-select" style="
+                    width: 100%;
+                    padding: 10px;
+                    border-radius: 8px;
+                    border: 1px solid #666;
+                    background: #333;
+                    color: white;
+                    font-size: 14px;
+                ">
+                    ${this.customization.hats.map(hat => `
+                        <option value="${hat}" ${currentCustom.hat === hat ? 'selected' : ''}>
+                            ${hat.charAt(0).toUpperCase() + hat.slice(1)}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4CAF50;">Pet</h3>
+                <select id="pet-select" style="
+                    width: 100%;
+                    padding: 10px;
+                    border-radius: 8px;
+                    border: 1px solid #666;
+                    background: #333;
+                    color: white;
+                    font-size: 14px;
+                ">
+                    ${this.customization.pets.map(pet => `
+                        <option value="${pet}" ${currentCustom.pet === pet ? 'selected' : ''}>
+                            ${pet.charAt(0).toUpperCase() + pet.slice(1).replace('_', ' ')}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4CAF50;">Accessory</h3>
+                <select id="accessory-select" style="
+                    width: 100%;
+                    padding: 10px;
+                    border-radius: 8px;
+                    border: 1px solid #666;
+                    background: #333;
+                    color: white;
+                    font-size: 14px;
+                ">
+                    ${this.customization.accessories.map(acc => `
+                        <option value="${acc}" ${currentCustom.accessory === acc ? 'selected' : ''}>
+                            ${acc.charAt(0).toUpperCase() + acc.slice(1)}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="cancel-custom" style="
+                    padding: 10px 20px;
+                    background: #666;
+                    border: none;
+                    border-radius: 8px;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: all 0.3s ease;
+                ">Cancel</button>
+                <button id="apply-custom" style="
+                    padding: 10px 20px;
+                    background: linear-gradient(135deg, #FF6B35, #ff8a50);
+                    border: none;
+                    border-radius: 8px;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: all 0.3s ease;
+                    font-weight: bold;
+                ">Apply Changes</button>
+            </div>
+        `;
+        
+        modal.appendChild(panel);
+        document.body.appendChild(modal);
+        
+        // Color button handlers
+        panel.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                panel.querySelectorAll('.color-btn').forEach(b => {
+                    b.style.border = '1px solid #666';
+                });
+                btn.style.border = '3px solid white';
+            });
+            
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'scale(1.1)';
+            });
+            
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'scale(1)';
+            });
+        });
+        
+        // Button handlers
+        document.getElementById('cancel-custom').onclick = () => {
+            document.body.removeChild(modal);
+        };
+        
+        document.getElementById('apply-custom').onclick = () => {
+            const selectedColorBtn = panel.querySelector('.color-btn[style*="3px solid white"]');
+            const selectedColorName = selectedColorBtn ? selectedColorBtn.dataset.color : 'red';
+            
+            const customization = {
+                color: this.colors[selectedColorName],
+                hat: document.getElementById('hat-select').value,
+                pet: document.getElementById('pet-select').value,
+                accessory: document.getElementById('accessory-select').value
+            };
+            
+            // Apply to default avatar or first available
+            const avatarId = currentAvatar ? currentAvatar.id : 'default';
+            this.customizeAvatar(avatarId, customization);
+            
+            document.body.removeChild(modal);
+            
+            // Show success notification
+            this.showNotification('🎨 Avatar customized!');
+        };
+        
+        // Close on background click
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
+    },
+    
+    showNotification: function(message) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #FF6B35, #ff8a50);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            z-index: 10001;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 10);
+        
+        setTimeout(() => {
+            notification.style.transform = 'translateX(400px)';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    },
     playEmergencyMeetingAnimation: function() {
         // Flash red lights
         let flashCount = 0;
