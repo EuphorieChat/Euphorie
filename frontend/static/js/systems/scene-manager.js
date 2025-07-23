@@ -1,6 +1,7 @@
 // Enhanced 3D Scene Manager - Advanced Graphics with Post-Processing
 // FIXED: Completely resolved all scale issues that were causing chat bubble warnings
 // Integrated with Advanced Scene System and Avatar System
+// NEW: Added double-tap to reset zoom for mobile devices
 
 window.SceneManager = {
     scene: null,
@@ -10,6 +11,13 @@ window.SceneManager = {
     isInitialized: false,
     currentPreset: 'modern_office',
     composer: null,
+    
+    // Camera control state
+    cameraControls: {
+        angle: 0,
+        height: 5,
+        distance: 10
+    },
     
     // Enhanced post-processing effects
     postProcessing: {
@@ -27,6 +35,256 @@ window.SceneManager = {
         pointLights: [],
         spotLights: [],
         rimLights: []
+    },
+    
+    // Double-tap zoom reset feature for mobile
+    doubleTapZoom: {
+        isEnabled: true,
+        lastTapTime: 0,
+        tapTimeout: null,
+        tapDelay: 300,
+        feedbackElement: null,
+        zoomIndicator: null,
+        
+        init: function() {
+            // Only initialize on mobile devices
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                            window.innerWidth <= 768;
+            
+            if (!isMobile || !window.SceneManager.container) return;
+            
+            console.log('📱 Initializing double-tap zoom reset for mobile...');
+            
+            // Create feedback elements
+            this.createFeedbackElements();
+            
+            // Add touch event listener
+            window.SceneManager.container.addEventListener('touchend', this.handleTouch.bind(this), { passive: false });
+            
+            // Load settings
+            this.loadSettings();
+            
+            console.log('✅ Double-tap zoom reset initialized');
+        },
+        
+        handleTouch: function(event) {
+            if (!this.isEnabled) return;
+            
+            // Only handle single finger touches
+            if (event.changedTouches.length !== 1) return;
+            
+            const currentTime = Date.now();
+            const tapInterval = currentTime - this.lastTapTime;
+            
+            // Clear any existing timeout
+            if (this.tapTimeout) {
+                clearTimeout(this.tapTimeout);
+                this.tapTimeout = null;
+            }
+            
+            if (tapInterval < this.tapDelay && tapInterval > 50) {
+                // Double tap detected!
+                this.handleDoubleTap(event);
+                this.lastTapTime = 0; // Reset to prevent triple tap
+            } else {
+                // First tap
+                this.lastTapTime = currentTime;
+                
+                // Set timeout to reset tap tracking
+                this.tapTimeout = setTimeout(() => {
+                    this.lastTapTime = 0;
+                }, this.tapDelay);
+            }
+        },
+        
+        handleDoubleTap: function(event) {
+            event.preventDefault();
+            
+            console.log('👆👆 Double tap detected - resetting zoom');
+            
+            // Show visual feedback
+            this.showFeedback(event.changedTouches[0]);
+            
+            // Reset zoom and camera position
+            this.resetZoom();
+            
+            // Haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        },
+        
+        resetZoom: function() {
+            const camera = window.SceneManager.camera;
+            if (!camera) {
+                console.warn('Camera not found for zoom reset');
+                return;
+            }
+            
+            // Get current preset for default position
+            const currentPreset = window.SceneManager.presets[window.SceneManager.currentPreset];
+            if (!currentPreset) return;
+            
+            // Animate the zoom reset
+            this.animateZoomReset(
+                camera,
+                currentPreset.cameraPosition,
+                75 // Default FOV
+            );
+        },
+        
+        animateZoomReset: function(camera, targetPosition, targetFov) {
+            const startTime = Date.now();
+            const duration = 500; // milliseconds
+            
+            // Store initial values
+            const startPos = camera.position.clone();
+            const startFov = camera.fov || 75;
+            
+            // Target values
+            const targetX = targetPosition.x;
+            const targetY = targetPosition.y;
+            const targetZ = targetPosition.z;
+            
+            // Reset camera control state
+            window.SceneManager.cameraControls.angle = 0;
+            window.SceneManager.cameraControls.height = targetY;
+            window.SceneManager.cameraControls.distance = Math.sqrt(targetX * targetX + targetZ * targetZ);
+            
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Easing function (ease-out cubic)
+                const eased = 1 - Math.pow(1 - progress, 3);
+                
+                // Update camera position
+                camera.position.x = startPos.x + (targetX - startPos.x) * eased;
+                camera.position.y = startPos.y + (targetY - startPos.y) * eased;
+                camera.position.z = startPos.z + (targetZ - startPos.z) * eased;
+                
+                // Update camera FOV
+                if (camera.fov !== undefined) {
+                    camera.fov = startFov + (targetFov - startFov) * eased;
+                    camera.updateProjectionMatrix();
+                }
+                
+                // Look at center
+                camera.lookAt(0, 1, 0);
+                
+                // Continue animation
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    console.log('✅ Zoom reset complete');
+                }
+            };
+            
+            animate();
+        },
+        
+        createFeedbackElements: function() {
+            // Create visual feedback element
+            const feedback = document.createElement('div');
+            feedback.id = 'double-tap-feedback';
+            feedback.style.cssText = `
+                position: fixed;
+                width: 80px;
+                height: 80px;
+                border: 3px solid rgba(102, 126, 234, 0.8);
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 10000;
+                display: none;
+                transform: translate(-50%, -50%) scale(0);
+                transition: none;
+                background: radial-gradient(circle, rgba(102, 126, 234, 0.3), transparent);
+            `;
+            
+            document.body.appendChild(feedback);
+            this.feedbackElement = feedback;
+            
+            // Create zoom indicator
+            const zoomIndicator = document.createElement('div');
+            zoomIndicator.id = 'zoom-reset-indicator';
+            zoomIndicator.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-size: 14px;
+                font-weight: 600;
+                z-index: 10001;
+                display: none;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            `;
+            zoomIndicator.innerHTML = '🔍 Zoom Reset';
+            
+            document.body.appendChild(zoomIndicator);
+            this.zoomIndicator = zoomIndicator;
+        },
+        
+        showFeedback: function(touch) {
+            // Show ripple effect at touch location
+            if (this.feedbackElement) {
+                this.feedbackElement.style.left = touch.clientX + 'px';
+                this.feedbackElement.style.top = touch.clientY + 'px';
+                this.feedbackElement.style.display = 'block';
+                this.feedbackElement.style.transform = 'translate(-50%, -50%) scale(0)';
+                
+                // Trigger animation
+                requestAnimationFrame(() => {
+                    this.feedbackElement.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
+                    this.feedbackElement.style.transform = 'translate(-50%, -50%) scale(2)';
+                    this.feedbackElement.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        this.feedbackElement.style.display = 'none';
+                        this.feedbackElement.style.transition = 'none';
+                        this.feedbackElement.style.opacity = '1';
+                    }, 400);
+                });
+            }
+            
+            // Show zoom indicator
+            if (this.zoomIndicator) {
+                this.zoomIndicator.style.display = 'block';
+                requestAnimationFrame(() => {
+                    this.zoomIndicator.style.opacity = '1';
+                    
+                    setTimeout(() => {
+                        this.zoomIndicator.style.opacity = '0';
+                        setTimeout(() => {
+                            this.zoomIndicator.style.display = 'none';
+                        }, 300);
+                    }, 1000);
+                });
+            }
+        },
+        
+        enable: function() {
+            this.isEnabled = true;
+            localStorage.setItem('doubleTapZoomEnabled', 'true');
+        },
+        
+        disable: function() {
+            this.isEnabled = false;
+            localStorage.setItem('doubleTapZoomEnabled', 'false');
+        },
+        
+        loadSettings: function() {
+            const saved = localStorage.getItem('doubleTapZoomEnabled');
+            if (saved === 'false') {
+                this.isEnabled = false;
+            }
+        }
     },
     
     // Enhanced scene presets with advanced graphics
@@ -258,6 +516,9 @@ window.SceneManager = {
             // Set up camera controls
             this.setupCameraControls();
             
+            // Initialize double-tap zoom for mobile
+            this.doubleTapZoom.init();
+            
             // Start render loop
             this.animate();
             
@@ -367,13 +628,21 @@ window.SceneManager = {
         // Set up enhanced lighting
         this.setupEnhancedLighting(preset.lighting);
         
-        // Set camera position
+        // Set camera position and controls state
         this.camera.position.set(
             preset.cameraPosition.x,
             preset.cameraPosition.y,
             preset.cameraPosition.z
         );
         this.camera.lookAt(0, 1, 0);
+        
+        // Update camera control state
+        this.cameraControls.angle = 0;
+        this.cameraControls.height = preset.cameraPosition.y;
+        this.cameraControls.distance = Math.sqrt(
+            preset.cameraPosition.x * preset.cameraPosition.x + 
+            preset.cameraPosition.z * preset.cameraPosition.z
+        );
         
         // Update ground color
         this.updateGroundColor(preset.groundColor);
@@ -823,9 +1092,6 @@ window.SceneManager = {
         let isMouseDown = false;
         let mouseX = 0;
         let mouseY = 0;
-        let cameraAngle = 0;
-        let cameraHeight = 5;
-        let cameraDistance = 10;
         
         // Enhanced mouse controls with smooth damping
         container.addEventListener('mousedown', (e) => {
@@ -841,11 +1107,15 @@ window.SceneManager = {
             const deltaX = e.clientX - mouseX;
             const deltaY = e.clientY - mouseY;
             
-            cameraAngle += deltaX * 0.008;
-            cameraHeight += deltaY * 0.015;
-            cameraHeight = Math.max(1, Math.min(20, cameraHeight));
+            this.cameraControls.angle += deltaX * 0.008;
+            this.cameraControls.height += deltaY * 0.015;
+            this.cameraControls.height = Math.max(1, Math.min(20, this.cameraControls.height));
             
-            this.updateCameraPosition(cameraAngle, cameraHeight, cameraDistance);
+            this.updateCameraPosition(
+                this.cameraControls.angle, 
+                this.cameraControls.height, 
+                this.cameraControls.distance
+            );
             
             mouseX = e.clientX;
             mouseY = e.clientY;
@@ -868,10 +1138,14 @@ window.SceneManager = {
             const minDistance = 3;
             const maxDistance = 30;
             
-            cameraDistance += (e.deltaY > 0 ? zoomSpeed : -zoomSpeed);
-            cameraDistance = Math.max(minDistance, Math.min(maxDistance, cameraDistance));
+            this.cameraControls.distance += (e.deltaY > 0 ? zoomSpeed : -zoomSpeed);
+            this.cameraControls.distance = Math.max(minDistance, Math.min(maxDistance, this.cameraControls.distance));
             
-            this.updateCameraPosition(cameraAngle, cameraHeight, cameraDistance);
+            this.updateCameraPosition(
+                this.cameraControls.angle, 
+                this.cameraControls.height, 
+                this.cameraControls.distance
+            );
         });
         
         // Enhanced touch controls
@@ -898,11 +1172,15 @@ window.SceneManager = {
                 const deltaX = e.touches[0].clientX - touchStartX;
                 const deltaY = e.touches[0].clientY - touchStartY;
                 
-                cameraAngle += deltaX * 0.008;
-                cameraHeight += deltaY * 0.015;
-                cameraHeight = Math.max(1, Math.min(20, cameraHeight));
+                this.cameraControls.angle += deltaX * 0.008;
+                this.cameraControls.height += deltaY * 0.015;
+                this.cameraControls.height = Math.max(1, Math.min(20, this.cameraControls.height));
                 
-                this.updateCameraPosition(cameraAngle, cameraHeight, cameraDistance);
+                this.updateCameraPosition(
+                    this.cameraControls.angle, 
+                    this.cameraControls.height, 
+                    this.cameraControls.distance
+                );
                 
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
@@ -913,10 +1191,14 @@ window.SceneManager = {
                 );
                 
                 const deltaDistance = (touchStartDistance - currentDistance) * 0.02;
-                cameraDistance += deltaDistance;
-                cameraDistance = Math.max(3, Math.min(30, cameraDistance));
+                this.cameraControls.distance += deltaDistance;
+                this.cameraControls.distance = Math.max(3, Math.min(30, this.cameraControls.distance));
                 
-                this.updateCameraPosition(cameraAngle, cameraHeight, cameraDistance);
+                this.updateCameraPosition(
+                    this.cameraControls.angle, 
+                    this.cameraControls.height, 
+                    this.cameraControls.distance
+                );
                 
                 touchStartDistance = currentDistance;
             }
@@ -1093,6 +1375,11 @@ window.SceneManager = {
     setCameraPosition: function(x, y, z) {
         this.camera.position.set(x, y, z);
         this.camera.lookAt(0, 1, 0);
+        
+        // Update camera control state
+        this.cameraControls.angle = Math.atan2(x, z);
+        this.cameraControls.height = y;
+        this.cameraControls.distance = Math.sqrt(x * x + z * z);
     },
     
     focusOnObject: function(object, distance = 8) {
@@ -1151,6 +1438,17 @@ window.SceneManager = {
         console.log(`🎨 Graphics quality set to: ${level}`);
     },
     
+    // Double-tap zoom utilities
+    toggleDoubleTapZoom: function() {
+        if (this.doubleTapZoom.isEnabled) {
+            this.doubleTapZoom.disable();
+            console.log('❌ Double tap zoom disabled');
+        } else {
+            this.doubleTapZoom.enable();
+            console.log('✅ Double tap zoom enabled');
+        }
+    },
+    
     // Cleanup method
     dispose: function() {
         console.log('🧹 Disposing Scene Manager...');
@@ -1178,6 +1476,14 @@ window.SceneManager = {
         // Clean up post-processing
         if (this.composer) {
             this.composer.dispose();
+        }
+        
+        // Clean up double-tap zoom elements
+        if (this.doubleTapZoom.feedbackElement) {
+            this.doubleTapZoom.feedbackElement.remove();
+        }
+        if (this.doubleTapZoom.zoomIndicator) {
+            this.doubleTapZoom.zoomIndicator.remove();
         }
         
         // Remove event listeners
