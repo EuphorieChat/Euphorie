@@ -506,14 +506,24 @@ class EuphorieScreenSharingSystem {
         this.receivedStreams.set(userId, stream);
         this.streamStartTimes.set(userId, Date.now());
         
+        // Stop any existing processes that might interfere
+        this.stopVideoTextureUpdates();
+        if (this.videoMonitorInterval) {
+            clearInterval(this.videoMonitorInterval);
+            this.videoMonitorInterval = null;
+        }
+        
         // CRITICAL: Create fresh video element for remote stream
         if (this.videoElement) {
+            this.videoElement.pause();
+            this.videoElement.srcObject = null;
             this.videoElement.remove();
             this.videoElement = null;
         }
         
         // Create new video element with proper setup
         this.videoElement = document.createElement('video');
+        this.videoElement.id = 'remote-screen-share-video';
         this.videoElement.style.display = 'none';
         
         // CRITICAL: Set all attributes BEFORE srcObject
@@ -523,28 +533,22 @@ class EuphorieScreenSharingSystem {
         this.videoElement.autoplay = true;
         this.videoElement.muted = true;
         this.videoElement.playsInline = true;
+        
+        // Add to DOM before setting srcObject
         document.body.appendChild(this.videoElement);
         
-        // Add critical event listeners BEFORE setting srcObject
-        let metadataLoaded = false;
-        let videoPlaying = false;
+        // Track video state
+        let videoReady = false;
+        let playAttempted = false;
         
-        this.videoElement.addEventListener('loadedmetadata', async () => {
+        // Add event listeners BEFORE setting srcObject
+        this.videoElement.addEventListener('loadedmetadata', () => {
             console.log('📺 [FIX] Metadata loaded, dimensions:', this.videoElement.videoWidth, 'x', this.videoElement.videoHeight);
-            metadataLoaded = true;
-            
-            // Try to play immediately when metadata loads
-            try {
-                await this.videoElement.play();
-                console.log('✅ [FIX] Video playing after metadata!');
-            } catch (e) {
-                console.error('❌ [FIX] Play failed on metadata:', e);
-            }
+            videoReady = true;
         });
         
         this.videoElement.addEventListener('playing', () => {
             console.log('✅ [FIX] Video is now playing event fired');
-            videoPlaying = true;
             
             // Create or update texture when video starts playing
             if (!this.projectionTexture || this.projectionTexture.image !== this.videoElement) {
@@ -555,6 +559,14 @@ class EuphorieScreenSharingSystem {
             if (this.projectionTexture) {
                 this.projectionTexture.needsUpdate = true;
             }
+            
+            // Start texture updates
+            this.startEnhancedVideoTextureUpdates();
+        });
+        
+        this.videoElement.addEventListener('canplay', () => {
+            console.log('✅ [FIX] Video can play event fired');
+            videoReady = true;
         });
         
         // Handle errors
@@ -567,48 +579,85 @@ class EuphorieScreenSharingSystem {
         this.videoElement.srcObject = stream;
         this.mediaStream = stream;
         
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+            let checkCount = 0;
+            const checkReady = () => {
+                checkCount++;
+                if (videoReady || this.videoElement.readyState >= 2 || checkCount > 50) {
+                    resolve();
+                } else {
+                    setTimeout(checkReady, 100);
+                }
+            };
+            checkReady();
+        });
+        
+        // Try to play the video
         try {
-            // Wait a moment for events to settle
-            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('🎬 [FIX] Attempting to play video...');
+            await this.videoElement.play();
+            console.log('✅ [FIX] Video playing successfully!');
+            playAttempted = true;
             
-            // Force play if not already playing
-            if (!videoPlaying) {
-                console.log('🎬 [FIX] Forcing video play...');
-                await this.videoElement.play();
+        } catch (playError) {
+            console.warn('⚠️ [FIX] Autoplay blocked:', playError.message);
+            
+            // If autoplay fails, wait for user interaction
+            if (playError.name === 'NotAllowedError' || playError.name === 'AbortError') {
+                console.log('📱 [FIX] Waiting for user interaction to play video...');
+                
+                // Show notification
+                this.showNotification('👆 Click anywhere to view screen share');
+                
+                // Create a click handler
+                const playOnClick = async () => {
+                    try {
+                        await this.videoElement.play();
+                        console.log('✅ [FIX] Video playing after user interaction!');
+                        
+                        // Create texture if not exists
+                        if (!this.projectionTexture) {
+                            this.createVideoTexture();
+                        }
+                        
+                        // Start texture updates
+                        this.startEnhancedVideoTextureUpdates();
+                        
+                    } catch (e) {
+                        console.error('❌ [FIX] Play failed even with user interaction:', e);
+                    }
+                    
+                    // Remove event listeners
+                    document.removeEventListener('click', playOnClick);
+                    document.removeEventListener('touchstart', playOnClick);
+                };
+                
+                // Add event listeners
+                document.addEventListener('click', playOnClick);
+                document.addEventListener('touchstart', playOnClick);
+                
+                // Don't throw error or go to fallback
+                playAttempted = true;
+            } else {
+                // For other errors, throw
+                throw playError;
             }
-            
-            // Wait for video to have actual content
-            await this.waitForVideoContent(this.videoElement, userId);
-            
-            // Check stream tracks are active
-            this.verifyStreamTracks(stream, userId);
-            
-            // Apply mobile orientation fix if needed
-            const shareData = this.getShareDataForUser(userId);
-            if (shareData && shareData.mobile_device) {
-                console.log('📱 [FIX] Applying mobile orientation fixes for remote stream');
-                setTimeout(() => {
-                    this.detectAndFixMobileOrientation();
-                }, 500);
-            }
-            
-            // Ensure texture exists and start updates
-            if (!this.projectionTexture) {
-                this.createVideoTexture();
-            }
-            
-            // Start texture update system
-            this.startEnhancedVideoTextureUpdates();
-            
-            console.log('✅ [FIX] Remote stream setup completed successfully');
-            
-        } catch (error) {
-            console.error('❌ [FIX] Remote video setup failed:', error);
-            // Try fallback approach
-            await this.fallbackVideoSetup(stream, userId);
         }
         
-        // Show projection surface with enhanced visibility
+        // Verify stream tracks
+        this.verifyStreamTracks(stream, userId);
+        
+        // Apply mobile orientation fix if needed
+        const shareData = this.getShareDataForUser(userId);
+        if (shareData && shareData.mobile_device) {
+            console.log('📱 [FIX] Applying mobile orientation fixes for remote stream');
+            setTimeout(() => {
+                this.detectAndFixMobileOrientation();
+            }, 500);
+        }
+        
+        // Show projection surface
         if (this.projectionSurface) {
             this.projectionSurface.visible = true;
             this.enhanceProjectionVisibility();
@@ -617,10 +666,13 @@ class EuphorieScreenSharingSystem {
         
         this.currentSharer = userId;
         this.showViewerControls(userId);
-        this.showNotification(`📺 Now viewing ${userId}'s screen`);
         
-        // Start monitoring for dark screen issues
-        this.startDarkScreenMonitoring(userId);
+        // Only start dark screen monitoring if video is actually playing
+        if (!this.videoElement.paused) {
+            this.startDarkScreenMonitoring(userId);
+        }
+        
+        console.log('✅ [FIX] Remote stream setup completed');
     }
 
     // Add this new method right after handleRemoteStreamEnhanced
