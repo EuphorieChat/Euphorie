@@ -32,9 +32,8 @@ window.AmongUsAvatarSystem = {
     // Customization options
     customization: {
         hats: ['none', 'astronaut', 'captain', 'police', 'chef', 'party', 'flower', 'paper', 'crown', 'horns', 'ninja', 'dum'],
-        skins: ['none', 'suit', 'doctor', 'police', 'mechanic', 'astronaut', 'captain', 'military'],
-        pets: ['none', 'mini_crewmate', 'dog', 'robot', 'ufo', 'hamster', 'bedcrab', 'snow'],
-        accessories: ['none', 'glasses', 'sunglasses', 'hat', 'cap', 'necklace', 'earrings', 'watch', 'backpack'],
+        clothes: ['none', 'suit', 'doctor', 'police', 'mechanic', 'astronaut', 'captain', 'military', 'tuxedo', 'hoodie', 'lab_coat', 'chef_outfit'],
+        accessories: ['none', 'glasses', 'sunglasses', 'monocle', 'mask', 'bandana', 'goggles', 'eyepatch'],
         bodyTypes: ['slim', 'average', 'athletic', 'curvy'],
         heights: ['short', 'average', 'tall']
     },
@@ -136,8 +135,7 @@ window.AmongUsAvatarSystem = {
             position: options.position || { x: 0, y: 0, z: 0 },
             color: options.color || this.getRandomColor(),
             hat: options.hat || this.getRandomChoice('hats'),
-            skin: options.skin || 'none',
-            pet: options.pet || 'none',
+            clothes: options.clothes || 'none',
             accessory: options.accessory || 'none',
             scale: options.scale || 1.0,
             isImpostor: options.isImpostor || false,
@@ -184,7 +182,6 @@ window.AmongUsAvatarSystem = {
             isWalking: false,
             isDead: defaultOptions.isDead,
             isImpostor: defaultOptions.isImpostor,
-            pet: null,
             hatMesh: null,
             visor: null
         };
@@ -298,9 +295,9 @@ window.AmongUsAvatarSystem = {
             }
         }
         
-        // Add skin/outfit if specified
-        if (options.skin !== 'none') {
-            this.addSkin(group, options.skin);
+        // Add clothes/outfit if specified
+        if (options.clothes !== 'none') {
+            this.addClothes(group, options.clothes, bodyMaterial);
         }
         
         // Add accessory if specified
@@ -809,6 +806,56 @@ window.AmongUsAvatarSystem = {
                 bridge.position.set(0, 0.55, 0.38);
                 bridge.rotation.z = Math.PI / 2;
                 accessoryGroup.add(bridge);
+                
+                // Glass lenses
+                const leftLens = new THREE.CircleGeometry(0.07, 16);
+                const leftLensMesh = new THREE.Mesh(leftLens, glassMaterial);
+                leftLensMesh.position.set(-0.1, 0.55, 0.375);
+                accessoryGroup.add(leftLensMesh);
+                
+                const rightLens = new THREE.CircleGeometry(0.07, 16);
+                const rightLensMesh = new THREE.Mesh(rightLens, glassMaterial);
+                rightLensMesh.position.set(0.1, 0.55, 0.375);
+                accessoryGroup.add(rightLensMesh);
+                break;
+                
+            case 'sunglasses':
+                const sunFramesMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const sunGlassMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x111111,
+                    transparent: true,
+                    opacity: 0.8,
+                    shininess: 100
+                });
+                
+                // Sunglasses frames (cooler shape)
+                const sunLeftFrame = new THREE.TorusGeometry(0.09, 0.015, 8, 16);
+                const sunLeftFrameMesh = new THREE.Mesh(sunLeftFrame, sunFramesMaterial);
+                sunLeftFrameMesh.position.set(-0.1, 0.55, 0.38);
+                accessoryGroup.add(sunLeftFrameMesh);
+                
+                const sunRightFrame = new THREE.TorusGeometry(0.09, 0.015, 8, 16);
+                const sunRightFrameMesh = new THREE.Mesh(sunRightFrame, sunFramesMaterial);
+                sunRightFrameMesh.position.set(0.1, 0.55, 0.38);
+                accessoryGroup.add(sunRightFrameMesh);
+                
+                // Bridge
+                const sunBridgeGeometry = new THREE.CylinderGeometry(0.008, 0.008, 0.1, 4);
+                const sunBridge = new THREE.Mesh(sunBridgeGeometry, sunFramesMaterial);
+                sunBridge.position.set(0, 0.55, 0.38);
+                sunBridge.rotation.z = Math.PI / 2;
+                accessoryGroup.add(sunBridge);
+                
+                // Dark lenses
+                const sunLeftLens = new THREE.CircleGeometry(0.08, 16);
+                const sunLeftLensMesh = new THREE.Mesh(sunLeftLens, sunGlassMaterial);
+                sunLeftLensMesh.position.set(-0.1, 0.55, 0.375);
+                accessoryGroup.add(sunLeftLensMesh);
+                
+                const sunRightLens = new THREE.CircleGeometry(0.08, 16);
+                const sunRightLensMesh = new THREE.Mesh(sunRightLens, sunGlassMaterial);
+                sunRightLensMesh.position.set(0.1, 0.55, 0.375);
+                accessoryGroup.add(sunRightLensMesh);
                 break;
                 
             case 'monocle':
@@ -820,6 +867,17 @@ window.AmongUsAvatarSystem = {
                 const monocle = new THREE.Mesh(monocleFrame, monocleMaterial);
                 monocle.position.set(0.12, 0.55, 0.38);
                 accessoryGroup.add(monocle);
+                
+                // Monocle lens
+                const monocleLens = new THREE.CircleGeometry(0.09, 16);
+                const monocleLensMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x7FBFFF,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const monocleLensMesh = new THREE.Mesh(monocleLens, monocleLensMaterial);
+                monocleLensMesh.position.set(0.12, 0.55, 0.375);
+                accessoryGroup.add(monocleLensMesh);
                 
                 // Chain
                 const chainGeometry = new THREE.CylinderGeometry(0.002, 0.002, 0.3, 4);
@@ -834,7 +892,20 @@ window.AmongUsAvatarSystem = {
                 const maskMaterial = new THREE.MeshPhongMaterial({ color: 0x4169E1 });
                 const mask = new THREE.Mesh(maskGeometry, maskMaterial);
                 mask.position.set(0, 0.45, 0.38);
+                mask.scale.set(1, 0.8, 1);
                 accessoryGroup.add(mask);
+                
+                // Mask straps
+                const strapMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const leftStrap = new THREE.BoxGeometry(0.02, 0.02, 0.2);
+                const leftStrapMesh = new THREE.Mesh(leftStrap, strapMaterial);
+                leftStrapMesh.position.set(-0.15, 0.45, 0.28);
+                accessoryGroup.add(leftStrapMesh);
+                
+                const rightStrap = new THREE.BoxGeometry(0.02, 0.02, 0.2);
+                const rightStrapMesh = new THREE.Mesh(rightStrap, strapMaterial);
+                rightStrapMesh.position.set(0.15, 0.45, 0.28);
+                accessoryGroup.add(rightStrapMesh);
                 break;
                 
             case 'bandana':
@@ -843,6 +914,71 @@ window.AmongUsAvatarSystem = {
                 const bandana = new THREE.Mesh(bandanaGeometry, bandanaMaterial);
                 bandana.position.set(0, 0.35, 0.38);
                 accessoryGroup.add(bandana);
+                
+                // Bandana pattern dots
+                const dotMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
+                for (let i = -2; i <= 2; i++) {
+                    const dot = new THREE.CircleGeometry(0.015, 8);
+                    const dotMesh = new THREE.Mesh(dot, dotMaterial);
+                    dotMesh.position.set(i * 0.06, 0.35, 0.385);
+                    accessoryGroup.add(dotMesh);
+                }
+                break;
+                
+            case 'goggles':
+                const gogglesMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const goggleLensMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFAA00,
+                    transparent: true,
+                    opacity: 0.6,
+                    shininess: 80
+                });
+                
+                // Goggle frames
+                const leftGoggle = new THREE.TorusGeometry(0.08, 0.02, 8, 16);
+                const leftGoggleMesh = new THREE.Mesh(leftGoggle, gogglesMaterial);
+                leftGoggleMesh.position.set(-0.1, 0.6, 0.35);
+                accessoryGroup.add(leftGoggleMesh);
+                
+                const rightGoggle = new THREE.TorusGeometry(0.08, 0.02, 8, 16);
+                const rightGoggleMesh = new THREE.Mesh(rightGoggle, gogglesMaterial);
+                rightGoggleMesh.position.set(0.1, 0.6, 0.35);
+                accessoryGroup.add(rightGoggleMesh);
+                
+                // Goggle lenses
+                const leftGoggleLens = new THREE.CircleGeometry(0.06, 16);
+                const leftGoggleLensMesh = new THREE.Mesh(leftGoggleLens, goggleLensMaterial);
+                leftGoggleLensMesh.position.set(-0.1, 0.6, 0.36);
+                accessoryGroup.add(leftGoggleLensMesh);
+                
+                const rightGoggleLens = new THREE.CircleGeometry(0.06, 16);
+                const rightGoggleLensMesh = new THREE.Mesh(rightGoggleLens, goggleLensMaterial);
+                rightGoggleLensMesh.position.set(0.1, 0.6, 0.36);
+                accessoryGroup.add(rightGoggleLensMesh);
+                
+                // Strap
+                const strapGeometry = new THREE.TorusGeometry(0.28, 0.015, 8, 16, Math.PI);
+                const strap = new THREE.Mesh(strapGeometry, gogglesMaterial);
+                strap.position.set(0, 0.6, 0);
+                strap.rotation.x = Math.PI / 2;
+                strap.rotation.z = Math.PI;
+                accessoryGroup.add(strap);
+                break;
+                
+            case 'eyepatch':
+                const eyepatchMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const eyepatchGeometry = new THREE.CircleGeometry(0.06, 16);
+                const eyepatch = new THREE.Mesh(eyepatchGeometry, eyepatchMaterial);
+                eyepatch.position.set(-0.1, 0.55, 0.39);
+                eyepatch.scale.set(1.2, 1, 1);
+                accessoryGroup.add(eyepatch);
+                
+                // Eyepatch strap
+                const eyepatchStrap = new THREE.BoxGeometry(0.4, 0.02, 0.02);
+                const eyepatchStrapMesh = new THREE.Mesh(eyepatchStrap, eyepatchMaterial);
+                eyepatchStrapMesh.position.set(0, 0.55, 0.2);
+                eyepatchStrapMesh.rotation.y = 0.3;
+                accessoryGroup.add(eyepatchStrapMesh);
                 break;
         }
         
@@ -850,11 +986,11 @@ window.AmongUsAvatarSystem = {
         return accessoryGroup;
     },
     
-    addSkin: function(group, skinType) {
+    addClothes: function(group, clothesType, bodyMaterial) {
         const body = group.getObjectByName('body');
         if (!body) return;
         
-        switch(skinType) {
+        switch(clothesType) {
             case 'suit':
                 // Add tie
                 const tieGeometry = new THREE.BoxGeometry(0.05, 0.4, 0.02);
@@ -869,6 +1005,20 @@ window.AmongUsAvatarSystem = {
                 const collar = new THREE.Mesh(collarGeometry, collarMaterial);
                 collar.position.set(0, 0.65, 0.38);
                 group.add(collar);
+                
+                // Add suit jacket lines
+                const lapelMaterial = new THREE.MeshPhongMaterial({ color: 0x222222 });
+                const leftLapel = new THREE.BoxGeometry(0.02, 0.3, 0.02);
+                const leftLapelMesh = new THREE.Mesh(leftLapel, lapelMaterial);
+                leftLapelMesh.position.set(-0.15, 0.4, 0.41);
+                leftLapelMesh.rotation.z = 0.1;
+                group.add(leftLapelMesh);
+                
+                const rightLapel = new THREE.BoxGeometry(0.02, 0.3, 0.02);
+                const rightLapelMesh = new THREE.Mesh(rightLapel, lapelMaterial);
+                rightLapelMesh.position.set(0.15, 0.4, 0.41);
+                rightLapelMesh.rotation.z = -0.1;
+                group.add(rightLapelMesh);
                 break;
                 
             case 'doctor':
@@ -887,6 +1037,17 @@ window.AmongUsAvatarSystem = {
                 chestPieceMesh.position.set(0, 0.3, 0.38);
                 chestPieceMesh.rotation.x = Math.PI / 2;
                 group.add(chestPieceMesh);
+                
+                // White coat effect (lighter body parts)
+                const coatAccent = new THREE.BoxGeometry(0.02, 0.4, 0.02);
+                const coatMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
+                const leftCoat = new THREE.Mesh(coatAccent, coatMaterial);
+                leftCoat.position.set(-0.35, 0.4, 0);
+                group.add(leftCoat);
+                
+                const rightCoat = new THREE.Mesh(coatAccent, coatMaterial);
+                rightCoat.position.set(0.35, 0.4, 0);
+                group.add(rightCoat);
                 break;
                 
             case 'police':
@@ -907,6 +1068,249 @@ window.AmongUsAvatarSystem = {
                 belt.position.set(0, 0.2, 0);
                 belt.rotation.x = Math.PI / 2;
                 group.add(belt);
+                
+                // Radio
+                const radioGeometry = new THREE.BoxGeometry(0.04, 0.08, 0.03);
+                const radioMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const radio = new THREE.Mesh(radioGeometry, radioMaterial);
+                radio.position.set(0.3, 0.5, 0.1);
+                group.add(radio);
+                break;
+                
+            case 'mechanic':
+                // Tool belt
+                const toolBeltGeometry = new THREE.TorusGeometry(0.36, 0.025, 8, 16);
+                const toolBeltMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                const toolBelt = new THREE.Mesh(toolBeltGeometry, toolBeltMaterial);
+                toolBelt.position.set(0, 0.15, 0);
+                toolBelt.rotation.x = Math.PI / 2;
+                group.add(toolBelt);
+                
+                // Wrench
+                const wrenchHandle = new THREE.BoxGeometry(0.02, 0.1, 0.02);
+                const wrenchMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+                const wrench = new THREE.Mesh(wrenchHandle, wrenchMaterial);
+                wrench.position.set(-0.25, 0.15, 0.15);
+                wrench.rotation.z = 0.3;
+                group.add(wrench);
+                
+                // Oil stains (dark patches)
+                const stainMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const stain1 = new THREE.CircleGeometry(0.04, 8);
+                const stain1Mesh = new THREE.Mesh(stain1, stainMaterial);
+                stain1Mesh.position.set(0.1, 0.4, 0.41);
+                group.add(stain1Mesh);
+                
+                const stain2 = new THREE.CircleGeometry(0.03, 6);
+                const stain2Mesh = new THREE.Mesh(stain2, stainMaterial);
+                stain2Mesh.position.set(-0.15, 0.25, 0.41);
+                group.add(stain2Mesh);
+                break;
+                
+            case 'astronaut':
+                // NASA patch
+                const patchGeometry = new THREE.BoxGeometry(0.08, 0.05, 0.01);
+                const patchMaterial = new THREE.MeshPhongMaterial({ color: 0x0033A0 });
+                const patch = new THREE.Mesh(patchGeometry, patchMaterial);
+                patch.position.set(0.15, 0.6, 0.41);
+                group.add(patch);
+                
+                // American flag
+                const flagGeometry = new THREE.BoxGeometry(0.06, 0.04, 0.01);
+                const flagMaterial = new THREE.MeshPhongMaterial({ color: 0xB22234 });
+                const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+                flag.position.set(-0.15, 0.6, 0.41);
+                group.add(flag);
+                
+                // Space suit lines
+                const suitLineMaterial = new THREE.MeshPhongMaterial({ color: 0xCCCCCC });
+                const centerLine = new THREE.BoxGeometry(0.02, 0.5, 0.02);
+                const centerLineMesh = new THREE.Mesh(centerLine, suitLineMaterial);
+                centerLineMesh.position.set(0, 0.35, 0.41);
+                group.add(centerLineMesh);
+                break;
+                
+            case 'captain':
+                // Epaulettes
+                const epauletteMaterial = new THREE.MeshPhongMaterial({ color: 0xFFD700 });
+                const leftEpaulette = new THREE.BoxGeometry(0.12, 0.03, 0.05);
+                const leftEpauletteMesh = new THREE.Mesh(leftEpaulette, epauletteMaterial);
+                leftEpauletteMesh.position.set(-0.25, 0.65, 0);
+                group.add(leftEpauletteMesh);
+                
+                const rightEpaulette = new THREE.BoxGeometry(0.12, 0.03, 0.05);
+                const rightEpauletteMesh = new THREE.Mesh(rightEpaulette, epauletteMaterial);
+                rightEpauletteMesh.position.set(0.25, 0.65, 0);
+                group.add(rightEpauletteMesh);
+                
+                // Captain stripes
+                for (let i = 0; i < 4; i++) {
+                    const stripe = new THREE.BoxGeometry(0.08, 0.01, 0.01);
+                    const stripeMesh = new THREE.Mesh(stripe, epauletteMaterial);
+                    stripeMesh.position.set(-0.25, 0.62 - i * 0.02, 0.05);
+                    group.add(stripeMesh);
+                    
+                    const stripe2 = new THREE.BoxGeometry(0.08, 0.01, 0.01);
+                    const stripeMesh2 = new THREE.Mesh(stripe2, epauletteMaterial);
+                    stripeMesh2.position.set(0.25, 0.62 - i * 0.02, 0.05);
+                    group.add(stripeMesh2);
+                }
+                break;
+                
+            case 'military':
+                // Camo pattern (simplified)
+                const camoColors = [0x4B5320, 0x8B7355, 0x228B22];
+                for (let i = 0; i < 6; i++) {
+                    const camoGeometry = new THREE.CircleGeometry(0.05, 6);
+                    const camoMaterial = new THREE.MeshPhongMaterial({ 
+                        color: camoColors[i % camoColors.length] 
+                    });
+                    const camoPatch = new THREE.Mesh(camoGeometry, camoMaterial);
+                    camoPatch.position.set(
+                        (Math.random() - 0.5) * 0.6,
+                        0.2 + Math.random() * 0.5,
+                        0.41
+                    );
+                    group.add(camoPatch);
+                }
+                
+                // Dog tags
+                const tagChain = new THREE.BoxGeometry(0.01, 0.2, 0.01);
+                const tagMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+                const chain = new THREE.Mesh(tagChain, tagMaterial);
+                chain.position.set(0, 0.5, 0.38);
+                group.add(chain);
+                
+                const tag = new THREE.BoxGeometry(0.03, 0.04, 0.005);
+                const tagMesh = new THREE.Mesh(tag, tagMaterial);
+                tagMesh.position.set(0, 0.35, 0.39);
+                group.add(tagMesh);
+                break;
+                
+            case 'tuxedo':
+                // Bow tie
+                const bowTieMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const bowCenter = new THREE.BoxGeometry(0.03, 0.02, 0.02);
+                const bowCenterMesh = new THREE.Mesh(bowCenter, bowTieMaterial);
+                bowCenterMesh.position.set(0, 0.62, 0.4);
+                group.add(bowCenterMesh);
+                
+                const bowLeft = new THREE.ConeGeometry(0.03, 0.06, 4);
+                const bowLeftMesh = new THREE.Mesh(bowLeft, bowTieMaterial);
+                bowLeftMesh.position.set(-0.04, 0.62, 0.4);
+                bowLeftMesh.rotation.z = -Math.PI / 2;
+                group.add(bowLeftMesh);
+                
+                const bowRight = new THREE.ConeGeometry(0.03, 0.06, 4);
+                const bowRightMesh = new THREE.Mesh(bowRight, bowTieMaterial);
+                bowRightMesh.position.set(0.04, 0.62, 0.4);
+                bowRightMesh.rotation.z = Math.PI / 2;
+                group.add(bowRightMesh);
+                
+                // Tuxedo buttons
+                for (let i = 0; i < 3; i++) {
+                    const button = new THREE.CircleGeometry(0.015, 8);
+                    const buttonMesh = new THREE.Mesh(button, bowTieMaterial);
+                    buttonMesh.position.set(0, 0.5 - i * 0.1, 0.41);
+                    group.add(buttonMesh);
+                }
+                break;
+                
+            case 'hoodie':
+                // Hood (if not wearing a hat)
+                const hoodMaterial = new THREE.MeshPhongMaterial({ 
+                    color: bodyMaterial.color,
+                    opacity: 0.8,
+                    transparent: true
+                });
+                const hoodGeometry = new THREE.SphereGeometry(0.35, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
+                const hood = new THREE.Mesh(hoodGeometry, hoodMaterial);
+                hood.position.set(0, 0.85, -0.2);
+                hood.scale.set(1, 0.8, 0.8);
+                group.add(hood);
+                
+                // Hoodie strings
+                const stringMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
+                const leftString = new THREE.CylinderGeometry(0.005, 0.005, 0.15, 4);
+                const leftStringMesh = new THREE.Mesh(leftString, stringMaterial);
+                leftStringMesh.position.set(-0.08, 0.55, 0.38);
+                group.add(leftStringMesh);
+                
+                const rightString = new THREE.CylinderGeometry(0.005, 0.005, 0.15, 4);
+                const rightStringMesh = new THREE.Mesh(rightString, stringMaterial);
+                rightStringMesh.position.set(0.08, 0.55, 0.38);
+                group.add(rightStringMesh);
+                
+                // Pocket
+                const pocketGeometry = new THREE.BoxGeometry(0.2, 0.15, 0.02);
+                const pocketMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x000000,
+                    opacity: 0.3,
+                    transparent: true
+                });
+                const pocket = new THREE.Mesh(pocketGeometry, pocketMaterial);
+                pocket.position.set(0, 0.25, 0.4);
+                group.add(pocket);
+                break;
+                
+            case 'lab_coat':
+                // White coat overlay
+                const labCoatMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF,
+                    opacity: 0.9,
+                    transparent: true
+                });
+                
+                // Lab coat body overlay
+                const coatOverlay = new THREE.BoxGeometry(0.45, 0.6, 0.05);
+                const coatMesh = new THREE.Mesh(coatOverlay, labCoatMaterial);
+                coatMesh.position.set(0, 0.35, 0.37);
+                group.add(coatMesh);
+                
+                // Pockets
+                const pocketGeom = new THREE.BoxGeometry(0.08, 0.08, 0.01);
+                const leftPocket = new THREE.Mesh(pocketGeom, labCoatMaterial);
+                leftPocket.position.set(-0.15, 0.2, 0.42);
+                group.add(leftPocket);
+                
+                const rightPocket = new THREE.Mesh(pocketGeom, labCoatMaterial);
+                rightPocket.position.set(0.15, 0.2, 0.42);
+                group.add(rightPocket);
+                
+                // Pen in pocket
+                const penGeometry = new THREE.CylinderGeometry(0.005, 0.005, 0.06, 6);
+                const penMaterial = new THREE.MeshPhongMaterial({ color: 0x0000FF });
+                const pen = new THREE.Mesh(penGeometry, penMaterial);
+                pen.position.set(-0.15, 0.25, 0.43);
+                group.add(pen);
+                break;
+                
+            case 'chef_outfit':
+                // Chef apron
+                const apronMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
+                const apron = new THREE.BoxGeometry(0.35, 0.4, 0.02);
+                const apronMesh = new THREE.Mesh(apron, apronMaterial);
+                apronMesh.position.set(0, 0.2, 0.4);
+                group.add(apronMesh);
+                
+                // Apron strings
+                const stringGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.2, 4);
+                const apronString1 = new THREE.Mesh(stringGeom, apronMaterial);
+                apronString1.position.set(-0.15, 0.5, 0.35);
+                apronString1.rotation.z = 0.3;
+                group.add(apronString1);
+                
+                const apronString2 = new THREE.Mesh(stringGeom, apronMaterial);
+                apronString2.position.set(0.15, 0.5, 0.35);
+                apronString2.rotation.z = -0.3;
+                group.add(apronString2);
+                
+                // Name tag
+                const nameTagGeometry = new THREE.BoxGeometry(0.06, 0.03, 0.01);
+                const nameTagMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const nameTag = new THREE.Mesh(nameTagGeometry, nameTagMaterial);
+                nameTag.position.set(0.1, 0.55, 0.41);
+                group.add(nameTag);
                 break;
         }
     },
@@ -1348,8 +1752,7 @@ window.AmongUsAvatarSystem = {
             position: { x: 0, y: 0, z: 0 },
             color: this.colors.red,
             hat: 'none',
-            skin: 'none',
-            pet: 'none',
+            clothes: 'none',
             accessory: 'none'
         });
         
@@ -1395,7 +1798,7 @@ window.AmongUsAvatarSystem = {
                 position: position,
                 color: color,
                 hat: Math.random() > 0.7 ? this.getRandomChoice('hats') : 'none',
-                pet: Math.random() > 0.8 ? this.getRandomChoice('pets') : 'none',
+                clothes: Math.random() > 0.5 ? this.getRandomChoice('clothes') : 'none',
                 accessory: Math.random() > 0.8 ? this.getRandomChoice('accessories') : 'none'
             });
             
@@ -1567,8 +1970,7 @@ window.AmongUsAvatarSystem = {
         return {
             color: this.getRandomColor(),
             hat: this.getRandomChoice('hats'),
-            skin: this.getRandomChoice('skins'),
-            pet: this.getRandomChoice('pets'),
+            clothes: this.getRandomChoice('clothes'),
             accessory: this.getRandomChoice('accessories')
         };
     },
@@ -1660,8 +2062,8 @@ window.AmongUsAvatarSystem = {
             </div>
             
             <div style="margin-bottom: 20px;">
-                <h3 style="color: #4CAF50;">Pet</h3>
-                <select id="pet-select" style="
+                <h3 style="color: #4CAF50;">Clothes</h3>
+                <select id="clothes-select" style="
                     width: 100%;
                     padding: 10px;
                     border-radius: 8px;
@@ -1670,9 +2072,9 @@ window.AmongUsAvatarSystem = {
                     color: white;
                     font-size: 14px;
                 ">
-                    ${this.customization.pets.map(pet => `
-                        <option value="${pet}" ${currentCustom.pet === pet ? 'selected' : ''}>
-                            ${pet.charAt(0).toUpperCase() + pet.slice(1).replace('_', ' ')}
+                    ${this.customization.clothes.map(clothes => `
+                        <option value="${clothes}" ${currentCustom.clothes === clothes ? 'selected' : ''}>
+                            ${clothes.charAt(0).toUpperCase() + clothes.slice(1).replace('_', ' ')}
                         </option>
                     `).join('')}
                 </select>
@@ -1755,7 +2157,7 @@ window.AmongUsAvatarSystem = {
             const customization = {
                 color: this.colors[selectedColorName],
                 hat: document.getElementById('hat-select').value,
-                pet: document.getElementById('pet-select').value,
+                clothes: document.getElementById('clothes-select').value,
                 accessory: document.getElementById('accessory-select').value
             };
             
