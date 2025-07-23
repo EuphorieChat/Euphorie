@@ -586,7 +586,22 @@ window.GroupInteractionSystem = {
         let animationIndex = 0;
         
         const syncLoop = () => {
-            if (!this.activeGroups.has(groupData.id) || groupData.currentPhase !== 'active') return;
+            // IMPORTANT: Check if group still exists AND is in active phase
+            if (!this.activeGroups.has(groupData.id) || groupData.currentPhase !== 'active') {
+                console.log(`🛑 Stopping sync animation for group ${groupData.id} (phase: ${groupData.currentPhase})`);
+                
+                // Final cleanup of animations
+                groupData.participants.forEach(participantId => {
+                    const avatar = window.AvatarSystem.getAvatar(participantId);
+                    if (avatar) {
+                        avatar.group.position.y = 0;
+                        avatar.group.rotation.z = 0;
+                        avatar.mesh.scale.setScalar(1);
+                    }
+                });
+                
+                return; // Stop the loop
+            }
             
             const currentAnimation = activity.animations[animationIndex % activity.animations.length];
             
@@ -1090,37 +1105,67 @@ window.GroupInteractionSystem = {
         
         console.log(`🏁 Ending ${groupData.activity.name} for group ${groupId}`);
         
-        // Restore participant positions
+        // IMPORTANT: Set phase to 'ending' to stop animation loops
+        groupData.currentPhase = 'ending';
+        
+        // Reset avatar animations first
         groupData.participants.forEach(participantId => {
             const avatar = window.AvatarSystem.getAvatar(participantId);
-            if (avatar && avatar.originalPosition) {
-                this.animateAvatarToPosition(avatar, {
-                    x: avatar.originalPosition.x,
-                    y: avatar.originalPosition.y,
-                    z: avatar.originalPosition.z,
-                    rotation: 0
-                }, 2000);
+            if (avatar) {
+                // Reset rotation and position animations
+                avatar.group.rotation.z = 0;
+                avatar.mesh.rotation.z = 0;
                 
-                // Clear original position
-                delete avatar.originalPosition;
+                // Reset any child rotations (arms, etc.)
+                if (avatar.mesh.children) {
+                    avatar.mesh.children.forEach(child => {
+                        child.rotation.z = 0;
+                    });
+                }
+                
+                // Stop any walking animation
+                if (window.AvatarSystem.setWalking) {
+                    window.AvatarSystem.setWalking(participantId, false);
+                }
             }
         });
         
-        // Create completion effect
-        this.createCompletionEffect(groupData);
-        
-        // Show completion message
-        if (window.RoomCore) {
-            window.RoomCore.showNotification(`🎉 ${groupData.activity.name} completed! Great job everyone!`);
-        }
-        
-        // Remove group
-        this.activeGroups.delete(groupId);
-        
-        // Emit event
-        if (window.EventBus) {
-            window.EventBus.emit('group:ended', { groupId, activity: groupData.activity.name });
-        }
+        // Small delay before moving back to ensure animations are stopped
+        setTimeout(() => {
+            // Restore participant positions
+            groupData.participants.forEach(participantId => {
+                const avatar = window.AvatarSystem.getAvatar(participantId);
+                if (avatar && avatar.originalPosition) {
+                    this.animateAvatarToPosition(avatar, {
+                        x: avatar.originalPosition.x,
+                        y: avatar.originalPosition.y,
+                        z: avatar.originalPosition.z,
+                        rotation: 0
+                    }, 2000);
+                    
+                    // Clear original position
+                    delete avatar.originalPosition;
+                }
+            });
+            
+            // Create completion effect
+            this.createCompletionEffect(groupData);
+            
+            // Show completion message
+            if (window.RoomCore) {
+                window.RoomCore.showNotification(`🎉 ${groupData.activity.name} completed! Great job everyone!`);
+            }
+            
+            // Remove group after animations complete
+            setTimeout(() => {
+                this.activeGroups.delete(groupId);
+                
+                // Emit event
+                if (window.EventBus) {
+                    window.EventBus.emit('group:ended', { groupId, activity: groupData.activity.name });
+                }
+            }, 2500);
+        }, 100);
     },
     
     createCompletionEffect: function(groupData) {
