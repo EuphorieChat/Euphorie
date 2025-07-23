@@ -412,7 +412,7 @@ class EuphorieScreenSharingSystem {
         };
     }
 
-    // ENHANCED: Auto-connect to sharer with better error handling
+    // ENHANCED: Auto-connect to sharer with better error handling and iOS support
     async autoConnectToSharer(sharerUserId, sharerUsername, shareData) {
         if (sharerUserId === window.WebSocketManager?.userId) {
             console.log('⏭️ Skipping auto-connect to self');
@@ -422,14 +422,25 @@ class EuphorieScreenSharingSystem {
         console.log(`🌐 Auto-connecting to ${sharerUsername}'s screen share...`);
         
         try {
-            // Create peer connection to receive stream
+            // Detect iOS for specific configuration
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+                console.log('📱 iOS detected - using iOS-specific WebRTC configuration');
+            }
+            
+            // Create peer connection with iOS-compatible configuration
             const pc = new RTCPeerConnection({
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'stun:stun2.l.google.com:19302' }
                 ],
-                iceCandidatePoolSize: 10
+                iceCandidatePoolSize: 10,
+                // iOS-specific options - critical for iOS WebRTC compatibility
+                ...(isIOS && {
+                    bundlePolicy: 'max-bundle',
+                    rtcpMuxPolicy: 'require'
+                })
             });
             
             // CRITICAL: Set up track handler BEFORE anything else
@@ -457,7 +468,7 @@ class EuphorieScreenSharingSystem {
                 }
             };
             
-            // Connection state logging
+            // Connection state logging with iOS-specific handling
             pc.onconnectionstatechange = () => {
                 console.log(`🔗 Connection to ${sharerUsername}:`, pc.connectionState);
                 if (pc.connectionState === 'connected') {
@@ -467,8 +478,12 @@ class EuphorieScreenSharingSystem {
                     setTimeout(() => {
                         if (!streamReceived) {
                             console.warn('⚠️ Connected but no stream received yet');
+                            // iOS might need additional time
+                            if (isIOS) {
+                                console.log('📱 iOS device - waiting longer for stream...');
+                            }
                         }
-                    }, 2000);
+                    }, isIOS ? 3000 : 2000); // Give iOS more time
                     
                 } else if (pc.connectionState === 'failed') {
                     this.showNotification(`❌ Failed to connect to ${sharerUsername}'s screen`);
@@ -477,17 +492,23 @@ class EuphorieScreenSharingSystem {
                     pc.close();
                     this.peerConnections.delete(sharerUserId);
                     
-                    // Try again
+                    // Try again with longer delay for iOS
+                    const retryDelay = isIOS ? 3000 : 2000;
                     setTimeout(() => {
                         console.log('🔄 Retrying connection...');
                         this.autoConnectToSharer(sharerUserId, sharerUsername, shareData);
-                    }, 2000);
+                    }, retryDelay);
                 }
             };
             
             // ICE connection state for debugging
             pc.oniceconnectionstatechange = () => {
                 console.log(`🧊 ICE connection to ${sharerUsername}:`, pc.iceConnectionState);
+                
+                // iOS-specific ICE handling
+                if (isIOS && pc.iceConnectionState === 'failed') {
+                    console.warn('📱 iOS ICE connection failed - this is common on iOS, connection might still work');
+                }
             };
             
             // Store peer connection IMMEDIATELY
@@ -507,10 +528,12 @@ class EuphorieScreenSharingSystem {
             
             // The sharer should send us an offer when they receive our join request
             // Send join request after a small delay to ensure PC is ready
+            // iOS might need slightly more time
+            const joinDelay = isIOS ? 750 : 500;
             setTimeout(() => {
                 window.WebSocketManager.sendJoinOngoingShare(sharerUserId);
                 console.log(`📤 Sent join request to ${sharerUsername}`);
-            }, 500);
+            }, joinDelay);
             
         } catch (error) {
             console.error(`❌ Error auto-connecting to ${sharerUsername}:`, error);
