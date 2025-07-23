@@ -790,103 +790,209 @@
             position: fixed;
             top: 15px;
             right: 15px;
-            width: 52px;
-            height: 52px;
+            width: 48px;  /* Reduced from 52px for better fit */
+            height: 48px;
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
             border: none;
             border-radius: 12px;
             color: white;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 20px;  /* Slightly larger icon */
             display: none;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            z-index: 200;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);  /* Softer shadow */
+            transition: all 0.2s ease;  /* Faster transition */
+            z-index: 1001;  /* Higher z-index to stay above everything */
             backdrop-filter: blur(10px);
+            -webkit-tap-highlight-color: transparent;  /* Remove tap highlight */
+            touch-action: manipulation;  /* Prevent zoom on double tap */
         }
-        
-        .mobile-hamburger:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+
+        /* Better active state for mobile */
+        .mobile-hamburger:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
-        
+
         .mobile-hamburger.active {
             background: linear-gradient(135deg, rgba(255, 107, 53, 0.9), rgba(255, 152, 0, 0.9));
             transform: rotate(90deg);
         }
-        
-        /* Mobile Menu Overlay - Enhanced */
+
+        /* Improved Mobile Menu Overlay */
         .mobile-menu-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 190;
+            background: rgba(0, 0, 0, 0.7);  /* Lighter overlay */
+            backdrop-filter: blur(5px);  /* Less blur for performance */
+            z-index: 999;
             display: none;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;  /* Faster animation */
+            -webkit-tap-highlight-color: transparent;
         }
-        
+
         .mobile-menu-overlay.active {
             display: block;
             opacity: 1;
         }
-        
-        /* Mobile Actions Menu - Enhanced */
+
+        /* Enhanced Mobile Actions Menu */
         .mobile-actions-menu {
             position: fixed;
-            top: 80px;
-            right: 15px;
-            left: 15px;
-            bottom: 20px;
-            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(102, 126, 234, 0.3);
-            border-radius: 16px;
-            padding: 20px;
-            z-index: 200;
+            top: 0;  /* Start from top */
+            right: 0;
+            bottom: 0;
+            width: 85%;  /* Take most of screen width */
+            max-width: 320px;  /* But not too wide */
+            background: linear-gradient(145deg, rgba(15, 15, 25, 0.98), rgba(25, 25, 40, 0.98));
+            backdrop-filter: blur(15px);
+            border-left: 2px solid rgba(102, 126, 234, 0.3);
+            padding: 0;  /* Remove padding, add safe area */
+            padding-top: env(safe-area-inset-top, 20px);  /* iOS safe area */
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            z-index: 1000;
             display: none;
             flex-direction: column;
-            gap: 15px;
             overflow-y: auto;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            transform: translateY(-20px) scale(0.9);
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+            transform: translateX(100%);  /* Slide from right */
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
         }
-        
+
         .mobile-actions-menu.active {
             display: flex;
-            transform: translateY(0) scale(1);
-            opacity: 1;
+            transform: translateX(0);
         }
-        
+
+        /* Menu Header with Close Button */
         .mobile-menu-header {
             text-align: center;
             color: #667eea;
             font-size: 18px;
             font-weight: 700;
-            margin-bottom: 10px;
-            padding-bottom: 12px;
+            margin: 0;
+            padding: 20px 60px 20px 20px;  /* Space for close button */
             border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+            position: sticky;
+            top: 0;
+            background: inherit;
+            backdrop-filter: blur(15px);
+            z-index: 10;
         }
-        
+
+        /* Add Close Button */
+        .mobile-menu-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mobile-menu-close:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.9);
+        }
+
+        /* Scrollable content wrapper */
+        .mobile-menu-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Visual scroll indicator */
+        .mobile-menu-content::after {
+            content: '';
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to top, rgba(15, 15, 25, 0.9), transparent);
+            pointer-events: none;
+        }
+
+        /* Better Mobile Action Buttons */
+        .mobile-action-btn {
+            padding: 16px 12px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-height: 80px;  /* Slightly taller for easier tapping */
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Better touch feedback */
+        .mobile-action-btn:active {
+            background: linear-gradient(145deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: scale(0.95);
+        }
+
+        /* Improved icon size */
+        .mobile-action-btn .icon {
+            font-size: 24px;  /* Larger icons */
+            margin-bottom: 4px;
+        }
+
+        .mobile-action-btn.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .mobile-chat-btn {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+            border: 2px solid rgba(102, 126, 234, 0.5);
+        }
+
+        .mobile-chat-btn:hover, .mobile-chat-btn:active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+            border-color: rgba(102, 126, 234, 0.7);
+        }
+
+        /* Better group spacing */
         .mobile-action-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;  /* More space between groups */
         }
-        
+
         .mobile-action-group:last-child {
-            margin-bottom: 30px;
-            padding-bottom: 15px;
+            margin-bottom: 40px;  /* Extra space at bottom */
         }
-        
+
         .mobile-action-group-title {
             color: rgba(255, 255, 255, 0.7);
             font-size: 12px;
@@ -896,56 +1002,61 @@
             letter-spacing: 1px;
             padding-left: 4px;
         }
-        
+
         .mobile-action-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
         }
-        
-        .mobile-action-btn {
-            padding: 16px 12px;
-            background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            color: white;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            min-height: 75px;
-            justify-content: center;
+
+        /* Responsive adjustments for smaller phones */
+        @media (max-width: 375px) {
+            .mobile-actions-menu {
+                width: 90%;
+            }
+            
+            .mobile-action-btn {
+                font-size: 12px;
+                min-height: 70px;
+            }
+            
+            .mobile-action-btn .icon {
+                font-size: 22px;
+            }
         }
-        
-        .mobile-action-btn:hover, .mobile-action-btn:active {
-            background: linear-gradient(145deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
-            border-color: rgba(102, 126, 234, 0.4);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+
+        /* Landscape mode optimizations */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .mobile-actions-menu {
+                width: 60%;
+                max-width: 400px;
+            }
+            
+            .mobile-action-grid {
+                grid-template-columns: repeat(3, 1fr);  /* More columns in landscape */
+            }
+            
+            .mobile-action-btn {
+                min-height: 60px;
+                padding: 12px 8px;
+            }
         }
-        
-        .mobile-action-btn .icon {
-            font-size: 22px;
-            margin-bottom: 4px;
+
+        /* iOS-specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            .mobile-actions-menu {
+                padding-top: max(env(safe-area-inset-top), 20px);
+                padding-bottom: max(env(safe-area-inset-bottom), 20px);
+            }
         }
-        
-        .mobile-action-btn.full-width {
-            grid-column: 1 / -1;
-        }
-        
-        .mobile-chat-btn {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
-            border: 2px solid rgba(102, 126, 234, 0.5);
-        }
-        
-        .mobile-chat-btn:hover, .mobile-chat-btn:active {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
-            border-color: rgba(102, 126, 234, 0.7);
+
+        /* Prevent body scroll when menu is open */
+        body.menu-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
         }
         
         /* Desktop Chat Quick Restore */
@@ -2156,106 +2267,112 @@
         </div>
         
         <!-- Enhanced Mobile Hamburger Menu System -->
-        <button class="mobile-hamburger" onclick="window.toggleMobileMenu && window.toggleMobileMenu()">
+        <button class="mobile-hamburger" onclick="window.toggleMobileMenu && window.toggleMobileMenu()" aria-label="Open menu">
             ☰
         </button>
-        
+
         <div class="mobile-menu-overlay" onclick="window.closeMobileMenu && window.closeMobileMenu()"></div>
-        
+
         <div class="mobile-actions-menu">
-            <div class="mobile-menu-header">🎮 Controls & Actions</div>
-            
-            <div class="mobile-action-group">
-                <div class="mobile-action-group-title">Chat</div>
-                <div class="mobile-action-grid">
-                    <button class="mobile-action-btn mobile-chat-btn full-width" 
-                            onclick="window.toggleMobileChat && window.toggleMobileChat(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">💬</div>
-                        <div>Toggle Chat</div>
-                    </button>
-                </div>
+            <div class="mobile-menu-header">
+                🎮 Controls & Actions
+                <button class="mobile-menu-close" onclick="window.closeMobileMenu && window.closeMobileMenu()" aria-label="Close menu">
+                    ×
+                </button>
             </div>
             
-            <div class="mobile-action-group">
-                <div class="mobile-action-group-title">Quick Actions</div>
-                <div class="mobile-action-grid">
-                    <button class="mobile-action-btn" 
-                            onclick="window.triggerWave && window.triggerWave(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">👋</div>
-                        <div>Wave</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.triggerDance && window.triggerDance(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">💃</div>
-                        <div>Dance</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.showEmotionPanel && window.showEmotionPanel(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">🎭</div>
-                        <div>Emotions</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.showGroupMenu && window.showGroupMenu(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">👥</div>
-                        <div>Groups</div>
-                    </button>
+            <div class="mobile-menu-content">
+                <!-- Chat section with prominent button -->
+                <div class="mobile-action-group">
+                    <div class="mobile-action-group-title">Chat</div>
+                    <div class="mobile-action-grid">
+                        <button class="mobile-action-btn mobile-chat-btn full-width" 
+                                onclick="window.toggleMobileChat && window.toggleMobileChat(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">💬</div>
+                            <div>Toggle Chat</div>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="mobile-action-group">
-                <div class="mobile-action-group-title">Customization</div>
-                <div class="mobile-action-grid">
-                    <button class="mobile-action-btn" 
-                            onclick="window.customizeAvatar && window.customizeAvatar(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">👤</div>
-                        <div>Avatar</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.addRandomPet && window.addRandomPet(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">🐾</div>
-                        <div>Get Pet</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.togglePetPanel && window.togglePetPanel(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">🎪</div>
-                        <div>Pet Panel</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.addFriends && window.addFriends(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">👥</div>
-                        <div>Friends</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.showNationalitySelector && window.showNationalitySelector(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">🌍</div>
-                        <div>Nationality</div>
-                    </button>
+                
+                <!-- Quick Actions with touch-friendly spacing -->
+                <div class="mobile-action-group">
+                    <div class="mobile-action-group-title">Quick Actions</div>
+                    <div class="mobile-action-grid">
+                        <button class="mobile-action-btn" 
+                                onclick="window.triggerWave && window.triggerWave(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">👋</div>
+                            <div>Wave</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.triggerDance && window.triggerDance(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">💃</div>
+                            <div>Dance</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.showEmotionPanel && window.showEmotionPanel(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">🎭</div>
+                            <div>Emotions</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.showGroupMenu && window.showGroupMenu(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">👥</div>
+                            <div>Groups</div>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="mobile-action-group">
-                <div class="mobile-action-group-title">🔄 Synchronized Environment</div>
-                <div class="mobile-action-grid">
-                    <button class="mobile-action-btn" 
-                            onclick="window.changeScene && window.changeScene(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">🏠</div>
-                        <div>Scene</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.controlWeather && window.controlWeather(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">🌦️</div>
-                        <div>Weather</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.controlTime && window.controlTime(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">🌅</div>
-                        <div>Time</div>
-                    </button>
-                    <button class="mobile-action-btn" 
-                            onclick="window.toggleMagic && window.toggleMagic(); window.closeMobileMenu && window.closeMobileMenu();">
-                        <div class="icon">✨</div>
-                        <div>Magic</div>
-                    </button>
+                
+                <!-- Customization section -->
+                <div class="mobile-action-group">
+                    <div class="mobile-action-group-title">Customization</div>
+                    <div class="mobile-action-grid">
+                        <button class="mobile-action-btn" 
+                                onclick="window.customizeAvatar && window.customizeAvatar(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">👤</div>
+                            <div>Avatar</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.addRandomPet && window.addRandomPet(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">🐾</div>
+                            <div>Get Pet</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.togglePetPanel && window.togglePetPanel(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">🎪</div>
+                            <div>Pet Panel</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.showNationalitySelector && window.showNationalitySelector(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">🌍</div>
+                            <div>Nationality</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Environment controls -->
+                <div class="mobile-action-group">
+                    <div class="mobile-action-group-title">🔄 Synchronized Environment</div>
+                    <div class="mobile-action-grid">
+                        <button class="mobile-action-btn" 
+                                onclick="window.changeScene && window.changeScene(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">🏠</div>
+                            <div>Scene</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.controlWeather && window.controlWeather(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">🌦️</div>
+                            <div>Weather</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.controlTime && window.controlTime(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">🌅</div>
+                            <div>Time</div>
+                        </button>
+                        <button class="mobile-action-btn" 
+                                onclick="window.toggleMagic && window.toggleMagic(); window.closeMobileMenu && window.closeMobileMenu();">
+                            <div class="icon">✨</div>
+                            <div>Magic</div>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6730,6 +6847,238 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
 });
 </script>
+
+
+<script>
+// Enhanced mobile menu functionality
+(function() {
+    // Detect touch support
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    // Store original functions
+    const originalToggle = window.toggleMobileMenu;
+    const originalClose = window.closeMobileMenu;
+    
+    // Enhanced toggle function with touch optimizations
+    window.toggleMobileMenu = function() {
+        const hamburger = document.querySelector('.mobile-hamburger');
+        const overlay = document.querySelector('.mobile-menu-overlay');
+        const menu = document.querySelector('.mobile-actions-menu');
+        
+        const isOpen = hamburger?.classList.contains('active');
+        
+        if (isOpen) {
+            closeMobileMenu();
+        } else {
+            openMobileMenu();
+        }
+    };
+    
+    window.openMobileMenu = function() {
+        const hamburger = document.querySelector('.mobile-hamburger');
+        const overlay = document.querySelector('.mobile-menu-overlay');
+        const menu = document.querySelector('.mobile-actions-menu');
+        
+        // Prevent double-open
+        if (hamburger?.classList.contains('active')) return;
+        
+        // Save current scroll position
+        const scrollY = window.scrollY;
+        document.body.dataset.scrollY = scrollY;
+        
+        // Add classes
+        hamburger?.classList.add('active');
+        overlay?.classList.add('active');
+        menu?.classList.add('active');
+        document.body.classList.add('menu-open');
+        
+        // Set body position to prevent scroll
+        document.body.style.top = `-${scrollY}px`;
+        
+        // Focus management for accessibility
+        if (menu) {
+            const firstButton = menu.querySelector('.mobile-menu-close');
+            firstButton?.focus();
+        }
+        
+        // Add swipe-to-close gesture
+        if (hasTouch && menu) {
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            
+            const handleTouchStart = (e) => {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+                menu.style.transition = 'none';
+            };
+            
+            const handleTouchMove = (e) => {
+                if (!isDragging) return;
+                currentX = e.touches[0].clientX;
+                const deltaX = currentX - startX;
+                
+                // Only allow dragging to the right (closing gesture)
+                if (deltaX > 0) {
+                    menu.style.transform = `translateX(${Math.min(deltaX, menu.offsetWidth)}px)`;
+                }
+            };
+            
+            const handleTouchEnd = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                menu.style.transition = '';
+                
+                const deltaX = currentX - startX;
+                
+                // If dragged more than 50% of menu width, close it
+                if (deltaX > menu.offsetWidth * 0.5) {
+                    closeMobileMenu();
+                } else {
+                    menu.style.transform = 'translateX(0)';
+                }
+            };
+            
+            menu.addEventListener('touchstart', handleTouchStart, { passive: true });
+            menu.addEventListener('touchmove', handleTouchMove, { passive: true });
+            menu.addEventListener('touchend', handleTouchEnd, { passive: true });
+            
+            // Store handlers for cleanup
+            menu._touchHandlers = { handleTouchStart, handleTouchMove, handleTouchEnd };
+        }
+    };
+    
+    window.closeMobileMenu = function() {
+        const hamburger = document.querySelector('.mobile-hamburger');
+        const overlay = document.querySelector('.mobile-menu-overlay');
+        const menu = document.querySelector('.mobile-actions-menu');
+        
+        // Remove classes
+        hamburger?.classList.remove('active');
+        overlay?.classList.remove('active');
+        menu?.classList.remove('active');
+        document.body.classList.remove('menu-open');
+        
+        // Restore scroll position
+        const scrollY = parseInt(document.body.dataset.scrollY || 0);
+        document.body.style.top = '';
+        window.scrollTo(0, scrollY);
+        
+        // Cleanup touch handlers
+        if (menu && menu._touchHandlers) {
+            menu.removeEventListener('touchstart', menu._touchHandlers.handleTouchStart);
+            menu.removeEventListener('touchmove', menu._touchHandlers.handleTouchMove);
+            menu.removeEventListener('touchend', menu._touchHandlers.handleTouchEnd);
+            delete menu._touchHandlers;
+        }
+        
+        // Return focus to hamburger button
+        hamburger?.focus();
+    };
+    
+    // Handle escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.querySelector('.mobile-hamburger.active')) {
+            closeMobileMenu();
+        }
+    });
+    
+    // Optimize for different screen sizes
+    const optimizeMenuLayout = () => {
+        const menu = document.querySelector('.mobile-actions-menu');
+        if (!menu) return;
+        
+        const viewportHeight = window.innerHeight;
+        const isLandscape = window.innerWidth > window.innerHeight;
+        
+        if (isLandscape && viewportHeight < 500) {
+            // Landscape on small screens - use more horizontal space
+            menu.style.width = '60%';
+            menu.style.maxWidth = '400px';
+        } else {
+            // Portrait or larger landscape screens
+            menu.style.width = '85%';
+            menu.style.maxWidth = '320px';
+        }
+    };
+    
+    // Run on load and resize
+    window.addEventListener('resize', optimizeMenuLayout);
+    window.addEventListener('orientationchange', () => {
+        setTimeout(optimizeMenuLayout, 100);
+    });
+    
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', () => {
+        optimizeMenuLayout();
+        
+        // Show hamburger on mobile
+        const isMobile = window.innerWidth <= 768 || hasTouch;
+        if (isMobile) {
+            const hamburger = document.querySelector('.mobile-hamburger');
+            if (hamburger) {
+                hamburger.style.display = 'flex';
+            }
+        }
+    });
+    
+    // Prevent accidental touches while menu is animating
+    let menuAnimating = false;
+    const animatedToggle = window.toggleMobileMenu;
+    
+    window.toggleMobileMenu = function() {
+        if (menuAnimating) return;
+        menuAnimating = true;
+        animatedToggle();
+        setTimeout(() => { menuAnimating = false; }, 300);
+    };
+    
+    // Add haptic feedback on supported devices
+    const addHapticFeedback = (element) => {
+        if ('vibrate' in navigator) {
+            element.addEventListener('touchstart', () => {
+                navigator.vibrate(10); // Light haptic feedback
+            });
+        }
+    };
+    
+    // Apply haptic feedback to all buttons
+    document.addEventListener('DOMContentLoaded', () => {
+        const buttons = document.querySelectorAll('.mobile-action-btn, .mobile-hamburger, .mobile-menu-close');
+        buttons.forEach(addHapticFeedback);
+    });
+})();
+
+// Performance optimizations
+document.addEventListener('DOMContentLoaded', () => {
+    // Defer non-critical menu setup
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+            // Pre-warm menu animations
+            const menu = document.querySelector('.mobile-actions-menu');
+            if (menu) {
+                menu.style.transform = 'translateX(100%)';
+                menu.style.display = 'flex';
+                setTimeout(() => {
+                    menu.style.display = '';
+                }, 100);
+            }
+        });
+    }
+});
+
+// Use passive event listeners for better scroll performance
+document.addEventListener('DOMContentLoaded', () => {
+    const scrollableElements = document.querySelectorAll('.mobile-menu-content');
+    scrollableElements.forEach(el => {
+        el.addEventListener('touchstart', () => {}, { passive: true });
+        el.addEventListener('touchmove', () => {}, { passive: true });
+    });
+});
+</script>
+
+
+
 
 </body>
 </html>
