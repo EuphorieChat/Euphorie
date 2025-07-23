@@ -1,9 +1,9 @@
 // =============================================
-// EUPHORIE 3D CHAT BUBBLE SYSTEM v6.1 - FIXED STACKING
-// Fixed: Consistent height positioning, no vertical stacking
+// EUPHORIE 3D CHAT BUBBLE SYSTEM v6.2 - FIXED POSITIONING
+// Fixed: Bubbles stay properly above avatars, no chaotic spreading
 // =============================================
 
-console.log('🔥 LOADING ChatBubbleSystem v6.1 - Fixed Stacking Version...');
+console.log('🔥 LOADING ChatBubbleSystem v6.2 - Fixed Positioning Version...');
 
 // 1. SAFE MATH UTILITIES - Prevent NaN in calculations
 const SafeMath = {
@@ -22,10 +22,10 @@ const SafeMath = {
     safeScale: (value) => {
         if (value === undefined || value === null) return 1;
         if (!isFinite(value) || isNaN(value)) return 1;
-        if (value === 0) return 0.001; // Prevent invisible objects
-        if (value < -100) return 0.001; // Handle extreme negatives
-        if (value > 100) return 10; // Cap extreme positives
-        return Math.abs(value); // Always return positive scale
+        if (value === 0) return 0.001;
+        if (value < -100) return 0.001;
+        if (value > 100) return 10;
+        return Math.abs(value);
     },
     
     safeEasing: (progress) => {
@@ -35,7 +35,7 @@ const SafeMath = {
     }
 };
 
-// 2. TARGETED SCALE PROTECTION - Only for chat bubble objects
+// 2. TARGETED SCALE PROTECTION
 function createSafeScaleHelper() {
     return {
         setSafeBubbleScale: function(object, x, y, z) {
@@ -82,10 +82,10 @@ function createSafeScaleHelper() {
     };
 }
 
-// 3. MAIN CHAT BUBBLE SYSTEM CLASS - FIXED STACKING VERSION
+// 3. MAIN CHAT BUBBLE SYSTEM CLASS - FIXED POSITIONING
 class ChatBubbleSystem {
     constructor() {
-        console.log('💬✨ ChatBubbleSystem v6.1 - Fixed Stacking version starting...');
+        console.log('💬✨ ChatBubbleSystem v6.2 - Fixed Positioning version starting...');
         
         this.safeScale = createSafeScaleHelper();
         
@@ -107,18 +107,18 @@ class ChatBubbleSystem {
         this.avatarPositionCache = new Map();
         this.lastKnownPositions = new Map();
         
-        // FIXED: Configuration for NO STACKING AT ALL
+        // FIXED: Configuration for proper positioning
         this.config = {
             maxBubbles: 20,
-            fadeTime: 3000, // Even faster fade out
+            fadeTime: 3000,
             maxDistance: 60,
             fontSize: 18,
             maxWidth: 380,
             padding: 25,
             borderRadius: 20,
-            yOffset: 2.8, // FIXED: Always this exact height above avatar
+            yOffset: 2.5, // FIXED: Consistent height above avatar
             animationDuration: 600,
-            maxBubblesPerUser: 1, // FIXED: Only ONE bubble per user EVER
+            maxBubblesPerUser: 1, // Only one bubble per user
             enableDebug: false,
             enableShadows: true,
             cullingDistance: 100,
@@ -126,11 +126,13 @@ class ChatBubbleSystem {
             enableGlow: true,
             minHeight: 2.0,
             maxHeight: 15.0,
-            horizontalSpread: 0, // FIXED: NO spreading at all
-            replacePreviousBubble: true, // FIXED: Always replace
+            horizontalSpread: 0, // No horizontal spreading
+            replacePreviousBubble: true, // Always replace old bubbles
             groundY: 0,
-            noVerticalStacking: true, // FIXED: Disabled completely
-            forceReplacement: true // FIXED: New - force immediate replacement
+            noVerticalStacking: true, // Disable vertical stacking
+            forceReplacement: true, // Force immediate replacement
+            floatAmplitude: 0.05, // FIXED: Reduced floating motion
+            swayAmplitude: 0.02  // FIXED: Reduced swaying motion
         };
         
         // Enhanced visual styles
@@ -161,7 +163,7 @@ class ChatBubbleSystem {
         // Setup resize handler
         window.addEventListener('resize', this.handleResize);
         
-        console.log('✅ ChatBubbleSystem v6.1 - Fixed Stacking version created');
+        console.log('✅ ChatBubbleSystem v6.2 - Fixed Positioning version created');
     }
     
     bindMethods() {
@@ -225,7 +227,7 @@ class ChatBubbleSystem {
     }
     
     async init() {
-        console.log('🚀 Initializing ChatBubbleSystem v6.1...');
+        console.log('🚀 Initializing ChatBubbleSystem v6.2...');
         
         try {
             this._ensurePerformanceObject();
@@ -254,7 +256,7 @@ class ChatBubbleSystem {
             this._ensurePerformanceObject();
             this.isInitialized = true;
             
-            console.log('✅ ChatBubbleSystem v6.1 initialized successfully');
+            console.log('✅ ChatBubbleSystem v6.2 initialized successfully');
             
             this.startUpdateLoop();
             this.setupEventListeners();
@@ -352,14 +354,14 @@ class ChatBubbleSystem {
         
         const groundPosition = new THREE.Vector3(
             Math.cos(angle) * radius,
-            this.config.groundY + this.config.yOffset, // FIXED: Use consistent yOffset
+            this.config.groundY + this.config.yOffset,
             Math.sin(angle) * radius
         );
         
         this.lastKnownPositions.set(userId, groundPosition.clone());
         
         if (this.config.enableDebug) {
-            console.log(`🔧 Created consistent fallback position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
+            console.log(`🔧 Created fallback position for ${userId}: (${groundPosition.x.toFixed(2)}, ${groundPosition.y.toFixed(2)}, ${groundPosition.z.toFixed(2)})`);
         }
         
         return groundPosition;
@@ -555,7 +557,7 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Create bubble with consistent positioning - NO STACKING
+    // FIXED: Create bubble with consistent positioning
     createBubble(message, username, position, userId = null) {
         if (!this.isInitialized || !window.THREE) {
             console.warn('💬 ChatBubbleSystem not ready');
@@ -616,7 +618,7 @@ class ChatBubbleSystem {
             
             bubbleGroup.add(sprite);
             
-            // FIXED: Calculate consistent bubble position - NO STACKING
+            // FIXED: Calculate consistent bubble position
             const bubblePosition = this.calculateConsistentBubblePosition(position, userId);
             bubbleGroup.position.copy(bubblePosition);
             
@@ -630,6 +632,7 @@ class ChatBubbleSystem {
                 opacity: 1,
                 isVisible: true,
                 originalPosition: bubblePosition.clone(),
+                basePosition: position.clone(), // FIXED: Store base avatar position
                 isChatBubble: true
             };
             
@@ -642,7 +645,7 @@ class ChatBubbleSystem {
             // Track bubble
             this.activeBubbles.push(bubbleGroup);
             
-            // FIXED: FORCE replacement - remove old bubble IMMEDIATELY
+            // FIXED: Force replacement
             if (userId) {
                 if (!this.bubbles.has(userId)) {
                     this.bubbles.set(userId, []);
@@ -650,17 +653,15 @@ class ChatBubbleSystem {
                 
                 const userBubbles = this.bubbles.get(userId);
                 
-                // FORCE REPLACEMENT: Always remove old bubbles immediately
+                // Remove ALL existing bubbles for this user
                 if (userBubbles.length > 0) {
-                    // Remove ALL existing bubbles for this user
                     userBubbles.forEach(oldBubble => {
                         this.removeBubble(oldBubble);
                     });
-                    // Clear the array
                     userBubbles.length = 0;
                 }
                 
-                // Add the new bubble as the only bubble
+                // Add the new bubble
                 userBubbles.push(bubbleGroup);
             }
             
@@ -678,11 +679,11 @@ class ChatBubbleSystem {
         }
     }
     
-    // FIXED: Consistent positioning - COMPLETELY NO STACKING
+    // FIXED: Consistent positioning with no spreading
     calculateConsistentBubblePosition(basePosition, userId) {
         const bubblePosition = basePosition.clone();
         
-        // FIXED: Always use the EXACT same height - NO STACKING EVER
+        // FIXED: Always use the exact same height offset
         bubblePosition.y = Math.max(
             this.config.minHeight, 
             basePosition.y + this.config.yOffset
@@ -691,18 +692,16 @@ class ChatBubbleSystem {
         // Ensure maximum height
         bubblePosition.y = Math.min(this.config.maxHeight, bubblePosition.y);
         
-        // COMPLETELY REMOVED: No offset calculations based on existing bubbles
-        // Every bubble appears at the EXACT same position for the same user
-        // The replacement logic handles removing old bubbles
+        // NO horizontal offset - bubble stays directly above avatar
+        // NO vertical stacking - every bubble at same height
         
         return bubblePosition;
     }
     
-    // Rest of the methods remain the same...
     animateBubbleInSafe(bubble) {
         if (!bubble) return;
         
-        console.log('✅ Starting SAFE bubble animation for:', bubble.userData?.message);
+        console.log('✅ Starting bubble animation for:', bubble.userData?.message);
         
         const startScale = 0;
         const endScale = 1;
@@ -740,7 +739,7 @@ class ChatBubbleSystem {
                     bubble.rotation.z = 0;
                     this.safeScale.setSafeBubbleScalar(bubble, 1);
                     
-                    console.log('✅ Bubble animation completed safely:', bubble.userData?.message);
+                    console.log('✅ Bubble animation completed:', bubble.userData?.message);
                     
                     // Schedule fade out
                     setTimeout(() => {
@@ -748,7 +747,7 @@ class ChatBubbleSystem {
                     }, this.config.fadeTime);
                 }
             } catch (error) {
-                console.error('❌ Error in safe bubble animation:', error);
+                console.error('❌ Error in bubble animation:', error);
                 this.safeScale.setSafeBubbleScalar(bubble, 1);
                 bubble.userData.animationPhase = 'stable';
             }
@@ -801,6 +800,7 @@ class ChatBubbleSystem {
         animate();
     }
     
+    // FIXED: Update method with reduced motion
     update() {
         if (!this.camera || !this.isInitialized) return;
         
@@ -824,32 +824,34 @@ class ChatBubbleSystem {
                 
                 bubble.lookAt(this.camera.position);
                 
-                // FIXED: Gentle floating animation without affecting base height
+                // FIXED: Gentle floating animation with reduced amplitude
                 const time = Date.now() * 0.0008;
-                const floatAmount = 0.03; // Reduced float amount
+                const floatAmount = this.config.floatAmplitude || 0.03;
                 const floatOffset = Math.sin(time + bubble.userData.id * 0.7) * floatAmount;
                 
+                // FIXED: Calculate position based on original position
                 const originalY = bubble.userData.originalPosition?.y || this.config.yOffset;
                 const newY = Math.max(this.config.minHeight, originalY + floatOffset);
-                bubble.position.y = isFinite(newY) ? newY : this.config.yOffset;
+                bubble.position.y = isFinite(newY) ? newY : originalY;
                 
-                // Very gentle swaying
-                const swayAmount = 0.01;
-                const swaySpeed = time * 0.4;
-                const originalX = bubble.userData.originalPosition?.x || 0;
-                const originalZ = bubble.userData.originalPosition?.z || 0;
-                
-                const swayX = Math.sin(swaySpeed + bubble.userData.id) * swayAmount;
-                const swayZ = Math.cos(swaySpeed * 0.7 + bubble.userData.id * 0.5) * swayAmount;
-                
-                bubble.position.x = originalX + (isFinite(swayX) ? swayX : 0);
-                bubble.position.z = originalZ + (isFinite(swayZ) ? swayZ : 0);
-                
+                // FIXED: Very minimal swaying to prevent chaos
                 if (bubble.userData.animationPhase === 'stable') {
-                    const rotationZ = Math.sin(time * 0.3 + bubble.userData.id) * 0.03;
+                    const swayAmount = this.config.swayAmplitude || 0.01;
+                    const swaySpeed = time * 0.4;
+                    const originalX = bubble.userData.originalPosition?.x || 0;
+                    const originalZ = bubble.userData.originalPosition?.z || 0;
+                    
+                    const swayX = Math.sin(swaySpeed + bubble.userData.id) * swayAmount;
+                    const swayZ = Math.cos(swaySpeed * 0.7 + bubble.userData.id * 0.5) * swayAmount;
+                    
+                    bubble.position.x = originalX + (isFinite(swayX) ? swayX : 0);
+                    bubble.position.z = originalZ + (isFinite(swayZ) ? swayZ : 0);
+                    
+                    const rotationZ = Math.sin(time * 0.3 + bubble.userData.id) * 0.02;
                     bubble.rotation.z = isFinite(rotationZ) ? rotationZ : 0;
                 }
                 
+                // Distance-based scaling and opacity
                 if (bubble.children[0]?.material) {
                     const normalizedDistance = Math.min(distance / this.config.maxDistance, 1);
                     const opacity = Math.max(0.3, 1 - Math.pow(normalizedDistance, 1.5)) * (bubble.userData.opacity || 1);
@@ -1134,7 +1136,32 @@ class ChatBubbleSystem {
         }
     }
     
-    // Rest of the utility methods remain the same
+    // FIXED: Update bubble positions to follow avatars properly
+    updateBubblePositions(userId, newPosition) {
+        if (!this.bubbles.has(userId) || !newPosition) return;
+        
+        try {
+            this.cacheAvatarPosition(userId, newPosition);
+            
+            const userBubbles = this.bubbles.get(userId);
+            userBubbles.forEach((bubble) => {
+                if (bubble.userData.isVisible && bubble.userData.animationPhase !== 'exiting') {
+                    // FIXED: Calculate new bubble position based on avatar's new position
+                    const bubblePosition = this.calculateConsistentBubblePosition(newPosition, userId);
+                    
+                    // Update stored positions
+                    bubble.userData.originalPosition = bubblePosition.clone();
+                    bubble.userData.basePosition = newPosition.clone();
+                    
+                    // Smoothly move bubble to new position
+                    bubble.position.lerp(bubblePosition, 0.15);
+                }
+            });
+        } catch (error) {
+            console.error('Error updating bubble positions:', error);
+        }
+    }
+    
     removeBubble(bubble) {
         if (!bubble) return;
         
@@ -1189,29 +1216,6 @@ class ChatBubbleSystem {
             this.bubbles.delete(userId);
         } catch (error) {
             console.error('Error removing user bubbles:', error);
-        }
-    }
-    
-    updateBubblePositions(userId, newPosition) {
-        if (!this.bubbles.has(userId) || !newPosition) return;
-        
-        try {
-            this.cacheAvatarPosition(userId, newPosition);
-            
-            const userBubbles = this.bubbles.get(userId);
-            userBubbles.forEach((bubble) => {
-                if (bubble.userData.isVisible && bubble.userData.animationPhase !== 'exiting') {
-                    const bubblePosition = newPosition.clone();
-                    
-                    // FIXED: EXACT same height calculation as creation
-                    bubblePosition.y = Math.max(this.config.minHeight, bubblePosition.y + this.config.yOffset);
-                    
-                    // NO horizontal spreading - exact same position
-                    bubble.userData.originalPosition.lerp(bubblePosition, 0.15);
-                }
-            });
-        } catch (error) {
-            console.error('Error updating bubble positions:', error);
         }
     }
     
@@ -1320,80 +1324,7 @@ class ChatBubbleSystem {
         console.log('💬 ChatBubbleSystem config updated:', newConfig);
     }
     
-    // Debug and testing methods
-    enableDebugMode() {
-        this.config.enableDebug = true;
-        console.log('🔍 Chat Bubble positioning debug mode ENABLED');
-        this.debugCurrentAvatars();
-    }
-    
-    disableDebugMode() {
-        this.config.enableDebug = false;
-        console.log('🔍 Chat Bubble positioning debug mode DISABLED');
-    }
-    
-    debugCurrentAvatars() {
-        console.log('🎭 Current avatars in scene:');
-        
-        if (!this.scene) {
-            console.log('❌ No scene available');
-            return;
-        }
-        
-        let avatarCount = 0;
-        this.scene.traverse(child => {
-            if (child.userData && (
-                child.userData.userId || 
-                child.userData.id || 
-                child.userData.user_id ||
-                child.userData.isAvatar ||
-                child.userData.type === 'avatar'
-            )) {
-                avatarCount++;
-                console.log(`  👤 Avatar ${avatarCount}:`, {
-                    name: child.name,
-                    userId: child.userData.userId || child.userData.id || child.userData.user_id,
-                    position: `(${child.position.x.toFixed(2)}, ${child.position.y.toFixed(2)}, ${child.position.z.toFixed(2)})`,
-                    userData: child.userData
-                });
-            }
-        });
-        
-        if (avatarCount === 0) {
-            console.log('  ❌ No avatars found in scene');
-        } else {
-            console.log(`  ✅ Found ${avatarCount} avatars total`);
-        }
-        
-        console.log('💾 Cached avatar positions:');
-        this.avatarPositionCache.forEach((data, userId) => {
-            const pos = data.position;
-            console.log(`  👤 ${userId}: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}) [${Date.now() - data.timestamp}ms ago]`);
-        });
-    }
-    
-    forceUserPosition(userId, x, y, z) {
-        const position = new THREE.Vector3(x, y, z);
-        this.cacheAvatarPosition(userId, position);
-        this.updateBubblePositions(userId, position);
-        console.log(`🎯 Forced position for ${userId}: (${x}, ${y}, ${z})`);
-    }
-    
-    dispose() {
-        try {
-            this.clearAllBubbles();
-            window.removeEventListener('resize', this.handleResize);
-            
-            if (this.avatarPositionCache) this.avatarPositionCache.clear();
-            if (this.lastKnownPositions) this.lastKnownPositions.clear();
-            
-            console.log('💬 ChatBubbleSystem disposed');
-        } catch (error) {
-            console.error('Error disposing ChatBubbleSystem:', error);
-        }
-    }
-    
-    // Compatibility methods for the old API
+    // Compatibility methods
     animateBubbleIn(bubble) {
         return this.animateBubbleInSafe(bubble);
     }
@@ -1416,9 +1347,7 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBubbleSystem;
 }
 
-console.log('✅ ChatBubbleSystem v6.1 - Fixed Stacking version loaded successfully');
-console.log('🎯 Key fix: NO vertical stacking - consistent height positioning');
-console.log('📈 Bubbles now appear at consistent height above avatars');
+console.log('✅ ChatBubbleSystem v6.2 - Fixed Positioning version loaded successfully');
+console.log('🎯 Key fix: Bubbles stay properly positioned above avatars');
+console.log('📈 Reduced floating and swaying motion for stability');
 console.log('🔧 Ready for integration with room_3d.html');
-console.log('');
-console.log('🧪 Test with: window.ChatBubbleSystem.createTestBubble("No more stacking!");');
