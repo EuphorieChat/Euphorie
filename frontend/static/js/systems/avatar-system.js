@@ -2488,7 +2488,7 @@ window.AmongUsAvatarSystem = {
             document.body.removeChild(modal);
             
             // Show success notification
-            this.showNotification('🎨 Avatar customized!');
+            // this.showNotification('🎨 Avatar customized!');
         };
         
         // Close on background click
