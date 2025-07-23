@@ -506,23 +506,76 @@ class EuphorieScreenSharingSystem {
         this.receivedStreams.set(userId, stream);
         this.streamStartTimes.set(userId, Date.now());
         
-        // CRITICAL: Ensure video element is properly configured BEFORE setting stream
-        if (!this.videoElement) {
-            console.log('📺 [FIX] Creating new video element for remote stream');
-            this.createProjectionSurface();
+        // CRITICAL: Create fresh video element for remote stream
+        if (this.videoElement) {
+            this.videoElement.remove();
+            this.videoElement = null;
         }
         
-        // Enhanced video element configuration for remote streams
-        this.configureVideoElementForRemoteStream(this.videoElement, stream);
+        // Create new video element with proper setup
+        this.videoElement = document.createElement('video');
+        this.videoElement.style.display = 'none';
         
-        // Set stream and wait for it to load properly
+        // CRITICAL: Set all attributes BEFORE srcObject
+        this.videoElement.setAttribute('autoplay', '');
+        this.videoElement.setAttribute('muted', '');
+        this.videoElement.setAttribute('playsinline', '');
+        this.videoElement.autoplay = true;
+        this.videoElement.muted = true;
+        this.videoElement.playsInline = true;
+        document.body.appendChild(this.videoElement);
+        
+        // Add critical event listeners BEFORE setting srcObject
+        let metadataLoaded = false;
+        let videoPlaying = false;
+        
+        this.videoElement.addEventListener('loadedmetadata', async () => {
+            console.log('📺 [FIX] Metadata loaded, dimensions:', this.videoElement.videoWidth, 'x', this.videoElement.videoHeight);
+            metadataLoaded = true;
+            
+            // Try to play immediately when metadata loads
+            try {
+                await this.videoElement.play();
+                console.log('✅ [FIX] Video playing after metadata!');
+            } catch (e) {
+                console.error('❌ [FIX] Play failed on metadata:', e);
+            }
+        });
+        
+        this.videoElement.addEventListener('playing', () => {
+            console.log('✅ [FIX] Video is now playing event fired');
+            videoPlaying = true;
+            
+            // Create or update texture when video starts playing
+            if (!this.projectionTexture || this.projectionTexture.image !== this.videoElement) {
+                this.createVideoTexture();
+            }
+            
+            // Force immediate texture update
+            if (this.projectionTexture) {
+                this.projectionTexture.needsUpdate = true;
+            }
+        });
+        
+        // Handle errors
+        this.videoElement.addEventListener('error', (e) => {
+            console.error('❌ [FIX] Video error:', e);
+        });
+        
+        // NOW set the stream
+        console.log('🎬 [FIX] Setting srcObject...');
         this.videoElement.srcObject = stream;
         this.mediaStream = stream;
         
         try {
-            // CRITICAL FIX: Force video to play and wait for actual readiness
-            console.log('🎬 [FIX] Starting enhanced video play sequence...');
-            await this.forceVideoPlayWithRetries(this.videoElement, userId);
+            // Wait a moment for events to settle
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Force play if not already playing
+            if (!videoPlaying) {
+                console.log('🎬 [FIX] Forcing video play...');
+                await this.videoElement.play();
+            }
             
             // Wait for video to have actual content
             await this.waitForVideoContent(this.videoElement, userId);
@@ -539,7 +592,12 @@ class EuphorieScreenSharingSystem {
                 }, 500);
             }
             
-            // CRITICAL: Enhanced texture update system
+            // Ensure texture exists and start updates
+            if (!this.projectionTexture) {
+                this.createVideoTexture();
+            }
+            
+            // Start texture update system
             this.startEnhancedVideoTextureUpdates();
             
             console.log('✅ [FIX] Remote stream setup completed successfully');
@@ -563,6 +621,40 @@ class EuphorieScreenSharingSystem {
         
         // Start monitoring for dark screen issues
         this.startDarkScreenMonitoring(userId);
+    }
+
+    // Add this new method right after handleRemoteStreamEnhanced
+    createVideoTexture() {
+        console.log('🎨 [FIX] Creating video texture with proper settings...');
+        
+        // Dispose old texture if exists
+        if (this.projectionTexture) {
+            this.projectionTexture.dispose();
+        }
+        
+        // Create new texture from video element
+        this.projectionTexture = new THREE.VideoTexture(this.videoElement);
+        this.projectionTexture.minFilter = THREE.LinearFilter;
+        this.projectionTexture.magFilter = THREE.LinearFilter;
+        this.projectionTexture.format = THREE.RGBAFormat;
+        this.projectionTexture.generateMipmaps = false;
+        this.projectionTexture.needsUpdate = true;
+        
+        // Update material with new texture
+        if (this.projectionMaterial) {
+            this.projectionMaterial.map = this.projectionTexture;
+            this.projectionMaterial.needsUpdate = true;
+        } else if (this.projectionSurface) {
+            // If material doesn't exist, get it from projection surface
+            const mesh = this.projectionSurface.children.find(child => child instanceof THREE.Mesh);
+            if (mesh && mesh.material) {
+                this.projectionMaterial = mesh.material;
+                this.projectionMaterial.map = this.projectionTexture;
+                this.projectionMaterial.needsUpdate = true;
+            }
+        }
+        
+        console.log('✅ [FIX] Video texture created and applied');
     }
     
     // CRITICAL FIX 2: Enhanced video element configuration
