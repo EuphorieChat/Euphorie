@@ -1059,24 +1059,26 @@ window.GroupInteractionSystem = {
     },
     
     startActivityTimer: function(groupData) {
-        return; // Disabled all group activity timers        const duration = groupData.activity.duration;
+        const duration = groupData.activity.duration;
         
-        // Countdown notifications
-        const notifications = [
-        //             { time: duration - 5000, message: '⏰ 5 seconds remaining!' },
-        //             { time: duration - 10000, message: '⏰ 10 seconds remaining!' },
-        //             { time: duration / 2, message: `🎭 ${groupData.activity.name} halfway done!` }
-        ];
+        // Countdown notifications (optional - uncomment if you want them)
+        // const notifications = [
+        //     { time: duration - 5000, message: '⏰ 5 seconds remaining!' },
+        //     { time: duration - 10000, message: '⏰ 10 seconds remaining!' },
+        //     { time: duration / 2, message: `🎭 ${groupData.activity.name} halfway done!` }
+        // ];
         
-        notifications.forEach(notification => {
-            setTimeout(() => {
-                if (this.activeGroups.has(groupData.id) && window.RoomCore) {
-                    window.RoomCore.showNotification(notification.message);
-                }
-            }, notification.time);
-        });
+        // notifications.forEach(notification => {
+        //     if (notification.time > 0) { // Only set timer if time is positive
+        //         setTimeout(() => {
+        //             if (this.activeGroups.has(groupData.id) && window.RoomCore) {
+        //                 window.RoomCore.showNotification(notification.message);
+        //             }
+        //         }, notification.time);
+        //     }
+        // });
         
-        // End activity
+        // End activity - THIS IS THE CRITICAL PART THAT STOPS THE DANCING
         setTimeout(() => {
             this.endGroupActivity(groupData.id);
         }, duration);
