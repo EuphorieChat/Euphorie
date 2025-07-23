@@ -339,16 +339,18 @@ window.AmongUsAvatarSystem = {
         visorGroup.add(visor);
         
         // Visor highlight
-        const highlightGeometry = new THREE.TorusGeometry(0.15, 0.02, 8, 16, Math.PI * 0.5);
+        const highlightGeometry = new THREE.RingGeometry(0.08, 0.1, 16, 1, 0, Math.PI * 0.3);
         const highlightMaterial = new THREE.MeshBasicMaterial({ 
             color: 0xFFFFFF,
             transparent: true,
-            opacity: 0.7
+            opacity: 0.3,  // Reduced opacity
+            side: THREE.DoubleSide
         });
-        
+
         const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
-        highlight.position.set(-0.05, 0.05, 0.05);
-        highlight.rotation.z = -0.3;
+        highlight.position.set(-0.08, 0.08, 0.08);  // Better positioned in upper left
+        highlight.rotation.z = -0.5;  // Better angle
+        highlight.scale.set(0.6, 0.3, 1);  // Stretched to look more like a light reflection
         visorGroup.add(highlight);
         
         // Face/Expression system
@@ -624,7 +626,7 @@ window.AmongUsAvatarSystem = {
                         dot.position.set(
                             xPos + Math.cos(angle) * radius,
                             Math.sin(angle) * radius,
-                            0.12
+                            0.12  // CHANGE THIS TO 0.115 to prevent z-fighting
                         );
                         visorGroup.add(dot);
                     }
@@ -1735,7 +1737,7 @@ window.AmongUsAvatarSystem = {
                     const visor = avatar.mesh.getObjectByName('visor');
                     if (visor) {
                         const highlight = visor.children.find(child => child.geometry instanceof THREE.TorusGeometry);
-                        if (highlight) {
+                        if (highlight && highlight.material) {  // ADD THIS CHECK
                             highlight.material.opacity = 0.7 + Math.sin(time * 3) * 0.3;
                         }
                     }
