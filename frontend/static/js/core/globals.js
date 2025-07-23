@@ -1,24 +1,21 @@
-// Global state and configuration for Euphorie 3D Platform - Complete Integration Version
+// Global state and configuration for Euphorie 3D Platform - Enhanced Version
 
 window.Euphorie = {
     // Core configuration
     config: {
-        version: '3.0.0',
+        version: '2.0.0',
         apiBaseUrl: '/api/v1/',
         websocketUrl: 'ws://localhost:8080',
         updateRate: 60, // FPS
         memoryBudget: 50 * 1024 * 1024, // 50MB
         
-        // Feature flags
+        // New feature configurations
         features: {
             doubleTapZoom: true,
             avatarCollision: true,
             chatBubbles: true,
             advancedGraphics: true,
-            postProcessing: true,
-            interactions: true,
-            groupActivities: true,
-            scenePresets: true
+            postProcessing: true
         },
         
         // Performance thresholds
@@ -26,8 +23,7 @@ window.Euphorie = {
             lowFPSThreshold: 20,
             highMemoryThreshold: 0.8, // 80% of budget
             collisionCheckInterval: 100, // ms
-            zoomAnimationDuration: 500, // ms
-            interactionCooldown: 1000 // ms
+            zoomAnimationDuration: 500 // ms
         },
         
         // Mobile specific settings
@@ -36,26 +32,7 @@ window.Euphorie = {
             memoryBudget: 25 * 1024 * 1024,
             doubleTapDelay: 300,
             touchSensitivity: 0.008,
-            pinchZoomSpeed: 0.02,
-            maxBubbles: 10,
-            reducedEffects: true
-        },
-        
-        // Interaction settings
-        interactions: {
-            defaultCooldown: 2000,
-            maxDistance: 5,
-            consentTimeout: 10000,
-            animationDuration: 3000
-        },
-        
-        // Group activity settings
-        groupActivities: {
-            maxGroupSize: 12,
-            minGroupSize: 2,
-            autoFormThreshold: 4,
-            defaultDuration: 15000,
-            formationTimeout: 5000
+            pinchZoomSpeed: 0.02
         }
     },
     
@@ -70,77 +47,20 @@ window.Euphorie = {
         camera: null,
         renderer: null,
         
-        // System states
+        // New state properties
         activeFeatures: new Set(),
-        activeSystems: new Set(),
-        
-        // Camera state
         cameraState: {
             angle: 0,
             height: 5,
-            distance: 10,
-            target: { x: 0, y: 0, z: 0 }
+            distance: 10
         },
-        
-        // Input state
         inputState: {
             isMouseDown: false,
             isTouching: false,
             touchCount: 0,
-            lastTapTime: 0,
-            keys: new Set(),
-            mousePosition: { x: 0, y: 0 }
+            lastTapTime: 0
         },
-        
-        // Scene state
-        sceneState: {
-            currentPreset: 'modern_office',
-            quality: 'medium',
-            lightingIntensity: 1.0,
-            fogEnabled: true
-        },
-        
-        // Avatar system state
-        avatarSystem: {
-            type: 'among-us',
-            isInitialized: false,
-            activeAvatars: new Map(),
-            localAvatarId: 'default',
-            customization: {
-                color: '#C51111',
-                hat: 'none',
-                clothes: 'none',
-                accessory: 'none',
-                pet: 'none',
-                expression: 'neutral'
-            }
-        },
-        
-        // Chat bubble system state
-        chatBubbleSystem: {
-            isInitialized: false,
-            bubblesEnabled: true,
-            maxBubbles: 20,
-            fadeTime: 3000,
-            activeBubbles: [],
-            messageQueue: []
-        },
-        
-        // Interaction system state
-        interactionSystem: {
-            isInitialized: false,
-            activeInteractions: new Map(),
-            cooldowns: new Map(),
-            pendingConsents: new Map()
-        },
-        
-        // Group interaction state
-        groupInteractionSystem: {
-            isInitialized: false,
-            activeGroups: new Map(),
-            pendingInvites: new Map(),
-            userGroups: new Map()
-        }
+        sceneQuality: 'medium' // low, medium, high
     },
     
     // Performance monitoring - Enhanced
@@ -153,7 +73,6 @@ window.Euphorie = {
         memoryUsage: 0,
         drawCalls: 0,
         triangles: 0,
-        activeEffects: 0,
         
         // Performance tracking methods
         startFrame: function() {
@@ -212,16 +131,12 @@ window.Euphorie = {
                 avgFps: this.avgFps.toFixed(1),
                 memory: window.Euphorie.utils.formatMemory(this.memoryUsage),
                 drawCalls: this.drawCalls,
-                triangles: this.triangles,
-                activeEffects: this.activeEffects,
-                avatarCount: window.Euphorie.state.avatars.size,
-                bubbleCount: window.Euphorie.state.chatBubbleSystem.activeBubbles.length,
-                groupCount: window.Euphorie.state.groupInteractionSystem.activeGroups.size
+                triangles: this.triangles
             };
         }
     },
     
-    // Utils - Enhanced with all systems
+    // Utils - Enhanced
     utils: {
         generateId: () => Math.random().toString(36).substr(2, 9),
         
@@ -236,8 +151,6 @@ window.Euphorie = {
         
         easeOutCubic: (t) => 1 - Math.pow(1 - t, 3),
         
-        easeInOutCubic: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
-        
         formatMemory: (bytes) => {
             const units = ['B', 'KB', 'MB', 'GB'];
             let size = bytes;
@@ -249,20 +162,6 @@ window.Euphorie = {
             }
             
             return `${size.toFixed(1)} ${units[unitIndex]}`;
-        },
-        
-        formatTime: (ms) => {
-            const seconds = Math.floor(ms / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            
-            if (hours > 0) {
-                return `${hours}h ${minutes % 60}m`;
-            } else if (minutes > 0) {
-                return `${minutes}m ${seconds % 60}s`;
-            } else {
-                return `${seconds}s`;
-            }
         },
         
         // Device detection - Enhanced
@@ -296,8 +195,7 @@ window.Euphorie = {
                 websocket: !!window.WebSocket,
                 worker: !!window.Worker,
                 sharedArrayBuffer: typeof SharedArrayBuffer !== 'undefined',
-                offscreenCanvas: typeof OffscreenCanvas !== 'undefined',
-                vibration: 'vibrate' in navigator
+                offscreenCanvas: typeof OffscreenCanvas !== 'undefined'
             };
         },
         
@@ -317,108 +215,6 @@ window.Euphorie = {
                 y: vector.y / length,
                 z: vector.z / length
             };
-        },
-        
-        // Avatar utilities
-        getLocalAvatar: function() {
-            const avatarId = window.Euphorie.state.avatarSystem.localAvatarId;
-            if (avatarId && window.AmongUsAvatarSystem) {
-                return window.AmongUsAvatarSystem.getAvatar(avatarId);
-            } else if (avatarId && window.AvatarSystem) {
-                return window.AvatarSystem.getAvatar(avatarId);
-            }
-            return null;
-        },
-        
-        customizeLocalAvatar: function(options) {
-            const localAvatar = this.getLocalAvatar();
-            if (localAvatar && window.AmongUsAvatarSystem) {
-                window.AmongUsAvatarSystem.customizeAvatar(localAvatar.id, options);
-                Object.assign(window.Euphorie.state.avatarSystem.customization, options);
-            } else if (localAvatar && window.AvatarSystem) {
-                window.AvatarSystem.customizeAvatar(localAvatar.id, options);
-                Object.assign(window.Euphorie.state.avatarSystem.customization, options);
-            }
-        },
-        
-        // Chat bubble utilities
-        sendChatBubble: function(message) {
-            if (window.ChatBubbleSystem && window.ChatBubbleSystem.isInitialized) {
-                const userId = window.Euphorie.state.currentUser?.id || 'default';
-                const username = window.Euphorie.state.currentUser?.username || 'User';
-                
-                window.EventBus?.emit('chat_message', {
-                    userId: userId,
-                    username: username,
-                    message: message
-                });
-            }
-        },
-        
-        toggleChatBubbles: function() {
-            const enabled = !window.Euphorie.state.chatBubbleSystem.bubblesEnabled;
-            window.Euphorie.state.chatBubbleSystem.bubblesEnabled = enabled;
-            
-            if (!enabled && window.ChatBubbleSystem) {
-                window.ChatBubbleSystem.clearAllBubbles();
-            }
-            
-            if (window.ROOM_CONFIG) {
-                window.ROOM_CONFIG.chatBubblesEnabled = enabled;
-            }
-            
-            return enabled;
-        },
-        
-        // Interaction utilities
-        triggerInteraction: function(type, targetId = null) {
-            if (window.InteractionSystem && window.InteractionSystem.isInitialized) {
-                window.InteractionSystem.triggerInteraction(type, targetId);
-            }
-        },
-        
-        getAvailableInteractions: function() {
-            if (window.InteractionSystem) {
-                return window.InteractionSystem.getInteractionTypes();
-            }
-            return [];
-        },
-        
-        // Group activity utilities
-        startGroupActivity: function(activityType) {
-            if (window.GroupInteractionSystem && window.GroupInteractionSystem.isInitialized) {
-                window.GroupInteractionSystem.initiateGroupActivity(activityType);
-            }
-        },
-        
-        getActiveGroups: function() {
-            if (window.GroupInteractionSystem) {
-                return window.GroupInteractionSystem.getActiveGroups();
-            }
-            return [];
-        },
-        
-        isInGroup: function(avatarId = null) {
-            const id = avatarId || window.Euphorie.state.avatarSystem.localAvatarId;
-            if (window.GroupInteractionSystem) {
-                return window.GroupInteractionSystem.isAvatarInGroup(id);
-            }
-            return false;
-        },
-        
-        // Scene utilities
-        changeScenePreset: function(presetName) {
-            if (window.SceneManager && window.SceneManager.isInitialized) {
-                window.SceneManager.applyPreset(presetName);
-                window.Euphorie.state.sceneState.currentPreset = presetName;
-            }
-        },
-        
-        getScenePresets: function() {
-            if (window.SceneManager) {
-                return window.SceneManager.getAvailablePresets();
-            }
-            return [];
         }
     },
     
@@ -429,23 +225,6 @@ window.Euphorie = {
                 window.Euphorie.state.activeFeatures.add(featureName);
                 window.EventBus?.emit('feature:enabled', { feature: featureName });
                 console.log(`✅ Feature enabled: ${featureName}`);
-                
-                // Handle specific feature enablement
-                switch(featureName) {
-                    case 'doubleTapZoom':
-                        if (window.SceneManager?.doubleTapZoom) {
-                            window.SceneManager.doubleTapZoom.enable();
-                        }
-                        break;
-                    case 'avatarCollision':
-                        if (window.SceneManager?.avatarCollisionSystem) {
-                            window.SceneManager.avatarCollisionSystem.setEnabled(true);
-                        }
-                        break;
-                    case 'chatBubbles':
-                        window.Euphorie.utils.toggleChatBubbles();
-                        break;
-                }
             }
         },
         
@@ -453,23 +232,6 @@ window.Euphorie = {
             window.Euphorie.state.activeFeatures.delete(featureName);
             window.EventBus?.emit('feature:disabled', { feature: featureName });
             console.log(`❌ Feature disabled: ${featureName}`);
-            
-            // Handle specific feature disablement
-            switch(featureName) {
-                case 'doubleTapZoom':
-                    if (window.SceneManager?.doubleTapZoom) {
-                        window.SceneManager.doubleTapZoom.disable();
-                    }
-                    break;
-                case 'avatarCollision':
-                    if (window.SceneManager?.avatarCollisionSystem) {
-                        window.SceneManager.avatarCollisionSystem.setEnabled(false);
-                    }
-                    break;
-                case 'chatBubbles':
-                    window.Euphorie.utils.toggleChatBubbles();
-                    break;
-            }
         },
         
         isEnabled: function(featureName) {
@@ -494,7 +256,7 @@ window.Euphorie = {
                 return;
             }
             
-            window.Euphorie.state.sceneState.quality = level;
+            window.Euphorie.state.sceneQuality = level;
             window.EventBus?.emit('quality:changed', { level });
             
             // Adjust settings based on quality
@@ -502,23 +264,15 @@ window.Euphorie = {
                 case 'low':
                     window.Euphorie.config.features.postProcessing = false;
                     window.Euphorie.config.features.advancedGraphics = false;
-                    window.Euphorie.state.chatBubbleSystem.maxBubbles = 10;
                     break;
                 case 'medium':
                     window.Euphorie.config.features.postProcessing = true;
                     window.Euphorie.config.features.advancedGraphics = false;
-                    window.Euphorie.state.chatBubbleSystem.maxBubbles = 20;
                     break;
                 case 'high':
                     window.Euphorie.config.features.postProcessing = true;
                     window.Euphorie.config.features.advancedGraphics = true;
-                    window.Euphorie.state.chatBubbleSystem.maxBubbles = 30;
                     break;
-            }
-            
-            // Apply to scene manager
-            if (window.SceneManager && window.SceneManager.setQuality) {
-                window.SceneManager.setQuality(level);
             }
         },
         
@@ -538,27 +292,6 @@ window.Euphorie = {
         }
     },
     
-    // System registration
-    systems: {
-        register: function(systemName) {
-            window.Euphorie.state.activeSystems.add(systemName);
-            console.log(`📦 System registered: ${systemName}`);
-        },
-        
-        unregister: function(systemName) {
-            window.Euphorie.state.activeSystems.delete(systemName);
-            console.log(`📦 System unregistered: ${systemName}`);
-        },
-        
-        isActive: function(systemName) {
-            return window.Euphorie.state.activeSystems.has(systemName);
-        },
-        
-        getActive: function() {
-            return Array.from(window.Euphorie.state.activeSystems);
-        }
-    },
-    
     // Initialize the platform - Enhanced
     init: async function() {
         if (this.state.isInitialized) return;
@@ -572,15 +305,6 @@ window.Euphorie = {
             if (window.ROOM_CONFIG) {
                 this.state.currentRoom = window.ROOM_CONFIG;
                 console.log('📍 Room loaded:', this.state.currentRoom.roomName);
-                
-                // Set current user from room config
-                if (window.ROOM_CONFIG.userId && window.ROOM_CONFIG.username) {
-                    this.state.currentUser = {
-                        id: window.ROOM_CONFIG.userId,
-                        username: window.ROOM_CONFIG.username,
-                        nationality: window.ROOM_CONFIG.userNationality || 'UN'
-                    };
-                }
             }
             
             // Adjust configuration based on device
@@ -591,19 +315,15 @@ window.Euphorie = {
                     updateRate: this.config.mobile.updateRate,
                     memoryBudget: this.config.mobile.memoryBudget
                 });
-                
-                // Reduce chat bubbles on mobile
-                this.state.chatBubbleSystem.maxBubbles = this.config.mobile.maxBubbles;
-                
                 console.log('📱 Mobile optimizations applied');
             }
             
             // Auto-detect quality settings
             this.quality.autoDetect();
-            console.log(`🎨 Quality set to: ${this.state.sceneState.quality}`);
+            console.log(`🎨 Quality set to: ${this.state.sceneQuality}`);
             
             // Enable default features
-            const defaultFeatures = ['doubleTapZoom', 'avatarCollision', 'chatBubbles', 'interactions', 'groupActivities'];
+            const defaultFeatures = ['doubleTapZoom', 'avatarCollision', 'chatBubbles'];
             defaultFeatures.forEach(feature => {
                 if (this.config.features[feature]) {
                     this.features.enable(feature);
@@ -615,21 +335,6 @@ window.Euphorie = {
                 setInterval(() => this.performance.updateMemoryUsage(), 5000);
             }
             
-            // Set up keyboard event tracking
-            document.addEventListener('keydown', (e) => {
-                this.state.inputState.keys.add(e.key.toLowerCase());
-            });
-            
-            document.addEventListener('keyup', (e) => {
-                this.state.inputState.keys.delete(e.key.toLowerCase());
-            });
-            
-            // Set up mouse position tracking
-            document.addEventListener('mousemove', (e) => {
-                this.state.inputState.mousePosition.x = e.clientX;
-                this.state.inputState.mousePosition.y = e.clientY;
-            });
-            
             this.state.isInitialized = true;
             console.log('✅ Euphorie initialized successfully');
             
@@ -637,8 +342,7 @@ window.Euphorie = {
             window.EventBus?.emit('euphorie:initialized', {
                 version: this.config.version,
                 deviceType: deviceType,
-                quality: this.state.sceneState.quality,
-                features: Array.from(this.state.activeFeatures)
+                quality: this.state.sceneQuality
             });
             
         } catch (error) {
@@ -651,32 +355,12 @@ window.Euphorie = {
         }
     },
     
-    // Debug utilities
-    debug: {
-        showStats: function() {
-            console.log('📊 Euphorie Platform Stats:');
-            console.log('Performance:', window.Euphorie.performance.getStats());
-            console.log('Active Systems:', window.Euphorie.systems.getActive());
-            console.log('Active Features:', Array.from(window.Euphorie.state.activeFeatures));
-            console.log('Active Groups:', window.Euphorie.state.groupInteractionSystem.activeGroups.size);
-            console.log('Active Interactions:', window.Euphorie.state.interactionSystem.activeInteractions.size);
-        },
-        
-        toggleDebugMode: function() {
-            if (window.ChatBubbleSystem) {
-                window.ChatBubbleSystem.toggleDebugMode();
-            }
-            console.log('🔍 Debug mode toggled');
-        }
-    },
-    
     // Cleanup method
     dispose: function() {
         console.log('🧹 Disposing Euphorie platform...');
         
         // Clear all features
         this.state.activeFeatures.clear();
-        this.state.activeSystems.clear();
         
         // Clear performance tracking
         this.performance.fpsHistory = [];
