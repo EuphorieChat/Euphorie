@@ -3165,61 +3165,178 @@ stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', '')
 # ==================== PRICING & PLANS ====================
 
 def pricing_page(request):
-    """Display pricing plans with enhanced features"""
-    plans = PaymentPlan.objects.filter(is_active=True).order_by('price_cents')
+    """Display pricing plans and subscription options"""
+    from django.conf import settings
     
-    # Get user's current subscription
-    current_subscription = None
-    user_max_room_size = 10  # Default free tier
+    # Get payment settings
+    payment_settings = getattr(settings, 'PAYMENT_SETTINGS', {})
+    free_tier_limit = payment_settings.get('FREE_TIER_MAX_USERS', 10)
+    premium_tier_limit = payment_settings.get('PREMIUM_TIER_MAX_USERS', 50)
+    enterprise_tier_limit = payment_settings.get('ENTERPRISE_TIER_MAX_USERS', 200)
     
+    # Calculate room counts based on max_users instead of requires_payment
+    context = {
+        'user': request.user,
+        'total_users': User.objects.count(),
+        'total_rooms': Room.objects.filter(is_public=True).count(),
+        'free_rooms': Room.objects.filter(
+            is_public=True, 
+            max_users__lte=free_tier_limit
+        ).count(),
+        'premium_rooms': Room.objects.filter(
+            is_public=True, 
+            max_users__gt=free_tier_limit,
+            max_users__lte=premium_tier_limit
+        ).count(),
+        'enterprise_rooms': Room.objects.filter(
+            is_public=True, 
+            max_users__gt=premium_tier_limit
+        ).count(),
+        'featured_rooms': Room.objects.filter(
+            is_public=True, 
+            is_featured=True
+        )[:6],
+        
+        # Pricing tiers
+        'pricing_tiers': [
+            {
+                'name': 'Basic',
+                'price': 0,
+                'billing': 'Free forever',
+                'description': 'Perfect for getting started with Euphorie',
+                'max_users': free_tier_limit,
+                'max_rooms': 3,
+                'features': [
+                    f'Up to {free_tier_limit} users per room',
+                    'Basic 3D environments',
+                    'Text and voice chat',
+                    'Public room creation',
+                    'Basic avatar customization',
+                    'Community support'
+                ],
+                'cta': 'Get Started',
+                'cta_url': '/accounts/signup/' if not request.user.is_authenticated else '/dashboard/',
+                'popular': False,
+                'current': request.user.is_authenticated and (
+                    not hasattr(request.user, 'subscription') or 
+                    not request.user.subscription.is_active or 
+                    request.user.subscription.plan.name == 'basic'
+                ) if request.user.is_authenticated else False
+            },
+            {
+                'name': 'Premium',
+                'price': 9.99,
+                'billing': 'per month',
+                'description': 'Enhanced features for power users and small teams',
+                'max_users': premium_tier_limit,
+                'max_rooms': 25,
+                'features': [
+                    f'Up to {premium_tier_limit} users per room',
+                    'Advanced 3D environments',
+                    'HD voice and video chat',
+                    'Private room creation',
+                    'Advanced avatar customization',
+                    'Custom room themes',
+                    'Screen sharing',
+                    'Room analytics',
+                    'Priority support'
+                ],
+                'cta': 'Upgrade to Premium',
+                'cta_url': '/payment/create-intent/?plan=premium',
+                'popular': True,
+                'current': request.user.is_authenticated and (
+                    hasattr(request.user, 'subscription') and 
+                    request.user.subscription.is_active and 
+                    request.user.subscription.plan.name == 'premium'
+                ) if request.user.is_authenticated else False
+            },
+            {
+                'name': 'Enterprise',
+                'price': 29.99,
+                'billing': 'per month',
+                'description': 'Complete solution for large organizations',
+                'max_users': enterprise_tier_limit,
+                'max_rooms': 'Unlimited',
+                'features': [
+                    f'Up to {enterprise_tier_limit} users per room',
+                    'Premium 3D environments',
+                    '4K video conferencing',
+                    'Unlimited private rooms',
+                    'Custom avatar uploads',
+                    'White-label branding',
+                    'Advanced moderation tools',
+                    'API access',
+                    'Custom integrations',
+                    'Dedicated account manager',
+                    '24/7 priority support'
+                ],
+                'cta': 'Contact Sales',
+                'cta_url': '/payment/create-intent/?plan=enterprise',
+                'popular': False,
+                'current': request.user.is_authenticated and (
+                    hasattr(request.user, 'subscription') and 
+                    request.user.subscription.is_active and 
+                    request.user.subscription.plan.name == 'enterprise'
+                ) if request.user.is_authenticated else False
+            }
+        ],
+        
+        # FAQ data
+        'faq_items': [
+            {
+                'question': 'Can I upgrade or downgrade my plan anytime?',
+                'answer': 'Yes! You can upgrade your plan at any time and get immediate access to new features. Downgrades take effect at the end of your current billing cycle.'
+            },
+            {
+                'question': 'What happens to my rooms if I downgrade?',
+                'answer': 'Your existing rooms will remain accessible, but you may lose access to premium features. Rooms exceeding your new plan limits will become read-only until upgraded.'
+            },
+            {
+                'question': 'Is there a free trial for Premium or Enterprise?',
+                'answer': 'We offer a generous free Basic plan with no time limits. You can upgrade to Premium or Enterprise at any time to access advanced features.'
+            },
+            {
+                'question': 'Do you offer refunds?',
+                'answer': 'We offer a 30-day money-back guarantee for all paid plans. Contact our support team if you\'re not satisfied with your subscription.'
+            },
+            {
+                'question': 'Can I pay annually for a discount?',
+                'answer': 'Yes! Annual subscriptions receive a 20% discount compared to monthly billing. Contact us for annual billing options.'
+            },
+            {
+                'question': 'What payment methods do you accept?',
+                'answer': 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for Enterprise plans.'
+            }
+        ],
+        
+        # Add Stripe configuration for authenticated users
+        'stripe_publishable_key': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', '') if request.user.is_authenticated else '',
+        'payment_enabled': getattr(settings, 'PAYMENT_SETTINGS', {}).get('ENABLE_PAYMENTS', True),
+    }
+    
+    # Add user's current subscription info if authenticated
     if request.user.is_authenticated:
         try:
-            current_subscription = request.user.subscription
-            if current_subscription.is_active and not current_subscription.is_expired():
-                user_max_room_size = current_subscription.get_max_room_size()
-        except UserSubscription.DoesNotExist:
-            pass
+            subscription = request.user.subscription
+            context['current_subscription'] = {
+                'plan': subscription.plan.name,
+                'is_active': subscription.is_active,
+                'is_expired': subscription.is_expired,
+                'expires_at': subscription.expires_at,
+                'can_upgrade': subscription.plan.name in ['basic', 'premium'],
+                'can_downgrade': subscription.plan.name in ['premium', 'enterprise'],
+            }
+        except:
+            context['current_subscription'] = {
+                'plan': 'basic',
+                'is_active': False,
+                'is_expired': True,
+                'expires_at': None,
+                'can_upgrade': True,
+                'can_downgrade': False,
+            }
     
-    # Check if user needs upgrade (from URL parameter)
-    required_users = request.GET.get('required_users')
-    upgrade_needed = False
-    required_plan = None
-    
-    if required_users:
-        try:
-            required_users = int(required_users)
-            if required_users > user_max_room_size:
-                upgrade_needed = True
-                # Find minimum required plan
-                for plan in plans:
-                    if plan.max_users >= required_users:
-                        required_plan = plan
-                        break
-        except ValueError:
-            pass
-    
-    # Get popular rooms for each tier
-    room_examples = {
-        'basic': Room.objects.filter(max_users__lte=10, is_public=True).order_by('-message_count')[:3],
-        'premium': Room.objects.filter(max_users__range=(11, 50), is_public=True).order_by('-message_count')[:3],
-        'enterprise': Room.objects.filter(max_users__gt=50, is_public=True).order_by('-message_count')[:3],
-    }
-    
-    context = {
-        'plans': plans,
-        'current_subscription': current_subscription,
-        'user_max_room_size': user_max_room_size,
-        'upgrade_needed': upgrade_needed,
-        'required_plan': required_plan,
-        'required_users': required_users,
-        'room_examples': room_examples,
-        'stripe_public_key': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', ''),
-        'page_title': 'Pricing Plans - Euphorie',
-        'total_rooms': Room.objects.filter(is_public=True).count(),
-        'premium_rooms': Room.objects.filter(requires_payment=True, is_public=True).count(),
-    }
-    
-    return render(request, 'chat/pricing.html', context)
+    return render(request, 'rooms/pricing.html', context)
 
 def pricing_comparison(request):
     """Detailed pricing comparison page"""
@@ -3423,7 +3540,7 @@ def payment_success(request):
                 ).update(success=True)
             
             messages.success(request, f'Payment successful! You now have access to {payment.plan.get_name_display()} features.')
-            return render(request, 'chat/payment_success.html', {
+            return render(request, 'rooms/payment_success.html', {
                 'plan': payment.plan,
                 'payment': payment,
                 'subscription': payment.user.subscription,

@@ -221,8 +221,9 @@ class RoomCategory(models.Model):
         super().save(*args, **kwargs)
 
 
+
 class Room(models.Model):
-    """Enhanced room model with membership support and better discovery features"""
+    """Enhanced room model with membership support, payment system, and better discovery features"""
     
     name = models.CharField(max_length=255, unique=True)
     display_name = models.CharField(max_length=255, blank=True)
@@ -245,6 +246,22 @@ class Room(models.Model):
     is_featured = models.BooleanField(default=False)
     max_users = models.PositiveIntegerField(default=50)
     require_approval = models.BooleanField(default=False)
+    
+    # Payment System Fields
+    requires_payment = models.BooleanField(
+        default=False,
+        help_text="Whether this room requires a premium subscription to join"
+    )
+    required_subscription_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('basic', 'Basic'),
+            ('premium', 'Premium'),
+            ('enterprise', 'Enterprise'),
+        ],
+        default='basic',
+        help_text="Minimum subscription level required to access this room"
+    )
     
     # Discovery & Search
     tags = models.CharField(max_length=200, blank=True, help_text="Comma-separated tags")
@@ -309,8 +326,142 @@ class Room(models.Model):
         
         return nationalities
     
-    def user_can_access(self, user):
-        """Check if a user can access this room"""
+    # ==================== PAYMENT SYSTEM METHODS ====================
+    
+    def requires_payment_check(self):
+        """
+        Determine if room requires payment based on settings and max_users
+        """
+        from django.conf import settings
+        
+        # Check explicit requires_payment field first
+        if self.requires_payment:
+            return True
+        
+        # Check based on max_users limit
+        payment_settings = getattr(settings, 'PAYMENT_SETTINGS', {})
+        free_tier_limit = payment_settings.get('FREE_TIER_MAX_USERS', 10)
+        
+        return self.max_users > free_tier_limit
+    
+    def get_required_subscription_level(self):
+        """
+        Get the minimum subscription level required for this room
+        """
+        if not self.requires_payment_check():
+            return 'basic'
+        
+        # Return explicit subscription level if set
+        if self.required_subscription_level != 'basic':
+            return self.required_subscription_level
+        
+        # Determine level based on room features and max_users
+        from django.conf import settings
+        payment_settings = getattr(settings, 'PAYMENT_SETTINGS', {})
+        
+        premium_limit = payment_settings.get('PREMIUM_TIER_MAX_USERS', 50)
+        enterprise_limit = payment_settings.get('ENTERPRISE_TIER_MAX_USERS', 200)
+        
+        if self.max_users > premium_limit:
+            return 'enterprise'
+        elif self.max_users > payment_settings.get('FREE_TIER_MAX_USERS', 10):
+            return 'premium'
+        else:
+            return 'basic'
+    
+    def can_user_access(self, user):
+        """
+        Check if user can access this room based on subscription and other factors
+        """
+        # Public room accessibility check
+        if not self.is_public and not user.is_authenticated:
+            return False
+        
+        # Creator always has access
+        if user.is_authenticated and self.creator == user:
+            return True
+        
+        # Check membership for private rooms
+        if not self.is_public:
+            if not user.is_authenticated:
+                return False
+            if not self.roommembership_set.filter(user=user, is_active=True).exists():
+                return False
+        
+        # Check payment requirements
+        if self.requires_payment_check():
+            if not user.is_authenticated:
+                return False
+            
+            try:
+                subscription = user.subscription
+                if not subscription.is_active or subscription.is_expired:
+                    return False
+                
+                # Check subscription level
+                required_level = self.get_required_subscription_level()
+                user_level = subscription.plan.name
+                
+                # Define hierarchy: basic < premium < enterprise
+                levels = {'basic': 0, 'premium': 1, 'enterprise': 2}
+                
+                return levels.get(user_level, 0) >= levels.get(required_level, 0)
+                
+            except AttributeError:
+                # User has no subscription
+                return False
+        
+        return True
+    
+    def get_access_denial_reason(self, user):
+        """
+        Get the specific reason why a user cannot access this room
+        """
+        if not user.is_authenticated:
+            if self.requires_payment_check():
+                return 'login_required_premium'
+            return 'login_required'
+        
+        if not self.is_public and not self.roommembership_set.filter(user=user, is_active=True).exists():
+            if self.creator != user:
+                return 'membership_required'
+        
+        if self.requires_payment_check():
+            try:
+                subscription = user.subscription
+                if not subscription.is_active or subscription.is_expired:
+                    return 'subscription_required'
+                
+                required_level = self.get_required_subscription_level()
+                user_level = subscription.plan.name
+                
+                levels = {'basic': 0, 'premium': 1, 'enterprise': 2}
+                
+                if levels.get(user_level, 0) < levels.get(required_level, 0):
+                    return 'upgrade_required'
+                    
+            except AttributeError:
+                return 'subscription_required'
+        
+        return None
+    
+    def get_subscription_upgrade_url(self, user):
+        """
+        Get the URL for upgrading subscription to access this room
+        """
+        required_level = self.get_required_subscription_level()
+        
+        if required_level == 'premium':
+            return '/payment/create-intent/?plan=premium'
+        elif required_level == 'enterprise':
+            return '/payment/create-intent/?plan=enterprise'
+        else:
+            return '/pricing/'
+    
+    # ==================== ORIGINAL METHODS ====================
+    
+    def user_can_access_legacy(self, user):
+        """Legacy method - use can_user_access instead"""
         if self.is_public:
             return True
         
@@ -329,8 +480,12 @@ class Room(models.Model):
         if not user.is_authenticated:
             return False
         
+        # Check if user can access the room first
+        if not self.can_user_access(user):
+            return False
+        
         # Already a member
-        if self.user_can_access(user):
+        if self.user_can_access_legacy(user):
             return False
         
         # Check if room is at capacity
@@ -341,6 +496,10 @@ class Room(models.Model):
     
     def add_member(self, user, role='member', added_by=None):
         """Add a user as a member of this room"""
+        # Check if user can access the room (payment requirements)
+        if not self.can_user_access(user):
+            raise ValueError(f"User {user.username} cannot access this room due to subscription requirements")
+        
         membership, created = RoomMembership.objects.get_or_create(
             room=self,
             user=user,
@@ -382,6 +541,37 @@ class Room(models.Model):
     def get_member_count(self):
         """Get count of active members"""
         return self.roommembership_set.filter(is_active=True).count()
+    
+    # ==================== UTILITY METHODS ====================
+    
+    def get_payment_info(self):
+        """Get payment-related information for this room"""
+        return {
+            'requires_payment': self.requires_payment_check(),
+            'required_level': self.get_required_subscription_level(),
+            'is_premium': self.get_required_subscription_level() in ['premium', 'enterprise'],
+            'upgrade_url': '/pricing/',
+        }
+    
+    def save(self, *args, **kwargs):
+        """Override save to automatically set payment requirements"""
+        # Auto-set requires_payment based on max_users if not explicitly set
+        if not self.pk:  # New room
+            from django.conf import settings
+            payment_settings = getattr(settings, 'PAYMENT_SETTINGS', {})
+            free_tier_limit = payment_settings.get('FREE_TIER_MAX_USERS', 10)
+            
+            if self.max_users > free_tier_limit and not self.requires_payment:
+                self.requires_payment = True
+                
+                # Auto-set subscription level
+                premium_limit = payment_settings.get('PREMIUM_TIER_MAX_USERS', 50)
+                if self.max_users > premium_limit:
+                    self.required_subscription_level = 'enterprise'
+                else:
+                    self.required_subscription_level = 'premium'
+        
+        super().save(*args, **kwargs)
 
 
 class RoomMembership(models.Model):
