@@ -6,9 +6,11 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 import re
 
+# Updated imports - using streamlined models
 from .models import (
     Room, RoomCategory, UserProfile, MessageReport, 
-    Friendship, WordFilter, UserModerationAction, FriendRequest, Message
+    Friendship, FriendRequest, Message, UserActivity, 
+    SubscriptionPlan, UserChoices
 )
 
 
@@ -61,9 +63,13 @@ class RoomCreationForm(forms.ModelForm):
             'max_users': forms.NumberInput(attrs={
                 'class': 'input',
                 'min': 2,
-                'max': 100,
+                'max': 200,
                 'value': 50
             })
+        }
+        
+        help_texts = {
+            'max_users': 'Rooms with 11+ users require premium subscription',
         }
     
     def clean_name(self):
@@ -113,7 +119,7 @@ class UserProfileForm(forms.ModelForm):
     
     # Nationality fields
     nationality = forms.ChoiceField(
-        choices=[('', 'Select your nationality')] + UserProfile.COUNTRY_CHOICES,
+        choices=[('', 'Select your nationality')] + UserChoices.COUNTRY_CHOICES,
         required=False,
         widget=forms.Select(attrs={
             'class': 'input nationality-select',
@@ -215,7 +221,8 @@ class UserProfileForm(forms.ModelForm):
             'display_name', 'bio', 'location', 'website',
             'nationality', 'show_nationality',
             'theme', 'status_message', 'profile_visibility',
-            'show_online_status', 'allow_friend_requests'
+            'show_online_status', 'allow_friend_requests',
+            'email_notifications', 'allow_room_invites'
         ]
         widgets = {
             'display_name': forms.TextInput(attrs={
@@ -247,6 +254,8 @@ class UserProfileForm(forms.ModelForm):
             'profile_visibility': forms.Select(attrs={'class': 'input'}),
             'show_online_status': forms.CheckboxInput(attrs={'class': 'checkbox'}),
             'allow_friend_requests': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+            'email_notifications': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+            'allow_room_invites': forms.CheckboxInput(attrs={'class': 'checkbox'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -285,7 +294,7 @@ class UserProfileForm(forms.ModelForm):
         
         if nationality:
             # Validate nationality code
-            valid_countries = [code for code, name in UserProfile.COUNTRY_CHOICES]
+            valid_countries = [code for code, name in UserChoices.COUNTRY_CHOICES]
             if nationality not in valid_countries:
                 raise ValidationError("Invalid nationality selected.")
         
@@ -328,7 +337,6 @@ class UserProfileForm(forms.ModelForm):
             
             # Create activity log for nationality update
             if self.cleaned_data.get('nationality') != self.instance.nationality:
-                from .models import UserActivity
                 UserActivity.objects.create(
                     user=profile.user,
                     activity_type='updated_nationality',
@@ -346,7 +354,7 @@ class NationalitySelectionForm(forms.Form):
     """Standalone form for nationality selection"""
     
     nationality = forms.ChoiceField(
-        choices=[('', 'Select your nationality')] + UserProfile.COUNTRY_CHOICES,
+        choices=[('', 'Select your nationality')] + UserChoices.COUNTRY_CHOICES,
         required=True,
         widget=forms.Select(attrs={
             'class': 'input nationality-select',
@@ -361,7 +369,7 @@ class NationalitySelectionForm(forms.Form):
             raise ValidationError("Please select your nationality.")
         
         # Validate nationality code
-        valid_countries = [code for code, name in UserProfile.COUNTRY_CHOICES]
+        valid_countries = [code for code, name in UserChoices.COUNTRY_CHOICES]
         if nationality not in valid_countries:
             raise ValidationError("Invalid nationality selected.")
         
@@ -396,7 +404,6 @@ class MessageReportForm(forms.ModelForm):
         return description
 
 
-# UPDATED: Fixed FriendRequestForm to match your views and models
 class FriendRequestForm(forms.ModelForm):
     """Form for sending friend requests with optional message"""
     
@@ -428,7 +435,6 @@ class FriendRequestForm(forms.ModelForm):
         return friend_request
 
 
-# ADDED: Alternative form for username-based friend requests
 class FriendRequestByUsernameForm(forms.Form):
     """Form for sending friend requests by username"""
     
@@ -508,76 +514,6 @@ class RoomCategoryForm(forms.ModelForm):
         return name
 
 
-class ModerationActionForm(forms.ModelForm):
-    """Form for moderation actions"""
-    
-    duration_hours = forms.IntegerField(
-        required=False,
-        min_value=1,
-        max_value=8760,  # 1 year
-        widget=forms.NumberInput(attrs={
-            'class': 'input',
-            'placeholder': 'Duration in hours (optional)'
-        }),
-        help_text="Leave blank for permanent actions"
-    )
-    
-    class Meta:
-        model = UserModerationAction
-        fields = ['action', 'reason', 'duration_hours']
-        widgets = {
-            'action': forms.Select(attrs={'class': 'input'}),
-            'reason': forms.Textarea(attrs={
-                'class': 'input',
-                'placeholder': 'Reason for this action...',
-                'rows': 3,
-                'maxlength': 500,
-                'required': True
-            })
-        }
-    
-    def clean_reason(self):
-        reason = self.cleaned_data['reason'].strip()
-        
-        if len(reason) < 10:
-            raise ValidationError("Reason must be at least 10 characters long.")
-        
-        return reason
-
-
-class WordFilterForm(forms.ModelForm):
-    """Form for managing word filters"""
-    
-    class Meta:
-        model = WordFilter
-        fields = ['word', 'severity', 'action', 'replacement', 'is_regex', 'case_sensitive', 'is_active']
-        widgets = {
-            'word': forms.TextInput(attrs={
-                'class': 'input',
-                'placeholder': 'Word or phrase to filter',
-                'maxlength': 100
-            }),
-            'severity': forms.Select(attrs={'class': 'input'}),
-            'action': forms.Select(attrs={'class': 'input'}),
-            'replacement': forms.TextInput(attrs={
-                'class': 'input',
-                'placeholder': '***',
-                'maxlength': 20
-            }),
-            'is_regex': forms.CheckboxInput(attrs={'class': 'checkbox'}),
-            'case_sensitive': forms.CheckboxInput(attrs={'class': 'checkbox'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'checkbox'})
-        }
-    
-    def clean_word(self):
-        word = self.cleaned_data['word'].strip()
-        
-        if len(word) < 2:
-            raise ValidationError("Filter word must be at least 2 characters long.")
-        
-        return word
-
-
 class SearchForm(forms.Form):
     """Enhanced search form with nationality filtering"""
     
@@ -599,7 +535,7 @@ class SearchForm(forms.Form):
     )
     
     nationality = forms.ChoiceField(
-        choices=[('', 'All Nationalities')] + UserProfile.COUNTRY_CHOICES,
+        choices=[('', 'All Nationalities')] + UserChoices.COUNTRY_CHOICES,
         required=False,
         widget=forms.Select(attrs={
             'class': 'input nationality-filter',
@@ -623,7 +559,7 @@ class SearchForm(forms.Form):
             ('created', 'Newest'),
             ('popular', 'Most Popular'),
             ('name', 'Name A-Z'),
-            ('diverse', 'Most Diverse'),  # New sort option
+            ('diverse', 'Most Diverse'),
         ],
         required=False,
         initial='activity',
@@ -639,7 +575,7 @@ class BulkModerationForm(forms.Form):
         ('warn_users', 'Warn Message Authors'),
         ('mute_users', 'Mute Message Authors'),
         ('resolve_reports', 'Mark Reports as Resolved'),
-        ('update_nationality', 'Update User Nationalities'),  # New action
+        ('update_nationality', 'Update User Nationalities'),
     ]
     
     action = forms.ChoiceField(
@@ -662,7 +598,7 @@ class BulkModerationForm(forms.Form):
     
     # For nationality updates
     new_nationality = forms.ChoiceField(
-        choices=[('', 'Select nationality')] + UserProfile.COUNTRY_CHOICES,
+        choices=[('', 'Select nationality')] + UserChoices.COUNTRY_CHOICES,
         required=False,
         widget=forms.Select(attrs={
             'class': 'input nationality-bulk-select',
@@ -770,7 +706,7 @@ class AvatarCustomizationForm(forms.Form):
     
     # Nationality field
     nationality = forms.ChoiceField(
-        choices=[('', 'Select nationality')] + UserProfile.COUNTRY_CHOICES,
+        choices=[('', 'Select nationality')] + UserChoices.COUNTRY_CHOICES,
         required=False,
         widget=forms.Select(attrs={
             'class': 'avatar-select nationality-avatar-select',
@@ -801,7 +737,7 @@ class AvatarCustomizationForm(forms.Form):
         # Validate nationality
         nationality = cleaned_data.get('nationality')
         if nationality:
-            valid_countries = [code for code, name in UserProfile.COUNTRY_CHOICES]
+            valid_countries = [code for code, name in UserChoices.COUNTRY_CHOICES]
             if nationality not in valid_countries:
                 raise ValidationError("Invalid nationality selected.")
         
@@ -907,7 +843,7 @@ class FriendSuggestionsFilterForm(forms.Form):
     )
     
     nationality = forms.ChoiceField(
-        choices=[('', 'Any Nationality')] + UserProfile.COUNTRY_CHOICES,
+        choices=[('', 'Any Nationality')] + UserChoices.COUNTRY_CHOICES,
         required=False,
         widget=forms.Select(attrs={
             'class': 'input nationality-filter',
@@ -926,4 +862,111 @@ class FriendSuggestionsFilterForm(forms.Form):
             'max': 50
         }),
         help_text="Number of suggestions to show"
+    )
+
+
+# ==================== SUBSCRIPTION/PAYMENT FORMS ====================
+
+class SubscriptionPlanForm(forms.ModelForm):
+    """Form for creating/editing subscription plans"""
+    
+    class Meta:
+        model = SubscriptionPlan
+        fields = [
+            'name', 'display_name', 'description', 'price',
+            'max_users_per_room', 'max_rooms', 'features',
+            'stripe_price_id', 'is_active', 'is_popular'
+        ]
+        widgets = {
+            'name': forms.Select(attrs={'class': 'input'}),
+            'display_name': forms.TextInput(attrs={
+                'class': 'input',
+                'placeholder': 'Plan display name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'input',
+                'rows': 3,
+                'placeholder': 'Plan description...'
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'input',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'max_users_per_room': forms.NumberInput(attrs={
+                'class': 'input',
+                'min': '1',
+                'max': '500'
+            }),
+            'max_rooms': forms.NumberInput(attrs={
+                'class': 'input',
+                'min': '0',
+                'help_text': '0 means unlimited'
+            }),
+            'features': forms.Textarea(attrs={
+                'class': 'input',
+                'rows': 5,
+                'placeholder': 'Enter features as JSON array: ["Feature 1", "Feature 2"]'
+            }),
+            'stripe_price_id': forms.TextInput(attrs={
+                'class': 'input',
+                'placeholder': 'price_xxx'
+            }),
+            'is_active': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+            'is_popular': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+        }
+    
+    def clean_features(self):
+        features = self.cleaned_data['features']
+        if features:
+            try:
+                import json
+                features_list = json.loads(features)
+                if not isinstance(features_list, list):
+                    raise ValidationError("Features must be a JSON array.")
+                return features_list
+            except json.JSONDecodeError:
+                raise ValidationError("Invalid JSON format for features.")
+        return []
+
+
+class PaymentFilterForm(forms.Form):
+    """Form for filtering payments in admin"""
+    
+    status = forms.ChoiceField(
+        choices=[('', 'All Statuses')] + list(PaymentChoices.PAYMENT_STATUS_CHOICES),
+        required=False,
+        widget=forms.Select(attrs={'class': 'input'})
+    )
+    
+    plan = forms.ModelChoiceField(
+        queryset=SubscriptionPlan.objects.filter(is_active=True),
+        required=False,
+        empty_label="All Plans",
+        widget=forms.Select(attrs={'class': 'input'})
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'input',
+            'type': 'date'
+        })
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'input',
+            'type': 'date'
+        })
+    )
+    
+    search = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'input',
+            'placeholder': 'Search by username or email...'
+        })
     )
