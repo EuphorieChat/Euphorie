@@ -939,7 +939,7 @@ class UserActivity(TimestampMixin):
     """Track user activities for the timeline"""
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')
-    activity_type = models.CharField(max_length=20, choices=ActivityChoices.ACTIVITY_TYPES)
+    activity_type = models.CharField(max_length=30, choices=ActivityChoices.ACTIVITY_TYPES)
     description = models.CharField(max_length=200)
     
     # Related objects
