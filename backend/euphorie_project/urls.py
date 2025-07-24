@@ -22,6 +22,8 @@ def robots_txt(request):
         "Disallow: /admin/",
         "Disallow: /api/",
         "Disallow: /accounts/",
+        "Disallow: /webhooks/",  # Added webhook protection
+        "Disallow: /manage/",    # Added admin protection
         "",
         f"Sitemap: {request.build_absolute_uri('/sitemap.xml')}"
     ]
@@ -36,7 +38,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     
     # ==================== MAIN CHAT APPLICATION ====================
-    # All main functionality handled by chat app (including screen sharing)
+    # All main functionality handled by chat app (including payments and screen sharing)
     path('', include('chat.urls')),
     
     # ==================== STATIC PAGES ====================
@@ -73,13 +75,8 @@ urlpatterns = [
         }
     ), name='features'),
     
-    path('pricing/', TemplateView.as_view(
-        template_name='pages/pricing.html',
-        extra_context={
-            'page_title': 'Pricing - Euphorie',
-            'meta_description': 'Euphorie pricing plans - join for free or upgrade for premium features'
-        }
-    ), name='pricing'),
+    # Remove pricing from here since it's now handled by chat app with payment logic
+    # path('pricing/', ...) - now handled by chat.urls
     
     # ==================== LEGAL PAGES ====================
     path('terms/', TemplateView.as_view(
@@ -89,7 +86,7 @@ urlpatterns = [
             'meta_description': 'Terms of Service for Euphorie chat platform',
             'last_updated': 'December 2024'
         }
-    ), name='terms_of_service'),
+    ), name='terms_of_service_static'),  # Renamed to avoid conflict with chat app
     
     # Privacy policy is handled by chat app to include dynamic content
     
@@ -120,6 +117,14 @@ urlpatterns = [
         status=200
     ), name='health_check'),
     
+    # ==================== PAYMENT HEALTH CHECK ====================
+    # Simple endpoint to verify payment system is ready
+    path('payment-health/', lambda request: HttpResponse(
+        "Payment System Ready" if hasattr(settings, 'STRIPE_PUBLISHABLE_KEY') and settings.STRIPE_PUBLISHABLE_KEY else "Payment System Not Configured",
+        content_type="text/plain",
+        status=200 if hasattr(settings, 'STRIPE_PUBLISHABLE_KEY') and settings.STRIPE_PUBLISHABLE_KEY else 503
+    ), name='payment_health_check'),
+    
     # ==================== LEGACY REDIRECTS ====================
     # Redirect common legacy URLs to maintain SEO
     path('home/', redirect_to_app, name='legacy_home'),
@@ -131,7 +136,6 @@ urlpatterns = [
     path('login/', lambda request: redirect('/accounts/login/'), name='login'),
     path('signup/', lambda request: redirect('/accounts/signup/'), name='signup'),
     path('register/', lambda request: redirect('/accounts/signup/'), name='register'),
-
 
     # ==================== Grok Chat URL ====================
     path('api/grok-chat/', grok_chat, name='grok_chat'),
@@ -213,6 +217,16 @@ urlpatterns = [
             'meta_description': 'Invite friends to Euphorie and earn rewards'
         }
     ), name='referrals'),
+    
+    # ==================== PAYMENT SUCCESS REDIRECTS ====================
+    # Additional success pages for different payment flows
+    path('welcome/premium/', lambda request: redirect('/subscription/?welcome=premium'), name='welcome_premium'),
+    path('welcome/enterprise/', lambda request: redirect('/subscription/?welcome=enterprise'), name='welcome_enterprise'),
+    
+    # ==================== STRIPE WEBHOOK ENDPOINT ====================
+    # Alternative webhook URL for better organization (optional)
+    # The main webhook is handled in chat.urls, but this provides an alternative
+    path('stripe/webhook/', lambda request: redirect('/webhooks/stripe/'), name='stripe_webhook_redirect'),
 ]
 
 # ==================== ERROR HANDLERS ====================
@@ -266,8 +280,8 @@ admin.site.index_title = getattr(settings, 'ADMIN_INDEX_TITLE', 'Welcome to Euph
 # ]
 
 # ==================== WEBHOOKS (Future Enhancement) ====================
-# Uncomment when webhook system is implemented
+# Additional webhooks can be added here if needed
 # urlpatterns += [
-#     path('webhooks/stripe/', include('chat.webhooks.stripe_urls')),
 #     path('webhooks/github/', include('chat.webhooks.github_urls')),
+#     path('webhooks/discord/', include('chat.webhooks.discord_urls')),
 # ]

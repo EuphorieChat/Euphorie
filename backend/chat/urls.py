@@ -4,7 +4,6 @@ from django.urls import path
 from . import views
 from chat.views import grok_chat 
 
-
 urlpatterns = [
     # ==================== MAIN PAGES ====================
     path('', views.index, name='index'),  # Enhanced room discovery as homepage
@@ -14,6 +13,28 @@ urlpatterns = [
     path('search/', views.search_rooms, name='search_rooms'),  # ✅ Now available to all users
     path('explore/', views.explore_rooms, name='explore_rooms'),  # ✅ Now available to all users
     path('dashboard/', views.dashboard, name='dashboard'),
+    
+    # ==================== PAYMENT & SUBSCRIPTION URLS ====================
+    
+    # Pricing & Plans
+    path('pricing/', views.pricing_page, name='pricing'),
+    path('pricing/compare/', views.pricing_comparison, name='pricing_comparison'),
+    
+    # Payment Processing
+    path('payment/create-intent/', views.create_payment_intent, name='create_payment_intent'),
+    path('payment/success/', views.payment_success, name='payment_success'),
+    path('payment/cancel/', views.payment_cancel, name='payment_cancel'),
+    
+    # Subscription Management
+    path('subscription/', views.subscription_dashboard, name='subscription_dashboard'),
+    path('subscription/cancel/', views.cancel_subscription, name='cancel_subscription'),
+    
+    # Room Access Control
+    path('room/<int:room_id>/access-check/', views.room_access_check, name='room_access_check'),
+    path('api/room/<int:room_id>/access/', views.check_room_access_ajax, name='check_room_access_ajax'),
+    
+    # Webhooks
+    path('webhooks/stripe/', views.stripe_webhook, name='stripe_webhook'),
     
     # ==================== PROFILE URLS ====================
     path('profile/settings/', views.profile_settings, name='profile_settings'),
@@ -60,6 +81,10 @@ urlpatterns = [
     path('manage/settings/', views.admin_user_settings, name='admin_user_settings'),
     path('manage/nationality-stats/', views.admin_nationality_stats, name='admin_nationality_stats'),  # New: nationality analytics
     
+    # Admin Payment Views
+    path('manage/payments/', views.admin_payments, name='admin_payments'),
+    path('manage/subscriptions/', views.admin_subscriptions, name='admin_subscriptions'),
+    
     # ==================== API ENDPOINTS ====================
     path('api/profile/', views.api_user_profile, name='api_user_profile'),
     path('api/avatar/update/', views.api_update_avatar, name='api_update_avatar'),
@@ -85,14 +110,12 @@ urlpatterns = [
     path('api/friends/suggestions/nationality/', views.api_nationality_friend_suggestions, name='api_nationality_friend_suggestions'),
     
     # ==================== SCREEN SHARING ENDPOINTS ====================
-    # NOTE: These are commented out until the views are implemented
-    # Uncomment these when you add the screen sharing views to views.py
-    # path('api/screen-share/start/', views.start_screen_share, name='start_screen_share'),
-    # path('api/screen-share/stop/', views.stop_screen_share, name='stop_screen_share'),
-    # path('api/screen-share/join/', views.join_screen_share, name='join_screen_share'),
-    # path('api/screen-share/leave/', views.leave_screen_share, name='leave_screen_share'),
-    # path('api/screen-share/active/<int:room_id>/', views.get_active_screen_shares, name='get_active_screen_shares'),
-    # path('api/screen-share/stats/<int:room_id>/', views.screen_share_stats, name='screen_share_stats'),
+    path('api/screen-share/start/', views.start_screen_share, name='start_screen_share'),
+    path('api/screen-share/stop/', views.stop_screen_share, name='stop_screen_share'),
+    path('api/screen-share/join/', views.join_screen_share, name='join_screen_share'),
+    path('api/screen-share/leave/', views.leave_screen_share, name='leave_screen_share'),
+    path('api/screen-share/active/<int:room_id>/', views.get_active_screen_shares, name='get_active_screen_shares'),
+    path('api/screen-share/stats/<int:room_id>/', views.screen_share_stats, name='screen_share_stats'),
     
     # ==================== UTILITY PAGES ====================
     path('privacy/', views.privacy_policy, name='privacy_policy'),

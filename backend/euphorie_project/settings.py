@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,6 +24,32 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-change-in-
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = ['*']  # Allow all hosts - safe when behind reverse proxy
 
+# ==================== STRIPE CONFIGURATION ====================
+
+# Stripe Configuration - Added for payment system
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+# Validate Stripe configuration in production
+if not DEBUG:
+    if not STRIPE_PUBLISHABLE_KEY or not STRIPE_SECRET_KEY:
+        raise ImproperlyConfigured("Please set STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY environment variables")
+
+# Payment Settings
+PAYMENT_SETTINGS = {
+    'ENABLE_PAYMENTS': True,
+    'REQUIRE_PAYMENT_FOR_LARGE_ROOMS': True,
+    'FREE_TIER_MAX_USERS': 10,
+    'PREMIUM_TIER_MAX_USERS': 50,
+    'ENTERPRISE_TIER_MAX_USERS': 200,
+    'PAYMENT_SUCCESS_REDIRECT': '/payment/success/',
+    'PAYMENT_CANCEL_REDIRECT': '/pricing/',
+    'SUBSCRIPTION_TRIAL_DAYS': 0,  # No trial period
+    'ALLOW_SUBSCRIPTION_DOWNGRADES': True,
+    'WEBHOOK_TOLERANCE': 300,  # 5 minutes
+}
+
 # Applications
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -32,6 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.humanize',  # Added for currency formatting in payment system
     'chat',
     'allauth',
     'allauth.account',
@@ -334,21 +362,21 @@ SOCIALACCOUNT_STORE_TOKENS = False
 
 SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
 
-
 # ==================== EUPHORIE SPECIFIC SETTINGS ====================
 
-# Custom settings for the Euphorie platform
+# Custom settings for the Euphorie platform - Updated for payment system
 EUPHORIE_SETTINGS = {
-    'VERSION': '1.2.0',
+    'VERSION': '1.3.0',  # Updated version for payment system
     'COMPANY_NAME': 'Euphorie, Inc.',
     'SUPPORT_EMAIL': 'euphorieinc@gmail.com',
-    'MAX_ROOMS_PER_USER': 10,
+    'MAX_ROOMS_PER_USER': 50,  # Increased for premium users
     'MAX_MESSAGE_LENGTH': 1000,
     'ROOM_INACTIVITY_TIMEOUT': 7200,  # 2 hours in seconds
     'ENABLE_3D_ROOMS': True,
     'ENABLE_FRIEND_SYSTEM': True,
     'ENABLE_MODERATION': True,
     'ENABLE_NATIONALITY_SYSTEM': True,  # Added nationality system
+    'ENABLE_PAYMENT_SYSTEM': True,  # Added payment system
     'DEFAULT_ROOM_CATEGORY': 'general',
     'FEATURED_ROOMS_COUNT': 6,
     'RECENT_ROOMS_COUNT': 12,
@@ -357,6 +385,9 @@ EUPHORIE_SETTINGS = {
     'NATIONALITY_DISPLAY_DEFAULT': True,  # Show nationality flags by default
     'ENABLE_NATIONALITY_SUGGESTIONS': True,  # Enable nationality-based friend suggestions
     'ENABLE_ROOM_DEMOGRAPHICS': True,  # Enable room nationality demographics
+    'DEFAULT_ROOM_MAX_USERS': 10,  # Free tier limit
+    'ENABLE_PREMIUM_FEATURES': True,  # Enable premium features
+    'SUBSCRIPTION_TRIAL_DAYS': 0,  # No trial period
 }
 
 # File upload settings
@@ -375,6 +406,11 @@ if DEBUG:
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
             'LOCATION': 'nationality-cache',
             'TIMEOUT': 86400,  # 24 hours
+        },
+        'payment': {  # Added payment cache
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'payment-cache',
+            'TIMEOUT': 3600,  # 1 hour
         }
     }
 else:
@@ -387,10 +423,15 @@ else:
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
             'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/2'),
             'TIMEOUT': 86400,  # 24 hours
+        },
+        'payment': {  # Added payment cache
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/3'),
+            'TIMEOUT': 3600,  # 1 hour
         }
     }
 
-# Email configuration
+# Email configuration - Updated for payment notifications
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -400,7 +441,11 @@ else:
     EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'euphorieinc@gmail.com')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@euphorie.com')
+
+# Additional email settings for payment notifications
+EMAIL_SUBJECT_PREFIX = '[Euphorie] '
+SERVER_EMAIL = DEFAULT_FROM_EMAIL if not DEBUG else 'root@localhost'
 
 # Security settings for production
 if not DEBUG:
@@ -414,7 +459,7 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Logging configuration
+# Logging configuration - Updated for payment system
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -444,6 +489,12 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'nationality.log',
+            'formatter': 'verbose',
+        },
+        'payment_file': {  # Added payment logging
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'payments.log',
             'formatter': 'verbose',
         },
     },
@@ -485,6 +536,16 @@ LOGGING = {
         'chat.nationality': {
             'handlers': ['nationality_file', 'console'],
             'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        'chat.payments': {  # Added payment logging
+            'handlers': ['payment_file', 'console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        'stripe': {  # Added Stripe logging
+            'handlers': ['payment_file', 'console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
@@ -540,7 +601,7 @@ if os.getenv('CELERY_BROKER_URL'):
     CELERY_TIMEZONE = TIME_ZONE
     CELERY_ENABLE_UTC = True
     
-    # Scheduled tasks for nationality system
+    # Scheduled tasks for nationality and payment system
     CELERY_BEAT_SCHEDULE = {
         'update-nationality-stats': {
             'task': 'chat.tasks.update_nationality_stats',
@@ -550,11 +611,19 @@ if os.getenv('CELERY_BROKER_URL'):
             'task': 'chat.tasks.cleanup_geolocation_cache',
             'schedule': 86400.0,  # Every day
         },
+        'update-payment-stats': {  # Added payment stats task
+            'task': 'chat.tasks.update_payment_stats',
+            'schedule': 3600.0,  # Every hour
+        },
+        'check-subscription-expiry': {  # Added subscription expiry check
+            'task': 'chat.tasks.check_subscription_expiry',
+            'schedule': 86400.0,  # Every day
+        },
     }
 
 # ==================== RATE LIMITING ====================
 
-# Rate limiting for nationality API endpoints
+# Rate limiting for nationality and payment API endpoints
 RATELIMIT_SETTINGS = {
     'NATIONALITY_API': {
         'rate': '100/h',  # 100 requests per hour per IP
@@ -564,19 +633,29 @@ RATELIMIT_SETTINGS = {
         'rate': '50/h',  # 50 requests per hour per IP
         'block': True,
     },
+    'PAYMENT_API': {  # Added payment rate limiting
+        'rate': '20/h',  # 20 payment attempts per hour per IP
+        'block': True,
+    },
+    'WEBHOOK_API': {  # Added webhook rate limiting
+        'rate': '1000/h',  # 1000 webhook calls per hour
+        'block': False,  # Don't block webhooks, just log
+    },
 }
 
 # ==================== SECURITY HEADERS ====================
 
-# Additional security headers for nationality system
+# Additional security headers for nationality and payment system
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 SECURE_REFERRER_POLICY = 'same-origin'
 
-# Content Security Policy (CSP) for flag images
+# Content Security Policy (CSP) for flag images and Stripe
 CSP_DEFAULT_SRC = ["'self'"]
 CSP_IMG_SRC = ["'self'", 'https://flagcdn.com', 'data:']
-CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com']  # Added Stripe
 CSP_STYLE_SRC = ["'self'", "'unsafe-inline'"]
+CSP_CONNECT_SRC = ["'self'", 'https://api.stripe.com']  # Added Stripe API
+CSP_FRAME_SRC = ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com']  # Added Stripe frames
 
 # ==================== DEVELOPMENT SETTINGS ====================
 
@@ -623,6 +702,12 @@ if DEBUG:
         'CACHE_TIMEOUT': 300,  # 5 minutes for development
         'API_TIMEOUT': 10,  # Longer timeout for development
     })
+    
+    # Development payment settings
+    PAYMENT_SETTINGS.update({
+        'ENABLE_DEBUG_LOGGING': True,
+        'WEBHOOK_TOLERANCE': 600,  # 10 minutes for development
+    })
 
 # ==================== TESTING SETTINGS ====================
 
@@ -642,12 +727,20 @@ if 'test' in sys.argv:
         'ENABLE_STATISTICS': False,
     })
     
+    # Disable payments in tests
+    PAYMENT_SETTINGS.update({
+        'ENABLE_PAYMENTS': False,
+    })
+    
     # Use dummy cache for tests
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         },
         'nationality': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'payment': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         }
     }
@@ -656,6 +749,17 @@ if 'test' in sys.argv:
 
 # Optional packages for enhanced functionality
 OPTIONAL_APPS = []
+
+# Stripe for payments
+try:
+    import stripe
+    OPTIONAL_APPS.append('stripe')
+    STRIPE_ENABLED = True
+except ImportError:
+    STRIPE_ENABLED = False
+    if PAYMENT_SETTINGS.get('ENABLE_PAYMENTS'):
+        import warnings
+        warnings.warn("Payment system enabled but stripe package not installed")
 
 # GeoIP2 for better nationality detection (requires GDAL)
 try:
@@ -696,6 +800,11 @@ FEATURE_FLAGS = {
     'NATIONALITY_API_ENDPOINTS': True,
     'NATIONALITY_MIDDLEWARE': True,
     'NATIONALITY_CONTEXT_PROCESSOR': True,
+    'PAYMENT_SYSTEM': True,  # Added payment system flag
+    'PAYMENT_STRIPE_INTEGRATION': True,  # Added Stripe integration flag
+    'PAYMENT_SUBSCRIPTION_MANAGEMENT': True,  # Added subscription management flag
+    'PAYMENT_ROOM_ACCESS_CONTROL': True,  # Added room access control flag
+    'PAYMENT_ADMIN_INTERFACE': True,  # Added payment admin interface flag
 }
 
 # Environment-specific feature flags
@@ -703,6 +812,8 @@ if DEBUG:
     FEATURE_FLAGS.update({
         'NATIONALITY_DEBUG_LOGGING': True,
         'NATIONALITY_VERBOSE_ERRORS': True,
+        'PAYMENT_DEBUG_LOGGING': True,  # Added payment debug logging
+        'PAYMENT_VERBOSE_ERRORS': True,  # Added payment verbose errors
     })
 
 # ==================== IMPORT LOCAL SETTINGS ====================
@@ -725,6 +836,16 @@ if NATIONALITY_SETTINGS.get('ENABLE_AUTO_DETECTION') and not REQUESTS_ENABLED:
     import warnings
     warnings.warn("Nationality auto-detection enabled but requests package not installed")
 
+# Validate payment settings
+if PAYMENT_SETTINGS.get('ENABLE_PAYMENTS'):
+    if not STRIPE_ENABLED:
+        import warnings
+        warnings.warn("Payment system enabled but stripe package not installed")
+    
+    if not DEBUG and (not STRIPE_PUBLISHABLE_KEY or not STRIPE_SECRET_KEY):
+        import warnings
+        warnings.warn("Payment system enabled but Stripe keys not configured for production")
+
 # Validate GeoIP2 settings
 if GEOIP_ENABLED and not GEOIP_PATH.exists():
     import warnings
@@ -733,7 +854,7 @@ elif not GIS_ENABLED and NATIONALITY_SETTINGS.get('ENABLE_AUTO_DETECTION'):
     import warnings
     warnings.warn("GeoIP2 not available (requires GDAL). Using fallback APIs for nationality detection.")
 
-# Print nationality system status
+# Print system status in debug mode
 if DEBUG:
     print(f"🌍 Nationality System Status:")
     print(f"  - Auto-detection: {'✅' if NATIONALITY_SETTINGS['ENABLE_AUTO_DETECTION'] else '❌'}")
@@ -743,3 +864,16 @@ if DEBUG:
     print(f"  - GeoIP2: {'✅' if GEOIP_ENABLED else '❌'}")
     print(f"  - Redis: {'✅' if REDIS_ENABLED else '❌'}")
     print(f"  - Requests: {'✅' if REQUESTS_ENABLED else '❌'}")
+    
+    print(f"💳 Payment System Status:")
+    print(f"  - Payments enabled: {'✅' if PAYMENT_SETTINGS['ENABLE_PAYMENTS'] else '❌'}")
+    print(f"  - Stripe integration: {'✅' if STRIPE_ENABLED else '❌'}")
+    print(f"  - Stripe keys configured: {'✅' if STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY else '❌'}")
+    print(f"  - Webhook configured: {'✅' if STRIPE_WEBHOOK_SECRET else '❌'}")
+    print(f"  - Room access control: {'✅' if PAYMENT_SETTINGS['REQUIRE_PAYMENT_FOR_LARGE_ROOMS'] else '❌'}")
+    
+    # Show Stripe key status (first few characters for security)
+    if STRIPE_PUBLISHABLE_KEY:
+        print(f"  - Publishable key: {STRIPE_PUBLISHABLE_KEY[:10]}...")
+    if STRIPE_SECRET_KEY:
+        print(f"  - Secret key: {STRIPE_SECRET_KEY[:10]}...")
