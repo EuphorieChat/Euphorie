@@ -3610,26 +3610,29 @@ def subscription_dashboard(request):
         subscription = request.user.subscription
     except UserSubscription.DoesNotExist:
         # Create basic subscription
-        basic_plan = SubscriptionPlan.objects.filter(name='basic', is_active=True).first()  # FIXED: Changed from PaymentPlan
+        basic_plan = SubscriptionPlan.objects.filter(name='basic', is_active=True).first()
         if basic_plan:
             subscription = UserSubscription.objects.create(
                 user=request.user,
                 plan=basic_plan,
                 is_active=True,
-                started_at=timezone.now()  # Add started_at
+                started_at=timezone.now()
             )
         else:
             messages.error(request, 'No basic plan found. Please contact support.')
             return redirect('index')
     
-    # Get user's payment history
-    payments = Payment.objects.filter(user=request.user).order_by('-created_at')[:10]
+    # Get all user payments (don't slice yet)
+    all_payments = Payment.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Get recent payments for display (sliced)
+    payments = all_payments[:10]
     
     # Get available upgrade plans
-    upgrade_plans = SubscriptionPlan.objects.filter(  # FIXED: Changed from PaymentPlan
+    upgrade_plans = SubscriptionPlan.objects.filter(
         is_active=True,
-        price__gt=subscription.plan.price  # FIXED: Changed from price_cents to price
-    ).order_by('price')  # FIXED: Changed from price_cents to price
+        price__gt=subscription.plan.price
+    ).order_by('price')
     
     # Get room usage stats
     rooms_created = Room.objects.filter(creator=request.user).count()
@@ -3638,8 +3641,8 @@ def subscription_dashboard(request):
         requires_payment=True
     ).count()
     
-    # Calculate savings with current plan
-    total_paid = payments.filter(status='succeeded').aggregate(
+    # Calculate total paid (use all_payments, not the sliced payments)
+    total_paid = all_payments.filter(status='succeeded').aggregate(
         total=Sum('amount_cents')
     )['total'] or 0
     
@@ -3660,14 +3663,14 @@ def subscription_dashboard(request):
     
     context = {
         'subscription': subscription,
-        'payments': payments,
+        'payments': payments,  # This is the sliced version for display
         'upgrade_plans': upgrade_plans,
         'rooms_created': rooms_created,
         'rooms_requiring_premium': rooms_requiring_premium,
         'total_paid_dollars': total_paid / 100,
         'days_until_expiry': days_until_expiry,
         'is_expired': is_expired,
-        'can_cancel': subscription.is_active and subscription.plan.price > 0,  # FIXED: Changed from price_cents to price
+        'can_cancel': subscription.is_active and subscription.plan.price > 0,
     }
     
     return render(request, 'chat/subscription_dashboard.html', context)
