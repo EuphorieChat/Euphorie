@@ -5,16 +5,17 @@ from datetime import timedelta
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
+# Updated imports - using streamlined models
 from .models import (
-    PaymentPlan, UserSubscription, Payment, Room, UserProfile,
-    RoomCategory, Message, MessageReport, Friendship, FriendSuggestion,
-    RoomBookmark, UserModerationAction, WordFilter, UserActivity,
-    NationalityStats, FriendRequest
+    SubscriptionPlan, UserSubscription, Payment, PaymentAttempt, Room, UserProfile,
+    RoomCategory, RoomMembership, Message, MessageReport, Friendship, 
+    RoomBookmark, UserActivity, NationalityStats, FriendRequest,
+    ScreenShare, ScreenShareViewer
 )
 
 
@@ -23,14 +24,14 @@ class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Profile'
-    fields = [
+    fields = (
         'display_name', 'bio', 'location', 'website',
         'nationality', 'auto_detected_country', 'show_nationality',
-        'theme', 'status', 'status_message',
-        'profile_visibility', 'show_online_status', 'allow_friend_requests',
+        'theme', 'status', 'profile_visibility',
+        'allow_friend_requests', 'show_online_status',
         'total_messages', 'rooms_created', 'last_seen'
-    ]
-    readonly_fields = ['auto_detected_country', 'total_messages', 'rooms_created', 'last_seen']
+    )
+    readonly_fields = ('total_messages', 'rooms_created', 'last_seen', 'auto_detected_country')
 
 
 class MessageInline(admin.TabularInline):
@@ -40,6 +41,13 @@ class MessageInline(admin.TabularInline):
     fields = ['user', 'content', 'message_type', 'user_nationality_at_time', 'timestamp']
     readonly_fields = ['user_nationality_at_time', 'timestamp']
     ordering = ['-timestamp']
+
+
+class RoomMembershipInline(admin.TabularInline):
+    model = RoomMembership
+    extra = 0
+    fields = ('user', 'role', 'is_active', 'joined_at', 'nickname')
+    readonly_fields = ('joined_at',)
 
 
 # Custom User Admin
@@ -103,7 +111,7 @@ class UserProfileAdmin(admin.ModelAdmin):
             'fields': ('theme', 'status', 'status_message')
         }),
         ('Privacy Settings', {
-            'fields': ('profile_visibility', 'show_online_status', 'allow_friend_requests')
+            'fields': ('profile_visibility', 'show_online_status', 'allow_friend_requests', 'email_notifications', 'allow_room_invites')
         }),
         ('Statistics', {
             'fields': ('total_messages', 'rooms_created', 'achievements'),
@@ -161,7 +169,8 @@ class NationalityStatsAdmin(admin.ModelAdmin):
     
     def get_nationality_display(self, obj):
         if obj.nationality and obj.nationality != 'UN':
-            country_dict = dict(UserProfile.COUNTRY_CHOICES)
+            from .models import UserChoices
+            country_dict = dict(UserChoices.COUNTRY_CHOICES)
             country_name = country_dict.get(obj.nationality, 'Unknown')
             flag_url = f"https://flagcdn.com/w20/{obj.nationality.lower()}.png"
             return format_html(
@@ -210,11 +219,11 @@ class RoomCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ['name', 'display_name', 'category', 'creator', 'is_public', 'message_count', 'get_nationality_diversity', 'last_activity']
-    list_filter = ['is_public', 'is_featured', 'category', 'created_at']
+    list_display = ['name', 'display_name', 'category', 'creator', 'is_public', 'max_users', 'payment_required_display', 'message_count', 'get_nationality_diversity', 'last_activity']
+    list_filter = ['is_public', 'is_featured', 'requires_payment', 'category', 'created_at']
     search_fields = ['name', 'display_name', 'description', 'tags']
     readonly_fields = ['message_count', 'active_users_count', 'created_at', 'updated_at']
-    inlines = [MessageInline]
+    inlines = [MessageInline, RoomMembershipInline]
     
     fieldsets = (
         ('Basic Information', {
@@ -222,6 +231,10 @@ class RoomAdmin(admin.ModelAdmin):
         }),
         ('Settings', {
             'fields': ('is_public', 'is_featured', 'max_users', 'require_approval')
+        }),
+        ('Payment & Access', {
+            'fields': ('requires_payment', 'required_subscription_level'),
+            'classes': ('collapse',)
         }),
         ('Discovery', {
             'fields': ('tags', 'language')
@@ -235,6 +248,18 @@ class RoomAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def payment_required_display(self, obj):
+        if obj.requires_payment_check():
+            required_level = obj.get_required_subscription_level()
+            colors = {'basic': 'green', 'premium': '#FF6B35', 'enterprise': '#6f42c1'}
+            color = colors.get(required_level, '#FF6B35')
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">👑 {}</span>',
+                color, required_level.title()
+            )
+        return format_html('<span style="color: green;">Free</span>')
+    payment_required_display.short_description = 'Access Type'
     
     def get_nationality_diversity(self, obj):
         try:
@@ -291,6 +316,31 @@ class RoomAdmin(admin.ModelAdmin):
     analyze_demographics.short_description = "Analyze nationality demographics"
 
 
+@admin.register(RoomMembership)
+class RoomMembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'room', 'role', 'is_active', 'joined_at', 'nickname')
+    list_filter = ('role', 'is_active', 'joined_at')
+    search_fields = ('user__username', 'room__name', 'nickname')
+    readonly_fields = ('joined_at', 'left_at', 'rejoined_at')
+    
+    fieldsets = (
+        ('Membership Information', {
+            'fields': ('room', 'user', 'role', 'is_active', 'is_banned')
+        }),
+        ('Settings', {
+            'fields': ('nickname', 'notification_level')
+        }),
+        ('Management', {
+            'fields': ('added_by', 'removed_by'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('joined_at', 'left_at', 'rejoined_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = ['user', 'room', 'content_preview', 'message_type', 'get_user_nationality', 'is_edited', 'timestamp']
@@ -306,7 +356,8 @@ class MessageAdmin(admin.ModelAdmin):
     def get_user_nationality(self, obj):
         nationality = obj.user_nationality_at_time
         if nationality and nationality != 'UN':
-            country_dict = dict(UserProfile.COUNTRY_CHOICES)
+            from .models import UserChoices
+            country_dict = dict(UserChoices.COUNTRY_CHOICES)
             country_name = country_dict.get(nationality, 'Unknown')
             flag_url = f"https://flagcdn.com/w16/{nationality.lower()}.png"
             return format_html(
@@ -454,42 +505,6 @@ class FriendshipAdmin(admin.ModelAdmin):
     calculate_mutual_friends.short_description = "Calculate mutual friends count"
 
 
-@admin.register(UserModerationAction)
-class UserModerationActionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'action', 'moderator', 'reason_preview', 'expires_at', 'is_active', 'created_at']
-    list_filter = ['action', 'is_active', 'created_at', 'expires_at']
-    search_fields = ['user__username', 'moderator__username', 'reason']
-    readonly_fields = ['created_at']
-    date_hierarchy = 'created_at'
-    
-    def reason_preview(self, obj):
-        return obj.reason[:50] + '...' if len(obj.reason) > 50 else obj.reason
-    reason_preview.short_description = 'Reason'
-    
-    actions = ['deactivate_actions', 'extend_duration']
-    
-    def deactivate_actions(self, request, queryset):
-        queryset.update(is_active=False)
-    deactivate_actions.short_description = "Deactivate selected actions"
-
-
-@admin.register(WordFilter)
-class WordFilterAdmin(admin.ModelAdmin):
-    list_display = ['word', 'severity', 'action', 'is_active', 'case_sensitive', 'is_regex']
-    list_filter = ['severity', 'action', 'is_active', 'case_sensitive', 'is_regex']
-    search_fields = ['word']
-    
-    actions = ['activate_filters', 'deactivate_filters']
-    
-    def activate_filters(self, request, queryset):
-        queryset.update(is_active=True)
-    activate_filters.short_description = "Activate selected filters"
-    
-    def deactivate_filters(self, request, queryset):
-        queryset.update(is_active=False)
-    deactivate_filters.short_description = "Deactivate selected filters"
-
-
 @admin.register(UserActivity)
 class UserActivityAdmin(admin.ModelAdmin):
     list_display = ['user', 'activity_type', 'description', 'is_public', 'created_at']
@@ -505,61 +520,6 @@ class UserActivityAdmin(admin.ModelAdmin):
         return False  # Activities shouldn't be changed
 
 
-@admin.register(FriendSuggestion)
-class FriendSuggestionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'suggested_user', 'suggestion_type', 'score', 'mutual_friends', 'shared_rooms', 'is_dismissed']
-    list_filter = ['suggestion_type', 'is_dismissed', 'created_at']
-    search_fields = ['user__username', 'suggested_user__username']
-    readonly_fields = ['created_at']
-    
-    actions = ['dismiss_suggestions', 'generate_nationality_suggestions']
-    
-    def dismiss_suggestions(self, request, queryset):
-        queryset.update(is_dismissed=True)
-    dismiss_suggestions.short_description = "Dismiss selected suggestions"
-    
-    def generate_nationality_suggestions(self, request, queryset):
-        # Generate nationality-based suggestions for users
-        from django.contrib.auth.models import User
-        from django.db.models import Q
-        
-        generated = 0
-        for user_profile in UserProfile.objects.exclude(nationality__isnull=True):
-            user = user_profile.user
-            user_nationality = user_profile.get_display_nationality()
-            
-            if user_nationality and user_nationality != 'UN':
-                # Find other users with same nationality
-                same_nationality_users = User.objects.filter(
-                    profile__nationality=user_nationality
-                ).exclude(id=user.id)
-                
-                # Exclude existing friends and pending requests
-                existing_friends = Friendship.objects.filter(user=user).values_list('friend_id', flat=True)
-                existing_suggestions = FriendSuggestion.objects.filter(user=user).values_list('suggested_user_id', flat=True)
-                
-                same_nationality_users = same_nationality_users.exclude(
-                    Q(id__in=existing_friends) | Q(id__in=existing_suggestions)
-                )
-                
-                for suggested_user in same_nationality_users[:5]:  # Limit to 5 suggestions per user
-                    suggestion, created = FriendSuggestion.objects.get_or_create(
-                        user=user,
-                        suggested_user=suggested_user,
-                        defaults={
-                            'suggestion_type': 'same_nationality',
-                            'score': 0.7,
-                            'mutual_friends': 0,
-                            'shared_rooms': 0,
-                        }
-                    )
-                    if created:
-                        generated += 1
-        
-        self.message_user(request, f"Generated {generated} nationality-based friend suggestions.")
-    generate_nationality_suggestions.short_description = "Generate nationality-based suggestions"
-
-
 @admin.register(RoomBookmark)
 class RoomBookmarkAdmin(admin.ModelAdmin):
     list_display = ['user', 'room', 'notes', 'created_at']
@@ -568,7 +528,217 @@ class RoomBookmarkAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
 
 
-# Custom admin actions for bulk operations
+# ==================== PAYMENT & SUBSCRIPTION ADMIN ====================
+
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(admin.ModelAdmin):
+    list_display = ('name', 'display_name', 'price_display', 'max_users_per_room', 'max_rooms_display', 'is_active', 'is_popular')
+    list_filter = ('is_active', 'is_popular', 'name')
+    search_fields = ('name', 'display_name', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Plan Information', {
+            'fields': ('name', 'display_name', 'description', 'price')
+        }),
+        ('Limits', {
+            'fields': ('max_users_per_room', 'max_rooms')
+        }),
+        ('Features', {
+            'fields': ('features',),
+            'description': 'Enter features as a JSON list'
+        }),
+        ('Stripe Integration', {
+            'fields': ('stripe_price_id',),
+            'classes': ('collapse',)
+        }),
+        ('Settings', {
+            'fields': ('is_active', 'is_popular')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def price_display(self, obj):
+        if obj.price == 0:
+            return format_html('<span style="color: green; font-weight: bold;">FREE</span>')
+        return f"${obj.price}/month"
+    price_display.short_description = 'Price'
+    
+    def max_rooms_display(self, obj):
+        return obj.get_room_limit_display()
+    max_rooms_display.short_description = 'Max Rooms'
+
+
+@admin.register(UserSubscription)
+class UserSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'plan', 'status_display', 'days_remaining_display', 'created_at', 'expires_at', 'stripe_customer_link')
+    list_filter = ('is_active', 'plan', 'created_at')
+    search_fields = ('user__username', 'user__email', 'stripe_customer_id')
+    readonly_fields = ('stripe_customer_id', 'stripe_subscription_id', 'created_at', 'updated_at', 'days_remaining')
+    raw_id_fields = ('user',)
+    
+    fieldsets = (
+        ('Subscription Information', {
+            'fields': ('user', 'plan', 'is_active')
+        }),
+        ('Stripe Integration', {
+            'fields': ('stripe_customer_id', 'stripe_subscription_id'),
+            'classes': ('collapse',)
+        }),
+        ('Dates', {
+            'fields': ('started_at', 'expires_at', 'cancelled_at')
+        }),
+        ('Billing', {
+            'fields': ('last_payment_date', 'next_payment_date'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def status_display(self, obj):
+        if obj.is_active:
+            if obj.is_expired:
+                return format_html('<span style="color: #dc3545; font-weight: bold;">Expired</span>')
+            return format_html('<span style="color: #28a745; font-weight: bold;">Active</span>')
+        return format_html('<span style="color: #6c757d; font-weight: bold;">Inactive</span>')
+    status_display.short_description = 'Status'
+    
+    def days_remaining_display(self, obj):
+        days = obj.days_remaining
+        if days > 30:
+            return format_html('<span style="color: green;">{} days</span>', days)
+        elif days > 7:
+            return format_html('<span style="color: orange;">{} days</span>', days)
+        elif days > 0:
+            return format_html('<span style="color: red;">{} days</span>', days)
+        else:
+            return format_html('<span style="color: #dc3545;">Expired</span>')
+    days_remaining_display.short_description = 'Days Remaining'
+    
+    def stripe_customer_link(self, obj):
+        if obj.stripe_customer_id:
+            url = f"https://dashboard.stripe.com/customers/{obj.stripe_customer_id}"
+            return format_html('<a href="{}" target="_blank">View in Stripe</a>', url)
+        return '-'
+    stripe_customer_link.short_description = 'Stripe Customer'
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'plan', 'amount_display', 'status_display', 'payment_method', 'created_at', 'stripe_payment_link')
+    list_filter = ('status', 'payment_method', 'plan', 'created_at')
+    search_fields = ('user__username', 'user__email', 'stripe_payment_intent_id')
+    readonly_fields = ('stripe_payment_intent_id', 'stripe_charge_id', 'amount_dollars', 'created_at', 'completed_at', 'failed_at')
+    raw_id_fields = ('user',)
+    
+    fieldsets = (
+        ('Payment Information', {
+            'fields': ('user', 'plan', 'amount_cents', 'currency', 'status', 'payment_method')
+        }),
+        ('Stripe Details', {
+            'fields': ('stripe_payment_intent_id', 'stripe_charge_id'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('description', 'metadata'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'completed_at', 'failed_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def amount_display(self, obj):
+        return f"${obj.amount_dollars:.2f}"
+    amount_display.short_description = 'Amount'
+    
+    def status_display(self, obj):
+        colors = {
+            'pending': '#856404',
+            'processing': '#0d6efd',
+            'succeeded': '#155724',
+            'failed': '#721c24',
+            'canceled': '#6c757d',
+            'refunded': '#e83e8c'
+        }
+        color = colors.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.status.title()
+        )
+    status_display.short_description = 'Status'
+    
+    def stripe_payment_link(self, obj):
+        if obj.stripe_payment_intent_id:
+            url = f"https://dashboard.stripe.com/payments/{obj.stripe_payment_intent_id}"
+            return format_html('<a href="{}" target="_blank">View in Stripe</a>', url)
+        return '-'
+    stripe_payment_link.short_description = 'Stripe Payment'
+
+
+@admin.register(PaymentAttempt)
+class PaymentAttemptAdmin(admin.ModelAdmin):
+    list_display = ('user', 'plan', 'amount_dollars_display', 'success_display', 'payment_method', 'created_at')
+    list_filter = ('success', 'payment_method', 'created_at')
+    search_fields = ('user__username', 'error_message')
+    readonly_fields = ('created_at',)
+    
+    def amount_dollars_display(self, obj):
+        return f"${obj.amount_cents / 100:.2f}"
+    amount_dollars_display.short_description = 'Amount'
+    
+    def success_display(self, obj):
+        if obj.success:
+            return format_html('<span style="color: green; font-weight: bold;">✓ Success</span>')
+        else:
+            return format_html('<span style="color: red; font-weight: bold;">✗ Failed</span>')
+    success_display.short_description = 'Result'
+
+
+# ==================== SCREEN SHARING ADMIN ====================
+
+@admin.register(ScreenShare)
+class ScreenShareAdmin(admin.ModelAdmin):
+    list_display = ('sharer', 'room', 'status', 'projection_mode', 'quality', 'started_at', 'duration_display')
+    list_filter = ('status', 'projection_mode', 'quality', 'started_at')
+    search_fields = ('sharer__username', 'room__name', 'session_id')
+    readonly_fields = ('session_id', 'started_at', 'stopped_at', 'duration_seconds', 'total_viewers', 'max_concurrent_viewers')
+    
+    def duration_display(self, obj):
+        if obj.duration_seconds > 0:
+            minutes = obj.duration_seconds // 60
+            seconds = obj.duration_seconds % 60
+            return f"{minutes}m {seconds}s"
+        return "Active" if obj.status == 'active' else "N/A"
+    duration_display.short_description = 'Duration'
+
+
+@admin.register(ScreenShareViewer)
+class ScreenShareViewerAdmin(admin.ModelAdmin):
+    list_display = ('viewer', 'get_sharer', 'get_room', 'is_active', 'joined_at', 'left_at')
+    list_filter = ('is_active', 'joined_at')
+    search_fields = ('viewer__username', 'screen_share__sharer__username')
+    readonly_fields = ('joined_at', 'left_at')
+    
+    def get_sharer(self, obj):
+        return obj.screen_share.sharer.username
+    get_sharer.short_description = 'Sharer'
+    
+    def get_room(self, obj):
+        return obj.screen_share.room.name
+    get_room.short_description = 'Room'
+
+
+# ==================== CUSTOM ADMIN ACTIONS ====================
+
 def bulk_update_nationality_stats(modeladmin, request, queryset):
     """Update nationality statistics for all countries"""
     NationalityStats.update_stats()
@@ -588,7 +758,8 @@ def export_nationality_report(modeladmin, request, queryset):
     writer.writerow(['Country Code', 'Country Name', 'User Count', 'Message Count', 'Rooms Created'])
     
     stats = NationalityStats.objects.all().order_by('-user_count')
-    country_dict = dict(UserProfile.COUNTRY_CHOICES)
+    from .models import UserChoices
+    country_dict = dict(UserChoices.COUNTRY_CHOICES)
     
     for stat in stats:
         writer.writerow([
@@ -607,14 +778,16 @@ export_nationality_report.short_description = "Export nationality report (CSV)"
 UserProfileAdmin.actions.extend([bulk_update_nationality_stats, export_nationality_report])
 
 
-# Admin site customization
+# ==================== ADMIN SITE CUSTOMIZATION ====================
+
 admin.site.site_header = 'Euphorie Administration'
 admin.site.site_title = 'Euphorie Admin'
 admin.site.index_title = 'Welcome to Euphorie Administration'
 
-# Add custom admin dashboard info
+
+# Custom admin dashboard info
 class AdminDashboardInfo:
-    """Custom dashboard information for nationality statistics"""
+    """Custom dashboard information for nationality and subscription statistics"""
     
     @staticmethod
     def get_nationality_summary():
@@ -635,97 +808,32 @@ class AdminDashboardInfo:
             'top_countries': top_countries,
             'unique_countries': NationalityStats.objects.count()
         }
+    
+    @staticmethod
+    def get_subscription_summary():
+        """Get summary of subscription statistics"""
+        total_subscriptions = UserSubscription.objects.count()
+        active_subscriptions = UserSubscription.objects.filter(is_active=True).count()
+        premium_subscriptions = UserSubscription.objects.filter(
+            is_active=True, 
+            plan__name__in=['premium', 'enterprise']
+        ).count()
+        
+        return {
+            'total_subscriptions': total_subscriptions,
+            'active_subscriptions': active_subscriptions,
+            'premium_subscriptions': premium_subscriptions,
+            'conversion_rate': (premium_subscriptions / total_subscriptions * 100) if total_subscriptions > 0 else 0
+        }
 
 
 # Custom admin site index template context
 def admin_index_context(request):
-    """Add nationality statistics to admin index"""
+    """Add nationality and subscription statistics to admin index"""
     if request.user.is_staff:
         context = {
             'nationality_summary': AdminDashboardInfo.get_nationality_summary(),
+            'subscription_summary': AdminDashboardInfo.get_subscription_summary(),
         }
         return context
     return {}
-
-@admin.register(PaymentPlan)
-class PaymentPlanAdmin(admin.ModelAdmin):
-    list_display = ('name', 'max_users', 'price_display', 'stripe_price_id', 'is_active')
-    list_filter = ('is_active', 'name')
-    search_fields = ('name', 'description')
-    readonly_fields = ('stripe_price_id',)
-    
-    def price_display(self, obj):
-        if obj.price_cents == 0:
-            return format_html('<span style="color: green; font-weight: bold;">FREE</span>')
-        return f"${obj.price_cents/100:.2f}/month"
-    price_display.short_description = 'Price'
-
-@admin.register(UserSubscription)
-class UserSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'plan', 'status_display', 'created_at', 'expires_at', 'stripe_customer_link')
-    list_filter = ('is_active', 'plan', 'created_at')
-    search_fields = ('user__username', 'user__email', 'stripe_customer_id')
-    readonly_fields = ('stripe_customer_id', 'stripe_subscription_id', 'created_at', 'updated_at')
-    raw_id_fields = ('user',)
-    
-    def status_display(self, obj):
-        if obj.is_active:
-            if obj.expires_at and obj.expires_at < timezone.now():
-                return format_html('<span class="payment-status inactive">Expired</span>')
-            return format_html('<span class="payment-status active">Active</span>')
-        return format_html('<span class="payment-status inactive">Inactive</span>')
-    status_display.short_description = 'Status'
-    
-    def stripe_customer_link(self, obj):
-        if obj.stripe_customer_id:
-            url = f"https://dashboard.stripe.com/customers/{obj.stripe_customer_id}"
-            return format_html('<a href="{}" target="_blank">View in Stripe</a>', url)
-        return '-'
-    stripe_customer_link.short_description = 'Stripe Customer'
-
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('user', 'plan', 'amount_display', 'status_display', 'created_at', 'stripe_payment_link')
-    list_filter = ('status', 'plan', 'created_at')
-    search_fields = ('user__username', 'user__email', 'stripe_payment_intent_id')
-    readonly_fields = ('stripe_payment_intent_id', 'created_at', 'completed_at')
-    raw_id_fields = ('user',)
-    
-    def amount_display(self, obj):
-        return f"${obj.amount_cents/100:.2f}"
-    amount_display.short_description = 'Amount'
-    
-    def status_display(self, obj):
-        colors = {
-            'pending': '#856404',
-            'succeeded': '#155724',
-            'failed': '#721c24',
-            'canceled': '#6c757d'
-        }
-        color = colors.get(obj.status, '#6c757d')
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}</span>',
-            color,
-            obj.get_status_display()
-        )
-    status_display.short_description = 'Status'
-    
-    def stripe_payment_link(self, obj):
-        if obj.stripe_payment_intent_id:
-            url = f"https://dashboard.stripe.com/payments/{obj.stripe_payment_intent_id}"
-            return format_html('<a href="{}" target="_blank">View in Stripe</a>', url)
-        return '-'
-    stripe_payment_link.short_description = 'Stripe Payment'
-
-# Update Room admin to show payment requirements
-class RoomAdmin(admin.ModelAdmin):
-    list_display = ('name', 'max_users', 'payment_required_display', 'active_users_count', 'created_at')
-    list_filter = ('requires_payment', 'scene_preset', 'created_at')
-    search_fields = ('name', 'description')
-    readonly_fields = ('requires_payment',)  # Auto-calculated based on max_users
-    
-    def payment_required_display(self, obj):
-        if obj.requires_payment:
-            return format_html('<span style="color: #FF6B35; font-weight: bold;">👑 Premium</span>')
-        return format_html('<span style="color: green;">Free</span>')
-    payment_required_display.short_description = 'Access Type'

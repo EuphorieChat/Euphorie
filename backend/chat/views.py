@@ -33,8 +33,8 @@ from django.views.generic import TemplateView
 from .models import (
     Room, Message, UserProfile, RoomCategory, Friendship,
     RoomBookmark, MessageReport, UserActivity, FriendRequest,
-    FriendSuggestion, NationalityStats, get_client_ip,
-    PaymentPlan, UserSubscription, Payment, PaymentAttempt
+    NationalityStats, get_client_ip,
+    SubscriptionPlan, UserSubscription, Payment, PaymentAttempt
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
@@ -3340,7 +3340,8 @@ def pricing_page(request):
 
 def pricing_comparison(request):
     """Detailed pricing comparison page"""
-    plans = PaymentPlan.objects.filter(is_active=True).order_by('price_cents')
+    # CHANGE: PaymentPlan -> SubscriptionPlan
+    plans = SubscriptionPlan.objects.filter(is_active=True).order_by('price')
     
     # Feature comparison matrix
     features_comparison = [
@@ -3400,7 +3401,8 @@ def create_payment_intent(request):
         data = json.loads(request.body)
         plan_id = data.get('plan_id')
         
-        plan = get_object_or_404(PaymentPlan, id=plan_id, is_active=True)
+        # CHANGE: PaymentPlan -> SubscriptionPlan
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
         
         # Check if user already has this plan
         try:
@@ -3497,7 +3499,8 @@ def get_or_create_stripe_customer(user):
     subscription, created = UserSubscription.objects.get_or_create(
         user=user,
         defaults={
-            'plan': PaymentPlan.objects.filter(name='basic', is_active=True).first(),
+            # CHANGE: PaymentPlan -> SubscriptionPlan
+            'plan': SubscriptionPlan.objects.filter(name='basic', is_active=True).first(),
             'stripe_customer_id': customer.id,
             'is_active': False
         }
@@ -3690,12 +3693,11 @@ def cancel_subscription(request):
 
 # ==================== ROOM ACCESS CONTROL ====================
 
-@login_required
 def room_access_check(request, room_id):
     """Check if user can access a premium room"""
     room = get_object_or_404(Room, id=room_id)
     
-    if room.can_user_join(request.user):
+    if room.user_can_join(request.user):
         # User can join the room
         return redirect('room', room_name=room.name)
     
@@ -3917,8 +3919,8 @@ def admin_payments(request):
         completed_at__gte=timezone.now() - timedelta(days=30)
     ).aggregate(total=Sum('amount_cents'))['total'] or 0
     
-    # Get filter options
-    plans = PaymentPlan.objects.filter(is_active=True)
+    # Get filter options - CHANGE: PaymentPlan -> SubscriptionPlan
+    plans = SubscriptionPlan.objects.filter(is_active=True)
     statuses = Payment.PAYMENT_STATUS_CHOICES
     
     context = {
