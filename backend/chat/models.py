@@ -1,17 +1,19 @@
 # backend/chat/models.py
 
-from django.db import models
+import json
+import stripe
+import requests
+
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.utils import timezone, text
-from django.core.validators import RegexValidator, URLValidator
-from django.core.exceptions import ValidationError
-from django.db.models import Q
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator, URLValidator
+from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-import json
-import requests
+from django.utils import timezone, text
 
 class UserProfile(models.Model):
     """Enhanced user profile with 3D avatar customization, nationality, and privacy settings"""
@@ -1040,3 +1042,295 @@ class ScreenShareViewer(models.Model):
     
     def __str__(self):
         return f"{self.viewer.username} viewing {self.screen_share.sharer.username}'s share"
+    
+
+
+# Configure Stripe
+stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', '')
+
+class PaymentPlan(models.Model):
+    """Payment plans for premium room access"""
+    
+    PLAN_CHOICES = [
+        ('basic', 'Basic (≤10 users)'),
+        ('premium', 'Premium (11-50 users)'),
+        ('enterprise', 'Enterprise (51+ users)'),
+    ]
+    
+    name = models.CharField(max_length=50, choices=PLAN_CHOICES, unique=True)
+    max_users = models.IntegerField()
+    price_cents = models.IntegerField(help_text="Price in cents")
+    stripe_price_id = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    features = models.JSONField(default=list, help_text="List of plan features")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['price_cents']
+    
+    def __str__(self):
+        return f"{self.get_name_display()} - ${self.price_cents/100:.2f}"
+    
+    @property
+    def price_dollars(self):
+        return self.price_cents / 100
+    
+    def get_features_list(self):
+        """Get features as a list"""
+        if isinstance(self.features, list):
+            return self.features
+        return []
+
+
+class UserSubscription(models.Model):
+    """User subscription model"""
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
+    plan = models.ForeignKey(PaymentPlan, on_delete=models.CASCADE)
+    stripe_customer_id = models.CharField(max_length=100, blank=True)
+    stripe_subscription_id = models.CharField(max_length=100, blank=True)
+    is_active = models.BooleanField(default=False)
+    auto_renew = models.BooleanField(default=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.plan.name} ({'Active' if self.is_active else 'Inactive'})"
+    
+    def can_join_room(self, room_max_users):
+        """Check if user can join a room based on their subscription"""
+        if not self.is_active or self.is_expired():
+            return room_max_users <= 10  # Free tier limit
+        return room_max_users <= self.plan.max_users
+    
+    def get_max_room_size(self):
+        """Get maximum room size user can join"""
+        if not self.is_active or self.is_expired():
+            return 10  # Free tier
+        return self.plan.max_users
+    
+    def is_expired(self):
+        """Check if subscription has expired"""
+        if not self.expires_at:
+            return False
+        return timezone.now() > self.expires_at
+    
+    def days_until_expiry(self):
+        """Get days until subscription expires"""
+        if not self.expires_at:
+            return None
+        delta = self.expires_at - timezone.now()
+        return max(0, delta.days)
+    
+    def cancel_subscription(self):
+        """Cancel the subscription"""
+        self.is_active = False
+        self.cancelled_at = timezone.now()
+        self.save()
+        
+        # Cancel in Stripe if exists
+        if self.stripe_subscription_id:
+            try:
+                stripe.Subscription.delete(self.stripe_subscription_id)
+            except stripe.error.StripeError:
+                pass  # Handle Stripe errors silently
+
+
+class Payment(models.Model):
+    """Payment records"""
+    
+    PAYMENT_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('succeeded', 'Succeeded'),
+        ('failed', 'Failed'),
+        ('canceled', 'Canceled'),
+        ('refunded', 'Refunded'),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('card', 'Credit/Debit Card'),
+        ('bank_transfer', 'Bank Transfer'),
+        ('paypal', 'PayPal'),
+        ('crypto', 'Cryptocurrency'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    plan = models.ForeignKey(PaymentPlan, on_delete=models.CASCADE)
+    stripe_payment_intent_id = models.CharField(max_length=100, unique=True)
+    stripe_charge_id = models.CharField(max_length=100, blank=True)
+    
+    # Payment details
+    amount_cents = models.IntegerField()
+    currency = models.CharField(max_length=3, default='USD')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='card')
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    
+    # Metadata
+    description = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    failed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['status']),
+            models.Index(fields=['stripe_payment_intent_id']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - ${self.amount_cents/100:.2f} - {self.status}"
+    
+    @property
+    def amount_dollars(self):
+        return self.amount_cents / 100
+    
+    def mark_as_succeeded(self):
+        """Mark payment as succeeded"""
+        self.status = 'succeeded'
+        self.completed_at = timezone.now()
+        self.save()
+    
+    def mark_as_failed(self, reason=None):
+        """Mark payment as failed"""
+        self.status = 'failed'
+        self.failed_at = timezone.now()
+        if reason:
+            self.metadata['failure_reason'] = reason
+        self.save()
+
+
+class PaymentAttempt(models.Model):
+    """Track payment attempts for analytics"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    plan = models.ForeignKey(PaymentPlan, on_delete=models.CASCADE)
+    amount_cents = models.IntegerField()
+    payment_method = models.CharField(max_length=20)
+    success = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        status = "Success" if self.success else "Failed"
+        return f"{self.user.username} - {status} - ${self.amount_cents/100:.2f}"
+
+
+# Update the existing Room model - add this method to your Room class
+def update_room_model():
+    """Add this to your existing Room model"""
+    
+    # Add this field to your Room model
+    requires_payment = models.BooleanField(default=False, help_text="Requires premium subscription to join")
+    
+    def save(self, *args, **kwargs):
+        # Auto-set payment requirement for rooms over 10 users
+        if self.max_users > 10:
+            self.requires_payment = True
+        else:
+            self.requires_payment = False
+        super().save(*args, **kwargs)
+    
+    def can_user_join(self, user):
+        """Check if user can join this room based on subscription"""
+        if not user.is_authenticated:
+            return not self.requires_payment and self.max_users <= 10
+        
+        if not self.requires_payment:
+            return True
+        
+        try:
+            subscription = user.subscription
+            return subscription.can_join_room(self.max_users)
+        except UserSubscription.DoesNotExist:
+            return False  # No subscription for paid room
+    
+    def get_required_plan(self):
+        """Get the minimum plan required for this room"""
+        if self.max_users <= 10:
+            return None
+        elif self.max_users <= 50:
+            return PaymentPlan.objects.filter(name='premium', is_active=True).first()
+        else:
+            return PaymentPlan.objects.filter(name='enterprise', is_active=True).first()
+    
+    def get_upgrade_url(self):
+        """Get URL to upgrade for this room"""
+        from django.urls import reverse
+        return reverse('pricing') + f'?required_users={self.max_users}'
+
+
+# Signal handlers for payment events
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Payment)
+def handle_successful_payment(sender, instance, **kwargs):
+    """Handle successful payment to update subscription"""
+    if instance.status == 'succeeded' and instance.completed_at:
+        # Create or update subscription
+        subscription, created = UserSubscription.objects.get_or_create(
+            user=instance.user,
+            defaults={
+                'plan': instance.plan,
+                'is_active': True,
+                'expires_at': timezone.now() + timezone.timedelta(days=30),
+            }
+        )
+        
+        if not created:
+            # Update existing subscription
+            subscription.plan = instance.plan
+            subscription.is_active = True
+            subscription.expires_at = timezone.now() + timezone.timedelta(days=30)
+            subscription.save()
+        
+        # Create activity log
+        try:
+            UserActivity.objects.create(
+                user=instance.user,
+                activity_type='subscription_upgraded',
+                description=f"Upgraded to {instance.plan.get_name_display()}",
+                metadata={
+                    'plan': instance.plan.name,
+                    'amount': instance.amount_dollars,
+                    'payment_id': instance.id
+                }
+            )
+        except:
+            pass  # UserActivity might not exist
+
+
+@receiver(post_save, sender=UserSubscription)
+def update_user_subscription_stats(sender, instance, created, **kwargs):
+    """Update user stats when subscription changes"""
+    if created and instance.is_active:
+        # Log new subscription
+        try:
+            UserActivity.objects.create(
+                user=instance.user,
+                activity_type='subscription_created',
+                description=f"Subscribed to {instance.plan.get_name_display()}",
+                metadata={'plan': instance.plan.name}
+            )
+        except:
+            pass

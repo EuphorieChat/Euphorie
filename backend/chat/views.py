@@ -6,19 +6,21 @@ import uuid
 from datetime import datetime, timedelta
 
 # Third-party
+import stripe
 import requests
 
 # Django Core
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import User
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import validate_email
-from django.db.models import Q, Count, F, Max
+from django.db.models import Q, Count, Sum, F, Max
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -26,16 +28,15 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import TemplateView
-from django.contrib.auth.models import User
 
-# Local App
+# Local App Imports
 from .models import (
     Room, Message, UserProfile, RoomCategory, Friendship,
     RoomBookmark, MessageReport, UserActivity, FriendRequest,
-    FriendSuggestion, NationalityStats, get_client_ip
+    FriendSuggestion, NationalityStats, get_client_ip,
+    PaymentPlan, UserSubscription, Payment, PaymentAttempt
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
-
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -3156,3 +3157,694 @@ def call_grok_api(message, conversation_history=None):
             'status': 'error',
             'error': 'An unexpected error occurred'
         }
+    
+
+# Configure Stripe
+stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', '')
+
+# ==================== PRICING & PLANS ====================
+
+def pricing_page(request):
+    """Display pricing plans with enhanced features"""
+    plans = PaymentPlan.objects.filter(is_active=True).order_by('price_cents')
+    
+    # Get user's current subscription
+    current_subscription = None
+    user_max_room_size = 10  # Default free tier
+    
+    if request.user.is_authenticated:
+        try:
+            current_subscription = request.user.subscription
+            if current_subscription.is_active and not current_subscription.is_expired():
+                user_max_room_size = current_subscription.get_max_room_size()
+        except UserSubscription.DoesNotExist:
+            pass
+    
+    # Check if user needs upgrade (from URL parameter)
+    required_users = request.GET.get('required_users')
+    upgrade_needed = False
+    required_plan = None
+    
+    if required_users:
+        try:
+            required_users = int(required_users)
+            if required_users > user_max_room_size:
+                upgrade_needed = True
+                # Find minimum required plan
+                for plan in plans:
+                    if plan.max_users >= required_users:
+                        required_plan = plan
+                        break
+        except ValueError:
+            pass
+    
+    # Get popular rooms for each tier
+    room_examples = {
+        'basic': Room.objects.filter(max_users__lte=10, is_public=True).order_by('-message_count')[:3],
+        'premium': Room.objects.filter(max_users__range=(11, 50), is_public=True).order_by('-message_count')[:3],
+        'enterprise': Room.objects.filter(max_users__gt=50, is_public=True).order_by('-message_count')[:3],
+    }
+    
+    context = {
+        'plans': plans,
+        'current_subscription': current_subscription,
+        'user_max_room_size': user_max_room_size,
+        'upgrade_needed': upgrade_needed,
+        'required_plan': required_plan,
+        'required_users': required_users,
+        'room_examples': room_examples,
+        'stripe_public_key': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', ''),
+        'page_title': 'Pricing Plans - Euphorie',
+        'total_rooms': Room.objects.filter(is_public=True).count(),
+        'premium_rooms': Room.objects.filter(requires_payment=True, is_public=True).count(),
+    }
+    
+    return render(request, 'chat/pricing.html', context)
+
+def pricing_comparison(request):
+    """Detailed pricing comparison page"""
+    plans = PaymentPlan.objects.filter(is_active=True).order_by('price_cents')
+    
+    # Feature comparison matrix
+    features_comparison = [
+        {
+            'feature': 'Maximum Room Size',
+            'basic': '10 users',
+            'premium': '50 users', 
+            'enterprise': '200+ users'
+        },
+        {
+            'feature': 'Room Creation',
+            'basic': 'Unlimited',
+            'premium': 'Unlimited',
+            'enterprise': 'Unlimited'
+        },
+        {
+            'feature': '3D Avatars',
+            'basic': 'Basic customization',
+            'premium': 'Advanced customization',
+            'enterprise': 'Full customization + API'
+        },
+        {
+            'feature': 'Screen Sharing',
+            'basic': 'Limited quality',
+            'premium': 'HD quality',
+            'enterprise': '4K quality + recording'
+        },
+        {
+            'feature': 'Priority Support',
+            'basic': 'Community support',
+            'premium': 'Email support',
+            'enterprise': '24/7 phone support'
+        },
+        {
+            'feature': 'Analytics Dashboard',
+            'basic': 'Basic stats',
+            'premium': 'Advanced analytics',
+            'enterprise': 'Custom reports + API'
+        },
+    ]
+    
+    context = {
+        'plans': plans,
+        'features_comparison': features_comparison,
+        'page_title': 'Compare Plans - Euphorie',
+    }
+    
+    return render(request, 'chat/pricing_comparison.html', context)
+
+# ==================== PAYMENT PROCESSING ====================
+
+@login_required
+@require_http_methods(["POST"])
+def create_payment_intent(request):
+    """Create Stripe payment intent for subscription"""
+    try:
+        data = json.loads(request.body)
+        plan_id = data.get('plan_id')
+        
+        plan = get_object_or_404(PaymentPlan, id=plan_id, is_active=True)
+        
+        # Check if user already has this plan
+        try:
+            current_subscription = request.user.subscription
+            if current_subscription.plan == plan and current_subscription.is_active:
+                return JsonResponse({
+                    'error': 'You already have this subscription plan'
+                }, status=400)
+        except UserSubscription.DoesNotExist:
+            pass
+        
+        # Create or get Stripe customer
+        customer = get_or_create_stripe_customer(request.user)
+        
+        # Create payment intent
+        intent = stripe.PaymentIntent.create(
+            amount=plan.price_cents,
+            currency='usd',
+            customer=customer.id,
+            metadata={
+                'user_id': request.user.id,
+                'plan_id': plan.id,
+                'plan_name': plan.name,
+                'username': request.user.username,
+            },
+            automatic_payment_methods={
+                'enabled': True,
+            },
+            description=f"Euphorie {plan.get_name_display()} Subscription"
+        )
+        
+        # Create payment record
+        payment = Payment.objects.create(
+            user=request.user,
+            plan=plan,
+            stripe_payment_intent_id=intent.id,
+            amount_cents=plan.price_cents,
+            status='pending',
+            description=f"Subscription to {plan.get_name_display()}",
+            metadata={
+                'stripe_customer_id': customer.id,
+                'payment_intent_id': intent.id
+            }
+        )
+        
+        # Log payment attempt
+        PaymentAttempt.objects.create(
+            user=request.user,
+            plan=plan,
+            amount_cents=plan.price_cents,
+            payment_method='card',
+            success=False,  # Will be updated on success
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        return JsonResponse({
+            'client_secret': intent.client_secret,
+            'payment_id': payment.id,
+            'plan_name': plan.get_name_display(),
+            'amount': plan.price_dollars,
+        })
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error creating payment intent: {str(e)}")
+        return JsonResponse({'error': 'Payment processing error. Please try again.'}, status=400)
+    except Exception as e:
+        logger.error(f"Error creating payment intent: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+def get_or_create_stripe_customer(user):
+    """Get or create Stripe customer for user"""
+    try:
+        subscription = user.subscription
+        if subscription.stripe_customer_id:
+            try:
+                return stripe.Customer.retrieve(subscription.stripe_customer_id)
+            except stripe.error.StripeError:
+                pass  # Customer not found, create new one
+    except UserSubscription.DoesNotExist:
+        pass
+    
+    # Create new customer
+    customer = stripe.Customer.create(
+        email=user.email,
+        name=f"{user.first_name} {user.last_name}".strip() or user.username,
+        metadata={
+            'user_id': user.id,
+            'username': user.username
+        }
+    )
+    
+    # Update subscription with customer ID
+    subscription, created = UserSubscription.objects.get_or_create(
+        user=user,
+        defaults={
+            'plan': PaymentPlan.objects.filter(name='basic', is_active=True).first(),
+            'stripe_customer_id': customer.id,
+            'is_active': False
+        }
+    )
+    
+    if not subscription.stripe_customer_id:
+        subscription.stripe_customer_id = customer.id
+        subscription.save()
+    
+    return customer
+
+@login_required
+def payment_success(request):
+    """Handle successful payment redirect"""
+    payment_intent_id = request.GET.get('payment_intent')
+    
+    if not payment_intent_id:
+        messages.error(request, 'Invalid payment session.')
+        return redirect('pricing')
+    
+    try:
+        # Retrieve payment intent from Stripe
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        
+        if intent.status == 'succeeded':
+            # Find the payment record
+            payment = Payment.objects.get(stripe_payment_intent_id=payment_intent_id)
+            
+            if payment.status != 'succeeded':
+                payment.mark_as_succeeded()
+                
+                # Create or update subscription
+                create_or_update_subscription(payment.user, payment.plan, intent.customer)
+                
+                # Update payment attempt as successful
+                PaymentAttempt.objects.filter(
+                    user=payment.user,
+                    plan=payment.plan,
+                    created_at__gte=timezone.now() - timedelta(minutes=30)
+                ).update(success=True)
+            
+            messages.success(request, f'Payment successful! You now have access to {payment.plan.get_name_display()} features.')
+            return render(request, 'chat/payment_success.html', {
+                'plan': payment.plan,
+                'payment': payment,
+                'subscription': payment.user.subscription,
+            })
+        else:
+            messages.error(request, 'Payment was not completed successfully.')
+            
+    except Payment.DoesNotExist:
+        messages.error(request, 'Payment record not found.')
+    except stripe.error.StripeError as e:
+        messages.error(request, f'Error verifying payment: {str(e)}')
+    except Exception as e:
+        logger.error(f"Error processing payment success: {str(e)}")
+        messages.error(request, 'Error processing payment. Please contact support.')
+    
+    return redirect('pricing')
+
+def create_or_update_subscription(user, plan, stripe_customer_id):
+    """Create or update user subscription"""
+    subscription, created = UserSubscription.objects.get_or_create(
+        user=user,
+        defaults={
+            'plan': plan,
+            'stripe_customer_id': stripe_customer_id,
+            'is_active': True,
+            'expires_at': timezone.now() + timedelta(days=30),
+        }
+    )
+    
+    if not created:
+        # Update existing subscription
+        old_plan = subscription.plan.name
+        subscription.plan = plan
+        subscription.stripe_customer_id = stripe_customer_id
+        subscription.is_active = True
+        subscription.expires_at = timezone.now() + timedelta(days=30)
+        subscription.cancelled_at = None
+        subscription.save()
+        
+        # Log plan change
+        if old_plan != plan.name:
+            try:
+                UserActivity.objects.create(
+                    user=user,
+                    activity_type='subscription_upgraded',
+                    description=f"Upgraded from {old_plan} to {plan.name}",
+                    metadata={'old_plan': old_plan, 'new_plan': plan.name}
+                )
+            except:
+                pass
+
+@login_required
+def payment_cancel(request):
+    """Handle payment cancellation"""
+    messages.info(request, 'Payment was cancelled. You can try again anytime.')
+    return redirect('pricing')
+
+# ==================== SUBSCRIPTION MANAGEMENT ====================
+
+@login_required
+def subscription_dashboard(request):
+    """User subscription dashboard"""
+    try:
+        subscription = request.user.subscription
+    except UserSubscription.DoesNotExist:
+        # Create basic subscription
+        basic_plan = PaymentPlan.objects.filter(name='basic', is_active=True).first()
+        if basic_plan:
+            subscription = UserSubscription.objects.create(
+                user=request.user,
+                plan=basic_plan,
+                is_active=True
+            )
+        else:
+            messages.error(request, 'No basic plan found. Please contact support.')
+            return redirect('index')
+    
+    # Get user's payment history
+    payments = Payment.objects.filter(user=request.user).order_by('-created_at')[:10]
+    
+    # Get available upgrade plans
+    upgrade_plans = PaymentPlan.objects.filter(
+        is_active=True,
+        price_cents__gt=subscription.plan.price_cents
+    ).order_by('price_cents')
+    
+    # Get room usage stats
+    rooms_created = Room.objects.filter(creator=request.user).count()
+    rooms_requiring_premium = Room.objects.filter(
+        creator=request.user,
+        requires_payment=True
+    ).count()
+    
+    # Calculate savings with current plan
+    total_paid = payments.filter(status='succeeded').aggregate(
+        total=Sum('amount_cents')
+    )['total'] or 0
+    
+    context = {
+        'subscription': subscription,
+        'payments': payments,
+        'upgrade_plans': upgrade_plans,
+        'rooms_created': rooms_created,
+        'rooms_requiring_premium': rooms_requiring_premium,
+        'total_paid_dollars': total_paid / 100,
+        'days_until_expiry': subscription.days_until_expiry(),
+        'is_expired': subscription.is_expired(),
+        'can_cancel': subscription.is_active and subscription.plan.price_cents > 0,
+    }
+    
+    return render(request, 'chat/subscription_dashboard.html', context)
+
+@login_required
+@require_POST
+def cancel_subscription(request):
+    """Cancel user subscription"""
+    try:
+        subscription = request.user.subscription
+        
+        if not subscription.is_active:
+            messages.info(request, 'Your subscription is already inactive.')
+            return redirect('subscription_dashboard')
+        
+        if subscription.plan.price_cents == 0:
+            messages.info(request, 'You cannot cancel the basic plan.')
+            return redirect('subscription_dashboard')
+        
+        # Cancel the subscription
+        subscription.cancel_subscription()
+        
+        # Create activity log
+        UserActivity.objects.create(
+            user=request.user,
+            activity_type='subscription_cancelled',
+            description=f"Cancelled {subscription.plan.get_name_display()} subscription"
+        )
+        
+        messages.success(request, 'Your subscription has been cancelled. You can resubscribe anytime.')
+        
+    except UserSubscription.DoesNotExist:
+        messages.error(request, 'No active subscription found.')
+    except Exception as e:
+        logger.error(f"Error cancelling subscription: {str(e)}")
+        messages.error(request, 'Error cancelling subscription. Please contact support.')
+    
+    return redirect('subscription_dashboard')
+
+# ==================== ROOM ACCESS CONTROL ====================
+
+@login_required
+def room_access_check(request, room_id):
+    """Check if user can access a premium room"""
+    room = get_object_or_404(Room, id=room_id)
+    
+    if room.can_user_join(request.user):
+        # User can join the room
+        return redirect('room', room_name=room.name)
+    
+    # User needs to upgrade
+    required_plan = room.get_required_plan()
+    
+    messages.warning(
+        request, 
+        f'This room supports up to {room.max_users} users. You need a {required_plan.get_name_display() if required_plan else "premium"} subscription to join.'
+    )
+    
+    # Redirect to pricing with room context
+    return redirect(f"{reverse('pricing')}?required_users={room.max_users}&room_name={room.name}")
+
+def check_room_access_ajax(request, room_id):
+    """AJAX endpoint to check room access"""
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'can_access': False,
+            'reason': 'authentication_required',
+            'message': 'Please log in to join this room'
+        })
+    
+    room = get_object_or_404(Room, id=room_id)
+    can_access = room.can_user_join(request.user)
+    
+    response_data = {
+        'can_access': can_access,
+        'room_name': room.name,
+        'max_users': room.max_users,
+        'requires_payment': room.requires_payment,
+    }
+    
+    if not can_access:
+        required_plan = room.get_required_plan()
+        response_data.update({
+            'reason': 'subscription_required',
+            'message': f'Upgrade to {required_plan.get_name_display()} to join this room',
+            'required_plan': required_plan.name if required_plan else 'premium',
+            'upgrade_url': room.get_upgrade_url(),
+        })
+    
+    return JsonResponse(response_data)
+
+# ==================== STRIPE WEBHOOKS ====================
+
+@csrf_exempt
+def stripe_webhook(request):
+    """Handle Stripe webhooks"""
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, getattr(settings, 'STRIPE_WEBHOOK_SECRET', '')
+        )
+    except ValueError as e:
+        logger.error(f"Invalid payload in webhook: {e}")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        logger.error(f"Invalid signature in webhook: {e}")
+        return HttpResponse(status=400)
+    
+    # Handle different event types
+    try:
+        if event['type'] == 'payment_intent.succeeded':
+            handle_payment_succeeded(event['data']['object'])
+        elif event['type'] == 'payment_intent.payment_failed':
+            handle_payment_failed(event['data']['object'])
+        elif event['type'] == 'customer.subscription.deleted':
+            handle_subscription_cancelled(event['data']['object'])
+        elif event['type'] == 'customer.subscription.updated':
+            handle_subscription_updated(event['data']['object'])
+        elif event['type'] == 'invoice.payment_succeeded':
+            handle_invoice_payment_succeeded(event['data']['object'])
+        else:
+            logger.info(f"Unhandled webhook event type: {event['type']}")
+    
+    except Exception as e:
+        logger.error(f"Error processing webhook {event['type']}: {str(e)}")
+        return HttpResponse(status=500)
+    
+    return HttpResponse(status=200)
+
+def handle_payment_succeeded(payment_intent):
+    """Handle successful payment webhook"""
+    try:
+        payment = Payment.objects.get(stripe_payment_intent_id=payment_intent['id'])
+        
+        if payment.status != 'succeeded':
+            payment.mark_as_succeeded()
+            
+            # Update subscription
+            create_or_update_subscription(
+                payment.user, 
+                payment.plan, 
+                payment_intent['customer']
+            )
+            
+            logger.info(f"Payment succeeded for user {payment.user.username}: ${payment.amount_dollars}")
+        
+    except Payment.DoesNotExist:
+        logger.warning(f"Payment not found for intent: {payment_intent['id']}")
+
+def handle_payment_failed(payment_intent):
+    """Handle failed payment webhook"""
+    try:
+        payment = Payment.objects.get(stripe_payment_intent_id=payment_intent['id'])
+        
+        failure_reason = payment_intent.get('last_payment_error', {}).get('message', 'Unknown error')
+        payment.mark_as_failed(failure_reason)
+        
+        # Update payment attempt
+        PaymentAttempt.objects.filter(
+            user=payment.user,
+            plan=payment.plan,
+            created_at__gte=timezone.now() - timedelta(minutes=30)
+        ).update(success=False, error_message=failure_reason)
+        
+        logger.info(f"Payment failed for user {payment.user.username}: {failure_reason}")
+        
+    except Payment.DoesNotExist:
+        logger.warning(f"Payment not found for failed intent: {payment_intent['id']}")
+
+def handle_subscription_cancelled(subscription_data):
+    """Handle subscription cancellation webhook"""
+    try:
+        user_subscription = UserSubscription.objects.get(
+            stripe_subscription_id=subscription_data['id']
+        )
+        user_subscription.cancel_subscription()
+        logger.info(f"Subscription cancelled for user {user_subscription.user.username}")
+    except UserSubscription.DoesNotExist:
+        logger.warning(f"Subscription not found: {subscription_data['id']}")
+
+def handle_subscription_updated(subscription_data):
+    """Handle subscription update webhook"""
+    try:
+        user_subscription = UserSubscription.objects.get(
+            stripe_subscription_id=subscription_data['id']
+        )
+        
+        # Update subscription status based on Stripe data
+        if subscription_data['status'] == 'active':
+            user_subscription.is_active = True
+        elif subscription_data['status'] in ['canceled', 'incomplete_expired']:
+            user_subscription.is_active = False
+            user_subscription.cancelled_at = timezone.now()
+        
+        user_subscription.save()
+        logger.info(f"Subscription updated for user {user_subscription.user.username}")
+        
+    except UserSubscription.DoesNotExist:
+        logger.warning(f"Subscription not found: {subscription_data['id']}")
+
+def handle_invoice_payment_succeeded(invoice_data):
+    """Handle successful invoice payment (for recurring subscriptions)"""
+    customer_id = invoice_data['customer']
+    
+    try:
+        subscription = UserSubscription.objects.get(stripe_customer_id=customer_id)
+        
+        # Extend subscription for another month
+        if subscription.expires_at:
+            subscription.expires_at = max(
+                subscription.expires_at + timedelta(days=30),
+                timezone.now() + timedelta(days=30)
+            )
+        else:
+            subscription.expires_at = timezone.now() + timedelta(days=30)
+        
+        subscription.is_active = True
+        subscription.save()
+        
+        logger.info(f"Subscription renewed for user {subscription.user.username}")
+        
+    except UserSubscription.DoesNotExist:
+        logger.warning(f"Subscription not found for customer: {customer_id}")
+
+# ==================== ADMIN PAYMENT VIEWS ====================
+
+@user_passes_test(lambda u: u.is_staff)
+def admin_payments(request):
+    """Admin view for managing payments"""
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    plan_filter = request.GET.get('plan', '')
+    search_query = request.GET.get('search', '').strip()
+    
+    # Start with all payments
+    payments = Payment.objects.select_related('user', 'plan').order_by('-created_at')
+    
+    # Apply filters
+    if status_filter:
+        payments = payments.filter(status=status_filter)
+    
+    if plan_filter:
+        payments = payments.filter(plan__name=plan_filter)
+    
+    if search_query:
+        payments = payments.filter(
+            Q(user__username__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(stripe_payment_intent_id__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(payments, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get stats
+    total_revenue = Payment.objects.filter(status='succeeded').aggregate(
+        total=Sum('amount_cents')
+    )['total'] or 0
+    
+    monthly_revenue = Payment.objects.filter(
+        status='succeeded',
+        completed_at__gte=timezone.now() - timedelta(days=30)
+    ).aggregate(total=Sum('amount_cents'))['total'] or 0
+    
+    # Get filter options
+    plans = PaymentPlan.objects.filter(is_active=True)
+    statuses = Payment.PAYMENT_STATUS_CHOICES
+    
+    context = {
+        'page_obj': page_obj,
+        'total_revenue': total_revenue / 100,
+        'monthly_revenue': monthly_revenue / 100,
+        'plans': plans,
+        'statuses': statuses,
+        'current_filters': {
+            'status': status_filter,
+            'plan': plan_filter,
+            'search': search_query,
+        }
+    }
+    
+    return render(request, 'chat/admin/payments.html', context)
+
+@user_passes_test(lambda u: u.is_staff)
+def admin_subscriptions(request):
+    """Admin view for managing subscriptions"""
+    subscriptions = UserSubscription.objects.select_related('user', 'plan').order_by('-created_at')
+    
+    # Apply filters
+    active_filter = request.GET.get('active')
+    if active_filter == 'true':
+        subscriptions = subscriptions.filter(is_active=True)
+    elif active_filter == 'false':
+        subscriptions = subscriptions.filter(is_active=False)
+    
+    # Pagination
+    paginator = Paginator(subscriptions, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get stats
+    active_subs = UserSubscription.objects.filter(is_active=True).count()
+    expired_subs = UserSubscription.objects.filter(is_active=False).count()
+    
+    context = {
+        'page_obj': page_obj,
+        'active_subs': active_subs,
+        'expired_subs': expired_subs,
+        'current_filter': active_filter,
+    }
+    
+    return render(request, 'chat/admin/subscriptions.html', context)

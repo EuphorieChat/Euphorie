@@ -1,18 +1,20 @@
 # backend/chat/admin.py
 
+from datetime import timedelta
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from django.utils.html import format_html
+from django.db.models import Count
 from django.urls import reverse
 from django.utils import timezone
-from django.db.models import Count
-from datetime import timedelta
+from django.utils.html import format_html
 
 from .models import (
-    UserProfile, Room, RoomCategory, Message, MessageReport,
-    Friendship, FriendSuggestion, RoomBookmark, UserModerationAction,
-    WordFilter, UserActivity, NationalityStats, FriendRequest
+    PaymentPlan, UserSubscription, Payment, Room, UserProfile,
+    RoomCategory, Message, MessageReport, Friendship, FriendSuggestion,
+    RoomBookmark, UserModerationAction, WordFilter, UserActivity,
+    NationalityStats, FriendRequest
 )
 
 
@@ -644,3 +646,86 @@ def admin_index_context(request):
         }
         return context
     return {}
+
+@admin.register(PaymentPlan)
+class PaymentPlanAdmin(admin.ModelAdmin):
+    list_display = ('name', 'max_users', 'price_display', 'stripe_price_id', 'is_active')
+    list_filter = ('is_active', 'name')
+    search_fields = ('name', 'description')
+    readonly_fields = ('stripe_price_id',)
+    
+    def price_display(self, obj):
+        if obj.price_cents == 0:
+            return format_html('<span style="color: green; font-weight: bold;">FREE</span>')
+        return f"${obj.price_cents/100:.2f}/month"
+    price_display.short_description = 'Price'
+
+@admin.register(UserSubscription)
+class UserSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'plan', 'status_display', 'created_at', 'expires_at', 'stripe_customer_link')
+    list_filter = ('is_active', 'plan', 'created_at')
+    search_fields = ('user__username', 'user__email', 'stripe_customer_id')
+    readonly_fields = ('stripe_customer_id', 'stripe_subscription_id', 'created_at', 'updated_at')
+    raw_id_fields = ('user',)
+    
+    def status_display(self, obj):
+        if obj.is_active:
+            if obj.expires_at and obj.expires_at < timezone.now():
+                return format_html('<span class="payment-status inactive">Expired</span>')
+            return format_html('<span class="payment-status active">Active</span>')
+        return format_html('<span class="payment-status inactive">Inactive</span>')
+    status_display.short_description = 'Status'
+    
+    def stripe_customer_link(self, obj):
+        if obj.stripe_customer_id:
+            url = f"https://dashboard.stripe.com/customers/{obj.stripe_customer_id}"
+            return format_html('<a href="{}" target="_blank">View in Stripe</a>', url)
+        return '-'
+    stripe_customer_link.short_description = 'Stripe Customer'
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'plan', 'amount_display', 'status_display', 'created_at', 'stripe_payment_link')
+    list_filter = ('status', 'plan', 'created_at')
+    search_fields = ('user__username', 'user__email', 'stripe_payment_intent_id')
+    readonly_fields = ('stripe_payment_intent_id', 'created_at', 'completed_at')
+    raw_id_fields = ('user',)
+    
+    def amount_display(self, obj):
+        return f"${obj.amount_cents/100:.2f}"
+    amount_display.short_description = 'Amount'
+    
+    def status_display(self, obj):
+        colors = {
+            'pending': '#856404',
+            'succeeded': '#155724',
+            'failed': '#721c24',
+            'canceled': '#6c757d'
+        }
+        color = colors.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.get_status_display()
+        )
+    status_display.short_description = 'Status'
+    
+    def stripe_payment_link(self, obj):
+        if obj.stripe_payment_intent_id:
+            url = f"https://dashboard.stripe.com/payments/{obj.stripe_payment_intent_id}"
+            return format_html('<a href="{}" target="_blank">View in Stripe</a>', url)
+        return '-'
+    stripe_payment_link.short_description = 'Stripe Payment'
+
+# Update Room admin to show payment requirements
+class RoomAdmin(admin.ModelAdmin):
+    list_display = ('name', 'max_users', 'payment_required_display', 'active_users_count', 'created_at')
+    list_filter = ('requires_payment', 'scene_preset', 'created_at')
+    search_fields = ('name', 'description')
+    readonly_fields = ('requires_payment',)  # Auto-calculated based on max_users
+    
+    def payment_required_display(self, obj):
+        if obj.requires_payment:
+            return format_html('<span style="color: #FF6B35; font-weight: bold;">👑 Premium</span>')
+        return format_html('<span style="color: green;">Free</span>')
+    payment_required_display.short_description = 'Access Type'
