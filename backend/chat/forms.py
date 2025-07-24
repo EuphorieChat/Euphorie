@@ -10,7 +10,7 @@ import re
 from .models import (
     Room, RoomCategory, UserProfile, MessageReport, 
     Friendship, FriendRequest, Message, UserActivity, 
-    SubscriptionPlan, UserChoices
+    SubscriptionPlan, UserChoices, PaymentChoices
 )
 
 
