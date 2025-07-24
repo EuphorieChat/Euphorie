@@ -518,7 +518,7 @@
 {% block content %}
 <div class="pricing-container">
   <!-- Back Button -->
-    <a href="{% url 'index' %}" class="back-btn">
+  <a href="{% url 'index' %}" class="back-btn">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
     </svg>
@@ -530,6 +530,17 @@
     <h1>Choose Your Plan</h1>
     <p>Unlock larger rooms and premium features with our flexible pricing plans</p>
   </div>
+  
+  <!-- Debug Info (remove in production) -->
+  {% if user.is_staff %}
+  <div style="background: #f0f0f0; padding: 10px; margin: 10px; border: 1px solid #ccc;">
+    <h3>Debug Info:</h3>
+    <p><strong>Plans count:</strong> {{ plans|length|default:"No plans variable" }}</p>
+    <p><strong>User authenticated:</strong> {{ user.is_authenticated }}</p>
+    <p><strong>Current subscription:</strong> {{ current_subscription|default:"None" }}</p>
+    <p><strong>Stripe key exists:</strong> {% if STRIPE_PUBLISHABLE_KEY %}Yes{% else %}No{% endif %}</p>
+  </div>
+  {% endif %}
   
   <!-- Pricing Cards -->
   <div class="pricing-grid">
@@ -563,52 +574,14 @@
             </svg>
             {% if plan.max_rooms == 0 %}Unlimited rooms{% else %}Up to {{ plan.max_rooms }} rooms{% endif %}
           </li>
+          {% for feature in plan.get_features_list %}
           <li>
             <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            3D Avatar customization
+            {{ feature }}
           </li>
-          <li>
-            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Chat bubbles & emotions
-          </li>
-          <li>
-            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Screen sharing
-          </li>
-          {% if plan.name != 'basic' %}
-          <li>
-            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <span class="feature-highlight">Priority support</span>
-          </li>
-          <li>
-            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <span class="feature-highlight">Advanced room controls</span>
-          </li>
-          {% endif %}
-          {% if plan.name == 'enterprise' %}
-          <li>
-            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <span class="feature-highlight">Custom branding</span>
-          </li>
-          <li>
-            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <span class="feature-highlight">API access</span>
-          </li>
-          {% endif %}
+          {% endfor %}
         </ul>
         
         {% if plan.price == 0 %}
@@ -620,6 +593,13 @@
             Choose {{ plan.display_name|default:plan.name|title }}
           </button>
         {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="pricing-card">
+      <div class="plan-header">
+        <div class="plan-name">No Plans Available</div>
+        <p class="plan-description">Please contact support to set up pricing plans.</p>
       </div>
     </div>
     {% endfor %}
@@ -689,7 +669,6 @@
     </div>
   </div>
 </div>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
