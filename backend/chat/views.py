@@ -3610,12 +3610,13 @@ def subscription_dashboard(request):
         subscription = request.user.subscription
     except UserSubscription.DoesNotExist:
         # Create basic subscription
-        basic_plan = SubscriptionPlan.objects.filter(name='basic', is_active=True).first()
+        basic_plan = SubscriptionPlan.objects.filter(name='basic', is_active=True).first()  # FIXED: Changed from PaymentPlan
         if basic_plan:
             subscription = UserSubscription.objects.create(
                 user=request.user,
                 plan=basic_plan,
-                is_active=True
+                is_active=True,
+                started_at=timezone.now()  # Add started_at
             )
         else:
             messages.error(request, 'No basic plan found. Please contact support.')
@@ -3625,10 +3626,10 @@ def subscription_dashboard(request):
     payments = Payment.objects.filter(user=request.user).order_by('-created_at')[:10]
     
     # Get available upgrade plans
-    upgrade_plans = PaymentPlan.objects.filter(
+    upgrade_plans = SubscriptionPlan.objects.filter(  # FIXED: Changed from PaymentPlan
         is_active=True,
-        price_cents__gt=subscription.plan.price_cents
-    ).order_by('price_cents')
+        price__gt=subscription.plan.price  # FIXED: Changed from price_cents to price
+    ).order_by('price')  # FIXED: Changed from price_cents to price
     
     # Get room usage stats
     rooms_created = Room.objects.filter(creator=request.user).count()
@@ -3642,6 +3643,21 @@ def subscription_dashboard(request):
         total=Sum('amount_cents')
     )['total'] or 0
     
+    # Calculate days until expiry safely
+    days_until_expiry = 0
+    if hasattr(subscription, 'days_remaining'):
+        days_until_expiry = subscription.days_remaining
+    elif subscription.expires_at:
+        remaining = subscription.expires_at - timezone.now()
+        days_until_expiry = max(0, remaining.days)
+    
+    # Check if expired safely
+    is_expired = False
+    if hasattr(subscription, 'is_expired'):
+        is_expired = subscription.is_expired
+    elif subscription.expires_at:
+        is_expired = subscription.expires_at < timezone.now()
+    
     context = {
         'subscription': subscription,
         'payments': payments,
@@ -3649,9 +3665,9 @@ def subscription_dashboard(request):
         'rooms_created': rooms_created,
         'rooms_requiring_premium': rooms_requiring_premium,
         'total_paid_dollars': total_paid / 100,
-        'days_until_expiry': subscription.days_until_expiry(),
-        'is_expired': subscription.is_expired(),
-        'can_cancel': subscription.is_active and subscription.plan.price_cents > 0,
+        'days_until_expiry': days_until_expiry,
+        'is_expired': is_expired,
+        'can_cancel': subscription.is_active and subscription.plan.price > 0,  # FIXED: Changed from price_cents to price
     }
     
     return render(request, 'chat/subscription_dashboard.html', context)
