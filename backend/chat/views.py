@@ -3610,7 +3610,7 @@ def subscription_dashboard(request):
         subscription = request.user.subscription
     except UserSubscription.DoesNotExist:
         # Create basic subscription
-        basic_plan = PaymentPlan.objects.filter(name='basic', is_active=True).first()
+        basic_plan = SubscriptionPlan.objects.filter(name='basic', is_active=True).first()
         if basic_plan:
             subscription = UserSubscription.objects.create(
                 user=request.user,
