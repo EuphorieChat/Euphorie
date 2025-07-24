@@ -1,5 +1,5 @@
-<!-- templates/rooms/pricing.html -->
-{% extends 'base/base.html' %}
+<!-- templates/chat/pricing.html -->
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Upgrade - Euphorie{% endblock %}
@@ -534,15 +534,15 @@
   <!-- Pricing Cards -->
   <div class="pricing-grid">
     {% for plan in plans %}
-    <div class="pricing-card {% if current_subscription.plan == plan %}current{% endif %} {% if plan.name == 'premium' %}popular{% endif %}">
+    <div class="pricing-card {% if current_subscription and current_subscription.plan == plan %}current{% endif %} {% if plan.is_popular %}popular{% endif %}">
       <div class="plan-header">
-        <div class="plan-name">{{ plan.get_name_display }}</div>
+        <div class="plan-name">{{ plan.display_name|default:plan.name|title }}</div>
         <div class="plan-price">
-          {% if plan.price_cents == 0 %}
+          {% if plan.price == 0 %}
             <span class="amount">Free</span>
           {% else %}
             <span class="currency">$</span>
-            <span class="amount">{{ plan.price_dollars|floatformat:0 }}</span>
+            <span class="amount">{{ plan.price|floatformat:0 }}</span>
             <span class="period">/month</span>
           {% endif %}
         </div>
@@ -555,7 +555,13 @@
             <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span class="feature-highlight">Up to {{ plan.max_users }} users per room</span>
+            <span class="feature-highlight">Up to {{ plan.max_users_per_room }} users per room</span>
+          </li>
+          <li>
+            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            {% if plan.max_rooms == 0 %}Unlimited rooms{% else %}Up to {{ plan.max_rooms }} rooms{% endif %}
           </li>
           <li>
             <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -605,13 +611,13 @@
           {% endif %}
         </ul>
         
-        {% if plan.price_cents == 0 %}
+        {% if plan.price == 0 %}
           <button class="plan-button secondary" disabled>Free Forever</button>
-        {% elif current_subscription.plan == plan %}
+        {% elif current_subscription and current_subscription.plan == plan %}
           <button class="plan-button secondary" disabled>Current Plan</button>
         {% else %}
-          <button class="plan-button primary" onclick="startPayment({{ plan.id }}, '{{ plan.get_name_display }}', {{ plan.price_dollars }})">
-            Choose {{ plan.get_name_display }}
+          <button class="plan-button primary" onclick="startPayment({{ plan.id }}, '{{ plan.display_name|default:plan.name|title }}', {{ plan.price }})">
+            Choose {{ plan.display_name|default:plan.name|title }}
           </button>
         {% endif %}
       </div>
@@ -687,7 +693,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const stripe = Stripe('{{ stripe_public_key }}');
+  // Check if Stripe is available
+  if (typeof Stripe === 'undefined') {
+    console.error('Stripe.js not loaded');
+    return;
+  }
+
+  const stripePublicKey = '{{ STRIPE_PUBLISHABLE_KEY }}';
+  if (!stripePublicKey) {
+    console.error('Stripe public key not found');
+    return;
+  }
+
+  const stripe = Stripe(stripePublicKey);
   let elements;
   let currentPlanId;
 
@@ -700,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
     modal.classList.add('show');
     
     document.getElementById('payment-title').textContent = `Upgrade to ${planName}`;
-    document.getElementById('payment-description').textContent = `${planPrice}/month - Unlock rooms with more users and premium features`;
+    document.getElementById('payment-description').textContent = `$${planPrice}/month - Unlock rooms with more users and premium features`;
     
     // Show loading
     const loading = document.getElementById('payment-loading');
