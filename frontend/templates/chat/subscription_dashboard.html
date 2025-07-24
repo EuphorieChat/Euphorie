@@ -2,7 +2,7 @@
 <!-- templates/chat/subscription_dashboard.html -->
 <!-- ================================ -->
 
-{% extends 'base/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}My Subscription - Euphorie{% endblock %}
@@ -172,6 +172,7 @@
 .btn:hover {
   transform: translateY(-1px);
   text-decoration: none;
+  color: white;
 }
 
 .payment-history {
@@ -221,6 +222,11 @@
 .payment-status.failed {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.payment-status.pending {
+  background: #fef3c7;
+  color: #d97706;
 }
 
 .expiry-warning {
@@ -287,7 +293,7 @@
   </div>
 
   <!-- Expiry Warning -->
-  {% if days_until_expiry and days_until_expiry <= 7 %}
+  {% if days_until_expiry and days_until_expiry <= 7 and days_until_expiry > 0 %}
   <div class="expiry-warning">
     <span class="icon">⚠️</span>
     <div>
@@ -308,12 +314,12 @@
       </h2>
       
       <div class="plan-details">
-        <div class="plan-name">{{ subscription.plan.get_name_display }}</div>
+        <div class="plan-name">{{ subscription.plan.display_name|default:subscription.plan.name|title }}</div>
         <div class="plan-price">
-          {% if subscription.plan.price_cents == 0 %}
+          {% if subscription.plan.price == 0 %}
             Free Forever
           {% else %}
-            ${{ subscription.plan.price_dollars }}/month
+            ${{ subscription.plan.price }}/month
           {% endif %}
         </div>
         
@@ -322,7 +328,13 @@
             <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            Up to {{ subscription.plan.max_users }} users per room
+            Up to {{ subscription.plan.max_users_per_room }} users per room
+          </li>
+          <li>
+            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            {% if subscription.plan.max_rooms == 0 %}Unlimited rooms{% else %}Up to {{ subscription.plan.max_rooms }} rooms{% endif %}
           </li>
           <li>
             <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -396,7 +408,7 @@
         
         <div class="stat-item">
           <div class="stat-value">
-            {% if days_until_expiry %}{{ days_until_expiry }}{% else %}∞{% endif %}
+            {% if days_until_expiry > 0 %}{{ days_until_expiry }}{% else %}∞{% endif %}
           </div>
           <div class="stat-label">Days Left</div>
         </div>
@@ -413,6 +425,29 @@
       {% endif %}
     </div>
   </div>
+
+  <!-- Available Upgrades -->
+  {% if upgrade_plans %}
+  <div class="subscription-card" style="margin-bottom: 2rem;">
+    <h2 class="card-title">
+      <span>🚀</span>
+      Available Upgrades
+    </h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      {% for plan in upgrade_plans %}
+      <div style="border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 1rem; text-align: center;">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem 0;">{{ plan.display_name|default:plan.name|title }}</h3>
+        <p style="font-size: 1.25rem; font-weight: 700; color: #f472b6; margin: 0 0 0.5rem 0;">${{ plan.price }}/month</p>
+        <p style="font-size: 0.875rem; color: #64748b; margin: 0 0 1rem 0;">{{ plan.max_users_per_room }} users per room</p>
+        <a href="{% url 'pricing' %}?plan={{ plan.name }}" class="btn btn-primary" style="width: 100%; justify-content: center;">
+          Select Plan
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Payment History -->
   {% if payments %}
@@ -438,11 +473,11 @@
           {% for payment in payments %}
           <tr>
             <td>{{ payment.created_at|date:"M d, Y" }}</td>
-            <td>{{ payment.plan.get_name_display }}</td>
-            <td>${{ payment.amount_dollars }}</td>
+            <td>{{ payment.plan.display_name|default:payment.plan.name|title }}</td>
+            <td>${{ payment.amount_cents|floatformat:0|div:100 }}</td>
             <td>
               <span class="payment-status {{ payment.status }}">
-                {{ payment.get_status_display }}
+                {{ payment.status|title }}
               </span>
             </td>
           </tr>
@@ -450,6 +485,17 @@
         </tbody>
       </table>
     </div>
+  </div>
+  {% endif %}
+
+  <!-- No Payment History -->
+  {% if not payments %}
+  <div class="subscription-card">
+    <h2 class="card-title">
+      <span>💳</span>
+      Payment History
+    </h2>
+    <p style="text-align: center; color: #64748b; margin: 2rem 0;">No payment history yet.</p>
   </div>
   {% endif %}
 </div>
