@@ -3500,6 +3500,7 @@ def payment_cancel(request):
 
 # ==================== SUBSCRIPTION MANAGEMENT ====================
 
+
 @login_required
 def subscription_dashboard(request):
     """User subscription dashboard"""
@@ -3522,11 +3523,8 @@ def subscription_dashboard(request):
     # Get all user payments (don't slice yet)
     all_payments = Payment.objects.filter(user=request.user).order_by('-created_at')
     
-    # Get recent payments for display (sliced) and add dollar amounts
-    payments_list = []
-    for payment in all_payments[:10]:
-        payment.amount_dollars = payment.amount_cents / 100
-        payments_list.append(payment)
+    # Get recent payments for display (sliced) - DON'T modify the objects
+    payments_list = all_payments[:10]
     
     # Get available upgrade plans
     upgrade_plans = SubscriptionPlan.objects.filter(
@@ -3563,7 +3561,7 @@ def subscription_dashboard(request):
     
     context = {
         'subscription': subscription,
-        'payments': payments_list,  # This is the processed version with dollar amounts
+        'payments': payments_list,  # Use the queryset directly - template will call amount_dollars property
         'upgrade_plans': upgrade_plans,
         'rooms_created': rooms_created,
         'rooms_requiring_premium': rooms_requiring_premium,
