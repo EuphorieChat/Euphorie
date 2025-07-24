@@ -3625,8 +3625,11 @@ def subscription_dashboard(request):
     # Get all user payments (don't slice yet)
     all_payments = Payment.objects.filter(user=request.user).order_by('-created_at')
     
-    # Get recent payments for display (sliced)
-    payments = all_payments[:10]
+    # Get recent payments for display (sliced) and add dollar amounts
+    payments_list = []
+    for payment in all_payments[:10]:
+        payment.amount_dollars = payment.amount_cents / 100
+        payments_list.append(payment)
     
     # Get available upgrade plans
     upgrade_plans = SubscriptionPlan.objects.filter(
@@ -3663,7 +3666,7 @@ def subscription_dashboard(request):
     
     context = {
         'subscription': subscription,
-        'payments': payments,  # This is the sliced version for display
+        'payments': payments_list,  # This is the processed version with dollar amounts
         'upgrade_plans': upgrade_plans,
         'rooms_created': rooms_created,
         'rooms_requiring_premium': rooms_requiring_premium,
