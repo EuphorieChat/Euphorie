@@ -3233,7 +3233,7 @@ def pricing_page(request):
         ],
     }
     
-    return render(request, 'chat/pricing.html', context)
+    return render(request, 'rooms/pricing.html', context)
 
 def pricing_comparison(request):
     """Detailed pricing comparison page"""
