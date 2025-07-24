@@ -32,6 +32,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Stripe.js for payment processing -->
+    {% if user.is_authenticated %}
+    <script src="https://js.stripe.com/v3/"></script>
+    {% endif %}
+    
     <!-- Theme handling -->
     <script>
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -275,6 +280,53 @@ main {
   animation: pulse 3s infinite;
 }
 
+/* PAYMENT SUBSCRIPTION BADGE STYLES */
+.subscription-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 0.375rem;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.subscription-badge.active {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.subscription-badge.upgrade {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.subscription-badge.upgrade:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  text-decoration: none;
+  color: white;
+}
+
+.subscription-badge.enterprise {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border: 1px solid #8b5cf6;
+}
+
+.subscription-badge.premium {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+  color: white;
+  border: 1px solid #f472b6;
+}
+
 /* Enhanced User Avatar - COMPACT */
 .user-avatar {
   width: 1.75rem; /* Reduced from 2rem */
@@ -459,6 +511,38 @@ main {
 
 .create-room-btn svg {
   width: 0.875rem; /* Smaller icon */
+  height: 0.875rem;
+}
+
+/* PAYMENT UPGRADE BUTTON */
+.upgrade-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--duration-normal) var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  animation: pulse 2s infinite;
+}
+
+.upgrade-btn:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+  color: white;
+}
+
+.upgrade-btn svg {
+  width: 0.875rem;
   height: 0.875rem;
 }
 
@@ -1043,12 +1127,33 @@ main {
     <header class="app-header" id="header">
         <div class="max-w-none w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between">
             <!-- Enhanced Logo and Brand -->
-            <a href="{% url 'index' %}" class="brand-container" aria-label="Euphorie Home">
-                <h1 class="brand-logo">Euphorie</h1>
-                <span class="brand-badge">
-                    {% block brand_suffix %}BETA{% endblock %}
-                </span>
-            </a>
+            <div class="flex items-center">
+                <a href="{% url 'index' %}" class="brand-container" aria-label="Euphorie Home">
+                    <h1 class="brand-logo">Euphorie</h1>
+                    <span class="brand-badge">
+                        {% block brand_suffix %}BETA{% endblock %}
+                    </span>
+                </a>
+
+                <!-- User Subscription Badge -->
+                {% if user.is_authenticated %}
+                    {% if user.subscription.is_active and not user.subscription.is_expired %}
+                        <div class="subscription-badge {% if user.subscription.plan.name == 'basic' %}active{% elif user.subscription.plan.name == 'premium' %}premium{% else %}enterprise{% endif %}">
+                            {% if user.subscription.plan.name == 'basic' %}
+                                🆓 Basic
+                            {% elif user.subscription.plan.name == 'premium' %}
+                                👑 Premium
+                            {% else %}
+                                💎 Enterprise
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <a href="{% url 'pricing' %}" class="subscription-badge upgrade">
+                            🚀 Upgrade
+                        </a>
+                    {% endif %}
+                {% endif %}
+            </div>
 
             <!-- Center Section: Search (Desktop) - NOW AVAILABLE FOR ALL USERS -->
             <div class="hidden lg:flex flex-1 items-center justify-center max-w-2xl mx-8">
@@ -1092,14 +1197,24 @@ main {
                 
                 <!-- User Menu or Auth Buttons -->
                 {% if user.is_authenticated %}
-                    <!-- Enhanced Create Room Button -->
-                    <a href="{% url 'create_room' %}" class="create-room-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        <span class="hidden sm:inline">Create Room</span>
-                        <span class="sm:hidden">Create</span>
-                    </a>
+                    <!-- Enhanced Create Room Button / Upgrade Button -->
+                    {% if user.subscription.is_active and not user.subscription.is_expired %}
+                        <a href="{% url 'create_room' %}" class="create-room-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <span class="hidden sm:inline">Create Room</span>
+                            <span class="sm:hidden">Create</span>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'pricing' %}" class="upgrade-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                            </svg>
+                            <span class="hidden sm:inline">Upgrade</span>
+                            <span class="sm:hidden">Pro</span>
+                        </a>
+                    {% endif %}
 
                     <!-- Enhanced User Menu -->
                     <div class="relative">
@@ -1153,6 +1268,39 @@ main {
                                 </a>
                             </div>
 
+                            <!-- PAYMENT SECTION -->
+                            <div class="dropdown-section">
+                                <div class="dropdown-section-title">Subscription</div>
+                                <a href="{% url 'subscription_dashboard' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                    </svg>
+                                    <span>My Subscription</span>
+                                    {% if user.subscription.plan.name != 'basic' %}
+                                        <div class="ml-auto bg-green-100 text-green-800 text-xs font-bold rounded-full px-2 py-0.5">
+                                            {{ user.subscription.plan.get_name_display }}
+                                        </div>
+                                    {% endif %}
+                                </a>
+                                {% if not user.subscription.is_active or user.subscription.is_expired or user.subscription.plan.name == 'basic' %}
+                                <a href="{% url 'pricing' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                    </svg>
+                                    <span>Upgrade Plan</span>
+                                    <div class="ml-auto bg-amber-100 text-amber-800 text-xs font-bold rounded-full px-2 py-0.5">
+                                        New
+                                    </div>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'pricing_comparison' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span>Compare Plans</span>
+                                </a>
+                            </div>
+
                             <!-- Admin Section -->
                             {% if user.is_staff or user_created_rooms %}
                             <div class="dropdown-section">
@@ -1165,6 +1313,12 @@ main {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                                     </svg>
                                     <span>Dashboard</span>
+                                </a>
+                                <a href="{% url 'admin_payments' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                    </svg>
+                                    <span>Payments</span>
                                 </a>
                                 {% endif %}
                                 <a href="{% url 'admin_rooms' %}" class="dropdown-item" role="menuitem">
@@ -1318,6 +1472,8 @@ main {
             <span class="nav-item-label">Explore</span>
         </a>
         
+        <!-- Mobile nav for Create/Upgrade based on subscription -->
+        {% if user.subscription.is_active and not user.subscription.is_expired %}
         <a href="{% url 'create_room' %}" class="nav-item">
             <div class="nav-item-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1326,16 +1482,30 @@ main {
             </div>
             <span class="nav-item-label">Create</span>
         </a>
-        
-        <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        {% else %}
+        <a href="{% url 'pricing' %}" class="nav-item">
             <div class="nav-item-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                 </svg>
+                {% if user.subscription.plan.name != 'basic' %}
+                <div class="nav-notification">!</div>
+                {% endif %}
             </div>
-            <span class="nav-item-label">Dashboard</span>
+            <span class="nav-item-label">Upgrade</span>
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'subscription_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'subscription_dashboard' %}active{% endif %}">
+            <div class="nav-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                {% if user.subscription.plan.name == 'basic' %}
+                <div class="nav-notification">!</div>
+                {% endif %}
+            </div>
+            <span class="nav-item-label">Plan</span>
         </a>
         
         <button class="nav-item" id="profile-nav" aria-label="Open profile menu">
@@ -1358,11 +1528,17 @@ main {
                 <div class="footer-brand">
                     <a href="{% url 'index' %}" class="brand-container">
                         <h2 class="brand-logo text-lg">Euphorie</h2>
-                        <span class="text-xs text-gray-400 ml-2">v1.2.0</span>
+                        <span class="text-xs text-gray-400 ml-2">v1.3.0</span>
                     </a>
                     <p class="text-sm text-gray-500 mt-1">© 2025 Euphorie, Inc. All rights reserved.</p>
                 </div>
                 <div class="footer-links">
+                    <a href="{% url 'pricing' %}" class="footer-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                        </svg>
+                        <span>Pricing</span>
+                    </a>
                     <a href="mailto:euphorieinc@gmail.com" class="footer-link">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -1396,13 +1572,22 @@ main {
                 id: {{ user.id }},
                 username: "{{ user.username }}",
                 displayName: "{{ user.get_full_name|default:user.username }}",
-                isAuthenticated: true
+                isAuthenticated: true,
+                subscription: {
+                    plan: "{{ user.subscription.plan.name|default:'basic' }}",
+                    isActive: {% if user.subscription.is_active %}true{% else %}false{% endif %},
+                    isExpired: {% if user.subscription.is_expired %}true{% else %}false{% endif %}
+                }
             }{% else %}null{% endif %},
             csrf_token: "{{ csrf_token }}",
             websocket_url: "{% if request.is_secure %}wss{% else %}ws{% endif %}://{{ request.get_host }}/ws/",
             api_base_url: "/api/",
             static_url: "{% load static %}{% static '' %}",
-            debug: {% if debug %}true{% else %}false{% endif %}
+            debug: {% if debug %}true{% else %}false{% endif %},
+            stripe: {
+                publishableKey: "{% if user.is_authenticated %}{{ STRIPE_PUBLISHABLE_KEY }}{% endif %}",
+                enabled: {% if user.is_authenticated %}true{% else %}false{% endif %}
+            }
         };
 
         // Enhanced Menu Management System
@@ -1929,6 +2114,69 @@ main {
             }
         }
 
+        // Payment System Manager
+        class EuphoriePaymentManager {
+            constructor() {
+                this.stripe = null;
+                this.elements = null;
+                this.init();
+            }
+
+            async init() {
+                if (window.CHAT_CONFIG?.stripe?.enabled && window.CHAT_CONFIG?.stripe?.publishableKey) {
+                    try {
+                        this.stripe = Stripe(window.CHAT_CONFIG.stripe.publishableKey);
+                        this.setupPaymentHandlers();
+                    } catch (error) {
+                        console.warn('Stripe initialization failed:', error);
+                    }
+                }
+            }
+
+            setupPaymentHandlers() {
+                // Handle upgrade button clicks
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.upgrade-btn, .subscription-badge.upgrade')) {
+                        e.preventDefault();
+                        this.showUpgradeModal();
+                    }
+                });
+
+                // Handle subscription notifications
+                this.checkSubscriptionStatus();
+            }
+
+            showUpgradeModal() {
+                window.utils?.showToast('Redirecting to upgrade options...', 'info', 2000);
+                setTimeout(() => {
+                    window.location.href = '/pricing/';
+                }, 500);
+            }
+
+            checkSubscriptionStatus() {
+                const user = window.CHAT_CONFIG?.user;
+                if (user && user.subscription) {
+                    if (!user.subscription.isActive || user.subscription.isExpired) {
+                        // Show upgrade notification after a delay
+                        setTimeout(() => {
+                            this.showSubscriptionReminder();
+                        }, 5000);
+                    }
+                }
+            }
+
+            showSubscriptionReminder() {
+                const user = window.CHAT_CONFIG?.user;
+                if (user && user.subscription && user.subscription.plan === 'basic') {
+                    window.utils?.showToast(
+                        'Upgrade to Premium for unlimited rooms and advanced features!',
+                        'info',
+                        6000
+                    );
+                }
+            }
+        }
+
         // Header scroll effect
         function initHeaderScroll() {
             const header = document.getElementById('header');
@@ -1956,6 +2204,7 @@ main {
             window.loadingManager = new EuphorieLoadingManager();
             window.searchManager = new EuphorieSearchManager();
             window.toastManager = new EuphorieToastManager();
+            window.paymentManager = new EuphoriePaymentManager();
 
             // Initialize header scroll effect
             initHeaderScroll();
@@ -2070,6 +2319,13 @@ main {
                 return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             },
 
+            formatCurrency: function(amount, currency = 'USD') {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: currency
+                }).format(amount);
+            },
+
             timeAgo: function(date) {
                 const now = new Date();
                 const secondsPast = (now.getTime() - date.getTime()) / 1000;
@@ -2083,6 +2339,16 @@ main {
 
             showToast: function(message, type = 'info', duration = 4000) {
                 return window.toastManager?.show(message, type, duration);
+            },
+
+            redirectToUpgrade: function() {
+                window.location.href = '/pricing/';
+            },
+
+            confirmAction: function(message, callback) {
+                if (confirm(message)) {
+                    callback();
+                }
             }
         };
     </script>
