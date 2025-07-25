@@ -1,1285 +1,1453 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Discover Rooms - Euphorie{% endblock %}
+{% block title %}Euphorie{% endblock %}
 
-{% block description %}Explore amazing chat rooms and join conversations on topics you love. Connect with like-minded people in immersive 3D environments.{% endblock %}
+{% block description %}Discover amazing chat rooms and join conversations on topics you love{% endblock %}
 
 {% block body_class %}page-explore{% endblock %}
 
 {% block extra_css %}
 <style>
-/* Advanced Room Discovery Styles */
-:root {
-    --glass-bg: rgba(255, 255, 255, 0.25);
-    --glass-border: rgba(255, 255, 255, 0.18);
-    --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.37);
-    --blur-amount: 12px;
-    --animation-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+/* Compact Explore Page Styles */
+.compact-header {
+  background: white;
+  border-radius: 0.875rem; /* Slightly smaller border radius */
+  padding: 0.75rem 1rem; /* Reduced padding */
+  margin-bottom: 1rem; /* Reduced margin */
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  max-width: 100%; /* Prevent header overflow */
+  overflow: hidden; /* Critical: prevent any overflow */
 }
 
-/* Enhanced Page Container */
-.discover-container {
-    min-height: calc(100vh - 200px);
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-    background-attachment: fixed;
-    padding: 2rem 0;
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem; /* Reduced gap */
+  flex-wrap: wrap;
+  max-width: 100%; /* Prevent content overflow */
+  overflow: hidden; /* Critical: prevent content overflow */
 }
 
-/* Hero Section with Glassmorphism */
-.hero-section {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-amount));
-    -webkit-backdrop-filter: blur(var(--blur-amount));
-    border: 1px solid var(--glass-border);
-    border-radius: 2rem;
-    padding: 3rem 2rem;
-    margin-bottom: 3rem;
-    box-shadow: var(--shadow-glass);
-    position: relative;
-    overflow: hidden;
-    text-align: center;
+.search-container {
+  position: relative;
+  flex: 1;
+  min-width: 200px; /* Reduced min-width */
 }
 
-.hero-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+.search-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem 0.625rem 2.25rem; /* Reduced padding */
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #fafbfc;
+  font-size: 0.8rem; /* Smaller font */
+  transition: all 0.3s ease;
+  color: #374151;
 }
 
-.hero-title {
-    font-size: 3rem;
-    font-weight: 800;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 1rem;
-    line-height: 1.2;
+.search-input:focus {
+  outline: none;
+  border-color: #f472b6;
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+  background: white;
 }
 
-.hero-subtitle {
-    font-size: 1.25rem;
-    color: rgba(30, 41, 59, 0.8);
-    margin-bottom: 2rem;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
+.search-icon {
+  position: absolute;
+  left: 0.625rem; /* Reduced position */
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  transition: color 0.3s ease;
 }
 
-.hero-stats {
-    display: flex;
-    justify-content: center;
-    gap: 3rem;
-    margin-top: 2rem;
+.search-icon svg {
+  width: 0.875rem; /* Smaller icon */
+  height: 0.875rem;
 }
 
-.stat-card {
-    text-align: center;
-    opacity: 0;
-    animation: slideInUp 0.8s ease forwards;
+.search-input:focus + .search-icon {
+  color: #f472b6;
 }
 
-.stat-card:nth-child(1) { animation-delay: 0.1s; }
-.stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stat-card:nth-child(3) { animation-delay: 0.3s; }
-
-.stat-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    background: var(--gradient-secondary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    display: block;
-    line-height: 1;
+/* Enhanced Category Section with Future-Proofing - COMPACT */
+.category-section {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  flex: 1;
+  min-width: 0;
+  max-width: 100%; /* Prevent overflow */
+  overflow: hidden; /* Critical: prevent section overflow */
 }
 
-.stat-label {
-    font-size: 0.9rem;
-    color: rgba(30, 41, 59, 0.6);
-    font-weight: 500;
-    margin-top: 0.5rem;
+.category-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  max-width: 100%; /* Prevent wrapper overflow */
+  overflow: hidden; /* Critical: prevent wrapper overflow */
 }
 
-/* Advanced Filter Section */
-.filters-section {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-amount));
-    -webkit-backdrop-filter: blur(var(--blur-amount));
-    border: 1px solid var(--glass-border);
-    border-radius: 1.5rem;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-glass);
-    opacity: 0;
-    animation: fadeInUp 1s ease forwards;
-    animation-delay: 0.4s;
+.category-scroll-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem; /* Reduced size */
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.7;
 }
 
-.filter-grid {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 2rem;
-    align-items: center;
+.category-scroll-btn:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+  opacity: 1;
 }
 
-.categories-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding: 0.5rem 0;
+.category-scroll-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.categories-container::-webkit-scrollbar {
-    display: none;
+.category-scroll-btn svg {
+  width: 0.75rem; /* Smaller icons */
+  height: 0.75rem;
 }
 
-.category-pill {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 2rem;
-    background: var(--glass-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgba(30, 41, 59, 0.8);
-    cursor: pointer;
-    transition: all 0.4s var(--animation-spring);
-    white-space: nowrap;
-    position: relative;
-    overflow: hidden;
-    text-decoration: none;
+/* Enhanced Category Bar - COMPACT */
+.category-bar {
+  display: flex;
+  gap: 0.375rem; /* Reduced gap */
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 0.125rem 0; /* Reduced padding */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%; /* Prevent overflow */
 }
 
-.category-pill::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    transition: left 0.6s ease;
+.category-bar::-webkit-scrollbar {
+  display: none;
 }
 
-.category-pill:hover::before {
-    left: 100%;
+.show-more-btn {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem; /* Reduced padding */
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem; /* Smaller font */
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.category-pill:hover {
-    border-color: rgba(102, 126, 234, 0.5);
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+.show-more-btn:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+  border-color: #f472b6;
 }
 
-.category-pill.active {
-    background: var(--gradient-primary);
-    border-color: transparent;
-    color: white;
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+.show-more-btn svg {
+  width: 0.75rem; /* Smaller icon */
+  height: 0.75rem;
+}
+
+/* Categories Modal for Overflow - COMPACT */
+.categories-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.categories-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.categories-modal-content {
+  background: white;
+  border-radius: 0.875rem; /* Smaller border radius */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 500px; /* Reduced max-width */
+  width: 100%;
+  max-height: 75vh; /* Reduced max-height */
+  overflow-y: auto;
+}
+
+.categories-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem; /* Reduced padding */
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.categories-modal-header h3 {
+  margin: 0;
+  font-size: 1rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.close-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem; /* Reduced size */
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-modal:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+}
+
+.close-modal svg {
+  width: 0.875rem; /* Smaller icon */
+  height: 0.875rem;
+}
+
+.categories-grid-modal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Smaller grid items */
+  gap: 0.625rem; /* Reduced gap */
+  padding: 1.25rem; /* Reduced padding */
+}
+
+.category-modal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  padding: 0.75rem; /* Reduced padding */
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #fafbfc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.category-modal-btn:hover {
+  background: #f1f5f9;
+  border-color: #f472b6;
+  transform: translateY(-1px); /* Reduced transform */
+}
+
+.category-modal-btn.active {
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-1px); /* Reduced transform */
+}
+
+.category-modal-icon {
+  font-size: 1.25rem; /* Smaller icon */
+}
+
+.category-modal-name {
+  font-size: 0.75rem; /* Smaller font */
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
+}
+
+.category-modal-btn.active .category-modal-name {
+  color: white;
+}
+
+.category-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* Reduced gap */
+  padding: 0.375rem 0.625rem; /* Reduced padding */
+  border-radius: 0.625rem; /* Smaller border radius */
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem; /* Smaller font */
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.category-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.category-btn.active {
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.25);
 }
 
 .category-icon {
-    font-size: 1.1rem;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  font-size: 0.8rem; /* Smaller icon */
 }
 
-/* Advanced Controls */
-.sort-control {
-    position: relative;
+/* Sort Controls - COMPACT */
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Reduced gap */
 }
 
-.sort-dropdown {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-    background: var(--glass-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 1rem;
-    color: rgba(30, 41, 59, 0.8);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    min-width: 150px;
+.sort-select {
+  padding: 0.375rem 0.625rem; /* Reduced padding */
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem; /* Smaller border radius */
+  background: white;
+  font-size: 0.75rem; /* Smaller font */
+  color: #374151;
+  min-width: 100px; /* Reduced min-width */
 }
 
-.sort-dropdown:hover {
-    border-color: rgba(102, 126, 234, 0.5);
-    transform: translateY(-2px);
+.sort-select:focus {
+  outline: none;
+  border-color: #f472b6;
+  box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.1);
 }
 
 .view-toggle {
-    display: flex;
-    background: var(--glass-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 1rem;
-    padding: 0.25rem;
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 0.375rem; /* Smaller border radius */
+  padding: 0.125rem;
 }
 
 .view-btn {
-    padding: 0.5rem;
-    border: none;
-    background: transparent;
-    color: rgba(30, 41, 59, 0.6);
-    cursor: pointer;
-    border-radius: 0.75rem;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  padding: 0.25rem; /* Reduced padding */
+  border-radius: 0.25rem; /* Smaller border radius */
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .view-btn.active {
-    background: rgba(102, 126, 234, 0.2);
-    color: #667eea;
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: white;
+  color: #f472b6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Sophisticated Room Grid */
-.rooms-section {
-    opacity: 0;
-    animation: fadeInUp 1.2s ease forwards;
-    animation-delay: 0.6s;
+.view-btn svg {
+  width: 0.875rem; /* Smaller icons */
+  height: 0.875rem;
 }
 
+/* Compact Room Grid - Higher Density */
 .rooms-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-    gap: 2rem;
-    position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Smaller cards */
+  gap: 0.625rem; /* Reduced gap */
 }
 
-/* Advanced Room Cards */
 .room-card {
-    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 1.5rem;
-    overflow: hidden;
-    transition: all 0.5s var(--animation-spring);
-    text-decoration: none;
-    color: inherit;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    position: relative;
-    transform-style: preserve-3d;
-    cursor: pointer;
-}
-
-.room-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-    border-radius: 1.5rem;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    pointer-events: none;
+  background: white;
+  border-radius: 0.625rem; /* Smaller border radius */
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .room-card:hover {
-    transform: translateY(-12px) rotateX(3deg) rotateY(2deg);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-    border-color: rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px); /* Reduced transform */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #f472b6;
 }
 
-.room-card:hover::before {
-    opacity: 1;
-}
-
-/* Card Header with Dynamic Background */
-.card-header {
-    padding: 2rem;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    position: relative;
-    overflow: hidden;
-}
-
-.card-header::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+.room-header {
+  padding: 0.75rem; /* Reduced padding */
+  border-bottom: 1px solid #f8fafc;
 }
 
 .room-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 1rem;
-    line-height: 1.3;
-    transition: color 0.3s ease;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.room-card:hover .room-title {
-    color: #667eea;
+  font-size: 0.85rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0; /* Reduced margin */
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .room-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem; /* Smaller font */
+  color: #64748b;
+  margin-bottom: 0.375rem; /* Reduced margin */
 }
 
 .room-category {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--glass-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 1.5rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.125rem; /* Reduced gap */
+  padding: 0.125rem 0.375rem; /* Reduced padding */
+  background: #f0f9ff;
+  color: #0369a1;
+  border-radius: 0.25rem; /* Smaller border radius */
+  font-weight: 500;
+  font-size: 0.65rem; /* Even smaller font */
 }
 
-.activity-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.8rem;
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    border-radius: 1.5rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    animation: pulse 2s infinite;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+.room-status {
+  font-weight: 500;
+  font-size: 0.65rem; /* Smaller font */
 }
 
-/* Enhanced Room Description */
-.card-content {
-    padding: 2rem;
+.room-status.active {
+  color: #10b981;
 }
 
-.room-description {
-    color: rgba(30, 41, 59, 0.7);
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+.room-status.trending {
+  color: #f59e0b;
 }
 
-.room-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
+.room-activity {
+  margin-top: 0.375rem; /* Reduced margin */
 }
 
-.stat-item {
-    text-align: center;
-    padding: 1rem;
-    background: rgba(102, 126, 234, 0.08);
-    border-radius: 1rem;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(102, 126, 234, 0.1);
-}
-
-.stat-item:hover {
-    background: rgba(102, 126, 234, 0.15);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
-}
-
-.stat-value {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #1e293b;
-    display: block;
-    line-height: 1;
-}
-
-.stat-label {
-    font-size: 0.8rem;
-    color: rgba(30, 41, 59, 0.6);
-    font-weight: 500;
-    margin-top: 0.25rem;
-}
-
-/* Dynamic Activity Visualization */
-.activity-chart {
-    height: 6px;
-    background: rgba(102, 126, 234, 0.15);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-    position: relative;
+.activity-bar {
+  height: 2px; /* Smaller height */
+  background: #f1f5f9;
+  border-radius: 1px;
+  overflow: hidden;
+  margin-bottom: 0.125rem; /* Reduced margin */
 }
 
 .activity-fill {
-    height: 100%;
-    background: var(--gradient-primary);
-    border-radius: 3px;
-    transition: width 1.5s ease;
-    position: relative;
+  height: 100%;
+  background: linear-gradient(90deg, #f472b6, #3b82f6);
+  border-radius: 1px;
+  transition: width 0.3s ease;
 }
 
-.activity-fill::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-    animation: shimmer 2.5s infinite;
+.activity-text {
+  font-size: 0.65rem; /* Smaller font */
+  color: #94a3b8;
 }
 
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+.room-footer {
+  padding: 0.375rem 0.75rem; /* Reduced padding */
+  background: #fafbfc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* Enhanced Card Footer */
-.card-footer {
-    padding: 2rem;
-    background: rgba(248, 250, 252, 0.6);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.creator-section {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.room-creator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* Reduced gap */
+  font-size: 0.7rem; /* Smaller font */
+  color: #64748b;
 }
 
 .creator-avatar {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    background: var(--gradient-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.1rem;
-    font-weight: 700;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    transition: all 0.3s ease;
+  width: 1rem; /* Smaller avatar */
+  height: 1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.5rem; /* Smaller font */
+  font-weight: 600;
 }
 
-.room-card:hover .creator-avatar {
-    transform: scale(1.15) rotateY(15deg);
+.join-btn {
+  font-size: 0.7rem; /* Smaller font */
+  font-weight: 500;
+  color: #f472b6;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem; /* Reduced gap */
+  transition: all 0.2s ease;
 }
 
-.creator-info {
-    display: flex;
+.room-card:hover .join-btn {
+  color: #ec4899;
+  transform: translateX(1px); /* Reduced transform */
+}
+
+.join-btn svg {
+  width: 0.625rem; /* Smaller icon */
+  height: 0.625rem;
+}
+
+/* List View - Ultra Compact */
+.rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem; /* Reduced gap */
+}
+
+.room-list-item {
+  background: white;
+  border-radius: 0.375rem; /* Smaller border radius */
+  border: 1px solid #f1f5f9;
+  padding: 0.625rem 0.875rem; /* Reduced padding */
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem; /* Reduced gap */
+}
+
+.room-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  border-color: #f472b6;
+}
+
+.list-avatar {
+  width: 1.75rem; /* Smaller avatar */
+  height: 1.75rem;
+  border-radius: 0.375rem; /* Smaller border radius */
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.7rem; /* Smaller font */
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.list-content {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.list-title {
+  font-size: 0.8rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.125rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-meta {
+  font-size: 0.65rem; /* Smaller font */
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+}
+
+.list-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* Reduced gap */
+  flex-shrink: 0;
+  font-size: 0.7rem; /* Smaller font */
+  color: #64748b;
+}
+
+.list-activity {
+  text-align: right;
+}
+
+.activity-count {
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* Mobile Optimizations - Swipe/Drag Scrolling */
+@media (max-width: 768px) {
+  .header-content {
     flex-direction: column;
-}
-
-.creator-name {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1e293b;
-    line-height: 1;
-}
-
-.creator-role {
-    font-size: 0.85rem;
-    color: rgba(30, 41, 59, 0.6);
-    margin-top: 0.25rem;
-}
-
-.join-button {
-    display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 0.75rem;
-    padding: 1rem 2rem;
-    background: var(--gradient-primary);
-    color: white;
-    border: none;
-    border-radius: 1rem;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.4s var(--animation-spring);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    overflow: hidden; /* Prevent mobile overflow */
+  }
+  
+  .category-section {
+    order: 1;
+    position: relative;
+    overflow: hidden; /* Critical for mobile */
+    max-width: 100%;
+  }
+  
+  .sort-controls {
+    order: 2;
+    justify-content: space-between;
+  }
+  
+  .category-scroll-btn {
+    display: none;
+  }
+  
+  .show-more-btn {
+    display: none; /* Hide the more button */
+  }
+  
+  /* Mobile category wrapper with swipe indicators */
+  .category-wrapper {
     position: relative;
     overflow: hidden;
-}
-
-.join-button::before {
+    padding: 0;
+    max-width: 100%; /* Critical: prevent wrapper overflow */
+  }
+  
+  .category-wrapper::before {
     content: '';
     position: absolute;
+    right: 0;
     top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    transition: left 0.6s ease;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  .category-wrapper::after {
+    content: '👆 Swipe to browse';
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: #94a3b8;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+  
+  /* Enhanced mobile category bar */
+  .category-bar {
+    margin: 0;
+    padding: 0.125rem 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+    touch-action: pan-x; /* Only allow horizontal panning */
+    max-width: 100%; /* Critical: prevent bar overflow */
+    width: 100%; /* Ensure full width usage */
+  }
+  
+  .category-bar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .rooms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .room-header {
+    padding: 0.625rem;
+  }
+  
+  .room-title {
+    font-size: 0.8rem;
+  }
+
+  .compact-header {
+    padding: 0.625rem 0.875rem;
+    margin-bottom: 0.75rem;
+    overflow: hidden; /* Ensure header doesn't overflow */
+  }
 }
 
-.join-button:hover::before {
-    left: 100%;
+@media (max-width: 640px) {
+  .rooms-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .category-bar {
+    margin: 0;
+    padding: 0.125rem 0;
+    gap: 0.25rem; /* Tighter spacing for small screens */
+    overflow-x: auto;
+    max-width: 100%; /* Critical for small screens */
+  }
+
+  .compact-header {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .header-content {
+    gap: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .category-btn {
+    flex-shrink: 0;
+    min-width: fit-content;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .category-icon {
+    font-size: 0.75rem;
+  }
+  
+  /* Adjust swipe hint for smaller screens */
+  .category-wrapper::after {
+    content: '👆';
+    font-size: 0.7rem;
+  }
+  
+  /* Ensure category section doesn't overflow */
+  .category-section {
+    overflow: hidden;
+    max-width: 100%;
+  }
+  
+  .category-wrapper {
+    overflow: hidden;
+    max-width: 100%;
+  }
 }
 
-.join-button:hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+/* Very small screens - minimal UI */
+@media (max-width: 480px) {
+  .category-bar {
+    gap: 0.2rem;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  
+  .category-btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.65rem;
+  }
+  
+  .category-icon {
+    font-size: 0.7rem;
+  }
+  
+  /* Hide swipe hint on very small screens to save space */
+  .category-wrapper::after {
+    display: none;
+  }
+  
+  .category-wrapper::before {
+    width: 15px;
+  }
+  
+  /* Additional overflow protection for very small screens */
+  .compact-header {
+    overflow: hidden;
+  }
+  
+  .header-content {
+    overflow: hidden;
+  }
+  
+  .category-section {
+    overflow: hidden;
+  }
+  
+  .category-wrapper {
+    overflow: hidden;
+  }
 }
 
-.join-button:active {
-    transform: translateY(-1px) scale(0.98);
-}
-
-/* Enhanced Empty State */
-.empty-state {
-    text-align: center;
-    padding: 5rem 2rem;
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-amount));
-    -webkit-backdrop-filter: blur(var(--blur-amount));
-    border: 1px solid var(--glass-border);
-    border-radius: 2rem;
-    margin-top: 2rem;
-    box-shadow: var(--shadow-glass);
-}
-
-.empty-icon {
-    width: 6rem;
-    height: 6rem;
-    background: var(--gradient-primary);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 2rem;
-    font-size: 2.5rem;
-    color: white;
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
-    animation: float 4s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-15px); }
-}
-
-.empty-state h3 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    color: #1e293b;
-}
-
-.empty-state p {
-    color: rgba(30, 41, 59, 0.7);
-    margin-bottom: 2.5rem;
-    font-size: 1.2rem;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.create-room-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1.25rem 2.5rem;
-    background: var(--gradient-secondary);
-    color: white;
-    border: none;
-    border-radius: 1rem;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.4s var(--animation-spring);
-    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
-    font-size: 1.1rem;
-}
-
-.create-room-btn:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 15px 40px rgba(240, 147, 251, 0.5);
-}
-
-/* Enhanced Animations */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(40px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Animation for room cards */
+.room-card,
+.room-list-item {
+  opacity: 0;
+  animation: fadeInUp 0.3s ease forwards;
 }
 
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(8px); /* Reduced transform */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.05); }
+/* Stagger animation delays */
+.room-card:nth-child(1) { animation-delay: 0.02s; }
+.room-card:nth-child(2) { animation-delay: 0.04s; }
+.room-card:nth-child(3) { animation-delay: 0.06s; }
+.room-card:nth-child(4) { animation-delay: 0.08s; }
+.room-card:nth-child(5) { animation-delay: 0.10s; }
+.room-card:nth-child(6) { animation-delay: 0.12s; }
+.room-card:nth-child(7) { animation-delay: 0.14s; }
+.room-card:nth-child(8) { animation-delay: 0.16s; }
+.room-card:nth-child(9) { animation-delay: 0.18s; }
+.room-card:nth-child(10) { animation-delay: 0.20s; }
+
+/* Empty State - Compact */
+.empty-state {
+  text-align: center;
+  padding: 1.5rem; /* Reduced padding */
+  background: white;
+  border-radius: 0.875rem; /* Smaller border radius */
+  border: 1px solid #f1f5f9;
+  margin-top: 0.75rem; /* Reduced margin */
 }
 
-/* Enhanced Responsive Design */
-@media (max-width: 1200px) {
-    .rooms-grid {
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    }
-    
-    .hero-title {
-        font-size: 2.5rem;
-    }
+.empty-icon {
+  width: 2.5rem; /* Smaller icon */
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem; /* Reduced margin */
+  color: white;
 }
 
-@media (max-width: 768px) {
-    .discover-container {
-        padding: 1rem 0;
-    }
-
-    .hero-section {
-        padding: 2rem 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .hero-title {
-        font-size: 2rem;
-    }
-
-    .hero-subtitle {
-        font-size: 1rem;
-    }
-
-    .hero-stats {
-        gap: 1.5rem;
-        flex-wrap: wrap;
-    }
-
-    .filters-section {
-        padding: 1.5rem;
-    }
-
-    .filter-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-
-    .categories-container {
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-
-    .rooms-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-
-    .card-header,
-    .card-content,
-    .card-footer {
-        padding: 1.5rem;
-    }
-
-    .room-stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .creator-section {
-        flex-direction: column;
-        gap: 0.75rem;
-        text-align: center;
-    }
-
-    .card-footer {
-        flex-direction: column;
-        gap: 1.5rem;
-        align-items: stretch;
-    }
-
-    .join-button {
-        justify-content: center;
-    }
+.empty-icon svg {
+  width: 1.25rem; /* Smaller icon */
+  height: 1.25rem;
 }
 
-@media (max-width: 480px) {
-    .category-pill {
-        padding: 0.5rem 1rem;
-        font-size: 0.8rem;
-    }
-
-    .room-stats {
-        grid-template-columns: 1fr;
-    }
-
-    .hero-stats {
-        flex-direction: column;
-        gap: 1rem;
-    }
+.empty-state h3 {
+  font-size: 1rem; /* Smaller font */
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.375rem; /* Reduced margin */
 }
 
-/* Advanced Loading States */
-.loading-skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 2s infinite;
-    border-radius: 1rem;
-}
-
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* Scroll Behavior */
-html {
-    scroll-behavior: smooth;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--gradient-primary);
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--gradient-secondary);
+.empty-state p {
+  color: #64748b;
+  font-size: 0.8rem; /* Smaller font */
+  margin-bottom: 1rem; /* Reduced margin */
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="discover-container">
-    <div class="w-full px-3 sm:px-4 md:px-6 lg:px-8 max-w-none">
+<!-- Compact Header with Categories and Controls -->
+<div class="compact-header">
+  <div class="header-content" style="overflow: hidden;">
+    <!-- Dynamic Category Bar with Scroll Controls -->
+    <div class="category-section">
+      <div class="category-wrapper">
+        <button class="category-scroll-btn scroll-left" id="scroll-left">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
         
-        <!-- Hero Section -->
-        <div class="hero-section">
-            <h1 class="hero-title">Discover Amazing Communities</h1>
-            <p class="hero-subtitle">
-                Join thousands of conversations across diverse topics and interests. 
-                Experience the future of online communication with immersive 3D environments.
-            </p>
-            
-            <div class="hero-stats">
-                <div class="stat-card">
-                    <span class="stat-number">{{ total_rooms|default:"2.4k" }}</span>
-                    <span class="stat-label">Active Rooms</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">{{ total_members|default:"45k" }}</span>
-                    <span class="stat-label">Members</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">{{ online_now|default:"890" }}</span>
-                    <span class="stat-label">Online Now</span>
-                </div>
-            </div>
+        <div class="category-bar" id="category-bar">
+          <!-- "All" button always first -->
+          <button class="category-btn active" data-category="all">
+            <span class="category-icon">🌟</span>
+            All
+          </button>
+          
+          <!-- Dynamic categories from database -->
+          {% for category in categories %}
+            <button class="category-btn" data-category="{{ category.slug }}">
+              <span class="category-icon">{{ category.icon|default:"💬" }}</span>
+              {{ category.name }}
+            </button>
+          {% endfor %}
         </div>
-
-        <!-- Advanced Filters Section -->
-        <div class="filters-section">
-            <div class="filter-grid">
-                <div class="categories-container">
-                    <a href="{% url 'explore_rooms' %}" 
-                       class="category-pill {% if not current_category %}active{% endif %}" 
-                       data-category="all">
-                        <span class="category-icon">🌟</span>
-                        All Rooms
-                    </a>
-                    
-                    {% for category in categories %}
-                    <a href="{% url 'explore_rooms' %}?category={{ category.slug }}" 
-                       class="category-pill {% if current_category == category.slug %}active{% endif %}" 
-                       data-category="{{ category.slug }}">
-                        <span class="category-icon">{{ category.icon|default:"💬" }}</span>
-                        {{ category.name }}
-                    </a>
-                    {% endfor %}
-                </div>
-                
-                <div class="sort-control">
-                    <select class="sort-dropdown" id="sort-rooms" onchange="handleSortChange(this.value)">
-                        <option value="activity" {% if current_sort == 'activity' %}selected{% endif %}>Most Active</option>
-                        <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest</option>
-                        <option value="members" {% if current_sort == 'members' %}selected{% endif %}>Most Members</option>
-                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>A-Z</option>
-                    </select>
-                </div>
-                
-                <div class="view-toggle">
-                    <button class="view-btn active" data-view="grid" id="grid-view-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"/>
-                        </svg>
-                    </button>
-                    <button class="view-btn" data-view="list" id="list-view-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sophisticated Rooms Grid -->
-        <div class="rooms-section">
-            {% if rooms %}
-            <div class="rooms-grid" id="rooms-grid">
-                {% for room in rooms %}
-                <a href="{% url 'room' room.name %}" class="room-card" 
-                   data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
-                   data-name="{{ room.display_name|default:room.name|lower }}"
-                   data-activity="{{ room.total_messages|default:0 }}"
-                   data-members="{{ room.member_count|default:0 }}"
-                   data-created="{{ room.created_at|date:'c' }}">
-                    
-                    <div class="card-header">
-                        <h3 class="room-title">{{ room.display_name|default:room.name }}</h3>
-                        <div class="room-meta">
-                            <span class="room-category">
-                                <span class="category-icon">
-                                    {% if room.category %}
-                                        {{ room.category.icon|default:"💬" }}
-                                    {% else %}
-                                        💬
-                                    {% endif %}
-                                </span>
-                                {% if room.category %}
-                                    {{ room.category.name }}
-                                {% else %}
-                                    General
-                                {% endif %}
-                            </span>
-                            
-                            <span class="activity-badge">
-                                {% if room.total_messages > 50 %}
-                                    <span>🔥</span> Hot
-                                {% elif room.total_messages > 20 %}
-                                    <span>⚡</span> Active
-                                {% else %}
-                                    <span>✨</span> New
-                                {% endif %}
-                            </span>
-                        </div>
-                        
-                        <div class="activity-chart">
-                            {% if room.total_messages > 100 %}
-                                <div class="activity-fill" style="width: 95%"></div>
-                            {% elif room.total_messages > 50 %}
-                                <div class="activity-fill" style="width: 80%"></div>
-                            {% elif room.total_messages > 25 %}
-                                <div class="activity-fill" style="width: 60%"></div>
-                            {% elif room.total_messages > 10 %}
-                                <div class="activity-fill" style="width: 40%"></div>
-                            {% else %}
-                                <div class="activity-fill" style="width: 20%"></div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="card-content">
-                        {% if room.description %}
-                        <p class="room-description">{{ room.description }}</p>
-                        {% else %}
-                        <p class="room-description">
-                            Join the conversation in {{ room.display_name|default:room.name }}. 
-                            Connect with like-minded people and share your thoughts in this 
-                            {% if room.category %}{{ room.category.name|lower }}{% else %}general{% endif %} community.
-                        </p>
-                        {% endif %}
-                        
-                        <div class="room-stats">
-                            <div class="stat-item">
-                                <span class="stat-value">{{ room.member_count|default:room.total_messages|default:"0" }}</span>
-                                <span class="stat-label">Members</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-value">{{ room.online_count|default:"0" }}</span>
-                                <span class="stat-label">Online</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-value">{{ room.total_messages|default:"0" }}</span>
-                                <span class="stat-label">Messages</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="card-footer">
-                        <div class="creator-section">
-                            <div class="creator-avatar">
-                                {{ room.creator.username|slice:":1"|upper }}
-                            </div>
-                            <div class="creator-info">
-                                <span class="creator-name">{{ room.creator.username }}</span>
-                                <span class="creator-role">Room Creator</span>
-                            </div>
-                        </div>
-                        <button class="join-button" onclick="event.preventDefault(); joinRoom('{{ room.name }}');">
-                            <span>Join Room</span>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 5l7 7-7 7"/>
-                            </svg>
-                        </button>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-            {% else %}
-            <!-- Enhanced Empty State -->
-            <div class="empty-state">
-                <div class="empty-icon">🔍</div>
-                <h3>No rooms found</h3>
-                <p>
-                    {% if request.GET.q %}
-                        We couldn't find any rooms matching "{{ request.GET.q }}". 
-                        Try adjusting your search terms or explore our featured rooms.
-                    {% elif current_category %}
-                        No rooms found in this category yet. 
-                        Be the first to create one and start the conversation!
-                    {% else %}
-                        It looks like there are no rooms available right now. 
-                        Why not create the first one?
-                    {% endif %}
-                </p>
-                {% if user.is_authenticated %}
-                    {% if user.subscription.is_active and not user.subscription.is_expired %}
-                        <a href="{% url 'create_room' %}" class="create-room-btn">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 5v14M5 12h14"/>
-                            </svg>
-                            Create New Room
-                        </a>
-                    {% else %}
-                        <a href="{% url 'pricing' %}" class="create-room-btn">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-                            </svg>
-                            Upgrade to Create Rooms
-                        </a>
-                    {% endif %}
-                {% else %}
-                    <a href="{% url 'account_signup' %}" class="create-room-btn">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        Sign Up to Get Started
-                    </a>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
+        
+        <button class="category-scroll-btn scroll-right" id="scroll-right">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Show More Categories Button (for mobile/overflow) -->
+      <button class="show-more-btn" id="show-more-categories">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01" />
+        </svg>
+        More
+      </button>
     </div>
+    
+    <!-- Sort and View Controls -->
+    <div class="sort-controls">
+      <select class="sort-select" id="sort-rooms">
+        <option value="activity">Most Active</option>
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="name">A-Z</option>
+      </select>
+      
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="grid">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+        </button>
+        <button class="view-btn" data-view="list">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- Dynamic Categories Modal (for overflow) -->
+<div class="categories-modal hidden" id="categories-modal">
+  <div class="categories-modal-content">
+    <div class="categories-modal-header">
+      <h3>Browse Categories</h3>
+      <button class="close-modal" id="close-categories-modal">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="categories-grid-modal">
+      <!-- Categories will be populated here dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- Rooms Container -->
+<div id="rooms-container">
+  <!-- Grid View (Default) -->
+  <div class="rooms-grid" id="grid-view">
+    {% if rooms %}
+      {% for room in rooms %}
+      <a href="{% url 'room' room.name %}" class="room-card" 
+         data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
+         data-name="{{ room.display_name|default:room.name|lower }}"
+         data-activity="{{ room.total_messages|default:0 }}"
+         data-created="{{ room.created_at|date:'c' }}">
+        
+        <div class="room-header">
+          <h3 class="room-title">{{ room.display_name|default:room.name }}</h3>
+          
+          <div class="room-meta">
+            <span class="room-category">
+              {% if room.category %}
+                {{ room.category.icon|default:"💬" }} {{ room.category.name }}
+              {% else %}
+                💬 General
+              {% endif %}
+            </span>
+            
+            <span class="room-status {% if room.total_messages > 20 %}trending{% else %}active{% endif %}">
+              {% if room.total_messages > 20 %}🔥 Hot{% else %}✨ Active{% endif %}
+            </span>
+          </div>
+          
+          <div class="room-activity">
+            <div class="activity-bar">
+              {% if room.total_messages > 50 %}
+                <div class="activity-fill" style="width: 90%"></div>
+              {% elif room.total_messages > 25 %}
+                <div class="activity-fill" style="width: 70%"></div>
+              {% elif room.total_messages > 10 %}
+                <div class="activity-fill" style="width: 50%"></div>
+              {% elif room.total_messages > 5 %}
+                <div class="activity-fill" style="width: 30%"></div>
+              {% else %}
+                <div class="activity-fill" style="width: 15%"></div>
+              {% endif %}
+            </div>
+            <div class="activity-text">{{ room.total_messages|default:0 }} messages</div>
+          </div>
+        </div>
+        
+        <div class="room-footer">
+          <div class="room-creator">
+            <div class="creator-avatar">
+              {{ room.creator.username|slice:":1"|upper }}
+            </div>
+            <span>{{ room.creator.username }}</span>
+          </div>
+          <div class="join-btn">
+            Join
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+  
+  <!-- List View (Hidden by default) -->
+  <div class="rooms-list hidden" id="list-view">
+    {% if rooms %}
+      {% for room in rooms %}
+      <a href="{% url 'room' room.name %}" class="room-list-item"
+         data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
+         data-name="{{ room.display_name|default:room.name|lower }}"
+         data-activity="{{ room.total_messages|default:0 }}"
+         data-created="{{ room.created_at|date:'c' }}">
+        
+        <div class="list-avatar">
+          {{ room.display_name|default:room.name|slice:":1"|upper }}
+        </div>
+        
+        <div class="list-content">
+          <h3 class="list-title">{{ room.display_name|default:room.name }}</h3>
+          <div class="list-meta">
+            <span>
+              {% if room.category %}
+                {{ room.category.icon|default:"💬" }} {{ room.category.name }}
+              {% else %}
+                💬 General
+              {% endif %}
+            </span>
+            <span>by {{ room.creator.username }}</span>
+            <span>{{ room.created_at|timesince }} ago</span>
+          </div>
+        </div>
+        
+        <div class="list-stats">
+          <div class="list-activity">
+            <div class="activity-count">{{ room.total_messages|default:0 }}</div>
+            <div>messages</div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+<!-- Empty State -->
+{% if not rooms %}
+<div class="empty-state">
+  <div class="empty-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  </div>
+  <h3>No rooms found</h3>
+  <p>Try adjusting your search or create a new room!</p>
+  {% if user.is_authenticated %}
+  <a href="{% url 'create_room' %}" class="btn btn-primary">Create Room</a>
+  {% else %}
+  <a href="{% url 'signup' %}" class="btn btn-primary">Sign Up</a>
+  {% endif %}
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block javascript %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Enhanced room discovery functionality
-    const roomCards = document.querySelectorAll('.room-card');
-    const viewBtns = document.querySelectorAll('.view-btn');
-    const roomsGrid = document.getElementById('rooms-grid');
+  // Get DOM elements
+  const categoryBtns = document.querySelectorAll('.category-btn');
+  const sortSelect = document.getElementById('sort-rooms');
+  const viewBtns = document.querySelectorAll('.view-btn');
+  const gridView = document.getElementById('grid-view');
+  const listView = document.getElementById('list-view');
+  
+  // Category scroll elements
+  const categoryBar = document.getElementById('category-bar');
+  const scrollLeftBtn = document.getElementById('scroll-left');
+  const scrollRightBtn = document.getElementById('scroll-right');
+  const showMoreBtn = document.getElementById('show-more-categories');
+  const categoriesModal = document.getElementById('categories-modal');
+  const closeModalBtn = document.getElementById('close-categories-modal');
+  
+  let currentCategory = 'all';
+  let currentSort = 'activity';
+  
+  // Category filtering
+  categoryBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Update active state
+      categoryBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Update current category
+      currentCategory = this.getAttribute('data-category');
+      
+      // Filter rooms
+      filterAndSortRooms();
+    });
+  });
+  
+  // Category scroll functionality
+  if (scrollLeftBtn && scrollRightBtn && categoryBar) {
+    scrollLeftBtn.addEventListener('click', () => {
+      categoryBar.scrollBy({ left: -200, behavior: 'smooth' });
+    });
     
-    // Initialize entrance animations
-    function initializeAnimations() {
-        roomCards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(30px)';
-            
-            setTimeout(() => {
-                card.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 100 + 600);
-        });
+    scrollRightBtn.addEventListener('click', () => {
+      categoryBar.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+    
+    // Update scroll button states
+    function updateScrollButtons() {
+      if (!categoryBar) return;
+      
+      const canScrollLeft = categoryBar.scrollLeft > 0;
+      const canScrollRight = categoryBar.scrollLeft < 
+        (categoryBar.scrollWidth - categoryBar.clientWidth - 10);
+      
+      scrollLeftBtn.disabled = !canScrollLeft;
+      scrollRightBtn.disabled = !canScrollRight;
+      
+      scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0.4';
+      scrollRightBtn.style.opacity = canScrollRight ? '1' : '0.4';
     }
-
-    // Enhanced hover effects
-    roomCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            const cardHeader = this.querySelector('.card-header');
-            const cardContent = this.querySelector('.card-content');
-            
-            if (cardHeader) cardHeader.style.transform = 'translateY(-3px)';
-            if (cardContent) cardContent.style.transform = 'translateY(-2px)';
-            
-            this.style.boxShadow = '0 30px 60px rgba(102, 126, 234, 0.25)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            const cardHeader = this.querySelector('.card-header');
-            const cardContent = this.querySelector('.card-content');
-            
-            if (cardHeader) cardHeader.style.transform = 'translateY(0)';
-            if (cardContent) cardContent.style.transform = 'translateY(0)';
-            
-            this.style.boxShadow = '';
-        });
-        
-        // Enhanced click effects
-        card.addEventListener('mousedown', function() {
-            this.style.transform = 'translateY(-10px) rotateX(2deg) rotateY(1deg) scale(0.98)';
-        });
-        
-        card.addEventListener('mouseup', function() {
-            this.style.transform = 'translateY(-12px) rotateX(3deg) rotateY(2deg) scale(1)';
-        });
+    
+    // Initial update and listen for scroll
+    updateScrollButtons();
+    categoryBar.addEventListener('scroll', updateScrollButtons);
+    window.addEventListener('resize', updateScrollButtons);
+  }
+  
+  // Show more categories modal
+  if (showMoreBtn && categoriesModal && closeModalBtn) {
+    showMoreBtn.addEventListener('click', () => {
+      populateCategoriesModal();
+      categoriesModal.classList.remove('hidden');
+      categoriesModal.classList.add('show');
     });
-
-    // View toggle functionality
-    viewBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            viewBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            const view = this.getAttribute('data-view');
-            
-            if (view === 'list' && roomsGrid) {
-                roomsGrid.style.gridTemplateColumns = '1fr';
-                roomCards.forEach(card => {
-                    card.style.maxWidth = '800px';
-                    card.style.margin = '0 auto 2rem auto';
-                });
-            } else if (roomsGrid) {
-                roomsGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(380px, 1fr))';
-                roomCards.forEach(card => {
-                    card.style.maxWidth = 'none';
-                    card.style.margin = '0';
-                });
-            }
-        });
+    
+    closeModalBtn.addEventListener('click', () => {
+      categoriesModal.classList.remove('show');
+      setTimeout(() => {
+        categoriesModal.classList.add('hidden');
+      }, 300);
     });
-
-    // Advanced join button interactions
-    window.joinRoom = function(roomName) {
-        const joinButtons = document.querySelectorAll(`[onclick*="${roomName}"] .join-button`);
+    
+    // Close modal on backdrop click
+    categoriesModal.addEventListener('click', (e) => {
+      if (e.target === categoriesModal) {
+        closeModalBtn.click();
+      }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && categoriesModal.classList.contains('show')) {
+        closeModalBtn.click();
+      }
+    });
+  }
+  
+  // Populate categories modal dynamically from DOM
+  function populateCategoriesModal() {
+    const modalGrid = document.querySelector('.categories-grid-modal');
+    if (!modalGrid) return;
+    
+    // Clear existing content
+    modalGrid.innerHTML = '';
+    
+    // Create "All" category first
+    const allBtn = document.createElement('button');
+    allBtn.className = `category-modal-btn ${currentCategory === 'all' ? 'active' : ''}`;
+    allBtn.setAttribute('data-category', 'all');
+    allBtn.innerHTML = `
+      <div class="category-modal-icon">🌟</div>
+      <div class="category-modal-name">All Rooms</div>
+    `;
+    
+    allBtn.addEventListener('click', () => {
+      handleCategoryModalClick('all', allBtn);
+    });
+    
+    modalGrid.appendChild(allBtn);
+    
+    // Get categories from the DOM (from the category bar)
+    const categoryButtons = document.querySelectorAll('.category-btn:not([data-category="all"])');
+    
+    categoryButtons.forEach(btn => {
+      const category = btn.getAttribute('data-category');
+      const icon = btn.querySelector('.category-icon').textContent;
+      const name = btn.textContent.trim();
+      
+      const modalBtn = document.createElement('button');
+      modalBtn.className = `category-modal-btn ${category === currentCategory ? 'active' : ''}`;
+      modalBtn.setAttribute('data-category', category);
+      modalBtn.innerHTML = `
+        <div class="category-modal-icon">${icon}</div>
+        <div class="category-modal-name">${name}</div>
+      `;
+      
+      modalBtn.addEventListener('click', () => {
+        handleCategoryModalClick(category, modalBtn);
+      });
+      
+      modalGrid.appendChild(modalBtn);
+    });
+  }
+  
+  // Handle category modal button clicks
+  function handleCategoryModalClick(category, btn) {
+    // Update active state in modal
+    document.querySelectorAll('.category-modal-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Update main category buttons
+    categoryBtns.forEach(b => b.classList.remove('active'));
+    const mainBtn = document.querySelector(`.category-btn[data-category="${category}"]`);
+    if (mainBtn) {
+      mainBtn.classList.add('active');
+    }
+    
+    // Update current category and filter
+    currentCategory = category;
+    filterAndSortRooms();
+    
+    // Close modal
+    closeModalBtn.click();
+  }
+  
+  // Sort functionality
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      currentSort = this.value;
+      filterAndSortRooms();
+    });
+  }
+  
+  // View toggle
+  viewBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const view = this.getAttribute('data-view');
+      
+      // Update button states
+      viewBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Toggle views
+      if (view === 'grid') {
+        gridView.classList.remove('hidden');
+        listView.classList.add('hidden');
+      } else {
+        gridView.classList.add('hidden');
+        listView.classList.remove('hidden');
+      }
+    });
+  });
+  
+  // Main filter and sort function
+  function filterAndSortRooms() {
+    const gridRooms = gridView.querySelectorAll('.room-card');
+    const listRooms = listView.querySelectorAll('.room-list-item');
+    
+    // Filter grid view rooms
+    gridRooms.forEach(room => {
+      const roomCategory = room.getAttribute('data-category');
+      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+      
+      if (matchesCategory) {
+        room.style.display = '';
+      } else {
+        room.style.display = 'none';
+      }
+    });
+    
+    // Filter list view rooms
+    listRooms.forEach(room => {
+      const roomCategory = room.getAttribute('data-category');
+      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+      
+      if (matchesCategory) {
+        room.style.display = '';
+      } else {
+        room.style.display = 'none';
+      }
+    });
+    
+    // Sort visible rooms
+    sortRooms();
+  }
+  
+  function sortRooms() {
+    const gridContainer = gridView;
+    const listContainer = listView;
+    
+    // Sort grid view
+    const gridRooms = Array.from(gridContainer.querySelectorAll('.room-card')).filter(room => 
+      room.style.display !== 'none'
+    );
+    
+    // Sort list view
+    const listRooms = Array.from(listContainer.querySelectorAll('.room-list-item')).filter(room => 
+      room.style.display !== 'none'
+    );
+    
+    const sortFunction = getSortFunction();
+    
+    gridRooms.sort(sortFunction);
+    listRooms.sort(sortFunction);
+    
+    // Re-append sorted rooms
+    gridRooms.forEach(room => gridContainer.appendChild(room));
+    listRooms.forEach(room => listContainer.appendChild(room));
+  }
+  
+  function getSortFunction() {
+    switch (currentSort) {
+      case 'newest':
+        return (a, b) => new Date(b.getAttribute('data-created')) - new Date(a.getAttribute('data-created'));
+      case 'oldest':
+        return (a, b) => new Date(a.getAttribute('data-created')) - new Date(b.getAttribute('data-created'));
+      case 'name':
+        return (a, b) => a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+      case 'activity':
+      default:
+        return (a, b) => parseInt(b.getAttribute('data-activity')) - parseInt(a.getAttribute('data-activity'));
+    }
+  }
+  
+  // Enhanced mobile touch/swipe functionality
+  function initializeMobileScrolling() {
+    if (!categoryBar) return;
+    
+    let isScrolling = false;
+    let startX = 0;
+    let scrollLeft = 0;
+    let velocity = 0;
+    let lastX = 0;
+    let lastTime = 0;
+    
+    // Touch start
+    categoryBar.addEventListener('touchstart', (e) => {
+      isScrolling = true;
+      startX = e.touches[0].pageX - categoryBar.offsetLeft;
+      scrollLeft = categoryBar.scrollLeft;
+      velocity = 0;
+      lastX = e.touches[0].pageX;
+      lastTime = Date.now();
+    }, { passive: true });
+    
+    // Touch move
+    categoryBar.addEventListener('touchmove', (e) => {
+      if (!isScrolling) return;
+      
+      e.preventDefault();
+      const x = e.touches[0].pageX - categoryBar.offsetLeft;
+      const walk = (x - startX) * 1.5; // Scroll speed multiplier
+      categoryBar.scrollLeft = scrollLeft - walk;
+      
+      // Calculate velocity for momentum
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastTime;
+      if (timeDiff > 0) {
+        velocity = (e.touches[0].pageX - lastX) / timeDiff;
+      }
+      lastX = e.touches[0].pageX;
+      lastTime = currentTime;
+    }, { passive: false });
+    
+    // Touch end with momentum scrolling
+    categoryBar.addEventListener('touchend', (e) => {
+      isScrolling = false;
+      
+      // Apply momentum scrolling
+      if (Math.abs(velocity) > 0.1) {
+        const momentum = velocity * 100; // Momentum multiplier
+        const targetScroll = categoryBar.scrollLeft - momentum;
         
-        joinButtons.forEach(button => {
-            // Create ripple effect
-            const ripple = document.createElement('span');
-            ripple.style.position = 'absolute';
-            ripple.style.borderRadius = '50%';
-            ripple.style.background = 'rgba(255, 255, 255, 0.6)';
-            ripple.style.transform = 'scale(0)';
-            ripple.style.animation = 'ripple 0.8s linear';
-            ripple.style.left = '50%';
-            ripple.style.top = '50%';
-            ripple.style.width = '30px';
-            ripple.style.height = '30px';
-            ripple.style.marginLeft = '-15px';
-            ripple.style.marginTop = '-15px';
-            
-            button.style.position = 'relative';
-            button.appendChild(ripple);
-            
-            // Button state change
-            const originalHTML = button.innerHTML;
-            button.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 6L9 17l-5-5"/>
-                </svg>
-                <span>Joining...</span>
-            `;
-            button.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-            
-            setTimeout(() => {
-                button.innerHTML = `
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 6L9 17l-5-5"/>
-                    </svg>
-                    <span>Joined!</span>
-                `;
-                button.style.pointerEvents = 'none';
-            }, 1200);
-            
-            setTimeout(() => {
-                ripple.remove();
-            }, 800);
-        });
+        // Smooth momentum animation
+        categoryBar.style.scrollBehavior = 'smooth';
+        categoryBar.scrollLeft = Math.max(0, Math.min(targetScroll, categoryBar.scrollWidth - categoryBar.clientWidth));
         
-        // Show loading toast
-        if (window.utils && window.utils.showToast) {
-            window.utils.showToast('Joining room...', 'info', 1000);
-        }
-        
-        // Navigate to room after animation
         setTimeout(() => {
-            window.location.href = `/rooms/${roomName}/`;
-        }, 1500);
-    };
-
-    // Sort handling
-    window.handleSortChange = function(sortValue) {
-        const currentUrl = new URL(window.location);
-        currentUrl.searchParams.set('sort', sortValue);
-        
-        // Show loading state
-        if (window.utils && window.utils.showToast) {
-            window.utils.showToast('Sorting rooms...', 'info', 1000);
-        }
-        
-        setTimeout(() => {
-            window.location.href = currentUrl.toString();
-        }, 500);
-    };
-
-    // Enhanced category pill interactions
-    document.querySelectorAll('.category-pill').forEach(pill => {
-        pill.addEventListener('click', function(e) {
-            if (this.classList.contains('active')) {
-                e.preventDefault();
-                return;
-            }
-            
-            // Visual feedback
-            this.style.transform = 'translateY(-3px) scale(1.1)';
-            
-            // Show loading state
-            if (window.utils && window.utils.showToast) {
-                window.utils.showToast('Loading category...', 'info', 1000);
-            }
-            
-            setTimeout(() => {
-                this.style.transform = 'translateY(-3px) scale(1.05)';
-            }, 200);
-        });
+          categoryBar.style.scrollBehavior = 'auto';
+        }, 300);
+      }
+    }, { passive: true });
+    
+    // Mouse events for desktop testing
+    categoryBar.addEventListener('mousedown', (e) => {
+      isScrolling = true;
+      categoryBar.style.cursor = 'grabbing';
+      startX = e.pageX - categoryBar.offsetLeft;
+      scrollLeft = categoryBar.scrollLeft;
     });
-
-    // Advanced search integration with existing system
-    const searchResults = document.getElementById('search-results');
-    if (searchResults && window.searchManager) {
-        // Override the search manager to include room cards from this page
-        const originalPerformDOMSearch = window.searchManager.performDOMSearch;
-        
-        window.searchManager.performDOMSearch = function(query) {
-            const matchingRooms = Array.from(roomCards).filter(card => {
-                const roomTitle = card.querySelector('.room-title')?.textContent.toLowerCase();
-                const roomCategory = card.querySelector('.room-category')?.textContent.toLowerCase();
-                const roomDescription = card.querySelector('.room-description')?.textContent.toLowerCase();
-                const searchTerm = query.toLowerCase();
-                
-                return (roomTitle && roomTitle.includes(searchTerm)) || 
-                       (roomCategory && roomCategory.includes(searchTerm)) ||
-                       (roomDescription && roomDescription.includes(searchTerm));
-            });
-
-            this.showDOMResults(matchingRooms, query);
-        };
-    }
-
-    // Performance optimization
-    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
-        // Reduce animations for low-end devices
-        document.documentElement.style.setProperty('--animation-spring', 'cubic-bezier(0.25, 0.46, 0.45, 0.94)');
-        roomCards.forEach(card => {
-            card.style.willChange = 'auto';
-        });
-    }
-
-    // Initialize animations
-    initializeAnimations();
-
-    // Enhanced keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && e.target.classList.contains('room-card')) {
-            e.target.click();
-        }
+    
+    categoryBar.addEventListener('mouseleave', () => {
+      isScrolling = false;
+      categoryBar.style.cursor = 'grab';
     });
-
-    // Add loading states for better UX
-    function showLoadingState() {
-        roomCards.forEach(card => {
-            card.style.opacity = '0.6';
-            card.style.pointerEvents = 'none';
-        });
-    }
-
-    function hideLoadingState() {
-        roomCards.forEach(card => {
-            card.style.opacity = '1';
-            card.style.pointerEvents = 'auto';
-        });
-    }
-
-    // Listen for page visibility changes
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            // Pause animations when tab is not visible
-            document.querySelectorAll('.activity-fill::after').forEach(el => {
-                el.style.animationPlayState = 'paused';
-            });
-        } else {
-            // Resume animations when tab becomes visible
-            document.querySelectorAll('.activity-fill::after').forEach(el => {
-                el.style.animationPlayState = 'running';
-            });
-        }
+    
+    categoryBar.addEventListener('mouseup', () => {
+      isScrolling = false;
+      categoryBar.style.cursor = 'grab';
     });
-
-    console.log('🚀 Enhanced room discovery initialized with', roomCards.length, 'rooms');
+    
+    categoryBar.addEventListener('mousemove', (e) => {
+      if (!isScrolling) return;
+      e.preventDefault();
+      const x = e.pageX - categoryBar.offsetLeft;
+      const walk = (x - startX) * 2;
+      categoryBar.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Set initial cursor style
+    if (window.innerWidth <= 768) {
+      categoryBar.style.cursor = 'grab';
+    }
+  }
+  
+  // Initialize mobile scrolling
+  initializeMobileScrolling();
 });
-
-// Add ripple animation styles
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes ripple {
-        to {
-            transform: scale(4);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}
