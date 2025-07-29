@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Euphorie 3D</title>
+    
+    <!-- Add Capacitor core -->
+    <script src="https://unpkg.com/@capacitor/core@latest/dist/capacitor.js"></script>
+    
+    <!-- Status bar and safe area styles -->
+    <style>
+        :root {
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+        }
+        
+        body {
+            padding-top: var(--safe-area-inset-top);
+            padding-bottom: var(--safe-area-inset-bottom);
+            padding-left: var(--safe-area-inset-left);
+            padding-right: var(--safe-area-inset-right);
+        }
+        
+        /* Adjust your status panel for mobile */
+        #status-panel {
+            top: calc(15px + var(--safe-area-inset-top)) !important;
+        }
+        
+        /* Adjust mobile navigation for safe areas */
+        .mobile-bottom-nav {
+            padding-bottom: var(--safe-area-inset-bottom) !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Your app will be loaded here -->
+    </div>
+    
+    <script>
+        // Initialize Capacitor
+        window.Capacitor = Capacitor;
+        
+        // Mobile-specific initialization
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Detect if running in Capacitor
+            const isNativeMobile = Capacitor.isNativePlatform();
+            
+            if (isNativeMobile) {
+                // Import required plugins
+                const { StatusBar } = await import('@capacitor/status-bar');
+                const { Keyboard } = await import('@capacitor/keyboard');
+                const { App } = await import('@capacitor/app');
+                
+                // Configure status bar
+                try {
+                    await StatusBar.setStyle({ style: 'DARK' });
+                    await StatusBar.setBackgroundColor({ color: '#667eea' });
+                } catch (e) {
+                    console.log('Status bar plugin not available');
+                }
+                
+                // Handle keyboard events
+                Keyboard.addListener('keyboardWillShow', info => {
+                    document.body.style.paddingBottom = info.keyboardHeight + 'px';
+                });
+                
+                Keyboard.addListener('keyboardWillHide', () => {
+                    document.body.style.paddingBottom = '0';
+                });
+                
+                // Handle app state changes
+                App.addListener('appStateChange', ({ isActive }) => {
+                    if (isActive) {
+                        // App became active
+                        if (window.WebSocketManager) {
+                            window.WebSocketManager.connect();
+                        }
+                    } else {
+                        // App went to background
+                        console.log('App went to background');
+                    }
+                });
+                
+                // Handle back button
+                App.addListener('backButton', () => {
+                    // Handle back navigation
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        App.exitApp();
+                    }
+                });
+            }
+            
+            // Load your main app
+            loadMainApp();
+        });
+        
+        async function loadMainApp() {
+            try {
+                // Fetch your main template content
+                const response = await fetch('/');
+                const html = await response.text();
+                
+                // Extract and inject the content
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Copy over the necessary elements
+                document.getElementById('app-container').innerHTML = doc.body.innerHTML;
+                
+                // Copy styles
+                const styles = doc.querySelectorAll('style');
+                styles.forEach(style => {
+                    document.head.appendChild(style.cloneNode(true));
+                });
+                
+                // Copy scripts (be careful with this)
+                const scripts = doc.querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (!script.src || !script.src.includes('capacitor')) {
+                        const newScript = document.createElement('script');
+                        if (script.src) {
+                            newScript.src = script.src;
+                        } else {
+                            newScript.textContent = script.textContent;
+                        }
+                        document.body.appendChild(newScript);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Failed to load app:', error);
+            }
+        }
+    </script>
+</body>
+</html>

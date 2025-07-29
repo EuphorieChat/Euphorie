@@ -59,8 +59,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    'django.contrib.humanize',  # Added for currency formatting in payment system
+    'django.contrib.humanize', 
     'chat',
+    'mobile',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',

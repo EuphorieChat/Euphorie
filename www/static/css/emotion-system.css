@@ -1,0 +1,510 @@
+/* Emotion System CSS - Beautiful styling for emotion panel and effects */
+
+/* Emotion Panel Base Styles */
+.emotion-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: linear-gradient(135deg, rgba(20, 20, 30, 0.95) 0%, rgba(30, 30, 45, 0.95) 100%);
+    backdrop-filter: blur(25px);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 25px;
+    z-index: 1000;
+    display: none;
+    min-width: 350px;
+    max-width: 450px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.emotion-panel.active {
+    display: block;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Emotion Panel Header */
+.emotion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.emotion-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.close-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.close-btn:hover::before {
+    transform: translateX(100%);
+}
+
+/* Emotion Grid */
+.emotion-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+/* Emotion Buttons */
+.emotion-btn {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 16px 12px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 90px;
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+}
+
+.emotion-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: translateX(-100%) rotateZ(25deg);
+    transition: transform 0.6s ease;
+    pointer-events: none;
+}
+
+.emotion-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-4px) rotateX(5deg);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 
+                0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.emotion-btn:hover::before {
+    transform: translateX(100%) rotateZ(25deg);
+}
+
+.emotion-btn.active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.4) 0%, rgba(118, 75, 162, 0.4) 100%);
+    border-color: rgba(102, 126, 234, 0.6);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3), 
+                0 0 25px rgba(102, 126, 234, 0.2);
+}
+
+.emotion-btn:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+/* Emotion Icons */
+.emotion-icon {
+    font-size: 28px;
+    display: block;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.emotion-btn:hover .emotion-icon {
+    transform: scale(1.2) rotateZ(5deg);
+}
+
+.emotion-btn.active .emotion-icon {
+    transform: scale(1.15);
+    animation: emotionPulse 2s infinite;
+}
+
+@keyframes emotionPulse {
+    0%, 100% { transform: scale(1.15); }
+    50% { transform: scale(1.25); }
+}
+
+/* Emotion Names */
+.emotion-name {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+}
+
+.emotion-btn:hover .emotion-name {
+    opacity: 1;
+}
+
+/* Intensity Control */
+.emotion-intensity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-size: 14px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.emotion-intensity label {
+    min-width: 70px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+#emotion-intensity-slider {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3));
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: all 0.3s ease;
+}
+
+#emotion-intensity-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+#emotion-intensity-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+#emotion-intensity-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+#emotion-intensity-value {
+    min-width: 35px;
+    text-align: right;
+    font-weight: 700;
+    font-size: 16px;
+    color: #667eea;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Emotion Control Button in Main UI */
+.emotion-control-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.emotion-control-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.emotion-control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.emotion-control-btn:hover::before {
+    transform: translateX(100%);
+}
+
+.emotion-control-btn:active {
+    transform: translateY(0px);
+}
+
+/* Emotion Visual Effects */
+.avatar-emotion-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    animation: emotionGlow 2s infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes emotionGlow {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+/* Emotion-specific glow colors */
+.emotion-happy { box-shadow: 0 0 30px #FFD700; }
+.emotion-sad { box-shadow: 0 0 30px #4169E1; }
+.emotion-excited { box-shadow: 0 0 30px #FF6347; }
+.emotion-angry { box-shadow: 0 0 30px #DC143C; }
+.emotion-love { box-shadow: 0 0 30px #FF69B4; }
+.emotion-surprised { box-shadow: 0 0 30px #FFA500; }
+.emotion-confused { box-shadow: 0 0 30px #9370DB; }
+.emotion-tired { box-shadow: 0 0 30px #708090; }
+.emotion-laughing { box-shadow: 0 0 30px #32CD32; }
+.emotion-nervous { box-shadow: 0 0 30px #20B2AA; }
+.emotion-cool { box-shadow: 0 0 30px #4682B4; }
+.emotion-playful { box-shadow: 0 0 30px #FF1493; }
+
+/* Particle Effects */
+.emotion-particle {
+    position: absolute;
+    pointer-events: none;
+    font-size: 12px;
+    opacity: 0.8;
+    animation: particleFloat 3s infinite linear;
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translateY(0) rotateZ(0deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(-100px) rotateZ(360deg);
+        opacity: 0;
+    }
+}
+
+.particle-hearts::before {
+    content: '💖';
+}
+
+.particle-sparkles::before {
+    content: '✨';
+}
+
+.particle-teardrops::before {
+    content: '💧';
+}
+
+.particle-steam::before {
+    content: '💨';
+}
+
+.particle-exclamation::before {
+    content: '❗';
+}
+
+.particle-question_marks::before {
+    content: '❓';
+}
+
+.particle-zzz::before {
+    content: '💤';
+}
+
+.particle-laughter_bubbles::before {
+    content: '😂';
+}
+
+.particle-sweat_drops::before {
+    content: '💦';
+}
+
+.particle-cool_sparkles::before {
+    content: '⭐';
+}
+
+.particle-rainbow_sparkles::before {
+    content: '🌈';
+}
+
+.particle-fireworks::before {
+    content: '🎆';
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .emotion-panel {
+        min-width: 300px;
+        max-width: 90vw;
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    .emotion-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .emotion-btn {
+        padding: 14px 10px;
+        min-height: 80px;
+    }
+    
+    .emotion-icon {
+        font-size: 24px;
+    }
+    
+    .emotion-name {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .emotion-panel {
+        min-width: 280px;
+        padding: 15px;
+    }
+    
+    .emotion-header h3 {
+        font-size: 18px;
+    }
+    
+    .emotion-btn {
+        padding: 12px 8px;
+        min-height: 70px;
+    }
+    
+    .emotion-icon {
+        font-size: 20px;
+    }
+    
+    .emotion-intensity {
+        font-size: 13px;
+        padding: 12px;
+    }
+}
+
+/* Accessibility */
+.emotion-btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.close-btn:focus,
+#emotion-intensity-slider:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .emotion-panel {
+        background: rgba(0, 0, 0, 0.95);
+        border-color: white;
+    }
+    
+    .emotion-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: white;
+    }
+    
+    .emotion-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .emotion-panel,
+    .emotion-btn,
+    .emotion-icon,
+    .close-btn {
+        transition: none;
+        animation: none;
+    }
+    
+    .emotion-btn:hover {
+        transform: none;
+    }
+    
+    @keyframes emotionPulse,
+    @keyframes emotionGlow,
+    @keyframes particleFloat {
+        from, to { transform: none; }
+    }
+}

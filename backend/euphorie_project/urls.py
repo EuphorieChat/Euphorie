@@ -138,6 +138,9 @@ urlpatterns = [
     path('register/', lambda request: redirect('/accounts/signup/'), name='register'),
 
     # ==================== Grok Chat URL ====================
+    path('mobile/', include('mobile.urls')),
+
+    # ==================== Grok Chat URL ====================
     path('api/grok-chat/', grok_chat, name='grok_chat'),
 
     # ==================== SOCIAL MEDIA REDIRECTS ====================
