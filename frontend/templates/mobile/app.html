@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Euphorie 3D</title>
     
-    <!-- Add Capacitor core -->
-    <script src="https://unpkg.com/@capacitor/core@latest/dist/capacitor.js"></script>
-    
     <!-- Status bar and safe area styles -->
     <style>
         :root {
@@ -22,121 +19,112 @@
             padding-bottom: var(--safe-area-inset-bottom);
             padding-left: var(--safe-area-inset-left);
             padding-right: var(--safe-area-inset-right);
+            margin: 0;
+            overflow-x: hidden;
         }
         
-        /* Adjust your status panel for mobile */
         #status-panel {
             top: calc(15px + var(--safe-area-inset-top)) !important;
         }
         
-        /* Adjust mobile navigation for safe areas */
         .mobile-bottom-nav {
             padding-bottom: var(--safe-area-inset-bottom) !important;
+        }
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .loader {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div id="app-container">
-        <!-- Your app will be loaded here -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="spinner"></div>
+            <h2>Loading Euphorie...</h2>
+        </div>
     </div>
     
     <script>
-        // Initialize Capacitor
-        window.Capacitor = Capacitor;
-        
-        // Mobile-specific initialization
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Detect if running in Capacitor
-            const isNativeMobile = Capacitor.isNativePlatform();
-            
-            if (isNativeMobile) {
-                // Import required plugins
-                const { StatusBar } = await import('@capacitor/status-bar');
-                const { Keyboard } = await import('@capacitor/keyboard');
-                const { App } = await import('@capacitor/app');
-                
-                // Configure status bar
-                try {
-                    await StatusBar.setStyle({ style: 'DARK' });
-                    await StatusBar.setBackgroundColor({ color: '#667eea' });
-                } catch (e) {
-                    console.log('Status bar plugin not available');
-                }
-                
-                // Handle keyboard events
-                Keyboard.addListener('keyboardWillShow', info => {
-                    document.body.style.paddingBottom = info.keyboardHeight + 'px';
-                });
-                
-                Keyboard.addListener('keyboardWillHide', () => {
-                    document.body.style.paddingBottom = '0';
-                });
-                
-                // Handle app state changes
-                App.addListener('appStateChange', ({ isActive }) => {
-                    if (isActive) {
-                        // App became active
-                        if (window.WebSocketManager) {
-                            window.WebSocketManager.connect();
-                        }
-                    } else {
-                        // App went to background
-                        console.log('App went to background');
-                    }
-                });
-                
-                // Handle back button
-                App.addListener('backButton', () => {
-                    // Handle back navigation
-                    if (window.history.length > 1) {
-                        window.history.back();
-                    } else {
-                        App.exitApp();
-                    }
-                });
+        // Global error handler - MUST be first!
+        window.addEventListener('error', function(e) {
+            console.warn('Error caught:', e.message);
+            // Prevent errors from crashing the app
+            if (e.message && (
+                e.message.includes('triggerEvent') ||
+                e.message.includes('gtag') ||
+                e.message.includes('ga') ||
+                e.message.includes('analytics')
+            )) {
+                e.preventDefault();
+                e.stopPropagation();
+                return true;
             }
-            
-            // Load your main app
-            loadMainApp();
+        }, true);
+
+        // Stub out common analytics/tracking functions BEFORE loading content
+        const stubs = [
+            'triggerEvent', 'gtag', 'ga', 'analytics', '_gaq',
+            'fbq', 'heap', 'mixpanel', 'Intercom', 'drift',
+            'dataLayer', 'clarity', 'hotjar'
+        ];
+        
+        stubs.forEach(function(stub) {
+            if (typeof window[stub] === 'undefined') {
+                window[stub] = function() {
+                    console.log(stub + ' (stubbed)');
+                };
+            }
         });
-        
-        async function loadMainApp() {
-            try {
-                // Fetch your main template content
-                const response = await fetch('/');
-                const html = await response.text();
-                
-                // Extract and inject the content
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // Copy over the necessary elements
-                document.getElementById('app-container').innerHTML = doc.body.innerHTML;
-                
-                // Copy styles
-                const styles = doc.querySelectorAll('style');
-                styles.forEach(style => {
-                    document.head.appendChild(style.cloneNode(true));
-                });
-                
-                // Copy scripts (be careful with this)
-                const scripts = doc.querySelectorAll('script');
-                scripts.forEach(script => {
-                    if (!script.src || !script.src.includes('capacitor')) {
-                        const newScript = document.createElement('script');
-                        if (script.src) {
-                            newScript.src = script.src;
-                        } else {
-                            newScript.textContent = script.textContent;
-                        }
-                        document.body.appendChild(newScript);
-                    }
-                });
-                
-            } catch (error) {
-                console.error('Failed to load app:', error);
+
+        // Also create google analytics objects that might be expected
+        window.ga = window.ga || function() { console.log('ga (stubbed)'); };
+        window.ga.q = window.ga.q || [];
+        window._gaq = window._gaq || [];
+        window.dataLayer = window.dataLayer || [];
+
+        // Simply redirect to your website - let the server handle everything
+        function loadApp() {
+            // Hide loading screen
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
             }
+            
+            // Just redirect to your main site
+            window.location.replace('https://euphorie.com');
         }
+
+        // Wait a moment for error handlers to be set up, then redirect
+        setTimeout(loadApp, 100);
     </script>
 </body>
 </html>
