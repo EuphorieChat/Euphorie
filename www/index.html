@@ -6,9 +6,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Euphorie 3D</title>
     
-    <!-- Capacitor Core -->
-    <script src="https://unpkg.com/@capacitor/core@latest/dist/capacitor.js"></script>
-    
     <style>
         body {
             margin: 0;
@@ -47,31 +44,20 @@
     </div>
     
     <script>
-        // Initialize Capacitor
-        window.Capacitor = Capacitor;
+        // DO NOT include external Capacitor script - it's injected automatically
+        // Since server.url is set to https://euphorie.com in config,
+        // Capacitor will load that URL automatically.
+        // This page is just a fallback/loading screen.
         
-        // Function to load the main app
-        async function loadApp() {
-            try {
-                // Check if we're in a native app
-                const isNative = Capacitor.isNativePlatform();
-                
-                if (isNative) {
-                    // In native app, load from server
-                    window.location.replace('https://euphorie.app/mobile/');
-                } else {
-                    // In browser, redirect to main site
-                    window.location.replace('https://euphorie.app/');
-                }
-            } catch (error) {
-                console.error('Error loading app:', error);
-                document.querySelector('.loading').innerHTML = 
-                    '<h2>Error loading app</h2><p>Please check your internet connection</p>';
+        console.log('Euphorie 3D loading...');
+        
+        // The server.url in capacitor.config.json handles the actual loading
+        // This is just a fallback in case something goes wrong
+        setTimeout(() => {
+            if (document.querySelector('.loading')) {
+                console.log('Still on loading page after 5 seconds');
             }
-        }
-        
-        // Load app after a short delay
-        setTimeout(loadApp, 1000);
+        }, 5000);
     </script>
 </body>
 </html>

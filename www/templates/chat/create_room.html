@@ -1,0 +1,1975 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Create New Room - Euphorie{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Enhanced Create Room Styles with Modern UX */
+.create-room-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.create-room-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.create-room-title {
+    font-size: 3rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.create-room-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.progress-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    gap: 0.5rem;
+}
+
+.progress-step {
+    width: 3rem;
+    height: 4px;
+    background: var(--border);
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.progress-step.active {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+}
+
+.progress-step.completed {
+    background: var(--success);
+}
+
+.user-stats {
+    background: linear-gradient(135deg, 
+        rgba(244, 114, 182, 0.08) 0%, 
+        rgba(96, 165, 250, 0.08) 50%, 
+        rgba(139, 92, 246, 0.08) 100%
+    );
+    border: 1px solid rgba(244, 114, 182, 0.15);
+    border-radius: var(--radius-2xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(10px);
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-item {
+    text-align: center;
+    position: relative;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.form-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-2xl);
+    padding: 3rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+    flex: 1;
+}
+
+.form-section {
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: slideInLeft 0.5s ease-out forwards;
+}
+
+.form-section:nth-child(1) { animation-delay: 0.6s; }
+.form-section:nth-child(2) { animation-delay: 0.8s; }
+.form-section:nth-child(3) { animation-delay: 1s; }
+
+.section-title {
+    font-size: 1.375rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 0.75rem;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 3rem;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 9999px;
+}
+
+.section-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 0.375rem;
+    border-radius: var(--radius-lg);
+}
+
+.form-group {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.form-label {
+    display: block;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+}
+
+.form-label.required::after {
+    content: " *";
+    color: var(--danger);
+    font-weight: 900;
+}
+
+/* Enhanced Input Field Styles */
+.form-group {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.form-input, .form-textarea, .form-select {
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-2xl);
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.2), rgba(96, 165, 250, 0.2)) border-box;
+    position: relative;
+    z-index: 1;
+}
+
+.form-input::placeholder, .form-textarea::placeholder {
+    color: var(--text-tertiary);
+    transition: all 0.3s ease;
+}
+
+.form-input:hover, .form-textarea:hover, .form-select:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px);
+    box-shadow: 
+        0 8px 25px -8px rgba(244, 114, 182, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.1);
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+    outline: none;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    transform: translateY(-3px);
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25),
+        0 5px 15px -5px rgba(244, 114, 182, 0.1);
+}
+
+.form-input:focus::placeholder, .form-textarea:focus::placeholder {
+    color: transparent;
+    transform: translateY(-20px);
+}
+
+/* Floating Label Effect */
+.floating-label-container {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.floating-label {
+    position: absolute;
+    left: 1.5rem;
+    top: 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    padding: 0 0.5rem;
+    border-radius: var(--radius-md);
+    transform-origin: left center;
+}
+
+.floating-label.required::after {
+    content: " *";
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.floating-input {
+    padding: 1.5rem 1.5rem 0.75rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-2xl);
+    font-size: 1rem;
+    font-weight: 500;
+    width: 100%;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-input:focus,
+.floating-input:not(:placeholder-shown) {
+    padding-top: 1.75rem;
+    padding-bottom: 0.5rem;
+}
+
+.floating-input:focus + .floating-label,
+.floating-input:not(:placeholder-shown) + .floating-label {
+    transform: translateY(-1.5rem) translateX(-0.25rem) scale(0.85);
+    color: var(--primary);
+    background: white;
+    font-weight: 600;
+}
+
+.floating-input:focus {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
+    transform: translateY(-2px);
+}
+
+/* Enhanced Icon Container */
+.input-icon-container {
+    position: relative;
+    width: 100%;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    width: 1.5rem;
+    height: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+    background: rgba(244, 114, 182, 0.05);
+    border-radius: var(--radius-md);
+    padding: 0.25rem;
+}
+
+.form-input.input-with-icon {
+    padding-left: 4rem;
+}
+
+.floating-input.input-with-icon {
+    padding-left: 4rem;
+}
+
+.floating-input.input-with-icon:focus + .floating-label,
+.floating-input.input-with-icon:not(:placeholder-shown) + .floating-label {
+    left: 4rem;
+}
+
+.form-input:focus ~ .input-icon,
+.floating-input:focus ~ .input-icon {
+    color: var(--primary);
+    background: rgba(244, 114, 182, 0.15);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.form-input:hover ~ .input-icon,
+.floating-input:hover ~ .input-icon {
+    background: rgba(244, 114, 182, 0.1);
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Enhanced Textarea Styles */
+.form-textarea {
+    resize: vertical;
+    min-height: 140px;
+    line-height: 1.7;
+    font-family: inherit;
+}
+
+.form-textarea:focus {
+    min-height: 160px;
+}
+
+/* Enhanced Custom Dropdown Styles */
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.custom-select-trigger {
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-2xl);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.2), rgba(96, 165, 250, 0.2)) border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    user-select: none;
+}
+
+.custom-select-trigger:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px);
+    box-shadow: 
+        0 8px 25px -8px rgba(244, 114, 182, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.1);
+}
+
+.custom-select-trigger.active {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    transform: translateY(-2px);
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
+}
+
+.custom-select-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.custom-select-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    background: rgba(244, 114, 182, 0.1);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.custom-select-text {
+    flex: 1;
+    text-align: left;
+}
+
+.custom-select-text.placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.custom-select-arrow {
+    width: 1.25rem;
+    height: 1.25rem;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--primary);
+}
+
+.custom-select-trigger.active .custom-select-arrow {
+    transform: rotate(180deg);
+}
+
+.custom-select-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(244, 114, 182, 0.2);
+    border-radius: var(--radius-2xl);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    max-height: 300px;
+    overflow: hidden;
+}
+
+.custom-select-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.custom-select-options {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.custom-select-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    border-radius: var(--radius-xl);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    margin-bottom: 0.25rem;
+}
+
+.custom-select-option:hover {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.15);
+}
+
+.custom-select-option.selected {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15));
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.custom-select-option.selected::after {
+    content: '✓';
+    position: absolute;
+    right: 1rem;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.custom-select-option-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    background: rgba(244, 114, 182, 0.1);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.custom-select-option:hover .custom-select-option-icon {
+    background: rgba(244, 114, 182, 0.2);
+    transform: scale(1.1);
+}
+
+.custom-select-option-content {
+    flex: 1;
+}
+
+.custom-select-option-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.custom-select-option-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.custom-select-search {
+    padding: 0.75rem 1rem;
+    margin: 0.5rem;
+    border: 1px solid rgba(244, 114, 182, 0.2);
+    border-radius: var(--radius-lg);
+    font-size: 0.9rem;
+    background: rgba(244, 114, 182, 0.05);
+    transition: all 0.3s ease;
+}
+
+.custom-select-search:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+}
+
+.custom-select-search::placeholder {
+    color: var(--text-tertiary);
+}
+
+.custom-select-no-results {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* Scrollbar for dropdown */
+.custom-select-options::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-select-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-select-options::-webkit-scrollbar-thumb {
+    background: rgba(244, 114, 182, 0.3);
+    border-radius: 10px;
+}
+
+.custom-select-options::-webkit-scrollbar-thumb:hover {
+    background: rgba(244, 114, 182, 0.5);
+}
+
+/* Success/Error States */
+.form-input.success, .form-textarea.success, .form-select.success {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(34, 197, 94, 0.3)) border-box;
+}
+
+.form-input.success:focus, .form-textarea.success:focus {
+    box-shadow: 
+        0 0 0 4px rgba(16, 185, 129, 0.2),
+        0 15px 35px -5px rgba(16, 185, 129, 0.15);
+}
+
+.form-input.error, .form-textarea.error, .form-select.error {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3)) border-box;
+    animation: shakeX 0.5s ease-out;
+}
+
+.form-input.error:focus, .form-textarea.error:focus {
+    box-shadow: 
+        0 0 0 4px rgba(239, 68, 68, 0.2),
+        0 15px 35px -5px rgba(239, 68, 68, 0.15);
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.05), rgba(96, 165, 250, 0.05));
+    border: 2px solid transparent;
+    border-radius: var(--radius-xl);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.checkbox-group::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(96, 165, 250, 0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.checkbox-group:hover::before {
+    opacity: 1;
+}
+
+.checkbox-group:hover {
+    border-color: rgba(244, 114, 182, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+}
+
+.checkbox {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    appearance: none;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.checkbox:checked {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 900;
+}
+
+.checkbox-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.checkbox-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    line-height: 1.5;
+}
+
+.tags-input {
+    position: relative;
+}
+
+.tags-preview {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+    padding: 1rem;
+    background: rgba(244, 114, 182, 0.03);
+    border-radius: var(--radius-lg);
+    border: 1px dashed rgba(244, 114, 182, 0.2);
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--primary-light), rgba(96, 165, 250, 0.1));
+    color: var(--primary);
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid rgba(244, 114, 182, 0.3);
+    animation: tagPopIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.help-text {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    margin-top: 0.75rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.help-text::before {
+    content: 'ℹ️';
+    font-size: 0.75rem;
+}
+
+.character-counter {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    text-align: right;
+    margin-top: 0.5rem;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.character-counter.warning {
+    color: var(--warning);
+}
+
+.character-counter.danger {
+    color: var(--danger);
+    animation: pulse 2s infinite;
+}
+
+.alert {
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius-xl);
+    margin-bottom: 2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideInDown 0.5s ease-out;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    color: #d97706;
+    border: 1px solid #fbbf24;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: #dc2626;
+    border: 1px solid #f87171;
+}
+
+.form-actions {
+    padding-top: 2.5rem;
+    border-top: 1px solid rgba(244, 114, 182, 0.1);
+    display: flex;
+    gap: 1.5rem;
+    justify-content: flex-end;
+    margin-top: 3rem;
+}
+
+.btn-create {
+    padding: 1rem 2.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+    color: white;
+    border-radius: var(--radius-xl);
+    font-weight: 800;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 10px 25px -3px rgba(244, 114, 182, 0.3),
+        0 4px 6px -2px rgba(244, 114, 182, 0.05);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-create::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.btn-create:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 20px 40px -6px rgba(244, 114, 182, 0.4),
+        0 8px 16px -4px rgba(244, 114, 182, 0.1);
+}
+
+.btn-create:hover::before {
+    left: 100%;
+}
+
+.btn-create:active {
+    transform: translateY(-1px);
+}
+
+.btn-create:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-cancel {
+    padding: 1rem 2rem;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-primary);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-xl);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.btn-cancel:hover {
+    background: white;
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+}
+
+.error-message {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: var(--danger);
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--danger);
+    font-size: 0.95rem;
+    font-weight: 500;
+    animation: shakeX 0.5s ease-out;
+}
+
+.error-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.75rem 0 0 0;
+}
+
+.error-list li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.error-list li::before {
+    content: '⚠️';
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* Loading States */
+.btn-create.loading {
+    pointer-events: none;
+}
+
+.btn-create.loading::after {
+    content: '';
+    position: absolute;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: auto;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Enhanced Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes tagPopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes shakeX {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Enhanced Mobile Optimizations */
+@media (max-width: 768px) {
+    .create-room-container {
+        padding: 1rem;
+    }
+
+    .create-room-title {
+        font-size: 2.25rem;
+    }
+
+    .create-room-subtitle {
+        font-size: 1.125rem;
+    }
+
+    .form-container {
+        padding: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .section-title::after {
+        width: 100%;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn-create,
+    .btn-cancel {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+    }
+
+    .checkbox-group {
+        padding: 1.25rem;
+    }
+
+    .form-input, .form-textarea, .form-select {
+        padding: 0.875rem 1rem;
+    }
+
+    .form-input.input-with-icon {
+        padding-left: 3rem;
+    }
+
+    .input-icon {
+        left: 1rem;
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .form-input, .form-textarea, .form-select {
+        border-width: 3px;
+    }
+    
+    .btn-create {
+        border: 2px solid var(--primary);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus indicators for accessibility */
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.form-select:focus-visible,
+.checkbox:focus-visible,
+.btn-create:focus-visible,
+.btn-cancel:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-room-container">
+    <!-- Enhanced Header Section -->
+    <div class="create-room-header">
+        <h1 class="create-room-title">Create Your Space</h1>
+        <p class="create-room-subtitle">
+            Design a unique 3D environment where meaningful conversations flourish. 
+            Every detail matters in building your perfect digital gathering place.
+        </p>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator">
+        <div class="progress-step active" title="Basic Information"></div>
+        <div class="progress-step" title="Category & Discovery"></div>
+        <div class="progress-step" title="Room Settings"></div>
+    </div>
+
+    <!-- Enhanced User Stats Section -->
+    {% if user_room_count is not None %}
+    <div class="user-stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-value">{{ user_room_count }}</span>
+                <div class="stat-label">Rooms Created</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value{% if remaining_slots <= 2 %} text-warning{% endif %}{% if remaining_slots == 0 %} text-danger{% endif %}">
+                    {{ remaining_slots|default_if_none:0 }}
+                </span>
+                <div class="stat-label">Remaining Slots</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ max_rooms }}</span>
+                <div class="stat-label">Total Allowed</div>
+            </div>
+        </div>
+    </div>
+    
+    {% if remaining_slots <= 2 and remaining_slots > 0 %}
+    <div class="alert alert-warning">
+        ⚠️ You're approaching your room limit. You can create {{ remaining_slots }} more room{{ remaining_slots|pluralize }}.
+    </div>
+    {% elif remaining_slots == 0 %}
+    <div class="alert alert-danger">
+        🚫 You've reached your maximum room limit. Delete some rooms to create new ones.
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Enhanced Form Container -->
+    <div class="form-container">
+        <form method="post" id="create-room-form" novalidate>
+            {% csrf_token %}
+
+            <!-- Enhanced Error Display -->
+            {% if form.errors %}
+            <div class="error-message">
+                <strong>🚨 Please correct the following errors:</strong>
+                <ul class="error-list">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Enhanced Basic Information Section -->
+            <div class="form-section" data-step="1">
+                <h3 class="section-title">
+                    <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Basic Information
+                </h3>
+
+                <!-- Enhanced Room Name with Floating Label -->
+                <div class="floating-label-container">
+                    <div class="input-icon-container">
+                        <input type="text" id="id_name" name="name" class="floating-input input-with-icon" placeholder=" " maxlength="100" required>
+                        <label for="id_name" class="floating-label required">Room Name</label>
+                        <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <div class="character-counter" id="name-counter">0 / 100</div>
+                    <div class="help-text">Choose a unique, memorable name. Only letters, numbers, spaces, hyphens, and underscores allowed.</div>
+                </div>
+
+                <!-- Enhanced Display Name with Floating Label -->
+                <div class="floating-label-container">
+                    <input type="text" id="id_display_name" name="display_name" class="floating-input" placeholder=" " maxlength="255">
+                    <label for="id_display_name" class="floating-label">Display Name</label>
+                    <div class="character-counter" id="display-name-counter">0 / 255</div>
+                    <div class="help-text">Optional friendly name shown to users. Leave empty to use the room name.</div>
+                </div>
+
+                <!-- Enhanced Description with Floating Label -->
+                <div class="floating-label-container">
+                    <textarea id="id_description" name="description" class="floating-input form-textarea" placeholder=" " maxlength="500" rows="4"></textarea>
+                    <label for="id_description" class="floating-label">Description</label>
+                    <div class="character-counter" id="description-counter">0 / 500</div>
+                    <div class="help-text">Describe your room's purpose and what kind of conversations you'd like to foster.</div>
+                </div>
+            </div>
+
+            <!-- Enhanced Category & Discovery Section -->
+            <div class="form-section" data-step="2">
+                <h3 class="section-title">
+                    <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    Category & Discovery
+                </h3>
+
+                <!-- Enhanced Category with Custom Dropdown -->
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <div class="custom-select-wrapper" id="category-select-wrapper">
+                        <div class="custom-select-trigger" id="category-trigger">
+                            <div class="custom-select-content">
+                                <div class="custom-select-icon">📂</div>
+                                <div class="custom-select-text placeholder" id="category-selected-text">
+                                    Select a category (optional)
+                                </div>
+                            </div>
+                            <svg class="custom-select-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        
+                        <div class="custom-select-dropdown" id="category-dropdown">
+                            <input type="text" class="custom-select-search" placeholder="Search categories..." id="category-search">
+                            <div class="custom-select-options" id="category-options">
+                                <!-- Default option -->
+                                <div class="custom-select-option" data-value="" data-icon="📂" data-name="No Category" data-description="General discussion room">
+                                    <div class="custom-select-option-icon">📂</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">No Category</div>
+                                        <div class="custom-select-option-description">General discussion room</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Dynamic categories from Django -->
+                                {% for choice in form.category.field.queryset %}
+                                <div class="custom-select-option" 
+                                     data-value="{{ choice.id }}" 
+                                     data-icon="{{ choice.icon|default:'📁' }}" 
+                                     data-name="{{ choice.name }}" 
+                                     data-description="{{ choice.description|default:'No description available' }}">
+                                    <div class="custom-select-option-icon">{{ choice.icon|default:'📁' }}</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">{{ choice.name }}</div>
+                                        <div class="custom-select-option-description">{{ choice.description|default:'No description available' }}</div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <!-- Fallback categories if no categories exist -->
+                                <div class="custom-select-option" data-value="general" data-icon="💬" data-name="General Discussion" data-description="Open discussions about any topic">
+                                    <div class="custom-select-option-icon">💬</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">General Discussion</div>
+                                        <div class="custom-select-option-description">Open discussions about any topic</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="gaming" data-icon="🎮" data-name="Gaming" data-description="Video games, board games, and gaming culture">
+                                    <div class="custom-select-option-icon">🎮</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Gaming</div>
+                                        <div class="custom-select-option-description">Video games, board games, and gaming culture</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="technology" data-icon="💻" data-name="Technology" data-description="Tech discussions, programming, and innovation">
+                                    <div class="custom-select-option-icon">💻</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Technology</div>
+                                        <div class="custom-select-option-description">Tech discussions, programming, and innovation</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="music" data-icon="🎵" data-name="Music & Arts" data-description="Music, visual arts, and creative expressions">
+                                    <div class="custom-select-option-icon">🎵</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Music & Arts</div>
+                                        <div class="custom-select-option-description">Music, visual arts, and creative expressions</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="sports" data-icon="⚽" data-name="Sports & Fitness" data-description="Sports discussions and fitness topics">
+                                    <div class="custom-select-option-icon">⚽</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Sports & Fitness</div>
+                                        <div class="custom-select-option-description">Sports discussions and fitness topics</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-select-option" data-value="education" data-icon="📚" data-name="Education & Learning" data-description="Learning, studying, and academic discussions">
+                                    <div class="custom-select-option-icon">📚</div>
+                                    <div class="custom-select-option-content">
+                                        <div class="custom-select-option-name">Education & Learning</div>
+                                        <div class="custom-select-option-description">Learning, studying, and academic discussions</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden input for form submission -->
+                    <input type="hidden" name="category" id="category-hidden-input" value="">
+                    
+                    {% if not categories_count or categories_count == 0 %}
+                    <div class="help-text" style="color: var(--warning);">
+                        ⚠️ No categories available yet. Your room will be assigned to "General Discussion" automatically.
+                    </div>
+                    {% else %}
+                    <div class="help-text">Choose a category to help users discover your room. Defaults to General Discussion if none selected.</div>
+                    {% endif %}
+                </div>
+
+                <!-- Optional: Category Suggestion -->
+                {% if form.suggest_new_category %}
+                <div class="floating-label-container">
+                    <input type="text" id="id_suggest_new_category" name="suggest_new_category" class="floating-input" placeholder=" " maxlength="50">
+                    <label for="id_suggest_new_category" class="floating-label">Suggest New Category</label>
+                    <div class="help-text">Don't see the right category? Suggest one for admin review!</div>
+                </div>
+                {% endif %}
+
+                <!-- Enhanced Tags with Floating Label -->
+                <div class="floating-label-container">
+                    <div class="tags-input">
+                        <input type="text" id="id_tags" name="tags" class="floating-input" placeholder=" " maxlength="200">
+                        <label for="id_tags" class="floating-label">Tags</label>
+                        <div class="tags-preview" id="tags-preview">
+                            <span style="color: var(--text-tertiary); font-style: italic;">No tags added yet</span>
+                        </div>
+                    </div>
+                    <div class="character-counter" id="tags-counter">0 / 200</div>
+                    <div class="help-text">Comma-separated tags help users find your room (e.g., gaming, music, art). Maximum 10 tags.</div>
+                </div>
+            </div>
+
+            <!-- Enhanced Room Settings Section -->
+            <div class="form-section" data-step="3">
+                <h3 class="section-title">
+                    <svg class="section-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Room Settings
+                </h3>
+
+                <!-- Enhanced Max Users with Floating Label -->
+                <div class="floating-label-container">
+                    <input type="number" id="id_max_users" name="max_users" class="floating-input" placeholder=" " min="2" max="100" value="50">
+                    <label for="id_max_users" class="floating-label">Maximum Users</label>
+                    <div class="help-text">Set the maximum number of users (2-100). Consider your room's purpose when choosing.</div>
+                </div>
+
+                <!-- Enhanced Public Room -->
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.is_public }}
+                        <label for="{{ form.is_public.id_for_label }}" class="checkbox-label">
+                            Public Room
+                            <div class="checkbox-description">
+                                Allow anyone to discover and join this room. Private rooms are only accessible via direct link and won't appear in search results.
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'index' %}" class="btn-cancel">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                </a>
+                <button type="submit" class="btn-create" id="submit-btn">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span id="submit-text">Create Room</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('create-room-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const progressSteps = document.querySelectorAll('.progress-step');
+
+    // Enhanced progress tracking
+    function updateProgress() {
+        const sections = document.querySelectorAll('.form-section');
+        let completedSections = 0;
+
+        sections.forEach((section, index) => {
+            const inputs = section.querySelectorAll('input, textarea, select');
+            let sectionComplete = false;
+
+            // Check if at least one input in the section has a value
+            inputs.forEach(input => {
+                if (input.value.trim() && input.name !== 'suggest_new_category') {
+                    sectionComplete = true;
+                }
+            });
+
+            // Update progress step
+            if (index < progressSteps.length) {
+                if (sectionComplete) {
+                    progressSteps[index].classList.add('completed');
+                    completedSections++;
+                } else {
+                    progressSteps[index].classList.remove('completed');
+                }
+            }
+        });
+
+        // Update button text based on progress
+        if (completedSections === sections.length) {
+            submitText.textContent = '🚀 Launch Room';
+        } else {
+            submitText.textContent = 'Create Room';
+        }
+    }
+
+    // Enhanced character counters with better UX
+    const counters = [
+        { input: 'id_name', counter: 'name-counter', max: 100, required: true },
+        { input: 'id_display_name', counter: 'display-name-counter', max: 255 },
+        { input: 'id_description', counter: 'description-counter', max: 500 },
+        { input: 'id_tags', counter: 'tags-counter', max: 200 }
+    ];
+
+    // Enhanced input field interactions and validation
+    function initializeInputEnhancements() {
+        // Add floating label functionality to all floating inputs
+        document.querySelectorAll('.floating-input').forEach(input => {
+            const label = input.nextElementSibling;
+            
+            // Handle focus/blur events
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('focused');
+                
+                // Add validation classes
+                if (input.hasAttribute('required') && !input.value.trim()) {
+                    input.classList.add('error');
+                    input.classList.remove('success');
+                } else if (input.value.trim()) {
+                    input.classList.add('success');
+                    input.classList.remove('error');
+                } else {
+                    input.classList.remove('error', 'success');
+                }
+            });
+            
+            // Handle input events for real-time feedback
+            input.addEventListener('input', () => {
+                input.classList.remove('error');
+                
+                // Validate as user types
+                if (input.type === 'text' && input.name === 'name') {
+                    // Room name validation
+                    const value = input.value;
+                    input.value = value.replace(/[^a-zA-Z0-9\s\-_]/g, '');
+                    
+                    if (input.value.length >= 3) {
+                        input.classList.add('success');
+                    } else {
+                        input.classList.remove('success');
+                    }
+                } else if (input.value.trim()) {
+                    input.classList.add('success');
+                } else {
+                    input.classList.remove('success');
+                }
+            });
+        });
+        
+        // Enhanced character counting with smooth animations
+        const enhancedCounters = [
+            { input: 'id_name', counter: 'name-counter', max: 100, required: true },
+            { input: 'id_display_name', counter: 'display-name-counter', max: 255 },
+            { input: 'id_description', counter: 'description-counter', max: 500 },
+            { input: 'id_tags', counter: 'tags-counter', max: 200 }
+        ];
+
+        enhancedCounters.forEach(({ input, counter, max, required }) => {
+            const inputElement = document.getElementById(input);
+            const counterElement = document.getElementById(counter);
+            
+            if (inputElement && counterElement) {
+                function updateCounter() {
+                    const length = inputElement.value.length;
+                    const percentage = (length / max) * 100;
+                    
+                    // Animate the counter
+                    counterElement.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        counterElement.style.transform = 'scale(1)';
+                    }, 150);
+                    
+                    counterElement.textContent = `${length} / ${max}`;
+                    
+                    // Reset classes
+                    counterElement.className = 'character-counter';
+                    
+                    // Add appropriate class based on percentage
+                    if (percentage > 90) {
+                        counterElement.classList.add('danger');
+                    } else if (percentage > 75) {
+                        counterElement.classList.add('warning');
+                    }
+                    
+                    // Update progress
+                    updateProgress();
+                }
+                
+                inputElement.addEventListener('input', updateCounter);
+                inputElement.addEventListener('blur', updateProgress);
+                updateCounter(); // Initial update
+            }
+        });
+    }
+
+    // Enhanced tags with better UX
+    function initializeTagsEnhancement() {
+        const tagsInput = document.getElementById('id_tags');
+        const tagsPreview = document.getElementById('tags-preview');
+        
+        if (tagsInput && tagsPreview) {
+            function updateTagsPreview() {
+                const tags = tagsInput.value.split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag)
+                    .slice(0, 10); // Limit to 10 tags
+                
+                // Clear preview
+                tagsPreview.innerHTML = '';
+                
+                if (tags.length === 0) {
+                    tagsPreview.innerHTML = '<span style="color: var(--text-tertiary); font-style: italic;">Start typing tags separated by commas...</span>';
+                } else {
+                    tags.forEach((tag, index) => {
+                        const tagElement = document.createElement('span');
+                        tagElement.className = 'tag-item';
+                        tagElement.textContent = tag;
+                        tagElement.style.animationDelay = `${index * 0.1}s`;
+                        
+                        // Add click to remove functionality
+                        tagElement.style.cursor = 'pointer';
+                        tagElement.title = 'Click to remove';
+                        tagElement.addEventListener('click', () => {
+                            const allTags = tagsInput.value.split(',').map(t => t.trim());
+                            const newTags = allTags.filter(t => t !== tag);
+                            tagsInput.value = newTags.join(', ');
+                            updateTagsPreview();
+                        });
+                        
+                        tagsPreview.appendChild(tagElement);
+                    });
+                    
+                    if (tagsInput.value.split(',').length > 10) {
+                        const warningElement = document.createElement('span');
+                        warningElement.style.color = 'var(--warning)';
+                        warningElement.style.fontSize = '0.8rem';
+                        warningElement.style.fontStyle = 'italic';
+                        warningElement.textContent = '(Only first 10 tags shown)';
+                        tagsPreview.appendChild(warningElement);
+                    }
+                }
+                
+                updateProgress();
+            }
+            
+            tagsInput.addEventListener('input', updateTagsPreview);
+            
+            // Add Enter key support for tags
+            tagsInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const currentValue = tagsInput.value.trim();
+                    if (currentValue && !currentValue.endsWith(',')) {
+                        tagsInput.value = currentValue + ', ';
+                        updateTagsPreview();
+                    }
+                }
+            });
+            
+            updateTagsPreview(); // Initial update
+        }
+    }
+
+    // Enhanced auto-generation with better UX
+    function initializeAutoGeneration() {
+        const nameInput = document.getElementById('id_name');
+        const displayNameInput = document.getElementById('id_display_name');
+        
+        if (nameInput && displayNameInput) {
+            let userHasTypedDisplayName = false;
+            
+            displayNameInput.addEventListener('input', () => {
+                userHasTypedDisplayName = displayNameInput.value.length > 0;
+            });
+            
+            nameInput.addEventListener('input', function() {
+                if (!userHasTypedDisplayName && this.value.length > 0) {
+                    // Generate a nicer display name with animation
+                    const displayName = this.value
+                        .split(/[\s\-_]+/)
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                        .join(' ');
+                    
+                    // Animate the change
+                    displayNameInput.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        displayNameInput.value = displayName;
+                        displayNameInput.style.transform = 'scale(1)';
+                        displayNameInput.dispatchEvent(new Event('input'));
+                    }, 100);
+                }
+            });
+        }
+    }
+
+    // Enhanced custom dropdown functionality
+    function initializeCategoryDropdown() {
+        const wrapper = document.getElementById('category-select-wrapper');
+        const trigger = document.getElementById('category-trigger');
+        const dropdown = document.getElementById('category-dropdown');
+        const selectedText = document.getElementById('category-selected-text');
+        const hiddenInput = document.getElementById('category-hidden-input');
+        const searchInput = document.getElementById('category-search');
+        const optionsContainer = document.getElementById('category-options');
+        
+        if (!wrapper || !trigger || !dropdown) return;
+        
+        let isOpen = false;
+        let selectedOption = null;
+        
+        // Toggle dropdown
+        function toggleDropdown() {
+            isOpen = !isOpen;
+            
+            if (isOpen) {
+                openDropdown();
+            } else {
+                closeDropdown();
+            }
+        }
+        
+        function openDropdown() {
+            isOpen = true;
+            trigger.classList.add('active');
+            dropdown.classList.add('active');
+            searchInput.focus();
+            
+            // Close other dropdowns and overlays
+            document.addEventListener('click', handleOutsideClick);
+            document.addEventListener('keydown', handleKeyDown);
+        }
+        
+        function closeDropdown() {
+            isOpen = false;
+            trigger.classList.remove('active');
+            dropdown.classList.remove('active');
+            searchInput.value = '';
+            filterOptions('');
+            
+            document.removeEventListener('click', handleOutsideClick);
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+        
+        function handleOutsideClick(e) {
+            if (!wrapper.contains(e.target)) {
+                closeDropdown();
+            }
+        }
+        
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        }
+        
+        // Select option
+        function selectOption(optionElement) {
+            // Remove previous selection
+            document.querySelectorAll('.custom-select-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Select new option
+            optionElement.classList.add('selected');
+            selectedOption = optionElement;
+            
+            // Update display
+            const icon = optionElement.dataset.icon;
+            const name = optionElement.dataset.name;
+            const value = optionElement.dataset.value;
+            
+            selectedText.textContent = name;
+            selectedText.classList.remove('placeholder');
+            
+            // Update icon
+            const triggerIcon = trigger.querySelector('.custom-select-icon');
+            triggerIcon.textContent = icon;
+            
+            // Update hidden input
+            hiddenInput.value = value;
+            
+            // Close dropdown
+            closeDropdown();
+            
+            // Trigger change event for form validation
+            hiddenInput.dispatchEvent(new Event('change'));
+        }
+        
+        // Filter options based on search
+        function filterOptions(searchTerm) {
+            const options = optionsContainer.querySelectorAll('.custom-select-option');
+            let visibleCount = 0;
+            
+            options.forEach(option => {
+                const name = option.dataset.name.toLowerCase();
+                const description = option.dataset.description.toLowerCase();
+                const matches = name.includes(searchTerm.toLowerCase()) || 
+                              description.includes(searchTerm.toLowerCase());
+                
+                if (matches) {
+                    option.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no results message
+            let noResults = optionsContainer.querySelector('.custom-select-no-results');
+            if (visibleCount === 0 && searchTerm.trim()) {
+                if (!noResults) {
+                    noResults = document.createElement('div');
+                    noResults.className = 'custom-select-no-results';
+                    noResults.textContent = 'No categories found';
+                    optionsContainer.appendChild(noResults);
+                }
+                noResults.style.display = 'block';
+            } else if (noResults) {
+                noResults.style.display = 'none';
+            }
+        }
+        
+        // Event listeners
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+        
+        // Option selection
+        optionsContainer.addEventListener('click', (e) => {
+            const option = e.target.closest('.custom-select-option');
+            if (option) {
+                selectOption(option);
+            }
+        });
+        
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            filterOptions(e.target.value);
+        });
+        
+        // Prevent dropdown close when clicking inside
+        dropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        // Keyboard navigation
+        optionsContainer.addEventListener('keydown', (e) => {
+            const visibleOptions = [...optionsContainer.querySelectorAll('.custom-select-option')]
+                .filter(opt => opt.style.display !== 'none');
+            
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                // Implement keyboard navigation if needed
+            } else if (e.key === 'Enter') {
+                const focusedOption = document.activeElement.closest('.custom-select-option');
+                if (focusedOption) {
+                    selectOption(focusedOption);
+                }
+            }
+        });
+        
+        // Initialize with first option selected (optional)
+        // selectOption(optionsContainer.querySelector('.custom-select-option'));
+    }
+
+    // Add advanced animations and effects
+    function initializeAdvancedEffects() {
+        // Add hover effects to all interactive elements
+        document.querySelectorAll('.floating-input, .custom-select-trigger').forEach(element => {
+            element.addEventListener('mouseenter', () => {
+                element.style.transform = 'translateY(-1px)';
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                if (!element.classList.contains('active') && document.activeElement !== element) {
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        });
+        
+        // Add ripple effect to buttons
+        document.querySelectorAll('.btn-create, .btn-cancel').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.style.position = 'absolute';
+                ripple.style.borderRadius = '50%';
+                ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.animation = 'ripple 0.6s linear';
+                ripple.style.pointerEvents = 'none';
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+    }
+
+    // Initialize all enhanced features
+    initializeCategoryDropdown();
+    initializeAdvancedEffects();
+
+    // Enhanced form submission with better feedback
+    form.addEventListener('submit', function(e) {
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+        submitText.textContent = 'Creating your space...';
+        
+        // Progressive loading messages
+        setTimeout(() => {
+            if (submitBtn.classList.contains('loading')) {
+                submitText.textContent = 'Setting up 3D environment...';
+            }
+        }, 1500);
+        
+        setTimeout(() => {
+            if (submitBtn.classList.contains('loading')) {
+                submitText.textContent = 'Almost ready...';
+            }
+        }, 3000);
+        
+        // Re-enable if there are validation errors
+        setTimeout(() => {
+            if (document.querySelector('.error-message')) {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+                submitText.textContent = 'Create Room';
+            }
+        }, 1000);
+    });
+
+    // Enhanced real-time validation with better UX
+    const nameInput = document.getElementById('id_name');
+    if (nameInput) {
+        let validationTimeout;
+        
+        nameInput.addEventListener('input', function() {
+            const value = this.value;
+            
+            // Remove invalid characters
+            this.value = value.replace(/[^a-zA-Z0-9\s\-_]/g, '');
+            
+            // Clear previous timeout
+            clearTimeout(validationTimeout);
+            
+            // Debounced validation feedback
+            validationTimeout = setTimeout(() => {
+                const length = this.value.length;
+                const isValid = length >= 3 && length <= 100;
+                
+                // Visual feedback
+                if (length === 0) {
+                    this.style.borderColor = 'var(--border)';
+                } else if (length < 3) {
+                    this.style.borderColor = 'var(--warning)';
+                } else if (isValid) {
+                    this.style.borderColor = 'var(--success)';
+                } else {
+                    this.style.borderColor = 'var(--danger)';
+                }
+            }, 300);
+        });
+    }
+
+    // Enhanced auto-generation with better UX
+    const displayNameInput = document.getElementById('id_display_name');
+    if (nameInput && displayNameInput) {
+        let userHasTypedDisplayName = false;
+        
+        displayNameInput.addEventListener('input', () => {
+            userHasTypedDisplayName = displayNameInput.value.length > 0;
+        });
+        
+        nameInput.addEventListener('input', function() {
+            if (!userHasTypedDisplayName && this.value.length > 0) {
+                // Generate a nicer display name
+                const displayName = this.value
+                    .split(/[\s\-_]+/)
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ');
+                
+                displayNameInput.value = displayName;
+                displayNameInput.dispatchEvent(new Event('input'));
+            }
+        });
+    }
+
+    // Enhanced accessibility: keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            form.submit();
+        }
+    });
+
+    // Initialize progress on load
+    updateProgress();
+
+    // Add smooth scroll to sections when validation fails
+    if (document.querySelector('.error-message')) {
+        document.querySelector('.error-message').scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+    }
+});
+</script>
+{% endblock %}

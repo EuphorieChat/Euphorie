@@ -93,6 +93,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'csp.middleware.CSPMiddleware',  # ADD THIS LINE
     'chat.middleware.NationalityMiddleware',  # Moved after authentication middleware
 ]
 

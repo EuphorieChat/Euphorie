@@ -1,0 +1,541 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Friends - Euphorie{% endblock %}
+
+{% block description %}Manage your friends and friend requests on Euphorie{% endblock %}
+
+{% block body_class %}page-friends{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Friends List Styles */
+.friends-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.friends-header {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.friends-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.friends-header p {
+  color: #64748b;
+  margin: 0;
+}
+
+.friends-tabs {
+  display: flex;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e2e8f0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #f472b6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: #f472b6;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.tab-btn:not(.active) .tab-badge {
+  background: #94a3b8;
+}
+
+.friends-section {
+  display: none;
+}
+
+.friends-section.active {
+  display: block;
+}
+
+.friends-list {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.friend-item:last-child {
+  border-bottom: none;
+}
+
+.friend-item:hover {
+  background: #fafbfc;
+}
+
+.friend-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.25rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.friend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.friend-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.friend-status {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.friend-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary-small {
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  color: white;
+}
+
+.btn-primary-small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.4);
+}
+
+.btn-secondary-small {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-secondary-small:hover {
+  background: #f1f5f9;
+  color: #f472b6;
+  border-color: #f472b6;
+}
+
+.btn-danger-small {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+}
+
+.btn-danger-small:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #94a3b8;
+}
+
+.empty-state-icon {
+  width: 4rem;
+  height: 4rem;
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: white;
+}
+
+.empty-state h3 {
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  margin-bottom: 1.5rem;
+}
+
+.search-friends {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: white;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  color: #374151;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #f472b6;
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+  .friends-container {
+    padding: 1rem 0.5rem;
+  }
+  
+  .friends-header {
+    padding: 1rem;
+  }
+  
+  .friends-tabs {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .tab-btn {
+    text-align: center;
+  }
+  
+  .friend-item {
+    padding: 1rem;
+  }
+  
+  .friend-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+  }
+  
+  .friend-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .btn-small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="friends-container">
+  <!-- Header -->
+  <div class="friends-header">
+    <h1>👥 Friends</h1>
+    <p>Connect with other Euphorie users and manage your friend requests</p>
+  </div>
+
+  <!-- Search -->
+  <div class="search-friends">
+    <input 
+      type="text" 
+      class="search-input" 
+      placeholder="Search for users to add as friends..."
+      id="friend-search"
+    >
+    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  </div>
+
+  <!-- Tabs -->
+  <div class="friends-tabs">
+    <button class="tab-btn active" data-tab="friends">
+      My Friends
+      {% if friends %}
+      <span class="tab-badge">{{ friends|length }}</span>
+      {% endif %}
+    </button>
+    <button class="tab-btn" data-tab="pending">
+      Pending Requests
+      {% if pending_requests %}
+      <span class="tab-badge">{{ pending_requests|length }}</span>
+      {% endif %}
+    </button>
+    <button class="tab-btn" data-tab="sent">
+      Sent Requests
+      {% if sent_requests %}
+      <span class="tab-badge">{{ sent_requests|length }}</span>
+      {% endif %}
+    </button>
+  </div>
+
+  <!-- Friends List -->
+  <div class="friends-section active" id="friends-section">
+    {% if friends %}
+    <div class="friends-list">
+      {% for friend in friends %}
+      <div class="friend-item">
+        <div class="friend-avatar">
+          {{ friend.username|slice:":1"|upper }}
+        </div>
+        <div class="friend-info">
+          <div class="friend-name">{{ friend.username }}</div>
+          <div class="friend-status">
+            {% if friend.is_online %}
+              🟢 Online
+            {% else %}
+              ⚫ Last seen {{ friend.last_login|timesince }} ago
+            {% endif %}
+          </div>
+        </div>
+        <div class="friend-actions">
+          <a href="{% url 'user_profile' username=friend.username %}" class="btn-small btn-secondary-small">
+            View Profile
+          </a>
+          <form method="post" action="{% url 'remove_friend' friend.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-small btn-danger-small" onclick="return confirm('Remove {{ friend.username }} from friends?')">
+              Remove
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="friends-list">
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </div>
+        <h3>No friends yet</h3>
+        <p>Start connecting with other users to build your friend network!</p>
+        <a href="{% url 'explore_rooms' %}" class="btn-small btn-primary-small">
+          Explore Rooms
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Pending Requests -->
+  <div class="friends-section" id="pending-section">
+    {% if pending_requests %}
+    <div class="friends-list">
+      {% for request in pending_requests %}
+      <div class="friend-item">
+        <div class="friend-avatar">
+          {{ request.from_user.username|slice:":1"|upper }}
+        </div>
+        <div class="friend-info">
+          <div class="friend-name">{{ request.from_user.username }}</div>
+          <div class="friend-status">Sent {{ request.created_at|timesince }} ago</div>
+        </div>
+        <div class="friend-actions">
+          <form method="post" action="{% url 'accept_friend_request' request.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-small btn-primary-small">
+              Accept
+            </button>
+          </form>
+          <form method="post" action="{% url 'decline_friend_request' request.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-small btn-danger-small">
+              Decline
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="friends-list">
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+        </div>
+        <h3>No pending requests</h3>
+        <p>You don't have any friend requests waiting for your response.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sent Requests -->
+  <div class="friends-section" id="sent-section">
+    {% if sent_requests %}
+    <div class="friends-list">
+      {% for request in sent_requests %}
+      <div class="friend-item">
+        <div class="friend-avatar">
+          {{ request.to_user.username|slice:":1"|upper }}
+        </div>
+        <div class="friend-info">
+          <div class="friend-name">{{ request.to_user.username }}</div>
+          <div class="friend-status">Sent {{ request.created_at|timesince }} ago</div>
+        </div>
+        <div class="friend-actions">
+          <form method="post" action="{% url 'cancel_friend_request' request.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-small btn-danger-small">
+              Cancel
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="friends-list">
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+        </div>
+        <h3>No sent requests</h3>
+        <p>You haven't sent any friend requests yet.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Tab switching functionality
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const sections = document.querySelectorAll('.friends-section');
+  
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetTab = this.getAttribute('data-tab');
+      
+      // Update active tab
+      tabBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Update active section
+      sections.forEach(section => section.classList.remove('active'));
+      document.getElementById(targetTab + '-section').classList.add('active');
+    });
+  });
+  
+  // Search functionality (basic client-side filtering)
+  const searchInput = document.getElementById('friend-search');
+  const friendItems = document.querySelectorAll('.friend-item');
+  
+  searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    
+    friendItems.forEach(item => {
+      const friendName = item.querySelector('.friend-name').textContent.toLowerCase();
+      if (friendName.includes(searchTerm)) {
+        item.style.display = 'flex';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  });
+  
+  // Add loading states to buttons
+  document.querySelectorAll('form button').forEach(button => {
+    button.addEventListener('click', function() {
+      const originalText = this.textContent;
+      this.textContent = 'Processing...';
+      this.disabled = true;
+      
+      // Re-enable after form submission (in case of validation errors)
+      setTimeout(() => {
+        this.textContent = originalText;
+        this.disabled = false;
+      }, 3000);
+    });
+  });
+});
+</script>
+{% endblock %}

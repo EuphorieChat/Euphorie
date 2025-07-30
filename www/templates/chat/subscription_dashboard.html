@@ -1,0 +1,498 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}My Subscription - Euphorie{% endblock %}
+{% block description %}Manage your Euphorie subscription and billing{% endblock %}
+{% block body_class %}page-subscription{% endblock %}
+
+{% block extra_css %}
+<style>
+.subscription-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.subscription-header {
+  background: white;
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #f1f5f9;
+  text-align: center;
+}
+
+.subscription-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.status-expired {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.subscription-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.subscription-card {
+  background: white;
+  border-radius: 0.875rem;
+  border: 1px solid #f1f5f9;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-details {
+  margin-bottom: 1.5rem;
+}
+
+.plan-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.plan-price {
+  font-size: 1.25rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.feature-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #10b981;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.625rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #f472b6, #3b82f6);
+  color: white;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-secondary {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  text-decoration: none;
+  color: white;
+}
+
+.payment-history {
+  background: white;
+  border-radius: 0.875rem;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.payment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payment-table th,
+.payment-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+}
+
+.payment-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.payment-status {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.payment-status.succeeded {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.payment-status.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.payment-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.expiry-warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 0.625rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.expiry-warning .icon {
+  font-size: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .subscription-container {
+    padding: 0.75rem;
+  }
+  
+  .subscription-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .payment-table {
+    font-size: 0.75rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="subscription-container">
+  <!-- Back Button -->
+  <a href="{% url 'index' %}" class="back-btn" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.625rem; color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 500; margin-bottom: 1rem;">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1rem; height: 1rem;">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+    Back to Home
+  </a>
+
+  <!-- Header -->
+  <div class="subscription-header">
+    <h1 style="font-size: 2rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0;">My Subscription</h1>
+    <div class="subscription-status {% if subscription.is_active and not is_expired %}status-active{% else %}status-expired{% endif %}">
+      {% if subscription.is_active and not is_expired %}
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1rem; height: 1rem;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Active Subscription
+      {% else %}
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1rem; height: 1rem;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {% if is_expired %}Expired{% else %}Inactive{% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Expiry Warning -->
+  {% if days_until_expiry and days_until_expiry <= 7 and days_until_expiry > 0 %}
+  <div class="expiry-warning">
+    <span class="icon">⚠️</span>
+    <div>
+      <strong>Subscription Expiring Soon</strong>
+      <p style="margin: 0; font-size: 0.875rem;">Your subscription expires in {{ days_until_expiry }} day{{ days_until_expiry|pluralize }}. 
+      <a href="{% url 'pricing' %}" style="color: #f59e0b; font-weight: 600;">Renew now</a> to continue accessing premium features.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Subscription Grid -->
+  <div class="subscription-grid">
+    <!-- Current Plan -->
+    <div class="subscription-card">
+      <h2 class="card-title">
+        <span>📋</span>
+        Current Plan
+      </h2>
+      
+      <div class="plan-details">
+        <div class="plan-name">{{ subscription.plan.display_name|default:subscription.plan.name|title }}</div>
+        <div class="plan-price">
+          {% if subscription.plan.price == 0 %}
+            Free Forever
+          {% else %}
+            ${{ subscription.plan.price }}/month
+          {% endif %}
+        </div>
+        
+        <ul class="plan-features">
+          <li>
+            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Up to {{ subscription.plan.max_users_per_room }} users per room
+          </li>
+          <li>
+            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            {% if subscription.plan.max_rooms == 0 %}Unlimited rooms{% else %}Up to {{ subscription.plan.max_rooms }} rooms{% endif %}
+          </li>
+          <li>
+            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            3D Avatar customization
+          </li>
+          <li>
+            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Screen sharing
+          </li>
+          {% if subscription.plan.name != 'basic' %}
+          <li>
+            <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Priority support
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+      
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        {% if subscription.plan.name != 'enterprise' %}
+        <a href="{% url 'pricing' %}" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1rem; height: 1rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+          </svg>
+          Upgrade Plan
+        </a>
+        {% endif %}
+        
+        {% if can_cancel %}
+        <form method="post" action="{% url 'cancel_subscription' %}" onsubmit="return confirm('Are you sure you want to cancel your subscription?')" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1rem; height: 1rem;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancel
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Usage Stats -->
+    <div class="subscription-card">
+      <h2 class="card-title">
+        <span>📊</span>
+        Usage Statistics
+      </h2>
+      
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value">{{ rooms_created }}</div>
+          <div class="stat-label">Rooms Created</div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-value">{{ rooms_requiring_premium }}</div>
+          <div class="stat-label">Premium Rooms</div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-value">${{ total_paid_dollars|floatformat:0 }}</div>
+          <div class="stat-label">Total Paid</div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-value">
+            {% if days_until_expiry > 0 %}{{ days_until_expiry }}{% else %}∞{% endif %}
+          </div>
+          <div class="stat-label">Days Left</div>
+        </div>
+      </div>
+      
+      {% if subscription.expires_at %}
+      <p style="font-size: 0.875rem; color: #64748b; margin: 1rem 0 0 0; text-align: center;">
+        {% if is_expired %}
+          Expired on {{ subscription.expires_at|date:"M d, Y" }}
+        {% else %}
+          Expires on {{ subscription.expires_at|date:"M d, Y" }}
+        {% endif %}
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Available Upgrades -->
+  {% if upgrade_plans %}
+  <div class="subscription-card" style="margin-bottom: 2rem;">
+    <h2 class="card-title">
+      <span>🚀</span>
+      Available Upgrades
+    </h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      {% for plan in upgrade_plans %}
+      <div style="border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 1rem; text-align: center;">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem 0;">{{ plan.display_name|default:plan.name|title }}</h3>
+        <p style="font-size: 1.25rem; font-weight: 700; color: #f472b6; margin: 0 0 0.5rem 0;">${{ plan.price }}/month</p>
+        <p style="font-size: 0.875rem; color: #64748b; margin: 0 0 1rem 0;">{{ plan.max_users_per_room }} users per room</p>
+        <a href="{% url 'pricing' %}?plan={{ plan.name }}" class="btn btn-primary" style="width: 100%; justify-content: center;">
+          Select Plan
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Payment History -->
+  {% if payments %}
+  <div class="payment-history">
+    <div style="padding: 1.5rem 1.5rem 0;">
+      <h2 style="font-size: 1.125rem; font-weight: 600; color: #1e293b; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💳</span>
+        Payment History
+      </h2>
+    </div>
+    
+    <div class="table-container">
+      <table class="payment-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Plan</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr>
+            <td>{{ payment.created_at|date:"M d, Y" }}</td>
+            <td>{{ payment.plan.display_name|default:payment.plan.name|title }}</td>
+            <td>${{ payment.amount_dollars|floatformat:2 }}</td>
+            <td>
+              <span class="payment-status {{ payment.status }}">
+                {{ payment.status|title }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- No Payment History -->
+  {% if not payments %}
+  <div class="subscription-card">
+    <h2 class="card-title">
+      <span>💳</span>
+      Payment History
+    </h2>
+    <p style="text-align: center; color: #64748b; margin: 2rem 0;">No payment history yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

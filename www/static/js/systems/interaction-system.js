@@ -734,7 +734,7 @@ window.InteractionSystem = {
     },
     
     showNotification: function(message) {
-        // Create notification element
+        return; // Disabled to prevent blocking hamburger menu        // Create notification element
         const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
