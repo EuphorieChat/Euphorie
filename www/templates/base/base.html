@@ -2,6 +2,38 @@
 <html lang="en">
 {% load static %}
 <head>
+    <!-- CRITICAL: Capacitor WebView Error Protection - MUST BE FIRST -->
+    <script>
+        (function() {
+            // Install error handler immediately before anything else loads
+            window.addEventListener('error', function(e) {
+                if (e && e.message && (
+                    e.message.includes('triggerEvent') || 
+                    e.message.includes('chrome-error://chromewebdata') ||
+                    e.message.includes('Cannot read properties of undefined')
+                )) {
+                    console.warn('Suppressed WebView error:', e.message);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return true;
+                }
+            }, true); // true = capture phase, catches errors earlier
+            
+            // Create stub for triggerEvent
+            window.triggerEvent = window.triggerEvent || function(name, data) {
+                console.log('triggerEvent stub:', name, data);
+            };
+            
+            // Stub common analytics functions
+            ['gtag', 'ga', 'fbq', '_gaq', 'analytics'].forEach(function(fn) {
+                window[fn] = window[fn] || function() {
+                    console.log(fn + ' stub called');
+                };
+            });
+        })();
+    </script>
+    <!-- End WebView Protection -->
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>{% block title %}Euphorie{% endblock %}</title>
