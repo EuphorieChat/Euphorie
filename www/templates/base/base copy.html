@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <!-- CRITICAL: Capacitor WebView Error Protection - MUST BE FIRST -->
+    <script>
+        (function() {
+            // Install error handler immediately before anything else loads
+            window.addEventListener('error', function(e) {
+                if (e && e.message && (
+                    e.message.includes('triggerEvent') || 
+                    e.message.includes('chrome-error://chromewebdata') ||
+                    e.message.includes('Cannot read properties of undefined')
+                )) {
+                    console.warn('Suppressed WebView error:', e.message);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return true;
+                }
+            }, true); // true = capture phase, catches errors earlier
+            
+            // Create stub for triggerEvent
+            window.triggerEvent = window.triggerEvent || function(name, data) {
+                console.log('triggerEvent stub:', name, data);
+            };
+            
+            // Stub common analytics functions
+            ['gtag', 'ga', 'fbq', '_gaq', 'analytics'].forEach(function(fn) {
+                window[fn] = window[fn] || function() {
+                    console.log(fn + ' stub called');
+                };
+            });
+        })();
+    </script>
+    <!-- End WebView Protection -->
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>{% block title %}Euphorie{% endblock %}</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" href="{% static 'css/favicon.ico' %}" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'css/favicon-16x16.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'css/favicon-32x32.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'css/apple-touch-icon-180x180.png' %}">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="{% block description %}Join Euphorie - The next-generation 3D chat platform where conversations come alive{% endblock %}">
+    <meta name="theme-color" content="#ec4899">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="{% block og_title %}Euphorie 3D Platform{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Experience the future of online communication with 3D avatars and immersive chat rooms{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'images/euphorie-og.png' %}{% endblock %}">
+    
+    <!-- Three.js (for 3D rooms) -->
+    {% block threejs %}{% endblock %}
+    
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Stripe.js for payment processing -->
+    {% if user.is_authenticated %}
+    <script src="https://js.stripe.com/v3/"></script>
+    {% endif %}
+    
+    <!-- Theme handling -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Configure Tailwind
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#f472b6',
+                        'primary-hover': '#ec4899',
+                        'primary-light': '#fce7f3',
+                        secondary: '#60a5fa',
+                        'secondary-hover': '#3b82f6',
+                        'secondary-light': '#eff6ff'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Enhanced Euphorie Styles -->
+    <style>
+:root {
+  /* Pastel color scheme - light, soft and cheerful */
+  --primary: #f472b6;            /* Pink-400 - soft light pink */
+  --primary-hover: #ec4899;      /* Pink-500 - slightly deeper pink for hover */
+  --primary-light: #fce7f3;      /* Pink-50 - very light pink background */
+  --secondary: #60a5fa;          /* Blue-400 - light sky blue */
+  --secondary-hover: #3b82f6;    /* Blue-500 - slightly deeper blue for hover */
+  --secondary-light: #eff6ff;    /* Blue-50 - very light blue background */
+  --accent: #fcd34d;             /* Amber-300 - light yellow */
+  --accent-light: #fef3c7;       /* Amber-50 - very light yellow background */
+  --dark: #1f2937;               
+  --light: #f9fafb;              
+  --danger: #ef4444;             
+  --success: #10b981;            
+  --info: #3b82f6;               
+  --warning: #f59e0b;            
+  --surface: #ffffff;            
+  --surface-hover: #f8fafc;      
+  --surface-active: #f1f5f9;     
+  --border: #e2e8f0;             
+  --border-focus: #cbd5e1;       
+  --text-primary: #334155;       
+  --text-secondary: #64748b;     
+  --text-tertiary: #94a3b8;      
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 0.15s;
+  --duration-normal: 0.25s;
+  --duration-slow: 0.35s;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(244, 114, 182, 0.04), transparent 25%),
+    radial-gradient(circle at 90% 90%, rgba(96, 165, 250, 0.04), transparent 25%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Special background for 3D room pages */
+body.page-room-3d {
+  background: linear-gradient(135deg, #fef7ff 0%, #e0e7ff 50%, #ddd6fe 100%);
+  overflow: hidden;
+  height: 100vh;
+}
+
+main {
+  flex-grow: 1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--text-tertiary);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-secondary);
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Enhanced Header & Navigation - COMPACT */
+.app-header {
+  background-color: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: all var(--duration-normal) var(--ease);
+  padding: 0.5rem 0; /* Reduced from default padding */
+}
+
+.app-header.scrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-md);
+  border-bottom-color: var(--border-focus);
+}
+
+/* For 3D room pages, make header fixed but preserve layout */
+.page-room-3d .app-header {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+}
+
+/* Ensure navigation items stay visible in 3D rooms */
+.page-room-3d .app-header .container {
+  position: relative;
+  z-index: 1001;
+}
+
+/* Enhanced Navigation Links - COMPACT */
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem; /* Reduced padding */
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem; /* Smaller font */
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all var(--duration-normal) var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease);
+  border-radius: var(--radius-lg);
+}
+
+.nav-link:hover {
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-link:hover::before {
+  opacity: 1;
+}
+
+.nav-link.active {
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: var(--shadow-md);
+}
+
+.nav-link svg,
+.nav-link span {
+  position: relative;
+  z-index: 1;
+}
+
+.nav-link svg {
+  width: 0.875rem; /* Smaller icons */
+  height: 0.875rem;
+  margin-right: 0.375rem; /* Reduced margin */
+}
+
+/* Enhanced Brand - COMPACT */
+.brand-container {
+  display: flex;
+  align-items: center;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.brand-container:hover {
+  transform: translateY(-1px);
+}
+
+.brand-logo {
+  font-size: 1.125rem; /* Reduced from 1.375rem */
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.brand-badge {
+  margin-left: 0.375rem; /* Reduced margin */
+  padding: 0.125rem 0.375rem; /* Reduced padding */
+  font-size: 0.65rem; /* Smaller font */
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+  color: var(--primary);
+  border-radius: 9999px;
+  border: 1px solid var(--primary);
+  animation: pulse 3s infinite;
+}
+
+/* PAYMENT SUBSCRIPTION BADGE STYLES */
+.subscription-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 0.375rem;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.subscription-badge.active {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.subscription-badge.upgrade {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.subscription-badge.upgrade:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  text-decoration: none;
+  color: white;
+}
+
+.subscription-badge.enterprise {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border: 1px solid #8b5cf6;
+}
+
+.subscription-badge.premium {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+  color: white;
+  border: 1px solid #f472b6;
+}
+
+/* Enhanced User Avatar - COMPACT */
+.user-avatar {
+  width: 1.75rem; /* Reduced from 2rem */
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  font-size: 0.7rem; /* Smaller font */
+  transition: all var(--duration-normal) var(--ease);
+  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
+}
+
+.user-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.4);
+}
+
+/* Enhanced User Menu Button - COMPACT */
+.user-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Reduced gap */
+  padding: 0.375rem 0.75rem; /* Reduced padding */
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  transition: all var(--duration-normal) var(--ease);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.user-menu-button:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-focus);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.user-menu-button:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+}
+
+.user-menu-button p {
+  font-size: 0.8rem; /* Smaller text */
+  margin: 0;
+}
+
+.user-menu-button .text-xs {
+  font-size: 0.7rem; /* Smaller secondary text */
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  width: 16rem;
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--duration-normal) var(--ease);
+  z-index: 200;
+}
+
+.user-menu-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.875rem; /* Slightly reduced padding */
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.8rem; /* Smaller font */
+  font-weight: 500;
+  transition: all var(--duration-normal) var(--ease);
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding-left: 1rem; /* Reduced from 1.25rem */
+}
+
+.dropdown-item svg {
+  margin-right: 0.625rem; /* Reduced margin */
+  color: var(--text-tertiary);
+  transition: color var(--duration-normal) var(--ease);
+  width: 0.875rem; /* Smaller icons */
+  height: 0.875rem;
+}
+
+.dropdown-item:hover svg {
+  color: var(--primary);
+}
+
+.dropdown-section {
+  padding: 0.375rem 0; /* Reduced padding */
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdown-section:last-child {
+  border-bottom: none;
+}
+
+.dropdown-section-title {
+  padding: 0.375rem 0.875rem; /* Reduced padding */
+  font-size: 0.7rem; /* Smaller font */
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.dropdown-logout {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  color: var(--danger);
+  border: none;
+  width: 100%;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+.dropdown-logout:hover {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+}
+
+/* Enhanced Create Room Button - COMPACT */
+.create-room-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  padding: 0.5rem 1rem; /* Reduced padding */
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem; /* Smaller font */
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--duration-normal) var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.create-room-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.create-room-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.create-room-btn:hover::before {
+  left: 100%;
+}
+
+.create-room-btn svg {
+  width: 0.875rem; /* Smaller icon */
+  height: 0.875rem;
+}
+
+/* PAYMENT UPGRADE BUTTON */
+.upgrade-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--duration-normal) var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  animation: pulse 2s infinite;
+}
+
+.upgrade-btn:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+  color: white;
+}
+
+.upgrade-btn svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Enhanced Search Button - COMPACT */
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem; /* Reduced from 2.5rem */
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all var(--duration-normal) var(--ease);
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.search-btn svg {
+  width: 1rem; /* Smaller icon */
+  height: 1rem;
+}
+
+/* Enhanced Search Modal */
+.search-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 15vh;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.search-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.search-modal-content {
+  width: 90%;
+  max-width: 650px;
+  background: white;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  transform: scale(0.95) translateY(-20px);
+  transition: transform var(--duration-normal) var(--ease);
+}
+
+.search-modal.active .search-modal-content {
+  transform: scale(1) translateY(0);
+}
+
+.search-modal-header {
+  padding: 1.25rem; /* Reduced padding */
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-input-container {
+  position: relative;
+  flex: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 0.875rem 0.875rem 2.5rem; /* Reduced padding */
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-hover);
+  font-size: 0.9rem; /* Smaller font */
+  transition: all var(--duration-normal) var(--ease);
+  color: var(--text-primary);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.1);
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 0.875rem; /* Reduced position */
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  transition: color var(--duration-normal) var(--ease);
+}
+
+.search-input:focus ~ .search-input-icon {
+  color: var(--primary);
+}
+
+.close-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem; /* Reduced size */
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.close-search-btn:hover {
+  background: var(--danger);
+  color: white;
+  transform: rotate(90deg);
+}
+
+/* Enhanced Mobile Navigation - COMPACT */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0.5rem 0.25rem; /* Reduced padding */
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.375rem; /* Reduced padding */
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease);
+  color: var(--text-secondary);
+  text-decoration: none;
+  position: relative;
+}
+
+.nav-item.active {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+.nav-item-icon {
+  margin-bottom: 0.125rem; /* Reduced margin */
+  position: relative;
+  transition: transform var(--duration-normal) var(--ease);
+}
+
+.nav-item:hover .nav-item-icon {
+  transform: translateY(-2px);
+}
+
+.nav-item-icon svg {
+  width: 1.25rem; /* Smaller icons */
+  height: 1.25rem;
+}
+
+.nav-item-icon .w-6 {
+  width: 1.25rem; /* Override for consistency */
+  height: 1.25rem;
+}
+
+.nav-item-label {
+  font-size: 0.65rem; /* Smaller font */
+  font-weight: 600;
+}
+
+.nav-notification {
+  position: absolute;
+  top: -3px; /* Adjusted position */
+  right: -3px;
+  width: 16px; /* Smaller notification */
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  font-size: 0.6rem; /* Smaller font */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(244, 114, 182, 0.4);
+  animation: bounce 2s infinite;
+}
+
+/* Enhanced Cards & Containers */
+.surface-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+}
+
+/* Enhanced Buttons */
+.btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  padding: 0.625rem 1.25rem; /* Reduced padding */
+  transition: all var(--duration-normal) var(--ease-spring);
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  text-decoration: none;
+  font-size: 0.8rem; /* Smaller font */
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 0.8s;
+}
+
+.btn:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Enhanced Footer - COMPACT */
+.app-footer {
+  background: white;
+  border-top: 1px solid var(--border);
+  padding: 1.25rem 0; /* Reduced from 2rem */
+  margin-top: 2rem; /* Reduced from 3rem */
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem; /* Reduced gap */
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+}
+
+.footer-brand .brand-logo {
+  font-size: 0.95rem; /* Smaller footer logo */
+}
+
+.footer-brand .text-xs {
+  font-size: 0.7rem; /* Smaller version text */
+}
+
+.footer-brand p {
+  font-size: 0.75rem; /* Smaller copyright text */
+  margin-top: 0.25rem; /* Reduced margin */
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem; /* Reduced gap */
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; /* Reduced gap */
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.8rem; /* Smaller font */
+  font-weight: 500;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.footer-link:hover {
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.footer-link svg {
+  width: 0.875rem; /* Smaller icons */
+  height: 0.875rem;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+    transform: translate3d(0, -4px, 0);
+  }
+  70% {
+    animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+    transform: translate3d(0, -2px, 0);
+  }
+  90% {
+    transform: translate3d(0, -1px, 0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+  .mobile-bottom-nav {
+    transform: translateY(100%);
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  main {
+    padding-bottom: 5rem !important; /* Reduced for compact nav */
+  }
+
+  .nav-link {
+    padding: 0.3rem 0.6rem; /* Further reduced for mobile */
+    font-size: 0.75rem;
+  }
+
+  .user-menu-button {
+    padding: 0.3rem 0.6rem; /* Further reduced for mobile */
+  }
+
+  .create-room-btn {
+    padding: 0.4rem 0.8rem; /* Further reduced for mobile */
+    font-size: 0.75rem;
+  }
+
+  .search-btn {
+    width: 2rem; /* Smaller on mobile */
+    height: 2rem;
+  }
+
+  .brand-logo {
+    font-size: 1rem; /* Smaller brand on mobile */
+  }
+
+  .app-header {
+    padding: 0.375rem 0; /* Further reduced for mobile */
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .footer-links {
+    gap: 1rem;
+  }
+}
+
+/* Hide mobile nav on desktop */
+@media (min-width: 641px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+  
+  main {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Loading States */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Enhanced Notifications */
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.5rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform var(--duration-normal) var(--ease);
+  max-width: 400px;
+}
+
+.toast.show {
+  transform: translateX(0);
+}
+
+.toast-success {
+  border-left: 4px solid var(--success);
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+}
+
+.toast-error {
+  border-left: 4px solid var(--danger);
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+}
+
+.toast-warning {
+  border-left: 4px solid var(--warning);
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+
+.toast-info {
+  border-left: 4px solid var(--info);
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+}
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}page-index{% endblock %}">
+    {% block body_content %}
+    
+    <!-- Enhanced Loading System -->
+    {% block loading_overlay %}
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p class="text-gray-500 font-medium">Loading Euphorie...</p>
+    </div>
+    {% endblock %}
+
+    <!-- Menu Overlay for better UX -->
+    <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-20 z-50 opacity-0 invisible transition-all duration-300"></div>
+    
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-white px-4 py-2 rounded-md z-50">
+        Skip to main content
+    </a>
+    
+    <!-- Enhanced Main Navigation Header - EDGE-TO-EDGE -->
+    {% block header %}
+    <header class="app-header" id="header">
+        <div class="max-w-none w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between">
+            <!-- Enhanced Logo and Brand -->
+            <div class="flex items-center">
+                <a href="{% url 'index' %}" class="brand-container" aria-label="Euphorie Home">
+                    <h1 class="brand-logo">Euphorie</h1>
+                    <span class="brand-badge">
+                        {% block brand_suffix %}BETA{% endblock %}
+                    </span>
+                </a>
+
+                <!-- User Subscription Badge -->
+                {% if user.is_authenticated %}
+                    {% if user.subscription.is_active and not user.subscription.is_expired %}
+                        <div class="subscription-badge {% if user.subscription.plan.name == 'basic' %}active{% elif user.subscription.plan.name == 'premium' %}premium{% else %}enterprise{% endif %}">
+                            {% if user.subscription.plan.name == 'basic' %}
+                                🆓 Basic
+                            {% elif user.subscription.plan.name == 'premium' %}
+                                👑 Premium
+                            {% else %}
+                                💎 Enterprise
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <a href="{% url 'pricing' %}" class="subscription-badge upgrade">
+                            🚀 Upgrade
+                        </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Center Section: Search (Desktop) - NOW AVAILABLE FOR ALL USERS -->
+            <div class="hidden lg:flex flex-1 items-center justify-center max-w-2xl mx-8">
+                <!-- Enhanced Search Box (Desktop - Centered) -->
+                {% block header_search %}
+                <div class="relative flex-1 max-w-md">
+                    <form method="get" action="{% url 'explore_rooms' %}" class="relative group">
+                        <input
+                            type="text"
+                            name="q"
+                            placeholder="{% if user.is_authenticated %}Search rooms, users...{% else %}Search public rooms...{% endif %}"
+                            value="{{ request.GET.q|default:'' }}"
+                            class="w-full px-10 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm hover:shadow-md"
+                        />
+                        <div class="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <button type="submit" class="absolute right-2 top-1.5 text-gray-400 hover:text-primary transition-all duration-300 p-1 rounded-lg hover:bg-primary/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+                {% endblock %}
+            </div>
+
+            <!-- Right Section: User Actions (Edge-to-edge) -->
+            <div class="flex items-center gap-2">
+                <!-- Room Info for 3D rooms -->
+                {% block room_info %}{% endblock %}
+
+                <!-- Mobile Search Button - NOW AVAILABLE FOR ALL USERS -->
+                <button id="mobile-search-toggle" class="search-btn lg:hidden" aria-label="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+                
+                <!-- User Menu or Auth Buttons -->
+                {% if user.is_authenticated %}
+                    <!-- Enhanced Create Room Button / Upgrade Button -->
+                    {% if user.subscription.is_active and not user.subscription.is_expired %}
+                        <a href="{% url 'create_room' %}" class="create-room-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <span class="hidden sm:inline">Create Room</span>
+                            <span class="sm:hidden">Create</span>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'pricing' %}" class="upgrade-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                            </svg>
+                            <span class="hidden sm:inline">Upgrade</span>
+                            <span class="sm:hidden">Pro</span>
+                        </a>
+                    {% endif %}
+
+                    <!-- Enhanced User Menu -->
+                    <div class="relative">
+                        <button id="user-menu-button" class="user-menu-button" aria-expanded="false" aria-haspopup="true">
+                            <div class="user-avatar">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="hidden sm:block">
+                                <p class="text-sm font-semibold text-gray-900">{{ user.username }}</p>
+                                <p class="text-xs text-gray-500">{{ user.email|truncatechars:20 }}</p>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <!-- Enhanced User Dropdown Menu -->
+                        <div id="user-dropdown" class="user-menu-dropdown" role="menu">
+                            <div class="dropdown-section">
+                                <a href="{% url 'user_profile' username=user.username %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <span>My Profile</span>
+                                </a>
+                                <a href="{% url 'dashboard' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                                    </svg>
+                                    <span>Dashboard</span>
+                                </a>
+                                <a href="{% url 'friends_list' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                    <span>Friends</span>
+                                    {% if pending_friend_requests_count > 0 %}
+                                    <div class="ml-auto bg-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {{ pending_friend_requests_count }}
+                                    </div>
+                                    {% endif %}
+                                </a>
+                                <a href="{% url 'user_settings' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>Settings</span>
+                                </a>
+                            </div>
+
+                            <!-- PAYMENT SECTION -->
+                            <div class="dropdown-section">
+                                <div class="dropdown-section-title">Subscription</div>
+                                <a href="{% url 'subscription_dashboard' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                    </svg>
+                                    <span>My Subscription</span>
+                                    {% if user.subscription.plan.name != 'basic' %}
+                                        <div class="ml-auto bg-green-100 text-green-800 text-xs font-bold rounded-full px-2 py-0.5">
+                                            {{ user.subscription.plan.get_name_display }}
+                                        </div>
+                                    {% endif %}
+                                </a>
+                                {% if not user.subscription.is_active or user.subscription.is_expired or user.subscription.plan.name == 'basic' %}
+                                <a href="{% url 'pricing' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                    </svg>
+                                    <span>Upgrade Plan</span>
+                                    <div class="ml-auto bg-amber-100 text-amber-800 text-xs font-bold rounded-full px-2 py-0.5">
+                                        New
+                                    </div>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'pricing_comparison' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span>Compare Plans</span>
+                                </a>
+                            </div>
+
+                            <!-- Admin Section -->
+                            {% if user.is_staff or user_created_rooms %}
+                            <div class="dropdown-section">
+                                <div class="dropdown-section-title">Management</div>
+                                {% if user.is_staff %}
+                                <a href="{% url 'admin_dashboard' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                                    </svg>
+                                    <span>Dashboard</span>
+                                </a>
+                                <a href="{% url 'admin_payments' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                    </svg>
+                                    <span>Payments</span>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'admin_rooms' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    <span>Manage Rooms</span>
+                                </a>
+                                {% if user.is_staff %}
+                                <a href="{% url 'admin_messages' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                    </svg>
+                                    <span>Messages</span>
+                                </a>
+                                <a href="{% url 'admin_users' %}" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span>User Activity</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            <!-- Logout Section -->
+                            <div class="dropdown-section">
+                                <form method="post" action="{% url 'account_logout' %}" class="w-full">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item dropdown-logout w-full text-left" role="menuitem">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        <span>Logout</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Enhanced Authentication Buttons - Edge aligned -->
+                    <div class="flex items-center gap-1.5">
+                        <a href="{% url 'account_login' %}" class="btn btn-secondary">
+                            Login
+                        </a>
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary">
+                            Sign up
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    {% endblock %}
+
+    <!-- Enhanced Search Modal - NOW AVAILABLE FOR ALL USERS -->
+    {% block search_modal %}
+    <div id="search-modal" class="search-modal">
+        <div class="search-modal-content">
+            <div class="search-modal-header">
+                <div class="search-input-container">
+                    <input
+                        type="text"
+                        id="modal-search-input"
+                        placeholder="{% if user.is_authenticated %}Search rooms, users, or topics...{% else %}Search public rooms...{% endif %}"
+                        class="search-input"
+                        autofocus
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 search-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <button id="close-search" class="close-search-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="search-modal-body" id="search-results">
+                {% if not user.is_authenticated %}
+                <!-- Show signup CTA for non-authenticated users -->
+                <div class="p-6 bg-gradient-to-br from-pink-50 to-purple-50 border-b border-gray-200">
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Discover more with an account</h3>
+                        <p class="text-sm text-gray-600 mb-4">Join Euphorie to search users, private rooms, and unlock the full experience!</p>
+                        <div class="flex gap-2 justify-center">
+                            <a href="{% url 'account_signup' %}" class="btn btn-primary">Sign up free</a>
+                            <a href="{% url 'account_login' %}" class="btn btn-secondary">Login</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="p-8 text-center text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p class="font-medium">Start typing to search...</p>
+                    <p class="text-sm mt-1">{% if user.is_authenticated %}Find rooms, users, or topics{% else %}Discover public rooms and topics{% endif %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    <!-- 3D Room specific floating controls -->
+    {% block floating_controls %}{% endblock %}
+
+    <!-- Main Content Area -->
+    <main id="main-content" role="main" class="{% block main_class %}flex-grow{% endblock %}">
+        <!-- Messages/Alerts -->
+        {% block messages %}
+        <div class="messages-container">
+            <!-- Messages will be populated here -->
+        </div>
+        {% endblock %}
+        
+        {% block content %}
+        <div class="w-full px-3 sm:px-4 md:px-6 lg:px-8 max-w-none">
+            <h1>🌟 Euphorie 3D Platform</h1>
+            <p>Welcome to the future of online communication!</p>
+        </div>
+        {% endblock %}
+    </main>
+
+    <!-- Enhanced Mobile Bottom Navigation - COMPACT -->
+    {% if user.is_authenticated %}
+    {% block mobile_nav %}
+    <div class="mobile-bottom-nav">
+        <a href="{% url 'index' %}" class="nav-item {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+            <div class="nav-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </div>
+            <span class="nav-item-label">Home</span>
+        </a>
+        
+        <a href="{% url 'explore_rooms' %}" class="nav-item {% if request.resolver_match.url_name == 'explore_rooms' %}active{% endif %}">
+            <div class="nav-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <span class="nav-item-label">Explore</span>
+        </a>
+        
+        <!-- Mobile nav for Create/Upgrade based on subscription -->
+        {% if user.subscription.is_active and not user.subscription.is_expired %}
+        <a href="{% url 'create_room' %}" class="nav-item">
+            <div class="nav-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+            </div>
+            <span class="nav-item-label">Create</span>
+        </a>
+        {% else %}
+        <a href="{% url 'pricing' %}" class="nav-item">
+            <div class="nav-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                </svg>
+                {% if user.subscription.plan.name != 'basic' %}
+                <div class="nav-notification">!</div>
+                {% endif %}
+            </div>
+            <span class="nav-item-label">Upgrade</span>
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'subscription_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'subscription_dashboard' %}active{% endif %}">
+            <div class="nav-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                {% if user.subscription.plan.name == 'basic' %}
+                <div class="nav-notification">!</div>
+                {% endif %}
+            </div>
+            <span class="nav-item-label">Plan</span>
+        </a>
+        
+        <button class="nav-item" id="profile-nav" aria-label="Open profile menu">
+            <div class="nav-item-icon">
+                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium">
+                    {{ user.username|slice:":1"|upper }}
+                </div>
+            </div>
+            <span class="nav-item-label">Profile</span>
+        </button>
+    </div>
+    {% endblock %}
+    {% endif %}
+
+    <!-- Enhanced Footer - EDGE-TO-EDGE -->
+    {% block footer %}
+    <footer class="app-footer">
+        <div class="w-full px-3 sm:px-4 md:px-6 lg:px-8">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="{% url 'index' %}" class="brand-container">
+                        <h2 class="brand-logo text-lg">Euphorie</h2>
+                        <span class="text-xs text-gray-400 ml-2">v1.3.0</span>
+                    </a>
+                    <p class="text-sm text-gray-500 mt-1">© 2025 Euphorie, Inc. All rights reserved.</p>
+                </div>
+                <div class="footer-links">
+                    <a href="{% url 'pricing' %}" class="footer-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                        </svg>
+                        <span>Pricing</span>
+                    </a>
+                    <a href="mailto:euphorieinc@gmail.com" class="footer-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>Contact Us</span>
+                    </a>
+                    <a href="{% url 'privacy_policy' %}" class="footer-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Privacy Policy</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    {% endblock %}
+
+    {% endblock %}
+
+    <!-- Enhanced Global JavaScript -->
+    <script>
+        window.CHAT_CONFIG = {
+            user: {% if user.is_authenticated %}{
+                id: {{ user.id }},
+                username: "{{ user.username }}",
+                displayName: "{{ user.get_full_name|default:user.username }}",
+                isAuthenticated: true,
+                subscription: {
+                    plan: "{{ user.subscription.plan.name|default:'basic' }}",
+                    isActive: {% if user.subscription.is_active %}true{% else %}false{% endif %},
+                    isExpired: {% if user.subscription.is_expired %}true{% else %}false{% endif %}
+                }
+            }{% else %}null{% endif %},
+            csrf_token: "{{ csrf_token }}",
+            websocket_url: "{% if request.is_secure %}wss{% else %}ws{% endif %}://{{ request.get_host }}/ws/",
+            api_base_url: "/api/",
+            static_url: "{% load static %}{% static '' %}",
+            debug: {% if debug %}true{% else %}false{% endif %},
+            stripe: {
+                publishableKey: "{% if user.is_authenticated %}{{ STRIPE_PUBLISHABLE_KEY }}{% endif %}",
+                enabled: {% if user.is_authenticated %}true{% else %}false{% endif %}
+            }
+        };
+
+        // Enhanced Menu Management System
+        class EuphorieMenuManager {
+            constructor() {
+                this.activeMenus = new Set();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Menu overlay to close all menus when clicked
+                const overlay = document.getElementById('menu-overlay');
+                overlay?.addEventListener('click', () => this.closeAllMenus());
+
+                // User dropdown
+                const userButton = document.getElementById('user-menu-button');
+                const userDropdown = document.getElementById('user-dropdown');
+                
+                userButton?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleMenu('user-dropdown', userDropdown);
+                });
+
+                // Mobile search toggle - NOW AVAILABLE FOR ALL USERS
+                const mobileSearchToggle = document.getElementById('mobile-search-toggle');
+                mobileSearchToggle?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const searchModal = document.getElementById('search-modal');
+                    if (searchModal) {
+                        searchModal.classList.add('active');
+                        const modalSearchInput = document.getElementById('modal-search-input');
+                        if (modalSearchInput) {
+                            setTimeout(() => modalSearchInput.focus(), 300);
+                        }
+                    }
+                });
+
+                // Close search modal
+                const closeSearch = document.getElementById('close-search');
+                closeSearch?.addEventListener('click', () => {
+                    const searchModal = document.getElementById('search-modal');
+                    if (searchModal) {
+                        searchModal.classList.remove('active');
+                    }
+                });
+
+                // Close modal when clicking outside
+                const searchModal = document.getElementById('search-modal');
+                searchModal?.addEventListener('click', (e) => {
+                    if (e.target === searchModal) {
+                        searchModal.classList.remove('active');
+                    }
+                });
+
+                // Close menus on escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeAllMenus();
+                        const searchModal = document.getElementById('search-modal');
+                        if (searchModal) {
+                            searchModal.classList.remove('active');
+                        }
+                    }
+                });
+
+                // Close menus when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#user-dropdown') && !e.target.closest('#user-menu-button')) {
+                        this.closeMenu('user-dropdown', userDropdown);
+                    }
+                });
+            }
+
+            toggleMenu(menuId, element) {
+                if (this.activeMenus.has(menuId)) {
+                    this.closeMenu(menuId, element);
+                } else {
+                    this.openMenu(menuId, element);
+                }
+            }
+
+            openMenu(menuId, element) {
+                this.closeAllMenus();
+                this.activeMenus.add(menuId);
+                element?.classList.add('show');
+                this.updateOverlay();
+                
+                // Update button state
+                const button = document.getElementById('user-menu-button');
+                if (button) {
+                    button.setAttribute('aria-expanded', 'true');
+                    const icon = button.querySelector('svg');
+                    if (icon) {
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                }
+            }
+
+            closeMenu(menuId, element) {
+                this.activeMenus.delete(menuId);
+                element?.classList.remove('show');
+                this.updateOverlay();
+                
+                // Update button state
+                const button = document.getElementById('user-menu-button');
+                if (button) {
+                    button.setAttribute('aria-expanded', 'false');
+                    const icon = button.querySelector('svg');
+                    if (icon) {
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                }
+            }
+
+            closeAllMenus() {
+                const menus = [
+                    { id: 'user-dropdown', element: document.getElementById('user-dropdown') }
+                ];
+
+                menus.forEach(({ id, element }) => {
+                    if (this.activeMenus.has(id)) {
+                        this.closeMenu(id, element);
+                    }
+                });
+            }
+
+            updateOverlay() {
+                const overlay = document.getElementById('menu-overlay');
+                if (this.activeMenus.size > 0) {
+                    overlay?.classList.add('opacity-100', 'visible');
+                    overlay?.classList.remove('opacity-0', 'invisible');
+                } else {
+                    overlay?.classList.add('opacity-0', 'invisible');
+                    overlay?.classList.remove('opacity-100', 'visible');
+                }
+            }
+        }
+
+        // Enhanced Loading Manager
+        class EuphorieLoadingManager {
+            constructor() {
+                this.isRoomPage = document.body.classList.contains('page-room-3d');
+                this.init();
+            }
+
+            init() {
+                if (this.isRoomPage) {
+                    this.handle3DRoomLoading();
+                } else {
+                    this.handleNormalPageLoading();
+                }
+            }
+
+            handleNormalPageLoading() {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    setTimeout(() => {
+                        loadingOverlay.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingOverlay.remove();
+                        }, 300);
+                    }, 500);
+                }
+            }
+
+            handle3DRoomLoading() {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    if (loadingScreen && loadingScreen.style.display !== 'none' && !loadingScreen.classList.contains('hidden')) {
+                        this.forceHide3DLoading();
+                    }
+                }, 20000);
+            }
+
+            forceHide3DLoading() {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                    loadingScreen.style.opacity = '0';
+                    loadingScreen.style.visibility = 'hidden';
+                    loadingScreen.classList.add('hidden');
+                    
+                    setTimeout(() => {
+                        loadingScreen.remove();
+                    }, 1000);
+                }
+
+                document.body.style.overflow = 'visible';
+                document.documentElement.style.overflow = 'visible';
+            }
+        }
+
+        // Enhanced Search System - Updated for Public Access
+        class EuphorieSearchManager {
+            constructor() {
+                this.searchInput = document.getElementById('modal-search-input');
+                this.searchResults = document.getElementById('search-results');
+                this.debounceTimer = null;
+                this.isAuthenticated = window.CHAT_CONFIG?.user?.isAuthenticated || false;
+                this.init();
+            }
+
+            init() {
+                if (this.searchInput) {
+                    this.searchInput.addEventListener('input', (e) => {
+                        this.debounceSearch(e.target.value);
+                    });
+
+                    // Handle Enter key to perform search
+                    this.searchInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const query = e.target.value.trim();
+                            if (query) {
+                                // Redirect to explore page with search query
+                                window.location.href = `/explore/?q=${encodeURIComponent(query)}`;
+                            }
+                        }
+                    });
+                }
+            }
+
+            debounceSearch(query) {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.performSearch(query);
+                }, 300);
+            }
+
+            async performSearch(query) {
+                if (!query.trim()) {
+                    this.showEmptyState();
+                    return;
+                }
+
+                // Show loading state
+                this.showLoadingState();
+
+                try {
+                    // Try to fetch from API if available
+                    const response = await fetch(`/api/search/?q=${encodeURIComponent(query)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.showAPIResults(data, query);
+                    } else {
+                        // Fallback to DOM search
+                        this.performDOMSearch(query);
+                    }
+                } catch (error) {
+                    // Fallback to DOM search
+                    this.performDOMSearch(query);
+                }
+            }
+
+            performDOMSearch(query) {
+                // Search for rooms in the current page DOM
+                const roomCards = document.querySelectorAll('.room-card, .room-list-item, [data-room-name]');
+                const matchingRooms = Array.from(roomCards).filter(card => {
+                    const roomTitle = card.querySelector('.room-title, .room-name, .list-title')?.textContent.toLowerCase();
+                    const roomCategory = card.querySelector('.room-category, .badge')?.textContent.toLowerCase();
+                    const roomDescription = card.querySelector('.room-description, .text-gray-500')?.textContent.toLowerCase();
+                    const searchTerm = query.toLowerCase();
+                    
+                    return (roomTitle && roomTitle.includes(searchTerm)) || 
+                           (roomCategory && roomCategory.includes(searchTerm)) ||
+                           (roomDescription && roomDescription.includes(searchTerm));
+                });
+
+                this.showDOMResults(matchingRooms, query);
+            }
+
+            showAPIResults(data, query) {
+                if (!data.results || data.results.length === 0) {
+                    this.showNoResults(query);
+                    return;
+                }
+
+                let resultsHTML = '<div class="p-4 space-y-2">';
+                
+                data.results.slice(0, 8).forEach(result => {
+                    const resultType = result.type || 'room';
+                    const icon = resultType === 'user' ? '👤' : '🏠';
+                    const typeLabel = resultType === 'user' ? 'User' : 'Room';
+                    
+                    resultsHTML += `
+                        <a href="${result.url}" class="block p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center group">
+                            <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex-shrink-0 flex items-center justify-center text-white mr-3 group-hover:scale-105 transition-transform">
+                                <span class="text-sm">${icon}</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 group-hover:text-primary transition-colors">${result.name}</h4>
+                                <p class="text-sm text-gray-500">${typeLabel}${result.category ? ' • ' + result.category : ''}</p>
+                            </div>
+                            <div class="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </a>
+                    `;
+                });
+
+                this.addSearchAllOption(resultsHTML, query, data.total_count || data.results.length);
+            }
+
+            showDOMResults(matchingRooms, query) {
+                if (matchingRooms.length === 0) {
+                    this.showNoResults(query);
+                    return;
+                }
+
+                let resultsHTML = '<div class="p-4 space-y-2">';
+                
+                matchingRooms.slice(0, 8).forEach(room => {
+                    const roomTitle = room.querySelector('.room-title, .room-name, .list-title')?.textContent || 'Unknown Room';
+                    const roomUrl = room.getAttribute('href') || room.querySelector('a')?.getAttribute('href') || '#';
+                    const roomCategory = room.querySelector('.room-category, .badge')?.textContent || 'General';
+                    const roomAvatar = roomTitle.charAt(0).toUpperCase();
+                    
+                    resultsHTML += `
+                        <a href="${roomUrl}" class="block p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center group">
+                            <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex-shrink-0 flex items-center justify-center text-white mr-3 group-hover:scale-105 transition-transform">
+                                <span class="font-semibold text-xs">${roomAvatar}</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 group-hover:text-primary transition-colors">${roomTitle}</h4>
+                                <p class="text-sm text-gray-500">${roomCategory}</p>
+                            </div>
+                            <div class="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </a>
+                    `;
+                });
+
+                this.addSearchAllOption(resultsHTML, query, matchingRooms.length);
+            }
+
+            addSearchAllOption(resultsHTML, query, totalCount) {
+                if (totalCount > 8) {
+                    resultsHTML += `
+                        <div class="pt-3 border-t text-center">
+                            <p class="text-sm text-gray-500">
+                                Showing 8 of ${totalCount} results
+                                <a href="/explore/?q=${encodeURIComponent(query)}" class="text-primary hover:underline ml-1">View all</a>
+                            </p>
+                        </div>
+                    `;
+                }
+
+                // Add "Search all rooms" option
+                resultsHTML += `
+                    <div class="pt-3 border-t">
+                        <a href="/explore/?q=${encodeURIComponent(query)}" class="flex items-center justify-center p-3 text-primary hover:bg-primary/10 rounded-lg transition-colors group">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <span class="font-medium">Search all ${this.isAuthenticated ? 'content' : 'public rooms'} for "${query}"</span>
+                        </a>
+                    </div>
+                `;
+
+                resultsHTML += '</div>';
+
+                if (this.searchResults) {
+                    this.searchResults.innerHTML = resultsHTML;
+                }
+            }
+
+            showEmptyState() {
+                if (this.searchResults) {
+                    const authContent = this.isAuthenticated ? `
+                        <p class="font-medium">Start typing to search...</p>
+                        <p class="text-sm mt-1">Find rooms, users, or topics</p>
+                    ` : `
+                        <p class="font-medium">Start typing to search...</p>
+                        <p class="text-sm mt-1">Discover public rooms and topics</p>
+                        <p class="text-xs mt-2 text-primary">
+                            <a href="/signup/" class="hover:underline">Sign up</a> to search users and private content
+                        </p>
+                    `;
+
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            ${authContent}
+                        </div>
+                    `;
+                }
+            }
+
+            showLoadingState() {
+                if (this.searchResults) {
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center">
+                            <div class="loading-spinner mx-auto mb-4"></div>
+                            <p class="text-gray-500">Searching ${this.isAuthenticated ? 'all content' : 'public rooms'}...</p>
+                        </div>
+                    `;
+                }
+            }
+
+            showNoResults(query) {
+                if (this.searchResults) {
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <h3 class="font-semibold text-gray-900 mb-2">No results found</h3>
+                            <p class="text-gray-500 mb-4">We couldn't find anything matching "${query}" ${this.isAuthenticated ? '' : 'in public rooms'}</p>
+                            <a href="/explore/?q=${encodeURIComponent(query)}" class="btn btn-primary">
+                                Search all ${this.isAuthenticated ? 'content' : 'public rooms'}
+                            </a>
+                            ${!this.isAuthenticated ? `
+                                <p class="text-sm text-gray-500 mt-3">
+                                    <a href="/signup/" class="text-primary hover:underline">Sign up</a> to access more search results
+                                </p>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            getSignupCTA() {
+                return `
+                    <div class="p-6 bg-gradient-to-br from-pink-50 to-purple-50 border-b border-gray-200">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Discover more with an account</h3>
+                            <p class="text-sm text-gray-600 mb-4">Join Euphorie to search users, private rooms, and unlock the full experience!</p>
+                            <div class="flex gap-2 justify-center">
+                                <a href="/signup/" class="btn btn-primary">Sign up free</a>
+                                <a href="/login/" class="btn btn-secondary">Login</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Enhanced Toast Notification System
+        class EuphorieToastManager {
+            constructor() {
+                this.container = this.createContainer();
+            }
+
+            createContainer() {
+                let container = document.getElementById('toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'toast-container';
+                    container.className = 'fixed top-4 right-4 z-50 space-y-2';
+                    document.body.appendChild(container);
+                }
+                return container;
+            }
+
+            show(message, type = 'info', duration = 4000) {
+                const toast = document.createElement('div');
+                const id = 'toast-' + Date.now();
+                
+                const icons = {
+                    success: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+                    error: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+                    warning: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+                    info: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+                };
+
+                toast.id = id;
+                toast.className = `toast toast-${type} show`;
+                toast.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 mr-3">
+                            ${icons[type]}
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">${message}</p>
+                        </div>
+                        <button onclick="window.toastManager.dismiss('${id}')" class="ml-3 flex-shrink-0">
+                            <svg class="h-4 w-4 opacity-70 hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                this.container.appendChild(toast);
+
+                // Auto dismiss
+                if (duration > 0) {
+                    setTimeout(() => {
+                        this.dismiss(id);
+                    }, duration);
+                }
+
+                return id;
+            }
+
+            dismiss(id) {
+                const toast = document.getElementById(id);
+                if (toast) {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }
+            }
+        }
+
+        // Payment System Manager
+        class EuphoriePaymentManager {
+            constructor() {
+                this.stripe = null;
+                this.elements = null;
+                this.init();
+            }
+
+            async init() {
+                if (window.CHAT_CONFIG?.stripe?.enabled && window.CHAT_CONFIG?.stripe?.publishableKey) {
+                    try {
+                        this.stripe = Stripe(window.CHAT_CONFIG.stripe.publishableKey);
+                        this.setupPaymentHandlers();
+                    } catch (error) {
+                        console.warn('Stripe initialization failed:', error);
+                    }
+                }
+            }
+
+            setupPaymentHandlers() {
+                // Handle upgrade button clicks
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.upgrade-btn, .subscription-badge.upgrade')) {
+                        e.preventDefault();
+                        this.showUpgradeModal();
+                    }
+                });
+
+                // Handle subscription notifications
+                this.checkSubscriptionStatus();
+            }
+
+            showUpgradeModal() {
+                window.utils?.showToast('Redirecting to upgrade options...', 'info', 2000);
+                setTimeout(() => {
+                    window.location.href = '/pricing/';
+                }, 500);
+            }
+
+            checkSubscriptionStatus() {
+                const user = window.CHAT_CONFIG?.user;
+                if (user && user.subscription) {
+                    if (!user.subscription.isActive || user.subscription.isExpired) {
+                        // Show upgrade notification after a delay
+                        setTimeout(() => {
+                            this.showSubscriptionReminder();
+                        }, 5000);
+                    }
+                }
+            }
+
+            showSubscriptionReminder() {
+                const user = window.CHAT_CONFIG?.user;
+                if (user && user.subscription && user.subscription.plan === 'basic') {
+                    window.utils?.showToast(
+                        'Upgrade to Premium for unlimited rooms and advanced features!',
+                        'info',
+                        6000
+                    );
+                }
+            }
+        }
+
+        // Header scroll effect
+        function initHeaderScroll() {
+            const header = document.getElementById('header');
+            let scrolled = false;
+
+            window.addEventListener('scroll', () => {
+                const shouldBeScrolled = window.scrollY > 10;
+                
+                if (shouldBeScrolled !== scrolled) {
+                    scrolled = shouldBeScrolled;
+                    
+                    if (scrolled) {
+                        header?.classList.add('scrolled');
+                    } else {
+                        header?.classList.remove('scrolled');
+                    }
+                }
+            });
+        }
+
+        // Initialize everything when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize managers
+            window.menuManager = new EuphorieMenuManager();
+            window.loadingManager = new EuphorieLoadingManager();
+            window.searchManager = new EuphorieSearchManager();
+            window.toastManager = new EuphorieToastManager();
+            window.paymentManager = new EuphoriePaymentManager();
+
+            // Initialize header scroll effect
+            initHeaderScroll();
+
+            // Mobile profile nav handler (for authenticated users)
+            const profileNav = document.getElementById('profile-nav');
+            const userMenuButton = document.getElementById('user-menu-button');
+            if (profileNav && userMenuButton) {
+                profileNav.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    userMenuButton.click();
+                });
+            }
+
+            // Enhanced button ripple effect
+            document.querySelectorAll('.btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    ripple.style.position = 'absolute';
+                    ripple.style.borderRadius = '50%';
+                    ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+                    ripple.style.transform = 'scale(0)';
+                    ripple.style.animation = 'ripple 0.6s linear';
+                    ripple.style.pointerEvents = 'none';
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Performance optimization for lower-end devices
+            if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
+                document.documentElement.style.setProperty('--duration-normal', '0.1s');
+                document.documentElement.style.setProperty('--duration-slow', '0.15s');
+            }
+
+            // Add dynamic year to footer
+            const currentYear = new Date().getFullYear();
+            const yearElements = document.querySelectorAll('.current-year');
+            yearElements.forEach(el => {
+                el.textContent = currentYear;
+            });
+        });
+
+        // Add ripple animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Global utility functions
+        window.utils = {
+            debounce: function(func, wait, immediate) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        timeout = null;
+                        if (!immediate) func(...args);
+                    };
+                    const callNow = immediate && !timeout;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                    if (callNow) func(...args);
+                };
+            },
+
+            throttle: function(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments;
+                    const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true;
+                        setTimeout(() => inThrottle = false, limit);
+                    }
+                };
+            },
+
+            formatNumber: function(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            },
+
+            formatCurrency: function(amount, currency = 'USD') {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: currency
+                }).format(amount);
+            },
+
+            timeAgo: function(date) {
+                const now = new Date();
+                const secondsPast = (now.getTime() - date.getTime()) / 1000;
+                
+                if (secondsPast < 60) return 'just now';
+                if (secondsPast < 3600) return Math.floor(secondsPast / 60) + 'm ago';
+                if (secondsPast <= 86400) return Math.floor(secondsPast / 3600) + 'h ago';
+                if (secondsPast <= 2592000) return Math.floor(secondsPast / 86400) + 'd ago';
+                return date.toLocaleDateString();
+            },
+
+            showToast: function(message, type = 'info', duration = 4000) {
+                return window.toastManager?.show(message, type, duration);
+            },
+
+            redirectToUpgrade: function() {
+                window.location.href = '/pricing/';
+            },
+
+            confirmAction: function(message, callback) {
+                if (confirm(message)) {
+                    callback();
+                }
+            }
+        };
+    </script>
+
+    {% block javascript %}{% endblock %}
+</body>
+</html>
