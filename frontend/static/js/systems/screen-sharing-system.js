@@ -2199,6 +2199,26 @@ class EuphorieScreenSharingSystem {
         console.log('📱 Setting up mobile camera with orientation detection...');
         
         try {
+            // Check if running in Capacitor
+            const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+            
+            if (isCapacitor) {
+                console.log('📱 Capacitor detected - checking permissions...');
+                
+                // For Capacitor, we might need to request permissions first
+                if (window.Capacitor.Plugins.Permissions) {
+                    const { Permissions } = window.Capacitor.Plugins;
+                    const cameraPermission = await Permissions.checkPermissions({ permissions: ['camera'] });
+                    
+                    if (cameraPermission.camera !== 'granted') {
+                        const requested = await Permissions.requestPermissions({ permissions: ['camera'] });
+                        if (requested.camera !== 'granted') {
+                            throw new Error('Camera permission denied');
+                        }
+                    }
+                }
+            }
+            
             const constraints = {
                 video: {
                     width: { ideal: 1280, max: 1920 },
@@ -2229,10 +2249,17 @@ class EuphorieScreenSharingSystem {
             
         } catch (error) {
             console.error('📱 Mobile camera setup failed:', error);
+            
+            // Capacitor-specific error handling
+            if (error.message.includes('permission')) {
+                this.showNotification('📷 Camera permission required. Please enable in settings.');
+            }
+            
             throw error;
         }
     }
-    
+
+    // KEEP THESE TWO METHODS AS THEY ARE - DON'T CHANGE THEM
     handleOrientationChange() {
         if (!this.isMobile() || !this.isSharing) return;
         
@@ -2243,7 +2270,7 @@ class EuphorieScreenSharingSystem {
             this.detectAndFixMobileOrientation();
         }, 300);
     }
-    
+
     setupOrientationListeners() {
         // Add orientation change listener
         window.addEventListener('orientationchange', () => {
@@ -2261,7 +2288,7 @@ class EuphorieScreenSharingSystem {
         
         console.log('📱 Orientation change listeners setup');
     }
-
+    
     // ================================
     // ENHANCED SCREEN SHARING METHODS
     // ================================
