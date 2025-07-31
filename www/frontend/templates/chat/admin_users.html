@@ -1,0 +1,2180 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}User Management - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Smooth Scrolling Optimizations */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 2rem;
+}
+
+body {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* CONSISTENT HEADER SIZING - SETTINGS.HTML STANDARD */
+/* Override base.html header styles to match settings.html compact standard */
+
+/* Enhanced Header & Navigation - COMPACT STANDARD */
+.app-header {
+  background-color: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: all var(--duration-normal) var(--ease);
+  padding: 0.5rem 0 !important; /* COMPACT: Reduced from default padding */
+}
+
+.app-header.scrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-md);
+  border-bottom-color: var(--border-focus);
+}
+
+/* Enhanced Navigation Links - COMPACT STANDARD */
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem !important; /* COMPACT: Reduced padding */
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem !important; /* COMPACT: Smaller font */
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all var(--duration-normal) var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link svg {
+  width: 0.875rem !important; /* COMPACT: Smaller icons */
+  height: 0.875rem !important;
+  margin-right: 0.375rem !important; /* COMPACT: Reduced margin */
+}
+
+/* Enhanced Brand - COMPACT STANDARD */
+.brand-logo {
+  font-size: 1.125rem !important; /* COMPACT: Reduced from 1.375rem */
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.brand-badge {
+  margin-left: 0.375rem !important; /* COMPACT: Reduced margin */
+  padding: 0.125rem 0.375rem !important; /* COMPACT: Reduced padding */
+  font-size: 0.65rem !important; /* COMPACT: Smaller font */
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+  color: var(--primary);
+  border-radius: 9999px;
+  border: 1px solid var(--primary);
+  animation: pulse 3s infinite;
+}
+
+/* Enhanced User Avatar - COMPACT STANDARD */
+.user-avatar {
+  width: 1.75rem !important; /* COMPACT: Reduced from 2rem */
+  height: 1.75rem !important;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  font-size: 0.7rem !important; /* COMPACT: Smaller font */
+  transition: all var(--duration-normal) var(--ease);
+  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
+}
+
+/* Enhanced User Menu Button - COMPACT STANDARD */
+.user-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem !important; /* COMPACT: Reduced gap */
+  padding: 0.375rem 0.75rem !important; /* COMPACT: Reduced padding */
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  transition: all var(--duration-normal) var(--ease);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.user-menu-button p {
+  font-size: 0.8rem !important; /* COMPACT: Smaller text */
+  margin: 0;
+}
+
+.user-menu-button .text-xs {
+  font-size: 0.7rem !important; /* COMPACT: Smaller secondary text */
+}
+
+/* Enhanced Create Room Button - COMPACT STANDARD */
+.create-room-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem !important; /* COMPACT: Reduced gap */
+  padding: 0.5rem 1rem !important; /* COMPACT: Reduced padding */
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem !important; /* COMPACT: Smaller font */
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--duration-normal) var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.create-room-btn svg {
+  width: 0.875rem !important; /* COMPACT: Smaller icon */
+  height: 0.875rem !important;
+}
+
+/* Enhanced Search Button - COMPACT STANDARD */
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem !important; /* COMPACT: Reduced from 2.5rem */
+  height: 2.25rem !important;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all var(--duration-normal) var(--ease);
+  cursor: pointer;
+}
+
+.search-btn svg {
+  width: 1rem !important; /* COMPACT: Smaller icon */
+  height: 1rem !important;
+}
+
+/* Enhanced Mobile Bottom Navigation - COMPACT STANDARD */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0.5rem 0.25rem !important; /* COMPACT: Reduced padding */
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.375rem !important; /* COMPACT: Reduced padding */
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease);
+  color: var(--text-secondary);
+  text-decoration: none;
+  position: relative;
+}
+
+.nav-item-icon {
+  margin-bottom: 0.125rem !important; /* COMPACT: Reduced margin */
+  position: relative;
+  transition: transform var(--duration-normal) var(--ease);
+}
+
+.nav-item-icon svg {
+  width: 1.25rem !important; /* COMPACT: Smaller icons */
+  height: 1.25rem !important;
+}
+
+.nav-item-label {
+  font-size: 0.65rem !important; /* COMPACT: Smaller font */
+  font-weight: 600;
+}
+
+/* Enhanced Footer - COMPACT STANDARD */
+.app-footer {
+  background: white;
+  border-top: 1px solid var(--border);
+  padding: 1.25rem 0 !important; /* COMPACT: Reduced from 2rem */
+  margin-top: 2rem !important; /* COMPACT: Reduced from 3rem */
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem !important; /* COMPACT: Reduced gap */
+}
+
+.footer-brand .brand-logo {
+  font-size: 0.95rem !important; /* COMPACT: Smaller footer logo */
+}
+
+.footer-brand .text-xs {
+  font-size: 0.7rem !important; /* COMPACT: Smaller version text */
+}
+
+.footer-brand p {
+  font-size: 0.75rem !important; /* COMPACT: Smaller copyright text */
+  margin-top: 0.25rem !important; /* COMPACT: Reduced margin */
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem !important; /* COMPACT: Reduced gap */
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem !important; /* COMPACT: Reduced gap */
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.8rem !important; /* COMPACT: Smaller font */
+  font-weight: 500;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+.footer-link svg {
+  width: 0.875rem !important; /* COMPACT: Smaller icons */
+  height: 0.875rem !important;
+}
+
+/* Enhanced Buttons - COMPACT STANDARD */
+.btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  padding: 0.625rem 1.25rem !important; /* COMPACT: Reduced padding */
+  transition: all var(--duration-normal) var(--ease-spring);
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  text-decoration: none;
+  font-size: 0.8rem !important; /* COMPACT: Smaller font */
+}
+
+/* Dropdown items - COMPACT STANDARD */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.875rem !important; /* COMPACT: Slightly reduced padding */
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.8rem !important; /* COMPACT: Smaller font */
+  font-weight: 500;
+  transition: all var(--duration-normal) var(--ease);
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdown-item svg {
+  margin-right: 0.625rem !important; /* COMPACT: Reduced margin */
+  color: var(--text-tertiary);
+  transition: color var(--duration-normal) var(--ease);
+  width: 0.875rem !important; /* COMPACT: Smaller icons */
+  height: 0.875rem !important;
+}
+
+.dropdown-section-title {
+  padding: 0.375rem 0.875rem !important; /* COMPACT: Reduced padding */
+  font-size: 0.7rem !important; /* COMPACT: Smaller font */
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.close-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem !important; /* COMPACT: Reduced size */
+  height: 2.25rem !important;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease);
+}
+
+/* Mobile Optimizations - COMPACT STANDARD */
+@media (max-width: 640px) {
+  .nav-link {
+    padding: 0.3rem 0.6rem !important; /* COMPACT: Further reduced for mobile */
+    font-size: 0.75rem !important;
+  }
+
+  .user-menu-button {
+    padding: 0.3rem 0.6rem !important; /* COMPACT: Further reduced for mobile */
+  }
+
+  .create-room-btn {
+    padding: 0.4rem 0.8rem !important; /* COMPACT: Further reduced for mobile */
+    font-size: 0.75rem !important;
+  }
+
+  .search-btn {
+    width: 2rem !important; /* COMPACT: Smaller on mobile */
+    height: 2rem !important;
+  }
+
+  .brand-logo {
+    font-size: 1rem !important; /* COMPACT: Smaller brand on mobile */
+  }
+
+  .app-header {
+    padding: 0.375rem 0 !important; /* COMPACT: Further reduced for mobile */
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .footer-links {
+    gap: 1rem;
+  }
+}
+
+/* Enhanced Admin Users Styles with Modern UX - Scoped to Admin Container */
+.admin-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, 
+        rgba(244, 114, 182, 0.02) 0%, 
+        rgba(96, 165, 250, 0.02) 50%, 
+        rgba(139, 92, 246, 0.02) 100%
+    );
+    position: relative;
+    will-change: scroll-position;
+    transform: translateZ(0);
+}
+
+.admin-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f472b6' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    animation: patternFloat 30s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes patternFloat {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(60px) translateY(60px); }
+}
+
+.admin-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    animation: fadeInDown 0.6s ease-out;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 2rem;
+    border: 1px solid rgba(244, 114, 182, 0.15);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+}
+
+.admin-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.admin-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.admin-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.375rem;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.admin-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Enhanced Buttons - Scoped to Admin Container Only */
+.admin-container .btn-enhanced {
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border-radius: 1.5rem;
+    padding: 0.875rem 2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    text-decoration: none;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+.admin-container .btn-enhanced::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform 0.5s, opacity 0.8s;
+}
+
+.admin-container .btn-enhanced:active::after {
+    transform: scale(0, 0);
+    opacity: 0.3;
+    transition: 0s;
+}
+
+.admin-container .btn-primary-enhanced {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
+}
+
+.admin-container .btn-primary-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
+    box-shadow: 0 15px 40px rgba(244, 114, 182, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.admin-container .btn-secondary-enhanced {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    color: var(--text-primary);
+    backdrop-filter: blur(10px);
+}
+
+.admin-container .btn-secondary-enhanced:hover {
+    border-color: var(--primary);
+    background: rgba(244, 114, 182, 0.05);
+    color: var(--primary);
+    transform: translateY(-2px) translateZ(0);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.3);
+    text-decoration: none;
+}
+
+.admin-container .btn-danger-enhanced {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+.admin-container .btn-danger-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
+    box-shadow: 0 15px 40px rgba(239, 68, 68, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.admin-container .btn-success-enhanced {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+.admin-container .btn-success-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
+    box-shadow: 0 15px 40px rgba(16, 185, 129, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.admin-container .btn-warning-enhanced {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+}
+
+.admin-container .btn-warning-enhanced:hover {
+    transform: translateY(-3px) translateZ(0);
+    box-shadow: 0 15px 40px rgba(245, 158, 11, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.stats-section {
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.stat-card:hover {
+    transform: translateY(-6px) translateZ(0);
+    box-shadow: 
+        0 35px 70px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(244, 114, 182, 0.2);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.stat-icon {
+    width: 3rem;
+    height: 3rem;
+    background: linear-gradient(135deg, var(--primary-light), rgba(96, 165, 250, 0.1));
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+    transform: translateZ(0);
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1) rotate(5deg) translateZ(0);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.stat-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.stat-description {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
+.filters-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+}
+
+.filters-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.filters-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.filters-form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-input {
+    padding: 1rem 1.25rem;
+    border: 2px solid transparent;
+    border-radius: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(96, 165, 250, 0.15)) border-box;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateZ(0);
+}
+
+.form-input:focus {
+    outline: none;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary), var(--secondary)) border-box;
+    box-shadow: 
+        0 0 0 4px rgba(244, 114, 182, 0.2),
+        0 15px 35px -5px rgba(244, 114, 182, 0.25);
+    transform: translateY(-2px) translateZ(0);
+}
+
+.form-input:hover {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(96, 165, 250, 0.4)) border-box;
+    transform: translateY(-1px) translateZ(0);
+    box-shadow: 0 8px 25px -8px rgba(244, 114, 182, 0.15);
+}
+
+.users-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    overflow: hidden;
+    animation: fadeInUp 0.6s ease-out 0.6s both;
+    position: relative;
+    transform: translateZ(0);
+}
+
+.users-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.section-header {
+    padding: 2rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.section-meta {
+    background: rgba(244, 114, 182, 0.1);
+    color: var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border: 1px solid rgba(244, 114, 182, 0.2);
+}
+
+.users-list {
+    max-height: 70vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.users-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.users-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.users-list::-webkit-scrollbar-thumb {
+    background: rgba(244, 114, 182, 0.3);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.users-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(244, 114, 182, 0.5);
+}
+
+.user-item {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.05);
+    transition: all 0.3s ease;
+    position: relative;
+    transform: translateZ(0);
+}
+
+.user-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.user-item:hover {
+    background: rgba(244, 114, 182, 0.03);
+    transform: translateX(4px) translateZ(0);
+}
+
+.user-item:hover::before {
+    opacity: 1;
+}
+
+.user-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-item .user-avatar {
+    width: 3rem !important;
+    height: 3rem !important;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.125rem !important;
+    transition: all 0.3s ease;
+    transform: translateZ(0);
+}
+
+.user-item:hover .user-avatar {
+    transform: scale(1.1) rotate(5deg) translateZ(0);
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
+}
+
+.user-details h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.user-details p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.user-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+}
+
+.badge-active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.badge-inactive {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.badge-staff {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.user-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.user-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.user-actions {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.user-item:hover .user-actions {
+    opacity: 1;
+}
+
+/* Scoped Action Buttons */
+.admin-container .action-btn {
+    padding: 0.375rem 0.75rem;
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    min-height: 2rem;
+    transform: translateZ(0);
+    background: white;
+}
+
+.admin-container .action-btn:hover {
+    transform: translateY(-2px) translateZ(0);
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-container .action-btn.view {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.admin-container .action-btn.view:hover {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.admin-container .action-btn.activate {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.admin-container .action-btn.activate:hover {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+.admin-container .action-btn.deactivate {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.admin-container .action-btn.deactivate:hover {
+    background: var(--warning);
+    color: white;
+    border-color: var(--warning);
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+}
+
+.admin-container .action-btn.staff {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.admin-container .action-btn.staff:hover {
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+}
+
+.admin-container .action-btn.delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.admin-container .action-btn.delete:hover {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    width: 5rem;
+    height: 5rem;
+    margin: 0 auto 2rem;
+    color: var(--text-tertiary);
+    opacity: 0.5;
+}
+
+.empty-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+}
+
+.empty-description {
+    color: var(--text-secondary);
+    margin: 0 0 2rem 0;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.pagination-container {
+    background: rgba(244, 114, 182, 0.02);
+    padding: 2rem;
+    border-top: 1px solid rgba(244, 114, 182, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pagination-info {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pagination-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 2px solid rgba(244, 114, 182, 0.2);
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    transform: translateZ(0);
+}
+
+.pagination-link:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-2px) translateZ(0);
+    box-shadow: 0 8px 25px rgba(244, 114, 182, 0.3);
+}
+
+.pagination-link.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+}
+
+.pagination-link.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.1);
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+}
+
+.modal-body {
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(244, 114, 182, 0.1);
+}
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Activity Section */
+.activity-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5rem;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(244, 114, 182, 0.1);
+    overflow: hidden;
+    animation: fadeInUp 0.6s ease-out 0.8s both;
+    position: relative;
+    margin-top: 2rem;
+    transform: translateZ(0);
+}
+
+.activity-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.activity-item {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid rgba(244, 114, 182, 0.05);
+    transition: all 0.3s ease;
+    transform: translateZ(0);
+}
+
+.activity-item:hover {
+    background: rgba(244, 114, 182, 0.02);
+}
+
+.activity-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.activity-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.activity-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.activity-details .activity-user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.activity-details .activity-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* Enhanced Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) translateZ(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) translateZ(0);
+    }
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Ripple Effect Animation */
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .admin-title {
+        font-size: 2.5rem;
+    }
+
+    .admin-subtitle {
+        font-size: 1.125rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .filters-form {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .user-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .user-actions {
+        opacity: 1;
+        flex-wrap: wrap;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .admin-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .admin-container .btn-enhanced {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+
+    .stat-card {
+        padding: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .modal-content {
+        margin: 1rem;
+        width: calc(100% - 2rem);
+    }
+
+    .user-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .activity-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+/* Performance Optimizations */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .stat-card,
+    .filters-section,
+    .users-section,
+    .activity-section {
+        border-width: 3px;
+    }
+    
+    .admin-container .btn-enhanced {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Smooth scroll anchor behavior */
+.scroll-anchor {
+    scroll-margin-top: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="container mx-auto px-4 py-6">
+        <!-- Enhanced Header Section -->
+        <div class="admin-header scroll-anchor" id="header">
+            <h1 class="admin-title">👥 User Management</h1>
+            <p class="admin-subtitle">
+                Manage users, permissions, and monitor user activity across your platform. Maintain community standards and user engagement.
+            </p>
+            <div class="admin-actions">
+                <a href="{% url 'admin_messages' %}" class="btn-enhanced btn-primary-enhanced">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                    </svg>
+                    View Messages
+                </a>
+                <a href="{% url 'admin_dashboard' %}" class="btn-enhanced btn-secondary-enhanced">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Enhanced Stats Section -->
+        <div class="stats-section scroll-anchor" id="stats">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">👥</div>
+                    </div>
+                    <div class="stat-title">Total Users</div>
+                    <div class="stat-value">{{ total_users|default:"0" }}</div>
+                    <div class="stat-description">All registered users</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">✅</div>
+                    </div>
+                    <div class="stat-title">Active Users</div>
+                    <div class="stat-value">{{ active_users|default:"0" }}</div>
+                    <div class="stat-description">Currently active accounts</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">🛡️</div>
+                    </div>
+                    <div class="stat-title">Staff Users</div>
+                    <div class="stat-value">{{ staff_users|default:"0" }}</div>
+                    <div class="stat-description">Administrative accounts</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">📊</div>
+                    </div>
+                    <div class="stat-title">Regular Users</div>
+                    <div class="stat-value">{{ total_users|add:"-1"|default:"0" }}</div>
+                    <div class="stat-description">Standard user accounts</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Filters Section -->
+        <div class="filters-section scroll-anchor" id="filters">
+            <form method="get" class="filters-form">
+                <div class="form-group">
+                    <label for="search" class="form-label">Search Users</label>
+                    <input
+                        type="search"
+                        id="search"
+                        name="search"
+                        value="{{ search_query }}"
+                        placeholder="Search by username, email, name..."
+                        class="form-input"
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="type" class="form-label">User Type</label>
+                    <select name="type" id="type" class="form-input">
+                        <option value="">All Users</option>
+                        <option value="active" {% if user_type == 'active' %}selected{% endif %}>Active Users</option>
+                        <option value="inactive" {% if user_type == 'inactive' %}selected{% endif %}>Inactive Users</option>
+                        <option value="staff" {% if user_type == 'staff' %}selected{% endif %}>Staff Users</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sort" class="form-label">Sort By</label>
+                    <select name="sort" id="sort" class="form-input">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+                        <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest First</option>
+                        <option value="username" {% if sort_by == 'username' %}selected{% endif %}>Username A-Z</option>
+                        <option value="messages" {% if sort_by == 'messages' %}selected{% endif %}>Most Messages</option>
+                    </select>
+                </div>
+            </form>
+            
+            <div class="filters-form-row">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" form="user-filter-form" class="btn-enhanced btn-primary-enhanced">Apply Filters</button>
+                    <a href="{% url 'admin_users' %}" class="btn-enhanced btn-secondary-enhanced">Clear All</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Users Section -->
+        <div class="users-section scroll-anchor" id="users">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Users Directory</h2>
+                </div>
+                <div class="section-meta">
+                    {% if page_obj %}
+                        {{ page_obj.paginator.count }} total users
+                        {% if search_query %} • Filtered results{% endif %}
+                    {% else %}
+                        0 total users
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="users-list">
+                {% for user_obj in page_obj %}
+                <div class="user-item">
+                    <div class="user-header">
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                {{ user_obj.username|slice:":1"|upper }}
+                            </div>
+                            <div class="user-details">
+                                <h3>{{ user_obj.username }}</h3>
+                                <p>{{ user_obj.email|default:"No email provided" }}</p>
+                                
+                                <div class="user-badges">
+                                    {% if user_obj.is_staff %}
+                                    <span class="badge badge-staff">Staff</span>
+                                    {% endif %}
+                                    
+                                    {% if user_obj.is_active %}
+                                    <span class="badge badge-active">Active</span>
+                                    {% else %}
+                                    <span class="badge badge-inactive">Inactive</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="user-stats">
+                                    <div class="user-stat">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Joined {{ user_obj.date_joined|date:"M d, Y" }}
+                                    </div>
+                                    <div class="user-stat">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        {{ user_obj.message_count|default:"0" }} messages
+                                    </div>
+                                    <div class="user-stat">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2v4h2V6H4zm4 0v4h2V6H8zm4 0v4h2V6h-2zm-4 6v2h2v-2H8zm4 0v2h2v-2h-2z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        {{ user_obj.room_count|default:"0" }} rooms
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if user_obj != user %}
+                        <div class="user-actions">
+                            <!-- View Messages -->
+                            <a href="{% url 'admin_messages' %}?user={{ user_obj.id }}" class="action-btn view">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                                </svg>
+                                Messages
+                            </a>
+                            
+                            <!-- Toggle Active -->
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_active">
+                                <input type="hidden" name="user_id" value="{{ user_obj.id }}">
+                                <button type="submit" class="action-btn {% if user_obj.is_active %}deactivate{% else %}activate{% endif %}">
+                                    {% if user_obj.is_active %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Deactivate
+                                    {% else %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Activate
+                                    {% endif %}
+                                </button>
+                            </form>
+                            
+                            <!-- Toggle Staff -->
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_staff">
+                                <input type="hidden" name="user_id" value="{{ user_obj.id }}">
+                                <button type="submit" class="action-btn staff">
+                                    {% if user_obj.is_staff %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Remove Staff
+                                    {% else %}
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a3 3 0 01-3-3V6z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Make Staff
+                                    {% endif %}
+                                </button>
+                            </form>
+                            
+                            <!-- Delete User -->
+                            <button onclick="confirmDelete({{ user_obj.id }}, '{{ user_obj.username|escapejs }}')" class="action-btn delete">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
+                        {% else %}
+                        <div style="display: flex; align-items: center; padding: 0.5rem 1rem; background: rgba(244, 114, 182, 0.1); border-radius: 0.75rem; color: var(--primary); font-weight: 600; font-size: 0.875rem;">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 0.5rem;">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                            Current User
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    <h3 class="empty-title">No users found</h3>
+                    <p class="empty-description">
+                        {% if search_query %}
+                            No users match your search criteria. Try adjusting your search terms or clearing the filters.
+                        {% else %}
+                            There are no users to display. Users will appear here as they register.
+                        {% endif %}
+                    </p>
+                    {% if search_query %}
+                        <a href="{% url 'admin_users' %}" class="btn-enhanced btn-primary-enhanced">Clear Search</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Enhanced Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} users
+                </div>
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                       class="pagination-link">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Previous
+                    </a>
+                    {% else %}
+                    <span class="pagination-link disabled">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Previous
+                    </span>
+                    {% endif %}
+                    
+                    <span class="pagination-link active">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                       class="pagination-link">
+                        Next
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </a>
+                    {% else %}
+                    <span class="pagination-link disabled">
+                        Next
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Activity Section -->
+        {% if recent_activities %}
+        <div class="activity-section scroll-anchor" id="activity">
+            <div class="section-header">
+                <h2 class="section-title">Recent User Activity</h2>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for activity in recent_activities %}
+                <div class="activity-item">
+                    <div class="activity-content">
+                        <div class="activity-user">
+                            <div class="activity-avatar">
+                                {{ activity.user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="activity-details">
+                                <div class="activity-user-name">{{ activity.user.username }}</div>
+                                <div class="activity-description">{{ activity.description }}</div>
+                            </div>
+                        </div>
+                        <div class="activity-time">
+                            {{ activity.created_at|timesince }} ago
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" style="color: #ef4444;">Confirm User Deletion</h2>
+            <button onclick="closeModal('deleteModal')" class="modal-close">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>
+                Are you sure you want to delete user <strong id="delete-username"></strong>? 
+                This will permanently delete their account and all associated data. This action cannot be undone.
+            </p>
+        </div>
+        
+        <form method="post" id="deleteForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_user">
+            <input type="hidden" name="user_id" id="delete-user-id">
+            
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('deleteModal')" class="btn-enhanced btn-secondary-enhanced">Cancel</button>
+                <button type="submit" class="btn-enhanced btn-danger-enhanced">Delete User</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add form for filter submission -->
+<form id="user-filter-form" method="get" style="display: none;">
+    <input type="hidden" name="search" value="{{ search_query }}">
+    <input type="hidden" name="type" value="{{ user_type }}">
+    <input type="hidden" name="sort" value="{{ sort_by }}">
+</form>
+
+{% endblock %}
+
+{% block javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Enhanced Euphorie Admin User Management with consistent header sizing loaded successfully');
+    
+    // Optimize scroll performance
+    let ticking = false;
+    
+    function requestTick() {
+        if (!ticking) {
+            requestAnimationFrame(updateElements);
+            ticking = true;
+        }
+    }
+    
+    function updateElements() {
+        ticking = false;
+        // Any scroll-based updates can go here
+    }
+    
+    // Throttled scroll event listener
+    window.addEventListener('scroll', requestTick, { passive: true });
+
+    // Enhanced filter form submission
+    const filterInputs = document.querySelectorAll('#search, #type, #sort');
+    const filterForm = document.getElementById('user-filter-form');
+    
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            // Update hidden form inputs
+            const hiddenInput = filterForm.querySelector(`input[name="${this.name}"]`);
+            if (hiddenInput) {
+                hiddenInput.value = this.value;
+            }
+            
+            // Auto-submit for select elements
+            if (this.tagName === 'SELECT') {
+                filterForm.submit();
+            }
+        });
+        
+        // Submit on Enter for text inputs
+        if (input.type === 'search' || input.type === 'text') {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const hiddenInput = filterForm.querySelector(`input[name="${this.name}"]`);
+                    if (hiddenInput) {
+                        hiddenInput.value = this.value;
+                    }
+                    filterForm.submit();
+                }
+            });
+        }
+    });
+
+    // Enhanced confirmation for sensitive actions
+    document.querySelectorAll('form').forEach(form => {
+        const action = form.querySelector('input[name="action"]');
+        if (action && (action.value === 'toggle_staff' || action.value === 'toggle_active')) {
+            form.addEventListener('submit', function(e) {
+                const button = form.querySelector('button[type="submit"]');
+                const username = form.closest('.user-item').querySelector('h3').textContent;
+                const actionText = button.textContent.trim();
+                
+                if (!confirm(`Are you sure you want to ${actionText.toLowerCase()} user "${username}"?`)) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+
+    // Enhanced hover effects with performance optimization
+    const cards = document.querySelectorAll('.stat-card, .filters-section, .users-section, .activity-section');
+    
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.willChange = 'transform, box-shadow';
+        }, { passive: true });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.willChange = 'auto';
+        }, { passive: true });
+    });
+
+    // Enhanced ripple effects for buttons - scoped to admin container
+    const adminButtons = document.querySelectorAll('.admin-container .btn-enhanced, .admin-container .action-btn');
+    adminButtons.forEach(button => {
+        if (!button.hasAttribute('data-ripple-added')) {
+            button.setAttribute('data-ripple-added', 'true');
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.style.position = 'absolute';
+                ripple.style.borderRadius = '50%';
+                ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.animation = 'ripple 0.6s linear';
+                ripple.style.pointerEvents = 'none';
+                ripple.style.zIndex = '0';
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    if (ripple.parentNode) {
+                        ripple.remove();
+                    }
+                }, 600);
+            });
+        }
+    });
+
+    // Intersection Observer for animations with performance optimization
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+                observer.unobserve(entry.target); // Stop observing once animated
+            }
+        });
+    }, observerOptions);
+
+    // Observe elements with animations
+    document.querySelectorAll('[class*="fadeIn"]').forEach(el => {
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
+    });
+});
+
+// Enhanced modal functions
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        // Focus management
+        const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select, button');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 300);
+        }
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function confirmDelete(userId, username) {
+    document.getElementById('delete-user-id').value = userId;
+    document.getElementById('delete-username').textContent = username;
+    showModal('deleteModal');
+}
+
+// Enhanced keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + K to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+    
+    // Escape to close modals
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal.show');
+        modals.forEach(modal => {
+            modal.classList.remove('show');
+        });
+        document.body.style.overflow = '';
+    }
+});
+
+// Close modals when clicking outside
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+});
+
+// Enhanced user interactions
+document.querySelectorAll('.user-item').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+        this.style.willChange = 'transform';
+    });
+
+    item.addEventListener('mouseleave', function() {
+        this.style.willChange = 'auto';
+    });
+});
+
+// Performance optimization for lower-end devices
+if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
+    document.documentElement.style.setProperty('--transition-duration', '0.1s');
+}
+
+// Enhanced search with debouncing
+const searchInput = document.getElementById('search');
+if (searchInput) {
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        
+        // Visual feedback for search
+        this.style.background = 'linear-gradient(white, white) padding-box, linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(96, 165, 250, 0.3)) border-box';
+        
+        searchTimeout = setTimeout(() => {
+            this.style.background = '';
+        }, 500);
+    });
+}
+
+// Enhanced action button feedback
+document.querySelectorAll('.admin-container .action-btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+        // Add visual feedback for form submissions
+        if (this.type === 'submit') {
+            const originalContent = this.innerHTML;
+            this.innerHTML = '<div class="spinner"></div>';
+            this.disabled = true;
+            
+            // Re-enable after form submission (fallback)
+            setTimeout(() => {
+                this.innerHTML = originalContent;
+                this.disabled = false;
+            }, 3000);
+        }
+    });
+});
+
+// Enhanced loading states for form submissions
+document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', function() {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn && !submitBtn.disabled) {
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="spinner"></div> Processing...';
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+        }
+    });
+});
+
+// Toast notifications for user feedback
+function showToast(message, type = 'info', duration = 4000) {
+    if (window.utils && window.utils.showToast) {
+        return window.utils.showToast(message, type, duration);
+    }
+    
+    // Fallback toast implementation
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 
+        type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+    } text-white transform translate-x-full transition-transform duration-300`;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    // Show toast
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Hide toast
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, duration);
+}
+
+// Enhanced activity scroll animations
+const activitySection = document.querySelector('.activity-section');
+if (activitySection) {
+    const activityItems = activitySection.querySelectorAll('.activity-item');
+    
+    activityItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.1}s`;
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        item.style.transition = 'all 0.3s ease';
+        
+        // When item becomes visible, animate it in
+        const itemObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }, index * 100);
+                    itemObserver.unobserve(entry.target);
+                }
+            });
+        });
+        
+        itemObserver.observe(item);
+    });
+}
+
+console.log('Admin user management with consistent header sizing loaded');
+</script>
+{% endblock %}
