@@ -2457,16 +2457,6 @@
     </script>
 
     <script>
-        // DJANGO DEBUG: Check what Django is outputting
-        console.log('🔍 Django Template Debug:');
-        console.log('request.user.is_authenticated:', {{ request.user.is_authenticated|yesno:"true,false" }});
-        console.log('request.user.id:', "{{ request.user.id }}");
-        console.log('request.user.username:', "{{ request.user.username|escapejs }}");
-        console.log('user_id from context:', "{{ user_id }}");
-        console.log('user_nationality:', "{{ user_nationality }}");
-        console.log('user_country_name:', "{{ user_country_name }}");
-        console.log('user_flag_url:', "{{ user_flag_url }}");
-
         // Create ROOM_CONFIG with proper error handling and nationality support
         try {
             window.ROOM_CONFIG = {
@@ -2513,8 +2503,6 @@
                 }
             };
             
-            console.log('✅ ROOM_CONFIG created successfully');
-            
         } catch (error) {
             console.error('❌ Error creating ROOM_CONFIG:', error);
             
@@ -2551,46 +2539,29 @@
                     useAdvancedMaterials: true
                 }
             };
-            
-            console.warn('⚠️ Using fallback ROOM_CONFIG');
         }
-        
-        // CRITICAL DEBUG: Check final ROOM_CONFIG values
-        console.log('🔍 Final ROOM_CONFIG values:');
-        console.log('userId:', window.ROOM_CONFIG.userId);
-        console.log('username:', window.ROOM_CONFIG.username);
-        console.log('userNationality:', window.ROOM_CONFIG.userNationality);
-        console.log('userCountryName:', window.ROOM_CONFIG.userCountryName);
-        console.log('userFlagUrl:', window.ROOM_CONFIG.userFlagUrl);
-        console.log('isAuthenticated:', window.ROOM_CONFIG.isAuthenticated);
-        console.log('rustWebSocketUrl:', window.ROOM_CONFIG.rustWebSocketUrl);
-        console.log('nationalityEnabled:', window.ROOM_CONFIG.nationalityEnabled);
-        console.log('Full config:', window.ROOM_CONFIG);
         
         // SAFETY CHECKS with better validation
         if (!window.ROOM_CONFIG.roomId || window.ROOM_CONFIG.roomId === '') {
             window.ROOM_CONFIG.roomId = 'fallback-room-' + Math.random().toString(36).substr(2, 9);
-            console.warn('⚠️ Using fallback room ID:', window.ROOM_CONFIG.roomId);
-        }
-        
-        // For authenticated users, userId should NOT be null
-        if (window.ROOM_CONFIG.isAuthenticated && !window.ROOM_CONFIG.userId) {
-            console.error('❌ CRITICAL: Authenticated user has null userId!');
-            console.error('Django user ID was:', "{{ request.user.id }}");
-            console.error('user_id from context was:', "{{ user_id }}");
-            // Don't create fallback - this indicates a real problem
         }
         
         // For guest users, create proper guest ID if needed
         if (!window.ROOM_CONFIG.isAuthenticated && !window.ROOM_CONFIG.userId) {
             window.ROOM_CONFIG.userId = 'guest_' + Math.random().toString(36).substr(2, 9);
-            console.warn('⚠️ Created guest user ID:', window.ROOM_CONFIG.userId);
         }
         
         if (!window.ROOM_CONFIG.username || window.ROOM_CONFIG.username === '') {
             window.ROOM_CONFIG.username = window.ROOM_CONFIG.isAuthenticated ? 'User' : 'Guest';
-            console.warn('⚠️ Using fallback username:', window.ROOM_CONFIG.username);
         }
+        
+        // Capacitor StatusBar fix for Android
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
+                window.Capacitor.Plugins.StatusBar.setOverlaysWebView({ overlay: false });
+                console.log('✅ StatusBar overlay disabled');
+            }
+        });
         
         // Mobile detection and responsive setup
         const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -2617,25 +2588,7 @@
             setTimeout(updateMobileLayout, 100);
         });
         
-        // Final logging
-        console.log('🎮 Euphorie 3D Platform HTML initialized');
-        console.log('📱 Mobile mode:', isMobile);
-        console.log('🏠 Room:', window.ROOM_CONFIG.roomName);
-        console.log('👤 User:', window.ROOM_CONFIG.username);
-        console.log('🔧 User ID:', window.ROOM_CONFIG.userId);
-        console.log('🌍 User Nationality:', window.ROOM_CONFIG.userNationality);
-        console.log('🏳️ User Country:', window.ROOM_CONFIG.userCountryName);
-        console.log('🔧 Is Authenticated:', window.ROOM_CONFIG.isAuthenticated);
-        console.log('🔌 WebSocket URL:', window.ROOM_CONFIG.rustWebSocketUrl);
-        
-        // Validate ROOM_CONFIG is properly set
-        if (!window.ROOM_CONFIG) {
-            console.error('❌ CRITICAL: ROOM_CONFIG is still undefined after creation!');
-        } else if (window.ROOM_CONFIG.isAuthenticated && !window.ROOM_CONFIG.userId) {
-            console.error('❌ CRITICAL: Authenticated user still has no userId!');
-        } else {
-            console.log('✅ ROOM_CONFIG validation passed');
-        }
+        console.log('🎮 Euphorie 3D Platform initialized');
     </script>
     
     <!-- Enhanced WebSocket Manager - FIXED VERSION with Scene Synchronization Support -->
