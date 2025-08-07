@@ -120,6 +120,10 @@ urlpatterns = [
     # ==================== UTILITY PAGES ====================
     path('privacy/', views.privacy_policy, name='privacy_policy'),
     path('terms/', views.terms_of_service, name='terms_of_service'),
+
+    # ==================== API for recommendations ====================
+    path('api/recommendations/', views.api_room_recommendations, name='api_room_recommendations'),
+    path('api/rooms/<int:room_id>/similar/', views.api_similar_rooms, name='api_similar_rooms'),
     
     # ==================== DEBUG ====================
     path('debug/rooms/', views.debug_rooms, name='debug_rooms'),

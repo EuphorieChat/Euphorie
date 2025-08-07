@@ -21,7 +21,9 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db.models import Q, Count, Sum, F, Max
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.http import (
+    JsonResponse, HttpResponse, HttpResponseForbidden
+)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -30,6 +32,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import TemplateView
 
 # Local App Imports
+from chat.recs.recommender import RoomRecommendationEngine
 from .models import (
     Room, Message, UserProfile, RoomCategory, Friendship,
     RoomBookmark, MessageReport, UserActivity, FriendRequest,
@@ -519,6 +522,87 @@ def explore_rooms(request):
     # Redirect to index since they serve the same purpose now
     # but you could customize this differently if needed
     return index(request)
+
+# Initialize the recommendation engine
+recommendation_engine = RoomRecommendationEngine()
+
+@require_http_methods(["GET"])
+def api_room_recommendations(request):
+    """API endpoint for room recommendations"""
+    strategy = request.GET.get('strategy', 'hybrid')
+    limit = min(int(request.GET.get('limit', 10)), 50)
+    
+    # Get recommendations
+    recommendations = recommendation_engine.get_recommendations_for_user(
+        request.user,
+        limit=limit,
+        strategy=strategy
+    )
+    
+    # Serialize
+    data = []
+    for room in recommendations:
+        data.append({
+            'id': room.id,
+            'name': room.name,
+            'display_name': room.display_name,
+            'description': room.description,
+            'category': room.category.name if room.category else None,
+            'message_count': room.message_count,
+            'active_users': room.active_users_count,
+            'url': f'/room/{room.name}/',
+            'is_public': room.is_public,
+        })
+    
+    return JsonResponse({
+        'recommendations': data,
+        'strategy': strategy,
+        'count': len(data)
+    })
+
+@require_http_methods(["GET"])
+def api_similar_rooms(request, room_id):
+    """API endpoint for similar rooms"""
+    limit = min(int(request.GET.get('limit', 5)), 20)
+    
+    similar_rooms = recommendation_engine.get_similar_rooms(room_id, limit)
+    
+    data = []
+    for room in similar_rooms:
+        data.append({
+            'id': room.id,
+            'name': room.name,
+            'display_name': room.display_name,
+            'url': f'/room/{room.name}/',
+        })
+    
+    return JsonResponse({
+        'similar_rooms': data,
+        'count': len(data)
+    })
+
+# Update your index view to use recommendations
+def index_with_recommendations(request):
+    """Enhanced index view with recommendations"""
+    # ... existing index view code ...
+    
+    # Add personalized recommendations
+    if request.user.is_authenticated:
+        recommended_rooms = recommendation_engine.get_recommendations_for_user(
+            request.user,
+            limit=6,
+            strategy='hybrid'
+        )
+    else:
+        recommended_rooms = recommendation_engine.get_recommendations_for_user(
+            None,
+            limit=6,
+            strategy='popular'
+        )
+    
+    context['recommended_rooms'] = recommended_rooms
+    
+    return render(request, 'chat/room_list.html', context)
 
 # ==================== NATIONALITY API ENDPOINTS ====================
 
