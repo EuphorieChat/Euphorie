@@ -258,26 +258,6 @@ main {
   transform: translateY(-1px);
 }
 
-.brand-container.shuffle-trigger {
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-.brand-container.shuffle-trigger:hover .brand-logo {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 2s linear infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-
 .brand-logo {
   font-size: 1.125rem; /* Reduced from 1.375rem */
   font-weight: 800;
@@ -298,9 +278,6 @@ main {
   border-radius: 9999px;
   border: 1px solid var(--primary);
   animation: pulse 3s infinite;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
 }
 
 /* PAYMENT SUBSCRIPTION BADGE STYLES */
@@ -348,42 +325,6 @@ main {
   background: linear-gradient(135deg, #f472b6, #ec4899);
   color: white;
   border: 1px solid #f472b6;
-}
-
-/* Shuffle Button Styles */
-.shuffle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: white;
-  border-radius: var(--radius-lg);
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all var(--duration-normal) var(--ease-spring);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-  border: none;
-  cursor: pointer;
-}
-
-.shuffle-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  background: linear-gradient(135deg, var(--primary-hover), var(--secondary-hover));
-}
-
-.shuffle-btn svg {
-  width: 0.875rem;
-  height: 0.875rem;
-  transition: transform var(--duration-slow) var(--ease);
-}
-
-.shuffle-btn:hover svg {
-  transform: rotate(180deg);
 }
 
 /* Enhanced User Avatar - COMPACT */
@@ -1181,38 +1122,18 @@ main {
         Skip to main content
     </a>
     
-    <!-- Enhanced Main Navigation Header with Shuffle Feature -->
+    <!-- Enhanced Main Navigation Header - EDGE-TO-EDGE -->
     {% block header %}
     <header class="app-header" id="header">
         <div class="max-w-none w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between">
-            <!-- Enhanced Logo with Shuffle Functionality -->
+            <!-- Enhanced Logo and Brand -->
             <div class="flex items-center">
-                <!-- Make logo clickable for shuffle on index/explore pages -->
-                {% if request.resolver_match.url_name in 'index,explore_rooms,home' or request.path == '/' %}
-                    <button type="button" 
-                            id="shuffle-logo-btn"
-                            class="brand-container shuffle-trigger" 
-                            aria-label="Shuffle Rooms"
-                            title="Click to shuffle rooms"
-                            data-shuffle-enabled="true">
-                        <h1 class="brand-logo">Euphorie</h1>
-                        <span class="brand-badge">
-                            {% if is_shuffled %}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                SHUFFLED
-                            {% else %}
-                                BETA
-                            {% endif %}
-                        </span>
-                    </button>
-                {% else %}
-                    <a href="{% url 'index' %}" class="brand-container" aria-label="Euphorie Home">
-                        <h1 class="brand-logo">Euphorie</h1>
-                        <span class="brand-badge">BETA</span>
-                    </a>
-                {% endif %}
+                <a href="{% url 'index' %}" class="brand-container" aria-label="Euphorie Home">
+                    <h1 class="brand-logo">Euphorie</h1>
+                    <span class="brand-badge">
+                        {% block brand_suffix %}BETA{% endblock %}
+                    </span>
+                </a>
 
                 <!-- User Subscription Badge -->
                 {% if user.is_authenticated %}
@@ -1232,34 +1153,14 @@ main {
                         </a>
                     {% endif %}
                 {% endif %}
-                
-                <!-- Shuffle Indicator (shows when shuffled) -->
-                {% if is_shuffled %}
-                <div class="ml-3 flex items-center gap-2">
-                    <span class="text-xs text-primary font-medium">Rooms shuffled</span>
-                    <form method="get" action="{{ request.path }}" class="inline-block">
-                        {% for key, value in request.GET.items %}
-                            {% if key != 'shuffle' %}
-                                <input type="hidden" name="{{ key }}" value="{{ value }}">
-                            {% endif %}
-                        {% endfor %}
-                        <button type="submit" 
-                                class="text-xs text-gray-500 hover:text-primary underline transition-colors"
-                                title="Clear shuffle and return to default order">
-                            Clear
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
             </div>
 
-            <!-- Center Section: Search with Shuffle Button -->
+            <!-- Center Section: Search (Desktop) - NOW AVAILABLE FOR ALL USERS -->
             <div class="hidden lg:flex flex-1 items-center justify-center max-w-2xl mx-8">
-                <!-- Enhanced Search Box with Shuffle -->
+                <!-- Enhanced Search Box (Desktop - Centered) -->
                 {% block header_search %}
-                <div class="relative flex-1 max-w-md flex items-center gap-2">
-                    <!-- Search Form -->
-                    <form method="get" action="{% url 'explore_rooms' %}" class="relative group flex-1">
+                <div class="relative flex-1 max-w-md">
+                    <form method="get" action="{% url 'explore_rooms' %}" class="relative group">
                         <input
                             type="text"
                             name="q"
@@ -1278,29 +1179,6 @@ main {
                             </svg>
                         </button>
                     </form>
-                    
-                    <!-- Desktop Shuffle Button (only on index/explore pages) -->
-                    {% if request.resolver_match.url_name in 'index,explore_rooms' or request.path == '/' %}
-                    <form method="get" action="{{ request.path }}" class="inline-block">
-                        {% for key, value in request.GET.items %}
-                            {% if key != 'shuffle' %}
-                                <input type="hidden" name="{{ key }}" value="{{ value }}">
-                            {% endif %}
-                        {% endfor %}
-                        <input type="hidden" name="shuffle" value="{{ now|date:'U' }}">
-                        <button type="submit" 
-                                class="shuffle-btn"
-                                title="Shuffle rooms randomly">
-                            <svg xmlns="http://www.w3.org/2000/svg" 
-                                 class="h-4 w-4" 
-                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <span class="text-xs font-medium hidden sm:inline">Shuffle</span>
-                        </button>
-                    </form>
-                    {% endif %}
                 </div>
                 {% endblock %}
             </div>
@@ -1310,34 +1188,12 @@ main {
                 <!-- Room Info for 3D rooms -->
                 {% block room_info %}{% endblock %}
 
-                <!-- Mobile Search Button -->
+                <!-- Mobile Search Button - NOW AVAILABLE FOR ALL USERS -->
                 <button id="mobile-search-toggle" class="search-btn lg:hidden" aria-label="Search">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </button>
-                
-                <!-- Mobile Shuffle Button (only on index/explore pages) -->
-                {% if request.resolver_match.url_name in 'index,explore_rooms' or request.path == '/' %}
-                <form method="get" action="{{ request.path }}" class="lg:hidden">
-                    {% for key, value in request.GET.items %}
-                        {% if key != 'shuffle' %}
-                            <input type="hidden" name="{{ key }}" value="{{ value }}">
-                        {% endif %}
-                    {% endfor %}
-                    <input type="hidden" name="shuffle" value="{{ now|date:'U' }}">
-                    <button type="submit" 
-                            class="search-btn"
-                            title="Shuffle rooms">
-                        <svg xmlns="http://www.w3.org/2000/svg" 
-                             class="h-5 w-5" 
-                             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    </button>
-                </form>
-                {% endif %}
                 
                 <!-- User Menu or Auth Buttons -->
                 {% if user.is_authenticated %}
@@ -1509,7 +1365,7 @@ main {
                             Login
                         </a>
                         <a href="{% url 'account_signup' %}" class="btn btn-primary">
-                            Sign up</span>
+                            Sign up
                         </a>
                     </div>
                 {% endif %}
@@ -1703,7 +1559,7 @@ main {
 
     {% endblock %}
 
-    <!-- Global JavaScript Configuration -->
+    <!-- Enhanced Global JavaScript -->
     <script>
         window.CHAT_CONFIG = {
             user: {% if user.is_authenticated %}{
@@ -1725,14 +1581,935 @@ main {
             stripe: {
                 publishableKey: "{% if user.is_authenticated %}{{ STRIPE_PUBLISHABLE_KEY }}{% endif %}",
                 enabled: {% if user.is_authenticated %}true{% else %}false{% endif %}
+            }
+        };
+
+        // Enhanced Menu Management System
+        class EuphorieMenuManager {
+            constructor() {
+                this.activeMenus = new Set();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Menu overlay to close all menus when clicked
+                const overlay = document.getElementById('menu-overlay');
+                overlay?.addEventListener('click', () => this.closeAllMenus());
+
+                // User dropdown
+                const userButton = document.getElementById('user-menu-button');
+                const userDropdown = document.getElementById('user-dropdown');
+                
+                userButton?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleMenu('user-dropdown', userDropdown);
+                });
+
+                // Mobile search toggle - NOW AVAILABLE FOR ALL USERS
+                const mobileSearchToggle = document.getElementById('mobile-search-toggle');
+                mobileSearchToggle?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const searchModal = document.getElementById('search-modal');
+                    if (searchModal) {
+                        searchModal.classList.add('active');
+                        const modalSearchInput = document.getElementById('modal-search-input');
+                        if (modalSearchInput) {
+                            setTimeout(() => modalSearchInput.focus(), 300);
+                        }
+                    }
+                });
+
+                // Close search modal
+                const closeSearch = document.getElementById('close-search');
+                closeSearch?.addEventListener('click', () => {
+                    const searchModal = document.getElementById('search-modal');
+                    if (searchModal) {
+                        searchModal.classList.remove('active');
+                    }
+                });
+
+                // Close modal when clicking outside
+                const searchModal = document.getElementById('search-modal');
+                searchModal?.addEventListener('click', (e) => {
+                    if (e.target === searchModal) {
+                        searchModal.classList.remove('active');
+                    }
+                });
+
+                // Close menus on escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeAllMenus();
+                        const searchModal = document.getElementById('search-modal');
+                        if (searchModal) {
+                            searchModal.classList.remove('active');
+                        }
+                    }
+                });
+
+                // Close menus when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#user-dropdown') && !e.target.closest('#user-menu-button')) {
+                        this.closeMenu('user-dropdown', userDropdown);
+                    }
+                });
+            }
+
+            toggleMenu(menuId, element) {
+                if (this.activeMenus.has(menuId)) {
+                    this.closeMenu(menuId, element);
+                } else {
+                    this.openMenu(menuId, element);
+                }
+            }
+
+            openMenu(menuId, element) {
+                this.closeAllMenus();
+                this.activeMenus.add(menuId);
+                element?.classList.add('show');
+                this.updateOverlay();
+                
+                // Update button state
+                const button = document.getElementById('user-menu-button');
+                if (button) {
+                    button.setAttribute('aria-expanded', 'true');
+                    const icon = button.querySelector('svg');
+                    if (icon) {
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                }
+            }
+
+            closeMenu(menuId, element) {
+                this.activeMenus.delete(menuId);
+                element?.classList.remove('show');
+                this.updateOverlay();
+                
+                // Update button state
+                const button = document.getElementById('user-menu-button');
+                if (button) {
+                    button.setAttribute('aria-expanded', 'false');
+                    const icon = button.querySelector('svg');
+                    if (icon) {
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                }
+            }
+
+            closeAllMenus() {
+                const menus = [
+                    { id: 'user-dropdown', element: document.getElementById('user-dropdown') }
+                ];
+
+                menus.forEach(({ id, element }) => {
+                    if (this.activeMenus.has(id)) {
+                        this.closeMenu(id, element);
+                    }
+                });
+            }
+
+            updateOverlay() {
+                const overlay = document.getElementById('menu-overlay');
+                if (this.activeMenus.size > 0) {
+                    overlay?.classList.add('opacity-100', 'visible');
+                    overlay?.classList.remove('opacity-0', 'invisible');
+                } else {
+                    overlay?.classList.add('opacity-0', 'invisible');
+                    overlay?.classList.remove('opacity-100', 'visible');
+                }
+            }
+        }
+
+        // Enhanced Loading Manager
+        class EuphorieLoadingManager {
+            constructor() {
+                this.isRoomPage = document.body.classList.contains('page-room-3d');
+                this.init();
+            }
+
+            init() {
+                if (this.isRoomPage) {
+                    this.handle3DRoomLoading();
+                } else {
+                    this.handleNormalPageLoading();
+                }
+            }
+
+            handleNormalPageLoading() {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    setTimeout(() => {
+                        loadingOverlay.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingOverlay.remove();
+                        }, 300);
+                    }, 500);
+                }
+            }
+
+            handle3DRoomLoading() {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    if (loadingScreen && loadingScreen.style.display !== 'none' && !loadingScreen.classList.contains('hidden')) {
+                        this.forceHide3DLoading();
+                    }
+                }, 20000);
+            }
+
+            forceHide3DLoading() {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                    loadingScreen.style.opacity = '0';
+                    loadingScreen.style.visibility = 'hidden';
+                    loadingScreen.classList.add('hidden');
+                    
+                    setTimeout(() => {
+                        loadingScreen.remove();
+                    }, 1000);
+                }
+
+                document.body.style.overflow = 'visible';
+                document.documentElement.style.overflow = 'visible';
+            }
+        }
+
+        // Enhanced Search System - Updated for Public Access
+        class EuphorieSearchManager {
+            constructor() {
+                this.searchInput = document.getElementById('modal-search-input');
+                this.searchResults = document.getElementById('search-results');
+                this.debounceTimer = null;
+                this.isAuthenticated = window.CHAT_CONFIG?.user?.isAuthenticated || false;
+                this.init();
+            }
+
+            init() {
+                if (this.searchInput) {
+                    this.searchInput.addEventListener('input', (e) => {
+                        this.debounceSearch(e.target.value);
+                    });
+
+                    // Handle Enter key to perform search
+                    this.searchInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const query = e.target.value.trim();
+                            if (query) {
+                                // Redirect to explore page with search query
+                                window.location.href = `/explore/?q=${encodeURIComponent(query)}`;
+                            }
+                        }
+                    });
+                }
+            }
+
+            debounceSearch(query) {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.performSearch(query);
+                }, 300);
+            }
+
+            async performSearch(query) {
+                if (!query.trim()) {
+                    this.showEmptyState();
+                    return;
+                }
+
+                // Show loading state
+                this.showLoadingState();
+
+                try {
+                    // Try to fetch from API if available
+                    const response = await fetch(`/api/search/?q=${encodeURIComponent(query)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.showAPIResults(data, query);
+                    } else {
+                        // Fallback to DOM search
+                        this.performDOMSearch(query);
+                    }
+                } catch (error) {
+                    // Fallback to DOM search
+                    this.performDOMSearch(query);
+                }
+            }
+
+            performDOMSearch(query) {
+                // Search for rooms in the current page DOM
+                const roomCards = document.querySelectorAll('.room-card, .room-list-item, [data-room-name]');
+                const matchingRooms = Array.from(roomCards).filter(card => {
+                    const roomTitle = card.querySelector('.room-title, .room-name, .list-title')?.textContent.toLowerCase();
+                    const roomCategory = card.querySelector('.room-category, .badge')?.textContent.toLowerCase();
+                    const roomDescription = card.querySelector('.room-description, .text-gray-500')?.textContent.toLowerCase();
+                    const searchTerm = query.toLowerCase();
+                    
+                    return (roomTitle && roomTitle.includes(searchTerm)) || 
+                           (roomCategory && roomCategory.includes(searchTerm)) ||
+                           (roomDescription && roomDescription.includes(searchTerm));
+                });
+
+                this.showDOMResults(matchingRooms, query);
+            }
+
+            showAPIResults(data, query) {
+                if (!data.results || data.results.length === 0) {
+                    this.showNoResults(query);
+                    return;
+                }
+
+                let resultsHTML = '<div class="p-4 space-y-2">';
+                
+                data.results.slice(0, 8).forEach(result => {
+                    const resultType = result.type || 'room';
+                    const icon = resultType === 'user' ? '👤' : '🏠';
+                    const typeLabel = resultType === 'user' ? 'User' : 'Room';
+                    
+                    resultsHTML += `
+                        <a href="${result.url}" class="block p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center group">
+                            <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex-shrink-0 flex items-center justify-center text-white mr-3 group-hover:scale-105 transition-transform">
+                                <span class="text-sm">${icon}</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 group-hover:text-primary transition-colors">${result.name}</h4>
+                                <p class="text-sm text-gray-500">${typeLabel}${result.category ? ' • ' + result.category : ''}</p>
+                            </div>
+                            <div class="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </a>
+                    `;
+                });
+
+                this.addSearchAllOption(resultsHTML, query, data.total_count || data.results.length);
+            }
+
+            showDOMResults(matchingRooms, query) {
+                if (matchingRooms.length === 0) {
+                    this.showNoResults(query);
+                    return;
+                }
+
+                let resultsHTML = '<div class="p-4 space-y-2">';
+                
+                matchingRooms.slice(0, 8).forEach(room => {
+                    const roomTitle = room.querySelector('.room-title, .room-name, .list-title')?.textContent || 'Unknown Room';
+                    const roomUrl = room.getAttribute('href') || room.querySelector('a')?.getAttribute('href') || '#';
+                    const roomCategory = room.querySelector('.room-category, .badge')?.textContent || 'General';
+                    const roomAvatar = roomTitle.charAt(0).toUpperCase();
+                    
+                    resultsHTML += `
+                        <a href="${roomUrl}" class="block p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center group">
+                            <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-400 rounded-lg flex-shrink-0 flex items-center justify-center text-white mr-3 group-hover:scale-105 transition-transform">
+                                <span class="font-semibold text-xs">${roomAvatar}</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 group-hover:text-primary transition-colors">${roomTitle}</h4>
+                                <p class="text-sm text-gray-500">${roomCategory}</p>
+                            </div>
+                            <div class="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </a>
+                    `;
+                });
+
+                this.addSearchAllOption(resultsHTML, query, matchingRooms.length);
+            }
+
+            addSearchAllOption(resultsHTML, query, totalCount) {
+                if (totalCount > 8) {
+                    resultsHTML += `
+                        <div class="pt-3 border-t text-center">
+                            <p class="text-sm text-gray-500">
+                                Showing 8 of ${totalCount} results
+                                <a href="/explore/?q=${encodeURIComponent(query)}" class="text-primary hover:underline ml-1">View all</a>
+                            </p>
+                        </div>
+                    `;
+                }
+
+                // Add "Search all rooms" option
+                resultsHTML += `
+                    <div class="pt-3 border-t">
+                        <a href="/explore/?q=${encodeURIComponent(query)}" class="flex items-center justify-center p-3 text-primary hover:bg-primary/10 rounded-lg transition-colors group">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <span class="font-medium">Search all ${this.isAuthenticated ? 'content' : 'public rooms'} for "${query}"</span>
+                        </a>
+                    </div>
+                `;
+
+                resultsHTML += '</div>';
+
+                if (this.searchResults) {
+                    this.searchResults.innerHTML = resultsHTML;
+                }
+            }
+
+            showEmptyState() {
+                if (this.searchResults) {
+                    const authContent = this.isAuthenticated ? `
+                        <p class="font-medium">Start typing to search...</p>
+                        <p class="text-sm mt-1">Find rooms, users, or topics</p>
+                    ` : `
+                        <p class="font-medium">Start typing to search...</p>
+                        <p class="text-sm mt-1">Discover public rooms and topics</p>
+                        <p class="text-xs mt-2 text-primary">
+                            <a href="/signup/" class="hover:underline">Sign up</a> to search users and private content
+                        </p>
+                    `;
+
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            ${authContent}
+                        </div>
+                    `;
+                }
+            }
+
+            showLoadingState() {
+                if (this.searchResults) {
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center">
+                            <div class="loading-spinner mx-auto mb-4"></div>
+                            <p class="text-gray-500">Searching ${this.isAuthenticated ? 'all content' : 'public rooms'}...</p>
+                        </div>
+                    `;
+                }
+            }
+
+            showNoResults(query) {
+                if (this.searchResults) {
+                    this.searchResults.innerHTML = `
+                        ${!this.isAuthenticated ? this.getSignupCTA() : ''}
+                        <div class="p-8 text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <h3 class="font-semibold text-gray-900 mb-2">No results found</h3>
+                            <p class="text-gray-500 mb-4">We couldn't find anything matching "${query}" ${this.isAuthenticated ? '' : 'in public rooms'}</p>
+                            <a href="/explore/?q=${encodeURIComponent(query)}" class="btn btn-primary">
+                                Search all ${this.isAuthenticated ? 'content' : 'public rooms'}
+                            </a>
+                            ${!this.isAuthenticated ? `
+                                <p class="text-sm text-gray-500 mt-3">
+                                    <a href="/signup/" class="text-primary hover:underline">Sign up</a> to access more search results
+                                </p>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            getSignupCTA() {
+                return `
+                    <div class="p-6 bg-gradient-to-br from-pink-50 to-purple-50 border-b border-gray-200">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Discover more with an account</h3>
+                            <p class="text-sm text-gray-600 mb-4">Join Euphorie to search users, private rooms, and unlock the full experience!</p>
+                            <div class="flex gap-2 justify-center">
+                                <a href="/signup/" class="btn btn-primary">Sign up free</a>
+                                <a href="/login/" class="btn btn-secondary">Login</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Enhanced Toast Notification System
+        class EuphorieToastManager {
+            constructor() {
+                this.container = this.createContainer();
+            }
+
+            createContainer() {
+                let container = document.getElementById('toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'toast-container';
+                    container.className = 'fixed top-4 right-4 z-50 space-y-2';
+                    document.body.appendChild(container);
+                }
+                return container;
+            }
+
+            show(message, type = 'info', duration = 4000) {
+                const toast = document.createElement('div');
+                const id = 'toast-' + Date.now();
+                
+                const icons = {
+                    success: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+                    error: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+                    warning: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+                    info: `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+                };
+
+                toast.id = id;
+                toast.className = `toast toast-${type} show`;
+                toast.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 mr-3">
+                            ${icons[type]}
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">${message}</p>
+                        </div>
+                        <button onclick="window.toastManager.dismiss('${id}')" class="ml-3 flex-shrink-0">
+                            <svg class="h-4 w-4 opacity-70 hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                this.container.appendChild(toast);
+
+                // Auto dismiss
+                if (duration > 0) {
+                    setTimeout(() => {
+                        this.dismiss(id);
+                    }, duration);
+                }
+
+                return id;
+            }
+
+            dismiss(id) {
+                const toast = document.getElementById(id);
+                if (toast) {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }
+            }
+        }
+
+        // Payment System Manager
+        class EuphoriePaymentManager {
+            constructor() {
+                this.stripe = null;
+                this.elements = null;
+                this.init();
+            }
+
+            async init() {
+                if (window.CHAT_CONFIG?.stripe?.enabled && window.CHAT_CONFIG?.stripe?.publishableKey) {
+                    try {
+                        this.stripe = Stripe(window.CHAT_CONFIG.stripe.publishableKey);
+                        this.setupPaymentHandlers();
+                    } catch (error) {
+                        console.warn('Stripe initialization failed:', error);
+                    }
+                }
+            }
+
+            setupPaymentHandlers() {
+                // Handle upgrade button clicks
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.upgrade-btn, .subscription-badge.upgrade')) {
+                        e.preventDefault();
+                        this.showUpgradeModal();
+                    }
+                });
+
+                // Handle subscription notifications
+                this.checkSubscriptionStatus();
+            }
+
+            showUpgradeModal() {
+                window.utils?.showToast('Redirecting to upgrade options...', 'info', 2000);
+                setTimeout(() => {
+                    window.location.href = '/pricing/';
+                }, 500);
+            }
+
+            checkSubscriptionStatus() {
+                const user = window.CHAT_CONFIG?.user;
+                if (user && user.subscription) {
+                    if (!user.subscription.isActive || user.subscription.isExpired) {
+                        // Show upgrade notification after a delay
+                        setTimeout(() => {
+                            this.showSubscriptionReminder();
+                        }, 5000);
+                    }
+                }
+            }
+
+            showSubscriptionReminder() {
+                const user = window.CHAT_CONFIG?.user;
+                if (user && user.subscription && user.subscription.plan === 'basic') {
+                    window.utils?.showToast(
+                        'Upgrade to Premium for unlimited rooms and advanced features!',
+                        'info',
+                        6000
+                    );
+                }
+            }
+        }
+
+        // Header scroll effect
+        function initHeaderScroll() {
+            const header = document.getElementById('header');
+            let scrolled = false;
+
+            window.addEventListener('scroll', () => {
+                const shouldBeScrolled = window.scrollY > 10;
+                
+                if (shouldBeScrolled !== scrolled) {
+                    scrolled = shouldBeScrolled;
+                    
+                    if (scrolled) {
+                        header?.classList.add('scrolled');
+                    } else {
+                        header?.classList.remove('scrolled');
+                    }
+                }
+            });
+        }
+
+        // Initialize everything when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize managers
+            window.menuManager = new EuphorieMenuManager();
+            window.loadingManager = new EuphorieLoadingManager();
+            window.searchManager = new EuphorieSearchManager();
+            window.toastManager = new EuphorieToastManager();
+            window.paymentManager = new EuphoriePaymentManager();
+
+            // Initialize header scroll effect
+            initHeaderScroll();
+
+            // Mobile profile nav handler (for authenticated users)
+            const profileNav = document.getElementById('profile-nav');
+            const userMenuButton = document.getElementById('user-menu-button');
+            if (profileNav && userMenuButton) {
+                profileNav.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    userMenuButton.click();
+                });
+            }
+
+            // Enhanced button ripple effect
+            document.querySelectorAll('.btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    ripple.style.position = 'absolute';
+                    ripple.style.borderRadius = '50%';
+                    ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+                    ripple.style.transform = 'scale(0)';
+                    ripple.style.animation = 'ripple 0.6s linear';
+                    ripple.style.pointerEvents = 'none';
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Performance optimization for lower-end devices
+            if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
+                document.documentElement.style.setProperty('--duration-normal', '0.1s');
+                document.documentElement.style.setProperty('--duration-slow', '0.15s');
+            }
+
+            // Add dynamic year to footer
+            const currentYear = new Date().getFullYear();
+            const yearElements = document.querySelectorAll('.current-year');
+            yearElements.forEach(el => {
+                el.textContent = currentYear;
+            });
+        });
+
+        // Add ripple animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Global utility functions
+        window.utils = {
+            debounce: function(func, wait, immediate) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        timeout = null;
+                        if (!immediate) func(...args);
+                    };
+                    const callNow = immediate && !timeout;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                    if (callNow) func(...args);
+                };
             },
-            shuffle: {
-                enabled: {% if request.resolver_match.url_name in 'index,explore_rooms' or request.path == '/' %}true{% else %}false{% endif %},
-                currentState: {% if is_shuffled %}true{% else %}false{% endif %},
-                apiEndpoint: "{% url 'api_shuffled_rooms' %}"
+
+            throttle: function(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments;
+                    const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true;
+                        setTimeout(() => inThrottle = false, limit);
+                    }
+                };
+            },
+
+            formatNumber: function(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            },
+
+            formatCurrency: function(amount, currency = 'USD') {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: currency
+                }).format(amount);
+            },
+
+            timeAgo: function(date) {
+                const now = new Date();
+                const secondsPast = (now.getTime() - date.getTime()) / 1000;
+                
+                if (secondsPast < 60) return 'just now';
+                if (secondsPast < 3600) return Math.floor(secondsPast / 60) + 'm ago';
+                if (secondsPast <= 86400) return Math.floor(secondsPast / 3600) + 'h ago';
+                if (secondsPast <= 2592000) return Math.floor(secondsPast / 86400) + 'd ago';
+                return date.toLocaleDateString();
+            },
+
+            showToast: function(message, type = 'info', duration = 4000) {
+                return window.toastManager?.show(message, type, duration);
+            },
+
+            redirectToUpgrade: function() {
+                window.location.href = '/pricing/';
+            },
+
+            confirmAction: function(message, callback) {
+                if (confirm(message)) {
+                    callback();
+                }
             }
         };
     </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Logo shuffle functionality
+    const logoElements = document.querySelectorAll('.brand-container, .brand-logo');
+    
+    logoElements.forEach(logo => {
+        // Add cursor pointer to show it's clickable
+        logo.style.cursor = 'pointer';
+        
+        logo.addEventListener('click', function(e) {
+            // Check if we're on the main/index/explore page
+            const currentPath = window.location.pathname;
+            if (currentPath === '/' || currentPath === '/explore/' || currentPath === '/index/') {
+                e.preventDefault(); // Prevent normal navigation
+                
+                // Add visual feedback
+                logo.style.transform = 'rotate(360deg)';
+                logo.style.transition = 'transform 0.5s';
+                
+                // Create shuffle parameter with timestamp
+                const url = new URL(window.location.href);
+                url.searchParams.set('shuffle', Date.now());
+                
+                // Preserve other parameters
+                const existingParams = new URLSearchParams(window.location.search);
+                existingParams.set('shuffle', Date.now());
+                
+                // Redirect with shuffle
+                window.location.href = `${window.location.pathname}?${existingParams.toString()}`;
+            }
+        });
+        
+        // Add hover effect
+        logo.addEventListener('mouseenter', function() {
+            const currentPath = window.location.pathname;
+            if (currentPath === '/' || currentPath === '/explore/') {
+                this.style.opacity = '0.8';
+                this.title = 'Click to shuffle rooms';
+            }
+        });
+        
+        logo.addEventListener('mouseleave', function() {
+            this.style.opacity = '1';
+        });
+    });
+    
+    // Optional: Add a dedicated shuffle button
+    const shuffleButton = document.getElementById('shuffle-rooms-btn');
+    if (shuffleButton) {
+        shuffleButton.addEventListener('click', function() {
+            // AJAX shuffle for smoother experience
+            fetch('/api/shuffled-rooms/?limit=50')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.rooms) {
+                        updateRoomsDisplay(data.rooms);
+                        showToast('Rooms shuffled!', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Shuffle error:', error);
+                    // Fallback to page reload
+                    window.location.href = '/?shuffle=' + Date.now();
+                });
+        });
+    }
+    
+    // Function to update rooms display dynamically
+    function updateRoomsDisplay(rooms) {
+        const gridView = document.getElementById('grid-view');
+        const listView = document.getElementById('list-view');
+        
+        if (gridView) {
+            gridView.innerHTML = '';
+            rooms.forEach((room, index) => {
+                const roomCard = createRoomCard(room);
+                roomCard.style.animationDelay = `${index * 0.03}s`;
+                roomCard.classList.add('fade-in-up');
+                gridView.appendChild(roomCard);
+            });
+        }
+    }
+    
+    function createRoomCard(room) {
+        const card = document.createElement('a');
+        card.href = `/room/${room.name}/`;
+        card.className = 'room-card';
+        card.innerHTML = `
+            <div class="room-header">
+                <h3 class="room-title">${room.display_name}</h3>
+                <div class="room-meta">
+                    <span class="room-category">
+                        ${room.category_icon} ${room.category_name}
+                    </span>
+                </div>
+            </div>
+            <div class="room-footer">
+                <div class="room-creator">
+                    <div class="creator-avatar">${room.creator_initial}</div>
+                    <span>${room.creator}</span>
+                </div>
+                <div class="join-btn">Join →</div>
+            </div>
+        `;
+        return card;
+    }
+    
+    function showToast(message, type = 'info') {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+});
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    @keyframes fade-in-up {
+        from { 
+            opacity: 0; 
+            transform: translateY(20px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+    }
+    .fade-in-up {
+        animation: fade-in-up 0.4s ease forwards;
+    }
+    .brand-container {
+        transition: all 0.3s ease;
+    }
+`;
+document.head.appendChild(style);
+</script>
 
     {% block javascript %}{% endblock %}
 </body>
