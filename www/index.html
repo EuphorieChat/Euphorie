@@ -43,19 +43,66 @@
         <p>Please wait while we initialize the app</p>
     </div>
     
+    <!-- Include the capacitor-init.js to ensure StatusBar fix is applied -->
+    <script src="capacitor-init.js"></script>
+    
     <script>
-        // DO NOT include external Capacitor script - it's injected automatically
-        // Since server.url is set to https://euphorie.com in config,
-        // Capacitor will load that URL automatically.
-        // This page is just a fallback/loading screen.
-        
         console.log('Euphorie 3D loading...');
+        
+        // Apply Android StatusBar fix immediately
+        function applyAndroidFix() {
+            console.log('Checking for Android StatusBar fix...');
+            
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
+                const isAndroid = /Android/i.test(navigator.userAgent);
+                
+                if (isAndroid) {
+                    console.log('Android detected, applying StatusBar fix...');
+                    
+                    const { StatusBar } = window.Capacitor.Plugins;
+                    
+                    // This is the critical fix
+                    StatusBar.setOverlaysWebView({ overlay: false })
+                        .then(() => {
+                            console.log('✅ StatusBar fix applied successfully');
+                            
+                            // Additional settings
+                            StatusBar.setStyle({ style: 'DARK' });
+                            StatusBar.setBackgroundColor({ color: '#000000' });
+                            
+                            // Store that we've fixed it
+                            localStorage.setItem('androidStatusBarFixed', 'true');
+                        })
+                        .catch((error) => {
+                            console.error('❌ StatusBar fix failed:', error);
+                        });
+                } else {
+                    console.log('Not Android, skipping StatusBar fix');
+                }
+            } else {
+                console.log('StatusBar plugin not available yet');
+                // Retry in a moment
+                setTimeout(applyAndroidFix, 100);
+            }
+        }
+        
+        // Try to apply fix as soon as possible
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', applyAndroidFix);
+        } else {
+            applyAndroidFix();
+        }
+        
+        // Also try when deviceready fires
+        document.addEventListener('deviceready', applyAndroidFix);
         
         // The server.url in capacitor.config.json handles the actual loading
         // This is just a fallback in case something goes wrong
         setTimeout(() => {
             if (document.querySelector('.loading')) {
                 console.log('Still on loading page after 5 seconds');
+                // Try applying fix again
+                applyAndroidFix();
             }
         }, 5000);
     </script>

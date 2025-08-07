@@ -16,6 +16,30 @@
         return;
     }
     
+    // ANDROID STATUSBAR FIX - Add this early
+    function applyAndroidStatusBarFix() {
+        console.log('[Capacitor Init] Applying Android StatusBar fix...');
+        
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
+            const { StatusBar } = window.Capacitor.Plugins;
+            
+            // Critical fix for Android - prevent WebView from going under status bar
+            StatusBar.setOverlaysWebView({ overlay: false })
+                .then(() => {
+                    console.log('[Capacitor Init] ✅ StatusBar overlay disabled - Android fix applied');
+                    
+                    // Additional styling
+                    StatusBar.setStyle({ style: 'DARK' });
+                    StatusBar.setBackgroundColor({ color: '#000000' });
+                })
+                .catch((error) => {
+                    console.error('[Capacitor Init] ❌ StatusBar error:', error);
+                });
+        } else {
+            console.log('[Capacitor Init] StatusBar plugin not available yet, will retry...');
+        }
+    }
+    
     // Install error handler first
     window.addEventListener('error', function(event) {
         if (event && event.message) {
@@ -75,12 +99,19 @@
     // Wait for Capacitor to be fully loaded
     let checkCount = 0;
     const maxChecks = 100; // 10 seconds maximum wait
+    let statusBarFixed = false;
     
     function checkCapacitorReady() {
         checkCount++;
         
         if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.triggerEvent) {
             console.log(`[Capacitor Init] Capacitor ready after ${checkCount} checks`);
+            
+            // APPLY ANDROID STATUSBAR FIX AS SOON AS CAPACITOR IS READY
+            if (!statusBarFixed && /Android/i.test(navigator.userAgent)) {
+                applyAndroidStatusBarFix();
+                statusBarFixed = true;
+            }
             
             // Replace stub with real function
             if (window._capacitorEventQueue && window._capacitorEventQueue.length > 0) {
@@ -124,8 +155,18 @@
             console.log('[Capacitor Init] DOM loaded, checking Capacitor status');
             if (!window.Capacitor || !window.Capacitor.isNativePlatform) {
                 console.warn('[Capacitor Init] Capacitor not available after DOM load');
+            } else if (!statusBarFixed && /Android/i.test(navigator.userAgent)) {
+                // Try to apply fix again if not already done
+                applyAndroidStatusBarFix();
+                statusBarFixed = true;
             }
         });
+    }
+    
+    // Try to apply StatusBar fix immediately if Capacitor is already loaded
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar && /Android/i.test(navigator.userAgent)) {
+        applyAndroidStatusBarFix();
+        statusBarFixed = true;
     }
     
     console.log('[Capacitor Init] Initialization script complete');

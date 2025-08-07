@@ -111,20 +111,60 @@
         window._gaq = window._gaq || [];
         window.dataLayer = window.dataLayer || [];
 
-        // Simply redirect to your website - let the server handle everything
-        function loadApp() {
-            // Hide loading screen
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.style.display = 'none';
-            }
+        // CRITICAL: Apply StatusBar fix before redirecting
+        async function configureStatusBar() {
+            console.log('🔧 Configuring StatusBar for Android...');
             
-            // Just redirect to your main site
-            window.location.replace('https://euphorie.com');
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
+                try {
+                    const { StatusBar } = window.Capacitor.Plugins;
+                    
+                    // This is the critical fix for Android
+                    await StatusBar.setOverlaysWebView({ overlay: false });
+                    console.log('✅ StatusBar overlay disabled');
+                    
+                    // Also set style and color
+                    await StatusBar.setStyle({ style: StatusBar.Style.Dark });
+                    await StatusBar.setBackgroundColor({ color: '#000000' });
+                    
+                    // Store that we've configured the status bar
+                    localStorage.setItem('statusBarConfigured', 'true');
+                    
+                } catch (error) {
+                    console.error('❌ StatusBar configuration error:', error);
+                }
+            } else {
+                console.log('⚠️ StatusBar plugin not available');
+            }
         }
 
-        // Wait a moment for error handlers to be set up, then redirect
-        setTimeout(loadApp, 100);
+        // Updated loadApp function
+        async function loadApp() {
+            // Configure StatusBar first
+            await configureStatusBar();
+            
+            // Small delay to ensure StatusBar settings are applied
+            setTimeout(() => {
+                // Hide loading screen
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
+                
+                // Now redirect to your main site
+                window.location.replace('https://euphorie.com');
+            }, 200);
+        }
+
+        // Wait for Capacitor to be ready, then load
+        if (window.Capacitor) {
+            document.addEventListener('deviceready', loadApp);
+            // Fallback in case deviceready doesn't fire
+            setTimeout(loadApp, 1000);
+        } else {
+            // If not in Capacitor environment, just redirect
+            setTimeout(loadApp, 100);
+        }
     </script>
 </body>
 </html>
