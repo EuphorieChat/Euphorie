@@ -2,12 +2,13 @@
 import csv
 import json
 import logging
+import random
 import uuid
 from datetime import datetime, timedelta
 
-# Third-party
-import stripe
+# Third-party Libraries
 import requests
+import stripe
 
 # Django Core
 from django.conf import settings
@@ -21,9 +22,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db.models import Q, Count, Sum, F, Max
-from django.http import (
-    JsonResponse, HttpResponse, HttpResponseForbidden
-)
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -40,6 +39,7 @@ from .models import (
     SubscriptionPlan, UserSubscription, Payment, PaymentAttempt
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
+
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -102,15 +102,16 @@ def get_country_name(country_code):
 
 def index(request):
     """
-    FINAL FIXED index view with proper room membership support
+    Enhanced index view with shuffle support and recommendations
     """
     try:
+        # Build base query
         if request.user.is_authenticated:
             # For authenticated users: show public rooms + private rooms they have access to
             rooms = Room.objects.select_related('creator', 'category').filter(
                 Q(is_public=True) | 
                 Q(creator=request.user, is_public=False) |
-                Q(members=request.user, is_public=False)  # Now this will work!
+                Q(members=request.user, is_public=False)
             ).distinct()
         else:
             # For non-authenticated users: only public rooms
@@ -118,7 +119,7 @@ def index(request):
                 is_public=True
             )
         
-        # Add annotations (these were working in your shell test)
+        # Add annotations
         rooms = rooms.annotate(
             total_messages=F('message_count'),
             last_message_time=Max('messages__timestamp')
@@ -139,18 +140,50 @@ def index(request):
         if category_filter and category_filter != 'all':
             rooms = rooms.filter(category__slug=category_filter)
         
-        # Handle sorting
-        sort_option = request.GET.get('sort', 'activity')
-        if sort_option == 'newest':
-            rooms = rooms.order_by('-created_at')
-        elif sort_option == 'oldest':
-            rooms = rooms.order_by('created_at')
-        elif sort_option == 'name':
-            rooms = rooms.order_by('name')
-        elif sort_option == 'popular':
-            rooms = rooms.order_by('-message_count', '-active_users_count')
-        else:  # 'activity' (default)
-            rooms = rooms.order_by('-last_activity', '-message_count')
+        # Convert to list for potential shuffling
+        rooms_list = list(rooms)
+        
+        # SHUFFLE LOGIC - Check if shuffle parameter is present
+        shuffle_param = request.GET.get('shuffle', '')
+        is_shuffled = False
+        
+        if shuffle_param:
+            # Shuffle the rooms
+            random.seed(shuffle_param)  # Use parameter as seed for consistency
+            random.shuffle(rooms_list)
+            random.seed()  # Reset seed
+            is_shuffled = True
+            
+            # Store shuffle state in session
+            request.session['room_order_shuffled'] = True
+            request.session['shuffle_seed'] = shuffle_param
+        elif request.session.get('room_order_shuffled'):
+            # Maintain shuffle if already shuffled in this session
+            seed = request.session.get('shuffle_seed')
+            if seed:
+                random.seed(seed)
+                random.shuffle(rooms_list)
+                random.seed()
+                is_shuffled = True
+        else:
+            # Normal sorting
+            sort_option = request.GET.get('sort', 'activity')
+            if sort_option == 'newest':
+                rooms_list.sort(key=lambda r: r.created_at if r.created_at else timezone.now(), reverse=True)
+            elif sort_option == 'oldest':
+                rooms_list.sort(key=lambda r: r.created_at if r.created_at else timezone.now())
+            elif sort_option == 'name':
+                rooms_list.sort(key=lambda r: (r.display_name or r.name).lower())
+            elif sort_option == 'popular':
+                rooms_list.sort(key=lambda r: (
+                    getattr(r, 'total_messages', 0),
+                    getattr(r, 'active_users_count', 0)
+                ), reverse=True)
+            else:  # 'activity' (default)
+                rooms_list.sort(key=lambda r: (
+                    r.last_activity if r.last_activity else timezone.now(),
+                    getattr(r, 'total_messages', 0)
+                ), reverse=True)
         
         # Get categories
         categories = RoomCategory.objects.filter(
@@ -159,17 +192,32 @@ def index(request):
             slug='all'
         ).order_by('sort_order', 'name')
         
+        # Get recommendations if available
+        recommended_rooms = []
+        if recommendation_engine and not search_query and not is_shuffled:
+            try:
+                strategy = 'personalized' if request.user.is_authenticated else 'popular'
+                recommended_rooms = recommendation_engine.get_recommendations_for_user(
+                    request.user if request.user.is_authenticated else None,
+                    limit=6,
+                    strategy=strategy
+                )
+            except Exception as e:
+                logger.warning(f"Failed to get recommendations: {e}")
+        
         # Get stats
-        total_rooms = rooms.count()
+        total_rooms = len(rooms_list)
         total_users = User.objects.count()
         total_messages = Message.objects.count()
         
         context = {
-            'rooms': rooms,
+            'rooms': rooms_list,
+            'recommended_rooms': recommended_rooms,
             'categories': categories,
             'search_query': search_query,
             'current_category': category_filter,
-            'current_sort': sort_option,
+            'current_sort': 'shuffle' if is_shuffled else request.GET.get('sort', 'activity'),
+            'is_shuffled': is_shuffled,
             'total_rooms': total_rooms,
             'total_users': total_users,
             'total_messages': total_messages,
@@ -180,16 +228,18 @@ def index(request):
         return render(request, 'chat/room_list.html', context)
         
     except Exception as e:
-        print(f"ERROR in index view: {str(e)}")
+        logger.error(f"ERROR in index view: {str(e)}")
         
         # Fallback context
         context = {
-            'rooms': Room.objects.none(),
+            'rooms': [],
+            'recommended_rooms': [],
             'categories': RoomCategory.objects.filter(is_active=True).exclude(slug='all'),
-            'error': f"Error loading rooms: {str(e)}" if request.user.is_staff else "Sorry, we're experiencing technical difficulties.",
+            'error': "We're experiencing technical difficulties. Please try again later.",
             'search_query': '',
             'current_category': '',
             'current_sort': 'activity',
+            'is_shuffled': False,
             'total_rooms': 0,
             'total_users': User.objects.count(),
             'total_messages': Message.objects.count(),
@@ -322,7 +372,6 @@ def room(request, room_name):
     
     return render(request, 'chat/room_3d.html', context)
 
-
 def get_room_demographics(room):
     """Get nationality demographics for the room"""
     try:
@@ -412,23 +461,57 @@ def create_room(request):
     
     return render(request, 'chat/create_room.html', context)
 
+# ==================== ENHANCED SEARCH WITH RECOMMENDATIONS ====================
+
 def search_rooms(request):
-    """Enhanced search rooms with better filtering - NOW SUPPORTS NON-AUTH USERS"""
+    """Enhanced search with recommendation fallback"""
     query = request.GET.get('q', '').strip()
     category = request.GET.get('category', '')
     
     if not query:
-        return JsonResponse({'rooms': []})
+        # No query - return recommendations instead
+        if recommendation_engine:
+            try:
+                recommendations = recommendation_engine.get_recommendations_for_user(
+                    request.user if request.user.is_authenticated else None,
+                    limit=20,
+                    strategy='popular'
+                )
+                
+                rooms_data = [{
+                    'name': room.name,
+                    'display_name': room.display_name or room.name,
+                    'description': room.description or '',
+                    'category': room.category.name if room.category else 'General',
+                    'category_icon': getattr(room.category, 'icon', '💬') if room.category else '💬',
+                    'creator': room.creator.username if room.creator else 'System',
+                    'message_count': room.message_count,
+                    'tags': room.get_tags_list() if hasattr(room, 'get_tags_list') else [],
+                    'url': reverse('room', kwargs={'room_name': room.name}),
+                    'is_public': room.is_public,
+                } for room in recommendations]
+                
+                return JsonResponse({
+                    'rooms': rooms_data,
+                    'recommended': True,
+                    'total_results': len(rooms_data)
+                })
+            except:
+                pass
+        
+        return JsonResponse({'rooms': [], 'recommended': False})
     
-    # Build search query - ALWAYS filter for public rooms first
-    rooms = Room.objects.filter(is_public=True).select_related('category', 'creator')
-    
-    # For authenticated users, also include their private rooms
+    # Build search query
     if request.user.is_authenticated:
-        private_rooms = Room.objects.filter(
-            Q(creator=request.user) | Q(members=request.user)
-        ).select_related('category', 'creator')
-        rooms = rooms.union(private_rooms).distinct()
+        rooms = Room.objects.filter(
+            Q(is_public=True) | 
+            Q(creator=request.user) | 
+            Q(members=request.user)
+        ).distinct()
+    else:
+        rooms = Room.objects.filter(is_public=True)
+    
+    rooms = rooms.select_related('category', 'creator')
     
     # Search in multiple fields
     search_filter = (
@@ -443,25 +526,49 @@ def search_rooms(request):
     if category and category != 'all':
         rooms = rooms.filter(category__slug=category)
     
-    # Annotate with message count and limit results
+    # Annotate and order
     rooms = rooms.annotate(
         total_messages=Count('messages')
-    ).order_by('-total_messages', '-last_activity')[:20]
+    ).order_by('-total_messages', '-last_activity')[:50]
     
     rooms_data = [{
         'name': room.name,
-        'display_name': room.display_name,
+        'display_name': room.display_name or room.name,
         'description': room.description or '',
         'category': room.category.name if room.category else 'General',
-        'category_icon': room.category.icon if room.category else '💬',
-        'creator': room.creator.username,
+        'category_icon': getattr(room.category, 'icon', '💬') if room.category else '💬',
+        'creator': room.creator.username if room.creator else 'System',
         'message_count': room.total_messages,
-        'tags': room.get_tags_list(),
+        'tags': room.get_tags_list() if hasattr(room, 'get_tags_list') else [],
         'url': reverse('room', kwargs={'room_name': room.name}),
-        'is_public': room.is_public,  # Add this for frontend differentiation
+        'is_public': room.is_public,
     } for room in rooms]
     
-    # Add metadata about search scope
+    # If few results, add recommendations
+    if len(rooms_data) < 5 and recommendation_engine:
+        try:
+            additional = recommendation_engine.get_recommendations_for_user(
+                request.user if request.user.is_authenticated else None,
+                limit=10 - len(rooms_data),
+                strategy='popular'
+            )
+            
+            for room in additional:
+                if room.id not in [r.get('id') for r in rooms_data]:
+                    rooms_data.append({
+                        'name': room.name,
+                        'display_name': room.display_name or room.name,
+                        'description': room.description or '',
+                        'category': room.category.name if room.category else 'General',
+                        'creator': room.creator.username if room.creator else 'System',
+                        'message_count': room.message_count,
+                        'url': reverse('room', kwargs={'room_name': room.name}),
+                        'is_public': room.is_public,
+                        'suggested': True
+                    })
+        except:
+            pass
+    
     response_data = {
         'rooms': rooms_data,
         'search_scope': 'public_and_private' if request.user.is_authenticated else 'public_only',
@@ -517,69 +624,258 @@ def public_search_api(request):
         'user_authenticated': request.user.is_authenticated,
     })
 
-def explore_rooms(request):
-    """Dedicated room exploration page - SUPPORTS ALL USERS"""
-    # Redirect to index since they serve the same purpose now
-    # but you could customize this differently if needed
-    return index(request)
+# ==================== EXPLORE ROOMS WITH RECOMMENDATIONS ====================
 
-# Initialize the recommendation engine
-recommendation_engine = RoomRecommendationEngine()
+def explore_rooms(request):
+    """Enhanced explore page with recommendations"""
+    
+    # Check if we should show recommendations
+    show_recommendations = request.GET.get('show_recs', '1') == '1'
+    
+    # Get base rooms (same as index but with potential modifications)
+    context = index(request).context_data if hasattr(index(request), 'context_data') else {}
+    
+    # Add recommendations if available and requested
+    if show_recommendations and recommendation_engine:
+        try:
+            # Get different types of recommendations
+            popular_rooms = recommendation_engine.get_recommendations_for_user(
+                None, limit=6, strategy='popular'
+            )
+            
+            recent_rooms = recommendation_engine.get_recommendations_for_user(
+                None, limit=6, strategy='recent'
+            ) if hasattr(recommendation_engine, '_get_recent_active_rooms') else []
+            
+            personalized_rooms = []
+            if request.user.is_authenticated:
+                personalized_rooms = recommendation_engine.get_recommendations_for_user(
+                    request.user, limit=6, strategy='personalized'
+                )
+            
+            context.update({
+                'popular_rooms': popular_rooms,
+                'recent_rooms': recent_rooms,
+                'personalized_rooms': personalized_rooms,
+                'has_recommendations': True
+            })
+        except Exception as e:
+            logger.warning(f"Failed to get explore recommendations: {e}")
+            context['has_recommendations'] = False
+    else:
+        context['has_recommendations'] = False
+    
+    # Use explore template if it exists, otherwise use index template
+    template = 'chat/explore_rooms.html' if os.path.exists('chat/templates/chat/explore_rooms.html') else 'chat/room_list.html'
+    
+    return render(request, template, context)
+# ==================== UTILITY FUNCTION FOR CLEARING SHUFFLE ====================
+
+@login_required
+@require_http_methods(["POST"])
+def clear_shuffle(request):
+    """Clear shuffle state from session"""
+    if 'room_order_shuffled' in request.session:
+        del request.session['room_order_shuffled']
+    if 'shuffle_seed' in request.session:
+        del request.session['shuffle_seed']
+    
+    return JsonResponse({'success': True, 'message': 'Shuffle cleared'})
+
+# ==================== RECOMMENDATION ENGINE INITIALIZATION ====================
+
+# Initialize lightweight recommendation engine for low-memory servers
+recommendation_engine = None
+try:
+    # First try the lite version for low-memory servers
+    from chat.recs.recommender_lite import LiteRecommendationEngine
+    recommendation_engine = LiteRecommendationEngine()
+    logger.info("✅ Lite recommendation system initialized")
+except ImportError:
+    try:
+        # Try full ML version if available
+        from chat.recs.recommender import RoomRecommendationEngine
+        recommendation_engine = RoomRecommendationEngine()
+        logger.info("✅ Full ML recommendation system initialized")
+    except ImportError:
+        logger.warning("⚠️ No recommendation system available, using fallback")
+except Exception as e:
+    logger.error(f"❌ Failed to initialize recommendation system: {e}")
+    recommendation_engine = None
+
+
+# ==================== RECOMMENDATION API ENDPOINTS ====================
 
 @require_http_methods(["GET"])
 def api_room_recommendations(request):
     """API endpoint for room recommendations"""
-    strategy = request.GET.get('strategy', 'hybrid')
-    limit = min(int(request.GET.get('limit', 10)), 50)
     
-    # Get recommendations
-    recommendations = recommendation_engine.get_recommendations_for_user(
-        request.user,
-        limit=limit,
-        strategy=strategy
-    )
-    
-    # Serialize
-    data = []
-    for room in recommendations:
-        data.append({
+    # If no recommendation engine, provide fallback
+    if not recommendation_engine:
+        from chat.models import Room
+        
+        # Simple fallback: return popular rooms
+        rooms = Room.objects.filter(is_public=True).order_by('-message_count')[:10]
+        data = [{
             'id': room.id,
             'name': room.name,
-            'display_name': room.display_name,
-            'description': room.description,
-            'category': room.category.name if room.category else None,
+            'display_name': room.display_name or room.name,
+            'description': (room.description or '')[:200],
+            'category': room.category.name if room.category else 'General',
             'message_count': room.message_count,
-            'active_users': room.active_users_count,
             'url': f'/room/{room.name}/',
             'is_public': room.is_public,
+        } for room in rooms]
+        
+        return JsonResponse({
+            'recommendations': data,
+            'strategy': 'fallback',
+            'engine': 'none',
+            'count': len(data)
         })
     
-    return JsonResponse({
-        'recommendations': data,
-        'strategy': strategy,
-        'count': len(data)
-    })
+    # Get parameters
+    strategy = request.GET.get('strategy', 'popular')  # Default to popular for stability
+    limit = min(int(request.GET.get('limit', 10)), 20)  # Cap at 20 for memory
+    
+    # Map strategies to what the lite engine supports
+    if hasattr(recommendation_engine, '__class__') and 'Lite' in recommendation_engine.__class__.__name__:
+        # Lite engine strategies
+        valid_strategies = ['popular', 'recent', 'random', 'personalized']
+        if strategy not in valid_strategies:
+            strategy = 'popular'
+    
+    try:
+        # Get recommendations
+        recommendations = recommendation_engine.get_recommendations_for_user(
+            request.user if request.user.is_authenticated else None,
+            limit=limit,
+            strategy=strategy
+        )
+        
+        # Serialize
+        data = []
+        for room in recommendations:
+            try:
+                data.append({
+                    'id': room.id,
+                    'name': room.name,
+                    'display_name': room.display_name or room.name,
+                    'description': (room.description or '')[:200],
+                    'category': room.category.name if room.category else 'General',
+                    'category_icon': getattr(room.category, 'icon', '💬') if room.category else '💬',
+                    'message_count': room.message_count,
+                    'active_users': room.active_users_count,
+                    'url': f'/room/{room.name}/',
+                    'is_public': room.is_public,
+                    'created_at': room.created_at.isoformat() if room.created_at else None,
+                    'tags': room.get_tags_list() if hasattr(room, 'get_tags_list') else [],
+                })
+            except Exception as e:
+                logger.warning(f"Error serializing room {room.id}: {e}")
+                continue
+        
+        return JsonResponse({
+            'recommendations': data,
+            'strategy': strategy,
+            'count': len(data),
+            'engine': 'lite' if 'Lite' in recommendation_engine.__class__.__name__ else 'full',
+            'success': True
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in api_room_recommendations: {e}")
+        
+        # Fallback to simple query
+        from chat.models import Room
+        rooms = Room.objects.filter(is_public=True).order_by('?')[:limit]
+        
+        data = [{
+            'id': room.id,
+            'name': room.name,
+            'display_name': room.display_name or room.name,
+            'url': f'/room/{room.name}/',
+        } for room in rooms]
+        
+        return JsonResponse({
+            'recommendations': data,
+            'strategy': 'fallback',
+            'engine': 'error',
+            'error': str(e),
+            'success': False
+        })
+    
 
 @require_http_methods(["GET"])
 def api_similar_rooms(request, room_id):
     """API endpoint for similar rooms"""
-    limit = min(int(request.GET.get('limit', 5)), 20)
     
-    similar_rooms = recommendation_engine.get_similar_rooms(room_id, limit)
+    limit = min(int(request.GET.get('limit', 5)), 10)
     
-    data = []
-    for room in similar_rooms:
-        data.append({
-            'id': room.id,
-            'name': room.name,
-            'display_name': room.display_name,
-            'url': f'/room/{room.name}/',
+    # If no recommendation engine, use category-based similarity
+    if not recommendation_engine:
+        from chat.models import Room
+        
+        try:
+            source_room = Room.objects.get(id=room_id)
+            similar_rooms = Room.objects.filter(
+                is_public=True,
+                category=source_room.category
+            ).exclude(id=room_id).order_by('-message_count')[:limit]
+            
+            data = [{
+                'id': room.id,
+                'name': room.name,
+                'display_name': room.display_name or room.name,
+                'url': f'/room/{room.name}/',
+                'category': room.category.name if room.category else 'General',
+            } for room in similar_rooms]
+            
+            return JsonResponse({
+                'similar_rooms': data,
+                'count': len(data),
+                'engine': 'none',
+                'success': True
+            })
+        except Room.DoesNotExist:
+            return JsonResponse({
+                'error': 'Room not found',
+                'similar_rooms': [],
+                'success': False
+            }, status=404)
+    
+    try:
+        # Use recommendation engine
+        similar_rooms = recommendation_engine.get_similar_rooms(room_id, limit)
+        
+        data = []
+        for room in similar_rooms:
+            data.append({
+                'id': room.id,
+                'name': room.name,
+                'display_name': room.display_name or room.name,
+                'description': (room.description or '')[:200],
+                'category': room.category.name if room.category else 'General',
+                'message_count': room.message_count,
+                'url': f'/room/{room.name}/',
+                'is_public': room.is_public,
+            })
+        
+        return JsonResponse({
+            'similar_rooms': data,
+            'count': len(data),
+            'engine': 'lite' if 'Lite' in recommendation_engine.__class__.__name__ else 'full',
+            'success': True
         })
-    
-    return JsonResponse({
-        'similar_rooms': data,
-        'count': len(data)
-    })
+        
+    except Exception as e:
+        logger.error(f"Error in api_similar_rooms: {e}")
+        return JsonResponse({
+            'error': str(e),
+            'similar_rooms': [],
+            'engine': 'error',
+            'success': False
+        }, status=500)
 
 # Update your index view to use recommendations
 def index_with_recommendations(request):
@@ -3968,3 +4264,83 @@ def admin_subscriptions(request):
     }
     
     return render(request, 'chat/admin/subscriptions.html', context)
+
+# ==================== SHUFFLE API ENDPOINT ====================
+
+@require_http_methods(["GET"])
+def api_shuffled_rooms(request):
+    """API endpoint to get shuffled rooms"""
+    try:
+        # Build query based on authentication
+        if request.user.is_authenticated:
+            rooms = Room.objects.select_related('creator', 'category').filter(
+                Q(is_public=True) | 
+                Q(creator=request.user, is_public=False) |
+                Q(members=request.user, is_public=False)
+            ).distinct()
+        else:
+            rooms = Room.objects.select_related('creator', 'category').filter(
+                is_public=True
+            )
+        
+        # Apply filters if present
+        category_filter = request.GET.get('category', '').strip()
+        if category_filter and category_filter != 'all':
+            rooms = rooms.filter(category__slug=category_filter)
+        
+        search_query = request.GET.get('q', '').strip()
+        if search_query:
+            rooms = rooms.filter(
+                Q(name__icontains=search_query) |
+                Q(display_name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        # Add annotations and convert to list
+        rooms = rooms.annotate(
+            total_messages=F('message_count')
+        )
+        rooms_list = list(rooms[:100])  # Limit for performance
+        
+        # Shuffle
+        random.shuffle(rooms_list)
+        
+        # Take requested amount
+        limit = min(int(request.GET.get('limit', 50)), 100)
+        rooms_list = rooms_list[:limit]
+        
+        # Serialize rooms data
+        rooms_data = []
+        for room in rooms_list:
+            rooms_data.append({
+                'id': room.id,
+                'name': room.name,
+                'display_name': room.display_name or room.name,
+                'category_name': room.category.name if room.category else 'General',
+                'category_icon': getattr(room.category, 'icon', '💬') if room.category else '💬',
+                'category_slug': room.category.slug if room.category else 'general',
+                'creator': room.creator.username if room.creator else 'System',
+                'creator_initial': room.creator.username[0].upper() if room.creator else 'S',
+                'total_messages': getattr(room, 'total_messages', 0),
+                'created_at': room.created_at.isoformat() if room.created_at else None,
+                'is_public': room.is_public,
+                'description': (room.description or '')[:200],
+                'active_users': room.active_users_count,
+                'tags': room.get_tags_list() if hasattr(room, 'get_tags_list') else [],
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'rooms': rooms_data,
+            'total': len(rooms_data),
+            'shuffled': True
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in api_shuffled_rooms: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'rooms': []
+        }, status=500)
+    
