@@ -92,7 +92,7 @@ urlpatterns = [
     path('api/rooms/load-more/', views.api_load_more_rooms, name='api_load_more_rooms'),
     path('api/search/rooms/', views.api_search_rooms, name='api_search_rooms'),
     path('api/public-search/', views.public_search_api, name='public_search_api'),
-    path('api/shuffled-rooms/', views.api_shuffled_rooms, name='api_shuffled_rooms'),  # ← ADD THIS LINE
+    path('api/recommendations/', views.api_room_recommendations, name='api_room_recommendations'),
     
     # ==================== NATIONALITY API ENDPOINTS ====================
     path('api/user-country/', views.api_get_user_country, name='api_get_user_country'),
