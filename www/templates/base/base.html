@@ -1733,16 +1733,18 @@ main {
             }
         };
 
-        // Unified Shuffle and Recommendation System
+        // Replace the ShuffleManager class in your base.html with this fixed version
+
         class ShuffleManager {
             constructor() {
                 this.isShuffling = false;
-                this.recommendationEndpoint = '/api/recommendations/';
                 this.shuffleEndpoint = '/api/shuffled-rooms/';
                 this.init();
             }
 
             init() {
+                console.log('ShuffleManager initialized');
+                
                 // Initialize shuffle buttons
                 this.initShuffleButtons();
                 
@@ -1771,22 +1773,16 @@ main {
                         this.handleShuffle();
                     });
                 }
-
-                // Clear shuffle button
-                const clearShuffleBtn = document.querySelector('button[title="Clear shuffle and return to default order"]');
-                if (clearShuffleBtn) {
-                    clearShuffleBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.clearShuffle();
-                    });
-                }
             }
 
             initLogoShuffle() {
                 const logoBtn = document.getElementById('shuffle-logo-btn');
                 if (logoBtn && logoBtn.dataset.shuffleEnabled === 'true') {
+                    console.log('Logo shuffle enabled');
+                    
                     logoBtn.addEventListener('click', (e) => {
                         e.preventDefault();
+                        console.log('Logo clicked - shuffling rooms');
                         this.handleShuffle();
                     });
 
@@ -1808,18 +1804,35 @@ main {
             async handleShuffle(strategy = 'random') {
                 if (this.isShuffling) return;
                 
+                console.log('Starting shuffle...');
                 this.isShuffling = true;
                 
                 // Show loading state
                 this.showShuffleLoading();
                 
                 try {
-                    // Use recommendation API with random strategy for shuffle
+                    // Check if we're on a page with rooms to shuffle
+                    const roomsContainer = document.getElementById('rooms-container') || 
+                                        document.getElementById('grid-view') || 
+                                        document.querySelector('.rooms-grid');
+                    
+                    if (!roomsContainer) {
+                        console.log('No rooms container found, using form submission');
+                        this.submitShuffleForm();
+                        return;
+                    }
+
+                    // Fetch shuffled rooms
                     const response = await this.fetchShuffledRooms(strategy);
-                    if (response.success) {
-                        this.updateRoomsDisplay(response.recommendations || response.rooms);
+                    
+                    if (response.success && response.rooms) {
+                        console.log('Shuffle successful, updating rooms');
+                        this.updateRoomsDisplay(response.rooms);
                         this.setShuffleState(true);
                         this.showShuffleSuccess();
+                        
+                        // Dispatch event for other components
+                        window.dispatchEvent(new CustomEvent('rooms-shuffled'));
                     } else {
                         throw new Error('Failed to shuffle rooms');
                     }
@@ -1835,35 +1848,14 @@ main {
 
             async fetchShuffledRooms(strategy = 'random') {
                 const params = new URLSearchParams(window.location.search);
-                params.set('strategy', strategy);
-                params.set('limit', '50');
-                params.set('shuffle', Date.now()); // Unique seed for randomness
+                params.set('shuffle', Date.now());
                 
-                // Try recommendation endpoint first (unified approach)
-                try {
-                    const response = await fetch(`${this.recommendationEndpoint}?${params.toString()}`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json',
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success || data.recommendations) {
-                            return {
-                                success: true,
-                                recommendations: data.recommendations,
-                                rooms: data.recommendations
-                            };
-                        }
-                    }
-                } catch (e) {
-                    console.log('Trying shuffle endpoint fallback');
+                // Preserve category filter if present
+                const currentCategory = document.querySelector('.category-btn.active')?.dataset?.category;
+                if (currentCategory && currentCategory !== 'all') {
+                    params.set('category', currentCategory);
                 }
                 
-                // Fallback to dedicated shuffle endpoint
                 const response = await fetch(`${this.shuffleEndpoint}?${params.toString()}`, {
                     method: 'GET',
                     headers: {
@@ -1880,8 +1872,8 @@ main {
             }
 
             updateRoomsDisplay(rooms) {
-                const gridView = document.getElementById('grid-view');
-                const listView = document.getElementById('list-view');
+                const gridView = document.getElementById('grid-view') || document.querySelector('.rooms-grid');
+                const listView = document.getElementById('list-view') || document.querySelector('.rooms-list');
                 
                 if (gridView) {
                     this.animateRoomShuffle(gridView, rooms, 'grid');
@@ -1895,6 +1887,13 @@ main {
                 const url = new URL(window.location);
                 url.searchParams.set('shuffle', Date.now());
                 window.history.pushState({shuffled: true}, '', url);
+                
+                // Update sort dropdown if it exists
+                const sortSelect = document.getElementById('sort-rooms');
+                if (sortSelect) {
+                    sortSelect.value = 'shuffle';
+                    sortSelect.disabled = true;
+                }
             }
 
             animateRoomShuffle(container, rooms, viewType) {
@@ -1934,44 +1933,48 @@ main {
             createRoomCard(room) {
                 const card = document.createElement('a');
                 card.href = `/room/${room.name}/`;
-                card.className = 'room-card surface-card block p-4 hover:shadow-lg transition-all duration-300';
+                card.className = 'room-card';
+                card.setAttribute('data-category', room.category_slug || 'general');
+                card.setAttribute('data-name', (room.display_name || room.name).toLowerCase());
+                card.setAttribute('data-activity', room.total_messages || 0);
+                card.setAttribute('data-created', room.created_at || '');
+                
+                const isHot = (room.total_messages || 0) > 20;
                 
                 card.innerHTML = `
-                    <div class="flex items-start justify-between mb-3">
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-gray-900 text-lg mb-1">${room.display_name}</h3>
-                            <div class="flex items-center gap-2 text-sm text-gray-500">
-                                <span class="inline-flex items-center gap-1">
-                                    <span>${room.category_icon || '💬'}</span>
-                                    <span>${room.category_name || 'General'}</span>
-                                </span>
-                                ${room.is_public ? '' : '<span class="text-xs bg-gray-100 px-2 py-0.5 rounded">Private</span>'}
+                    <div class="room-header">
+                        <h3 class="room-title">${room.display_name || room.name}</h3>
+                        
+                        <div class="room-meta">
+                            <span class="room-category">
+                                ${room.category_icon || '💬'} ${room.category_name || 'General'}
+                            </span>
+                            
+                            <span class="room-status ${isHot ? 'trending' : 'active'}">
+                                ${isHot ? '🔥 Hot' : '✨ Active'}
+                            </span>
+                        </div>
+                        
+                        <div class="room-activity">
+                            <div class="activity-bar">
+                                <div class="activity-fill" style="width: ${this.getActivityWidth(room.total_messages || 0)}"></div>
                             </div>
+                            <div class="activity-text">${room.total_messages || 0} messages</div>
                         </div>
                     </div>
                     
-                    ${room.description ? `<p class="text-gray-600 text-sm mb-3 line-clamp-2">${room.description}</p>` : ''}
-                    
-                    <div class="flex items-center justify-between text-sm">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium">
-                                ${room.creator_initial || room.creator.charAt(0).toUpperCase()}
+                    <div class="room-footer">
+                        <div class="room-creator">
+                            <div class="creator-avatar">
+                                ${room.creator_initial || room.creator?.charAt(0)?.toUpperCase() || 'U'}
                             </div>
-                            <span class="text-gray-600">${room.creator}</span>
+                            <span>${room.creator || 'Unknown'}</span>
                         </div>
-                        <div class="flex items-center gap-3 text-gray-500">
-                            <span class="flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                </svg>
-                                ${room.total_messages || 0}
-                            </span>
-                            <span class="flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                </svg>
-                                ${room.active_users || 0}
-                            </span>
+                        <div class="join-btn">
+                            Join
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
                         </div>
                     </div>
                 `;
@@ -1982,44 +1985,43 @@ main {
             createRoomListItem(room) {
                 const item = document.createElement('a');
                 item.href = `/room/${room.name}/`;
-                item.className = 'room-list-item flex items-center justify-between p-4 hover:bg-gray-50 transition-colors';
+                item.className = 'room-list-item';
+                item.setAttribute('data-category', room.category_slug || 'general');
+                item.setAttribute('data-name', (room.display_name || room.name).toLowerCase());
+                item.setAttribute('data-activity', room.total_messages || 0);
+                item.setAttribute('data-created', room.created_at || '');
                 
                 item.innerHTML = `
-                    <div class="flex items-center gap-4 flex-1">
-                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-medium">
-                            ${room.category_icon || '💬'}
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-gray-900">${room.display_name}</h3>
-                            <div class="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                                <span>${room.category_name || 'General'}</span>
-                                <span>•</span>
-                                <span>${room.creator}</span>
-                                <span>•</span>
-                                <span>${room.total_messages || 0} messages</span>
-                            </div>
+                    <div class="list-avatar">
+                        ${(room.display_name || room.name).charAt(0).toUpperCase()}
+                    </div>
+                    
+                    <div class="list-content">
+                        <h3 class="list-title">${room.display_name || room.name}</h3>
+                        <div class="list-meta">
+                            <span>${room.category_icon || '💬'} ${room.category_name || 'General'}</span>
+                            <span>by ${room.creator || 'Unknown'}</span>
+                            <span>Active</span>
                         </div>
                     </div>
-                    <div class="text-primary">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
+                    
+                    <div class="list-stats">
+                        <div class="list-activity">
+                            <div class="activity-count">${room.total_messages || 0}</div>
+                            <div>messages</div>
+                        </div>
                     </div>
                 `;
                 
                 return item;
             }
 
-            clearShuffle() {
-                // Remove shuffle parameter from URL
-                const url = new URL(window.location);
-                url.searchParams.delete('shuffle');
-                
-                // Show loading
-                this.showShuffleLoading();
-                
-                // Redirect to clear shuffle
-                window.location.href = url.toString();
+            getActivityWidth(messageCount) {
+                if (messageCount > 50) return '90%';
+                if (messageCount > 25) return '70%';
+                if (messageCount > 10) return '50%';
+                if (messageCount > 5) return '30%';
+                return '15%';
             }
 
             submitShuffleForm() {
@@ -2081,9 +2083,10 @@ main {
                     btn.style.cursor = 'wait';
                 });
                 
-                // Show toast if available
-                if (window.toastManager) {
-                    window.toastManager.show('Shuffling rooms...', 'info', 2000);
+                // Animate logo
+                const logo = document.querySelector('.brand-logo');
+                if (logo) {
+                    logo.style.animation = 'spin 1s linear infinite';
                 }
             }
 
@@ -2094,6 +2097,12 @@ main {
                     btn.style.opacity = '1';
                     btn.style.cursor = 'pointer';
                 });
+                
+                // Stop logo animation
+                const logo = document.querySelector('.brand-logo');
+                if (logo) {
+                    logo.style.animation = '';
+                }
             }
 
             showShuffleSuccess() {
@@ -2106,99 +2115,47 @@ main {
                         logo.style.transform = 'rotate(0deg)';
                     }, 500);
                 }
-                
-                // Show toast if available
-                if (window.toastManager) {
-                    window.toastManager.show('Rooms shuffled successfully!', 'success', 3000);
-                }
             }
+        }
+
+        // Add spin animation CSS if not already present
+        if (!document.querySelector('#shuffle-animations')) {
+            const style = document.createElement('style');
+            style.id = 'shuffle-animations';
+            style.textContent = `
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
         }
 
         // Initialize shuffle manager when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            // Only initialize on eligible pages
-            if (window.CHAT_CONFIG?.shuffle?.enabled) {
-                window.shuffleManager = new ShuffleManager();
-            }
+            // Check if we're on a page where shuffle should be enabled
+            const currentPath = window.location.pathname;
+            const shuffleEnabledPaths = ['/', '/explore/', '/rooms/', '/index/'];
             
-            // Also integrate with existing managers if they exist
-            if (window.menuManager) {
-                console.log('Shuffle feature integrated with menu manager');
-            }
-        });
-
-        // Add ripple effect to shuffle buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            const shuffleButtons = document.querySelectorAll('.shuffle-btn, #shuffle-logo-btn');
+            const isShuffleEnabled = shuffleEnabledPaths.some(path => 
+                currentPath === path || currentPath.startsWith(path)
+            );
             
-            shuffleButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    // Create ripple effect
-                    const ripple = document.createElement('span');
-                    const rect = this.getBoundingClientRect();
-                    const size = Math.max(rect.width, rect.height);
-                    const x = e.clientX - rect.left - size / 2;
-                    const y = e.clientY - rect.top - size / 2;
-                    
-                    ripple.style.width = ripple.style.height = size + 'px';
-                    ripple.style.left = x + 'px';
-                    ripple.style.top = y + 'px';
-                    ripple.style.position = 'absolute';
-                    ripple.style.borderRadius = '50%';
-                    ripple.style.background = 'rgba(255, 255, 255, 0.6)';
-                    ripple.style.transform = 'scale(0)';
-                    ripple.style.animation = 'ripple 0.6s linear';
-                    ripple.style.pointerEvents = 'none';
-                    
-                    this.style.position = 'relative';
-                    this.style.overflow = 'hidden';
-                    this.appendChild(ripple);
-                    
-                    setTimeout(() => {
-                        ripple.remove();
-                    }, 600);
-                });
-            });
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl/Cmd + S for standard shuffle
-            if ((e.ctrlKey || e.metaKey) && e.key === 's' && window.CHAT_CONFIG?.shuffle?.enabled) {
-                e.preventDefault();
-                if (window.shuffleManager) {
-                    window.shuffleManager.handleShuffle('random');
+            if (isShuffleEnabled) {
+                // Update CHAT_CONFIG
+                if (!window.CHAT_CONFIG) {
+                    window.CHAT_CONFIG = {};
                 }
-            }
-            
-            // Ctrl/Cmd + R for random shuffle (alternative)
-            if ((e.ctrlKey || e.metaKey) && e.key === 'r' && window.CHAT_CONFIG?.shuffle?.enabled) {
-                e.preventDefault();
-                if (window.shuffleManager) {
-                    window.shuffleManager.handleShuffle('random');
+                if (!window.CHAT_CONFIG.shuffle) {
+                    window.CHAT_CONFIG.shuffle = {};
                 }
+                window.CHAT_CONFIG.shuffle.enabled = true;
+                
+                // Initialize shuffle manager
+                window.shuffleManager = new ShuffleManager();
+                console.log('Shuffle feature activated for this page');
             }
         });
-
-        // Helper functions for different shuffle strategies
-        function shuffleRooms(strategy = 'random') {
-            if (!window.shuffleManager) {
-                window.shuffleManager = new ShuffleManager();
-            }
-            window.shuffleManager.handleShuffle(strategy);
-        }
-
-        function shufflePopular() {
-            shuffleRooms('popular');
-        }
-
-        function shuffleTrending() {
-            shuffleRooms('trending');
-        }
-
-        function shufflePersonalized() {
-            shuffleRooms('personalized');
-        }
     </script>
 
     {% block javascript %}{% endblock %}
