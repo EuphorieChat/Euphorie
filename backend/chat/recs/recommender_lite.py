@@ -1,245 +1,256 @@
 """
-Lightweight recommendation system for memory-constrained servers
-No ML models, uses activity-based and similarity heuristics
+Ultra-lightweight recommendation system for low-memory servers
+No ML dependencies required - uses only Django ORM
 """
-import hashlib
 import random
-from typing import List, Dict, Optional
+import hashlib
+from django.core.cache import cache
+from django.db.models import Q, Count, F
 from datetime import timedelta
 from django.utils import timezone
-from django.core.cache import cache
-from django.db.models import Q, Count, F, Avg
 import logging
 
 logger = logging.getLogger(__name__)
 
-class LightweightRecommendationEngine:
-    """Lightweight recommendations without ML models"""
+class LiteRecommendationEngine:
+    """Memory-efficient recommendation engine using database queries only"""
     
     def __init__(self):
-        logger.info("Initializing lightweight recommendation engine (no ML)")
+        self.initialized = True
+        self.ml_available = False  # For compatibility with full engine
+        logger.info("Lite recommendation engine initialized (no ML)")
+    
+    def build_index(self, force_rebuild=False):
+        """
+        Compatibility method - lite engine doesn't need an index
+        """
+        logger.info("Lite engine doesn't require index building")
+        return True
+    
+    def get_recommendations_for_user(self, user, limit=10, exclude_joined=True, strategy='popular'):
+        """
+        Get recommendations using database queries only
         
-    def get_recommendations_for_user(self, user, limit=10, strategy='hybrid'):
-        """Get recommendations using lightweight methods"""
+        Args:
+            user: User object or None for anonymous
+            limit: Number of recommendations to return
+            exclude_joined: Whether to exclude rooms user has already joined
+            strategy: Recommendation strategy ('popular', 'recent', 'random', 'personalized')
         
+        Returns:
+            List of Room objects
+        """
+        from chat.models import Room, Message
+        
+        # Cache key for non-random strategies
         cache_key = f'lite_recs_{user.id if user else "anon"}_{strategy}_{limit}'
-        cached = cache.get(cache_key)
-        if cached and strategy != 'random':
-            return cached
         
-        if strategy == 'random':
-            recommendations = self.get_random_recommendations(user, limit)
-        elif strategy == 'popular':
-            recommendations = self.get_popular_recommendations(user, limit)
-        elif strategy == 'recent':
-            recommendations = self.get_recent_active_rooms(user, limit)
-        elif strategy == 'social':
-            recommendations = self.get_social_recommendations(user, limit)
-        elif strategy == 'similar':
-            recommendations = self.get_category_based_recommendations(user, limit)
-        else:  # hybrid
-            recommendations = self.get_hybrid_recommendations(user, limit)
-        
+        # Don't cache random strategy
         if strategy != 'random':
-            cache.set(cache_key, recommendations, 1800)  # 30 min cache
+            cached = cache.get(cache_key)
+            if cached:
+                return cached
+        
+        recommendations = []
+        
+        try:
+            if strategy == 'random':
+                recommendations = self._get_random_rooms(user, limit, exclude_joined)
+            elif strategy == 'popular':
+                recommendations = self._get_popular_rooms(limit, exclude_joined, user)
+            elif strategy == 'recent':
+                recommendations = self._get_recent_active_rooms(limit, exclude_joined, user)
+            elif strategy == 'personalized' and user and user.is_authenticated:
+                recommendations = self._get_personalized_rooms(user, limit, exclude_joined)
+            elif strategy == 'hybrid' and user and user.is_authenticated:
+                # Hybrid: mix of personalized and popular
+                recommendations = self._get_hybrid_recommendations(user, limit, exclude_joined)
+            else:
+                # Fallback to popular
+                recommendations = self._get_popular_rooms(limit, exclude_joined, user)
+            
+            # Cache non-random results for 30 minutes
+            if strategy != 'random' and recommendations:
+                cache.set(cache_key, recommendations, 1800)
+            
+        except Exception as e:
+            logger.error(f"Error getting {strategy} recommendations: {e}")
+            # Fallback to simple query
+            recommendations = list(Room.objects.filter(is_public=True)[:limit])
         
         return recommendations
     
-    def get_random_recommendations(self, user, limit):
-        """Random shuffle of rooms"""
-        from chat.models import Room
+    def _get_random_rooms(self, user, limit, exclude_joined=True):
+        """Get random room selection"""
+        from chat.models import Room, Message
         
-        rooms = Room.objects.filter(is_public=True)
+        # Base query for public rooms
+        rooms_query = Room.objects.filter(is_public=True)
+        
+        # Add user's private rooms if authenticated
         if user and user.is_authenticated:
-            # Include user's private rooms
-            rooms = Room.objects.filter(
-                Q(is_public=True) |
-                Q(creator=user) |
-                Q(members=user)
-            ).distinct()
+            private_rooms = Room.objects.filter(
+                Q(creator=user) | Q(members=user),
+                is_public=False
+            )
+            rooms_query = rooms_query | private_rooms
+            rooms_query = rooms_query.distinct()
+            
+            # Exclude rooms user has already joined if requested
+            if exclude_joined:
+                joined_room_ids = Message.objects.filter(
+                    user=user
+                ).values_list('room_id', flat=True).distinct()
+                rooms_query = rooms_query.exclude(id__in=joined_room_ids)
         
-        room_ids = list(rooms.values_list('id', flat=True))
+        # Get IDs and shuffle
+        room_ids = list(rooms_query.values_list('id', flat=True))
         random.shuffle(room_ids)
         selected_ids = room_ids[:limit]
         
-        # Preserve random order
-        rooms = list(Room.objects.filter(id__in=selected_ids))
-        rooms.sort(key=lambda r: selected_ids.index(r.id))
+        # Return rooms maintaining random order
+        rooms = list(Room.objects.filter(id__in=selected_ids).select_related('category', 'creator'))
+        rooms.sort(key=lambda x: selected_ids.index(x.id))
         
         return rooms
     
-    def get_popular_recommendations(self, user, limit):
-        """Most active rooms by message count and users"""
-        from chat.models import Room
+    def _get_popular_rooms(self, limit, exclude_joined=True, user=None):
+        """Get most active rooms"""
+        from chat.models import Room, Message
         
-        rooms = Room.objects.filter(
-            is_public=True
-        ).order_by(
-            '-message_count',
+        rooms_query = Room.objects.filter(is_public=True)
+        
+        # Exclude joined rooms if user is authenticated
+        if user and user.is_authenticated and exclude_joined:
+            joined_room_ids = Message.objects.filter(
+                user=user
+            ).values_list('room_id', flat=True).distinct()
+            rooms_query = rooms_query.exclude(id__in=joined_room_ids)
+        
+        # Order by activity metrics
+        rooms = rooms_query.select_related('category', 'creator').order_by(
+            '-message_count', 
             '-active_users_count',
             '-last_activity'
         )[:limit]
         
         return list(rooms)
     
-    def get_recent_active_rooms(self, user, limit):
-        """Recently active rooms"""
-        from chat.models import Room
+    def _get_recent_active_rooms(self, limit, exclude_joined=True, user=None):
+        """Get recently active rooms"""
+        from chat.models import Room, Message
         
-        recent_cutoff = timezone.now() - timedelta(hours=24)
+        # Define recency window
+        time_window = timezone.now() - timedelta(hours=24)
         
-        rooms = Room.objects.filter(
+        rooms_query = Room.objects.filter(
             is_public=True,
-            last_activity__gte=recent_cutoff
-        ).annotate(
-            recent_messages=Count(
-                'messages',
-                filter=Q(messages__timestamp__gte=recent_cutoff)
-            )
-        ).order_by('-recent_messages', '-last_activity')[:limit]
+            last_activity__gte=time_window
+        )
+        
+        # Exclude joined rooms if user is authenticated
+        if user and user.is_authenticated and exclude_joined:
+            joined_room_ids = Message.objects.filter(
+                user=user
+            ).values_list('room_id', flat=True).distinct()
+            rooms_query = rooms_query.exclude(id__in=joined_room_ids)
+        
+        # Order by last activity
+        rooms = rooms_query.select_related('category', 'creator').order_by(
+            '-last_activity'
+        )[:limit]
         
         return list(rooms)
     
-    def get_social_recommendations(self, user, limit):
-        """Rooms where friends are active"""
-        from chat.models import Room, Friendship, Message
-        
-        if not user or not user.is_authenticated:
-            return []
-        
-        # Get friends
-        try:
-            friend_ids = Friendship.objects.filter(
-                user=user,
-                status='accepted'
-            ).values_list('friend_id', flat=True)
-            
-            if not friend_ids:
-                return []
-            
-            # Get rooms with friend activity
-            week_ago = timezone.now() - timedelta(days=7)
-            rooms = Room.objects.filter(
-                is_public=True,
-                messages__user_id__in=friend_ids,
-                messages__timestamp__gte=week_ago
-            ).annotate(
-                friend_messages=Count(
-                    'messages',
-                    filter=Q(messages__user_id__in=friend_ids)
-                )
-            ).order_by('-friend_messages')[:limit]
-            
-            return list(rooms)
-        except:
-            return []
-    
-    def get_category_based_recommendations(self, user, limit):
-        """Recommendations based on categories user has interacted with"""
+    def _get_personalized_rooms(self, user, limit, exclude_joined=True):
+        """Simple personalization based on user activity"""
         from chat.models import Room, Message
         
         if not user or not user.is_authenticated:
-            # Return diverse categories for anonymous
-            return self.get_diverse_category_rooms(limit)
+            return self._get_popular_rooms(limit, exclude_joined, user)
         
-        # Get user's preferred categories
+        # Get categories user is active in
         user_categories = Message.objects.filter(
             user=user
-        ).values(
-            'room__category'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count')[:5]
+        ).values_list(
+            'room__category_id', flat=True
+        ).distinct()[:10]
         
-        category_ids = [c['room__category'] for c in user_categories if c['room__category']]
+        # Remove None values
+        user_categories = [cat for cat in user_categories if cat is not None]
         
-        if not category_ids:
-            return self.get_diverse_category_rooms(limit)
+        recommendations = []
         
-        # Get rooms from those categories
-        rooms = Room.objects.filter(
-            is_public=True,
-            category_id__in=category_ids
-        ).exclude(
-            messages__user=user  # Exclude rooms user already participated in
-        ).order_by('-message_count')[:limit]
-        
-        return list(rooms)
-    
-    def get_diverse_category_rooms(self, limit):
-        """Get rooms from diverse categories"""
-        from chat.models import Room, RoomCategory
-        
-        # Get active categories
-        categories = RoomCategory.objects.filter(
-            is_active=True
-        ).annotate(
-            room_count=Count('rooms')
-        ).filter(room_count__gt=0)[:5]
-        
-        rooms = []
-        per_category = max(1, limit // len(categories)) if categories else limit
-        
-        for category in categories:
-            cat_rooms = Room.objects.filter(
+        # Get rooms in user's preferred categories
+        if user_categories:
+            category_rooms_query = Room.objects.filter(
                 is_public=True,
-                category=category
-            ).order_by('-message_count')[:per_category]
-            rooms.extend(cat_rooms)
+                category_id__in=user_categories
+            )
+            
+            # Exclude already joined rooms
+            if exclude_joined:
+                joined_room_ids = Message.objects.filter(
+                    user=user
+                ).values_list('room_id', flat=True).distinct()
+                category_rooms_query = category_rooms_query.exclude(id__in=joined_room_ids)
+            
+            category_rooms = category_rooms_query.select_related(
+                'category', 'creator'
+            ).order_by('-message_count')[:limit]
+            
+            recommendations.extend(category_rooms)
         
-        # Fill remaining slots with popular rooms
-        if len(rooms) < limit:
-            additional = Room.objects.filter(
-                is_public=True
-            ).exclude(
-                id__in=[r.id for r in rooms]
-            ).order_by('-message_count')[:limit - len(rooms)]
-            rooms.extend(additional)
+        # If not enough recommendations, add popular rooms
+        if len(recommendations) < limit:
+            additional_needed = limit - len(recommendations)
+            popular_rooms = self._get_popular_rooms(
+                additional_needed, 
+                exclude_joined, 
+                user
+            )
+            
+            # Add only rooms not already in recommendations
+            existing_ids = {r.id for r in recommendations}
+            for room in popular_rooms:
+                if room.id not in existing_ids:
+                    recommendations.append(room)
+                    if len(recommendations) >= limit:
+                        break
         
-        return rooms[:limit]
+        return recommendations[:limit]
     
-    def get_hybrid_recommendations(self, user, limit):
-        """Combine multiple strategies"""
-        from chat.models import Room
-        
+    def _get_hybrid_recommendations(self, user, limit, exclude_joined=True):
+        """Mix of different recommendation strategies"""
         recommendations = []
         seen_ids = set()
         
-        # Mix of different strategies
-        strategies = [
-            ('popular', limit // 3),
-            ('recent', limit // 3),
-            ('social', limit // 3) if user and user.is_authenticated else ('diverse', limit // 3),
-        ]
+        # 40% personalized
+        personalized_count = int(limit * 0.4)
+        personalized = self._get_personalized_rooms(user, personalized_count, exclude_joined)
+        for room in personalized:
+            if room.id not in seen_ids:
+                recommendations.append(room)
+                seen_ids.add(room.id)
         
-        for strategy, count in strategies:
-            if strategy == 'popular':
-                rooms = self.get_popular_recommendations(user, count * 2)
-            elif strategy == 'recent':
-                rooms = self.get_recent_active_rooms(user, count * 2)
-            elif strategy == 'social':
-                rooms = self.get_social_recommendations(user, count * 2)
-            else:  # diverse
-                rooms = self.get_diverse_category_rooms(count * 2)
-            
-            for room in rooms:
+        # 30% popular
+        popular_count = int(limit * 0.3)
+        popular = self._get_popular_rooms(popular_count, exclude_joined, user)
+        for room in popular:
+            if room.id not in seen_ids:
+                recommendations.append(room)
+                seen_ids.add(room.id)
+        
+        # 30% recent
+        recent_count = limit - len(recommendations)
+        if recent_count > 0:
+            recent = self._get_recent_active_rooms(recent_count, exclude_joined, user)
+            for room in recent:
                 if room.id not in seen_ids:
                     recommendations.append(room)
                     seen_ids.add(room.id)
                     if len(recommendations) >= limit:
                         break
-            
-            if len(recommendations) >= limit:
-                break
-        
-        # Fill remaining with popular if needed
-        if len(recommendations) < limit:
-            additional = Room.objects.filter(
-                is_public=True
-            ).exclude(
-                id__in=seen_ids
-            ).order_by('-message_count')[:limit - len(recommendations)]
-            recommendations.extend(additional)
         
         return recommendations[:limit]
     
@@ -248,64 +259,110 @@ class LightweightRecommendationEngine:
         from chat.models import Room
         
         try:
-            room = Room.objects.get(id=room_id)
+            source_room = Room.objects.select_related('category').get(id=room_id)
+            similar_rooms = []
+            seen_ids = {room_id}  # Exclude the source room
             
-            similar = []
-            
-            # Same category
-            if room.category:
-                same_category = Room.objects.filter(
+            # 1. Same category rooms
+            if source_room.category:
+                category_rooms = Room.objects.filter(
                     is_public=True,
-                    category=room.category
-                ).exclude(id=room_id).order_by('-message_count')[:limit//2]
-                similar.extend(same_category)
-            
-            # Similar activity level
-            activity_range = (
-                max(0, room.message_count - 100),
-                room.message_count + 100
-            )
-            similar_activity = Room.objects.filter(
-                is_public=True,
-                message_count__range=activity_range
-            ).exclude(
-                id__in=[room_id] + [r.id for r in similar]
-            ).order_by('?')[:limit//2]
-            similar.extend(similar_activity)
-            
-            # Same creator's other rooms
-            if len(similar) < limit and room.creator:
-                creator_rooms = Room.objects.filter(
-                    is_public=True,
-                    creator=room.creator
+                    category=source_room.category
                 ).exclude(
-                    id__in=[room_id] + [r.id for r in similar]
-                )[:limit - len(similar)]
-                similar.extend(creator_rooms)
+                    id=room_id
+                ).select_related('category', 'creator').order_by(
+                    '-message_count'
+                )[:limit]
+                
+                for room in category_rooms:
+                    if room.id not in seen_ids:
+                        similar_rooms.append(room)
+                        seen_ids.add(room.id)
             
-            return similar[:limit]
+            # 2. If not enough, add rooms with similar activity level
+            if len(similar_rooms) < limit:
+                message_count = source_room.message_count or 0
+                
+                # Define similarity range (±50% of message count)
+                min_messages = int(message_count * 0.5)
+                max_messages = int(message_count * 1.5)
+                
+                activity_rooms = Room.objects.filter(
+                    is_public=True,
+                    message_count__gte=min_messages,
+                    message_count__lte=max_messages
+                ).exclude(
+                    id__in=seen_ids
+                ).select_related('category', 'creator').order_by(
+                    '-message_count'
+                )[:limit - len(similar_rooms)]
+                
+                for room in activity_rooms:
+                    if room.id not in seen_ids:
+                        similar_rooms.append(room)
+                        seen_ids.add(room.id)
+            
+            # 3. If still not enough, add popular rooms
+            if len(similar_rooms) < limit:
+                popular_rooms = Room.objects.filter(
+                    is_public=True
+                ).exclude(
+                    id__in=seen_ids
+                ).select_related('category', 'creator').order_by(
+                    '-message_count'
+                )[:limit - len(similar_rooms)]
+                
+                similar_rooms.extend(popular_rooms)
+            
+            return similar_rooms[:limit]
             
         except Room.DoesNotExist:
+            logger.warning(f"Room {room_id} not found for similar rooms")
+            # Return popular rooms as fallback
+            return list(Room.objects.filter(
+                is_public=True
+            ).select_related('category', 'creator').order_by(
+                '-message_count'
+            )[:limit])
+        except Exception as e:
+            logger.error(f"Error getting similar rooms: {e}")
             return []
-
-    def build_index(self, force_rebuild=False):
-        """Lightweight index building - just pre-cache some data"""
-        from chat.models import Room
+    
+    def get_rooms_for_category(self, category_slug, limit=20):
+        """Get recommended rooms for a specific category"""
+        from chat.models import Room, RoomCategory
         
-        logger.info("Building lightweight recommendation cache...")
+        try:
+            category = RoomCategory.objects.get(slug=category_slug)
+            rooms = Room.objects.filter(
+                is_public=True,
+                category=category
+            ).select_related('category', 'creator').order_by(
+                '-message_count',
+                '-last_activity'
+            )[:limit]
+            
+            return list(rooms)
+        except RoomCategory.DoesNotExist:
+            logger.warning(f"Category {category_slug} not found")
+            return []
+    
+    def get_trending_rooms(self, limit=10):
+        """Get trending rooms based on recent activity"""
+        from chat.models import Room, Message
+        from django.db.models import Count
         
-        # Pre-cache popular rooms
-        popular = list(Room.objects.filter(
-            is_public=True
-        ).order_by('-message_count')[:50])
-        cache.set('popular_rooms', popular, 3600)
+        # Look at activity in the last 6 hours
+        time_window = timezone.now() - timedelta(hours=6)
         
-        # Pre-cache recent active
-        recent = list(Room.objects.filter(
+        # Get rooms with recent messages
+        trending_rooms = Room.objects.filter(
             is_public=True,
-            last_activity__gte=timezone.now() - timedelta(days=1)
-        ).order_by('-last_activity')[:50])
-        cache.set('recent_active_rooms', recent, 1800)
+            messages__timestamp__gte=time_window
+        ).annotate(
+            recent_message_count=Count('messages')
+        ).order_by(
+            '-recent_message_count'
+        ).distinct()[:limit]
         
-        logger.info("Lightweight cache built successfully")
-        return True
+        return list(trending_rooms)
