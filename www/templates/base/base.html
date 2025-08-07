@@ -1733,178 +1733,471 @@ main {
             }
         };
 
-        // Enhanced Shuffle Functionality
-        class RecommendationManager {
+        // Unified Shuffle and Recommendation System
+        class ShuffleManager {
             constructor() {
-                this.apiEndpoint = '/api/recommendations/';
+                this.isShuffling = false;
+                this.recommendationEndpoint = '/api/recommendations/';
+                this.shuffleEndpoint = '/api/shuffled-rooms/';
                 this.init();
             }
 
             init() {
-                // Load recommendations on page load
-                this.loadRecommendations('popular', 'popular-rooms-container');
-                this.loadRecommendations('trending', 'trending-rooms-container');
+                // Initialize shuffle buttons
+                this.initShuffleButtons();
                 
-                if (window.CHAT_CONFIG?.user?.isAuthenticated) {
-                    this.loadRecommendations('personalized', 'personalized-rooms-container');
+                // Initialize logo shuffle if on eligible pages
+                this.initLogoShuffle();
+                
+                // Check and display shuffle state
+                this.checkShuffleState();
+            }
+
+            initShuffleButtons() {
+                // Desktop shuffle button
+                const desktopShuffleBtn = document.querySelector('.shuffle-btn');
+                if (desktopShuffleBtn) {
+                    desktopShuffleBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.handleShuffle();
+                    });
+                }
+
+                // Mobile shuffle button
+                const mobileShuffleBtn = document.querySelector('.lg\\:hidden .search-btn[title="Shuffle rooms"]');
+                if (mobileShuffleBtn) {
+                    mobileShuffleBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.handleShuffle();
+                    });
+                }
+
+                // Clear shuffle button
+                const clearShuffleBtn = document.querySelector('button[title="Clear shuffle and return to default order"]');
+                if (clearShuffleBtn) {
+                    clearShuffleBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.clearShuffle();
+                    });
                 }
             }
 
-            async loadRecommendations(strategy, containerId, limit = 6) {
-                const container = document.getElementById(containerId);
-                if (!container) return;
+            initLogoShuffle() {
+                const logoBtn = document.getElementById('shuffle-logo-btn');
+                if (logoBtn && logoBtn.dataset.shuffleEnabled === 'true') {
+                    logoBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.handleShuffle();
+                    });
 
+                    // Add hover effect
+                    logoBtn.addEventListener('mouseenter', () => {
+                        if (!this.isShuffling) {
+                            logoBtn.style.transform = 'scale(1.05)';
+                        }
+                    });
+
+                    logoBtn.addEventListener('mouseleave', () => {
+                        if (!this.isShuffling) {
+                            logoBtn.style.transform = 'scale(1)';
+                        }
+                    });
+                }
+            }
+
+            async handleShuffle(strategy = 'random') {
+                if (this.isShuffling) return;
+                
+                this.isShuffling = true;
+                
+                // Show loading state
+                this.showShuffleLoading();
+                
                 try {
-                    // Show loading state
-                    container.innerHTML = '<div class="text-center py-8"><div class="loading-spinner mx-auto"></div><p class="text-gray-500 mt-2">Loading recommendations...</p></div>';
+                    // Use recommendation API with random strategy for shuffle
+                    const response = await this.fetchShuffledRooms(strategy);
+                    if (response.success) {
+                        this.updateRoomsDisplay(response.recommendations || response.rooms);
+                        this.setShuffleState(true);
+                        this.showShuffleSuccess();
+                    } else {
+                        throw new Error('Failed to shuffle rooms');
+                    }
+                } catch (error) {
+                    console.error('Shuffle error:', error);
+                    // Fallback to form submission
+                    this.submitShuffleForm();
+                } finally {
+                    this.isShuffling = false;
+                    this.hideShuffleLoading();
+                }
+            }
 
-                    // Fetch recommendations
-                    const response = await fetch(`${this.apiEndpoint}?strategy=${strategy}&limit=${limit}`, {
+            async fetchShuffledRooms(strategy = 'random') {
+                const params = new URLSearchParams(window.location.search);
+                params.set('strategy', strategy);
+                params.set('limit', '50');
+                params.set('shuffle', Date.now()); // Unique seed for randomness
+                
+                // Try recommendation endpoint first (unified approach)
+                try {
+                    const response = await fetch(`${this.recommendationEndpoint}?${params.toString()}`, {
+                        method: 'GET',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Accept': 'application/json',
                         }
                     });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success || data.recommendations) {
+                            return {
+                                success: true,
+                                recommendations: data.recommendations,
+                                rooms: data.recommendations
+                            };
+                        }
                     }
-
-                    const data = await response.json();
-
-                    if (data.success && data.recommendations && data.recommendations.length > 0) {
-                        this.displayRecommendations(container, data.recommendations, strategy);
-                    } else {
-                        container.innerHTML = '<p class="text-gray-500 text-center py-8">No recommendations available</p>';
-                    }
-
-                } catch (error) {
-                    console.error(`Error loading ${strategy} recommendations:`, error);
-                    container.innerHTML = '<p class="text-red-500 text-center py-8">Failed to load recommendations</p>';
+                } catch (e) {
+                    console.log('Trying shuffle endpoint fallback');
                 }
+                
+                // Fallback to dedicated shuffle endpoint
+                const response = await fetch(`${this.shuffleEndpoint}?${params.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
             }
 
-            displayRecommendations(container, rooms, strategy) {
-                // Clear container
-                container.innerHTML = '';
+            updateRoomsDisplay(rooms) {
+                const gridView = document.getElementById('grid-view');
+                const listView = document.getElementById('list-view');
+                
+                if (gridView) {
+                    this.animateRoomShuffle(gridView, rooms, 'grid');
+                }
+                
+                if (listView) {
+                    this.animateRoomShuffle(listView, rooms, 'list');
+                }
+                
+                // Update URL without reload
+                const url = new URL(window.location);
+                url.searchParams.set('shuffle', Date.now());
+                window.history.pushState({shuffled: true}, '', url);
+            }
 
-                // Create grid or list based on strategy
-                const grid = document.createElement('div');
-                grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
-
-                rooms.forEach((room, index) => {
-                    const roomCard = this.createRoomCard(room);
+            animateRoomShuffle(container, rooms, viewType) {
+                // Fade out existing rooms
+                container.style.opacity = '0.5';
+                container.style.transition = 'opacity 0.3s ease';
+                
+                setTimeout(() => {
+                    // Clear container
+                    container.innerHTML = '';
                     
-                    // Add animation
-                    roomCard.style.opacity = '0';
-                    roomCard.style.transform = 'translateY(20px)';
-                    roomCard.style.transition = `all 0.4s ease ${index * 0.1}s`;
+                    // Add new rooms
+                    rooms.forEach((room, index) => {
+                        const roomElement = viewType === 'grid' 
+                            ? this.createRoomCard(room) 
+                            : this.createRoomListItem(room);
+                        
+                        // Add staggered animation
+                        roomElement.style.opacity = '0';
+                        roomElement.style.transform = 'translateY(20px)';
+                        roomElement.style.transition = `all 0.4s ease ${index * 0.03}s`;
+                        
+                        container.appendChild(roomElement);
+                        
+                        // Trigger animation
+                        requestAnimationFrame(() => {
+                            roomElement.style.opacity = '1';
+                            roomElement.style.transform = 'translateY(0)';
+                        });
+                    });
                     
-                    grid.appendChild(roomCard);
-                    
-                    // Trigger animation
-                    setTimeout(() => {
-                        roomCard.style.opacity = '1';
-                        roomCard.style.transform = 'translateY(0)';
-                    }, 50);
-                });
-
-                container.appendChild(grid);
+                    // Fade in container
+                    container.style.opacity = '1';
+                }, 300);
             }
 
             createRoomCard(room) {
                 const card = document.createElement('a');
-                card.href = room.url || `/room/${room.name}/`;
-                card.className = 'block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-all duration-300 hover:border-primary';
+                card.href = `/room/${room.name}/`;
+                card.className = 'room-card surface-card block p-4 hover:shadow-lg transition-all duration-300';
                 
                 card.innerHTML = `
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
-                            <h3 class="font-semibold text-gray-900 text-lg mb-1 line-clamp-1">
-                                ${room.display_name || room.name}
-                            </h3>
+                            <h3 class="font-semibold text-gray-900 text-lg mb-1">${room.display_name}</h3>
                             <div class="flex items-center gap-2 text-sm text-gray-500">
                                 <span class="inline-flex items-center gap-1">
                                     <span>${room.category_icon || '💬'}</span>
-                                    <span>${room.category || 'General'}</span>
+                                    <span>${room.category_name || 'General'}</span>
                                 </span>
-                                ${!room.is_public ? '<span class="text-xs bg-gray-100 px-2 py-0.5 rounded">Private</span>' : ''}
+                                ${room.is_public ? '' : '<span class="text-xs bg-gray-100 px-2 py-0.5 rounded">Private</span>'}
                             </div>
                         </div>
                     </div>
                     
-                    ${room.description ? `
-                        <p class="text-gray-600 text-sm mb-3 line-clamp-2">
-                            ${room.description}
-                        </p>
-                    ` : ''}
+                    ${room.description ? `<p class="text-gray-600 text-sm mb-3 line-clamp-2">${room.description}</p>` : ''}
                     
                     <div class="flex items-center justify-between text-sm">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium">
+                                ${room.creator_initial || room.creator.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="text-gray-600">${room.creator}</span>
+                        </div>
                         <div class="flex items-center gap-3 text-gray-500">
                             <span class="flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                                 </svg>
-                                ${room.message_count || 0}
+                                ${room.total_messages || 0}
                             </span>
-                            ${room.active_users !== undefined ? `
-                                <span class="flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                    </svg>
-                                    ${room.active_users}
-                                </span>
-                            ` : ''}
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                                ${room.active_users || 0}
+                            </span>
                         </div>
-                        <span class="text-primary hover:text-primary-hover">
-                            Join →
-                        </span>
                     </div>
                 `;
                 
                 return card;
             }
 
-            // Method to refresh recommendations
-            async refreshRecommendations(strategy, containerId) {
-                await this.loadRecommendations(strategy, containerId);
+            createRoomListItem(room) {
+                const item = document.createElement('a');
+                item.href = `/room/${room.name}/`;
+                item.className = 'room-list-item flex items-center justify-between p-4 hover:bg-gray-50 transition-colors';
+                
+                item.innerHTML = `
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-medium">
+                            ${room.category_icon || '💬'}
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-900">${room.display_name}</h3>
+                            <div class="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                <span>${room.category_name || 'General'}</span>
+                                <span>•</span>
+                                <span>${room.creator}</span>
+                                <span>•</span>
+                                <span>${room.total_messages || 0} messages</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-primary">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                `;
+                
+                return item;
+            }
+
+            clearShuffle() {
+                // Remove shuffle parameter from URL
+                const url = new URL(window.location);
+                url.searchParams.delete('shuffle');
+                
+                // Show loading
+                this.showShuffleLoading();
+                
+                // Redirect to clear shuffle
+                window.location.href = url.toString();
+            }
+
+            submitShuffleForm() {
+                // Create and submit a form to shuffle
+                const form = document.createElement('form');
+                form.method = 'GET';
+                form.action = window.location.pathname;
+                
+                // Preserve existing parameters
+                const params = new URLSearchParams(window.location.search);
+                params.set('shuffle', Date.now());
+                
+                params.forEach((value, key) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    form.appendChild(input);
+                });
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+
+            setShuffleState(isShuffled) {
+                // Update badge
+                const brandBadge = document.querySelector('.brand-badge');
+                if (brandBadge) {
+                    if (isShuffled) {
+                        brandBadge.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            SHUFFLED
+                        `;
+                    } else {
+                        brandBadge.innerHTML = 'BETA';
+                    }
+                }
+                
+                // Store in session storage
+                sessionStorage.setItem('rooms_shuffled', isShuffled);
+            }
+
+            checkShuffleState() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const isShuffled = urlParams.has('shuffle') || sessionStorage.getItem('rooms_shuffled') === 'true';
+                
+                if (isShuffled) {
+                    this.setShuffleState(true);
+                }
+            }
+
+            showShuffleLoading() {
+                // Add loading state to buttons
+                document.querySelectorAll('.shuffle-btn, #shuffle-logo-btn').forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.7';
+                    btn.style.cursor = 'wait';
+                });
+                
+                // Show toast if available
+                if (window.toastManager) {
+                    window.toastManager.show('Shuffling rooms...', 'info', 2000);
+                }
+            }
+
+            hideShuffleLoading() {
+                // Remove loading state
+                document.querySelectorAll('.shuffle-btn, #shuffle-logo-btn').forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                });
+            }
+
+            showShuffleSuccess() {
+                // Animate logo
+                const logo = document.querySelector('.brand-logo');
+                if (logo) {
+                    logo.style.transform = 'rotate(360deg)';
+                    logo.style.transition = 'transform 0.5s ease';
+                    setTimeout(() => {
+                        logo.style.transform = 'rotate(0deg)';
+                    }, 500);
+                }
+                
+                // Show toast if available
+                if (window.toastManager) {
+                    window.toastManager.show('Rooms shuffled successfully!', 'success', 3000);
+                }
             }
         }
 
-        // Initialize when DOM is ready
+        // Initialize shuffle manager when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            // Only initialize on pages that need recommendations
-            const needsRecommendations = 
-                document.getElementById('popular-rooms-container') ||
-                document.getElementById('trending-rooms-container') ||
-                document.getElementById('personalized-rooms-container');
+            // Only initialize on eligible pages
+            if (window.CHAT_CONFIG?.shuffle?.enabled) {
+                window.shuffleManager = new ShuffleManager();
+            }
             
-            if (needsRecommendations) {
-                window.recommendationManager = new RecommendationManager();
+            // Also integrate with existing managers if they exist
+            if (window.menuManager) {
+                console.log('Shuffle feature integrated with menu manager');
             }
         });
 
-        // Function to manually load recommendations
-        function loadRecommendations(strategy = 'popular', containerId = 'recommendations-container', limit = 10) {
-            if (!window.recommendationManager) {
-                window.recommendationManager = new RecommendationManager();
+        // Add ripple effect to shuffle buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const shuffleButtons = document.querySelectorAll('.shuffle-btn, #shuffle-logo-btn');
+            
+            shuffleButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    // Create ripple effect
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    ripple.style.position = 'absolute';
+                    ripple.style.borderRadius = '50%';
+                    ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+                    ripple.style.transform = 'scale(0)';
+                    ripple.style.animation = 'ripple 0.6s linear';
+                    ripple.style.pointerEvents = 'none';
+                    
+                    this.style.position = 'relative';
+                    this.style.overflow = 'hidden';
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + S for standard shuffle
+            if ((e.ctrlKey || e.metaKey) && e.key === 's' && window.CHAT_CONFIG?.shuffle?.enabled) {
+                e.preventDefault();
+                if (window.shuffleManager) {
+                    window.shuffleManager.handleShuffle('random');
+                }
             }
-            window.recommendationManager.loadRecommendations(strategy, containerId, limit);
+            
+            // Ctrl/Cmd + R for random shuffle (alternative)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r' && window.CHAT_CONFIG?.shuffle?.enabled) {
+                e.preventDefault();
+                if (window.shuffleManager) {
+                    window.shuffleManager.handleShuffle('random');
+                }
+            }
+        });
+
+        // Helper functions for different shuffle strategies
+        function shuffleRooms(strategy = 'random') {
+            if (!window.shuffleManager) {
+                window.shuffleManager = new ShuffleManager();
+            }
+            window.shuffleManager.handleShuffle(strategy);
         }
 
-        // Test function to check if API is working
-        async function testRecommendationAPI() {
-            try {
-                const response = await fetch('/api/recommendations/?strategy=popular&limit=5');
-                const data = await response.json();
-                console.log('Recommendation API Test:', data);
-                return data;
-            } catch (error) {
-                console.error('Recommendation API Error:', error);
-                return null;
-            }
+        function shufflePopular() {
+            shuffleRooms('popular');
+        }
+
+        function shuffleTrending() {
+            shuffleRooms('trending');
+        }
+
+        function shufflePersonalized() {
+            shuffleRooms('personalized');
         }
     </script>
 
