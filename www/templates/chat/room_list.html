@@ -1,7 +1,7 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Euphorie{% endblock %}
+{% block title %}Euphorie - Explore Rooms{% endblock %}
 
 {% block description %}Discover amazing chat rooms and join conversations on topics you love{% endblock %}
 
@@ -378,6 +378,22 @@
 .view-btn svg {
   width: 0.875rem; /* Smaller icons */
   height: 0.875rem;
+}
+
+/* Recommendations Section */
+.recommendations-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #fce7f3 0%, #ddd6fe 100%);
+  border-radius: 0.875rem;
+  border: 1px solid #f9a8d4;
+}
+
+.recommendations-section h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1e293b;
 }
 
 /* Compact Room Grid - Higher Density */
@@ -892,14 +908,14 @@
         
         <div class="category-bar" id="category-bar">
           <!-- "All" button always first -->
-          <button class="category-btn active" data-category="all">
+          <button class="category-btn {% if not current_category or current_category == 'all' %}active{% endif %}" data-category="all">
             <span class="category-icon">🌟</span>
             All
           </button>
           
           <!-- Dynamic categories from database -->
           {% for category in categories %}
-            <button class="category-btn" data-category="{{ category.slug }}">
+            <button class="category-btn {% if current_category == category.slug %}active{% endif %}" data-category="{{ category.slug }}">
               <span class="category-icon">{{ category.icon|default:"💬" }}</span>
               {{ category.name }}
             </button>
@@ -924,11 +940,13 @@
     
     <!-- Sort and View Controls -->
     <div class="sort-controls">
-      <select class="sort-select" id="sort-rooms">
-        <option value="activity">Most Active</option>
-        <option value="newest">Newest</option>
-        <option value="oldest">Oldest</option>
-        <option value="name">A-Z</option>
+      <select class="sort-select" id="sort-rooms" {% if is_shuffled %}disabled{% endif %}>
+        <option value="shuffle" {% if is_shuffled %}selected{% endif %}>🎲 Shuffled</option>
+        <option value="activity" {% if current_sort == 'activity' and not is_shuffled %}selected{% endif %}>Most Active</option>
+        <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest</option>
+        <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest</option>
+        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>A-Z</option>
+        <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>Most Popular</option>
       </select>
       
       <div class="view-toggle">
@@ -964,8 +982,65 @@
   </div>
 </div>
 
-<!-- Rooms Container -->
-<div id="rooms-container">
+<!-- Recommendations Section (if available) -->
+{% if recommended_rooms and not is_shuffled %}
+<div class="recommendations-section">
+  <h2>{% if user.is_authenticated %}Recommended for You{% else %}Popular Rooms{% endif %}</h2>
+  <div class="rooms-grid">
+    {% for room in recommended_rooms|slice:":6" %}
+    <a href="{% url 'room' room.name %}" class="room-card" 
+       data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
+       data-name="{{ room.display_name|default:room.name|lower }}"
+       data-activity="{{ room.message_count|default:0 }}"
+       data-created="{{ room.created_at|date:'c' }}">
+      
+      <div class="room-header">
+        <h3 class="room-title">{{ room.display_name|default:room.name }}</h3>
+        
+        <div class="room-meta">
+          <span class="room-category">
+            {% if room.category %}
+              {{ room.category.icon|default:"💬" }} {{ room.category.name }}
+            {% else %}
+              💬 General
+            {% endif %}
+          </span>
+          
+          <span class="room-status {% if room.message_count > 20 %}trending{% else %}active{% endif %}">
+            {% if room.message_count > 20 %}🔥 Hot{% else %}✨ Active{% endif %}
+          </span>
+        </div>
+        
+        <div class="room-activity">
+          <div class="activity-bar">
+            <div class="activity-fill" style="width: {% if room.message_count > 50 %}90%{% elif room.message_count > 25 %}70%{% elif room.message_count > 10 %}50%{% elif room.message_count > 5 %}30%{% else %}15%{% endif %}"></div>
+          </div>
+          <div class="activity-text">{{ room.message_count|default:0 }} messages</div>
+        </div>
+      </div>
+      
+      <div class="room-footer">
+        <div class="room-creator">
+          <div class="creator-avatar">
+            {{ room.creator.username|slice:":1"|upper }}
+          </div>
+          <span>{{ room.creator.username }}</span>
+        </div>
+        <div class="join-btn">
+          Join
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Main Rooms Container -->
+<div id="rooms-container" data-shuffled="{{ is_shuffled|yesno:'true,false' }}">
   <!-- Grid View (Default) -->
   <div class="rooms-grid" id="grid-view">
     {% if rooms %}
@@ -973,7 +1048,7 @@
       <a href="{% url 'room' room.name %}" class="room-card" 
          data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
          data-name="{{ room.display_name|default:room.name|lower }}"
-         data-activity="{{ room.total_messages|default:0 }}"
+         data-activity="{{ room.message_count|default:0 }}"
          data-created="{{ room.created_at|date:'c' }}">
         
         <div class="room-header">
@@ -988,26 +1063,16 @@
               {% endif %}
             </span>
             
-            <span class="room-status {% if room.total_messages > 20 %}trending{% else %}active{% endif %}">
-              {% if room.total_messages > 20 %}🔥 Hot{% else %}✨ Active{% endif %}
+            <span class="room-status {% if room.message_count > 20 %}trending{% else %}active{% endif %}">
+              {% if room.message_count > 20 %}🔥 Hot{% else %}✨ Active{% endif %}
             </span>
           </div>
           
           <div class="room-activity">
             <div class="activity-bar">
-              {% if room.total_messages > 50 %}
-                <div class="activity-fill" style="width: 90%"></div>
-              {% elif room.total_messages > 25 %}
-                <div class="activity-fill" style="width: 70%"></div>
-              {% elif room.total_messages > 10 %}
-                <div class="activity-fill" style="width: 50%"></div>
-              {% elif room.total_messages > 5 %}
-                <div class="activity-fill" style="width: 30%"></div>
-              {% else %}
-                <div class="activity-fill" style="width: 15%"></div>
-              {% endif %}
+              <div class="activity-fill" style="width: {% if room.message_count > 50 %}90%{% elif room.message_count > 25 %}70%{% elif room.message_count > 10 %}50%{% elif room.message_count > 5 %}30%{% else %}15%{% endif %}"></div>
             </div>
-            <div class="activity-text">{{ room.total_messages|default:0 }} messages</div>
+            <div class="activity-text">{{ room.message_count|default:0 }} messages</div>
           </div>
         </div>
         
@@ -1037,7 +1102,7 @@
       <a href="{% url 'room' room.name %}" class="room-list-item"
          data-category="{% if room.category %}{{ room.category.slug }}{% else %}general{% endif %}"
          data-name="{{ room.display_name|default:room.name|lower }}"
-         data-activity="{{ room.total_messages|default:0 }}"
+         data-activity="{{ room.message_count|default:0 }}"
          data-created="{{ room.created_at|date:'c' }}">
         
         <div class="list-avatar">
@@ -1061,7 +1126,7 @@
         
         <div class="list-stats">
           <div class="list-activity">
-            <div class="activity-count">{{ room.total_messages|default:0 }}</div>
+            <div class="activity-count">{{ room.message_count|default:0 }}</div>
             <div>messages</div>
           </div>
         </div>
@@ -1084,7 +1149,7 @@
   {% if user.is_authenticated %}
   <a href="{% url 'create_room' %}" class="btn btn-primary">Create Room</a>
   {% else %}
-  <a href="{% url 'signup' %}" class="btn btn-primary">Sign Up</a>
+  <a href="{% url 'account_signup' %}" class="btn btn-primary">Sign Up</a>
   {% endif %}
 </div>
 {% endif %}
@@ -1100,6 +1165,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const viewBtns = document.querySelectorAll('.view-btn');
   const gridView = document.getElementById('grid-view');
   const listView = document.getElementById('list-view');
+  const roomsContainer = document.getElementById('rooms-container');
   
   // Category scroll elements
   const categoryBar = document.getElementById('category-bar');
@@ -1109,8 +1175,35 @@ document.addEventListener('DOMContentLoaded', function() {
   const categoriesModal = document.getElementById('categories-modal');
   const closeModalBtn = document.getElementById('close-categories-modal');
   
-  let currentCategory = 'all';
-  let currentSort = 'activity';
+  let currentCategory = '{{ current_category|default:"all" }}';
+  let currentSort = '{{ current_sort|default:"activity" }}';
+  let isShuffled = {{ is_shuffled|yesno:'true,false' }};
+  
+  // Check if we're on the index/explore page to enable shuffle
+  const isShuffleEnabled = window.CHAT_CONFIG?.shuffle?.enabled || false;
+  
+  // Handle sort dropdown change
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      if (this.value === 'shuffle') {
+        // Trigger shuffle through the shuffle manager
+        if (window.shuffleManager) {
+          window.shuffleManager.handleShuffle();
+        } else {
+          // Fallback: submit shuffle form
+          submitShuffleForm();
+        }
+      } else {
+        // Clear shuffle and apply normal sorting
+        if (isShuffled) {
+          clearShuffle();
+        } else {
+          currentSort = this.value;
+          filterAndSortRooms();
+        }
+      }
+    });
+  }
   
   // Category filtering
   categoryBtns.forEach(btn => {
@@ -1122,8 +1215,15 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update current category
       currentCategory = this.getAttribute('data-category');
       
-      // Filter rooms
-      filterAndSortRooms();
+      // If shuffled, maintain shuffle with new category
+      if (isShuffled) {
+        const url = new URL(window.location);
+        url.searchParams.set('category', currentCategory);
+        window.location.href = url.toString();
+      } else {
+        // Filter rooms
+        filterAndSortRooms();
+      }
     });
   });
   
@@ -1158,6 +1258,138 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', updateScrollButtons);
   }
   
+  // View toggle
+  viewBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const view = this.getAttribute('data-view');
+      
+      // Update button states
+      viewBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Toggle views
+      if (view === 'grid') {
+        gridView.classList.remove('hidden');
+        listView.classList.add('hidden');
+      } else {
+        gridView.classList.add('hidden');
+        listView.classList.remove('hidden');
+      }
+    });
+  });
+  
+  // Main filter and sort function
+  function filterAndSortRooms() {
+    if (isShuffled) {
+      // Don't sort if shuffled
+      return;
+    }
+    
+    const gridRooms = gridView.querySelectorAll('.room-card');
+    const listRooms = listView.querySelectorAll('.room-list-item');
+    
+    // Filter grid view rooms
+    gridRooms.forEach(room => {
+      const roomCategory = room.getAttribute('data-category');
+      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+      
+      if (matchesCategory) {
+        room.style.display = '';
+      } else {
+        room.style.display = 'none';
+      }
+    });
+    
+    // Filter list view rooms
+    listRooms.forEach(room => {
+      const roomCategory = room.getAttribute('data-category');
+      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
+      
+      if (matchesCategory) {
+        room.style.display = '';
+      } else {
+        room.style.display = 'none';
+      }
+    });
+    
+    // Sort visible rooms
+    sortRooms();
+  }
+  
+  function sortRooms() {
+    if (isShuffled) {
+      // Don't sort if shuffled
+      return;
+    }
+    
+    const gridContainer = gridView;
+    const listContainer = listView;
+    
+    // Sort grid view
+    const gridRooms = Array.from(gridContainer.querySelectorAll('.room-card')).filter(room => 
+      room.style.display !== 'none'
+    );
+    
+    // Sort list view
+    const listRooms = Array.from(listContainer.querySelectorAll('.room-list-item')).filter(room => 
+      room.style.display !== 'none'
+    );
+    
+    const sortFunction = getSortFunction();
+    
+    gridRooms.sort(sortFunction);
+    listRooms.sort(sortFunction);
+    
+    // Re-append sorted rooms
+    gridRooms.forEach(room => gridContainer.appendChild(room));
+    listRooms.forEach(room => listContainer.appendChild(room));
+  }
+  
+  function getSortFunction() {
+    switch (currentSort) {
+      case 'newest':
+        return (a, b) => new Date(b.getAttribute('data-created')) - new Date(a.getAttribute('data-created'));
+      case 'oldest':
+        return (a, b) => new Date(a.getAttribute('data-created')) - new Date(b.getAttribute('data-created'));
+      case 'name':
+        return (a, b) => a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+      case 'popular':
+        return (a, b) => parseInt(b.getAttribute('data-activity')) - parseInt(a.getAttribute('data-activity'));
+      case 'activity':
+      default:
+        return (a, b) => parseInt(b.getAttribute('data-activity')) - parseInt(a.getAttribute('data-activity'));
+    }
+  }
+  
+  function submitShuffleForm() {
+    // Create and submit a form to shuffle
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = window.location.pathname;
+    
+    // Preserve existing parameters
+    const params = new URLSearchParams(window.location.search);
+    params.set('shuffle', Date.now());
+    
+    params.forEach((value, key) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+  }
+  
+  function clearShuffle() {
+    // Remove shuffle parameter from URL
+    const url = new URL(window.location);
+    url.searchParams.delete('shuffle');
+    window.location.href = url.toString();
+  }
+  
   // Show more categories modal
   if (showMoreBtn && categoriesModal && closeModalBtn) {
     showMoreBtn.addEventListener('click', () => {
@@ -1179,16 +1411,9 @@ document.addEventListener('DOMContentLoaded', function() {
         closeModalBtn.click();
       }
     });
-    
-    // Close modal on escape key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && categoriesModal.classList.contains('show')) {
-        closeModalBtn.click();
-      }
-    });
   }
   
-  // Populate categories modal dynamically from DOM
+  // Populate categories modal
   function populateCategoriesModal() {
     const modalGrid = document.querySelector('.categories-grid-modal');
     if (!modalGrid) return;
@@ -1211,7 +1436,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     modalGrid.appendChild(allBtn);
     
-    // Get categories from the DOM (from the category bar)
+    // Get categories from the DOM
     const categoryButtons = document.querySelectorAll('.category-btn:not([data-category="all"])');
     
     categoryButtons.forEach(btn => {
@@ -1250,110 +1475,49 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update current category and filter
     currentCategory = category;
-    filterAndSortRooms();
+    
+    if (isShuffled) {
+      // If shuffled, reload with new category
+      const url = new URL(window.location);
+      url.searchParams.set('category', category);
+      window.location.href = url.toString();
+    } else {
+      filterAndSortRooms();
+    }
     
     // Close modal
     closeModalBtn.click();
   }
   
-  // Sort functionality
-  if (sortSelect) {
-    sortSelect.addEventListener('change', function() {
-      currentSort = this.value;
-      filterAndSortRooms();
-    });
-  }
-  
-  // View toggle
-  viewBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const view = this.getAttribute('data-view');
-      
-      // Update button states
-      viewBtns.forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      
-      // Toggle views
-      if (view === 'grid') {
-        gridView.classList.remove('hidden');
-        listView.classList.add('hidden');
-      } else {
-        gridView.classList.add('hidden');
-        listView.classList.remove('hidden');
-      }
-    });
+  // Listen for shuffle events from the header logo
+  window.addEventListener('rooms-shuffled', function(e) {
+    // Update local state
+    isShuffled = true;
+    
+    // Update sort dropdown
+    if (sortSelect) {
+      sortSelect.value = 'shuffle';
+      sortSelect.disabled = true;
+    }
+    
+    // Update UI to show shuffled state
+    roomsContainer.setAttribute('data-shuffled', 'true');
   });
   
-  // Main filter and sort function
-  function filterAndSortRooms() {
-    const gridRooms = gridView.querySelectorAll('.room-card');
-    const listRooms = listView.querySelectorAll('.room-list-item');
+  // Listen for shuffle clear events
+  window.addEventListener('shuffle-cleared', function(e) {
+    // Update local state
+    isShuffled = false;
     
-    // Filter grid view rooms
-    gridRooms.forEach(room => {
-      const roomCategory = room.getAttribute('data-category');
-      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
-      
-      if (matchesCategory) {
-        room.style.display = '';
-      } else {
-        room.style.display = 'none';
-      }
-    });
-    
-    // Filter list view rooms
-    listRooms.forEach(room => {
-      const roomCategory = room.getAttribute('data-category');
-      const matchesCategory = currentCategory === 'all' || roomCategory === currentCategory;
-      
-      if (matchesCategory) {
-        room.style.display = '';
-      } else {
-        room.style.display = 'none';
-      }
-    });
-    
-    // Sort visible rooms
-    sortRooms();
-  }
-  
-  function sortRooms() {
-    const gridContainer = gridView;
-    const listContainer = listView;
-    
-    // Sort grid view
-    const gridRooms = Array.from(gridContainer.querySelectorAll('.room-card')).filter(room => 
-      room.style.display !== 'none'
-    );
-    
-    // Sort list view
-    const listRooms = Array.from(listContainer.querySelectorAll('.room-list-item')).filter(room => 
-      room.style.display !== 'none'
-    );
-    
-    const sortFunction = getSortFunction();
-    
-    gridRooms.sort(sortFunction);
-    listRooms.sort(sortFunction);
-    
-    // Re-append sorted rooms
-    gridRooms.forEach(room => gridContainer.appendChild(room));
-    listRooms.forEach(room => listContainer.appendChild(room));
-  }
-  
-  function getSortFunction() {
-    switch (currentSort) {
-      case 'newest':
-        return (a, b) => new Date(b.getAttribute('data-created')) - new Date(a.getAttribute('data-created'));
-      case 'oldest':
-        return (a, b) => new Date(a.getAttribute('data-created')) - new Date(b.getAttribute('data-created'));
-      case 'name':
-        return (a, b) => a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
-      case 'activity':
-      default:
-        return (a, b) => parseInt(b.getAttribute('data-activity')) - parseInt(a.getAttribute('data-activity'));
+    // Update sort dropdown
+    if (sortSelect) {
+      sortSelect.value = currentSort;
+      sortSelect.disabled = false;
     }
-  }
+    
+    // Update UI
+    roomsContainer.setAttribute('data-shuffled', 'false');
+  });
   
   // Enhanced mobile touch/swipe functionality
   function initializeMobileScrolling() {
