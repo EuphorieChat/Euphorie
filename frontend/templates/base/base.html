@@ -1128,30 +1128,56 @@ main {
         <div class="max-w-none w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between">
             <!-- Enhanced Logo and Brand -->
             <div class="flex items-center">
-                <a href="{% url 'index' %}" class="brand-container" aria-label="Euphorie Home">
-                    <h1 class="brand-logo">Euphorie</h1>
-                    <span class="brand-badge">
-                        {% block brand_suffix %}BETA{% endblock %}
-                    </span>
-                </a>
-
-                <!-- User Subscription Badge -->
-                {% if user.is_authenticated %}
-                    {% if user.subscription.is_active and not user.subscription.is_expired %}
-                        <div class="subscription-badge {% if user.subscription.plan.name == 'basic' %}active{% elif user.subscription.plan.name == 'premium' %}premium{% else %}enterprise{% endif %}">
-                            {% if user.subscription.plan.name == 'basic' %}
-                                🆓 Basic
-                            {% elif user.subscription.plan.name == 'premium' %}
-                                👑 Premium
+                <!-- Check if we're on index/explore pages where shuffle should work -->
+                {% if request.resolver_match.url_name == 'index' or request.resolver_match.url_name == 'explore_rooms' or request.resolver_match.url_name == 'home' or request.path == '/' %}
+                    <button type="button" 
+                            id="shuffle-logo-btn"
+                            class="brand-container shuffle-trigger" 
+                            aria-label="Shuffle Rooms"
+                            title="Click to shuffle rooms"
+                            data-shuffle-enabled="true"
+                            style="background: none; border: none; cursor: pointer; padding: 0;">
+                        <h1 class="brand-logo">Euphorie</h1>
+                        <span class="brand-badge">
+                            {% if is_shuffled %}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                SHUFFLED
                             {% else %}
-                                💎 Enterprise
+                                BETA
                             {% endif %}
-                        </div>
-                    {% else %}
-                        <a href="{% url 'pricing' %}" class="subscription-badge upgrade">
-                            🚀 Upgrade
-                        </a>
-                    {% endif %}
+                        </span>
+                    </button>
+                {% else %}
+                    <a href="{% url 'index' %}" class="brand-container" aria-label="Euphorie Home">
+                        <h1 class="brand-logo">Euphorie</h1>
+                        <span class="brand-badge">BETA</span>
+                    </a>
+                {% endif %}
+
+                <!-- User Subscription Badge (if you have this) -->
+                {% if user.is_authenticated %}
+                    <!-- your subscription badge code here -->
+                {% endif %}
+                
+                <!-- Shuffle Indicator (shows when shuffled) -->
+                {% if is_shuffled %}
+                <div class="ml-3 flex items-center gap-2">
+                    <span class="text-xs text-primary font-medium">Rooms shuffled</span>
+                    <form method="get" action="{{ request.path }}" class="inline-block">
+                        {% for key, value in request.GET.items %}
+                            {% if key != 'shuffle' %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endfor %}
+                        <button type="submit" 
+                                class="text-xs text-gray-500 hover:text-primary underline transition-colors"
+                                title="Clear shuffle and return to default order">
+                            Clear
+                        </button>
+                    </form>
+                </div>
                 {% endif %}
             </div>
 
