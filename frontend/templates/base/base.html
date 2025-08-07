@@ -60,6 +60,7 @@
     </script>
     
     <!-- Enhanced Euphorie Styles -->
+/* Enhanced Euphorie Styles - Complete CSS for base.html with Simplified Shuffle */
 <style>
 :root {
   /* Pastel color scheme - light, soft and cheerful */
@@ -247,17 +248,18 @@ main {
   margin-right: 0.375rem; /* Reduced margin */
 }
 
-/* Enhanced Brand - COMPACT with Shuffle Support */
+/* Enhanced Brand - COMPACT with Simplified Shuffle */
 .brand-container {
   display: flex;
   align-items: center;
   transition: all var(--duration-normal) var(--ease);
-  cursor: pointer; /* Added for shuffle functionality */
+  cursor: pointer; /* Shows it's clickable */
   position: relative;
 }
 
+/* Simple hover effect - no bounce */
 .brand-container:hover {
-  transform: translateY(-1px);
+  opacity: 0.9; /* Subtle opacity change instead of transform */
 }
 
 .brand-logo {
@@ -267,8 +269,13 @@ main {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  transition: all var(--duration-normal) var(--ease);
+  transition: opacity var(--duration-normal) var(--ease);
   position: relative; /* For shuffle indicator positioning */
+}
+
+/* Subtle hover effect */
+.brand-container:hover .brand-logo {
+  filter: brightness(1.1); /* Slightly brighter on hover */
 }
 
 .brand-badge {
@@ -283,58 +290,14 @@ main {
   animation: pulse 3s infinite;
 }
 
-/* Shuffle-specific styles */
+/* Shuffle indicator - static, no animation */
 .shuffle-indicator {
   position: absolute;
   top: -5px;
   right: -10px;
   font-size: 0.75rem;
-  animation: shufflePulse 2s infinite;
+  opacity: 0.8;
   pointer-events: none;
-}
-
-.clear-shuffle-btn {
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.65rem;
-  background: rgba(244, 114, 182, 0.1);
-  color: var(--primary);
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease);
-  font-weight: 500;
-}
-
-.clear-shuffle-btn:hover {
-  background: var(--primary-light);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.shuffle-notice {
-  animation: fadeInUp 0.3s ease;
-}
-
-.shuffle-rooms-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-left: 0.75rem;
-  padding: 0.375rem 0.625rem;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease);
-}
-
-.shuffle-rooms-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }
 
 /* PAYMENT SUBSCRIPTION BADGE STYLES */
@@ -1009,35 +972,11 @@ main {
   }
 }
 
-/* NEW: Shuffle-specific animations */
-@keyframes shuffleRotate {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(5deg); }
-  75% { transform: rotate(-5deg); }
-  100% { transform: rotate(0deg); }
-}
-
-@keyframes shufflePulse {
-  0%, 100% { 
-    opacity: 1; 
-    transform: scale(1);
-  }
-  50% { 
-    opacity: 0.7; 
-    transform: scale(1.2);
-  }
-}
-
 @keyframes ripple {
   to {
     transform: scale(4);
     opacity: 0;
   }
-}
-
-/* Shuffle hover effect */
-.brand-container:hover .brand-logo {
-  animation: shuffleRotate 0.5s ease;
 }
 
 /* Mobile Optimizations */
@@ -1086,15 +1025,6 @@ main {
 
   .footer-links {
     gap: 1rem;
-  }
-
-  /* Hide shuffle clear button on mobile */
-  .clear-shuffle-btn {
-    display: none !important;
-  }
-  
-  .shuffle-notice {
-    font-size: 0.75rem;
   }
 }
 
@@ -1656,6 +1586,7 @@ main {
 
     {% endblock %}
 
+    // Enhanced Global JavaScript - Complete Updated Version for base.html with Simplified Shuffle
     <script>
         window.CHAT_CONFIG = {
             user: {% if user.is_authenticated %}{
@@ -2267,7 +2198,7 @@ main {
             }
         }
 
-        // NEW: Enhanced Shuffle Manager
+        // SIMPLIFIED: Enhanced Shuffle Manager (No bounce, no alerts)
         class EuphorieShuffleManager {
             constructor() {
                 this.init();
@@ -2321,25 +2252,9 @@ main {
                         }
                     });
                     
-                    // Add visual feedback for shuffle
+                    // Add visual feedback for shuffle (subtle, no bounce)
                     brandLogoLink.style.cursor = 'pointer';
                     brandLogoLink.title = 'Click to shuffle rooms';
-                    
-                    // Add shuffle animation on hover
-                    brandLogoLink.addEventListener('mouseenter', function() {
-                        const logo = this.querySelector('.brand-logo');
-                        if (logo) {
-                            logo.style.transform = 'rotate(5deg)';
-                            logo.style.transition = 'transform 0.2s ease';
-                        }
-                    });
-                    
-                    brandLogoLink.addEventListener('mouseleave', function() {
-                        const logo = this.querySelector('.brand-logo');
-                        if (logo) {
-                            logo.style.transform = 'rotate(0deg)';
-                        }
-                    });
                 }
             }
 
@@ -2348,7 +2263,7 @@ main {
                 const isShuffled = urlParams.has('shuffle');
                 
                 if (isShuffled) {
-                    // Add shuffle indicator to logo
+                    // Add subtle shuffle indicator to logo (just the emoji, no animation)
                     const brandLogo = document.querySelector('.brand-logo');
                     if (brandLogo && !brandLogo.querySelector('.shuffle-indicator')) {
                         const shuffleIndicator = document.createElement('span');
@@ -2359,100 +2274,11 @@ main {
                             top: -5px;
                             right: -10px;
                             font-size: 0.75rem;
-                            animation: pulse 2s infinite;
+                            opacity: 0.8;
                         `;
                         
                         brandLogo.style.position = 'relative';
                         brandLogo.appendChild(shuffleIndicator);
-                    }
-                    
-                    // Add clear shuffle button
-                    const brandBadge = document.querySelector('.brand-badge');
-                    if (brandBadge && !document.querySelector('.clear-shuffle-btn')) {
-                        const clearShuffleBtn = document.createElement('button');
-                        clearShuffleBtn.className = 'clear-shuffle-btn';
-                        clearShuffleBtn.innerHTML = '✕ Clear';
-                        clearShuffleBtn.style.cssText = `
-                            margin-left: 0.5rem;
-                            padding: 0.25rem 0.5rem;
-                            font-size: 0.65rem;
-                            background: rgba(244, 114, 182, 0.1);
-                            color: #f472b6;
-                            border: 1px solid #f472b6;
-                            border-radius: 0.375rem;
-                            cursor: pointer;
-                            transition: all 0.2s ease;
-                        `;
-                        
-                        clearShuffleBtn.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            // Remove shuffle parameter and redirect
-                            const url = new URL(window.location.href);
-                            url.searchParams.delete('shuffle');
-                            
-                            // Clear session shuffle state via AJAX if endpoint exists
-                            if (window.CHAT_CONFIG?.csrf_token) {
-                                fetch('/clear-shuffle/', {
-                                    method: 'POST',
-                                    headers: {
-                                        'X-CSRFToken': window.CHAT_CONFIG.csrf_token,
-                                        'Content-Type': 'application/json'
-                                    }
-                                }).finally(() => {
-                                    window.location.href = url.toString();
-                                });
-                            } else {
-                                window.location.href = url.toString();
-                            }
-                        });
-                        
-                        brandBadge.parentNode.insertBefore(clearShuffleBtn, brandBadge.nextSibling);
-                    }
-                    
-                    // Add shuffle notice to rooms container
-                    const roomsContainer = document.querySelector('#rooms-container, .rooms-grid');
-                    if (roomsContainer && !document.querySelector('.shuffle-notice')) {
-                        const notice = document.createElement('div');
-                        notice.className = 'shuffle-notice';
-                        notice.innerHTML = `
-                            <div style="
-                                background: linear-gradient(135deg, #fce7f3, #e0e7ff);
-                                border: 1px solid #f472b6;
-                                border-radius: 0.75rem;
-                                padding: 0.75rem 1rem;
-                                margin-bottom: 1rem;
-                                display: flex;
-                                align-items: center;
-                                justify-content: space-between;
-                                animation: fadeInUp 0.3s ease;
-                            ">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="font-size: 1.25rem;">🔀</span>
-                                    <span style="color: #64748b; font-size: 0.875rem;">
-                                        Rooms are shuffled! Click the logo again for a new shuffle.
-                                    </span>
-                                </div>
-                                <button onclick="
-                                    const url = new URL(window.location.href);
-                                    url.searchParams.delete('shuffle');
-                                    window.location.href = url.toString();
-                                " style="
-                                    background: white;
-                                    color: #f472b6;
-                                    border: 1px solid #f472b6;
-                                    padding: 0.25rem 0.5rem;
-                                    border-radius: 0.375rem;
-                                    font-size: 0.75rem;
-                                    cursor: pointer;
-                                    transition: all 0.2s ease;
-                                " onmouseover="this.style.background='#fce7f3'" onmouseout="this.style.background='white'">
-                                    Clear Shuffle
-                                </button>
-                            </div>
-                        `;
-                        roomsContainer.parentNode.insertBefore(notice, roomsContainer);
                     }
                 }
             }
@@ -2486,7 +2312,7 @@ main {
             window.searchManager = new EuphorieSearchManager();
             window.toastManager = new EuphorieToastManager();
             window.paymentManager = new EuphoriePaymentManager();
-            window.shuffleManager = new EuphorieShuffleManager(); // NEW: Initialize shuffle manager
+            window.shuffleManager = new EuphorieShuffleManager(); // Initialize simplified shuffle manager
 
             // Initialize header scroll effect
             initHeaderScroll();
@@ -2556,7 +2382,7 @@ main {
             });
         });
 
-        // Add ripple animation CSS
+        // Add ripple animation CSS (simplified, no shuffle animations)
         const style = document.createElement('style');
         style.textContent = `
             @keyframes ripple {
@@ -2564,32 +2390,6 @@ main {
                     transform: scale(4);
                     opacity: 0;
                 }
-            }
-            
-            @keyframes shuffleRotate {
-                0% { transform: rotate(0deg); }
-                25% { transform: rotate(5deg); }
-                75% { transform: rotate(-5deg); }
-                100% { transform: rotate(0deg); }
-            }
-            
-            .brand-container:hover .brand-logo {
-                animation: shuffleRotate 0.5s ease;
-            }
-            
-            @keyframes shufflePulse {
-                0%, 100% { 
-                    opacity: 1; 
-                    transform: scale(1);
-                }
-                50% { 
-                    opacity: 0.7; 
-                    transform: scale(1.2);
-                }
-            }
-            
-            .shuffle-indicator {
-                animation: shufflePulse 2s infinite;
             }
             
             @keyframes fadeInUp {
