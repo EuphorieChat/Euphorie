@@ -2347,6 +2347,172 @@ main {
         };
     </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Logo shuffle functionality
+    const logoElements = document.querySelectorAll('.brand-container, .brand-logo');
+    
+    logoElements.forEach(logo => {
+        // Add cursor pointer to show it's clickable
+        logo.style.cursor = 'pointer';
+        
+        logo.addEventListener('click', function(e) {
+            // Check if we're on the main/index/explore page
+            const currentPath = window.location.pathname;
+            if (currentPath === '/' || currentPath === '/explore/' || currentPath === '/index/') {
+                e.preventDefault(); // Prevent normal navigation
+                
+                // Add visual feedback
+                logo.style.transform = 'rotate(360deg)';
+                logo.style.transition = 'transform 0.5s';
+                
+                // Create shuffle parameter with timestamp
+                const url = new URL(window.location.href);
+                url.searchParams.set('shuffle', Date.now());
+                
+                // Preserve other parameters
+                const existingParams = new URLSearchParams(window.location.search);
+                existingParams.set('shuffle', Date.now());
+                
+                // Redirect with shuffle
+                window.location.href = `${window.location.pathname}?${existingParams.toString()}`;
+            }
+        });
+        
+        // Add hover effect
+        logo.addEventListener('mouseenter', function() {
+            const currentPath = window.location.pathname;
+            if (currentPath === '/' || currentPath === '/explore/') {
+                this.style.opacity = '0.8';
+                this.title = 'Click to shuffle rooms';
+            }
+        });
+        
+        logo.addEventListener('mouseleave', function() {
+            this.style.opacity = '1';
+        });
+    });
+    
+    // Optional: Add a dedicated shuffle button
+    const shuffleButton = document.getElementById('shuffle-rooms-btn');
+    if (shuffleButton) {
+        shuffleButton.addEventListener('click', function() {
+            // AJAX shuffle for smoother experience
+            fetch('/api/shuffled-rooms/?limit=50')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.rooms) {
+                        updateRoomsDisplay(data.rooms);
+                        showToast('Rooms shuffled!', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Shuffle error:', error);
+                    // Fallback to page reload
+                    window.location.href = '/?shuffle=' + Date.now();
+                });
+        });
+    }
+    
+    // Function to update rooms display dynamically
+    function updateRoomsDisplay(rooms) {
+        const gridView = document.getElementById('grid-view');
+        const listView = document.getElementById('list-view');
+        
+        if (gridView) {
+            gridView.innerHTML = '';
+            rooms.forEach((room, index) => {
+                const roomCard = createRoomCard(room);
+                roomCard.style.animationDelay = `${index * 0.03}s`;
+                roomCard.classList.add('fade-in-up');
+                gridView.appendChild(roomCard);
+            });
+        }
+    }
+    
+    function createRoomCard(room) {
+        const card = document.createElement('a');
+        card.href = `/room/${room.name}/`;
+        card.className = 'room-card';
+        card.innerHTML = `
+            <div class="room-header">
+                <h3 class="room-title">${room.display_name}</h3>
+                <div class="room-meta">
+                    <span class="room-category">
+                        ${room.category_icon} ${room.category_name}
+                    </span>
+                </div>
+            </div>
+            <div class="room-footer">
+                <div class="room-creator">
+                    <div class="creator-avatar">${room.creator_initial}</div>
+                    <span>${room.creator}</span>
+                </div>
+                <div class="join-btn">Join →</div>
+            </div>
+        `;
+        return card;
+    }
+    
+    function showToast(message, type = 'info') {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+});
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    @keyframes fade-in-up {
+        from { 
+            opacity: 0; 
+            transform: translateY(20px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+    }
+    .fade-in-up {
+        animation: fade-in-up 0.4s ease forwards;
+    }
+    .brand-container {
+        transition: all 0.3s ease;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+
+
     {% block javascript %}{% endblock %}
 </body>
 </html>
