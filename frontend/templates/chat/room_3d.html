@@ -8476,5 +8476,85 @@ window.toggleAgent = function() {
 </script>
 
 
+
+
+
+
+<script>
+// DEBUG: Better error handling and testing
+if (window.AIAgentSystem) {
+    const originalSummonAgent = window.AIAgentSystem.summonAgent;
+    
+    window.AIAgentSystem.summonAgent = async function() {
+        console.log('🤖 Debug: summonAgent called');
+        
+        const taskInput = document.getElementById('agent-task-input');
+        const task = taskInput?.value.trim();
+        
+        console.log('📝 Task:', task);
+        
+        if (!task) {
+            this.showNotification('❌ Please describe what you want the agent to do', 'error');
+            return;
+        }
+        
+        // Skip screen sharing check for now
+        this.hideAgentControlPanel();
+        this.showWorkingOverlay();
+        
+        try {
+            console.log('📤 Trying to contact backend...');
+            
+            const response = await fetch('/api/langchain-agent/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCookie('csrftoken') || 'debug'
+                },
+                body: JSON.stringify({
+                    task: task,
+                    debug: true
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Backend returned ${response.status}`);
+            }
+            
+            const data = await response.json();
+            this.hideWorkingOverlay();
+            this.showAgentResponse(data);
+            
+        } catch (error) {
+            console.error('❌ Error:', error);
+            
+            // Show mock response instead of failing
+            const mockResponse = {
+                analysis: `Mock response: I understand you want "${task}"`,
+                suggestions: [
+                    'Frontend is working correctly!',
+                    'Backend needs to be set up',
+                    'Error: ' + error.message
+                ],
+                message: 'Agent frontend working, backend needed'
+            };
+            
+            this.hideWorkingOverlay();
+            this.showAgentResponse(mockResponse);
+        }
+    };
+}
+
+// Quick test function
+window.testAgent = function() {
+    const input = document.getElementById('agent-task-input');
+    if (input) {
+        input.value = "Test task - help me debug";
+        window.AIAgentSystem.summonAgent();
+    }
+};
+</script>
+
+
 </body>
 </html>
