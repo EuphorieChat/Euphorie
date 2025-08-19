@@ -40,7 +40,7 @@ from .models import (
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 
 
@@ -4359,15 +4359,18 @@ def langchain_agent(request):
         context = data.get("context", {})
         capabilities = data.get("capabilities", [])
 
-        # Example: simple chain with context injection
+        # Build a prompt
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an AI assistant integrated into a 3D chatroom. Use the context to help."),
+            ("system", "You are a helpful AI agent inside a 3D chatroom. "
+                       "Always answer in plain natural language. "
+                       "Never return code unless the user explicitly asks."),
             ("user", "Task: {task}\n\nContext: {context}\n\nCapabilities: {capabilities}")
         ])
 
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        chain = prompt | llm
+        # Use Groq LLM
+        llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
 
+        chain = prompt | llm
         result = chain.invoke({
             "task": task,
             "context": json.dumps(context),
@@ -4376,7 +4379,7 @@ def langchain_agent(request):
 
         return JsonResponse({
             "analysis": f"I analyzed your task: {task}",
-            "message": result.content
+            "message": result.content.strip()
         })
 
     except Exception as e:
