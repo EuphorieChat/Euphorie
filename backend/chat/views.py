@@ -4352,7 +4352,7 @@ def api_shuffled_rooms(request):
     
 
 # === Setup once ===
-llm = ChatGroq(model="mixtral-8x22b", api_key=os.getenv("GROQ_API_KEY"))
+llm = ChatGroq(model="mixtral-8x7b", api_key=os.getenv("GROQ_API_KEY"))
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
 @tool
