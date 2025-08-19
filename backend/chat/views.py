@@ -4344,3 +4344,17 @@ def api_shuffled_rooms(request):
             'rooms': []
         }, status=500)
     
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def langchain_agent(request):
+    data = json.loads(request.body)
+    task = data.get('task')
+    
+    # Mock response for now
+    return JsonResponse({
+        'analysis': f'I can help you with: {task}',
+        'suggestions': ['Great idea!', 'Let me assist you'],
+        'actions': ['Taking screenshot', 'Analyzing content'],
+        'message': 'Agent ready to help!'
+    })

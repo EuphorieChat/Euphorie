@@ -126,6 +126,7 @@ urlpatterns = [
     # ==================== API for recommendations ====================
     path('api/recommendations/', views.api_room_recommendations, name='api_room_recommendations'),
     path('api/rooms/<int:room_id>/similar/', views.api_similar_rooms, name='api_similar_rooms'),
+    path('api/langchain-agent/', views.langchain_agent, name='langchain_agent'),
     
     # ==================== DEBUG ====================
     path('debug/rooms/', views.debug_rooms, name='debug_rooms'),
