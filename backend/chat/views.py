@@ -41,7 +41,9 @@ from .models import (
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
 from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate
+from langchain.memory import ConversationBufferMemory
+from langchain.tools import tool
+from langchain.agents import initialize_agent, AgentType
 
 
 # Logging setup
@@ -4348,6 +4350,24 @@ def api_shuffled_rooms(request):
         }, status=500)
     
 
+# === Setup once ===
+llm = ChatGroq(model="mixtral-8x7b-32768", api_key=os.getenv("GROQ_API_KEY"))
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
+@tool
+def search_tool(query: str) -> str:
+    """Search the web for latest info"""
+    return f"Fake search results for {query}"  # placeholder
+
+agent = initialize_agent(
+    tools=[search_tool],
+    llm=llm,
+    memory=memory,
+    agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION,
+    verbose=True
+)
+
+# === Django view ===
 @csrf_exempt
 def langchain_agent(request):
     if request.method != "POST":
@@ -4356,42 +4376,7 @@ def langchain_agent(request):
     try:
         data = json.loads(request.body)
         task = data.get("task", "")
-        context = data.get("context", {})
-        capabilities = data.get("capabilities", [])
-
-        # Build a prompt
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful AI agent inside a 3D chatroom. "
-                       "Always answer in plain natural language. "
-                       "Never return code unless the user explicitly asks."),
-            ("user", "Task: {task}\n\nContext: {context}\n\nCapabilities: {capabilities}")
-        ])
-
-        # Explicitly load key from env
-        groq_key = os.getenv("GROQ_API_KEY")
-        if not groq_key:
-            return JsonResponse({"error": "No GROQ_API_KEY set in environment"}, status=500)
-
-        # Use Groq LLM
-        llm = ChatGroq(
-            model="mixtral-8x7b-32768",
-            temperature=0,
-            api_key=groq_key
-        )
-
-        chain = prompt | llm
-        result = chain.invoke({
-            "task": task,
-            "context": json.dumps(context),
-            "capabilities": json.dumps(capabilities),
-        })
-
-        return JsonResponse({
-            "analysis": f"I analyzed your task: {task}",
-            "message": result.content.strip()
-        })
-
+        result = agent.run(task)
+        return JsonResponse({"analysis": f"Processed: {task}", "message": result})
     except Exception as e:
-        import traceback, logging
-        logging.error("Langchain agent error", exc_info=True)  # logs full traceback
         return JsonResponse({"error": str(e)}, status=500)
