@@ -4367,8 +4367,17 @@ def langchain_agent(request):
             ("user", "Task: {task}\n\nContext: {context}\n\nCapabilities: {capabilities}")
         ])
 
+        # Explicitly load key from env
+        groq_key = os.getenv("GROQ_API_KEY")
+        if not groq_key:
+            return JsonResponse({"error": "No GROQ_API_KEY set in environment"}, status=500)
+
         # Use Groq LLM
-        llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
+        llm = ChatGroq(
+            model="mixtral-8x7b-32768",
+            temperature=0,
+            api_key=groq_key
+        )
 
         chain = prompt | llm
         result = chain.invoke({
@@ -4383,4 +4392,6 @@ def langchain_agent(request):
         })
 
     except Exception as e:
+        import traceback, logging
+        logging.error("Langchain agent error", exc_info=True)  # logs full traceback
         return JsonResponse({"error": str(e)}, status=500)
