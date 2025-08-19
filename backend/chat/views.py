@@ -40,6 +40,9 @@ from .models import (
 )
 from .forms import RoomCreationForm, UserProfileForm, QuickMessageForm
 
+from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -4346,15 +4349,35 @@ def api_shuffled_rooms(request):
     
 
 @csrf_exempt
-@require_http_methods(["POST"])
 def langchain_agent(request):
-    data = json.loads(request.body)
-    task = data.get('task')
-    
-    # Mock response for now
-    return JsonResponse({
-        'analysis': f'I can help you with: {task}',
-        'suggestions': ['Great idea!', 'Let me assist you'],
-        'actions': ['Taking screenshot', 'Analyzing content'],
-        'message': 'Agent ready to help!'
-    })
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        task = data.get("task", "")
+        context = data.get("context", {})
+        capabilities = data.get("capabilities", [])
+
+        # Example: simple chain with context injection
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are an AI assistant integrated into a 3D chatroom. Use the context to help."),
+            ("user", "Task: {task}\n\nContext: {context}\n\nCapabilities: {capabilities}")
+        ])
+
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        chain = prompt | llm
+
+        result = chain.invoke({
+            "task": task,
+            "context": json.dumps(context),
+            "capabilities": json.dumps(capabilities),
+        })
+
+        return JsonResponse({
+            "analysis": f"I analyzed your task: {task}",
+            "message": result.content
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
