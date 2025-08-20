@@ -1354,11 +1354,3 @@ window.ChatBubbleSystem = ChatBubbleSystem.getInstance();
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBubbleSystem;
 }
-
-console.log('✅ ChatBubbleSystem v6.3 - Fixed Vertical Stacking loaded');
-console.log('🎯 Key fixes:');
-console.log('  - Bubbles maintain consistent height');
-console.log('  - No upward drift during animations');
-console.log('  - Fade out without vertical movement');
-console.log('  - Fixed height stored and maintained');
-console.log('🔧 Ready for integration with room_3d.html');

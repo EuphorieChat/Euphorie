@@ -567,163 +567,6 @@
             box-shadow: none;
         }
         
-        /* Demographics Panel */
-        #demographics-panel {
-            position: absolute;
-            top: 15px;
-            right: 80px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 12px 16px;
-            color: white;
-            font-size: 11px;
-            z-index: 100;
-            max-width: 250px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            display: none;
-        }
-        
-        .demographics-header {
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #667eea;
-            border-bottom: 1px solid rgba(102, 126, 234, 0.3);
-            padding-bottom: 4px;
-        }
-        
-        .demographics-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
-            padding: 4px 0;
-        }
-        
-        .demographics-flag {
-            width: 16px;
-            height: 12px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .demographics-info {
-            flex: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .demographics-name {
-            font-size: 10px;
-            opacity: 0.9;
-        }
-        
-        .demographics-count {
-            font-size: 10px;
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        /* Pet Panel - Enhanced */
-        #pet-panel {
-            position: absolute;
-            left: 20px;
-            bottom: 400px;
-            width: 360px;
-            background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 40, 0.95));
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 107, 53, 0.3);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            z-index: 100;
-            max-height: 220px;
-            overflow-y: auto;
-            box-shadow: 0 10px 35px rgba(0,0,0,0.3);
-            display: none;
-        }
-        
-        .pet-panel-header {
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: #FF6B35;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 8px;
-            border-bottom: 2px solid rgba(255, 107, 53, 0.2);
-        }
-        
-        .pet-add-btn {
-            padding: 6px 12px;
-            background: linear-gradient(135deg, #FF6B35, #ff8a50);
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            font-size: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .pet-add-btn:hover {
-            background: linear-gradient(135deg, #ff8a50, #FF6B35);
-            transform: translateY(-1px);
-        }
-        
-        .pet-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px;
-            margin: 6px 0;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            font-size: 12px;
-            transition: all 0.3s ease;
-            border-left: 3px solid #FF6B35;
-        }
-        
-        .pet-item:hover {
-            background: rgba(255,255,255,0.1);
-            transform: translateX(2px);
-        }
-        
-        .pet-avatar {
-            font-size: 20px;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 107, 53, 0.2);
-            border-radius: 50%;
-        }
-        
-        .pet-info {
-            flex: 1;
-        }
-        
-        .pet-name {
-            font-weight: bold;
-            color: #FF6B35;
-            margin-bottom: 2px;
-        }
-        
-        .pet-status {
-            font-size: 10px;
-            opacity: 0.8;
-        }
-        
-        .pet-stats {
-            display: flex;
-            gap: 8px;
-            font-size: 10px;
-            opacity: 0.7;
-        }
-        
         /* Desktop Hamburger Menu System - Enhanced */
         .desktop-hamburger {
             position: absolute;
@@ -2803,39 +2646,8 @@
             {% endif %}
         </div>
         
-        <!-- Room Demographics Panel -->
-        {% if room_demographics %}
-        <div id="demographics-panel" class="ui-panel">
-            <div class="demographics-header">🌍 Room Demographics</div>
-            {% for demo in room_demographics %}
-            <div class="demographics-item">
-                <img src="https://flagcdn.com/w20/{{ demo.code|lower }}.png" class="demographics-flag" alt="{{ demo.name }}">
-                <div class="demographics-info">
-                    <span class="demographics-name">{{ demo.name }}</span>
-                    <span class="demographics-count">{{ demo.count }}</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        
         <!-- 3D Container -->
         <div id="three-container"></div>
-        
-        <!-- Enhanced Pet Panel -->
-        <div id="pet-panel" class="ui-panel">
-            <div class="pet-panel-header">
-                🐾 Active Pets
-                <button class="pet-add-btn" onclick="window.addRandomPet && window.addRandomPet()">
-                    + Add Pet
-                </button>
-            </div>
-            <div id="pet-list">
-                <div style="text-align: center; opacity: 0.7; font-size: 11px; padding: 20px;">
-                    No pets active. Click "Add Pet" to get a companion!
-                </div>
-            </div>
-        </div>
         
         <!-- Enhanced Desktop Chat Panel -->
         <div id="chat-panel" class="ui-panel desktop">
@@ -3207,12 +3019,6 @@
             const currentIsMobile = window.innerWidth <= 768;
             document.body.classList.toggle('mobile-layout', currentIsMobile);
             document.body.classList.toggle('desktop-layout', !currentIsMobile);
-            
-            // Show/hide demographics panel based on screen size
-            const demographicsPanel = document.getElementById('demographics-panel');
-            if (demographicsPanel) {
-                demographicsPanel.style.display = currentIsMobile ? 'none' : 'block';
-            }
         }
         
         // Initialize layout
@@ -4125,9 +3931,6 @@
                         console.warn('Error creating chat bubble:', error);
                     }
                 }
-                
-                // Update bubble count
-                this.updateBubbleCount();
             }
             
             handleEmotion(data) {
@@ -6416,7 +6219,7 @@ console.log('🤖 Enhanced AI Grok Chat with Mobile UI Fix loaded');
                     'scene-manager': ['globals', 'event-bus'],
                     'avatar-system': ['globals', 'event-bus', 'scene-manager'],
                     'chat-bubble-system': ['globals', 'event-bus', 'scene-manager', 'avatar-system'],
-                    'room-core': ['globals', 'event-bus', 'scene-manager', 'avatar-system', 'interaction-system']
+                    'room-core': ['globals', 'event-bus', 'scene-manager', 'avatar-system']
                 };
                 
                 // Map module names to file paths
