@@ -42,69 +42,72 @@ class AvatarSystem {
             nationality: userData.nationality || 'UN'
         };
 
-        // Among Us color palette
+        // Among Us color palette - more vibrant
         const crewmateColors = [
-            0xff0000, // Red
-            0x0000ff, // Blue
-            0x00ff00, // Green
-            0xff69b4, // Pink
-            0xffa500, // Orange
-            0xffff00, // Yellow
-            0x000000, // Black
-            0xffffff, // White
-            0x800080, // Purple
-            0x964b00, // Brown
-            0x00ffff, // Cyan
-            0x00ff80  // Lime
+            0xdd2e44, // Red
+            0x1982c4, // Blue
+            0x11a03e, // Green
+            0xee5a52, // Pink
+            0xef7611, // Orange
+            0xf5d800, // Yellow
+            0x3f474f, // Black
+            0xd6e5e3, // White
+            0x6a2c70, // Purple
+            0x7a4f01, // Brown
+            0x38f4f4, // Cyan
+            0x50ef39  // Lime
         ];
         
         const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % crewmateColors.length;
         const crewmateColor = crewmateColors[colorIndex];
 
-        // Main body - bean shape
+        // Main body - bean shape - SOLID COLOR
         const bodyGeometry = new THREE.SphereGeometry(0.5, 12, 8);
-        bodyGeometry.scale(1, 1.3, 0.9); // Make it more oval and bean-like
-        const bodyMaterial = new THREE.MeshLambertMaterial({ color: crewmateColor });
+        bodyGeometry.scale(1, 1.3, 0.9);
+        const bodyMaterial = new THREE.MeshLambertMaterial({ 
+            color: crewmateColor,
+            transparent: false // Ensure it's not transparent
+        });
         const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
         bodyMesh.position.y = 0.65;
         avatarGroup.add(bodyMesh);
 
-        // Visor/face area
+        // Visor/face area - SOLID LIGHT BLUE
         const visorGeometry = new THREE.SphereGeometry(0.35, 12, 8);
-        visorGeometry.scale(1, 0.8, 1.2); // Flatten it and make it protrude
+        visorGeometry.scale(1, 0.8, 1.2);
         const visorMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x87ceeb, 
-            transparent: true, 
-            opacity: 0.8 
+            color: 0x9dd9f3, // Solid light blue
+            transparent: false
         });
         const visorMesh = new THREE.Mesh(visorGeometry, visorMaterial);
         visorMesh.position.set(0, 1.1, 0.3);
         avatarGroup.add(visorMesh);
 
-        // Visor reflection
-        const reflectionGeometry = new THREE.SphereGeometry(0.25, 8, 6);
+        // Visor reflection - BRIGHT WHITE
+        const reflectionGeometry = new THREE.SphereGeometry(0.15, 8, 6);
         reflectionGeometry.scale(0.8, 0.6, 1.1);
         const reflectionMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xffffff, 
-            transparent: true, 
-            opacity: 0.3 
+            color: 0xffffff
         });
         const reflectionMesh = new THREE.Mesh(reflectionGeometry, reflectionMaterial);
         reflectionMesh.position.set(-0.1, 1.15, 0.45);
         avatarGroup.add(reflectionMesh);
 
-        // Backpack
+        // Backpack - DARKER SOLID COLOR
         const backpackGeometry = new THREE.BoxGeometry(0.3, 0.4, 0.15);
         const backpackMaterial = new THREE.MeshLambertMaterial({ 
-            color: this.darkenColor(crewmateColor, 0.3) 
+            color: this.darkenColor(crewmateColor, 0.4)
         });
         const backpackMesh = new THREE.Mesh(backpackGeometry, backpackMaterial);
         backpackMesh.position.set(0, 0.8, -0.4);
         avatarGroup.add(backpackMesh);
 
-        // Legs (short stumpy legs)
+        // Legs - SOLID COLOR
         const legGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 8);
-        const legMaterial = new THREE.MeshLambertMaterial({ color: crewmateColor });
+        const legMaterial = new THREE.MeshLambertMaterial({ 
+            color: crewmateColor,
+            transparent: false
+        });
         
         const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
         leftLeg.position.set(-0.15, 0.15, 0);
@@ -114,11 +117,11 @@ class AvatarSystem {
         rightLeg.position.set(0.15, 0.15, 0);
         avatarGroup.add(rightLeg);
 
-        // Feet
+        // Feet - SOLID DARKER COLOR
         const footGeometry = new THREE.SphereGeometry(0.18, 8, 6);
         footGeometry.scale(1.2, 0.5, 1);
         const footMaterial = new THREE.MeshLambertMaterial({ 
-            color: this.darkenColor(crewmateColor, 0.2) 
+            color: this.darkenColor(crewmateColor, 0.3)
         });
         
         const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
@@ -145,21 +148,21 @@ class AvatarSystem {
     }
 
     darkenColor(color, factor) {
-        const r = ((color >> 16) & 0xff) * (1 - factor);
-        const g = ((color >> 8) & 0xff) * (1 - factor);
-        const b = (color & 0xff) * (1 - factor);
+        const r = Math.max(0, ((color >> 16) & 0xff) * (1 - factor));
+        const g = Math.max(0, ((color >> 8) & 0xff) * (1 - factor));
+        const b = Math.max(0, (color & 0xff) * (1 - factor));
         return (Math.floor(r) << 16) | (Math.floor(g) << 8) | Math.floor(b);
     }
 
     addIdleAnimation(avatar) {
         const startY = avatar.position.y;
-        let time = Math.random() * Math.PI * 2; // Random start phase
+        let time = Math.random() * Math.PI * 2;
         
         const animate = () => {
-            if (avatar.parent) { // Check if still in scene
+            if (avatar.parent) {
                 time += 0.02;
-                avatar.position.y = startY + Math.sin(time) * 0.05; // Gentle bobbing
-                avatar.rotation.y = Math.sin(time * 0.5) * 0.1; // Subtle swaying
+                avatar.position.y = startY + Math.sin(time) * 0.05;
+                avatar.rotation.y = Math.sin(time * 0.5) * 0.1;
                 requestAnimationFrame(animate);
             }
         };
@@ -169,7 +172,6 @@ class AvatarSystem {
     removeAvatar(userId) {
         const avatar = this.avatars.get(userId);
         if (avatar && this.scene) {
-            // Clean up geometry and materials
             avatar.traverse((child) => {
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) {
@@ -297,7 +299,6 @@ class AvatarSystem {
         animate();
     }
 
-    // Clean up
     dispose() {
         this.avatars.forEach((avatar, userId) => {
             this.removeAvatar(userId);
@@ -314,7 +315,6 @@ window.AvatarSystem = new AvatarSystem();
 if (window.SceneManager && window.SceneManager.scene) {
     window.AvatarSystem.init();
 } else {
-    // Wait for scene to be ready
     const checkScene = setInterval(() => {
         if (window.SceneManager && window.SceneManager.scene) {
             clearInterval(checkScene);
