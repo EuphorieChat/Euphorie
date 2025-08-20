@@ -1,6 +1,4 @@
-// Avatar System for Euphorie 3D - Optimized Among Us Style
-// Mobile-optimized with better materials
-
+// Avatar System for Euphorie 3D - Sophisticated with Collision Detection
 class AvatarSystem {
     constructor() {
         this.scene = null;
@@ -8,6 +6,8 @@ class AvatarSystem {
         this.currentUserAvatar = null;
         this.isInitialized = false;
         this.isMobile = window.innerWidth <= 768;
+        this.occupiedPositions = [];
+        this.minDistance = 2.5; // Minimum distance between avatars
     }
 
     init() {
@@ -40,140 +40,260 @@ class AvatarSystem {
             nationality: userData.nationality || 'UN'
         };
 
-        // More saturated colors
+        // Premium color palette with metallic tones
         const crewmateColors = [
-            0xc51111, // Red
-            0x132ed1, // Blue
-            0x117f2d, // Green
-            0xed54ba, // Pink
-            0xf07c0d, // Orange
-            0xf5f557, // Yellow
-            0x3f474f, // Black
-            0xd6e5e3, // White
-            0x6b2fbb, // Purple
-            0x71491e, // Brown
-            0x38ffdd, // Cyan
-            0x50ef39  // Lime
+            0xe74c3c, // Ruby Red
+            0x3498db, // Sapphire Blue
+            0x2ecc71, // Emerald Green
+            0xe91e63, // Rose Pink
+            0xf39c12, // Amber Orange
+            0xf1c40f, // Gold Yellow
+            0x34495e, // Slate Black
+            0xecf0f1, // Pearl White
+            0x9b59b6, // Amethyst Purple
+            0x8b4513, // Bronze Brown
+            0x1abc9c, // Turquoise
+            0x7fb069  // Jade Lime
         ];
         
         const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % crewmateColors.length;
-        const crewmateColor = crewmateColors[colorIndex];
+        const primaryColor = crewmateColors[colorIndex];
 
-        // Use MeshToonMaterial for cartoon-like appearance with better performance
-        const bodyMaterial = new THREE.MeshToonMaterial({ 
-            color: crewmateColor,
-            flatShading: false
+        // Enhanced materials with environmental mapping
+        const bodyMaterial = new THREE.MeshStandardMaterial({ 
+            color: primaryColor,
+            metalness: 0.1,
+            roughness: 0.3,
+            envMapIntensity: 0.5
         });
 
-        // Main body - simplified for mobile
+        // Main body - more detailed
         const bodyGeometry = this.isMobile ? 
-            new THREE.SphereGeometry(0.5, 8, 6) : 
-            new THREE.SphereGeometry(0.5, 12, 8);
-        bodyGeometry.scale(1, 1.3, 0.9);
+            new THREE.SphereGeometry(0.5, 16, 12) : 
+            new THREE.SphereGeometry(0.5, 24, 18);
+        
+        // Create more organic bean shape
+        const positions = bodyGeometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+            const y = positions.getY(i);
+            const scaleFactor = 1 + (y * 0.3); // Taper toward top
+            positions.setX(i, positions.getX(i) * scaleFactor * 0.9);
+            positions.setZ(i, positions.getZ(i) * scaleFactor * 0.85);
+            positions.setY(i, y * 1.4); // Stretch vertically
+        }
+        bodyGeometry.computeVertexNormals();
         
         const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        bodyMesh.position.y = 0.65;
+        bodyMesh.position.y = 0.7;
+        bodyMesh.castShadow = true;
+        bodyMesh.receiveShadow = true;
         avatarGroup.add(bodyMesh);
 
-        // Visor - use MeshPhongMaterial for slight shine
+        // Enhanced visor with gradient effect
         const visorGeometry = this.isMobile ?
-            new THREE.SphereGeometry(0.35, 8, 6) :
-            new THREE.SphereGeometry(0.35, 12, 8);
-        visorGeometry.scale(1, 0.8, 1.2);
+            new THREE.SphereGeometry(0.35, 12, 10) :
+            new THREE.SphereGeometry(0.35, 20, 16);
+        visorGeometry.scale(1.1, 0.85, 1.3);
         
-        const visorMaterial = new THREE.MeshPhongMaterial({ 
+        const visorMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x7dd3fc,
-            shininess: 30,
-            specular: 0x222222
+            metalness: 0.8,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.9,
+            envMapIntensity: 1.0
         });
         const visorMesh = new THREE.Mesh(visorGeometry, visorMaterial);
-        visorMesh.position.set(0, 1.1, 0.3);
+        visorMesh.position.set(0, 1.15, 0.32);
+        visorMesh.castShadow = true;
         avatarGroup.add(visorMesh);
 
-        // Simple reflection highlight
-        const reflectionGeometry = new THREE.SphereGeometry(0.12, 6, 4);
-        const reflectionMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xffffff
+        // Multiple reflection highlights for realism
+        const highlights = [
+            { pos: [-0.12, 1.18, 0.48], size: 0.08, opacity: 0.8 },
+            { pos: [0.05, 1.25, 0.45], size: 0.05, opacity: 0.6 },
+            { pos: [-0.08, 1.08, 0.5], size: 0.04, opacity: 0.4 }
+        ];
+        
+        highlights.forEach(highlight => {
+            const reflectionGeometry = new THREE.SphereGeometry(highlight.size, 8, 6);
+            const reflectionMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff,
+                transparent: true,
+                opacity: highlight.opacity
+            });
+            const reflectionMesh = new THREE.Mesh(reflectionGeometry, reflectionMaterial);
+            reflectionMesh.position.set(...highlight.pos);
+            avatarGroup.add(reflectionMesh);
         });
-        const reflectionMesh = new THREE.Mesh(reflectionGeometry, reflectionMaterial);
-        reflectionMesh.position.set(-0.08, 1.12, 0.42);
-        avatarGroup.add(reflectionMesh);
 
-        // Only add backpack and legs on desktop for performance
+        // Detailed backpack with straps
         if (!this.isMobile) {
-            // Backpack
-            const backpackGeometry = new THREE.BoxGeometry(0.25, 0.35, 0.12);
-            const backpackMaterial = new THREE.MeshToonMaterial({ 
-                color: this.darkenColor(crewmateColor, 0.4)
+            const backpackGeometry = new THREE.BoxGeometry(0.28, 0.4, 0.15);
+            // Add rounded edges
+            backpackGeometry.parameters = { ...backpackGeometry.parameters };
+            
+            const backpackMaterial = new THREE.MeshStandardMaterial({ 
+                color: this.darkenColor(primaryColor, 0.4),
+                metalness: 0.05,
+                roughness: 0.6
             });
             const backpackMesh = new THREE.Mesh(backpackGeometry, backpackMaterial);
-            backpackMesh.position.set(0, 0.8, -0.35);
+            backpackMesh.position.set(0, 0.85, -0.38);
+            backpackMesh.castShadow = true;
             avatarGroup.add(backpackMesh);
 
-            // Legs
-            const legGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 6);
-            const legMaterial = new THREE.MeshToonMaterial({ 
-                color: crewmateColor
+            // Backpack straps
+            const strapGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8);
+            const strapMaterial = new THREE.MeshStandardMaterial({ 
+                color: this.darkenColor(primaryColor, 0.6),
+                metalness: 0.1,
+                roughness: 0.8
             });
             
-            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-            leftLeg.position.set(-0.15, 0.15, 0);
-            avatarGroup.add(leftLeg);
+            [-0.1, 0.1].forEach(x => {
+                const strap = new THREE.Mesh(strapGeometry, strapMaterial);
+                strap.position.set(x, 0.95, -0.25);
+                strap.rotation.x = 0.3;
+                avatarGroup.add(strap);
+            });
+
+            // Enhanced legs with proper joints
+            const legGeometry = new THREE.CylinderGeometry(0.12, 0.16, 0.35, 12);
+            const legMaterial = new THREE.MeshStandardMaterial({ 
+                color: primaryColor,
+                metalness: 0.1,
+                roughness: 0.3
+            });
             
-            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-            rightLeg.position.set(0.15, 0.15, 0);
-            avatarGroup.add(rightLeg);
+            [-0.15, 0.15].forEach(x => {
+                const leg = new THREE.Mesh(legGeometry, legMaterial);
+                leg.position.set(x, 0.17, 0);
+                leg.castShadow = true;
+                avatarGroup.add(leg);
+            });
         }
 
-        // Feet (always show)
+        // Enhanced feet with better shape
         const footGeometry = this.isMobile ?
-            new THREE.SphereGeometry(0.16, 6, 4) :
-            new THREE.SphereGeometry(0.18, 8, 6);
-        footGeometry.scale(1.2, 0.5, 1);
+            new THREE.SphereGeometry(0.18, 10, 8) :
+            new THREE.SphereGeometry(0.20, 12, 10);
+        footGeometry.scale(1.3, 0.6, 1.1);
         
-        const footMaterial = new THREE.MeshToonMaterial({ 
-            color: this.darkenColor(crewmateColor, 0.3)
+        const footMaterial = new THREE.MeshStandardMaterial({ 
+            color: this.darkenColor(primaryColor, 0.3),
+            metalness: 0.2,
+            roughness: 0.4
         });
         
-        const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
-        leftFoot.position.set(-0.15, 0.05, 0.05);
-        avatarGroup.add(leftFoot);
-        
-        const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
-        rightFoot.position.set(0.15, 0.05, 0.05);
-        avatarGroup.add(rightFoot);
+        [-0.15, 0.15].forEach(x => {
+            const foot = new THREE.Mesh(footGeometry, footMaterial);
+            foot.position.set(x, 0.08, 0.08);
+            foot.castShadow = true;
+            foot.receiveShadow = true;
+            avatarGroup.add(foot);
+        });
 
-        // Position avatar
-        const position = userData.position || this.getRandomPosition();
+        // Get non-overlapping position
+        const position = userData.position || this.getNonOverlappingPosition();
         avatarGroup.position.set(position.x, position.y || 0, position.z);
+        
+        // Store this position as occupied
+        this.occupiedPositions.push({
+            x: position.x,
+            z: position.z,
+            userId: userId
+        });
 
-        // Only add idle animation on desktop
+        // Enhanced idle animation with personality
         if (!this.isMobile) {
-            this.addIdleAnimation(avatarGroup);
+            this.addPersonalityIdleAnimation(avatarGroup, colorIndex);
         }
 
         this.scene.add(avatarGroup);
         this.avatars.set(userId, avatarGroup);
 
-        console.log(`Created crewmate for ${userData.username || userId}`);
+        console.log(`Created sophisticated crewmate for ${userData.username || userId}`);
         return avatarGroup;
     }
 
-    darkenColor(color, factor) {
-        const r = Math.max(0, ((color >> 16) & 0xff) * (1 - factor));
-        const g = Math.max(0, ((color >> 8) & 0xff) * (1 - factor));
-        const b = Math.max(0, (color & 0xff) * (1 - factor));
-        return (Math.floor(r) << 16) | (Math.floor(g) << 8) | Math.floor(b);
+    getNonOverlappingPosition() {
+        let attempts = 0;
+        let position;
+        
+        do {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 3 + Math.random() * 5;
+            position = {
+                x: Math.cos(angle) * radius,
+                y: 0,
+                z: Math.sin(angle) * radius
+            };
+            attempts++;
+        } while (this.isPositionOccupied(position) && attempts < 50);
+        
+        // If we can't find a free spot after 50 attempts, use a grid position
+        if (attempts >= 50) {
+            position = this.getGridPosition();
+        }
+        
+        return position;
     }
 
-    addIdleAnimation(avatar) {
+    isPositionOccupied(newPos) {
+        return this.occupiedPositions.some(pos => {
+            const distance = Math.sqrt(
+                Math.pow(pos.x - newPos.x, 2) + 
+                Math.pow(pos.z - newPos.z, 2)
+            );
+            return distance < this.minDistance;
+        });
+    }
+
+    getGridPosition() {
+        // Fallback grid positioning
+        const gridSize = 3;
+        const spacing = this.minDistance;
+        const totalPositions = this.occupiedPositions.length;
+        
+        const row = Math.floor(totalPositions / gridSize);
+        const col = totalPositions % gridSize;
+        
+        return {
+            x: (col - gridSize/2) * spacing,
+            y: 0,
+            z: (row - gridSize/2) * spacing
+        };
+    }
+
+    addPersonalityIdleAnimation(avatar, colorIndex) {
         const startY = avatar.position.y;
         let time = Math.random() * Math.PI * 2;
         
+        // Different personalities based on color
+        const personalities = [
+            { speed: 0.015, bobAmount: 0.04, swayAmount: 0.08 }, // Calm
+            { speed: 0.025, bobAmount: 0.06, swayAmount: 0.12 }, // Energetic
+            { speed: 0.012, bobAmount: 0.03, swayAmount: 0.06 }, // Sleepy
+            { speed: 0.020, bobAmount: 0.05, swayAmount: 0.10 }  // Normal
+        ];
+        
+        const personality = personalities[colorIndex % personalities.length];
+        
         const animate = () => {
             if (avatar.parent) {
-                time += 0.01; // Slower animation
-                avatar.position.y = startY + Math.sin(time) * 0.03;
+                time += personality.speed;
+                avatar.position.y = startY + Math.sin(time) * personality.bobAmount;
+                avatar.rotation.y = Math.sin(time * 0.7) * personality.swayAmount;
+                
+                // Occasional head tilt
+                if (Math.random() < 0.001) {
+                    avatar.rotation.z = (Math.random() - 0.5) * 0.2;
+                    setTimeout(() => {
+                        avatar.rotation.z = 0;
+                    }, 1000);
+                }
+                
                 requestAnimationFrame(animate);
             }
         };
@@ -183,6 +303,9 @@ class AvatarSystem {
     removeAvatar(userId) {
         const avatar = this.avatars.get(userId);
         if (avatar && this.scene) {
+            // Remove from occupied positions
+            this.occupiedPositions = this.occupiedPositions.filter(pos => pos.userId !== userId);
+            
             avatar.traverse((child) => {
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) {
@@ -200,9 +323,23 @@ class AvatarSystem {
         }
     }
 
+    darkenColor(color, factor) {
+        const r = Math.max(0, ((color >> 16) & 0xff) * (1 - factor));
+        const g = Math.max(0, ((color >> 8) & 0xff) * (1 - factor));
+        const b = Math.max(0, (color & 0xff) * (1 - factor));
+        return (Math.floor(r) << 16) | (Math.floor(g) << 8) | Math.floor(b);
+    }
+
     updateAvatarPosition(userId, position) {
         const avatar = this.avatars.get(userId);
         if (avatar && position) {
+            // Update occupied positions
+            const occupiedIndex = this.occupiedPositions.findIndex(pos => pos.userId === userId);
+            if (occupiedIndex !== -1) {
+                this.occupiedPositions[occupiedIndex].x = position.x;
+                this.occupiedPositions[occupiedIndex].z = position.z;
+            }
+            
             avatar.position.set(
                 position.x || avatar.position.x,
                 position.y || avatar.position.y,
@@ -220,79 +357,89 @@ class AvatarSystem {
     }
 
     getRandomPosition() {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 2 + Math.random() * 3;
-        return {
-            x: Math.cos(angle) * radius,
-            y: 0,
-            z: Math.sin(angle) * radius
-        };
+        return this.getNonOverlappingPosition();
     }
 
-    // Simplified animations for better performance
+    // Enhanced animations
     animateAvatar(userId, animationType) {
         const avatar = this.avatars.get(userId);
         if (!avatar) return;
 
         switch (animationType) {
             case 'wave':
-                this.playSimpleWave(avatar);
+                this.playWaveAnimation(avatar);
                 break;
             case 'dance':
-                this.playSimpleDance(avatar);
+                this.playDanceAnimation(avatar);
                 break;
             case 'jump':
-                this.playSimpleJump(avatar);
+                this.playJumpAnimation(avatar);
                 break;
         }
     }
 
-    playSimpleWave(avatar) {
-        const startRotation = avatar.rotation.z;
-        let progress = 0;
-        
+    playWaveAnimation(avatar) {
+        const duration = 1500;
+        const startTime = Date.now();
+        const originalRotation = { ...avatar.rotation };
+
         const animate = () => {
-            progress += 0.1;
-            if (progress <= 1) {
-                avatar.rotation.z = startRotation + Math.sin(progress * Math.PI * 3) * 0.3;
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            if (progress < 1) {
+                avatar.rotation.z = originalRotation.z + Math.sin(progress * Math.PI * 3) * 0.25;
+                avatar.rotation.x = originalRotation.x + Math.sin(progress * Math.PI * 6) * 0.1;
                 requestAnimationFrame(animate);
             } else {
-                avatar.rotation.z = startRotation;
+                avatar.rotation.z = originalRotation.z;
+                avatar.rotation.x = originalRotation.x;
             }
         };
         animate();
     }
 
-    playSimpleDance(avatar) {
+    playDanceAnimation(avatar) {
+        const startTime = Date.now();
+        const duration = 3000;
         const startY = avatar.position.y;
-        let progress = 0;
-        
+
         const animate = () => {
-            progress += 0.05;
-            if (progress <= 2) {
-                avatar.rotation.y = Math.sin(progress * Math.PI * 4) * 0.4;
-                avatar.position.y = startY + Math.abs(Math.sin(progress * Math.PI * 8)) * 0.2;
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            if (progress < 1) {
+                avatar.rotation.y = Math.sin(progress * Math.PI * 8) * 0.6;
+                avatar.rotation.z = Math.sin(progress * Math.PI * 12) * 0.2;
+                avatar.position.y = startY + Math.abs(Math.sin(progress * Math.PI * 16)) * 0.3;
                 requestAnimationFrame(animate);
             } else {
                 avatar.rotation.y = 0;
+                avatar.rotation.z = 0;
                 avatar.position.y = startY;
             }
         };
         animate();
     }
 
-    playSimpleJump(avatar) {
+    playJumpAnimation(avatar) {
         const startY = avatar.position.y;
-        let progress = 0;
-        
+        const duration = 1000;
+        const height = 1.2;
+        const startTime = Date.now();
+
         const animate = () => {
-            progress += 0.08;
-            if (progress <= 1) {
-                const jumpHeight = Math.sin(progress * Math.PI) * 0.8;
-                avatar.position.y = startY + jumpHeight;
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            if (progress < 1) {
+                const jumpProgress = Math.sin(progress * Math.PI);
+                avatar.position.y = startY + jumpProgress * height;
+                avatar.rotation.z = Math.sin(progress * Math.PI * 2) * 0.1;
                 requestAnimationFrame(animate);
             } else {
                 avatar.position.y = startY;
+                avatar.rotation.z = 0;
             }
         };
         animate();
@@ -303,6 +450,7 @@ class AvatarSystem {
             this.removeAvatar(userId);
         });
         this.avatars.clear();
+        this.occupiedPositions = [];
         this.isInitialized = false;
     }
 }
@@ -321,4 +469,4 @@ if (window.SceneManager && window.SceneManager.scene) {
     }, 100);
 }
 
-console.log('Optimized Among Us Avatar System loaded');
+console.log('Sophisticated Avatar System with collision detection loaded');
