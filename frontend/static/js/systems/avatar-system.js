@@ -1,4 +1,4 @@
-// Avatar System for Euphorie 3D
+// Avatar System for Euphorie 3D - Among Us Style
 // Basic avatar rendering and management without customization UI
 
 class AvatarSystem {
@@ -10,27 +10,28 @@ class AvatarSystem {
     }
 
     init() {
-        if (this.isInitialized) return;
+        if (this.isInitialized) return true;
         
         // Get scene reference
         this.scene = window.SceneManager?.scene || window.scene;
         
         if (!this.scene) {
             console.warn('Scene not available for avatar system');
-            return;
+            return false;
         }
 
         this.isInitialized = true;
         console.log('✅ Avatar System initialized');
+        return true;
     }
 
     createAvatar(userId, userData = {}) {
-        if (!this.scene || !userId) return null;
+        if (!this.init() || !userId) return null;
 
         // Remove existing avatar if any
         this.removeAvatar(userId);
 
-        // Create simple avatar geometry
+        // Create Among Us crewmate
         const avatarGroup = new THREE.Group();
         avatarGroup.name = userId;
         avatarGroup.userData = {
@@ -41,48 +42,128 @@ class AvatarSystem {
             nationality: userData.nationality || 'UN'
         };
 
-        // Body (capsule or cylinder)
-        const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.4, 1.4, 8);
-            new THREE.CapsuleGeometry(0.4, 1.4, 4, 8) : 
-            new THREE.CylinderGeometry(0.4, 0.4, 1.4, 8);
+        // Among Us color palette
+        const crewmateColors = [
+            0xff0000, // Red
+            0x0000ff, // Blue
+            0x00ff00, // Green
+            0xff69b4, // Pink
+            0xffa500, // Orange
+            0xffff00, // Yellow
+            0x000000, // Black
+            0xffffff, // White
+            0x800080, // Purple
+            0x964b00, // Brown
+            0x00ffff, // Cyan
+            0x00ff80  // Lime
+        ];
         
-        // Generate color based on user ID
-        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3, 0x6c5ce7, 0xa29bfe];
-        const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-        const bodyMaterial = new THREE.MeshLambertMaterial({ color: colors[colorIndex] });
+        const colorIndex = Math.abs(userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % crewmateColors.length;
+        const crewmateColor = crewmateColors[colorIndex];
+
+        // Main body - bean shape
+        const bodyGeometry = new THREE.SphereGeometry(0.5, 12, 8);
+        bodyGeometry.scale(1, 1.3, 0.9); // Make it more oval and bean-like
+        const bodyMaterial = new THREE.MeshLambertMaterial({ color: crewmateColor });
         const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        bodyMesh.position.y = 0.7;
+        bodyMesh.position.y = 0.65;
         avatarGroup.add(bodyMesh);
 
-        // Head
-        const headGeometry = new THREE.SphereGeometry(0.25, 8, 6);
-        const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
-        const headMesh = new THREE.Mesh(headGeometry, headMaterial);
-        headMesh.position.y = 1.6;
-        avatarGroup.add(headMesh);
+        // Visor/face area
+        const visorGeometry = new THREE.SphereGeometry(0.35, 12, 8);
+        visorGeometry.scale(1, 0.8, 1.2); // Flatten it and make it protrude
+        const visorMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x87ceeb, 
+            transparent: true, 
+            opacity: 0.8 
+        });
+        const visorMesh = new THREE.Mesh(visorGeometry, visorMaterial);
+        visorMesh.position.set(0, 1.1, 0.3);
+        avatarGroup.add(visorMesh);
 
-        // Eyes
-        const eyeGeometry = new THREE.SphereGeometry(0.04, 6, 4);
-        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        // Visor reflection
+        const reflectionGeometry = new THREE.SphereGeometry(0.25, 8, 6);
+        reflectionGeometry.scale(0.8, 0.6, 1.1);
+        const reflectionMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xffffff, 
+            transparent: true, 
+            opacity: 0.3 
+        });
+        const reflectionMesh = new THREE.Mesh(reflectionGeometry, reflectionMaterial);
+        reflectionMesh.position.set(-0.1, 1.15, 0.45);
+        avatarGroup.add(reflectionMesh);
+
+        // Backpack
+        const backpackGeometry = new THREE.BoxGeometry(0.3, 0.4, 0.15);
+        const backpackMaterial = new THREE.MeshLambertMaterial({ 
+            color: this.darkenColor(crewmateColor, 0.3) 
+        });
+        const backpackMesh = new THREE.Mesh(backpackGeometry, backpackMaterial);
+        backpackMesh.position.set(0, 0.8, -0.4);
+        avatarGroup.add(backpackMesh);
+
+        // Legs (short stumpy legs)
+        const legGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 8);
+        const legMaterial = new THREE.MeshLambertMaterial({ color: crewmateColor });
         
-        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        leftEye.position.set(-0.08, 1.65, 0.2);
-        avatarGroup.add(leftEye);
+        const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+        leftLeg.position.set(-0.15, 0.15, 0);
+        avatarGroup.add(leftLeg);
         
-        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        rightEye.position.set(0.08, 1.65, 0.2);
-        avatarGroup.add(rightEye);
+        const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+        rightLeg.position.set(0.15, 0.15, 0);
+        avatarGroup.add(rightLeg);
+
+        // Feet
+        const footGeometry = new THREE.SphereGeometry(0.18, 8, 6);
+        footGeometry.scale(1.2, 0.5, 1);
+        const footMaterial = new THREE.MeshLambertMaterial({ 
+            color: this.darkenColor(crewmateColor, 0.2) 
+        });
+        
+        const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
+        leftFoot.position.set(-0.15, 0.05, 0.05);
+        avatarGroup.add(leftFoot);
+        
+        const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
+        rightFoot.position.set(0.15, 0.05, 0.05);
+        avatarGroup.add(rightFoot);
 
         // Position avatar
         const position = userData.position || this.getRandomPosition();
         avatarGroup.position.set(position.x, position.y || 0, position.z);
 
+        // Add subtle idle animation
+        this.addIdleAnimation(avatarGroup);
+
         // Add to scene and track
         this.scene.add(avatarGroup);
         this.avatars.set(userId, avatarGroup);
 
-        console.log(`👤 Created avatar for ${userData.username || userId}`);
+        console.log(`👤 Created Among Us crewmate for ${userData.username || userId}`);
         return avatarGroup;
+    }
+
+    darkenColor(color, factor) {
+        const r = ((color >> 16) & 0xff) * (1 - factor);
+        const g = ((color >> 8) & 0xff) * (1 - factor);
+        const b = (color & 0xff) * (1 - factor);
+        return (Math.floor(r) << 16) | (Math.floor(g) << 8) | Math.floor(b);
+    }
+
+    addIdleAnimation(avatar) {
+        const startY = avatar.position.y;
+        let time = Math.random() * Math.PI * 2; // Random start phase
+        
+        const animate = () => {
+            if (avatar.parent) { // Check if still in scene
+                time += 0.02;
+                avatar.position.y = startY + Math.sin(time) * 0.05; // Gentle bobbing
+                avatar.rotation.y = Math.sin(time * 0.5) * 0.1; // Subtle swaying
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
     }
 
     removeAvatar(userId) {
@@ -135,16 +216,6 @@ class AvatarSystem {
         };
     }
 
-    getRandomCustomization() {
-        // Return random customization options for variety
-        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
-        return {
-            bodyColor: colors[Math.floor(Math.random() * colors.length)],
-            height: 0.8 + Math.random() * 0.4,
-            width: 0.8 + Math.random() * 0.4
-        };
-    }
-
     // Animation helpers
     animateAvatar(userId, animationType) {
         const avatar = this.avatars.get(userId);
@@ -164,7 +235,6 @@ class AvatarSystem {
     }
 
     playWaveAnimation(avatar) {
-        const startY = avatar.position.y;
         const duration = 1000;
         const startTime = Date.now();
 
@@ -192,11 +262,15 @@ class AvatarSystem {
             
             if (progress < 1) {
                 avatar.rotation.y = Math.sin(progress * Math.PI * 8) * 0.5;
-                avatar.position.y = Math.abs(Math.sin(progress * Math.PI * 16)) * 0.2;
+                const bounceHeight = Math.abs(Math.sin(progress * Math.PI * 16)) * 0.3;
+                avatar.children.forEach((child, index) => {
+                    if (child.position) {
+                        child.position.y += bounceHeight * (index % 2 === 0 ? 1 : -1) * 0.1;
+                    }
+                });
                 requestAnimationFrame(animate);
             } else {
                 avatar.rotation.y = 0;
-                avatar.position.y = 0;
             }
         };
         animate();
@@ -249,4 +323,4 @@ if (window.SceneManager && window.SceneManager.scene) {
     }, 100);
 }
 
-console.log('✅ Avatar System loaded and made globally available');
+console.log('✅ Among Us Avatar System loaded and made globally available');
