@@ -233,24 +233,20 @@ class AvatarSystem {
     }
 }
 
-// Global instance
+// Make AvatarSystem globally available
 window.AvatarSystem = new AvatarSystem();
 
-// Auto-initialize when scene is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            if (window.AvatarSystem && !window.AvatarSystem.isInitialized) {
-                window.AvatarSystem.init();
-            }
-        }, 1000);
-    });
+// Initialize immediately if scene is ready
+if (window.SceneManager && window.SceneManager.scene) {
+    window.AvatarSystem.init();
 } else {
-    setTimeout(() => {
-        if (window.AvatarSystem && !window.AvatarSystem.isInitialized) {
+    // Wait for scene to be ready
+    const checkScene = setInterval(() => {
+        if (window.SceneManager && window.SceneManager.scene) {
+            clearInterval(checkScene);
             window.AvatarSystem.init();
         }
-    }, 1000);
+    }, 100);
 }
 
-console.log('📦 Avatar System loaded');
+console.log('✅ Avatar System loaded and made globally available');
