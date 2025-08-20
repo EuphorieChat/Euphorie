@@ -3452,60 +3452,12 @@
                         const scene = this.getAvailableScene();
                         console.log(`📋 Using direct Three.js scene for ${userData.username}`);
                         
-                        // Create cute avatar group
-                        const avatarGroup = new THREE.Group();
-                        
-                        // Body - rounded capsule shape
-                        const bodyGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-                        bodyGeometry.scale(1, 1.4, 0.8); // Make it more oval
-                        const colors = [0xff6b9d, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3, 0x98d8c8, 0xf7dc6f];
+                        // Create simple colored box avatar
+                        const geometry = new THREE.BoxGeometry(1, 2, 1);
+                        const colors = [0xff6b6b,0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
                         const colorIndex = Math.abs(userData.user_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-                        const bodyMaterial = new THREE.MeshLambertMaterial({ color: colors[colorIndex] });
-                        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-                        body.position.y = 0.7;
-                        avatarGroup.add(body);
-                        
-                        // Head - cute round head
-                        const headGeometry = new THREE.SphereGeometry(0.35, 16, 16);
-                        const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
-                        const head = new THREE.Mesh(headGeometry, headMaterial);
-                        head.position.y = 1.4;
-                        avatarGroup.add(head);
-                        
-                        // Eyes - cute black dots
-                        const eyeGeometry = new THREE.SphereGeometry(0.04, 8, 8);
-                        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-                        
-                        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-                        leftEye.position.set(-0.1, 1.45, 0.3);
-                        avatarGroup.add(leftEye);
-                        
-                        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-                        rightEye.position.set(0.1, 1.45, 0.3);
-                        avatarGroup.add(rightEye);
-                        
-                        // Cute little smile
-                        const smileGeometry = new THREE.TorusGeometry(0.08, 0.02, 8, 16, Math.PI);
-                        const smileMaterial = new THREE.MeshBasicMaterial({ color: 0xff6b9d });
-                        const smile = new THREE.Mesh(smileGeometry, smileMaterial);
-                        smile.position.set(0, 1.35, 0.32);
-                        smile.rotation.z = Math.PI;
-                        avatarGroup.add(smile);
-                        
-                        // Little arms
-                        const armGeometry = new THREE.SphereGeometry(0.15, 8, 8);
-                        armGeometry.scale(0.6, 1.2, 0.6);
-                        const armMaterial = new THREE.MeshLambertMaterial({ color: colors[colorIndex] });
-                        
-                        const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-                        leftArm.position.set(-0.6, 0.8, 0);
-                        leftArm.rotation.z = 0.3;
-                        avatarGroup.add(leftArm);
-                        
-                        const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-                        rightArm.position.set(0.6, 0.8, 0);
-                        rightArm.rotation.z = -0.3;
-                        avatarGroup.add(rightArm);
+                        const material = new THREE.MeshBasicMaterial({ color: colors[colorIndex] });
+                        const avatar = new THREE.Mesh(geometry, material);
                         
                         // Position avatar on ground
                         const hash = userData.user_id.split('').reduce((a, b) => {
@@ -3516,30 +3468,49 @@
                         const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
                         const radius = 3 + (Math.abs(hash) % 4);
                         
-                        avatarGroup.position.set(
+                        avatar.position.set(
                             Math.cos(angle) * radius,
-                            0,
+                            1, // Height above ground (not random!)
                             Math.sin(angle) * radius
                         );
                         
-                        // Set userData and add to scene
-                        avatarGroup.userData = { 
-                            userId: userData.user_id,
-                            username: userData.username,
+                        // CRITICAL: Set ALL userData patterns for consistent ID tracking
+                        avatar.userData = { 
+                            userId: userData.user_id,          // Pattern 1
+                            id: userData.user_id,              // Pattern 2
+                            user_id: userData.user_id,         // Pattern 3  
+                            username: userData.username,       // Pattern 5
                             nationality: userData.nationality || 'UN'
                         };
-                        avatarGroup.name = userData.user_id;
                         
-                        scene.add(avatarGroup);
-                        console.log(`✅ Created cute Three.js avatar for ${userData.username}`);
+                        // Also set name for pattern 4
+                        avatar.name = userData.user_id;
                         
-                        return avatarGroup;
+                        // Add enhanced username label with nationality flag
+                        const nametagGroup = await this.createEnhancedNametagWithFlag(userData);
+                        if (nametagGroup) {
+                            nametagGroup.name = 'nametag';
+                            avatar.add(nametagGroup);
+                        }
+                        
+                        scene.add(avatar);
+                        console.log(`✅ Created Three.js avatar for ${userData.username} with consistent ID tracking`);
+                        
+                        return avatar;
                         
                     } catch (error) {
-                        console.error(`❌ Error creating cute Three.js avatar:`, error);
+                        console.error(`❌ Error creating Three.js avatar:`, error);
                     }
                 }
-                            
+                
+                // Log that we're waiting and will retry
+                console.log(`⏳ Systems not ready yet, waiting for ${userData.username}...`);
+                setTimeout(() => {
+                    console.log(`🔄 Retrying avatar creation for ${userData.username}...`);
+                    this.createRemoteAvatar(userData);
+                }, 2000);
+            }
+            
             // Helper to get available scene
             getAvailableScene() {
                 if (window.SceneManager && window.SceneManager.scene) {
