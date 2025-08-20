@@ -42,7 +42,7 @@ class AvatarSystem {
         };
 
         // Body (capsule or cylinder)
-        const bodyGeometry = new THREE.CapsuleGeometry ? 
+        const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.4, 1.4, 8);
             new THREE.CapsuleGeometry(0.4, 1.4, 4, 8) : 
             new THREE.CylinderGeometry(0.4, 0.4, 1.4, 8);
         
