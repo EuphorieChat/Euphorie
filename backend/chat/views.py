@@ -254,6 +254,7 @@ def index(request):
         }
         return render(request, 'chat/room_list.html', context)
 
+@login_required
 def room(request, room_name):
     """Individual room view with enhanced features and nationality support"""
     room = get_object_or_404(Room, name=room_name)
