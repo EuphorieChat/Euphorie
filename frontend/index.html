@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euphorie - AI Vision Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .camera-interface {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(0, 255, 136, 0.5);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .camera-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .camera-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .placeholder-icon {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            opacity: 0.6;
+        }
+
+        .placeholder-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #00ff88, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .placeholder-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+            max-width: 600px;
+        }
+
+        .start-button {
+            padding: 1.5rem 3rem;
+            font-size: 1.3rem;
+            background: linear-gradient(45deg, #00ff88, #0099ff);
+            border: none;
+            border-radius: 15px;
+            color: black;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        .camera-options {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            justify-content: center;
+        }
+
+        .camera-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .camera-option:hover {
+            border-color: rgba(0, 255, 136, 0.5);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .camera-option input[type="radio"] {
+            margin: 0;
+            accent-color: #00ff88;
+        }
+
+        .camera-option input[type="radio"]:checked + span {
+            color: #00ff88;
+        }
+
+        .controls-overlay {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: none;
+            gap: 1rem;
+        }
+
+        .controls-overlay.show {
+            display: flex;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            border-color: rgba(0, 255, 136, 0.7);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .live-indicator {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+            display: none;
+        }
+
+        .live-indicator.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .chat-overlay {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            width: 300px;
+            max-height: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            display: none;
+        }
+
+        .chat-overlay.show {
+            display: block;
+        }
+
+        .ai-message {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #00ff88;
+        }
+
+        /* Status indicator for AI service connection */
+        .status-indicator {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .status-indicator.connected {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .status-indicator.disconnected {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff4757;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="status-indicator disconnected" id="status-indicator">
+        Connecting to AI service...
+    </div>
+
+    <div class="main-container">
+        <div class="camera-interface">
+            <div id="camera-placeholder" class="camera-placeholder">
+                <div class="placeholder-icon">📹</div>
+                <div class="placeholder-title">Euphorie AI Vision</div>
+                <div class="placeholder-subtitle">
+                    Enable your camera to interact with AI assistants in real-time.<br>
+                    Point your camera at code, documents, or anything you need help with.
+                </div>
+                <button class="start-button" onclick="startCamera()">
+                    🚀 Start AI Vision
+                </button>
+                <div class="camera-options">
+                    <label class="camera-option">
+                        <input type="radio" name="camera-facing" value="user" checked>
+                        <span>📱 Front Camera</span>
+                    </label>
+                    <label class="camera-option">
+                        <input type="radio" name="camera-facing" value="environment">
+                        <span>📷 Back Camera</span>
+                    </label>
+                </div>
+            </div>
+            
+            <video id="camera-video" class="camera-video" autoplay muted playsinline></video>
+            
+            <div id="controls-overlay" class="controls-overlay">
+                <button class="control-btn" onclick="switchCamera()">🔄 Switch Camera</button>
+                <button class="control-btn" onclick="toggleFullscreen()">📺 Fullscreen</button>
+                <button class="control-btn" onclick="stopCamera()">❌ Stop</button>
+            </div>
+            
+            <div id="live-indicator" class="live-indicator">● LIVE</div>
+            
+            <div id="chat-overlay" class="chat-overlay">
+                <div id="ai-message" class="ai-message">AI insights will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cameraStream = null;
+        let isActive = false;
+        let currentFacingMode = 'user';
+        let analysisInterval = null;
+        
+        // Configuration - automatically detects EC2 environment
+        const AI_SERVICE_URL = `${window.location.protocol}//${window.location.hostname}:8001`;
+
+        // Initialize app and check AI service connection
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAIService();
+            // Check AI service every 30 seconds
+            setInterval(checkAIService, 30000);
+        });
+
+        async function checkAIService() {
+            const statusEl = document.getElementById('status-indicator');
+            
+            try {
+                const response = await fetch(`${AI_SERVICE_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    statusEl.textContent = `AI Service Online (${data.jarvis_status})`;
+                    statusEl.className = 'status-indicator connected';
+                } else {
+                    statusEl.textContent = 'AI Service Unavailable';
+                    statusEl.className = 'status-indicator disconnected';
+                }
+            } catch (error) {
+                statusEl.textContent = 'Cannot reach AI service';
+                statusEl.className = 'status-indicator disconnected';
+            }
+        }
+
+        function getSelectedCameraMode() {
+            const selectedOption = document.querySelector('input[name="camera-facing"]:checked');
+            return selectedOption ? selectedOption.value : 'user';
+        }
+
+        async function startCamera() {
+            try {
+                console.log('Starting camera...');
+                
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Camera not supported. Please use HTTPS or update browser.');
+                }
+
+                // Get selected camera mode
+                currentFacingMode = getSelectedCameraMode();
+                
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: currentFacingMode
+                    }
+                };
+
+                console.log('Requesting camera with facingMode:', currentFacingMode);
+                
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                const video = document.getElementById('camera-video');
+                const placeholder = document.getElementById('camera-placeholder');
+                const controls = document.getElementById('controls-overlay');
+                const indicator = document.getElementById('live-indicator');
+                const chat = document.getElementById('chat-overlay');
+                
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                placeholder.style.display = 'none';
+                controls.classList.add('show');
+                indicator.classList.add('active');
+                chat.classList.add('show');
+                
+                isActive = true;
+                
+                const cameraType = currentFacingMode === 'user' ? 'front' : 'back';
+                showAIMessage(`Camera activated using ${cameraType} camera! AI can now see your environment.`);
+                startAIAnalysis(video);
+                
+            } catch (error) {
+                console.error('Camera failed:', error);
+                
+                // If the selected camera mode fails, try the opposite
+                if (error.name === 'OverconstrainedError' || error.name === 'NotFoundError') {
+                    console.log('Selected camera not available, trying fallback...');
+                    try {
+                        const fallbackMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                        const fallbackConstraints = {
+                            video: {
+                                width: { ideal: 1280 },
+                                height: { ideal: 720 },
+                                facingMode: fallbackMode
+                            }
+                        };
+                        
+                        cameraStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+                        
+                        const video = document.getElementById('camera-video');
+                        const placeholder = document.getElementById('camera-placeholder');
+                        const controls = document.getElementById('controls-overlay');
+                        const indicator = document.getElementById('live-indicator');
+                        const chat = document.getElementById('chat-overlay');
+                        
+                        video.srcObject = cameraStream;
+                        video.style.display = 'block';
+                        placeholder.style.display = 'none';
+                        controls.classList.add('show');
+                        indicator.classList.add('active');
+                        chat.classList.add('show');
+                        
+                        isActive = true;
+                        currentFacingMode = fallbackMode;
+                        
+                        const cameraType = fallbackMode === 'user' ? 'front' : 'back';
+                        showAIMessage(`Selected camera not available. Using ${cameraType} camera instead.`);
+                        startAIAnalysis(video);
+                        
+                    } catch (fallbackError) {
+                        console.error('Fallback camera also failed:', fallbackError);
+                        showAIMessage(`Camera error: ${fallbackError.message}. Please check permissions and use HTTPS.`);
+                    }
+                } else {
+                    let errorMsg = `Camera error: ${error.message}`;
+                    if (window.location.protocol === 'http:') {
+                        errorMsg += ' Try using HTTPS for camera access.';
+                    }
+                    showAIMessage(errorMsg);
+                }
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            if (analysisInterval) {
+                clearInterval(analysisInterval);
+                analysisInterval = null;
+            }
+            
+            const video = document.getElementById('camera-video');
+            const placeholder = document.getElementById('camera-placeholder');
+            const controls = document.getElementById('controls-overlay');
+            const indicator = document.getElementById('live-indicator');
+            const chat = document.getElementById('chat-overlay');
+            
+            video.style.display = 'none';
+            placeholder.style.display = 'flex';
+            controls.classList.remove('show');
+            indicator.classList.remove('active');
+            chat.classList.remove('show');
+            
+            isActive = false;
+        }
+
+        async function switchCamera() {
+            if (!isActive) return;
+            
+            try {
+                // Switch to opposite camera
+                const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                console.log('Switching camera from', currentFacingMode, 'to', newFacingMode);
+                
+                // Stop current stream
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Request new camera
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: newFacingMode
+                    }
+                };
+                
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                currentFacingMode = newFacingMode;
+                
+                // Update video element
+                const video = document.getElementById('camera-video');
+                video.srcObject = cameraStream;
+                
+                const cameraType = currentFacingMode === 'user' ? 'front' : 'back';
+                showAIMessage(`Switched to ${cameraType} camera`);
+                
+            } catch (error) {
+                console.error('Camera switch failed:', error);
+                showAIMessage(`Failed to switch camera: ${error.message}`);
+                
+                // Try to restore original camera if switch fails
+                try {
+                    const fallbackConstraints = {
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: currentFacingMode === 'user' ? 'environment' : 'user'
+                        }
+                    };
+                    
+                    cameraStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+                    const video = document.getElementById('camera-video');
+                    video.srcObject = cameraStream;
+                    
+                    showAIMessage('Restored previous camera');
+                } catch (restoreError) {
+                    console.error('Failed to restore camera:', restoreError);
+                    stopCamera();
+                    showAIMessage('Camera connection lost');
+                }
+            }
+        }
+
+        function toggleFullscreen() {
+            const container = document.querySelector('.camera-interface');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function startAIAnalysis(video) {
+            if (analysisInterval) clearInterval(analysisInterval);
+            
+            // Analyze every 8 seconds to reduce server load
+            analysisInterval = setInterval(() => {
+                if (isActive && video.readyState === video.HAVE_ENOUGH_DATA) {
+                    analyzeFrame(video);
+                }
+            }, 8000);
+        }
+
+        async function analyzeFrame(video) {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, 640, 480);
+                
+                const frameData = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                
+                const response = await fetch(`${AI_SERVICE_URL}/api/vision/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        frame: frameData,
+                        user_id: 'user',
+                        timestamp: Date.now()
+                    })
+                });
+                
+                if (response.ok) {
+                    const analysis = await response.json();
+                    if (analysis.insight && analysis.should_respond) {
+                        showAIMessage(analysis.insight);
+                    }
+                } else {
+                    console.log('AI service offline');
+                }
+                
+            } catch (error) {
+                console.error('Analysis failed:', error);
+            }
+        }
+
+        function showAIMessage(text) {
+            const messageEl = document.getElementById('ai-message');
+            messageEl.textContent = text;
+            console.log('AI:', text);
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                if (messageEl.textContent === text) {
+                    messageEl.textContent = 'AI insights will appear here...';
+                }
+            }, 10000);
+        }
+
+        // Debug function for console testing
+        window.debugCamera = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                console.log('✅ Camera test successful!');
+                
+                const testVideo = document.createElement('video');
+                testVideo.srcObject = stream;
+                testVideo.autoplay = true;
+                testVideo.style.position = 'fixed';
+                testVideo.style.top = '10px';
+                testVideo.style.right = '10px';
+                testVideo.style.width = '200px';
+                testVideo.style.zIndex = '9999';
+                testVideo.style.border = '2px solid red';
+                document.body.appendChild(testVideo);
+                
+                setTimeout(() => {
+                    stream.getTracks().forEach(track => track.stop());
+                    if (testVideo.parentNode) {
+                        testVideo.parentNode.removeChild(testVideo);
+                    }
+                }, 10000);
+                
+                return 'Camera works! Test video shows for 10 seconds.';
+            } catch (error) {
+                console.error('Camera test failed:', error.name, error.message);
+                return `Camera test failed: ${error.message}`;
+            }
+        };
+    </script>
+</body>
+</html>
