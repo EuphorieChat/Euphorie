@@ -208,7 +208,7 @@
 
         .chat-overlay {
             position: absolute;
-            bottom: 1rem;
+            bottom: 2.5rem;
             right: 1rem;
             left: 1rem;
             max-width: 350px;
@@ -341,11 +341,11 @@
             }
 
             .chat-overlay {
-                bottom: 0.5rem;
+                bottom: 3rem;
                 left: 0.5rem;
                 right: 0.5rem;
-                max-height: 120px;
-                padding: 0.8rem;
+                max-height: 100px;
+                padding: 0.6rem;
             }
 
             .ai-message {
@@ -489,8 +489,8 @@
         let currentFacingMode = 'user';
         let analysisInterval = null;
         
-        // Configuration - automatically detects EC2 environment
-        const AI_SERVICE_URL = `${window.location.protocol}//${window.location.hostname}:8001`;
+        // Configuration - use nginx proxy instead of direct connection
+        const AI_SERVICE_URL = `${window.location.protocol}//${window.location.hostname}`;
 
         // Initialize app and check AI service connection
         document.addEventListener('DOMContentLoaded', function() {
@@ -503,18 +503,19 @@
             const statusEl = document.getElementById('status-indicator');
             
             try {
-                const response = await fetch(`${AI_SERVICE_URL}/health`);
+                const response = await fetch(`/api/health`);
                 if (response.ok) {
                     const data = await response.json();
-                    statusEl.textContent = `AI Service Online (${data.jarvis_status})`;
+                    statusEl.textContent = `AI Online (${data.jarvis_status})`;
                     statusEl.className = 'status-indicator connected';
                 } else {
-                    statusEl.textContent = 'AI Service Unavailable';
+                    statusEl.textContent = `AI Service Error (${response.status})`;
                     statusEl.className = 'status-indicator disconnected';
                 }
             } catch (error) {
-                statusEl.textContent = 'Cannot reach AI service';
+                statusEl.textContent = 'AI Service Offline';
                 statusEl.className = 'status-indicator disconnected';
+                console.error('AI service check failed:', error);
             }
         }
 
