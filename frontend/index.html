@@ -728,12 +728,12 @@
         async function analyzeFrame(video) {
             try {
                 const canvas = document.createElement('canvas');
-                canvas.width = 640;
-                canvas.height = 480;
+                canvas.width = 320;  // Reduced from 640
+                canvas.height = 240; // Reduced from 480
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, 640, 480);
-                
-                const frameData = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                ctx.drawImage(video, 0, 0, 320, 240);
+
+                const frameData = canvas.toDataURL('image/jpeg', 0.5).split(',')[1]; // Reduced quality from 0.7 to 0.5
                 
                 const response = await fetch(`/api/vision/analyze`, {
                     method: 'POST',

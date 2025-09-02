@@ -96,7 +96,7 @@ async def vision_analyze(request: dict):
                 "images": [frame_data],
                 "stream": False
             },
-            timeout=60
+            timeout=180
         )
         
         if response.status_code == 200:
