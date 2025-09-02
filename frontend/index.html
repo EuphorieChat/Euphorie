@@ -17,7 +17,12 @@
             color: white;
             overflow: hidden;
             height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for modern browsers */
             touch-action: manipulation;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
         }
 
         .main-container {
@@ -25,8 +30,10 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for modern browsers */
             width: 100vw;
             padding: 0.5rem;
+            position: relative;
         }
 
         .camera-interface {
@@ -251,13 +258,20 @@
 
         /* Mobile Specific Styles */
         @media (max-width: 768px) {
+            body {
+                height: -webkit-fill-available; /* iOS Safari fix */
+            }
+            
             .main-container {
                 padding: 0.25rem;
+                height: -webkit-fill-available; /* iOS Safari fix */
+                min-height: -webkit-fill-available; /* iOS Safari fix */
             }
             
             .camera-interface {
                 border-radius: 15px;
-                height: 100vh;
+                height: 100%;
+                min-height: -webkit-fill-available; /* iOS Safari fix */
             }
 
             .camera-placeholder {
