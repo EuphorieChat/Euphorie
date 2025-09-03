@@ -20,7 +20,7 @@ app = FastAPI(title="Euphorie AI Service")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
@@ -32,41 +32,70 @@ smolvlm_model = None
 model_status = {"smolvlm": "loading", "jarvis": "active", "ollama": "connected"}
 
 def load_smolvlm_model():
-    """Load the SmolVLM-256M model for vision analysis"""
+    """Load SmolVLM-256M as backup model"""
     global smolvlm_processor, smolvlm_model, model_status
     
     try:
-        logger.info("🤖 Loading SmolVLM-256M model...")
+        logger.info("Loading SmolVLM-256M backup model...")
         
-        # Use the smaller, working model
         model_path = "HuggingFaceTB/SmolVLM-256M-Instruct"
         
         smolvlm_processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
-        logger.info("✅ Processor loaded")
-        
         smolvlm_model = AutoModelForImageTextToText.from_pretrained(
             model_path,
-            torch_dtype=torch.float32,  # Use float32 for better CPU performance
+            torch_dtype=torch.float32,
             trust_remote_code=True,
-            low_cpu_mem_usage=True,  # Optimize for low memory
-            # Add CPU optimization
-            device_map=None,  # Don't use device_map with CPU
+            low_cpu_mem_usage=True,
         ).to('cpu')
         
-        # Optimize for inference
         smolvlm_model.eval()
-        
-        logger.info("✅ SmolVLM-256M model loaded successfully!")
+        logger.info("✅ SmolVLM-256M backup loaded")
         model_status["smolvlm"] = "loaded"
         
     except Exception as e:
-        logger.error(f"❌ Failed to load SmolVLM model: {e}")
+        logger.error(f"❌ Failed to load SmolVLM backup: {e}")
         model_status["smolvlm"] = "failed"
         smolvlm_processor = None
         smolvlm_model = None
 
+def analyze_with_moondream(image_data, prompt):
+    """Primary analysis using Moondream (fastest)"""
+    try:
+        start_time = time.time()
+        
+        moondream_response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "moondream",
+                "prompt": prompt,
+                "images": [image_data],
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "top_p": 0.9,
+                    "num_predict": 40,  # Short responses for speed
+                    "num_ctx": 512,     # Reduced context for speed
+                }
+            },
+            timeout=15  # 15 second timeout
+        )
+        
+        if moondream_response.status_code == 200:
+            result = moondream_response.json()
+            inference_time = (time.time() - start_time) * 1000
+            response_text = result.get("response", "").strip()
+            logger.info(f"Moondream response ({inference_time:.0f}ms): {response_text[:50]}...")
+            return response_text
+        else:
+            logger.error(f"Moondream request failed: {moondream_response.status_code}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Moondream analysis error: {e}")
+        return None
+
 def analyze_with_smolvlm(image_data):
-    """Analyze image using SmolVLM-256M with optimizations"""
+    """Backup analysis using SmolVLM-256M (slower)"""
     global smolvlm_processor, smolvlm_model
     
     if not smolvlm_processor or not smolvlm_model:
@@ -79,53 +108,45 @@ def analyze_with_smolvlm(image_data):
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         
-        # Resize image to reduce processing time
-        image = image.resize((224, 224))  # Much smaller for faster processing
+        # Aggressive size reduction for speed
+        image = image.resize((160, 160))  # Even smaller
         
-        # Use short, focused prompt for faster inference
-        text = "<image>Describe briefly what you see."
+        text = "<image>What do you see?"
         
-        # Process inputs
         inputs = smolvlm_processor(
             images=image,
             text=text,
             return_tensors="pt"
         )
         
-        # Generate response with aggressive optimization
         with torch.no_grad():
             generated_ids = smolvlm_model.generate(
                 **inputs,
-                max_new_tokens=15,  # Very short responses for speed
+                max_new_tokens=10,  # Very short for speed
                 do_sample=False,
                 pad_token_id=smolvlm_processor.tokenizer.eos_token_id,
-                # Add speed optimizations
-                num_beams=1,  # No beam search
-                early_stopping=True,
+                num_beams=1,
                 use_cache=True,
             )
         
-        # Decode response
         response_text = smolvlm_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         
-        # Extract just the generated part
         if text in response_text:
             clean_response = response_text.replace(text, "").strip()
         else:
             clean_response = response_text
             
         inference_time = (time.time() - start_time) * 1000
-        
-        logger.info(f"SmolVLM-256M response ({inference_time:.0f}ms): {clean_response[:50]}...")
+        logger.info(f"SmolVLM backup response ({inference_time:.0f}ms): {clean_response[:50]}...")
         
         return clean_response
         
     except Exception as e:
-        logger.error(f"SmolVLM inference error: {e}")
+        logger.error(f"SmolVLM backup error: {e}")
         return None
 
-def analyze_with_ollama(image_data, prompt):
-    """Fallback to Ollama LLaVA if SmolVLM fails"""
+def analyze_with_llava_fallback(image_data, prompt):
+    """Final fallback to LLaVA"""
     try:
         start_time = time.time()
         
@@ -139,10 +160,10 @@ def analyze_with_ollama(image_data, prompt):
                 "options": {
                     "temperature": 0.1,
                     "top_p": 0.9,
-                    "num_predict": 50  # Short responses
+                    "num_predict": 30
                 }
             },
-            timeout=30
+            timeout=20
         )
         
         if ollama_response.status_code == 200:
@@ -151,20 +172,38 @@ def analyze_with_ollama(image_data, prompt):
             logger.info(f"LLaVA fallback response ({inference_time:.0f}ms): {result.get('response', '')[:50]}...")
             return result.get("response", "")
         else:
-            logger.error(f"Ollama request failed: {ollama_response.status_code}")
             return None
             
     except Exception as e:
-        logger.error(f"Ollama analysis error: {e}")
+        logger.error(f"LLaVA fallback error: {e}")
         return None
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 Starting Euphorie AI Service with SmolVLM-256M...")
+    logger.info("🚀 Starting Euphorie AI Service with Moondream primary...")
     logger.info("🤖 Jarvis is coming online...")
     
-    # Load SmolVLM model
+    # Load SmolVLM as backup only
     load_smolvlm_model()
+    
+    # Test Moondream availability
+    try:
+        test_response = requests.get("http://localhost:11434/api/tags", timeout=5)
+        if test_response.status_code == 200:
+            models = test_response.json().get("models", [])
+            moondream_available = any("moondream" in model.get("name", "") for model in models)
+            if moondream_available:
+                logger.info("✅ Moondream model available")
+                model_status["ollama"] = "moondream_ready"
+            else:
+                logger.warning("⚠️  Moondream not found in Ollama")
+                model_status["ollama"] = "llava_only"
+        else:
+            logger.error("❌ Ollama not responding")
+            model_status["ollama"] = "disconnected"
+    except Exception as e:
+        logger.error(f"❌ Ollama check failed: {e}")
+        model_status["ollama"] = "disconnected"
 
 @app.get("/health")
 async def health_check():
@@ -172,8 +211,9 @@ async def health_check():
         "status": "healthy",
         "service": "euphorie-ai",
         "jarvis_status": model_status["jarvis"],
-        "smolvlm_status": model_status["smolvlm"],
+        "smolvlm_status": model_status["smolvlm"], 
         "ollama_status": model_status["ollama"],
+        "primary_model": "moondream",
         "timestamp": int(time.time())
     }
 
@@ -188,16 +228,25 @@ async def analyze_vision(request: dict):
         
         logger.info(f"👁️ Vision analysis from user {user_id}")
         
-        # Try SmolVLM first
+        # Priority 1: Try Moondream (fastest)
+        moondream_result = analyze_with_moondream(frame_data, "Describe what you see in this image briefly.")
+        
+        if moondream_result:
+            should_respond = len(moondream_result.strip()) > 5
+            return {
+                "success": True,
+                "insight": moondream_result,
+                "should_respond": should_respond,
+                "model_used": "moondream",
+                "timestamp": int(time.time())
+            }
+        
+        # Priority 2: Try SmolVLM backup (slower)
+        logger.info("Moondream failed, trying SmolVLM backup...")
         smolvlm_result = analyze_with_smolvlm(frame_data)
         
         if smolvlm_result:
-            # Determine if response is worth showing
-            should_respond = len(smolvlm_result.strip()) > 10 and not any(
-                phrase in smolvlm_result.lower() for phrase in 
-                ["i can't", "unable to", "cannot determine", "unclear", "i don't see"]
-            )
-            
+            should_respond = len(smolvlm_result.strip()) > 5
             return {
                 "success": True,
                 "insight": smolvlm_result,
@@ -206,21 +255,21 @@ async def analyze_vision(request: dict):
                 "timestamp": int(time.time())
             }
         
-        # Fallback to Ollama if SmolVLM fails
-        logger.info("SmolVLM failed, trying Ollama fallback...")
-        ollama_result = analyze_with_ollama(frame_data, "Describe what you see in this image briefly.")
+        # Priority 3: LLaVA final fallback
+        logger.info("SmolVLM failed, trying LLaVA final fallback...")
+        llava_result = analyze_with_llava_fallback(frame_data, "Describe what you see in this image.")
         
-        if ollama_result:
-            should_respond = len(ollama_result.strip()) > 10
+        if llava_result:
+            should_respond = len(llava_result.strip()) > 5
             return {
                 "success": True,
-                "insight": ollama_result,
+                "insight": llava_result,
                 "should_respond": should_respond,
                 "model_used": "llava-fallback",
                 "timestamp": int(time.time())
             }
         
-        # Both failed
+        # All models failed
         return {
             "success": False,
             "insight": "Vision analysis temporarily unavailable",
@@ -233,7 +282,6 @@ async def analyze_vision(request: dict):
         logger.error(f"Vision analysis error: {e}")
         raise HTTPException(status_code=500, detail="Vision analysis failed")
 
-# Health check for individual services
 @app.get("/api/jarvis/status")
 async def jarvis_status():
     return {"status": "active", "message": "Jarvis is online and ready"}
