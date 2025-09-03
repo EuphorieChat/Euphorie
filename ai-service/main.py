@@ -34,6 +34,7 @@ async def health():
         "service": "euphorie-ai",
         "jarvis_status": "active",
         "ollama_status": "connected" if check_ollama() else "disconnected",
+        "model_status": "smolvlm2" if check_smolvlm() else "loading",
         "timestamp": int(time.time())
     }
 
@@ -43,6 +44,17 @@ def check_ollama():
         return response.status_code == 200
     except:
         return False
+
+def check_smolvlm():
+    """Check if SmolVLM2 model is available"""
+    try:
+        response = requests.get('http://localhost:11434/api/tags', timeout=5)
+        if response.status_code == 200:
+            models = response.json().get('models', [])
+            return any('smolvlm2' in model.get('name', '') for model in models)
+    except:
+        pass
+    return False
 
 @app.post("/api/chat")
 async def chat(request: dict):
@@ -89,33 +101,43 @@ async def vision_analyze(request: dict):
         return {"insight": None, "should_respond": False}
     
     try:
+        # Try SmolVLM2 first, fallback to LLaVA
+        model_to_use = "smolvlm2" if check_smolvlm() else "llava"
+        
+        logger.info(f"Using vision model: {model_to_use}")
+        
         response = requests.post('http://localhost:11434/api/generate',
             json={
-                "model": "llava",
+                "model": model_to_use,
                 "prompt": "Analyze this image and provide a brief, helpful insight. Focus on what assistance might be needed with coding, learning, or work tasks. Be concise and actionable.",
                 "images": [frame_data],
-                "stream": False
+                "stream": False,
+                "options": {
+                    "num_ctx": 2048,  # Reduced context for efficiency
+                    "temperature": 0.7
+                }
             },
-            timeout=180
+            timeout=120  # Reduced timeout for faster model
         )
         
         if response.status_code == 200:
             result = response.json()
             insight = result.get('response', '').strip()
             
-            logger.info(f"LLaVA Vision response: {insight[:50]}...")
+            logger.info(f"{model_to_use.upper()} Vision response: {insight[:50]}...")
             
             return {
                 "insight": insight,
-                "scene_description": "Local AI vision analysis",
+                "scene_description": f"{model_to_use} vision analysis",
                 "should_respond": True,
                 "confidence": 0.8,
+                "model_used": model_to_use,
                 "timestamp": int(time.time())
             }
         else:
             logger.error(f"Ollama API error: {response.status_code}")
             return {
-                "insight": "Local vision model not responding.",
+                "insight": "Vision model not responding.",
                 "should_respond": True,
                 "confidence": 0.3
             }
@@ -130,5 +152,5 @@ async def vision_analyze(request: dict):
 
 if __name__ == "__main__":
     print("🚀 Starting Euphorie AI Service on EC2...")
-    print("🤖 Jarvis is coming online...")
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=False)
+    print("🤖 Jarvis is coming online with SmolVLM2...")
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
