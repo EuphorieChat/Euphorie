@@ -43,8 +43,8 @@ try:
         {
             "role": "user",
             "content": [
-                {"type": "image", "image": image},
-                {"type": "text", "text": "What do you see in this image?"}
+                {"type": "text", "text": "What do you see in this image?"},
+                {"type": "image", "image": image}
             ]
         }
     ]
