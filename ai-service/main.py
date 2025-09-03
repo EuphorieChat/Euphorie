@@ -17,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Euphorie AI Service")
 
-# Global variables for model
+# Global variables for SmolVLM2
 model = None
 processor = None
 model_loaded = False
+model_loading = False
 
 # CORS middleware
 app.add_middleware(
@@ -33,60 +34,57 @@ app.add_middleware(
 
 def load_smolvlm_model():
     """Load SmolVLM2 model on startup"""
-    global model, processor, model_loaded
+    global model, processor, model_loaded, model_loading
+    
+    if model_loading:
+        return
+    
+    model_loading = True
     
     try:
-        logger.info("🤖 Loading SmolVLM2 model...")
+        logger.info("🤖 Loading SmolVLM2-500M model...")
         
-        # Use the 500M version for t3.large (more memory efficient)
-        model_path = "HuggingFaceTB/SmolVLM2-1.7B-Instruct"
+        model_path = "HuggingFaceTB/SmolVLM2-500M-Instruct"
         
         processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+        logger.info("✅ Processor loaded")
         
-        # CPU inference settings for t3.large
+        # CPU-optimized settings for t3.large
         model = AutoModelForImageTextToText.from_pretrained(
             model_path,
-            torch_dtype=torch.float32,  # Use float32 for CPU
-            device_map="cpu",
-            trust_remote_code=True
-        )
+            torch_dtype=torch.float32,
+            trust_remote_code=True,
+            low_cpu_mem_usage=True
+        ).to('cpu')
         
         model_loaded = True
+        model_loading = False
         logger.info("✅ SmolVLM2 model loaded successfully!")
         
     except Exception as e:
         logger.error(f"❌ Failed to load SmolVLM2: {e}")
         model_loaded = False
+        model_loading = False
 
 def analyze_image_with_smolvlm(image_data, prompt):
     """Analyze image using SmolVLM2"""
     global model, processor, model_loaded
     
     if not model_loaded:
-        return "Model not loaded", False
+        return "SmolVLM2 model not ready", False
     
     try:
         # Decode base64 image
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         
-        # Prepare messages for chat template
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": image},
-                    {"type": "text", "text": prompt}
-                ]
-            }
-        ]
+        # Add image token to prompt - required for SmolVLM2
+        formatted_prompt = f"<image>{prompt}"
         
-        # Apply chat template and prepare inputs
-        inputs = processor.apply_chat_template(
-            messages,
-            add_generation_prompt=True,
-            tokenize=True,
-            return_dict=True,
+        # Process inputs
+        inputs = processor(
+            images=image,
+            text=formatted_prompt,
             return_tensors="pt"
         )
         
@@ -95,7 +93,7 @@ def analyze_image_with_smolvlm(image_data, prompt):
             generated_ids = model.generate(
                 **inputs,
                 do_sample=False,
-                max_new_tokens=128,
+                max_new_tokens=100,
                 pad_token_id=processor.tokenizer.eos_token_id
             )
             
@@ -105,11 +103,17 @@ def analyze_image_with_smolvlm(image_data, prompt):
             skip_special_tokens=True
         )[0]
         
-        # Extract only the assistant's response
-        if "assistant\n" in response:
-            response = response.split("assistant\n")[-1].strip()
+        # Clean up the response - remove the original prompt
+        if formatted_prompt in response:
+            clean_response = response.replace(formatted_prompt, "").strip()
+        else:
+            clean_response = response.strip()
+            
+        # Remove "Assistant:" prefix if present
+        if clean_response.startswith("Assistant:"):
+            clean_response = clean_response.replace("Assistant:", "").strip()
         
-        return response, True
+        return clean_response, True
         
     except Exception as e:
         logger.error(f"SmolVLM analysis error: {e}")
@@ -132,12 +136,13 @@ async def health():
         "status": "healthy",
         "service": "euphorie-ai",
         "jarvis_status": "active",
-        "smolvlm_status": "loaded" if model_loaded else "loading",
+        "smolvlm_status": "loaded" if model_loaded else ("loading" if model_loading else "error"),
         "ollama_status": "connected" if check_ollama() else "disconnected",
         "timestamp": int(time.time())
     }
 
 def check_ollama():
+    """Check if Ollama is running for fallback"""
     try:
         response = requests.get('http://localhost:11434/api/version', timeout=5)
         return response.status_code == 200
@@ -152,6 +157,7 @@ async def chat(request: dict):
     logger.info(f"💬 Chat from {user_name}: {message}")
     
     try:
+        # Use Ollama for text chat (if available)
         response = requests.post('http://localhost:11434/api/generate',
             json={
                 "model": "llama2",
@@ -192,16 +198,19 @@ async def vision_analyze(request: dict):
     
     # Try SmolVLM2 first
     if model_loaded:
+        start_time = time.time()
         insight, success = analyze_image_with_smolvlm(frame_data, prompt)
+        inference_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
         
         if success:
-            logger.info(f"SmolVLM2 response: {insight[:50]}...")
+            logger.info(f"SmolVLM2 response ({inference_time}ms): {insight[:50]}...")
             return {
                 "insight": insight,
                 "scene_description": "SmolVLM2 vision analysis",
                 "should_respond": True,
                 "confidence": 0.9,
                 "model_used": "smolvlm2",
+                "inference_time_ms": inference_time,
                 "timestamp": int(time.time())
             }
     
@@ -234,7 +243,7 @@ async def vision_analyze(request: dict):
         logger.error(f"Vision analysis error: {str(e)}")
     
     return {
-        "insight": "Vision analysis temporarily unavailable",
+        "insight": "Vision analysis temporarily unavailable. Please try again.",
         "should_respond": True,
         "confidence": 0.3
     }
