@@ -17,238 +17,226 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Euphorie AI Service")
 
-# Global variables for SmolVLM2
-model = None
-processor = None
-model_loaded = False
-model_loading = False
-
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, specify your domain
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
+# Global model variables
+smolvlm_processor = None
+smolvlm_model = None
+model_status = {"smolvlm": "loading", "jarvis": "active", "ollama": "connected"}
+
 def load_smolvlm_model():
-    """Load SmolVLM2 model on startup"""
-    global model, processor, model_loaded, model_loading
-    
-    if model_loading:
-        return
-    
-    model_loading = True
+    """Load the SmolVLM-256M model for vision analysis"""
+    global smolvlm_processor, smolvlm_model, model_status
     
     try:
-        logger.info("🤖 Loading SmolVLM2-500M model...")
+        logger.info("🤖 Loading SmolVLM-256M model...")
         
-        model_path = "HuggingFaceTB/SmolVLM2-500M-Instruct"
+        # Use the smaller, working model
+        model_path = "HuggingFaceTB/SmolVLM-256M-Instruct"
         
-        processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+        smolvlm_processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
         logger.info("✅ Processor loaded")
         
-        # CPU-optimized settings for t3.large
-        model = AutoModelForImageTextToText.from_pretrained(
+        smolvlm_model = AutoModelForImageTextToText.from_pretrained(
             model_path,
-            torch_dtype=torch.float32,
+            torch_dtype=torch.float32,  # Use float32 for better CPU performance
             trust_remote_code=True,
-            low_cpu_mem_usage=True
+            low_cpu_mem_usage=True,  # Optimize for low memory
+            # Add CPU optimization
+            device_map=None,  # Don't use device_map with CPU
         ).to('cpu')
         
-        model_loaded = True
-        model_loading = False
-        logger.info("✅ SmolVLM2 model loaded successfully!")
+        # Optimize for inference
+        smolvlm_model.eval()
+        
+        logger.info("✅ SmolVLM-256M model loaded successfully!")
+        model_status["smolvlm"] = "loaded"
         
     except Exception as e:
-        logger.error(f"❌ Failed to load SmolVLM2: {e}")
-        model_loaded = False
-        model_loading = False
+        logger.error(f"❌ Failed to load SmolVLM model: {e}")
+        model_status["smolvlm"] = "failed"
+        smolvlm_processor = None
+        smolvlm_model = None
 
-def analyze_image_with_smolvlm(image_data, prompt):
-    """Analyze image using SmolVLM2"""
-    global model, processor, model_loaded
+def analyze_with_smolvlm(image_data):
+    """Analyze image using SmolVLM-256M with optimizations"""
+    global smolvlm_processor, smolvlm_model
     
-    if not model_loaded:
-        return "SmolVLM2 model not ready", False
-    
+    if not smolvlm_processor or not smolvlm_model:
+        return None
+        
     try:
-        # Decode base64 image
+        start_time = time.time()
+        
+        # Decode and process image
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         
-        # Add image token to prompt - required for SmolVLM2
-        formatted_prompt = f"<image>{prompt}"
+        # Resize image to reduce processing time
+        image = image.resize((224, 224))  # Much smaller for faster processing
+        
+        # Use short, focused prompt for faster inference
+        text = "<image>Describe briefly what you see."
         
         # Process inputs
-        inputs = processor(
+        inputs = smolvlm_processor(
             images=image,
-            text=formatted_prompt,
+            text=text,
             return_tensors="pt"
         )
         
-        # Generate response
+        # Generate response with aggressive optimization
         with torch.no_grad():
-            generated_ids = model.generate(
+            generated_ids = smolvlm_model.generate(
                 **inputs,
+                max_new_tokens=15,  # Very short responses for speed
                 do_sample=False,
-                max_new_tokens=100,
-                pad_token_id=processor.tokenizer.eos_token_id
+                pad_token_id=smolvlm_processor.tokenizer.eos_token_id,
+                # Add speed optimizations
+                num_beams=1,  # No beam search
+                early_stopping=True,
+                use_cache=True,
             )
-            
+        
         # Decode response
-        response = processor.batch_decode(
-            generated_ids,
-            skip_special_tokens=True
-        )[0]
+        response_text = smolvlm_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         
-        # Clean up the response - remove the original prompt
-        if formatted_prompt in response:
-            clean_response = response.replace(formatted_prompt, "").strip()
+        # Extract just the generated part
+        if text in response_text:
+            clean_response = response_text.replace(text, "").strip()
         else:
-            clean_response = response.strip()
+            clean_response = response_text
             
-        # Remove "Assistant:" prefix if present
-        if clean_response.startswith("Assistant:"):
-            clean_response = clean_response.replace("Assistant:", "").strip()
+        inference_time = (time.time() - start_time) * 1000
         
-        return clean_response, True
+        logger.info(f"SmolVLM-256M response ({inference_time:.0f}ms): {clean_response[:50]}...")
+        
+        return clean_response
         
     except Exception as e:
-        logger.error(f"SmolVLM analysis error: {e}")
-        return f"Analysis error: {str(e)}", False
+        logger.error(f"SmolVLM inference error: {e}")
+        return None
 
-@app.on_event("startup")
-async def startup_event():
-    """Load model on startup"""
-    load_smolvlm_model()
-
-@app.options("/api/vision/analyze")
-@app.options("/api/chat")
-async def options_handler():
-    return {"message": "OK"}
-
-@app.get("/")
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "service": "euphorie-ai",
-        "jarvis_status": "active",
-        "smolvlm_status": "loaded" if model_loaded else ("loading" if model_loading else "error"),
-        "ollama_status": "connected" if check_ollama() else "disconnected",
-        "timestamp": int(time.time())
-    }
-
-def check_ollama():
-    """Check if Ollama is running for fallback"""
+def analyze_with_ollama(image_data, prompt):
+    """Fallback to Ollama LLaVA if SmolVLM fails"""
     try:
-        response = requests.get('http://localhost:11434/api/version', timeout=5)
-        return response.status_code == 200
-    except:
-        return False
-
-@app.post("/api/chat")
-async def chat(request: dict):
-    message = request.get("message", "")
-    user_name = request.get("user_name", "User")
-    
-    logger.info(f"💬 Chat from {user_name}: {message}")
-    
-    try:
-        # Use Ollama for text chat (if available)
-        response = requests.post('http://localhost:11434/api/generate',
+        start_time = time.time()
+        
+        ollama_response = requests.post(
+            "http://localhost:11434/api/generate",
             json={
-                "model": "llama2",
-                "prompt": f"You are Jarvis, an AI assistant. User {user_name} says: {message}. Respond helpfully.",
-                "stream": False
+                "model": "llava",
+                "prompt": prompt,
+                "images": [image_data],
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "top_p": 0.9,
+                    "num_predict": 50  # Short responses
+                }
             },
             timeout=30
         )
         
-        if response.status_code == 200:
-            result = response.json()
-            ai_response = result.get('response', '').strip()
+        if ollama_response.status_code == 200:
+            result = ollama_response.json()
+            inference_time = (time.time() - start_time) * 1000
+            logger.info(f"LLaVA fallback response ({inference_time:.0f}ms): {result.get('response', '')[:50]}...")
+            return result.get("response", "")
         else:
-            ai_response = f"I'm here to assist, {user_name}! I can help with coding, learning, and creative work."
-    
+            logger.error(f"Ollama request failed: {ollama_response.status_code}")
+            return None
+            
     except Exception as e:
-        logger.error(f"Chat error: {e}")
-        ai_response = f"I'm here to assist, {user_name}! (Chat model temporarily unavailable)"
+        logger.error(f"Ollama analysis error: {e}")
+        return None
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 Starting Euphorie AI Service with SmolVLM-256M...")
+    logger.info("🤖 Jarvis is coming online...")
     
+    # Load SmolVLM model
+    load_smolvlm_model()
+
+@app.get("/health")
+async def health_check():
     return {
-        "response": ai_response,
-        "agent_name": "Jarvis",
-        "confidence": 0.9,
+        "status": "healthy",
+        "service": "euphorie-ai",
+        "jarvis_status": model_status["jarvis"],
+        "smolvlm_status": model_status["smolvlm"],
+        "ollama_status": model_status["ollama"],
         "timestamp": int(time.time())
     }
 
 @app.post("/api/vision/analyze")
-async def vision_analyze(request: dict):
-    user_id = request.get('user_id', 'unknown')
-    frame_data = request.get('frame')
-    
-    logger.info(f"👁️ Vision analysis from user {user_id}")
-    
-    if not frame_data:
-        return {"insight": None, "should_respond": False}
-    
-    prompt = "Analyze this image and provide a brief, helpful insight. Focus on what assistance might be needed with coding, learning, or work tasks. Be concise and actionable."
-    
-    # Try SmolVLM2 first
-    if model_loaded:
-        start_time = time.time()
-        insight, success = analyze_image_with_smolvlm(frame_data, prompt)
-        inference_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
-        
-        if success:
-            logger.info(f"SmolVLM2 response ({inference_time}ms): {insight[:50]}...")
-            return {
-                "insight": insight,
-                "scene_description": "SmolVLM2 vision analysis",
-                "should_respond": True,
-                "confidence": 0.9,
-                "model_used": "smolvlm2",
-                "inference_time_ms": inference_time,
-                "timestamp": int(time.time())
-            }
-    
-    # Fallback to Ollama LLaVA if SmolVLM2 fails
+async def analyze_vision(request: dict):
     try:
-        response = requests.post('http://localhost:11434/api/generate',
-            json={
-                "model": "llava",
-                "prompt": prompt,
-                "images": [frame_data],
-                "stream": False
-            },
-            timeout=120
-        )
+        frame_data = request.get("frame")
+        user_id = request.get("user_id", "anonymous")
         
-        if response.status_code == 200:
-            result = response.json()
-            insight = result.get('response', '').strip()
+        if not frame_data:
+            raise HTTPException(status_code=400, detail="No frame data provided")
+        
+        logger.info(f"👁️ Vision analysis from user {user_id}")
+        
+        # Try SmolVLM first
+        smolvlm_result = analyze_with_smolvlm(frame_data)
+        
+        if smolvlm_result:
+            # Determine if response is worth showing
+            should_respond = len(smolvlm_result.strip()) > 10 and not any(
+                phrase in smolvlm_result.lower() for phrase in 
+                ["i can't", "unable to", "cannot determine", "unclear", "i don't see"]
+            )
             
             return {
-                "insight": insight,
-                "scene_description": "LLaVA fallback analysis",
-                "should_respond": True,
-                "confidence": 0.7,
-                "model_used": "llava_fallback",
+                "success": True,
+                "insight": smolvlm_result,
+                "should_respond": should_respond,
+                "model_used": "smolvlm-256m",
                 "timestamp": int(time.time())
             }
-    
+        
+        # Fallback to Ollama if SmolVLM fails
+        logger.info("SmolVLM failed, trying Ollama fallback...")
+        ollama_result = analyze_with_ollama(frame_data, "Describe what you see in this image briefly.")
+        
+        if ollama_result:
+            should_respond = len(ollama_result.strip()) > 10
+            return {
+                "success": True,
+                "insight": ollama_result,
+                "should_respond": should_respond,
+                "model_used": "llava-fallback",
+                "timestamp": int(time.time())
+            }
+        
+        # Both failed
+        return {
+            "success": False,
+            "insight": "Vision analysis temporarily unavailable",
+            "should_respond": False,
+            "model_used": "none",
+            "timestamp": int(time.time())
+        }
+        
     except Exception as e:
-        logger.error(f"Vision analysis error: {str(e)}")
-    
-    return {
-        "insight": "Vision analysis temporarily unavailable. Please try again.",
-        "should_respond": True,
-        "confidence": 0.3
-    }
+        logger.error(f"Vision analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Vision analysis failed")
+
+# Health check for individual services
+@app.get("/api/jarvis/status")
+async def jarvis_status():
+    return {"status": "active", "message": "Jarvis is online and ready"}
 
 if __name__ == "__main__":
-    print("🚀 Starting Euphorie AI Service with SmolVLM2...")
-    print("🤖 Jarvis is coming online...")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
