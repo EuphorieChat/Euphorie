@@ -4,7 +4,7 @@ from PIL import Image
 import requests
 from io import BytesIO
 
-print("Testing SmolVLM2 with direct processing...")
+print("Testing SmolVLM2 with image token...")
 
 try:
     model_path = "HuggingFaceTB/SmolVLM2-500M-Instruct"
@@ -23,8 +23,8 @@ try:
     response = requests.get(url)
     image = Image.open(BytesIO(response.content)).convert('RGB')
     
-    # Try direct processor call instead of chat template
-    text = "What do you see in this image?"
+    # Include image token in text - this is what SmolVLM expects
+    text = "<image>What do you see in this image?"
     
     inputs = processor(
         images=image,
@@ -33,26 +33,29 @@ try:
     )
     
     print("Input processing successful!")
-    print("Generating response...")
+    print("Generating response... (may take 30-60 seconds)")
     
     with torch.no_grad():
         generated_ids = model.generate(
             **inputs,
             max_new_tokens=50,
-            do_sample=False
+            do_sample=False,
+            pad_token_id=processor.tokenizer.eos_token_id
         )
     
     response_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
     print(f"Raw response: {response_text}")
     
-    # Clean up the response
+    # Extract just the generated part
     if text in response_text:
         clean_response = response_text.replace(text, "").strip()
         print(f"Clean response: {clean_response}")
+    else:
+        print(f"Generated text: {response_text}")
     
-    print("Test completed successfully!")
+    print("✅ Test completed successfully!")
     
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"❌ Error: {e}")
     import traceback
     traceback.print_exc()
