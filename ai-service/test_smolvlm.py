@@ -13,14 +13,17 @@ try:
     processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
     print("✅ Processor loaded successfully")
     
-    # CPU-optimized settings
+    # CPU-optimized settings without device_map to avoid accelerate issues
     model = AutoModelForImageTextToText.from_pretrained(
         model_path,
         torch_dtype=torch.float32,  # Use float32 for CPU
-        device_map="cpu",
         trust_remote_code=True,
         low_cpu_mem_usage=True      # Optimize memory usage
     )
+    
+    # Manually move to CPU if needed
+    model = model.to('cpu')
+    
     print("✅ Model loaded successfully")
     print(f"Model device: {next(model.parameters()).device}")
     print(f"Model dtype: {next(model.parameters()).dtype}")
