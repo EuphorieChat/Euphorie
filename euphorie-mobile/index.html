@@ -83,15 +83,23 @@
             margin-top: 2rem;
         }
 
-        .status-indicator {
+        .status-bar {
             position: fixed;
             bottom: 1rem;
             left: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 1000;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
             padding: 0.4rem 0.8rem;
             border-radius: 15px;
             font-size: 0.7rem;
             font-weight: 600;
-            z-index: 1000;
+            flex: 0 0 auto;
         }
 
         .status-indicator.connected {
@@ -105,24 +113,162 @@
             color: #ff4757;
             border: 1px solid rgba(255, 0, 0, 0.3);
         }
+
+        .status-indicator.loading {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .model-info {
+            font-size: 0.6rem;
+            opacity: 0.8;
+            margin-top: 0.2rem;
+        }
+
+        .performance-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.6rem;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .status-bar {
+                bottom: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+            }
+            
+            .performance-indicator {
+                top: 0.5rem;
+                right: 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="status-indicator disconnected" id="status-indicator">
-        Connecting to AI service...
+    <div class="performance-indicator" id="performance-indicator">
+        Inference: --ms
+    </div>
+
+    <div class="status-bar">
+        <div class="status-indicator loading" id="ai-status">
+            <div>AI Service: Connecting...</div>
+            <div class="model-info">Initializing SmolVLM2</div>
+        </div>
+        
+        <div class="status-indicator disconnected" id="vision-status">
+            <div>Vision: Loading</div>
+            <div class="model-info">Model startup in progress</div>
+        </div>
     </div>
 
     <div class="main-container">
         <div class="camera-interface">
             <div id="camera-placeholder" class="camera-placeholder">
                 <div class="placeholder-title">Euphorie AI Vision</div>
-                <p>Mobile AI assistant ready to help with coding, learning, and more!</p>
+                <p>Powered by SmolVLM2 - Advanced mobile AI vision assistant</p>
+                <p style="margin-top: 1rem; opacity: 0.7; font-size: 0.9rem;">
+                    Ready for real-time analysis, coding help, and intelligent insights
+                </p>
                 <button class="start-button" onclick="initializeApp()">
                     Start AI Vision
                 </button>
             </div>
         </div>
     </div>
+
+    <script>
+        // Enhanced status checking for SmolVLM2
+        async function checkAIStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                const aiStatus = document.getElementById('ai-status');
+                const visionStatus = document.getElementById('vision-status');
+                const perfIndicator = document.getElementById('performance-indicator');
+                
+                // Update AI service status
+                if (data.status === 'healthy') {
+                    aiStatus.className = 'status-indicator connected';
+                    aiStatus.innerHTML = `
+                        <div>AI Service: Online</div>
+                        <div class="model-info">Jarvis Ready</div>
+                    `;
+                } else {
+                    aiStatus.className = 'status-indicator disconnected';
+                    aiStatus.innerHTML = `
+                        <div>AI Service: Offline</div>
+                        <div class="model-info">Connection failed</div>
+                    `;
+                }
+                
+                // Update vision model status
+                if (data.smolvlm_status === 'loaded') {
+                    visionStatus.className = 'status-indicator connected';
+                    visionStatus.innerHTML = `
+                        <div>Vision: SmolVLM2 Ready</div>
+                        <div class="model-info">Real-time analysis active</div>
+                    `;
+                } else if (data.smolvlm_status === 'loading') {
+                    visionStatus.className = 'status-indicator loading';
+                    visionStatus.innerHTML = `
+                        <div>Vision: Loading SmolVLM2</div>
+                        <div class="model-info">Model startup in progress</div>
+                    `;
+                } else {
+                    visionStatus.className = 'status-indicator disconnected';
+                    visionStatus.innerHTML = `
+                        <div>Vision: Unavailable</div>
+                        <div class="model-info">LLaVA fallback available</div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Status check failed:', error);
+                document.getElementById('ai-status').className = 'status-indicator disconnected';
+                document.getElementById('ai-status').innerHTML = `
+                    <div>AI Service: Connection Error</div>
+                    <div class="model-info">Check server status</div>
+                `;
+            }
+        }
+        
+        // Track inference performance
+        function updatePerformanceMetrics(responseTime, modelUsed) {
+            const perfIndicator = document.getElementById('performance-indicator');
+            perfIndicator.innerHTML = `${modelUsed || 'Vision'}: ${responseTime}ms`;
+            
+            // Color code based on performance
+            if (responseTime < 2000) {
+                perfIndicator.style.borderColor = 'rgba(0, 255, 136, 0.3)';
+                perfIndicator.style.color = '#00ff88';
+            } else if (responseTime < 5000) {
+                perfIndicator.style.borderColor = 'rgba(255, 193, 7, 0.3)';
+                perfIndicator.style.color = '#ffc107';
+            } else {
+                perfIndicator.style.borderColor = 'rgba(255, 0, 0, 0.3)';
+                perfIndicator.style.color = '#ff4757';
+            }
+        }
+        
+        // Initialize the app
+        function initializeApp() {
+            console.log('🚀 Initializing Euphorie AI with SmolVLM2...');
+            // Your existing initialization code here
+        }
+        
+        // Check status every 10 seconds
+        setInterval(checkAIStatus, 10000);
+        checkAIStatus(); // Initial check
+    </script>
 
     <script type="module" src="./src/main.js"></script>
 </body>
