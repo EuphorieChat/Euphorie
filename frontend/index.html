@@ -1305,10 +1305,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
 
+            // Ensure news panel is hidden on mobile by default
+            const panel = document.getElementById('news-panel');
+            if (window.innerWidth <= 768) {
+                panel.style.display = 'none';
+            }
+
             // Handle resize
             window.addEventListener('resize', () => {
                 const wasMobile = newsFeed.isMobile;
                 newsFeed.isMobile = window.innerWidth <= 768;
+
+                // Hide news panel when switching to mobile
+                if (!wasMobile && newsFeed.isMobile) {
+                    panel.style.display = 'none';
+                    panel.classList.remove('enabled', 'open');
+                } else if (wasMobile && !newsFeed.isMobile && newsFeed.isEnabled) {
+                    panel.style.display = '';
+                    panel.classList.add('enabled');
+                }
 
                 if (wasMobile !== newsFeed.isMobile && newsFeed.isEnabled) {
                     newsFeed.setupAutoScroll();
