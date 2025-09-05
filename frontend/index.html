@@ -665,7 +665,7 @@
                 left: 0;
                 right: 0;
                 width: 100%;
-                height: 50vh;
+                height: 40vh;
                 background: rgba(0, 0, 0, 0.92);
                 backdrop-filter: blur(15px);
                 border-top: 2px solid #00ff88;
@@ -673,14 +673,15 @@
                 border-radius: 20px 20px 0 0;
                 z-index: 3000;
                 transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                /* FIXED: Remove display: none on mobile */
+                display: none;
             }
 
             .news-panel.enabled {
                 display: flex;
+                bottom: -40vh;
             }
 
-            .news-panel.open {
+            .news-panel.enabled.open {
                 bottom: 0;
             }
 
@@ -711,7 +712,7 @@
                 backdrop-filter: blur(10px);
                 border: 2px solid #00ff88;
                 border-radius: 50%;
-                display: flex;
+                display: none !important;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
@@ -719,6 +720,10 @@
                 font-size: 1.2rem;
                 transition: all 0.3s ease;
                 box-shadow: 0 0 20px #00ff8844;
+            }
+
+            .mobile-news-btn.enabled {
+                display: flex !important;
             }
 
             .mobile-news-btn:active {
@@ -944,49 +949,6 @@
                 this.reconnectAttempts = 0;
                 this.maxReconnects = 5;
                 this.autoScrollEnabled = true;
-
-                // FIXED: Initialize sample data for testing
-                this.initSampleData();
-            }
-
-            // FIXED: Add sample data for testing
-            initSampleData() {
-                const sampleArticles = [
-                    {
-                        id: '1',
-                        title: 'AI Vision System Enhanced with Neural Networks',
-                        summary: 'Latest improvements to computer vision algorithms show 40% better accuracy in real-time object detection.',
-                        category: 'AI',
-                        source_name: 'TechNet',
-                        published: new Date().toISOString(),
-                        is_breaking: false,
-                        url: '#'
-                    },
-                    {
-                        id: '2',
-                        title: 'Breaking: New Quantum Computing Breakthrough',
-                        summary: 'Scientists achieve stable quantum state for record 100 seconds, paving way for practical quantum computers.',
-                        category: 'Tech',
-                        source_name: 'Science Daily',
-                        published: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-                        is_breaking: true,
-                        url: '#'
-                    },
-                    {
-                        id: '3',
-                        title: 'Global Markets Show Strong Growth',
-                        summary: 'Technology sector leads market gains as AI adoption accelerates across industries.',
-                        category: 'Business',
-                        source_name: 'Market Watch',
-                        published: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-                        is_breaking: false,
-                        url: '#'
-                    }
-                ];
-
-                sampleArticles.forEach(article => {
-                    this.articles.set(article.id, article);
-                });
             }
 
             enable() {
@@ -997,7 +959,9 @@
                 const mobileBtn = document.getElementById('mobile-news-btn');
 
                 panel.classList.add('enabled');
-                mobileBtn.classList.add('enabled');
+                if (this.isMobile) {
+                    mobileBtn.classList.add('enabled');
+                }
 
                 this.init();
                 this.updateStatus('Establishing neural link...', false);
@@ -1030,6 +994,11 @@
                 mobileBtn.classList.remove('enabled');
                 container.classList.remove('news-open');
 
+                // Force hide panel on mobile
+                if (this.isMobile) {
+                    panel.style.display = 'none';
+                }
+
                 this.isOpen = false;
                 this.updateStatus('Neural network offline', false);
             }
@@ -1050,7 +1019,7 @@
                 if (this.isOpen) {
                     this.newCount = 0;
                     this.updateBadge();
-                    this.renderFeed(); // FIXED: Always render feed when opening
+                    this.loadFeed();
                     if (this.isMobile) {
                         this.setupMobileGestures();
                     }
@@ -1108,7 +1077,7 @@
             init() {
                 this.setupFilters();
                 this.connectWebSocket();
-                this.renderFeed(); // FIXED: Render sample data immediately
+                this.loadFeed();
                 this.setupAutoScroll();
                 this.startPolling();
             }
@@ -1149,13 +1118,6 @@
             }
 
             connectWebSocket() {
-                // FIXED: Skip websocket connection for now and just set connected status
-                setTimeout(() => {
-                    this.updateStatus('Neural link established', true);
-                }, 1000);
-
-                // Original websocket code commented out for testing
-                /*
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const wsUrl = `${protocol}//${window.location.hostname}/ws/news/`;
 
@@ -1183,7 +1145,6 @@
                 } catch (error) {
                     this.updateStatus('Neural link failed', false);
                 }
-                */
             }
 
             attemptReconnect() {
@@ -1196,12 +1157,6 @@
             }
 
             async loadFeed() {
-                // FIXED: Use sample data instead of API call
-                this.renderFeed();
-                return;
-
-                // Original API code commented out for testing
-                /*
                 try {
                     const response = await fetch('/api/news/feed?limit=30');
                     if (response.ok) {
@@ -1214,42 +1169,9 @@
                 } catch (error) {
                     console.error('Failed to load intel feed:', error);
                 }
-                */
             }
 
             startPolling() {
-                // FIXED: Simulate new articles for testing
-                setInterval(() => {
-                    if (!this.isEnabled) return;
-
-                    // Add a new sample article occasionally
-                    if (Math.random() < 0.3) {
-                        const newArticle = {
-                            id: Date.now().toString(),
-                            title: 'New Development in AI Technology',
-                            summary: 'Breaking news: Latest advances in machine learning algorithms show promising results.',
-                            category: 'AI',
-                            source_name: 'Tech News',
-                            published: new Date().toISOString(),
-                            is_breaking: Math.random() < 0.2,
-                            url: '#'
-                        };
-
-                        this.articles.set(newArticle.id, newArticle);
-
-                        if (this.isEnabled && !this.isOpen) {
-                            this.newCount++;
-                            this.updateBadge();
-                        }
-
-                        if (this.isOpen) {
-                            this.renderFeed();
-                        }
-                    }
-                }, 30000);
-
-                // Original polling code commented out
-                /*
                 setInterval(async () => {
                     if (!this.isEnabled) return;
 
@@ -1260,6 +1182,7 @@
                             data.articles.forEach(article => {
                                 if (!this.articles.has(article.id)) {
                                     this.articles.set(article.id, article);
+                                    // Only show badge and update count if news is enabled and visible
                                     if (this.isEnabled) {
                                         this.newCount++;
                                         this.updateBadge();
@@ -1274,7 +1197,6 @@
                         console.error('Polling error:', error);
                     }
                 }, 30000);
-                */
             }
 
             handleUpdate(data) {
@@ -1355,12 +1277,10 @@
                 `;
 
                 item.onclick = () => {
-                    if (article.url && article.url !== '#') {
-                        const url = article.url?.startsWith('http')
-                            ? article.url
-                            : `https://crene.com${article.url}`;
-                        window.open(url, '_blank');
-                    }
+                    const url = article.url?.startsWith('http')
+                        ? article.url
+                        : `https://crene.com${article.url}`;
+                    window.open(url, '_blank');
                 };
 
                 return item;
@@ -1378,10 +1298,8 @@
 
             updateStatus(text, connected = false) {
                 const status = document.getElementById('news-status');
-                if (status) {
-                    status.textContent = text;
-                    status.classList.toggle('connected', connected);
-                }
+                status.textContent = text;
+                status.classList.toggle('connected', connected);
             }
         }
 
@@ -1393,10 +1311,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
 
+            // Ensure news panel is hidden on mobile by default
+            const panel = document.getElementById('news-panel');
+            if (window.innerWidth <= 768) {
+                panel.style.display = 'none';
+            }
+
             // Handle resize
             window.addEventListener('resize', () => {
                 const wasMobile = newsFeed.isMobile;
                 newsFeed.isMobile = window.innerWidth <= 768;
+
+                // Hide news panel when switching to mobile
+                if (!wasMobile && newsFeed.isMobile) {
+                    panel.style.display = 'none';
+                    panel.classList.remove('enabled', 'open');
+                } else if (wasMobile && !newsFeed.isMobile && newsFeed.isEnabled) {
+                    panel.style.display = '';
+                    panel.classList.add('enabled');
+                }
 
                 if (wasMobile !== newsFeed.isMobile && newsFeed.isEnabled) {
                     newsFeed.setupAutoScroll();
