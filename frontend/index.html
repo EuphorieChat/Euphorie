@@ -658,24 +658,25 @@
 
         /* Mobile Styles */
         @media (max-width: 768px) {
-            /* Mobile news overlay */
+            /* Mobile news overlay - bottom sheet style */
             .news-panel {
                 position: fixed;
-                top: 0;
+                bottom: -70vh;
                 left: 0;
                 right: 0;
-                bottom: 0;
                 width: 100%;
-                height: 100vh;
-                height: 100dvh;
+                height: 70vh;
                 background: rgba(0, 0, 0, 0.95);
                 backdrop-filter: blur(20px);
-                border: none;
+                border-top: 2px solid #00ff88;
+                border-left: none;
+                border-radius: 20px 20px 0 0;
                 z-index: 3000;
-                right: -100%;
+                transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             .news-panel.open {
+                bottom: 0;
                 right: 0;
             }
 
@@ -690,7 +691,7 @@
             /* Mobile news button */
             .mobile-news-btn {
                 position: fixed;
-                top: 20px;
+                bottom: 20px;
                 right: 20px;
                 width: 50px;
                 height: 50px;
@@ -739,15 +740,30 @@
                 animation: pulse 1s ease;
             }
 
-            /* Mobile news header */
+            /* Mobile news header with drag handle */
             .mobile-news-header {
                 display: none;
-                justify-content: space-between;
-                align-items: center;
-                padding: 1rem 1.5rem;
+                flex-direction: column;
+                padding: 0.5rem 1.5rem 1rem;
                 background: rgba(0, 0, 0, 0.9);
                 border-bottom: 1px solid #00ff88;
                 backdrop-filter: blur(10px);
+            }
+
+            /* Drag handle for bottom sheet */
+            .drag-handle {
+                width: 60px;
+                height: 4px;
+                background: #00ff8866;
+                border-radius: 2px;
+                margin: 0.5rem auto 1rem;
+                cursor: grab;
+            }
+
+            .mobile-news-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             }
 
             .news-panel.open .mobile-news-header {
@@ -844,8 +860,11 @@
         
         <!-- Mobile Header -->
         <div class="mobile-news-header">
-            <h2 class="news-title">Live Intel Feed</h2>
-            <button class="mobile-close-btn" onclick="closeNewsFeed()">✕</button>
+            <div class="drag-handle"></div>
+            <div class="mobile-news-controls">
+                <h2 class="news-title">Live Intel Feed</h2>
+                <button class="mobile-close-btn" onclick="closeNewsFeed()">✕</button>
+            </div>
         </div>
         
         <!-- Desktop Header -->
@@ -963,7 +982,56 @@
                     this.newCount = 0;
                     this.updateBadge();
                     this.loadFeed();
+                    if (this.isMobile) {
+                        this.setupMobileGestures();
+                    }
                 }
+            }
+
+            setupMobileGestures() {
+                const panel = document.getElementById('news-panel');
+                const handle = panel.querySelector('.drag-handle');
+                let startY = 0;
+                let currentY = 0;
+                let isDragging = false;
+
+                const handleStart = (e) => {
+                    isDragging = true;
+                    startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    panel.style.transition = 'none';
+                };
+
+                const handleMove = (e) => {
+                    if (!isDragging) return;
+                    currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    const deltaY = currentY - startY;
+                    
+                    if (deltaY > 0) {
+                        panel.style.transform = `translateY(${deltaY}px)`;
+                    }
+                };
+
+                const handleEnd = () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    panel.style.transition = '';
+                    panel.style.transform = '';
+                    
+                    const deltaY = currentY - startY;
+                    if (deltaY > 100) {
+                        this.toggle();
+                    }
+                };
+
+                // Touch events
+                handle.addEventListener('touchstart', handleStart, { passive: true });
+                window.addEventListener('touchmove', handleMove, { passive: true });
+                window.addEventListener('touchend', handleEnd);
+
+                // Mouse events for testing
+                handle.addEventListener('mousedown', handleStart);
+                window.addEventListener('mousemove', handleMove);
+                window.addEventListener('mouseup', handleEnd);
             }
 
             init() {
@@ -1218,7 +1286,7 @@
         }
 
         function closeNewsFeed() {
-            if (newsFeed) newsFeed.disable();
+            if (newsFeed) newsFeed.toggle();
         }
 
         async function startCamera() {
