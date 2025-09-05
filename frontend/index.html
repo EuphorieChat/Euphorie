@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Euphorie</title>
+    <title>Euphorie AI Vision</title>
     
     <!-- Favicon Support -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
-    <meta name="theme-color" content="#00ff88">
+    <meta name="theme-color" content="#1a1a1a">
     
     <style>
         * {
@@ -19,692 +19,71 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        :root {
+            --primary-green: #00d4aa;
+            --primary-blue: #007cf0;
+            --bg-dark: #0a0a0a;
+            --bg-card: #1a1a1a;
+            --bg-glass: rgba(26, 26, 26, 0.8);
+            --border-subtle: rgba(255, 255, 255, 0.1);
+            --border-accent: rgba(0, 212, 170, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+        }
+
         html, body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #000;
-            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
             overflow: hidden;
             height: 100vh;
             height: 100dvh;
             width: 100vw;
             position: fixed;
-            touch-action: none;
+            touch-action: manipulation;
         }
 
-        /* Desktop News Feed Styles with Auto-Scroll */
-        @media (min-width: 769px) {
-            .news-feed-container {
-                position: fixed;
-                right: -400px;
-                top: 0;
-                width: 400px;
-                height: 100vh;
-                background: rgba(0, 0, 0, 0.95);
-                border-left: 1px solid rgba(0, 255, 136, 0.3);
-                transition: right 0.3s ease;
-                z-index: 1000;
-                display: flex;
-                flex-direction: column;
-                opacity: 0;
-                visibility: hidden;
-            }
-
-            .news-feed-container.enabled {
-                visibility: visible;
-                opacity: 1;
-            }
-
-            .news-feed-container.open {
-                right: 0;
-            }
-
-            .main-container.news-open {
-                margin-right: 400px;
-            }
-
-            /* Desktop auto-scroll ticker */
-            .news-ticker {
-                animation: desktopTicker 60s linear infinite;
-                padding-bottom: 100px;
-            }
-
-            .news-ticker.paused {
-                animation-play-state: paused;
-            }
-
-            @keyframes desktopTicker {
-                0% { transform: translateY(0); }
-                100% { transform: translateY(-50%); }
-            }
-        }
-
-        /* Mobile Jarvis-Style AR Overlay */
-        @media (max-width: 768px) {
-            .news-feed-container {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                height: 100dvh;
-                pointer-events: none;
-                z-index: 2000;
-                display: none;
-            }
-
-            .news-feed-container.enabled {
-                display: block;
-            }
-
-            .news-feed-container.open {
-                pointer-events: all;
-            }
-
-            /* Jarvis-style HUD elements */
-            .jarvis-hud {
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                display: none;
-            }
-
-            .news-feed-container.open .jarvis-hud {
-                display: block;
-                animation: hudActivation 0.5s ease;
-            }
-
-            @keyframes hudActivation {
-                from {
-                    opacity: 0;
-                    transform: scale(1.1);
-                }
-                to {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-            }
-
-            /* Corner frames for AR effect */
-            .hud-corner {
-                position: absolute;
-                width: 50px;
-                height: 50px;
-                border: 2px solid rgba(0, 255, 136, 0.5);
-                opacity: 0.8;
-            }
-
-            .hud-corner.top-left {
-                top: 20px;
-                left: 20px;
-                border-right: none;
-                border-bottom: none;
-                animation: cornerPulse 3s ease-in-out infinite;
-            }
-
-            .hud-corner.top-right {
-                top: 20px;
-                right: 20px;
-                border-left: none;
-                border-bottom: none;
-                animation: cornerPulse 3s ease-in-out infinite 0.5s;
-            }
-
-            .hud-corner.bottom-left {
-                bottom: 20px;
-                left: 20px;
-                border-right: none;
-                border-top: none;
-                animation: cornerPulse 3s ease-in-out infinite 1s;
-            }
-
-            .hud-corner.bottom-right {
-                bottom: 20px;
-                right: 20px;
-                border-left: none;
-                border-top: none;
-                animation: cornerPulse 3s ease-in-out infinite 1.5s;
-            }
-
-            @keyframes cornerPulse {
-                0%, 100% { 
-                    opacity: 0.8;
-                    transform: scale(1);
-                }
-                50% { 
-                    opacity: 1;
-                    transform: scale(1.05);
-                }
-            }
-
-            /* Floating news cards - Jarvis style */
-            .jarvis-news-container {
-                position: absolute;
-                top: 80px;
-                left: 20px;
-                right: 20px;
-                bottom: 120px;
-                overflow: visible;
-                pointer-events: none;
-            }
-
-            .jarvis-news-card {
-                position: absolute;
-                background: linear-gradient(135deg, 
-                    rgba(0, 255, 136, 0.1), 
-                    rgba(0, 153, 255, 0.05));
-                border: 1px solid rgba(0, 255, 136, 0.4);
-                border-radius: 10px;
-                padding: 12px;
-                backdrop-filter: blur(5px);
-                -webkit-backdrop-filter: blur(5px);
-                pointer-events: all;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                animation: floatIn 0.5s ease;
-                max-width: calc(100vw - 40px);
-                box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
-            }
-
-            @keyframes floatIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(-20px) scale(0.95);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0) scale(1);
-                }
-            }
-
-            .jarvis-news-card:active {
-                transform: scale(0.98);
-                box-shadow: 0 2px 10px rgba(0, 255, 136, 0.3);
-            }
-
-            .jarvis-news-card.breaking {
-                background: linear-gradient(135deg, 
-                    rgba(255, 59, 48, 0.2), 
-                    rgba(255, 149, 0, 0.1));
-                border-color: rgba(255, 59, 48, 0.6);
-                animation: breakingPulse 2s ease-in-out infinite;
-            }
-
-            @keyframes breakingPulse {
-                0%, 100% { 
-                    box-shadow: 0 4px 15px rgba(255, 59, 48, 0.3);
-                }
-                50% { 
-                    box-shadow: 0 4px 25px rgba(255, 59, 48, 0.5);
-                }
-            }
-
-            /* HUD info display */
-            .hud-info {
-                position: absolute;
-                top: 20px;
-                left: 80px;
-                right: 80px;
-                text-align: center;
-                pointer-events: none;
-            }
-
-            .hud-title {
-                font-size: 0.9rem;
-                font-weight: 600;
-                color: rgba(0, 255, 136, 0.9);
-                text-transform: uppercase;
-                letter-spacing: 2px;
-                animation: hudGlow 2s ease-in-out infinite;
-            }
-
-            @keyframes hudGlow {
-                0%, 100% { 
-                    text-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
-                }
-                50% { 
-                    text-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
-                }
-            }
-
-            /* Minimize and close buttons for Jarvis mode */
-            .jarvis-controls {
-                position: absolute;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                display: flex;
-                gap: 20px;
-                pointer-events: all;
-            }
-
-            .jarvis-control-btn {
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                background: rgba(0, 0, 0, 0.8);
-                border: 2px solid rgba(0, 255, 136, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                animation: controlPulse 3s ease-in-out infinite;
-                transition: all 0.3s ease;
-            }
-
-            .jarvis-control-btn:active {
-                transform: scale(0.95);
-            }
-
-            .jarvis-control-btn.close {
-                border-color: rgba(255, 59, 48, 0.5);
-                background: rgba(255, 59, 48, 0.1);
-            }
-
-            .jarvis-control-btn.close:hover {
-                border-color: rgba(255, 59, 48, 0.8);
-                background: rgba(255, 59, 48, 0.2);
-                box-shadow: 0 0 20px rgba(255, 59, 48, 0.4);
-            }
-
-            @keyframes controlPulse {
-                0%, 100% { 
-                    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-                }
-                50% { 
-                    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-                }
-            }
-
-            /* Mobile floating news button - better positioned */
-            .mobile-news-fab {
-                position: fixed;
-                bottom: 100px;
-                right: 20px;
-                width: 70px;
-                height: 70px;
-                background: linear-gradient(135deg, 
-                    rgba(0, 255, 136, 0.2), 
-                    rgba(0, 153, 255, 0.2));
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border: 2px solid rgba(0, 255, 136, 0.4);
-                border-radius: 35px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                z-index: 1999;
-                opacity: 0;
-                visibility: hidden;
-                transform: scale(0) rotate(-180deg);
-                transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-                box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
-            }
-
-            .mobile-news-fab.enabled {
-                opacity: 1;
-                visibility: visible;
-                transform: scale(1) rotate(0);
-            }
-
-            .mobile-news-fab:active {
-                transform: scale(0.95);
-            }
-
-            .mobile-news-fab.pulse {
-                animation: mobilePulse 2s ease-in-out infinite;
-            }
-
-            @keyframes mobilePulse {
-                0%, 100% { 
-                    box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
-                    border-color: rgba(0, 255, 136, 0.4);
-                }
-                50% { 
-                    box-shadow: 0 8px 35px rgba(0, 255, 136, 0.6), 0 0 0 10px rgba(0, 255, 136, 0.1);
-                    border-color: rgba(0, 255, 136, 0.7);
-                }
-            }
-
-            .mobile-news-fab-icon {
-                font-size: 1.2rem;
-                margin-bottom: 2px;
-            }
-
-            .mobile-news-fab-label {
-                font-size: 0.6rem;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                opacity: 0.9;
-            }
-
-            .news-badge {
-                position: absolute;
-                top: -8px;
-                right: -8px;
-                background: linear-gradient(135deg, #ff4757, #ff6348);
-                color: white;
-                font-size: 0.7rem;
-                font-weight: bold;
-                padding: 4px 8px;
-                border-radius: 12px;
-                min-width: 24px;
-                text-align: center;
-                box-shadow: 0 2px 8px rgba(255, 71, 87, 0.6);
-                display: none;
-            }
-
-            .news-badge.show {
-                display: block;
-                animation: badgePop 0.3s ease;
-            }
-
-            @keyframes badgePop {
-                0% { transform: scale(0); }
-                60% { transform: scale(1.2); }
-                100% { transform: scale(1); }
-            }
-        }
-
-        /* Desktop news toggle - improved design */
-        .news-toggle {
-            position: absolute;
-            left: -50px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 50px;
-            height: 100px;
-            background: linear-gradient(135deg, 
-                rgba(0, 255, 136, 0.1), 
-                rgba(0, 153, 255, 0.05));
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 2px solid rgba(0, 255, 136, 0.3);
-            border-right: none;
-            border-radius: 15px 0 0 15px;
+        /* Layout Container */
+        .app-container {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            opacity: 0;
-            visibility: hidden;
-            box-shadow: -5px 0 15px rgba(0, 255, 136, 0.2);
-        }
-
-        @media (max-width: 768px) {
-            .news-toggle {
-                display: none;
-            }
-        }
-
-        .news-feed-container.enabled .news-toggle {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .news-toggle:hover {
-            background: linear-gradient(135deg, 
-                rgba(0, 255, 136, 0.2), 
-                rgba(0, 153, 255, 0.1));
-            border-color: rgba(0, 255, 136, 0.6);
-            transform: translateY(-50%) translateX(5px);
-            box-shadow: -10px 0 25px rgba(0, 255, 136, 0.4);
-        }
-
-        .news-toggle.pulse {
-            animation: newsPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes newsPulse {
-            0%, 100% { 
-                border-color: rgba(0, 255, 136, 0.3);
-                box-shadow: -5px 0 15px rgba(0, 255, 136, 0.2);
-            }
-            50% { 
-                border-color: rgba(0, 255, 136, 0.7);
-                box-shadow: -10px 0 30px rgba(0, 255, 136, 0.5);
-            }
-        }
-
-        .news-toggle-icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .news-toggle-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            color: rgba(0, 255, 136, 0.8);
-        }
-
-        .news-header {
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.8);
-            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
-        }
-
-        .news-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            background: linear-gradient(45deg, #00ff88, #0099ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
-
-        .news-filters {
-            display: flex;
-            gap: 0.5rem;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-            scrollbar-width: none;
-        }
-
-        .news-filters::-webkit-scrollbar {
-            display: none;
-        }
-
-        .news-filter {
-            padding: 0.3rem 0.8rem;
-            font-size: 0.75rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .news-filter.active {
-            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 153, 255, 0.3));
-            border-color: rgba(0, 255, 136, 0.5);
-            color: #00ff88;
-        }
-
-        .news-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            scroll-behavior: smooth;
-            overflow-x: hidden;
-        }
-
-        .news-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .news-content::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .news-content::-webkit-scrollbar-thumb {
-            background: rgba(0, 255, 136, 0.3);
-            border-radius: 3px;
-        }
-
-        .news-item {
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .news-item:hover {
-            background: rgba(0, 255, 136, 0.1);
-            border-color: rgba(0, 255, 136, 0.3);
-            transform: translateX(-5px);
-        }
-
-        .news-item.breaking {
-            border-color: rgba(255, 59, 48, 0.5);
-            background: rgba(255, 59, 48, 0.1);
-        }
-
-        .news-item-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            line-height: 1.3;
-        }
-
-        .news-item-meta {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .news-item-category {
-            color: #00ff88;
-        }
-
-        .news-item-summary {
-            font-size: 0.75rem;
-            line-height: 1.4;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        /* Jarvis card styles */
-        .jarvis-card-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 0.3rem;
-            line-height: 1.2;
-        }
-
-        .jarvis-card-meta {
-            display: flex;
-            gap: 0.5rem;
-            font-size: 0.65rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 0.3rem;
-        }
-
-        .jarvis-card-summary {
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.85);
-            line-height: 1.3;
-        }
-
-        /* Live indicator */
-        .live-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.2rem 0.5rem;
-            background: rgba(255, 0, 0, 0.2);
-            border: 1px solid rgba(255, 0, 0, 0.5);
-            border-radius: 10px;
-            font-size: 0.65rem;
-            margin-left: 0.5rem;
-        }
-
-        .live-dot {
-            width: 6px;
-            height: 6px;
-            background: #ff0000;
-            border-radius: 50%;
-            animation: livePulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes livePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .connection-status {
-            padding: 0.5rem 1rem;
-            background: rgba(0, 0, 0, 0.8);
-            border-top: 1px solid rgba(0, 255, 136, 0.2);
-            font-size: 0.7rem;
-            text-align: center;
-        }
-
-        .connection-status.connected {
-            color: #00ff88;
-        }
-
-        .connection-status.connected::before {
-            content: '● ';
-            animation: livePulse 2s infinite;
-        }
-
-        /* Main container */
-        .main-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
             height: 100vh;
             height: 100dvh;
-            padding: 0.5rem;
+            position: relative;
+        }
+
+        /* Main Camera Area */
+        .camera-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
             position: relative;
             transition: margin-right 0.3s ease;
+        }
+
+        .camera-section.news-open {
+            margin-right: 380px;
+        }
+
+        @media (max-width: 1024px) {
+            .camera-section.news-open {
+                margin-right: 0;
+            }
         }
 
         .camera-interface {
             width: 100%;
             height: 100%;
-            max-width: min(1200px, 100vw - 1rem);
-            max-height: min(800px, 100vh - 1rem);
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid rgba(0, 255, 136, 0.5);
+            max-width: 1200px;
+            max-height: 800px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
             border-radius: 20px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        @media (max-width: 768px) {
-            .camera-interface {
-                border-radius: 15px;
-                border-width: 1px;
-            }
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
         .camera-video {
@@ -722,84 +101,66 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 1.5rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-card) 100%);
         }
 
         .placeholder-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            opacity: 0.6;
-        }
-
-        @media (max-width: 768px) {
-            .placeholder-icon {
-                font-size: 2.5rem;
-                margin-bottom: 1rem;
-            }
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
         }
 
         .placeholder-title {
-            font-size: 2rem;
-            font-weight: 600;
+            font-size: 2.5rem;
+            font-weight: 700;
             margin-bottom: 1rem;
-            background: linear-gradient(45deg, #00ff88, #0099ff);
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-        }
-
-        @media (max-width: 768px) {
-            .placeholder-title {
-                font-size: 1.5rem;
-            }
+            background-clip: text;
         }
 
         .placeholder-subtitle {
-            font-size: 1rem;
-            opacity: 0.8;
-            margin-bottom: 2rem;
-            line-height: 1.5;
-            max-width: min(500px, 90vw);
-        }
-
-        @media (max-width: 768px) {
-            .placeholder-subtitle {
-                font-size: 0.9rem;
-                margin-bottom: 1.5rem;
-            }
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+            max-width: 500px;
         }
 
         .start-button {
-            padding: 1.2rem 2.5rem;
+            padding: 1rem 2rem;
             font-size: 1.1rem;
-            background: linear-gradient(45deg, #00ff88, #0099ff);
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
             border: none;
-            border-radius: 15px;
-            color: black;
-            font-weight: 700;
+            border-radius: 12px;
+            color: white;
             cursor: pointer;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
         }
 
         .start-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
         }
 
-        @media (max-width: 768px) {
-            .start-button {
-                padding: 1rem 2rem;
-                font-size: 1rem;
-            }
-        }
-
+        /* Control Overlay */
         .controls-overlay {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
+            top: 1.5rem;
+            right: 1.5rem;
             display: none;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            z-index: 100;
+            gap: 0.75rem;
+            z-index: 10;
         }
 
         .controls-overlay.show {
@@ -807,403 +168,570 @@
         }
 
         .control-btn {
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
+            padding: 0.75rem 1rem;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
             border-radius: 10px;
-            padding: 0.6rem 1rem;
+            color: var(--text-primary);
+            font-weight: 500;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
             transition: all 0.2s ease;
         }
 
         .control-btn:hover {
-            border-color: rgba(0, 255, 136, 0.7);
-            background: rgba(0, 255, 136, 0.1);
+            background: rgba(0, 212, 170, 0.1);
+            border-color: var(--border-accent);
         }
 
-        @media (max-width: 768px) {
-            .control-btn {
-                padding: 0.5rem 0.8rem;
-                font-size: 0.85rem;
-            }
-        }
-
+        /* Chat Overlay */
         .chat-overlay {
             position: absolute;
-            bottom: 2.5rem;
-            right: 1rem;
-            left: 1rem;
-            max-width: min(350px, 90vw);
-            max-height: 150px;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            max-width: 400px;
             margin: 0 auto;
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            border-radius: 10px;
             padding: 1rem;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
             display: none;
-            z-index: 50;
+            z-index: 10;
         }
 
         .chat-overlay.show {
             display: block;
         }
 
-        @media (max-width: 768px) {
-            .chat-overlay {
-                bottom: 20px;
-                padding: 0.8rem;
+        .ai-message {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* News Panel */
+        .news-panel {
+            position: fixed;
+            top: 0;
+            right: -380px;
+            width: 380px;
+            height: 100vh;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border-subtle);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .news-panel.enabled {
+            display: flex;
+        }
+
+        .news-panel.open {
+            right: 0;
+        }
+
+        /* News Toggle Button */
+        .news-toggle {
+            position: absolute;
+            left: -50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 80px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .news-toggle:hover {
+            background: rgba(0, 212, 170, 0.1);
+            border-color: var(--border-accent);
+            transform: translateY(-50%) translateX(3px);
+        }
+
+        /* News Header */
+        .news-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-dark);
+        }
+
+        .news-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .news-filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .news-filter {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .news-filter.active {
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            border-color: transparent;
+            color: white;
+        }
+
+        .news-filter:hover:not(.active) {
+            background: var(--bg-glass);
+            border-color: var(--border-accent);
+        }
+
+        /* News Content */
+        .news-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .news-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .news-content::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        .news-content::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 3px;
+        }
+
+        .news-content::-webkit-scrollbar-thumb:hover {
+            background: var(--border-accent);
+        }
+
+        .news-item {
+            padding: 1rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .news-item:hover {
+            background: var(--bg-glass);
+            border-color: var(--border-accent);
+            transform: translateX(-2px);
+        }
+
+        .news-item.breaking {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .news-item.breaking::before {
+            content: 'BREAKING';
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .news-item-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .news-item-meta {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .news-item-category {
+            color: var(--primary-green);
+            font-weight: 500;
+        }
+
+        .news-item-summary {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* News Status */
+        .news-status {
+            padding: 1rem 1.5rem;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border-subtle);
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .news-status.connected {
+            color: var(--primary-green);
+        }
+
+        .news-status.connected::before {
+            content: '●';
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 1024px) {
+            .news-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                height: 100vh;
+                height: 100dvh;
+                background: var(--bg-dark);
+                border: none;
+                z-index: 2000;
             }
+
+            .news-toggle {
+                display: none;
+            }
+
+            .camera-section {
+                padding: 0.5rem;
+            }
+
+            .camera-interface {
+                border-radius: 15px;
+            }
+
+            .placeholder-title {
+                font-size: 2rem;
+            }
+
+            .placeholder-subtitle {
+                font-size: 1rem;
+            }
+
+            .chat-overlay {
+                bottom: 1rem;
+                left: 1rem;
+                right: 1rem;
+            }
+        }
+
+        /* Mobile News Button */
+        .mobile-news-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1999;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-news-btn.enabled {
+            display: flex;
+        }
+
+        .mobile-news-btn:active {
+            transform: scale(0.95);
+            background: rgba(0, 212, 170, 0.2);
+        }
+
+        .news-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+            display: none;
+        }
+
+        .news-badge.show {
+            display: block;
+            animation: badgePop 0.3s ease;
+        }
+
+        @keyframes badgePop {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Mobile News Header */
+        .mobile-news-header {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .mobile-close-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #ef4444;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-close-btn:active {
+            transform: scale(0.95);
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        @media (max-width: 1024px) {
+            .mobile-news-btn {
+                display: flex;
+            }
+
+            .news-panel.open .mobile-news-header {
+                display: flex;
+            }
+
+            .news-panel.open .news-header {
+                display: none;
+            }
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-subtle);
+            border-top: 2px solid var(--primary-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <!-- Mobile News FAB Button -->
-    <div id="mobile-news-fab" class="mobile-news-fab" onclick="toggleNewsFeed()">
-        <span class="mobile-news-fab-icon">📰</span>
-        <span class="mobile-news-fab-label">News</span>
+    <div class="app-container">
+        <!-- Main Camera Section -->
+        <div class="camera-section" id="camera-section">
+            <div class="camera-interface">
+                <div id="camera-placeholder" class="camera-placeholder">
+                    <div class="placeholder-icon">📹</div>
+                    <h1 class="placeholder-title">Euphorie AI Vision</h1>
+                    <p class="placeholder-subtitle">
+                        Enable your camera to interact with AI assistants in real-time.
+                        Point your camera at code, documents, or anything you need help with.
+                    </p>
+                    <button class="start-button" onclick="startCamera()">
+                        Start AI Vision
+                    </button>
+                </div>
+                
+                <video id="camera-video" class="camera-video" autoplay muted playsinline></video>
+                
+                <div id="controls-overlay" class="controls-overlay">
+                    <button class="control-btn" onclick="stopCamera()">Stop Camera</button>
+                </div>
+                
+                <div id="chat-overlay" class="chat-overlay">
+                    <div id="ai-message" class="ai-message">AI insights will appear here...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- News Panel -->
+        <div id="news-panel" class="news-panel">
+            <div class="news-toggle" onclick="toggleNewsFeed()">📰</div>
+            
+            <!-- Mobile Header -->
+            <div class="mobile-news-header">
+                <h2 class="news-title">Live News Feed</h2>
+                <button class="mobile-close-btn" onclick="closeNewsFeed()">✕</button>
+            </div>
+            
+            <!-- Desktop Header -->
+            <div class="news-header">
+                <h2 class="news-title">Live News Feed</h2>
+                <div class="news-filters">
+                    <button class="news-filter active" data-category="all">All</button>
+                    <button class="news-filter" data-category="breaking">Breaking</button>
+                    <button class="news-filter" data-category="tech">Tech</button>
+                    <button class="news-filter" data-category="ai">AI</button>
+                    <button class="news-filter" data-category="business">Business</button>
+                    <button class="news-filter" data-category="world">World</button>
+                </div>
+            </div>
+            
+            <div class="news-content" id="news-content">
+                <div class="loading">Loading news feed...</div>
+            </div>
+            
+            <div class="news-status" id="news-status">
+                Waiting for activation...
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile News Button -->
+    <button id="mobile-news-btn" class="mobile-news-btn" onclick="toggleNewsFeed()">
+        📰
         <span id="news-badge" class="news-badge"></span>
-    </div>
-
-    <!-- News Feed Panel -->
-    <div id="news-feed" class="news-feed-container">
-        <!-- Desktop toggle -->
-        <div class="news-toggle" onclick="toggleNewsFeed()">
-            <span class="news-toggle-icon">📰</span>
-            <span class="news-toggle-label">News</span>
-        </div>
-
-        <!-- Desktop header -->
-        <div class="news-header">
-            <div class="news-title">
-                Live News Feed
-                <span class="live-indicator">
-                    <span class="live-dot"></span>
-                    LIVE
-                </span>
-            </div>
-            <div class="news-filters">
-                <div class="news-filter active" data-category="all">All</div>
-                <div class="news-filter" data-category="breaking">Breaking</div>
-                <div class="news-filter" data-category="tech">Tech</div>
-                <div class="news-filter" data-category="ai">AI</div>
-                <div class="news-filter" data-category="business">Business</div>
-                <div class="news-filter" data-category="world">World</div>
-                <div class="news-filter" data-category="health">Health</div>
-            </div>
-        </div>
-
-        <!-- Desktop scrolling content -->
-        <div class="news-content" id="news-content">
-            <div class="news-ticker" id="news-ticker">
-                <!-- Desktop articles will be inserted here -->
-            </div>
-        </div>
-
-        <!-- Mobile Jarvis HUD -->
-        <div class="jarvis-hud" id="jarvis-hud">
-            <!-- Corner frames -->
-            <div class="hud-corner top-left"></div>
-            <div class="hud-corner top-right"></div>
-            <div class="hud-corner bottom-left"></div>
-            <div class="hud-corner bottom-right"></div>
-            
-            <!-- HUD info -->
-            <div class="hud-info">
-                <div class="hud-title">LIVE NEWS FEED</div>
-            </div>
-            
-            <!-- Jarvis news cards container -->
-            <div class="jarvis-news-container" id="jarvis-news">
-                <!-- Jarvis-style cards will be positioned here -->
-            </div>
-            
-            <!-- Control buttons -->
-            <div class="jarvis-controls">
-                <div class="jarvis-control-btn" onclick="minimizeNewsFeed()">
-                    <span style="font-size: 1.2rem;">−</span>
-                </div>
-                <div class="jarvis-control-btn close" onclick="closeNewsFeed()">
-                    <span style="font-size: 1.2rem;">✕</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="connection-status" id="news-status">
-            Waiting for activation...
-        </div>
-    </div>
-
-    <!-- Main Camera Interface -->
-    <div class="main-container" id="main-container">
-        <div class="camera-interface" id="camera-interface">
-            <div id="camera-placeholder" class="camera-placeholder">
-                <div class="placeholder-icon">📹</div>
-                <div class="placeholder-title">Euphorie AI Vision</div>
-                <div class="placeholder-subtitle">
-                    Enable your camera to interact with AI assistants in real-time.<br>
-                    Point your camera at code, documents, or anything you need help with.
-                </div>
-                <button class="start-button" onclick="startCamera()">
-                    🚀 Start AI Vision
-                </button>
-            </div>
-            
-            <video id="camera-video" class="camera-video" autoplay muted playsinline></video>
-            
-            <div id="controls-overlay" class="controls-overlay">
-                <button class="control-btn" onclick="stopCamera()">❌ Stop</button>
-            </div>
-            
-            <div id="chat-overlay" class="chat-overlay">
-                <div id="ai-message" class="ai-message">AI insights will appear here...</div>
-            </div>
-        </div>
-    </div>
+    </button>
 
     <script>
-        // Enhanced News Feed Manager with Jarvis AR mode
         class NewsFeedManager {
             constructor() {
                 this.ws = null;
                 this.articles = new Map();
                 this.currentFilter = 'all';
-                this.feedOpen = false;
-                this.feedEnabled = false;
+                this.isOpen = false;
+                this.isEnabled = false;
+                this.newCount = 0;
+                this.isMobile = window.innerWidth <= 1024;
                 this.reconnectAttempts = 0;
-                this.maxReconnectAttempts = 5;
-                this.reconnectDelay = 1000;
-                this.newArticleCount = 0;
-                this.isMobile = window.innerWidth <= 768;
-                this.autoScrollEnabled = true;
-                this.jarvisCards = [];
+                this.maxReconnects = 5;
             }
 
-            activate() {
-                if (this.feedEnabled) return;
+            enable() {
+                if (this.isEnabled) return;
                 
-                this.feedEnabled = true;
-                const feedContainer = document.getElementById('news-feed');
-                const statusEl = document.getElementById('news-status');
-                const mobileFab = document.getElementById('mobile-news-fab');
+                this.isEnabled = true;
+                const panel = document.getElementById('news-panel');
+                const mobileBtn = document.getElementById('mobile-news-btn');
                 
-                feedContainer.classList.add('enabled');
-                
-                if (this.isMobile && mobileFab) {
-                    mobileFab.classList.add('enabled');
-                    mobileFab.classList.add('pulse');
-                    setTimeout(() => mobileFab.classList.remove('pulse'), 5000);
+                panel.classList.add('enabled');
+                if (this.isMobile) {
+                    mobileBtn.classList.add('enabled');
                 }
-                
-                statusEl.textContent = 'Connecting to live stream...';
                 
                 this.init();
-                
-                // Auto-show on desktop for first-time users
-                if (!this.isMobile && !localStorage.getItem('euphorie_feed_seen')) {
-                    setTimeout(() => {
-                        this.toggleFeed();
-                        localStorage.setItem('euphorie_feed_seen', 'true');
-                        setTimeout(() => {
-                            if (this.feedOpen) {
-                                this.toggleFeed();
-                            }
-                        }, 10000);
-                    }, 3000);
-                }
+                this.updateStatus('Connecting to live stream...');
+            }
 
-                // Setup desktop auto-scroll
+            disable() {
+                this.isEnabled = false;
+                
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+                
+                const panel = document.getElementById('news-panel');
+                const mobileBtn = document.getElementById('mobile-news-btn');
+                const cameraSection = document.getElementById('camera-section');
+                
+                panel.classList.remove('enabled', 'open');
+                mobileBtn.classList.remove('enabled');
+                cameraSection.classList.remove('news-open');
+                
+                this.isOpen = false;
+                this.updateStatus('Waiting for activation...');
+            }
+
+            toggle() {
+                if (!this.isEnabled) return;
+                
+                this.isOpen = !this.isOpen;
+                const panel = document.getElementById('news-panel');
+                const cameraSection = document.getElementById('camera-section');
+                
+                panel.classList.toggle('open', this.isOpen);
+                
                 if (!this.isMobile) {
-                    this.setupDesktopAutoScroll();
+                    cameraSection.classList.toggle('news-open', this.isOpen);
+                }
+                
+                if (this.isOpen) {
+                    this.newCount = 0;
+                    this.updateBadge();
+                    this.loadFeed();
                 }
             }
 
             init() {
                 this.setupFilters();
                 this.connectWebSocket();
-                this.loadInitialFeed();
-            }
-
-            setupDesktopAutoScroll() {
-                const content = document.getElementById('news-content');
-                const ticker = document.getElementById('news-ticker');
-                
-                if (!content || !ticker) return;
-                
-                // Pause on hover
-                content.addEventListener('mouseenter', () => {
-                    ticker.classList.add('paused');
-                    this.autoScrollEnabled = false;
-                });
-                
-                content.addEventListener('mouseleave', () => {
-                    ticker.classList.remove('paused');
-                    this.autoScrollEnabled = true;
-                });
-
-                // Reset animation when it completes
-                ticker.addEventListener('animationiteration', () => {
-                    if (this.articles.size > 10) {
-                        // Clone and refresh for continuous scroll
-                        const firstItems = ticker.querySelectorAll('.news-item').length / 2;
-                        for (let i = 0; i < firstItems; i++) {
-                            const clone = ticker.children[i].cloneNode(true);
-                            ticker.appendChild(clone);
-                            if (ticker.children.length > 50) {
-                                ticker.removeChild(ticker.children[0]);
-                            }
-                        }
-                    }
-                });
-            }
-
-            connectWebSocket() {
-                if (!this.feedEnabled) return;
-                
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${protocol}//${window.location.hostname}/ws/news/`;
-                
-                try {
-                    this.ws = new WebSocket(wsUrl);
-                    
-                    this.ws.onopen = () => {
-                        console.log('Live news stream connected');
-                        this.updateConnectionStatus(true);
-                        this.reconnectAttempts = 0;
-                        this.reconnectDelay = 1000;
-                    };
-
-                    this.ws.onmessage = (event) => {
-                        const data = JSON.parse(event.data);
-                        this.handleNewsUpdate(data);
-                    };
-
-                    this.ws.onerror = (error) => {
-                        console.error('Stream error:', error);
-                        this.updateConnectionStatus(false);
-                    };
-
-                    this.ws.onclose = () => {
-                        this.updateConnectionStatus(false);
-                        if (this.feedEnabled) {
-                            this.attemptReconnect();
-                        }
-                    };
-                } catch (error) {
-                    console.error('Stream connection failed:', error);
-                    this.updateConnectionStatus(false);
-                }
-            }
-
-            async loadInitialFeed() {
-                if (!this.feedEnabled) return;
-                
-                try {
-                    const response = await fetch('/api/news/feed?limit=30');
-                    if (response.ok) {
-                        const data = await response.json();
-                        
-                        data.articles.forEach(article => {
-                            this.articles.set(article.id, article);
-                        });
-                        
-                        this.renderFeed();
-                        this.startPolling();
-                    }
-                } catch (error) {
-                    console.error('Failed to load feed:', error);
-                }
-            }
-
-            startPolling() {
-                setInterval(async () => {
-                    if (!this.feedEnabled) return;
-                    
-                    try {
-                        const response = await fetch('/api/news/feed?limit=5');
-                        if (response.ok) {
-                            const data = await response.json();
-                            data.articles.forEach(article => {
-                                if (!this.articles.has(article.id)) {
-                                    this.articles.set(article.id, article);
-                                    this.newArticleCount++;
-                                    this.updateBadge();
-                                    this.addNewArticle(article);
-                                }
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Polling error:', error);
-                    }
-                }, 30000);
-            }
-
-            handleNewsUpdate(data) {
-                if (data.type === 'breaking') {
-                    this.autoOpenForBreaking();
-                }
-
-                if (data.article) {
-                    this.articles.set(data.article.id, data.article);
-                    this.newArticleCount++;
-                    this.updateBadge();
-                    this.addNewArticle(data.article);
-                }
-            }
-
-            addNewArticle(article) {
-                if (this.isMobile) {
-                    // Add to Jarvis view
-                    this.addJarvisCard(article);
-                } else {
-                    // Add to desktop ticker
-                    const ticker = document.getElementById('news-ticker');
-                    const newItem = this.createDesktopNewsItem(article);
-                    ticker.insertBefore(newItem, ticker.firstChild);
-                    
-                    // Limit items
-                    while (ticker.children.length > 50) {
-                        ticker.removeChild(ticker.lastChild);
-                    }
-                }
-            }
-
-            updateBadge() {
-                if (this.isMobile && !this.feedOpen) {
-                    const badge = document.getElementById('news-badge');
-                    if (badge && this.newArticleCount > 0) {
-                        badge.textContent = this.newArticleCount > 99 ? '99+' : this.newArticleCount;
-                        badge.classList.add('show');
-                    }
-                }
-            }
-
-            toggleFeed() {
-                if (!this.feedEnabled) return;
-                
-                const feed = document.getElementById('news-feed');
-                const mainContainer = document.getElementById('main-container');
-                
-                this.feedOpen = !this.feedOpen;
-                feed.classList.toggle('open');
-                
-                if (!this.isMobile) {
-                    mainContainer.classList.toggle('news-open');
-                }
-                
-                if (this.feedOpen && this.isMobile) {
-                    this.newArticleCount = 0;
-                    const badge = document.getElementById('news-badge');
-                    if (badge) badge.classList.remove('show');
-                    this.renderJarvisView();
-                }
-            }
-
-            autoOpenForBreaking() {
-                if (!this.feedOpen) {
-                    this.toggleFeed();
-                }
+                this.loadFeed();
+                this.startPolling();
             }
 
             setupFilters() {
@@ -1218,143 +746,128 @@
                 });
             }
 
+            connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.hostname}/ws/news/`;
+                
+                try {
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        this.updateStatus('Live stream active', true);
+                        this.reconnectAttempts = 0;
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.handleUpdate(data);
+                    };
+
+                    this.ws.onerror = () => {
+                        this.updateStatus('Connection error', false);
+                    };
+
+                    this.ws.onclose = () => {
+                        this.updateStatus('Reconnecting...', false);
+                        this.attemptReconnect();
+                    };
+                } catch (error) {
+                    this.updateStatus('Connection failed', false);
+                }
+            }
+
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnects && this.isEnabled) {
+                    this.reconnectAttempts++;
+                    setTimeout(() => {
+                        this.connectWebSocket();
+                    }, Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000));
+                }
+            }
+
+            async loadFeed() {
+                try {
+                    const response = await fetch('/api/news/feed?limit=20');
+                    if (response.ok) {
+                        const data = await response.json();
+                        data.articles.forEach(article => {
+                            this.articles.set(article.id, article);
+                        });
+                        this.renderFeed();
+                    }
+                } catch (error) {
+                    console.error('Failed to load feed:', error);
+                }
+            }
+
+            startPolling() {
+                setInterval(async () => {
+                    if (!this.isEnabled) return;
+                    
+                    try {
+                        const response = await fetch('/api/news/feed?limit=5');
+                        if (response.ok) {
+                            const data = await response.json();
+                            data.articles.forEach(article => {
+                                if (!this.articles.has(article.id)) {
+                                    this.articles.set(article.id, article);
+                                    this.newCount++;
+                                    this.updateBadge();
+                                    if (this.isOpen) {
+                                        this.renderFeed();
+                                    }
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Polling error:', error);
+                    }
+                }, 30000);
+            }
+
+            handleUpdate(data) {
+                if (data.article && !this.articles.has(data.article.id)) {
+                    this.articles.set(data.article.id, data.article);
+                    this.newCount++;
+                    this.updateBadge();
+                    
+                    if (this.isOpen) {
+                        this.renderFeed();
+                    }
+                    
+                    if (data.article.is_breaking && !this.isOpen) {
+                        this.toggle();
+                    }
+                }
+            }
+
             renderFeed() {
-                if (this.isMobile) {
-                    this.renderJarvisView();
-                } else {
-                    this.renderDesktopFeed();
-                }
-            }
+                const content = document.getElementById('news-content');
+                content.innerHTML = '';
 
-            renderDesktopFeed() {
-                const ticker = document.getElementById('news-ticker');
-                ticker.innerHTML = '';
-
-                const sortedArticles = Array.from(this.articles.values())
-                    .filter(article => {
-                        if (this.currentFilter === 'all') return true;
-                        if (this.currentFilter === 'breaking') return article.is_breaking;
-                        return article.category?.toLowerCase() === this.currentFilter;
-                    })
-                    .sort((a, b) => new Date(b.published) - new Date(a.published));
-
-                // Add articles twice for seamless scrolling
-                sortedArticles.forEach(article => {
-                    ticker.appendChild(this.createDesktopNewsItem(article));
-                });
-                
-                // Clone for continuous scroll
-                if (sortedArticles.length > 0) {
-                    sortedArticles.forEach(article => {
-                        ticker.appendChild(this.createDesktopNewsItem(article));
-                    });
-                }
-
-                if (sortedArticles.length === 0) {
-                    ticker.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 2rem;">Loading live news stream...</div>';
-                }
-            }
-
-            renderJarvisView() {
-                const container = document.getElementById('jarvis-news');
-                if (!container) return;
-                
-                container.innerHTML = '';
-                this.jarvisCards = [];
-
-                const sortedArticles = Array.from(this.articles.values())
+                const filtered = Array.from(this.articles.values())
                     .filter(article => {
                         if (this.currentFilter === 'all') return true;
                         if (this.currentFilter === 'breaking') return article.is_breaking;
                         return article.category?.toLowerCase() === this.currentFilter;
                     })
                     .sort((a, b) => new Date(b.published) - new Date(a.published))
-                    .slice(0, 6); // Limit to 6 cards for mobile
+                    .slice(0, 50);
 
-                sortedArticles.forEach((article, index) => {
-                    const card = this.createJarvisCard(article, index);
-                    container.appendChild(card);
-                    this.jarvisCards.push(card);
-                });
-
-                this.positionJarvisCards();
-            }
-
-            positionJarvisCards() {
-                const positions = [
-                    { top: '10px', left: '10px' },
-                    { top: '10px', right: '10px' },
-                    { top: '140px', left: '10px' },
-                    { top: '140px', right: '10px' },
-                    { top: '270px', left: '10px' },
-                    { top: '270px', right: '10px' }
-                ];
-
-                this.jarvisCards.forEach((card, index) => {
-                    if (positions[index]) {
-                        Object.assign(card.style, positions[index]);
-                        card.style.width = 'calc(50% - 20px)';
-                        setTimeout(() => {
-                            card.style.opacity = '1';
-                        }, index * 100);
-                    }
-                });
-            }
-
-            createJarvisCard(article, index) {
-                const card = document.createElement('div');
-                card.className = article.is_breaking ? 'jarvis-news-card breaking' : 'jarvis-news-card';
-                card.style.opacity = '0';
-                
-                const time = new Date(article.published).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit'
-                });
-
-                card.innerHTML = `
-                    ${article.is_breaking ? '<div style="display: inline-block; padding: 2px 6px; background: rgba(255, 59, 48, 0.8); color: white; font-size: 0.6rem; font-weight: 700; border-radius: 3px; margin-bottom: 0.3rem;">BREAKING</div>' : ''}
-                    <div class="jarvis-card-title">${article.title}</div>
-                    <div class="jarvis-card-meta">
-                        <span style="color: #00ff88;">${article.category || 'General'}</span>
-                        <span>${time}</span>
-                    </div>
-                    <div class="jarvis-card-summary">${(article.summary || '').substring(0, 100)}...</div>
-                `;
-
-                card.onclick = () => {
-                    const url = article.url?.startsWith('http') 
-                        ? article.url 
-                        : `https://crene.com${article.url}`;
-                    window.open(url, '_blank');
-                };
-                
-                return card;
-            }
-
-            addJarvisCard(article) {
-                if (!this.feedOpen) return;
-                
-                const container = document.getElementById('jarvis-news');
-                if (!container) return;
-                
-                // Remove oldest card if we have 6
-                if (this.jarvisCards.length >= 6) {
-                    const oldCard = this.jarvisCards.pop();
-                    oldCard.remove();
+                if (filtered.length === 0) {
+                    content.innerHTML = '<div class="loading">No articles found</div>';
+                    return;
                 }
-                
-                // Add new card at the beginning
-                const card = this.createJarvisCard(article, 0);
-                container.insertBefore(card, container.firstChild);
-                this.jarvisCards.unshift(card);
-                
-                // Reposition all cards
-                this.positionJarvisCards();
+
+                filtered.forEach(article => {
+                    const item = this.createNewsItem(article);
+                    content.appendChild(item);
+                });
             }
 
-            createDesktopNewsItem(article) {
+            createNewsItem(article) {
                 const item = document.createElement('div');
-                item.className = article.is_breaking ? 'news-item breaking' : 'news-item';
+                item.className = `news-item ${article.is_breaking ? 'breaking' : ''}`;
                 
                 const time = new Date(article.published).toLocaleTimeString('en-US', {
                     hour: 'numeric',
@@ -1362,11 +875,12 @@
                 });
 
                 item.innerHTML = `
-                    ${article.is_breaking ? '<div style="display: inline-block; padding: 0.2rem 0.5rem; background: rgba(255, 59, 48, 0.8); color: white; font-size: 0.65rem; font-weight: 700; border-radius: 5px; margin-bottom: 0.5rem;">BREAKING</div>' : ''}
                     <div class="news-item-title">${article.title}</div>
                     <div class="news-item-meta">
                         <span class="news-item-category">${article.category || 'General'}</span>
+                        <span>•</span>
                         <span>${time}</span>
+                        <span>•</span>
                         <span>${article.source_name || 'Crene AI'}</span>
                     </div>
                     <div class="news-item-summary">${article.summary || ''}</div>
@@ -1382,74 +896,45 @@
                 return item;
             }
 
-            updateConnectionStatus(connected) {
-                const status = document.getElementById('news-status');
-                if (!status) return;
-                
-                if (connected) {
-                    status.textContent = 'Live stream active';
-                    status.className = 'connection-status connected';
+            updateBadge() {
+                const badge = document.getElementById('news-badge');
+                if (this.newCount > 0 && !this.isOpen) {
+                    badge.textContent = this.newCount > 99 ? '99+' : this.newCount;
+                    badge.classList.add('show');
                 } else {
-                    status.textContent = 'Reconnecting stream...';
-                    status.className = 'connection-status disconnected';
+                    badge.classList.remove('show');
                 }
             }
 
-            attemptReconnect() {
-                if (this.reconnectAttempts < this.maxReconnectAttempts && this.feedEnabled) {
-                    this.reconnectAttempts++;
-                    setTimeout(() => {
-                        console.log(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                        this.connectWebSocket();
-                    }, this.reconnectDelay);
-                    this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
-                }
-            }
-
-            deactivate() {
-                this.feedEnabled = false;
-                
-                if (this.ws) {
-                    this.ws.close();
-                    this.ws = null;
-                }
-                
-                if (this.feedOpen) {
-                    this.toggleFeed();
-                }
-                
-                const feedContainer = document.getElementById('news-feed');
-                const mobileFab = document.getElementById('mobile-news-fab');
-                
-                feedContainer.classList.remove('enabled');
-                if (mobileFab) mobileFab.classList.remove('enabled');
-                
-                this.articles.clear();
-                this.jarvisCards = [];
-                this.newArticleCount = 0;
-                
+            updateStatus(text, connected = false) {
                 const status = document.getElementById('news-status');
-                if (status) {
-                    status.textContent = 'Waiting for activation...';
-                    status.className = 'connection-status disconnected';
-                }
+                status.textContent = text;
+                status.classList.toggle('connected', connected);
             }
         }
 
-        // Initialize
+        // Global instances
         let newsFeed = null;
+        let cameraStream = null;
+
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
             
+            // Handle window resize
             window.addEventListener('resize', () => {
                 const wasMobile = newsFeed.isMobile;
-                newsFeed.isMobile = window.innerWidth <= 768;
+                newsFeed.isMobile = window.innerWidth <= 1024;
                 
-                // Re-render if device type changed
-                if (wasMobile !== newsFeed.isMobile && newsFeed.feedEnabled) {
-                    newsFeed.renderFeed();
-                    if (!newsFeed.isMobile) {
-                        newsFeed.setupDesktopAutoScroll();
+                if (wasMobile !== newsFeed.isMobile && newsFeed.isEnabled) {
+                    // Re-render for different screen size
+                    const panel = document.getElementById('news-panel');
+                    const cameraSection = document.getElementById('camera-section');
+                    
+                    if (newsFeed.isMobile) {
+                        cameraSection.classList.remove('news-open');
+                    } else if (newsFeed.isOpen) {
+                        cameraSection.classList.add('news-open');
                     }
                 }
             });
@@ -1457,28 +942,13 @@
 
         // Global functions
         function toggleNewsFeed() {
-            if (newsFeed) newsFeed.toggleFeed();
-        }
-
-        function minimizeNewsFeed() {
-            if (newsFeed && newsFeed.feedOpen) {
-                newsFeed.toggleFeed();
-            }
+            if (newsFeed) newsFeed.toggle();
         }
 
         function closeNewsFeed() {
-            if (newsFeed) {
-                if (newsFeed.feedOpen) {
-                    newsFeed.toggleFeed();
-                }
-                newsFeed.deactivate();
-            }
+            if (newsFeed) newsFeed.disable();
         }
 
-        // Camera functions
-        let cameraStream = null;
-        let isActive = false;
-        
         async function startCamera() {
             try {
                 const constraints = {
@@ -1502,23 +972,20 @@
                 controls.classList.add('show');
                 chat.classList.add('show');
                 
-                isActive = true;
-                
+                // Enable news feed
                 if (newsFeed) {
-                    newsFeed.activate();
+                    newsFeed.enable();
                     
                     const messageEl = document.getElementById('ai-message');
-                    messageEl.textContent = newsFeed.isMobile 
-                        ? 'AI Vision active! Tap the news button for AR news overlay.'
-                        : 'AI Vision active! Live news feed enabled.';
+                    messageEl.textContent = 'AI Vision active! Live news feed enabled.';
                     
                     setTimeout(() => {
                         messageEl.textContent = 'AI insights will appear here...';
-                    }, 5000);
+                    }, 3000);
                 }
                 
             } catch (error) {
-                console.error('Camera failed:', error);
+                console.error('Camera access failed:', error);
                 alert('Camera access denied or not available');
             }
         }
@@ -1539,10 +1006,9 @@
             controls.classList.remove('show');
             chat.classList.remove('show');
             
-            isActive = false;
-            
+            // Disable news feed
             if (newsFeed) {
-                newsFeed.deactivate();
+                newsFeed.disable();
             }
         }
     </script>
