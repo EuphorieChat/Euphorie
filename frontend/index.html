@@ -438,7 +438,7 @@
             }
         }
 
-        /* News header */
+        /* News header - Desktop only */
         .news-header {
             padding: 1.5rem;
             background: rgba(0, 0, 0, 0.8);
@@ -658,16 +658,16 @@
 
         /* Mobile Styles */
         @media (max-width: 768px) {
-            /* Mobile news overlay - bottom sheet style */
+            /* Mobile news overlay - compact bottom sheet */
             .news-panel {
                 position: fixed;
-                bottom: -70vh;
+                bottom: -40vh;
                 left: 0;
                 right: 0;
                 width: 100%;
-                height: 70vh;
-                background: rgba(0, 0, 0, 0.95);
-                backdrop-filter: blur(20px);
+                height: 40vh;
+                background: rgba(0, 0, 0, 0.92);
+                backdrop-filter: blur(15px);
                 border-top: 2px solid #00ff88;
                 border-left: none;
                 border-radius: 20px 20px 0 0;
@@ -677,15 +677,21 @@
 
             .news-panel.open {
                 bottom: 0;
-                right: 0;
+            }
+            
+            /* Hide desktop header completely on mobile */
+            .news-header {
+                display: none !important;
             }
 
             .news-content {
                 overflow-y: auto;
+                padding-top: 0;
             }
 
             .news-ticker {
                 animation: none;
+                padding: 0.5rem 1rem 1rem;
             }
 
             /* Mobile news button */
@@ -740,23 +746,20 @@
                 animation: pulse 1s ease;
             }
 
-            /* Mobile news header with drag handle */
+            /* Mobile news header - minimal design */
             .mobile-news-header {
                 display: none;
                 flex-direction: column;
-                padding: 0.5rem 1.5rem 1rem;
-                background: rgba(0, 0, 0, 0.9);
-                border-bottom: 1px solid #00ff88;
-                backdrop-filter: blur(10px);
+                padding: 0;
             }
 
             /* Drag handle for bottom sheet */
             .drag-handle {
-                width: 60px;
+                width: 50px;
                 height: 4px;
                 background: #00ff8866;
                 border-radius: 2px;
-                margin: 0.5rem auto 1rem;
+                margin: 0.5rem auto;
                 cursor: grab;
             }
 
@@ -764,19 +767,23 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                padding: 0 1rem 0.5rem;
             }
 
             .news-panel.open .mobile-news-header {
                 display: flex;
             }
 
-            .news-panel.open .news-header {
-                display: none;
+            /* Compact mobile title */
+            .mobile-news-header .news-title {
+                font-size: 0.95rem;
+                margin: 0;
+                letter-spacing: 1px;
             }
 
             .mobile-close-btn {
-                width: 40px;
-                height: 40px;
+                width: 32px;
+                height: 32px;
                 background: rgba(255, 48, 48, 0.2);
                 border: 1px solid #ff3030;
                 border-radius: 50%;
@@ -785,15 +792,29 @@
                 justify-content: center;
                 cursor: pointer;
                 color: #ff3030;
-                font-size: 1.2rem;
+                font-size: 1rem;
                 transition: all 0.2s ease;
-                box-shadow: 0 0 15px #ff303044;
+                box-shadow: 0 0 10px #ff303044;
             }
 
             .mobile-close-btn:active {
                 transform: scale(0.95);
                 background: rgba(255, 48, 48, 0.3);
-                box-shadow: 0 0 25px #ff3030aa;
+            }
+            
+            /* Compact news items on mobile */
+            .news-item {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .news-item-title {
+                font-size: 0.85rem;
+            }
+            
+            .news-item-summary {
+                font-size: 0.7rem;
+                line-height: 1.3;
             }
         }
 
@@ -858,7 +879,7 @@
     <div id="news-panel" class="news-panel">
         <div class="news-toggle" onclick="toggleNewsFeed()">📰</div>
         
-        <!-- Mobile Header -->
+        <!-- Mobile Header - Minimal -->
         <div class="mobile-news-header">
             <div class="drag-handle"></div>
             <div class="mobile-news-controls">
@@ -867,7 +888,7 @@
             </div>
         </div>
         
-        <!-- Desktop Header -->
+        <!-- Desktop Header - Only shows on desktop -->
         <div class="news-header">
             <h2 class="news-title">
                 Live Intel Feed
@@ -991,6 +1012,8 @@
             setupMobileGestures() {
                 const panel = document.getElementById('news-panel');
                 const handle = panel.querySelector('.drag-handle');
+                if (!handle) return;
+                
                 let startY = 0;
                 let currentY = 0;
                 let isDragging = false;
@@ -1206,7 +1229,7 @@
                     ticker.appendChild(this.createNewsItem(article));
                 });
 
-                // Duplicate for seamless scroll on desktop
+                // Duplicate for seamless scroll on desktop only
                 if (!this.isMobile && filtered.length > 0) {
                     filtered.forEach(article => {
                         ticker.appendChild(this.createNewsItem(article));
