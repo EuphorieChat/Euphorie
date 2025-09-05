@@ -673,8 +673,6 @@
                 border-radius: 20px 20px 0 0;
                 z-index: 3000;
                 transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                display: flex;
-                flex-direction: column;
             }
 
             .news-panel.open {
@@ -687,13 +685,8 @@
             }
 
             .news-content {
-                flex: 1;
                 overflow-y: auto;
-                overflow-x: hidden;
                 padding-top: 0;
-                -webkit-overflow-scrolling: touch;
-                scroll-behavior: smooth;
-                max-height: calc(40vh - 60px);
             }
 
             .news-ticker {
@@ -758,7 +751,6 @@
                 display: none;
                 flex-direction: column;
                 padding: 0;
-                flex-shrink: 0;
             }
 
             /* Drag handle for bottom sheet */
@@ -1021,23 +1013,6 @@
                     }
                 }
             }
-            
-            close() {
-                if (!this.isEnabled || !this.isOpen) return;
-                
-                this.isOpen = false;
-                const panel = document.getElementById('news-panel');
-                const container = document.getElementById('main-container');
-                
-                panel.classList.remove('open');
-                
-                if (!this.isMobile) {
-                    container.classList.remove('news-open');
-                }
-                
-                this.newCount = 0;
-                this.updateBadge();
-            }
 
             setupMobileGestures() {
                 const panel = document.getElementById('news-panel');
@@ -1072,14 +1047,10 @@
                     
                     const deltaY = currentY - startY;
                     if (deltaY > 100) {
-                        this.close();
+                        this.toggle();
                     }
                 };
 
-                // Remove old listeners first
-                handle.removeEventListener('touchstart', handleStart);
-                handle.removeEventListener('mousedown', handleStart);
-                
                 // Touch events
                 handle.addEventListener('touchstart', handleStart, { passive: true });
                 window.addEventListener('touchmove', handleMove, { passive: true });
@@ -1312,10 +1283,8 @@
 
             updateStatus(text, connected = false) {
                 const status = document.getElementById('news-status');
-                if (status) {
-                    status.textContent = text;
-                    status.classList.toggle('connected', connected);
-                }
+                status.textContent = text;
+                status.classList.toggle('connected', connected);
             }
         }
 
@@ -1345,9 +1314,7 @@
         }
 
         function closeNewsFeed() {
-            if (newsFeed) {
-                newsFeed.close();
-            }
+            if (newsFeed) newsFeed.toggle();
         }
 
         async function startCamera() {
