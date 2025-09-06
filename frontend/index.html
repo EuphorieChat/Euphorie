@@ -26,7 +26,9 @@
             overflow: hidden;
             height: 100vh;
             width: 100vw;
-            position: relative;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
 
         /* Jarvis-style animations */
@@ -103,6 +105,7 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
             padding: 0.5rem;
             position: relative;
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -141,6 +144,8 @@
             .camera-interface {
                 border-radius: 15px;
                 border-width: 1px;
+                max-height: calc(100vh - 1rem);
+                max-height: calc(100dvh - 1rem);
             }
         }
 
@@ -359,6 +364,33 @@
             right: 0;
         }
 
+        /* Mobile News Panel with transparency */
+        @media (max-width: 768px) {
+            .news-panel {
+                position: fixed;
+                bottom: -70vh;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: 70vh;
+                background: rgba(0, 0, 0, 0.85); /* Semi-transparent */
+                backdrop-filter: blur(10px);
+                border-top: 2px solid #00ff88;
+                border-left: none;
+                border-radius: 20px 20px 0 0;
+                z-index: 300;
+                transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .news-panel.enabled {
+                bottom: -70vh;
+            }
+
+            .news-panel.enabled.open {
+                bottom: 0;
+            }
+        }
+
         /* Desktop news toggle */
         .news-toggle {
             position: absolute;
@@ -475,28 +507,44 @@
             position: relative;
         }
 
-        /* News content */
+        /* News content with mobile auto-scroll */
         .news-content {
             padding: 1rem;
-            animation: scroll 30s linear infinite;
         }
 
-        .news-content.paused {
-            animation-play-state: paused;
-        }
-
-        .news-content.no-scroll {
-            animation: none;
-        }
-
-        /* Mobile-specific news content */
-        @media (max-width: 768px) {
-            .news-content-wrapper {
-                overflow-y: auto;
+        /* Desktop auto-scroll */
+        @media (min-width: 769px) {
+            .news-content {
+                animation: scroll 30s linear infinite;
             }
 
-            .news-content {
+            .news-content.paused {
+                animation-play-state: paused;
+            }
+
+            .news-content.no-scroll {
                 animation: none;
+            }
+        }
+
+        /* Mobile auto-scroll */
+        @media (max-width: 768px) {
+            .news-content {
+                animation: scroll 20s linear infinite;
+            }
+
+            .news-content.paused {
+                animation-play-state: paused;
+            }
+
+            .news-content.no-scroll {
+                animation: none;
+            }
+
+            /* Touch to pause on mobile */
+            .news-content-wrapper {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
         }
 
@@ -607,31 +655,6 @@
 
         /* Mobile Styles */
         @media (max-width: 768px) {
-            /* Mobile news overlay */
-            .news-panel {
-                position: fixed;
-                bottom: -100vh;
-                left: 0;
-                right: 0;
-                width: 100%;
-                height: 50vh;
-                background: rgba(0, 0, 0, 0.95);
-                backdrop-filter: blur(15px);
-                border-top: 2px solid #00ff88;
-                border-left: none;
-                border-radius: 20px 20px 0 0;
-                z-index: 300;
-                transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-
-            .news-panel.enabled {
-                bottom: -50vh;
-            }
-
-            .news-panel.enabled.open {
-                bottom: 0;
-            }
-
             /* Mobile news header */
             .mobile-news-header {
                 display: flex;
@@ -662,24 +685,14 @@
                 letter-spacing: 1px;
             }
 
-            .mobile-close-btn {
-                width: 32px;
-                height: 32px;
-                background: rgba(255, 48, 48, 0.2);
-                border: 1px solid #ff3030;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                color: #ff3030;
-                font-size: 1rem;
-                transition: all 0.2s ease;
-            }
-
-            .mobile-close-btn:active {
-                transform: scale(0.95);
-                background: rgba(255, 48, 48, 0.3);
+            /* Mobile dismiss area */
+            .news-dismiss-area {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: -1;
             }
 
             /* Mobile news button */
@@ -821,6 +834,7 @@
 
     <!-- News Panel (Desktop/Mobile responsive) -->
     <div id="news-panel" class="news-panel">
+        <div class="news-dismiss-area" onclick="closeNewsFeed()"></div>
         <div class="news-toggle" onclick="toggleNewsFeed()">📰</div>
 
         <!-- Mobile Header - Only shows on mobile -->
@@ -828,7 +842,6 @@
             <div class="drag-handle"></div>
             <div class="mobile-news-controls">
                 <h2 class="news-title">Live Intel Feed</h2>
-                <button class="mobile-close-btn" onclick="closeNewsFeed()">✕</button>
             </div>
         </div>
 
@@ -881,6 +894,7 @@
                 this.reconnectAttempts = 0;
                 this.maxReconnects = 5;
                 this.autoScrollEnabled = true;
+                this.touchStartY = 0;
             }
 
             enable() {
@@ -949,13 +963,45 @@
                     this.loadFeed();
                     if (this.isMobile) {
                         this.setupMobileGestures();
+                        this.setupMobileAutoScroll();
                     }
                 }
+            }
+
+            setupMobileAutoScroll() {
+                const wrapper = document.getElementById('news-content-wrapper');
+                const content = document.getElementById('news-content');
+
+                // Touch to pause auto-scroll
+                let touchActive = false;
+
+                wrapper.addEventListener('touchstart', () => {
+                    touchActive = true;
+                    content.classList.add('paused');
+                }, { passive: true });
+
+                wrapper.addEventListener('touchend', () => {
+                    touchActive = false;
+                    setTimeout(() => {
+                        if (!touchActive) {
+                            content.classList.remove('paused');
+                        }
+                    }, 3000); // Resume after 3 seconds
+                }, { passive: true });
+
+                // Manual scroll detection
+                wrapper.addEventListener('scroll', () => {
+                    if (wrapper.scrollTop > 0) {
+                        content.classList.add('paused');
+                    }
+                });
             }
 
             setupMobileGestures() {
                 const panel = document.getElementById('news-panel');
                 const handle = panel.querySelector('.drag-handle');
+                const dismissArea = panel.querySelector('.news-dismiss-area');
+                
                 if (!handle) return;
 
                 let startY = 0;
@@ -965,6 +1011,7 @@
                 const handleStart = (e) => {
                     isDragging = true;
                     startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    this.touchStartY = startY;
                     panel.style.transition = 'none';
                 };
 
@@ -1014,19 +1061,19 @@
             }
 
             setupAutoScroll() {
-                if (this.isMobile) return;
-
                 const wrapper = document.getElementById('news-content-wrapper');
                 const content = document.getElementById('news-content');
 
-                // Pause on hover
-                wrapper.addEventListener('mouseenter', () => {
-                    content.classList.add('paused');
-                });
+                if (!this.isMobile) {
+                    // Desktop: Pause on hover
+                    wrapper.addEventListener('mouseenter', () => {
+                        content.classList.add('paused');
+                    });
 
-                wrapper.addEventListener('mouseleave', () => {
-                    content.classList.remove('paused');
-                });
+                    wrapper.addEventListener('mouseleave', () => {
+                        content.classList.remove('paused');
+                    });
+                }
             }
 
             setupFilters() {
@@ -1165,8 +1212,10 @@
                 // Remove no-scroll class if we have items
                 content.classList.remove('no-scroll');
 
-                // For desktop auto-scroll, duplicate content for seamless loop
-                if (!this.isMobile && filtered.length > 3) {
+                // For auto-scroll, duplicate content for seamless loop
+                const needsLoop = (this.isMobile && filtered.length > 5) || (!this.isMobile && filtered.length > 3);
+                
+                if (needsLoop) {
                     // Add items twice for seamless scrolling
                     [...filtered, ...filtered].forEach(article => {
                         content.appendChild(this.createNewsItem(article));
@@ -1177,10 +1226,11 @@
                     content.offsetHeight; // Force reflow
                     content.style.animation = null;
                 } else {
-                    // Mobile or few items - just show once
+                    // Just show once if few items
                     filtered.forEach(article => {
                         content.appendChild(this.createNewsItem(article));
                     });
+                    content.classList.add('no-scroll');
                 }
             }
 
@@ -1240,39 +1290,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
 
-            // Set up mobile news button with proper event handling
-            const mobileNewsBtn = document.getElementById('mobile-news-btn');
-            if (mobileNewsBtn) {
-                // Remove any existing onclick attributes
-                mobileNewsBtn.removeAttribute('onclick');
-                
-                // Add click event listener
-                mobileNewsBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Mobile news button clicked');
-                    if (newsFeed) {
-                        newsFeed.toggle();
-                    }
-                });
-                
-                // Add touch event listener for better mobile support
-                mobileNewsBtn.addEventListener('touchstart', function(e) {
-                    e.stopPropagation();
-                });
-            }
-
-            // Set up backdrop click to close
-            const backdrop = document.getElementById('news-backdrop');
-            if (backdrop) {
-                backdrop.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    if (newsFeed && newsFeed.isOpen) {
-                        newsFeed.toggle();
-                    }
-                });
-            }
-
             // Handle resize
             window.addEventListener('resize', () => {
                 const wasMobile = newsFeed.isMobile;
@@ -1280,12 +1297,11 @@
 
                 if (wasMobile !== newsFeed.isMobile && newsFeed.isEnabled) {
                     newsFeed.renderFeed();
-                    newsFeed.setupAutoScroll();
+                    if (newsFeed.isMobile) {
+                        newsFeed.setupMobileAutoScroll();
+                    }
                 }
             });
-
-            // Debug: Check if we're on mobile on load
-            console.log('Initial load - Is mobile:', window.innerWidth <= 768);
         });
 
         // Global functions
