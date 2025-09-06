@@ -373,8 +373,8 @@
                 right: 0;
                 width: 100%;
                 height: 70vh;
-                background: rgba(0, 0, 0, 0.85); /* Semi-transparent */
-                backdrop-filter: blur(10px);
+                background: rgba(0, 0, 0, 0.75); /* More transparent - was 0.85 */
+                backdrop-filter: blur(8px); /* Slightly less blur for better visibility */
                 border-top: 2px solid #00ff88;
                 border-left: none;
                 border-radius: 20px 20px 0 0;
@@ -751,6 +751,7 @@
             .news-item {
                 padding: 0.75rem;
                 margin-bottom: 0.75rem;
+                background: rgba(0, 17, 34, 0.8); /* Darker background for better readability */
             }
 
             .news-item-title {
@@ -945,11 +946,16 @@
             }
 
             toggle() {
-                if (!this.isEnabled) return;
+                if (!this.isEnabled) {
+                    console.log('News feed not enabled');
+                    return;
+                }
 
                 this.isOpen = !this.isOpen;
                 const panel = document.getElementById('news-panel');
                 const container = document.getElementById('main-container');
+
+                console.log('Toggling news panel:', this.isOpen); // Debug log
 
                 panel.classList.toggle('open', this.isOpen);
 
