@@ -951,42 +951,56 @@
                     return;
                 }
 
-                this.isOpen = !this.isOpen;
+                // If panel is open, close it; if closed, open it
+                if (this.isOpen) {
+                    this.close();
+                } else {
+                    this.open();
+                }
+            }
+
+            open() {
+                if (this.isOpen) return;
+                
+                this.isOpen = true;
                 const panel = document.getElementById('news-panel');
                 const container = document.getElementById('main-container');
 
-                console.log('Toggling news panel:', this.isOpen); // Debug log
+                console.log('Opening news panel'); // Debug log
 
-                if (this.isOpen) {
-                    panel.classList.add('open');
-                    if (!this.isMobile) {
-                        container.classList.add('news-open');
-                    }
-                    this.newCount = 0;
-                    this.updateBadge();
-                    this.loadFeed();
-                    if (this.isMobile) {
-                        this.setupMobileGestures();
-                        this.setupMobileAutoScroll();
-                    }
-                } else {
-                    panel.classList.remove('open');
-                    if (!this.isMobile) {
-                        container.classList.remove('news-open');
-                    }
+                panel.classList.add('open');
+                if (!this.isMobile) {
+                    container.classList.add('news-open');
+                }
+                this.newCount = 0;
+                this.updateBadge();
+                this.loadFeed();
+                if (this.isMobile) {
+                    this.setupMobileGestures();
+                    this.setupMobileAutoScroll();
                 }
             }
 
             close() {
-                if (this.isOpen) {
-                    this.isOpen = false;
-                    const panel = document.getElementById('news-panel');
-                    const container = document.getElementById('main-container');
-                    
-                    panel.classList.remove('open');
-                    
-                    if (!this.isMobile) {
-                        container.classList.remove('news-open');
+                if (!this.isOpen) return;
+                
+                this.isOpen = false;
+                const panel = document.getElementById('news-panel');
+                const container = document.getElementById('main-container');
+                
+                console.log('Closing news panel'); // Debug log
+                
+                panel.classList.remove('open');
+                
+                if (!this.isMobile) {
+                    container.classList.remove('news-open');
+                }
+                
+                // Update button state on mobile
+                if (this.isMobile) {
+                    const mobileBtn = document.getElementById('mobile-news-btn');
+                    if (mobileBtn) {
+                        mobileBtn.style.background = 'rgba(0, 0, 0, 0.8)';
                     }
                 }
             }
@@ -1084,9 +1098,10 @@
                     }
                 };
 
-                // Add listener to document for tap outside
-                document.addEventListener('touchstart', dismissHandler, { passive: true });
-                document.addEventListener('click', dismissHandler);
+                // Only add tap-outside listener for non-button areas
+                // Remove it to prevent conflicts with button toggle
+                // document.addEventListener('touchstart', dismissHandler, { passive: true });
+                // document.addEventListener('click', dismissHandler);
             }
 
             init() {
