@@ -1240,20 +1240,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
 
-            // Set up mobile news button with event listener
+            // Set up mobile news button with proper event handling
             const mobileNewsBtn = document.getElementById('mobile-news-btn');
             if (mobileNewsBtn) {
-                // Use both click and touchend for better mobile compatibility
-                mobileNewsBtn.addEventListener('click', (e) => {
+                // Remove any existing onclick attributes
+                mobileNewsBtn.removeAttribute('onclick');
+                
+                // Add click event listener
+                mobileNewsBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    toggleNewsFeed();
+                    console.log('Mobile news button clicked');
+                    if (newsFeed) {
+                        newsFeed.toggle();
+                    }
                 });
                 
-                mobileNewsBtn.addEventListener('touchend', (e) => {
-                    e.preventDefault();
+                // Add touch event listener for better mobile support
+                mobileNewsBtn.addEventListener('touchstart', function(e) {
                     e.stopPropagation();
-                    toggleNewsFeed();
                 });
             }
 
@@ -1269,6 +1274,9 @@
                     }
                 }
             });
+
+            // Debug: Check if we're on mobile on load
+            console.log('Initial load - Is mobile:', window.innerWidth <= 768);
         });
 
         // Global functions
