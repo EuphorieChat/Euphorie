@@ -88,6 +88,15 @@
             }
         }
 
+        @keyframes scroll {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-50%);
+            }
+        }
+
         /* Main container */
         .main-container {
             display: flex;
@@ -382,11 +391,18 @@
             }
         }
 
-        /* News header */
+        /* News header - Desktop only */
         .news-header {
             padding: 1.5rem;
             background: rgba(0, 0, 0, 0.8);
             border-bottom: 1px solid #00ff88;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .news-header {
+                display: none;
+            }
         }
 
         .news-title {
@@ -452,22 +468,47 @@
             border-color: #00ff88;
         }
 
-        /* News content */
-        .news-content {
+        /* News content wrapper for auto-scroll */
+        .news-content-wrapper {
             flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
+            overflow: hidden;
+            position: relative;
         }
 
-        .news-content::-webkit-scrollbar {
+        /* News content */
+        .news-content {
+            padding: 1rem;
+            animation: scroll 30s linear infinite;
+        }
+
+        .news-content.paused {
+            animation-play-state: paused;
+        }
+
+        .news-content.no-scroll {
+            animation: none;
+        }
+
+        /* Mobile-specific news content */
+        @media (max-width: 768px) {
+            .news-content-wrapper {
+                overflow-y: auto;
+            }
+
+            .news-content {
+                animation: none;
+            }
+        }
+
+        .news-content-wrapper::-webkit-scrollbar {
             width: 6px;
         }
 
-        .news-content::-webkit-scrollbar-track {
+        .news-content-wrapper::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.3);
         }
 
-        .news-content::-webkit-scrollbar-thumb {
+        .news-content-wrapper::-webkit-scrollbar-thumb {
             background: #00ff8866;
             border-radius: 3px;
         }
@@ -581,81 +622,17 @@
                 border-radius: 20px 20px 0 0;
                 z-index: 300;
                 transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                display: none;
             }
 
             .news-panel.enabled {
-                display: flex;
-                bottom: -40vh;
+                bottom: -50vh;
             }
 
             .news-panel.enabled.open {
                 bottom: 0;
             }
 
-            /* Hide desktop header completely on mobile */
-            .news-header {
-                display: none !important;
-            }
-
-            .news-content {
-                overflow-y: auto;
-                padding-top: 0;
-            }
-
-            /* Mobile news button */
-            .mobile-news-btn {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                width: 50px;
-                height: 50px;
-                background: rgba(0, 0, 0, 0.8);
-                backdrop-filter: blur(10px);
-                border: 2px solid #00ff88;
-                border-radius: 50%;
-                display: none !important;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                z-index: 2999;
-                font-size: 1.2rem;
-                transition: all 0.3s ease;
-                box-shadow: 0 0 20px #00ff8844;
-            }
-
-            .mobile-news-btn.enabled {
-                display: flex !important;
-            }
-
-            .mobile-news-btn:active {
-                transform: scale(0.95);
-                background: rgba(0, 255, 136, 0.2);
-                box-shadow: 0 0 30px #00ff88aa;
-            }
-
-            .news-badge {
-                position: absolute;
-                top: -8px;
-                right: -8px;
-                background: #ff3030;
-                color: white;
-                font-size: 0.65rem;
-                font-weight: 700;
-                padding: 2px 6px;
-                border-radius: 10px;
-                min-width: 18px;
-                text-align: center;
-                display: none;
-                box-shadow: 0 0 10px #ff3030aa;
-            }
-
-            .news-badge.show {
-                display: block;
-                animation: pulse 1s ease;
-            }
-
-            /* Mobile news header - minimal design */
+            /* Mobile news header */
             .mobile-news-header {
                 display: flex;
                 flex-direction: column;
@@ -705,6 +682,58 @@
                 background: rgba(255, 48, 48, 0.3);
             }
 
+            /* Mobile news button */
+            .mobile-news-btn {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(10px);
+                border: 2px solid #00ff88;
+                border-radius: 50%;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 2999;
+                font-size: 1.2rem;
+                transition: all 0.3s ease;
+                box-shadow: 0 0 20px #00ff8844;
+            }
+
+            .mobile-news-btn.enabled {
+                display: flex;
+            }
+
+            .mobile-news-btn:active {
+                transform: scale(0.95);
+                background: rgba(0, 255, 136, 0.2);
+                box-shadow: 0 0 30px #00ff88aa;
+            }
+
+            .news-badge {
+                position: absolute;
+                top: -8px;
+                right: -8px;
+                background: #ff3030;
+                color: white;
+                font-size: 0.65rem;
+                font-weight: 700;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 18px;
+                text-align: center;
+                display: none;
+                box-shadow: 0 0 10px #ff3030aa;
+            }
+
+            .news-badge.show {
+                display: block;
+                animation: pulse 1s ease;
+            }
+
             /* Compact news items on mobile */
             .news-item {
                 padding: 0.75rem;
@@ -722,6 +751,13 @@
 
             /* Connection status on mobile */
             .connection-status {
+                display: none;
+            }
+        }
+
+        /* Desktop-only mobile header hide */
+        @media (min-width: 769px) {
+            .mobile-news-header {
                 display: none;
             }
         }
@@ -787,7 +823,7 @@
     <div id="news-panel" class="news-panel">
         <div class="news-toggle" onclick="toggleNewsFeed()">📰</div>
 
-        <!-- Mobile Header - Minimal -->
+        <!-- Mobile Header - Only shows on mobile -->
         <div class="mobile-news-header">
             <div class="drag-handle"></div>
             <div class="mobile-news-controls">
@@ -815,8 +851,10 @@
             </div>
         </div>
 
-        <div class="news-content" id="news-content">
-            <div class="loading">Establishing data link...</div>
+        <div class="news-content-wrapper" id="news-content-wrapper">
+            <div class="news-content" id="news-content">
+                <div class="loading">Establishing data link...</div>
+            </div>
         </div>
 
         <div class="connection-status" id="news-status">
@@ -842,6 +880,7 @@
                 this.isMobile = window.innerWidth <= 768;
                 this.reconnectAttempts = 0;
                 this.maxReconnects = 5;
+                this.autoScrollEnabled = true;
             }
 
             enable() {
@@ -886,11 +925,6 @@
                 panel.classList.remove('enabled', 'open');
                 mobileBtn.classList.remove('enabled');
                 container.classList.remove('news-open');
-
-                // Force hide panel on mobile
-                if (this.isMobile) {
-                    panel.style.display = 'none';
-                }
 
                 this.isOpen = false;
                 this.updateStatus('Neural network offline', false);
@@ -973,9 +1007,26 @@
 
             init() {
                 this.setupFilters();
+                this.setupAutoScroll();
                 this.connectWebSocket();
                 this.loadFeed();
                 this.startPolling();
+            }
+
+            setupAutoScroll() {
+                if (this.isMobile) return;
+
+                const wrapper = document.getElementById('news-content-wrapper');
+                const content = document.getElementById('news-content');
+
+                // Pause on hover
+                wrapper.addEventListener('mouseenter', () => {
+                    content.classList.add('paused');
+                });
+
+                wrapper.addEventListener('mouseleave', () => {
+                    content.classList.remove('paused');
+                });
             }
 
             setupFilters() {
@@ -1057,8 +1108,7 @@
                             data.articles.forEach(article => {
                                 if (!this.articles.has(article.id)) {
                                     this.articles.set(article.id, article);
-                                    // Only show badge and update count if news is enabled and visible
-                                    if (this.isEnabled) {
+                                    if (this.isEnabled && !this.isOpen) {
                                         this.newCount++;
                                         this.updateBadge();
                                     }
@@ -1077,15 +1127,18 @@
             handleUpdate(data) {
                 if (data.article && !this.articles.has(data.article.id)) {
                     this.articles.set(data.article.id, data.article);
-                    this.newCount++;
-                    this.updateBadge();
+                    
+                    if (!this.isOpen) {
+                        this.newCount++;
+                        this.updateBadge();
+                    }
 
                     if (this.isOpen) {
                         this.renderFeed();
                     }
 
-                    // Auto-open for breaking news
-                    if (data.article.is_breaking && !this.isOpen) {
+                    // Auto-open for breaking news on desktop only
+                    if (data.article.is_breaking && !this.isOpen && !this.isMobile) {
                         this.toggle();
                     }
                 }
@@ -1105,12 +1158,30 @@
 
                 if (filtered.length === 0) {
                     content.innerHTML = '<div class="loading">No intel data available</div>';
+                    content.classList.add('no-scroll');
                     return;
                 }
 
-                filtered.forEach(article => {
-                    content.appendChild(this.createNewsItem(article));
-                });
+                // Remove no-scroll class if we have items
+                content.classList.remove('no-scroll');
+
+                // For desktop auto-scroll, duplicate content for seamless loop
+                if (!this.isMobile && filtered.length > 3) {
+                    // Add items twice for seamless scrolling
+                    [...filtered, ...filtered].forEach(article => {
+                        content.appendChild(this.createNewsItem(article));
+                    });
+
+                    // Reset animation
+                    content.style.animation = 'none';
+                    content.offsetHeight; // Force reflow
+                    content.style.animation = null;
+                } else {
+                    // Mobile or few items - just show once
+                    filtered.forEach(article => {
+                        content.appendChild(this.createNewsItem(article));
+                    });
+                }
             }
 
             createNewsItem(article) {
@@ -1169,28 +1240,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
 
-            // Ensure news panel is hidden on mobile by default
-            const panel = document.getElementById('news-panel');
-            if (window.innerWidth <= 768) {
-                panel.style.display = 'none';
-            }
-
             // Handle resize
             window.addEventListener('resize', () => {
                 const wasMobile = newsFeed.isMobile;
                 newsFeed.isMobile = window.innerWidth <= 768;
 
-                // Hide news panel when switching to mobile
-                if (!wasMobile && newsFeed.isMobile) {
-                    panel.style.display = 'none';
-                    panel.classList.remove('enabled', 'open');
-                } else if (wasMobile && !newsFeed.isMobile && newsFeed.isEnabled) {
-                    panel.style.display = '';
-                    panel.classList.add('enabled');
-                }
-
                 if (wasMobile !== newsFeed.isMobile && newsFeed.isEnabled) {
                     newsFeed.renderFeed();
+                    if (!newsFeed.isMobile) {
+                        newsFeed.setupAutoScroll();
+                    }
                 }
             });
         });
