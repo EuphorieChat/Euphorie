@@ -1262,6 +1262,17 @@
                 });
             }
 
+            // Set up backdrop click to close
+            const backdrop = document.getElementById('news-backdrop');
+            if (backdrop) {
+                backdrop.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (newsFeed && newsFeed.isOpen) {
+                        newsFeed.toggle();
+                    }
+                });
+            }
+
             // Handle resize
             window.addEventListener('resize', () => {
                 const wasMobile = newsFeed.isMobile;
@@ -1269,9 +1280,7 @@
 
                 if (wasMobile !== newsFeed.isMobile && newsFeed.isEnabled) {
                     newsFeed.renderFeed();
-                    if (!newsFeed.isMobile) {
-                        newsFeed.setupAutoScroll();
-                    }
+                    newsFeed.setupAutoScroll();
                 }
             });
 
