@@ -1240,6 +1240,23 @@
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
 
+            // Set up mobile news button with event listener
+            const mobileNewsBtn = document.getElementById('mobile-news-btn');
+            if (mobileNewsBtn) {
+                // Use both click and touchend for better mobile compatibility
+                mobileNewsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleNewsFeed();
+                });
+                
+                mobileNewsBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleNewsFeed();
+                });
+            }
+
             // Handle resize
             window.addEventListener('resize', () => {
                 const wasMobile = newsFeed.isMobile;
