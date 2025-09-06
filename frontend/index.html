@@ -86,7 +86,7 @@
                 left: 0;
                 width: 100vw;
                 height: 40vh;
-                background: rgba(0, 0, 0, 0.95); /* Slightly visible for better readability */
+                background: rgba(0, 0, 0, 0.3); /* Much more transparent */
                 backdrop-filter: blur(20px);
                 -webkit-backdrop-filter: blur(20px);
                 border-bottom: 2px solid rgba(0, 255, 136, 0.5);
@@ -201,7 +201,7 @@
             }
 
             .mobile-news-ticker {
-                animation: mobileScroll 20s linear infinite; /* Faster: 20s instead of 30s */
+                animation: mobileScroll 40s linear infinite; /* Slower: 40s instead of 20s */
             }
 
             .mobile-news-ticker.paused {
@@ -797,14 +797,14 @@
             <span class="news-toggle-icon">📰</span>
         </div>
 
-        <!-- Desktop scrolling content (header removed for cleaner view) -->
-        <div class="news-content" id="news-content" style="padding-top: 1rem;">
+        <!-- Desktop scrolling content (only shows on desktop) -->
+        <div class="news-content" id="news-content" style="padding-top: 1rem; display: none;">
             <div class="news-ticker" id="news-ticker">
                 <!-- Desktop articles will be inserted here -->
             </div>
         </div>
 
-        <!-- Mobile News Panel (removed duplicate header) -->
+        <!-- Mobile News Panel -->
         <div class="mobile-news-content">
             <div class="mobile-news-scroll" id="mobile-news-scroll">
                 <div class="mobile-news-ticker" id="mobile-news-ticker">
@@ -816,7 +816,7 @@
             </div>
         </div>
 
-        <div class="connection-status" id="news-status">
+        <div class="connection-status" id="news-status" style="display: none;">
             Waiting for activation...
         </div>
     </div>
@@ -874,6 +874,7 @@
                 const feedContainer = document.getElementById('news-feed');
                 const statusEl = document.getElementById('news-status');
                 const mobileFab = document.getElementById('mobile-news-fab');
+                const desktopContent = document.getElementById('news-content');
                 
                 feedContainer.classList.add('enabled');
                 
@@ -881,9 +882,17 @@
                     mobileFab.classList.add('enabled');
                     mobileFab.classList.add('pulse');
                     setTimeout(() => mobileFab.classList.remove('pulse'), 5000);
+                    // Hide desktop elements on mobile
+                    if (desktopContent) desktopContent.style.display = 'none';
+                    if (statusEl) statusEl.style.display = 'none';
+                } else {
+                    // Show desktop elements on desktop
+                    if (desktopContent) desktopContent.style.display = 'block';
+                    if (statusEl) {
+                        statusEl.style.display = 'block';
+                        statusEl.textContent = 'Connecting to live stream...';
+                    }
                 }
-                
-                statusEl.textContent = 'Connecting to live stream...';
                 
                 this.init();
                 
@@ -995,7 +1004,7 @@
                 
                 this.scrollInterval = setInterval(() => {
                     if (this.mobileAutoScroll && this.feedOpen) {
-                        scrollContainer.scrollTop += 1; // Back to 1px for smoother scrolling
+                        scrollContainer.scrollTop += 0.5; // Slower: 0.5px instead of 1px
                         
                         // Reset to top when reaching bottom
                         if (scrollContainer.scrollTop >= 
@@ -1003,7 +1012,7 @@
                             scrollContainer.scrollTop = 0;
                         }
                     }
-                }, 40); // Slower: 40ms interval for smoother speed
+                }, 50); // Adjusted: 50ms interval for smoother slow speed
             }
 
             pauseMobileAutoScroll() {
