@@ -957,19 +957,22 @@
 
                 console.log('Toggling news panel:', this.isOpen); // Debug log
 
-                panel.classList.toggle('open', this.isOpen);
-
-                if (!this.isMobile) {
-                    container.classList.toggle('news-open', this.isOpen);
-                }
-
                 if (this.isOpen) {
+                    panel.classList.add('open');
+                    if (!this.isMobile) {
+                        container.classList.add('news-open');
+                    }
                     this.newCount = 0;
                     this.updateBadge();
                     this.loadFeed();
                     if (this.isMobile) {
                         this.setupMobileGestures();
                         this.setupMobileAutoScroll();
+                    }
+                } else {
+                    panel.classList.remove('open');
+                    if (!this.isMobile) {
+                        container.classList.remove('news-open');
                     }
                 }
             }
