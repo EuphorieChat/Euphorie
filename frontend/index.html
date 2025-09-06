@@ -78,21 +78,23 @@
             }
         }
 
-        /* Mobile News Feed - Slide Panel */
+        /* Mobile News Feed - Slide Panel from Top */
         @media (max-width: 768px) {
             .news-feed-container {
                 position: fixed;
-                bottom: -100vh;
+                top: -100vh;
                 left: 0;
                 width: 100vw;
-                height: 85vh;
-                background: rgba(0, 0, 0, 0); /* 100% transparent */
-                border-top: 2px solid rgba(0, 255, 136, 0.5);
-                border-radius: 20px 20px 0 0;
+                height: 40vh;
+                background: rgba(0, 0, 0, 0.95); /* Slightly visible for better readability */
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-bottom: 2px solid rgba(0, 255, 136, 0.5);
+                border-radius: 0 0 20px 20px;
                 z-index: 2000;
                 display: none;
-                transition: bottom 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-                box-shadow: 0 -10px 30px rgba(0, 255, 136, 0.3);
+                transition: top 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+                box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
             }
 
             .news-feed-container.enabled {
@@ -101,7 +103,7 @@
             }
 
             .news-feed-container.open {
-                bottom: 0;
+                top: 0;
             }
 
             /* Mobile header with drag handle */
@@ -199,7 +201,7 @@
             }
 
             .mobile-news-ticker {
-                animation: mobileScroll 30s linear infinite;
+                animation: mobileScroll 20s linear infinite; /* Faster: 20s instead of 30s */
             }
 
             .mobile-news-ticker.paused {
@@ -936,8 +938,9 @@
                     currentY = e.touches[0].clientY;
                     const deltaY = currentY - startY;
                     
-                    if (deltaY > 0) {
-                        feedContainer.style.bottom = `-${deltaY}px`;
+                    // Swipe up to close (negative deltaY)
+                    if (deltaY < 0) {
+                        feedContainer.style.top = `${deltaY}px`;
                     }
                 }, { passive: true });
                 
@@ -946,10 +949,11 @@
                     feedContainer.style.transition = '';
                     
                     const deltaY = currentY - startY;
-                    if (deltaY > 100) {
+                    // Swipe up more than 100px to close
+                    if (deltaY < -100) {
                         this.toggleFeed();
                     } else {
-                        feedContainer.style.bottom = '0';
+                        feedContainer.style.top = '0';
                     }
                 }, { passive: true });
             }
@@ -991,7 +995,7 @@
                 
                 this.scrollInterval = setInterval(() => {
                     if (this.mobileAutoScroll && this.feedOpen) {
-                        scrollContainer.scrollTop += 1;
+                        scrollContainer.scrollTop += 2; // Faster: 2px instead of 1px
                         
                         // Reset to top when reaching bottom
                         if (scrollContainer.scrollTop >= 
@@ -999,7 +1003,7 @@
                             scrollContainer.scrollTop = 0;
                         }
                     }
-                }, 50);
+                }, 30); // Faster: 30ms interval instead of 50ms
             }
 
             pauseMobileAutoScroll() {
