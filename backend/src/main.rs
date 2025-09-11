@@ -1,112 +1,176 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import uvicorn
-import time
-import logging
+use axum::{
+    extract::Json,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
+use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
+use tower_http::cors::{Any, CorsLayer};
+use tracing::{info, Level};
+use tracing_subscriber;
+use std::time::{SystemTime, UNIX_EPOCH};
+use rand::seq::SliceRandom;
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+#[derive(Deserialize)]
+struct ChatRequest {
+    message: String,
+    user_name: String,
+    user_id: String,
+    room_id: String,
+    timestamp: i64,
+}
 
-app = FastAPI(title="Euphorie AI Service")
+#[derive(Serialize)]
+struct ChatResponse {
+    response: String,
+    agent_name: String,
+    confidence: f64,
+    timestamp: i64,
+}
 
-# Add CORS middleware to handle cross-origin requests
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://localhost:5173", "https://127.0.0.1:5173", "http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
+#[derive(Serialize)]
+struct HealthResponse {
+    status: String,
+    service: String,
+    jarvis_status: String,
+    timestamp: i64,
+}
 
-class ChatRequest(BaseModel):
-    message: str
-    user_name: str
-    user_id: str
-    room_id: str
-    timestamp: int
+#[derive(Deserialize)]
+struct VisionRequest {
+    user_id: String,
+}
 
-class ChatResponse(BaseModel):
-    response: str
-    agent_name: str
-    confidence: float
-    timestamp: int
+#[derive(Serialize)]
+struct VisionResponse {
+    insight: Option<String>,
+    scene_description: String,
+    objects_detected: Vec<String>,
+    should_respond: bool,
+    confidence: f64,
+    timestamp: i64,
+}
 
-@app.get("/")
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "service": "euphorie-ai",
-        "jarvis_status": "active",
-        "timestamp": int(time.time())
-    }
-
-@app.post("/api/chat")
-async def chat(request: dict):
-    message = request.get("message", "")
-    user_name = request.get("user_name", "User")
+async fn health() -> impl IntoResponse {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
     
-    logger.info(f"💬 Chat from {user_name}: {message}")
-    
-    # Smart contextual responses
-    message_lower = message.lower()
-    
-    if any(word in message_lower for word in ["hello", "hi", "hey"]):
-        response = f"Hello {user_name}! I'm Jarvis, your magical AI assistant in Euphorie. I can help with coding, learning, creative projects and more!"
-    elif any(word in message_lower for word in ["camera", "vision", "see"]):
-        response = "With AI Vision enabled, I can see what you're working on and provide contextual help - perfect for debugging code or explaining documents!"
-    elif any(word in message_lower for word in ["code", "debug", "programming", "error"]):
-        response = "I'd love to help with coding! Enable camera vision so I can see your screen and help debug issues, explain code, or suggest improvements."
-    elif any(word in message_lower for word in ["learn", "study", "explain", "help"]):
-        response = "I'm here to help you learn! Enable camera vision and I can even assist with textbooks, documents, or any learning materials you're reading."
-    elif any(word in message_lower for word in ["thank"]):
-        response = f"You're very welcome, {user_name}! I'm always here to help however I can."
-    elif any(word in message_lower for word in ["genie", "magic", "wizard"]):
-        response = f"Indeed, {user_name}! I am your digital genie, floating here with magical powers to assist you. My crown and energy rings aren't just for show - they represent my readiness to grant your wishes for knowledge and help!"
-    elif any(word in message_lower for word in ["beautiful", "cool", "awesome", "amazing"]):
-        response = f"Thank you, {user_name}! I do try to look my best with my ethereal form and swirling energy. Beauty and function combined - that's the Euphorie way!"
-    else:
-        response = f"I'm here to assist, {user_name}! I can help with coding, learning, creative work, and more. Enable AI Vision for contextual help based on what you show me!"
-    
-    return {
-        "response": response,
-        "agent_name": "Jarvis",
-        "confidence": 0.9,
-        "timestamp": int(time.time())
-    }
+    Json(HealthResponse {
+        status: "healthy".to_string(),
+        service: "euphorie-ai".to_string(),
+        jarvis_status: "active".to_string(),
+        timestamp,
+    })
+}
 
-@app.post("/api/vision/analyze")
-async def vision_analyze(request: dict):
-    user_id = request.get('user_id', 'unknown')
-    logger.info(f"👁️ Vision analysis from user {user_id}")
+async fn chat(Json(request): Json<serde_json::Value>) -> impl IntoResponse {
+    let message = request["message"].as_str().unwrap_or("");
+    let user_name = request["user_name"].as_str().unwrap_or("User");
     
-    # Mock vision insights with more variety
-    insights = [
-        "I can see you're at your workspace! I'm ready to help with any coding or learning questions.",
-        "I notice you're working on something interesting. Feel free to ask me about what you're doing!",
-        "I see your computer setup. I can help with debugging, explanations, or project guidance!",
-        "Looks like you're working hard! Let me know if you need assistance with anything on your screen.",
-        "I can see some text and graphics. If you need help understanding or working with any content, just ask!",
-        "Your workspace looks productive! I'm here whenever you need help with what you're working on.",
-        None,  # Sometimes no insight
-        None,  # Sometimes no insight
-    ]
+    info!("💬 Chat from {}: {}", user_name, message);
     
-    import random
-    insight = random.choice(insights)
+    let message_lower = message.to_lowercase();
     
-    return {
-        "insight": insight,
-        "scene_description": "I can see a workspace with computer and person",
-        "objects_detected": ["computer", "desk", "person", "screen"],
-        "should_respond": insight is not None,
-        "confidence": 0.8,
-        "timestamp": int(time.time())
-    }
+    let response = if ["hello", "hi", "hey"].iter().any(|&word| message_lower.contains(word)) {
+        format!("Hello {}! I'm Jarvis, your magical AI assistant in Euphorie. I can help with coding, learning, creative projects and more!", user_name)
+    } else if ["camera", "vision", "see"].iter().any(|&word| message_lower.contains(word)) {
+        "With AI Vision enabled, I can see what you're working on and provide contextual help - perfect for debugging code or explaining documents!".to_string()
+    } else if ["code", "debug", "programming", "error"].iter().any(|&word| message_lower.contains(word)) {
+        "I'd love to help with coding! Enable camera vision so I can see your screen and help debug issues, explain code, or suggest improvements.".to_string()
+    } else if ["learn", "study", "explain", "help"].iter().any(|&word| message_lower.contains(word)) {
+        "I'm here to help you learn! Enable camera vision and I can even assist with textbooks, documents, or any learning materials you're reading.".to_string()
+    } else if message_lower.contains("thank") {
+        format!("You're very welcome, {}! I'm always here to help however I can.", user_name)
+    } else if ["genie", "magic", "wizard"].iter().any(|&word| message_lower.contains(word)) {
+        format!("Indeed, {}! I am your digital genie, floating here with magical powers to assist you. My crown and energy rings aren't just for show - they represent my readiness to grant your wishes for knowledge and help!", user_name)
+    } else if ["beautiful", "cool", "awesome", "amazing"].iter().any(|&word| message_lower.contains(word)) {
+        format!("Thank you, {}! I do try to look my best with my ethereal form and swirling energy. Beauty and function combined - that's the Euphorie way!", user_name)
+    } else {
+        format!("I'm here to assist, {}! I can help with coding, learning, creative work, and more. Enable AI Vision for contextual help based on what you show me!", user_name)
+    };
+    
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    
+    Json(ChatResponse {
+        response,
+        agent_name: "Jarvis".to_string(),
+        confidence: 0.9,
+        timestamp,
+    })
+}
 
-if __name__ == "__main__":
-    print("🚀 Starting Euphorie AI Service...")
-    print("🤖 Jarvis is coming online...")
-    print("🔧 CORS enabled for HTTPS frontend...")
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=False)
+async fn vision_analyze(Json(request): Json<serde_json::Value>) -> impl IntoResponse {
+    let user_id = request["user_id"].as_str().unwrap_or("unknown");
+    info!("👁️ Vision analysis from user {}", user_id);
+    
+    let insights = vec![
+        Some("I can see you're at your workspace! I'm ready to help with any coding or learning questions.".to_string()),
+        Some("I notice you're working on something interesting. Feel free to ask me about what you're doing!".to_string()),
+        Some("I see your computer setup. I can help with debugging, explanations, or project guidance!".to_string()),
+        Some("Looks like you're working hard! Let me know if you need assistance with anything on your screen.".to_string()),
+        Some("I can see some text and graphics. If you need help understanding or working with any content, just ask!".to_string()),
+        Some("Your workspace looks productive! I'm here whenever you need help with what you're working on.".to_string()),
+        None,
+        None,
+    ];
+    
+    let mut rng = rand::thread_rng();
+    let insight = insights.choose(&mut rng).unwrap().clone();
+    let should_respond = insight.is_some();
+    
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    
+    Json(VisionResponse {
+        insight,
+        scene_description: "I can see a workspace with computer and person".to_string(),
+        objects_detected: vec!["computer".to_string(), "desk".to_string(), "person".to_string(), "screen".to_string()],
+        should_respond,
+        confidence: 0.8,
+        timestamp,
+    })
+}
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(Level::INFO)
+        .init();
+    
+    println!("🚀 Starting Euphorie AI Service...");
+    println!("🤖 Jarvis is coming online...");
+    println!("🔧 CORS enabled for HTTPS frontend...");
+    
+    let cors = CorsLayer::new()
+        .allow_origin([
+            "https://localhost:5173".parse().unwrap(),
+            "https://127.0.0.1:5173".parse().unwrap(),
+            "http://localhost:5173".parse().unwrap(),
+        ])
+        .allow_methods(Any)
+        .allow_headers(Any);
+    
+    let app = Router::new()
+        .route("/", get(health))
+        .route("/health", get(health))
+        .route("/api/chat", post(chat))
+        .route("/api/vision/analyze", post(vision_analyze))
+        .layer(cors);
+    
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8001));
+    info!("Server running on http://{}", addr);
+    
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
