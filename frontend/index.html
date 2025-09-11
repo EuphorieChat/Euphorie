@@ -76,6 +76,16 @@
                 0% { transform: translateY(0); }
                 100% { transform: translateY(-50%); }
             }
+            
+            /* Hide mobile FAB on desktop */
+            .mobile-news-fab {
+                display: none !important;
+            }
+            
+            /* Hide connection status on desktop */
+            .connection-status {
+                display: none !important;
+            }
         }
 
         /* Mobile Jarvis-Style AR Overlay */
@@ -370,7 +380,7 @@
             }
         }
 
-        /* Desktop news toggle */
+        /* Desktop news toggle - fixed positioning */
         .news-toggle {
             position: absolute;
             left: -40px;
@@ -393,11 +403,12 @@
 
         @media (max-width: 768px) {
             .news-toggle {
-                display: none;
+                display: none !important;
             }
         }
 
-        .news-feed-container.enabled .news-toggle {
+        /* Only show toggle when container is enabled AND open */
+        .news-feed-container.enabled.open .news-toggle {
             opacity: 1;
             visibility: visible;
         }
@@ -858,6 +869,7 @@
             </div>
         </div>
 
+        <!-- Connection status only shows on mobile now -->
         <div class="connection-status" id="news-status">
             Waiting for activation...
         </div>
@@ -922,9 +934,12 @@
                     mobileFab.classList.add('enabled');
                     mobileFab.classList.add('pulse');
                     setTimeout(() => mobileFab.classList.remove('pulse'), 5000);
+                    
+                    // Update status for mobile
+                    if (statusEl) {
+                        statusEl.textContent = 'Connecting to live stream...';
+                    }
                 }
-                
-                statusEl.textContent = 'Connecting to live stream...';
                 
                 this.init();
                 
@@ -1312,7 +1327,7 @@
 
             updateConnectionStatus(connected) {
                 const status = document.getElementById('news-status');
-                if (!status) return;
+                if (!status || !this.isMobile) return; // Only show on mobile
                 
                 if (connected) {
                     status.textContent = 'Live stream active';
@@ -1357,7 +1372,7 @@
                 this.newArticleCount = 0;
                 
                 const status = document.getElementById('news-status');
-                if (status) {
+                if (status && this.isMobile) {
                     status.textContent = 'Waiting for activation...';
                     status.className = 'connection-status disconnected';
                 }
