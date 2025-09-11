@@ -337,6 +337,24 @@
                 position: relative;
                 will-change: scroll-position;
             }
+            
+            /* Mobile auto-scroll animation */
+            .mobile-news-content.auto-scroll .mobile-news-ticker {
+                animation: mobileScroll 40s linear infinite;
+            }
+            
+            .mobile-news-content.auto-scroll.paused .mobile-news-ticker {
+                animation-play-state: paused;
+            }
+            
+            @keyframes mobileScroll {
+                0% {
+                    transform: translateY(0);
+                }
+                100% {
+                    transform: translateY(-50%);
+                }
+            }
 
             /* Thin scrollbar for mobile */
             .mobile-news-content::-webkit-scrollbar {
@@ -963,33 +981,39 @@
                 let startY = 0;
                 let currentY = 0;
                 let isDragging = false;
-                let lastVelocity = 0;
-                let lastTime = Date.now();
+                let startTime = 0;
+                let touchStartTransform = 0;
                 
                 const handleStart = (e) => {
                     isDragging = true;
                     dragHandle.classList.add('dragging');
                     startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     currentY = startY;
-                    lastTime = Date.now();
+                    startTime = Date.now();
+                    
+                    // Get current transform if any
+                    const transform = window.getComputedStyle(feedContainer).transform;
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        touchStartTransform = matrix.m42; // translateY value
+                    } else {
+                        touchStartTransform = 0;
+                    }
+                    
                     feedContainer.style.transition = 'none';
+                    
+                    // Pause mobile auto-scroll
+                    if (mobileContent) {
+                        mobileContent.classList.add('paused');
+                    }
                 };
                 
                 const handleMove = (e) => {
                     if (!isDragging) return;
                     
                     e.preventDefault();
-                    const now = Date.now();
-                    const prevY = currentY;
                     currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     const deltaY = currentY - startY;
-                    
-                    // Calculate velocity for momentum
-                    const deltaTime = now - lastTime;
-                    if (deltaTime > 0) {
-                        lastVelocity = (currentY - prevY) / deltaTime;
-                    }
-                    lastTime = now;
                     
                     // Only allow dragging down when open
                     if (this.feedOpen && deltaY > 0) {
@@ -1003,43 +1027,81 @@
                     
                     isDragging = false;
                     dragHandle.classList.remove('dragging');
-                    feedContainer.style.transition = '';
                     
                     const deltaY = currentY - startY;
+                    const deltaTime = Date.now() - startTime;
+                    const velocity = Math.abs(deltaY) / deltaTime;
                     
-                    // Use velocity for more natural gesture recognition
-                    if (deltaY > 50 || lastVelocity > 0.5) {
+                    // Smoother transition back
+                    feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    
+                    // More responsive threshold - either 15% of panel height or quick swipe
+                    const threshold = window.innerHeight * 0.15; // Reduced from 50px to 15% of height
+                    
+                    if (deltaY > threshold || velocity > 0.3) {
+                        // Close the panel
                         this.toggleFeed();
                     } else {
-                        feedContainer.style.transform = '';
+                        // Snap back to open position
+                        feedContainer.style.transform = 'translateY(0)';
                     }
                     
-                    lastVelocity = 0;
+                    // Resume mobile auto-scroll
+                    if (mobileContent && this.feedOpen) {
+                        setTimeout(() => {
+                            mobileContent.classList.remove('paused');
+                        }, 300);
+                    }
                 };
                 
-                // Touch events with passive for better performance
+                // Touch events with better handling
                 dragHandle.addEventListener('touchstart', handleStart, { passive: false });
-                dragHandle.addEventListener('touchmove', handleMove, { passive: false });
-                dragHandle.addEventListener('touchend', handleEnd, { passive: true });
+                window.addEventListener('touchmove', handleMove, { passive: false });
+                window.addEventListener('touchend', handleEnd, { passive: true });
+                window.addEventListener('touchcancel', handleEnd, { passive: true });
                 
                 // Mouse events for testing
                 dragHandle.addEventListener('mousedown', handleStart);
                 window.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
                 
-                // Optimize scrolling performance on mobile
-                if (mobileContent) {
-                    let scrollTimeout;
-                    mobileContent.addEventListener('scroll', () => {
-                        // Add class during scroll for potential CSS optimizations
-                        mobileContent.classList.add('scrolling');
-                        
+                // Setup mobile auto-scroll
+                this.setupMobileAutoScroll(mobileContent);
+            }
+            
+            setupMobileAutoScroll(mobileContent) {
+                if (!mobileContent) return;
+                
+                // Enable auto-scroll class
+                mobileContent.classList.add('auto-scroll');
+                
+                let userScrolling = false;
+                let scrollTimeout;
+                
+                // Detect user scrolling
+                mobileContent.addEventListener('touchstart', () => {
+                    userScrolling = true;
+                    mobileContent.classList.add('paused');
+                }, { passive: true });
+                
+                mobileContent.addEventListener('touchend', () => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        userScrolling = false;
+                        mobileContent.classList.remove('paused');
+                    }, 3000); // Resume auto-scroll after 3 seconds of inactivity
+                }, { passive: true });
+                
+                // Also pause on manual scroll
+                mobileContent.addEventListener('scroll', () => {
+                    if (!userScrolling) {
+                        mobileContent.classList.add('paused');
                         clearTimeout(scrollTimeout);
                         scrollTimeout = setTimeout(() => {
-                            mobileContent.classList.remove('scrolling');
-                        }, 150);
-                    }, { passive: true });
-                }
+                            mobileContent.classList.remove('paused');
+                        }, 3000);
+                    }
+                }, { passive: true });
             }
 
             init() {
@@ -1335,6 +1397,7 @@
 
             renderMobileFeed() {
                 const ticker = document.getElementById('mobile-news-ticker');
+                const mobileContent = document.getElementById('mobile-news-content');
                 if (!ticker) return;
                 
                 // Use document fragment for better performance
@@ -1353,12 +1416,24 @@
                     return;
                 }
 
-                sortedArticles.forEach(article => {
-                    fragment.appendChild(this.createMobileNewsCard(article));
-                });
+                // Add articles twice for continuous scroll effect
+                for (let i = 0; i < 2; i++) {
+                    sortedArticles.forEach(article => {
+                        fragment.appendChild(this.createMobileNewsCard(article));
+                    });
+                }
                 
                 ticker.innerHTML = '';
                 ticker.appendChild(fragment);
+                
+                // Restart animation for mobile auto-scroll
+                if (mobileContent) {
+                    // Force animation restart
+                    const ticker = document.getElementById('mobile-news-ticker');
+                    ticker.style.animation = 'none';
+                    ticker.offsetHeight; // Trigger reflow
+                    ticker.style.animation = '';
+                }
             }
 
             createMobileNewsCard(article) {
