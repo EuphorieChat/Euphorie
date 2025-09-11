@@ -169,8 +169,7 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], 8001));
     info!("Server running on http://{}", addr);
     
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    // Fixed for axum 0.7
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
