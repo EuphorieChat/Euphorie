@@ -139,14 +139,35 @@ async fn vision_analyze(Json(request): Json<serde_json::Value>) -> impl IntoResp
     })
 }
 
-// Optional: Add news fetching endpoint
+// News fetching endpoint
 async fn get_news() -> impl IntoResponse {
     match reqwest::get("https://crene.com/api/news/feed").await {
         Ok(response) => match response.json::<serde_json::Value>().await {
-            Ok(json) => Json(json),
-            Err(_) => Json(serde_json::json!({"error": "Failed to parse news"})),
+            Ok(json) => {
+                info!("✅ Successfully fetched news from Crene");
+                Json(json)
+            },
+            Err(e) => {
+                info!("❌ Failed to parse news: {}", e);
+                Json(serde_json::json!({
+                    "articles": [],
+                    "count": 0,
+                    "has_more": false,
+                    "total": 0,
+                    "error": "Failed to parse news from Crene"
+                }))
+            }
         },
-        Err(_) => Json(serde_json::json!({"error": "Failed to fetch news"})),
+        Err(e) => {
+            info!("❌ Failed to fetch news: {}", e);
+            Json(serde_json::json!({
+                "articles": [],
+                "count": 0,
+                "has_more": false,
+                "total": 0,
+                "error": "Failed to connect to Crene news service"
+            }))
+        }
     }
 }
 
@@ -158,13 +179,18 @@ async fn main() {
     
     println!("🚀 Starting Euphorie AI Service...");
     println!("🤖 Jarvis is coming online...");
-    println!("🔧 CORS enabled for HTTPS frontend...");
+    println!("🔧 CORS enabled for euphorie.com...");
     
+    // Updated CORS configuration to include euphorie.com
     let cors = CorsLayer::new()
         .allow_origin([
-            "https://localhost:5173".parse().unwrap(),
-            "https://127.0.0.1:5173".parse().unwrap(),
-            "http://localhost:5173".parse().unwrap(),
+            "https://euphorie.com".parse().unwrap(),      // Production HTTPS
+            "http://euphorie.com".parse().unwrap(),       // Production HTTP
+            "https://www.euphorie.com".parse().unwrap(),  // With www
+            "http://www.euphorie.com".parse().unwrap(),   // With www HTTP
+            "https://localhost:5173".parse().unwrap(),    // Local dev
+            "https://127.0.0.1:5173".parse().unwrap(),    // Local dev
+            "http://localhost:5173".parse().unwrap(),     // Local dev HTTP
         ])
         .allow_methods(Any)
         .allow_headers(Any);
@@ -174,7 +200,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/api/chat", post(chat))
         .route("/api/vision/analyze", post(vision_analyze))
-        .route("/api/news/feed", get(get_news))  // Change this line
+        .route("/api/news/feed", get(get_news))  // News endpoint matching frontend expectations
         .layer(cors);
     
     let addr = SocketAddr::from(([0, 0, 0, 0], 8001));
