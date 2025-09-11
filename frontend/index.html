@@ -39,7 +39,9 @@
                 top: 0;
                 width: 400px;
                 height: 100vh;
-                background: rgba(0, 0, 0, 0.95);
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
                 border-left: 1px solid rgba(0, 255, 136, 0.3);
                 transition: right 0.3s ease;
                 z-index: 1000;
@@ -83,23 +85,25 @@
             }
         }
 
-        /* Mobile Jarvis-Style Overlay */
+        /* Mobile Jarvis-Style Overlay - Now from TOP */
         @media (max-width: 768px) {
             .news-feed-container {
                 position: fixed;
-                bottom: -100vh;
+                top: -100vh;
                 left: 0;
                 width: 100vw;
                 height: 85vh;
-                background: linear-gradient(to top, 
-                    rgba(0, 0, 0, 0.98), 
-                    rgba(0, 0, 0, 0.9));
-                border-top: 2px solid rgba(0, 255, 136, 0.5);
-                transition: bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                background: linear-gradient(to bottom, 
+                    rgba(0, 0, 0, 0.85), 
+                    rgba(0, 0, 0, 0.7));
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                border-bottom: 2px solid rgba(0, 255, 136, 0.5);
+                transition: top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 z-index: 2000;
                 display: flex;
                 flex-direction: column;
-                border-radius: 20px 20px 0 0;
+                border-radius: 0 0 20px 20px;
                 opacity: 0;
                 visibility: hidden;
             }
@@ -110,7 +114,7 @@
             }
 
             .news-feed-container.open {
-                bottom: 0;
+                top: 0;
             }
 
             /* Mobile news content with better scrolling */
@@ -135,12 +139,14 @@
                 border-radius: 2px;
             }
 
-            /* Mobile news cards */
+            /* Mobile news cards with transparency */
             .mobile-news-card {
                 background: linear-gradient(135deg, 
-                    rgba(0, 255, 136, 0.1), 
-                    rgba(0, 153, 255, 0.05));
-                border: 1px solid rgba(0, 255, 136, 0.3);
+                    rgba(0, 255, 136, 0.08), 
+                    rgba(0, 153, 255, 0.04));
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(0, 255, 136, 0.25);
                 border-radius: 10px;
                 padding: 12px;
                 margin-bottom: 12px;
@@ -150,14 +156,14 @@
 
             .mobile-news-card:active {
                 transform: scale(0.98);
-                background: rgba(0, 255, 136, 0.2);
+                background: rgba(0, 255, 136, 0.15);
             }
 
             .mobile-news-card.breaking {
                 background: linear-gradient(135deg, 
-                    rgba(255, 59, 48, 0.2), 
-                    rgba(255, 149, 0, 0.1));
-                border-color: rgba(255, 59, 48, 0.6);
+                    rgba(255, 59, 48, 0.15), 
+                    rgba(255, 149, 0, 0.08));
+                border-color: rgba(255, 59, 48, 0.5);
                 animation: breakingPulse 2s ease-in-out infinite;
             }
 
@@ -170,10 +176,10 @@
                 }
             }
 
-            /* Mobile floating button */
+            /* Mobile floating button - adjusted position */
             .mobile-news-fab {
                 position: fixed;
-                bottom: 20px;
+                top: 20px;
                 right: 20px;
                 width: 60px;
                 height: 60px;
@@ -245,7 +251,7 @@
                 100% { transform: scale(1); }
             }
 
-            /* Mobile drag handle */
+            /* Mobile drag handle - now at bottom of panel */
             .mobile-drag-handle {
                 width: 100%;
                 height: 30px;
@@ -253,6 +259,7 @@
                 align-items: center;
                 justify-content: center;
                 cursor: grab;
+                order: 999;
             }
 
             .mobile-drag-handle:active {
@@ -281,7 +288,9 @@
             transform: translateY(-50%);
             width: 40px;
             height: 80px;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(0, 255, 136, 0.3);
             border-right: none;
             border-radius: 10px 0 0 10px;
@@ -316,19 +325,21 @@
 
         @keyframes newsPulse {
             0%, 100% { 
-                background: rgba(0, 0, 0, 0.9);
+                background: rgba(0, 0, 0, 0.8);
                 box-shadow: none;
             }
             50% { 
-                background: rgba(0, 255, 136, 0.2);
+                background: rgba(0, 255, 136, 0.15);
                 box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
             }
         }
 
         .news-header {
             padding: 1rem;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.5);
             border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         /* Hide header on mobile to save space */
@@ -372,8 +383,10 @@
         .news-filter {
             padding: 0.3rem 0.8rem;
             font-size: 0.75rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 15px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -381,7 +394,7 @@
         }
 
         .news-filter.active {
-            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 153, 255, 0.3));
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.25), rgba(0, 153, 255, 0.25));
             border-color: rgba(0, 255, 136, 0.5);
             color: #00ff88;
         }
@@ -410,8 +423,10 @@
         .news-item {
             margin-bottom: 1rem;
             padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 10px;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -430,14 +445,14 @@
         }
 
         .news-item:hover {
-            background: rgba(0, 255, 136, 0.1);
+            background: rgba(0, 255, 136, 0.08);
             border-color: rgba(0, 255, 136, 0.3);
             transform: translateX(-5px);
         }
 
         .news-item.breaking {
-            border-color: rgba(255, 59, 48, 0.5);
-            background: rgba(255, 59, 48, 0.1);
+            border-color: rgba(255, 59, 48, 0.4);
+            background: rgba(255, 59, 48, 0.08);
         }
 
         .news-item-title {
@@ -472,8 +487,10 @@
             align-items: center;
             gap: 0.3rem;
             padding: 0.2rem 0.5rem;
-            background: rgba(255, 0, 0, 0.2);
-            border: 1px solid rgba(255, 0, 0, 0.5);
+            background: rgba(255, 0, 0, 0.15);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 0, 0, 0.4);
             border-radius: 10px;
             font-size: 0.65rem;
             margin-left: 0.5rem;
@@ -521,6 +538,7 @@
             .camera-interface {
                 border-radius: 15px;
                 border-width: 1px;
+                margin-top: 80px; /* Space for FAB button */
             }
         }
 
@@ -618,12 +636,20 @@
             flex-wrap: wrap;
         }
 
+        @media (max-width: 768px) {
+            .controls-overlay {
+                top: 5rem; /* Below FAB button */
+            }
+        }
+
         .controls-overlay.show {
             display: flex;
         }
 
         .control-btn {
             background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
             border-radius: 10px;
@@ -654,7 +680,9 @@
             max-width: min(350px, 90vw);
             max-height: 150px;
             margin: 0 auto;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(0, 255, 136, 0.3);
             border-radius: 10px;
             padding: 1rem;
@@ -687,11 +715,6 @@
             <span class="news-toggle-icon">📰</span>
         </div>
 
-        <!-- Mobile drag handle -->
-        <div class="mobile-drag-handle" onclick="toggleNewsFeed()">
-            <div class="drag-indicator"></div>
-        </div>
-
         <!-- News header -->
         <div class="news-header">
             <div class="news-title">
@@ -722,6 +745,11 @@
         <!-- Mobile content container -->
         <div class="mobile-news-content" id="mobile-news-content">
             <!-- Mobile cards will be inserted here -->
+        </div>
+
+        <!-- Mobile drag handle - now at bottom -->
+        <div class="mobile-drag-handle" onclick="toggleNewsFeed()">
+            <div class="drag-indicator"></div>
         </div>
     </div>
 
