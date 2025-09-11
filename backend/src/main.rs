@@ -4,7 +4,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use rand::seq::SliceRandom;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
