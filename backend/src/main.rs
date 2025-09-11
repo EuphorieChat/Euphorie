@@ -1,17 +1,16 @@
 use axum::{
     extract::Json,
-    http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
     Router,
 };
+use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, Level};
 use tracing_subscriber;
 use std::time::{SystemTime, UNIX_EPOCH};
-use rand::seq::SliceRandom;
 
 #[derive(Deserialize)]
 struct ChatRequest {
@@ -140,6 +139,17 @@ async fn vision_analyze(Json(request): Json<serde_json::Value>) -> impl IntoResp
     })
 }
 
+// Optional: Add news fetching endpoint
+async fn get_news() -> impl IntoResponse {
+    match reqwest::get("https://crene.com/api/news/feed").await {
+        Ok(response) => match response.json::<serde_json::Value>().await {
+            Ok(json) => Json(json),
+            Err(_) => Json(serde_json::json!({"error": "Failed to parse news"})),
+        },
+        Err(_) => Json(serde_json::json!({"error": "Failed to fetch news"})),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -164,6 +174,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/api/chat", post(chat))
         .route("/api/vision/analyze", post(vision_analyze))
+        .route("/api/news", get(get_news))  // Added news endpoint
         .layer(cors);
     
     let addr = SocketAddr::from(([0, 0, 0, 0], 8001));
