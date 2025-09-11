@@ -407,8 +407,8 @@
             }
         }
 
-        /* Only show toggle when container is enabled AND open */
-        .news-feed-container.enabled.open .news-toggle {
+        /* Show toggle when container is enabled (whether open or closed) */
+        .news-feed-container.enabled .news-toggle {
             opacity: 1;
             visibility: visible;
         }
@@ -1133,13 +1133,27 @@
                 
                 if (!this.isMobile) {
                     mainContainer.classList.toggle('news-open');
+                    // Update toggle button icon on desktop
+                    const toggleIcon = document.querySelector('.news-toggle-icon');
+                    if (toggleIcon) {
+                        toggleIcon.textContent = this.feedOpen ? '✕' : '📰';
+                    }
                 }
                 
-                if (this.feedOpen && this.isMobile) {
-                    this.newArticleCount = 0;
-                    const badge = document.getElementById('news-badge');
-                    if (badge) badge.classList.remove('show');
-                    this.renderJarvisView();
+                if (this.isMobile) {
+                    // Clear badge when opening
+                    if (this.feedOpen) {
+                        this.newArticleCount = 0;
+                        const badge = document.getElementById('news-badge');
+                        if (badge) badge.classList.remove('show');
+                        this.renderJarvisView();
+                    }
+                    
+                    // Update FAB icon to indicate state
+                    const fabIcon = document.querySelector('.mobile-news-fab-icon');
+                    if (fabIcon) {
+                        fabIcon.textContent = this.feedOpen ? '✕' : '📰';
+                    }
                 }
             }
 
@@ -1363,11 +1377,9 @@
                 
                 const feedContainer = document.getElementById('news-feed');
                 const mobileFab = document.getElementById('mobile-news-fab');
-                const desktopButton = document.getElementById('desktop-news-button');
                 
                 feedContainer.classList.remove('enabled');
                 if (mobileFab) mobileFab.classList.remove('enabled');
-                if (desktopButton) desktopButton.classList.remove('show');
                 
                 this.articles.clear();
                 this.jarvisCards = [];
