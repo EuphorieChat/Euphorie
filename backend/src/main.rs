@@ -174,7 +174,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/api/chat", post(chat))
         .route("/api/vision/analyze", post(vision_analyze))
-        .route("/api/news", get(get_news))  // Added news endpoint
+        .route("/api/news/feed", get(get_news))  // Change this line
         .layer(cors);
     
     let addr = SocketAddr::from(([0, 0, 0, 0], 8001));
