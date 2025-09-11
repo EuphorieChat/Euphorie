@@ -92,11 +92,11 @@
                 bottom: -100vh;
                 left: 0;
                 width: 100vw;
-                height: 70vh; /* Reduced from 85vh */
-                background: rgba(0, 0, 0, 0.95);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border-top: 1px solid rgba(0, 255, 136, 0.4);
+                height: 70vh;
+                background: rgba(0, 0, 0, 0.3); /* Much more transparent */
+                backdrop-filter: blur(5px); /* Reduced blur for better camera visibility */
+                -webkit-backdrop-filter: blur(5px);
+                border-top: 1px solid rgba(0, 255, 136, 0.3);
                 transition: bottom 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 z-index: 2000;
                 display: flex;
@@ -159,16 +159,38 @@
             .mobile-news-content {
                 flex: 1;
                 overflow-y: auto;
+                overflow-x: hidden;
                 padding: 0.5rem;
                 scroll-behavior: smooth;
                 -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .mobile-news-content::-webkit-scrollbar {
+                display: none;
+            }
+
+            /* Mobile auto-scroll container */
+            .mobile-news-ticker {
+                animation: mobileTicker 40s linear infinite;
+                padding-bottom: 50px;
+            }
+
+            .mobile-news-ticker.paused {
+                animation-play-state: paused;
+            }
+
+            @keyframes mobileTicker {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(-50%); }
             }
 
             /* Compact news cards */
             .mobile-news-card {
-                background: rgba(255, 255, 255, 0.05);
-                backdrop-filter: blur(5px);
-                border: 1px solid rgba(0, 255, 136, 0.2);
+                background: rgba(255, 255, 255, 0.03); /* More transparent */
+                backdrop-filter: blur(3px); /* Reduced blur */
+                border: 1px solid rgba(0, 255, 136, 0.15);
                 border-radius: 8px;
                 padding: 0.75rem;
                 margin-bottom: 0.5rem;
@@ -178,7 +200,7 @@
 
             .mobile-news-card:active {
                 transform: scale(0.98);
-                background: rgba(0, 255, 136, 0.1);
+                background: rgba(0, 255, 136, 0.08);
             }
 
             /* Smaller FAB button */
@@ -649,7 +671,9 @@
 
         <!-- Mobile content container -->
         <div class="mobile-news-content" id="mobile-news-content">
-            <!-- Mobile cards will be inserted here -->
+            <div class="mobile-news-ticker" id="mobile-news-ticker">
+                <!-- Mobile cards will be inserted here -->
+            </div>
         </div>
     </div>
 
@@ -695,6 +719,7 @@
                 this.newArticleCount = 0;
                 this.isMobile = window.innerWidth <= 768;
                 this.autoScrollEnabled = true;
+                this.mobileScrollPaused = false;
             }
 
             activate() {
@@ -729,16 +754,79 @@
                     }, 3000);
                 }
 
-                // Setup desktop auto-scroll
-                if (!this.isMobile) {
-                    this.setupDesktopAutoScroll();
-                }
+                // Setup auto-scroll for both desktop and mobile
+                this.setupAutoScroll();
             }
 
             init() {
                 this.setupFilters();
                 this.loadInitialFeed();
                 // WebSocket connection is optional
+            }
+
+            setupAutoScroll() {
+                if (this.isMobile) {
+                    this.setupMobileAutoScroll();
+                } else {
+                    this.setupDesktopAutoScroll();
+                }
+            }
+
+            setupMobileAutoScroll() {
+                const content = document.getElementById('mobile-news-content');
+                const ticker = document.getElementById('mobile-news-ticker');
+                
+                if (!content || !ticker) return;
+                
+                // Touch events to pause auto-scroll
+                content.addEventListener('touchstart', () => {
+                    ticker.classList.add('paused');
+                    this.mobileScrollPaused = true;
+                });
+                
+                content.addEventListener('touchend', () => {
+                    // Resume after 3 seconds of no interaction
+                    setTimeout(() => {
+                        if (this.mobileScrollPaused) {
+                            ticker.classList.remove('paused');
+                            this.mobileScrollPaused = false;
+                        }
+                    }, 3000);
+                });
+                
+                // Manual scroll also pauses
+                content.addEventListener('scroll', () => {
+                    if (!this.mobileScrollPaused) {
+                        ticker.classList.add('paused');
+                        this.mobileScrollPaused = true;
+                        
+                        // Resume after 3 seconds
+                        setTimeout(() => {
+                            ticker.classList.remove('paused');
+                            this.mobileScrollPaused = false;
+                        }, 3000);
+                    }
+                });
+
+                // Reset animation when it completes
+                ticker.addEventListener('animationiteration', () => {
+                    if (this.articles.size > 5 && !this.mobileScrollPaused) {
+                        // Clone articles for continuous scroll
+                        const childCount = ticker.children.length;
+                        if (childCount > 0 && childCount < 60) {
+                            const firstHalf = Math.floor(childCount / 2);
+                            for (let i = 0; i < firstHalf; i++) {
+                                const clone = ticker.children[i].cloneNode(true);
+                                ticker.appendChild(clone);
+                            }
+                        }
+                        
+                        // Remove old items if too many
+                        while (ticker.children.length > 60) {
+                            ticker.removeChild(ticker.children[0]);
+                        }
+                    }
+                });
             }
 
             setupDesktopAutoScroll() {
@@ -831,15 +919,15 @@
 
             addNewArticle(article) {
                 if (this.isMobile) {
-                    // Add to mobile view
-                    const mobileContent = document.getElementById('mobile-news-content');
-                    if (mobileContent) {
+                    // Add to mobile ticker
+                    const ticker = document.getElementById('mobile-news-ticker');
+                    if (ticker) {
                         const newCard = this.createMobileNewsCard(article);
-                        mobileContent.insertBefore(newCard, mobileContent.firstChild);
+                        ticker.insertBefore(newCard, ticker.firstChild);
                         
                         // Limit items
-                        while (mobileContent.children.length > 30) {
-                            mobileContent.removeChild(mobileContent.lastChild);
+                        while (ticker.children.length > 60) {
+                            ticker.removeChild(ticker.lastChild);
                         }
                     }
                 } else {
@@ -953,10 +1041,10 @@
             }
 
             renderMobileFeed() {
-                const container = document.getElementById('mobile-news-content');
-                if (!container) return;
+                const ticker = document.getElementById('mobile-news-ticker');
+                if (!ticker) return;
                 
-                container.innerHTML = '';
+                ticker.innerHTML = '';
 
                 const sortedArticles = Array.from(this.articles.values())
                     .filter(article => {
@@ -964,15 +1052,22 @@
                         if (this.currentFilter === 'breaking') return article.is_breaking;
                         return article.category?.toLowerCase() === this.currentFilter;
                     })
-                    .sort((a, b) => new Date(b.published) - new Date(a.published))
-                    .slice(0, 30); // Limit to 30 for mobile performance
+                    .sort((a, b) => new Date(b.published) - new Date(a.published));
 
+                // Add articles twice for seamless scrolling
                 sortedArticles.forEach(article => {
-                    container.appendChild(this.createMobileNewsCard(article));
+                    ticker.appendChild(this.createMobileNewsCard(article));
                 });
+                
+                // Clone for continuous scroll if we have articles
+                if (sortedArticles.length > 0) {
+                    sortedArticles.forEach(article => {
+                        ticker.appendChild(this.createMobileNewsCard(article));
+                    });
+                }
 
                 if (sortedArticles.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 2rem;">Loading news...</div>';
+                    ticker.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 2rem;">Loading news...</div>';
                 }
             }
 
@@ -1071,9 +1166,7 @@
                 // Re-render if device type changed
                 if (wasMobile !== newsFeed.isMobile && newsFeed.feedEnabled) {
                     newsFeed.renderFeed();
-                    if (!newsFeed.isMobile) {
-                        newsFeed.setupDesktopAutoScroll();
-                    }
+                    newsFeed.setupAutoScroll();
                 }
             });
         });
