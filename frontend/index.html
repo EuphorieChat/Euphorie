@@ -195,7 +195,7 @@
                 flex-direction: column;
                 border-radius: 20px 20px 0 0;
                 transform: translateY(100%);
-                transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 opacity: 0;
                 visibility: hidden;
                 pointer-events: none;
@@ -223,7 +223,7 @@
             /* Improved drag handle - more responsive */
             .mobile-drag-handle {
                 width: 100%;
-                height: 28px;
+                height: 40px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -236,26 +236,26 @@
                 content: '';
                 position: absolute;
                 top: 0;
-                left: 30%;
-                right: 30%;
+                left: 20%;
+                right: 20%;
                 height: 100%;
                 background: transparent;
             }
 
             .drag-indicator {
-                width: 40px;
-                height: 4px;
-                background: rgba(255, 255, 255, 0.4);
-                border-radius: 2px;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                width: 50px;
+                height: 5px;
+                background: rgba(255, 255, 255, 0.5);
+                border-radius: 3px;
+                transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             .mobile-drag-handle:active .drag-indicator,
             .mobile-drag-handle.dragging .drag-indicator {
-                background: rgba(0, 255, 136, 0.8);
-                width: 60px;
-                height: 5px;
-                box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+                background: rgba(0, 255, 136, 0.9);
+                width: 70px;
+                height: 6px;
+                box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
             }
 
             /* Mobile title and filters container */
@@ -914,6 +914,7 @@
                 this.currentFilter = 'all';
                 this.feedOpen = false;
                 this.feedEnabled = false;
+                this.wasOpenBeforeStop = false; // Track if feed was open before camera stopped
                 this.reconnectAttempts = 0;
                 this.maxReconnectAttempts = 5;
                 this.reconnectDelay = 1000;
@@ -949,25 +950,55 @@
                     
                     // Setup mobile gestures
                     this.setupMobileGestures();
+                    // Setup camera touch listener
+                    this.setupCameraTouchListener();
                 } else {
                     // Setup desktop auto-scroll
                     this.setupDesktopAutoScroll();
+                    
+                    // Only auto-show on desktop for first-time users, not when re-activating
+                    if (!localStorage.getItem('euphorie_feed_seen')) {
+                        setTimeout(() => {
+                            this.toggleFeed();
+                            localStorage.setItem('euphorie_feed_seen', 'true');
+                            // Auto-hide after 10 seconds
+                            setTimeout(() => {
+                                if (this.feedOpen) {
+                                    this.toggleFeed();
+                                }
+                            }, 10000);
+                        }, 3000);
+                    }
                 }
                 
                 this.init();
+            }
+
+            setupCameraTouchListener() {
+                const cameraVideo = document.getElementById('camera-video');
+                const cameraInterface = document.getElementById('camera-interface');
                 
-                // Auto-show on desktop for first-time users
-                if (!this.isMobile && !localStorage.getItem('euphorie_feed_seen')) {
-                    setTimeout(() => {
-                        this.toggleFeed();
-                        localStorage.setItem('euphorie_feed_seen', 'true');
-                        // Auto-hide after 10 seconds
-                        setTimeout(() => {
-                            if (this.feedOpen) {
-                                this.toggleFeed();
-                            }
-                        }, 10000);
-                    }, 3000);
+                if (!cameraVideo || !cameraInterface || !this.isMobile) return;
+                
+                // Function to close news feed when camera is touched
+                const handleCameraTouch = (e) => {
+                    // Only close if news feed is open and the touch is on the camera area
+                    if (this.feedOpen && isActive) {
+                        // Check if the touch is not on the news feed itself
+                        const feedContainer = document.getElementById('news-feed');
+                        if (feedContainer && !feedContainer.contains(e.target)) {
+                            this.closeFeed();
+                        }
+                    }
+                };
+                
+                // Add touch listener to camera interface
+                cameraInterface.addEventListener('touchstart', handleCameraTouch, { passive: true });
+            }
+
+            closeFeed() {
+                if (this.feedOpen) {
+                    this.toggleFeed();
                 }
             }
 
@@ -982,7 +1013,7 @@
                 let currentY = 0;
                 let isDragging = false;
                 let startTime = 0;
-                let touchStartTransform = 0;
+                let initialTransform = 0;
                 
                 const handleStart = (e) => {
                     isDragging = true;
@@ -995,11 +1026,12 @@
                     const transform = window.getComputedStyle(feedContainer).transform;
                     if (transform && transform !== 'none') {
                         const matrix = new DOMMatrix(transform);
-                        touchStartTransform = matrix.m42; // translateY value
+                        initialTransform = matrix.m42; // translateY value
                     } else {
-                        touchStartTransform = 0;
+                        initialTransform = 0;
                     }
                     
+                    // Remove transition immediately for responsive dragging
                     feedContainer.style.transition = 'none';
                     
                     // Pause mobile auto-scroll
@@ -1015,10 +1047,14 @@
                     currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     const deltaY = currentY - startY;
                     
-                    // Only allow dragging down when open
-                    if (this.feedOpen && deltaY > 0) {
-                        const translateY = Math.min(deltaY, window.innerHeight * 0.7);
-                        feedContainer.style.transform = `translateY(${translateY}px)`;
+                    // Allow dragging in both directions for more responsive feel
+                    if (this.feedOpen) {
+                        // Clamp the movement
+                        const translateY = Math.max(0, Math.min(deltaY + initialTransform, window.innerHeight * 0.7));
+                        // Apply transform immediately for responsive feedback
+                        requestAnimationFrame(() => {
+                            feedContainer.style.transform = `translateY(${translateY}px)`;
+                        });
                     }
                 };
                 
@@ -1030,20 +1066,23 @@
                     
                     const deltaY = currentY - startY;
                     const deltaTime = Date.now() - startTime;
-                    const velocity = Math.abs(deltaY) / deltaTime;
+                    const velocity = deltaTime > 0 ? Math.abs(deltaY) / deltaTime : 0;
                     
-                    // Smoother transition back
-                    feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    // Add transition back for smooth animation
+                    feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
-                    // Much lower threshold - just 50px or quick swipe
-                    const threshold = 50;
+                    // Lower thresholds for more responsive closing
+                    const threshold = 30; // Reduced from 50px
+                    const velocityThreshold = 0.15; // Reduced from 0.2
                     
-                    if (deltaY > threshold || velocity > 0.2) {
+                    if (deltaY > threshold || velocity > velocityThreshold) {
                         // Close the panel
                         this.toggleFeed();
                     } else {
                         // Snap back to open position
-                        feedContainer.style.transform = 'translateY(0)';
+                        requestAnimationFrame(() => {
+                            feedContainer.style.transform = 'translateY(0)';
+                        });
                     }
                     
                     // Resume mobile auto-scroll
@@ -1065,43 +1104,53 @@
                 window.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
                 
-                // Add swipe-down gesture on the content area too
+                // Enhanced swipe-down gesture on content area
                 let contentStartY = 0;
                 let contentScrollTop = 0;
+                let contentDragging = false;
                 
                 mobileContent.addEventListener('touchstart', (e) => {
                     contentStartY = e.touches[0].clientY;
                     contentScrollTop = mobileContent.scrollTop;
+                    contentDragging = false;
                 }, { passive: true });
                 
                 mobileContent.addEventListener('touchmove', (e) => {
                     // If scrolled to top and swiping down, start closing gesture
-                    if (mobileContent.scrollTop === 0) {
+                    if (mobileContent.scrollTop === 0 && contentScrollTop === 0) {
                         const deltaY = e.touches[0].clientY - contentStartY;
-                        if (deltaY > 10 && contentScrollTop === 0) {
+                        if (deltaY > 5) { // Lower threshold for quicker response
                             e.preventDefault();
+                            contentDragging = true;
                             feedContainer.style.transition = 'none';
-                            feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
+                            requestAnimationFrame(() => {
+                                feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
+                            });
                         }
                     }
                 }, { passive: false });
                 
                 mobileContent.addEventListener('touchend', (e) => {
+                    if (!contentDragging) return;
+                    
                     const transform = window.getComputedStyle(feedContainer).transform;
                     if (transform && transform !== 'none') {
                         const matrix = new DOMMatrix(transform);
                         const translateY = matrix.m42;
                         
-                        feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                        feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                         
-                        if (translateY > 50) {
-                            // Close if dragged down more than 50px
+                        if (translateY > 30) { // Lower threshold
+                            // Close if dragged down more than 30px
                             this.toggleFeed();
                         } else {
                             // Snap back
-                            feedContainer.style.transform = 'translateY(0)';
+                            requestAnimationFrame(() => {
+                                feedContainer.style.transform = 'translateY(0)';
+                            });
                         }
                     }
+                    contentDragging = false;
                 }, { passive: true });
                 
                 // Setup mobile auto-scroll
@@ -1540,6 +1589,9 @@
             }
 
             deactivate() {
+                // Remember if feed was open before deactivating
+                this.wasOpenBeforeStop = this.feedOpen;
+                
                 this.feedEnabled = false;
                 
                 if (this.ws) {
@@ -1564,6 +1616,8 @@
 
         // Initialize
         let newsFeed = null;
+        let isActive = false;
+        
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
             
@@ -1582,6 +1636,7 @@
                             newsFeed.setupDesktopAutoScroll();
                         } else {
                             newsFeed.setupMobileGestures();
+                            newsFeed.setupCameraTouchListener();
                         }
                     }
                 }, 250);
@@ -1595,7 +1650,6 @@
 
         // Camera functions
         let cameraStream = null;
-        let isActive = false;
         
         async function startCamera() {
             try {
@@ -1623,6 +1677,8 @@
                 isActive = true;
                 
                 if (newsFeed) {
+                    // Reset the wasOpenBeforeStop flag when starting camera
+                    newsFeed.wasOpenBeforeStop = false;
                     newsFeed.activate();
                     
                     const messageEl = document.getElementById('ai-message');
@@ -1666,7 +1722,7 @@
             if (newsFeed) {
                 newsFeed.deactivate();
             }
-        }
     </script>
+
 </body>
 </html>
