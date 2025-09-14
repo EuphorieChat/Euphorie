@@ -959,8 +959,11 @@
                 
                 this.init();
                 
-                // Only auto-show on desktop for first-time users, not on subsequent camera starts
-                if (!this.isMobile && !localStorage.getItem('euphorie_feed_seen') && !this.wasOpenBeforeStop) {
+                // Check if this is the very first time ever showing the feed
+                const isFirstTimeEver = !localStorage.getItem('euphorie_feed_seen');
+                
+                // Only auto-show on desktop for absolute first-time users
+                if (!this.isMobile && isFirstTimeEver) {
                     setTimeout(() => {
                         this.toggleFeed();
                         localStorage.setItem('euphorie_feed_seen', 'true');
@@ -971,6 +974,11 @@
                             }
                         }, 10000);
                     }, 3000);
+                } else if (!this.isMobile && this.wasOpenBeforeStop) {
+                    // Restore the feed state if it was open before stopping
+                    setTimeout(() => {
+                        this.toggleFeed();
+                    }, 100);
                 }
                 
                 // Reset the flag after use
@@ -980,23 +988,53 @@
             setupCameraTouchListener() {
                 const cameraVideo = document.getElementById('camera-video');
                 const cameraInterface = document.getElementById('camera-interface');
+                const chatOverlay = document.getElementById('chat-overlay');
                 
                 if (!cameraVideo || !cameraInterface || !this.isMobile) return;
                 
+                // Remove existing listeners if any
+                if (this.cameraListeners) {
+                    this.removeCameraListeners();
+                }
+                
                 // Listen for touches on the camera area
                 const handleCameraTouch = (e) => {
-                    // Check if the touch is on the camera video area
-                    if (this.feedOpen && (e.target === cameraVideo || e.target === cameraInterface)) {
+                    // Check if the touch is on the camera video area or chat overlay
+                    if (this.feedOpen && 
+                        (e.target === cameraVideo || 
+                         e.target === cameraInterface || 
+                         e.target === chatOverlay ||
+                         chatOverlay.contains(e.target))) {
                         // Close the news feed
+                        e.preventDefault();
+                        e.stopPropagation();
                         this.toggleFeed();
                     }
                 };
                 
-                cameraVideo.addEventListener('touchstart', handleCameraTouch, { passive: true });
-                cameraInterface.addEventListener('touchstart', handleCameraTouch, { passive: true });
+                // Add listeners with capture phase for better event handling
+                cameraVideo.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
+                cameraInterface.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
+                if (chatOverlay) {
+                    chatOverlay.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
+                }
                 
                 // Store references to remove listeners later
-                this.cameraListeners = { handleCameraTouch };
+                this.cameraListeners = { 
+                    handleCameraTouch,
+                    elements: [cameraVideo, cameraInterface, chatOverlay]
+                };
+            }
+            
+            removeCameraListeners() {
+                if (this.cameraListeners && this.cameraListeners.elements) {
+                    this.cameraListeners.elements.forEach(element => {
+                        if (element) {
+                            element.removeEventListener('touchstart', this.cameraListeners.handleCameraTouch, { capture: true });
+                        }
+                    });
+                    this.cameraListeners = null;
+                }
             }
 
             setupMobileGestures() {
@@ -1392,6 +1430,14 @@
                             this.newArticleCount = 0;
                             const badge = document.getElementById('news-badge');
                             if (badge) badge.classList.remove('show');
+                            
+                            // Re-setup camera touch listener when opening
+                            setTimeout(() => {
+                                this.setupCameraTouchListener();
+                            }, 300);
+                        } else {
+                            // Remove camera listeners when closing
+                            this.removeCameraListeners();
                         }
                         
                         // Update FAB icon
@@ -1602,18 +1648,8 @@
                 if (mobileFab) mobileFab.classList.remove('enabled');
                 
                 // Remove camera touch listeners if mobile
-                if (this.isMobile && this.cameraListeners) {
-                    const cameraVideo = document.getElementById('camera-video');
-                    const cameraInterface = document.getElementById('camera-interface');
-                    
-                    if (cameraVideo) {
-                        cameraVideo.removeEventListener('touchstart', this.cameraListeners.handleCameraTouch);
-                    }
-                    if (cameraInterface) {
-                        cameraInterface.removeEventListener('touchstart', this.cameraListeners.handleCameraTouch);
-                    }
-                    
-                    this.cameraListeners = null;
+                if (this.isMobile) {
+                    this.removeCameraListeners();
                 }
                 
                 this.articles.clear();
