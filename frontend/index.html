@@ -1035,10 +1035,10 @@
                     // Smoother transition back
                     feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
-                    // More responsive threshold - either 15% of panel height or quick swipe
-                    const threshold = window.innerHeight * 0.15; // Reduced from 50px to 15% of height
+                    // Much lower threshold - just 50px or quick swipe
+                    const threshold = 50;
                     
-                    if (deltaY > threshold || velocity > 0.3) {
+                    if (deltaY > threshold || velocity > 0.2) {
                         // Close the panel
                         this.toggleFeed();
                     } else {
@@ -1064,6 +1064,45 @@
                 dragHandle.addEventListener('mousedown', handleStart);
                 window.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
+                
+                // Add swipe-down gesture on the content area too
+                let contentStartY = 0;
+                let contentScrollTop = 0;
+                
+                mobileContent.addEventListener('touchstart', (e) => {
+                    contentStartY = e.touches[0].clientY;
+                    contentScrollTop = mobileContent.scrollTop;
+                }, { passive: true });
+                
+                mobileContent.addEventListener('touchmove', (e) => {
+                    // If scrolled to top and swiping down, start closing gesture
+                    if (mobileContent.scrollTop === 0) {
+                        const deltaY = e.touches[0].clientY - contentStartY;
+                        if (deltaY > 10 && contentScrollTop === 0) {
+                            e.preventDefault();
+                            feedContainer.style.transition = 'none';
+                            feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
+                        }
+                    }
+                }, { passive: false });
+                
+                mobileContent.addEventListener('touchend', (e) => {
+                    const transform = window.getComputedStyle(feedContainer).transform;
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        const translateY = matrix.m42;
+                        
+                        feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                        
+                        if (translateY > 50) {
+                            // Close if dragged down more than 50px
+                            this.toggleFeed();
+                        } else {
+                            // Snap back
+                            feedContainer.style.transform = 'translateY(0)';
+                        }
+                    }
+                }, { passive: true });
                 
                 // Setup mobile auto-scroll
                 this.setupMobileAutoScroll(mobileContent);
@@ -1612,11 +1651,15 @@
             const placeholder = document.getElementById('camera-placeholder');
             const controls = document.getElementById('controls-overlay');
             const chat = document.getElementById('chat-overlay');
+            const mainContainer = document.getElementById('main-container');
             
             video.style.display = 'none';
             placeholder.style.display = 'flex';
             controls.classList.remove('show');
             chat.classList.remove('show');
+            
+            // Remove news-open class to recenter on desktop
+            mainContainer.classList.remove('news-open');
             
             isActive = false;
             
