@@ -950,28 +950,31 @@
                     
                     // Setup mobile gestures
                     this.setupMobileGestures();
-                    // Setup camera touch listener
+                    // Add camera touch listener for mobile
                     this.setupCameraTouchListener();
                 } else {
                     // Setup desktop auto-scroll
                     this.setupDesktopAutoScroll();
-                    
-                    // Only auto-show on desktop for first-time users, not when re-activating
-                    if (!localStorage.getItem('euphorie_feed_seen')) {
-                        setTimeout(() => {
-                            this.toggleFeed();
-                            localStorage.setItem('euphorie_feed_seen', 'true');
-                            // Auto-hide after 10 seconds
-                            setTimeout(() => {
-                                if (this.feedOpen) {
-                                    this.toggleFeed();
-                                }
-                            }, 10000);
-                        }, 3000);
-                    }
                 }
                 
                 this.init();
+                
+                // Only auto-show on desktop for first-time users, not on subsequent camera starts
+                if (!this.isMobile && !localStorage.getItem('euphorie_feed_seen') && !this.wasOpenBeforeStop) {
+                    setTimeout(() => {
+                        this.toggleFeed();
+                        localStorage.setItem('euphorie_feed_seen', 'true');
+                        // Auto-hide after 10 seconds
+                        setTimeout(() => {
+                            if (this.feedOpen) {
+                                this.toggleFeed();
+                            }
+                        }, 10000);
+                    }, 3000);
+                }
+                
+                // Reset the flag after use
+                this.wasOpenBeforeStop = false;
             }
 
             setupCameraTouchListener() {
@@ -980,26 +983,20 @@
                 
                 if (!cameraVideo || !cameraInterface || !this.isMobile) return;
                 
-                // Function to close news feed when camera is touched
+                // Listen for touches on the camera area
                 const handleCameraTouch = (e) => {
-                    // Only close if news feed is open and the touch is on the camera area
-                    if (this.feedOpen && isActive) {
-                        // Check if the touch is not on the news feed itself
-                        const feedContainer = document.getElementById('news-feed');
-                        if (feedContainer && !feedContainer.contains(e.target)) {
-                            this.closeFeed();
-                        }
+                    // Check if the touch is on the camera video area
+                    if (this.feedOpen && (e.target === cameraVideo || e.target === cameraInterface)) {
+                        // Close the news feed
+                        this.toggleFeed();
                     }
                 };
                 
-                // Add touch listener to camera interface
+                cameraVideo.addEventListener('touchstart', handleCameraTouch, { passive: true });
                 cameraInterface.addEventListener('touchstart', handleCameraTouch, { passive: true });
-            }
-
-            closeFeed() {
-                if (this.feedOpen) {
-                    this.toggleFeed();
-                }
+                
+                // Store references to remove listeners later
+                this.cameraListeners = { handleCameraTouch };
             }
 
             setupMobileGestures() {
@@ -1013,7 +1010,7 @@
                 let currentY = 0;
                 let isDragging = false;
                 let startTime = 0;
-                let initialTransform = 0;
+                let touchStartTransform = 0;
                 
                 const handleStart = (e) => {
                     isDragging = true;
@@ -1026,12 +1023,11 @@
                     const transform = window.getComputedStyle(feedContainer).transform;
                     if (transform && transform !== 'none') {
                         const matrix = new DOMMatrix(transform);
-                        initialTransform = matrix.m42; // translateY value
+                        touchStartTransform = matrix.m42; // translateY value
                     } else {
-                        initialTransform = 0;
+                        touchStartTransform = 0;
                     }
                     
-                    // Remove transition immediately for responsive dragging
                     feedContainer.style.transition = 'none';
                     
                     // Pause mobile auto-scroll
@@ -1047,14 +1043,11 @@
                     currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     const deltaY = currentY - startY;
                     
-                    // Allow dragging in both directions for more responsive feel
+                    // More responsive dragging - immediate response
                     if (this.feedOpen) {
-                        // Clamp the movement
-                        const translateY = Math.max(0, Math.min(deltaY + initialTransform, window.innerHeight * 0.7));
-                        // Apply transform immediately for responsive feedback
-                        requestAnimationFrame(() => {
-                            feedContainer.style.transform = `translateY(${translateY}px)`;
-                        });
+                        const translateY = deltaY;
+                        // Allow both up and down dragging for better responsiveness
+                        feedContainer.style.transform = `translateY(${Math.max(0, Math.min(translateY, window.innerHeight * 0.7))}px)`;
                     }
                 };
                 
@@ -1066,23 +1059,20 @@
                     
                     const deltaY = currentY - startY;
                     const deltaTime = Date.now() - startTime;
-                    const velocity = deltaTime > 0 ? Math.abs(deltaY) / deltaTime : 0;
+                    const velocity = Math.abs(deltaY) / deltaTime;
                     
-                    // Add transition back for smooth animation
+                    // Faster, more responsive transition
                     feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
-                    // Lower thresholds for more responsive closing
-                    const threshold = 30; // Reduced from 50px
-                    const velocityThreshold = 0.15; // Reduced from 0.2
+                    // Lower threshold for more responsive closing - just 30px or quick swipe
+                    const threshold = 30;
                     
-                    if (deltaY > threshold || velocity > velocityThreshold) {
+                    if (deltaY > threshold || velocity > 0.15) {
                         // Close the panel
                         this.toggleFeed();
                     } else {
                         // Snap back to open position
-                        requestAnimationFrame(() => {
-                            feedContainer.style.transform = 'translateY(0)';
-                        });
+                        feedContainer.style.transform = 'translateY(0)';
                     }
                     
                     // Resume mobile auto-scroll
@@ -1104,7 +1094,7 @@
                 window.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
                 
-                // Enhanced swipe-down gesture on content area
+                // Add more responsive swipe-down gesture on the content area
                 let contentStartY = 0;
                 let contentScrollTop = 0;
                 let contentDragging = false;
@@ -1119,13 +1109,11 @@
                     // If scrolled to top and swiping down, start closing gesture
                     if (mobileContent.scrollTop === 0 && contentScrollTop === 0) {
                         const deltaY = e.touches[0].clientY - contentStartY;
-                        if (deltaY > 5) { // Lower threshold for quicker response
+                        if (deltaY > 5) { // Lower threshold for more responsiveness
                             e.preventDefault();
                             contentDragging = true;
                             feedContainer.style.transition = 'none';
-                            requestAnimationFrame(() => {
-                                feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
-                            });
+                            feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
                         }
                     }
                 }, { passive: false });
@@ -1145,9 +1133,7 @@
                             this.toggleFeed();
                         } else {
                             // Snap back
-                            requestAnimationFrame(() => {
-                                feedContainer.style.transform = 'translateY(0)';
-                            });
+                            feedContainer.style.transform = 'translateY(0)';
                         }
                     }
                     contentDragging = false;
@@ -1334,7 +1320,7 @@
 
             startPolling() {
                 // Poll for new articles every 30 seconds
-                setInterval(async () => {
+                this.pollingInterval = setInterval(async () => {
                     if (!this.feedEnabled) return;
                     
                     try {
@@ -1589,7 +1575,7 @@
             }
 
             deactivate() {
-                // Remember if feed was open before deactivating
+                // Store whether feed was open before deactivating
                 this.wasOpenBeforeStop = this.feedOpen;
                 
                 this.feedEnabled = false;
@@ -1597,6 +1583,12 @@
                 if (this.ws) {
                     this.ws.close();
                     this.ws = null;
+                }
+                
+                // Clear polling interval
+                if (this.pollingInterval) {
+                    clearInterval(this.pollingInterval);
+                    this.pollingInterval = null;
                 }
                 
                 if (this.feedOpen) {
@@ -1609,6 +1601,21 @@
                 feedContainer.classList.remove('enabled');
                 if (mobileFab) mobileFab.classList.remove('enabled');
                 
+                // Remove camera touch listeners if mobile
+                if (this.isMobile && this.cameraListeners) {
+                    const cameraVideo = document.getElementById('camera-video');
+                    const cameraInterface = document.getElementById('camera-interface');
+                    
+                    if (cameraVideo) {
+                        cameraVideo.removeEventListener('touchstart', this.cameraListeners.handleCameraTouch);
+                    }
+                    if (cameraInterface) {
+                        cameraInterface.removeEventListener('touchstart', this.cameraListeners.handleCameraTouch);
+                    }
+                    
+                    this.cameraListeners = null;
+                }
+                
                 this.articles.clear();
                 this.newArticleCount = 0;
             }
@@ -1616,8 +1623,6 @@
 
         // Initialize
         let newsFeed = null;
-        let isActive = false;
-        
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
             
@@ -1650,6 +1655,7 @@
 
         // Camera functions
         let cameraStream = null;
+        let isActive = false;
         
         async function startCamera() {
             try {
@@ -1677,8 +1683,6 @@
                 isActive = true;
                 
                 if (newsFeed) {
-                    // Reset the wasOpenBeforeStop flag when starting camera
-                    newsFeed.wasOpenBeforeStop = false;
                     newsFeed.activate();
                     
                     const messageEl = document.getElementById('ai-message');
@@ -1722,6 +1726,7 @@
             if (newsFeed) {
                 newsFeed.deactivate();
             }
+        }
     </script>
 
 </body>
