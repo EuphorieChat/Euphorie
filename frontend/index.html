@@ -976,8 +976,9 @@
                     }, 3000);
                 } else if (!this.isMobile && this.wasOpenBeforeStop) {
                     // Restore the feed state if it was open before stopping
+                    // Use a slight delay to ensure everything is properly initialized
                     setTimeout(() => {
-                        this.toggleFeed();
+                        this.openFeed();
                     }, 100);
                 }
                 
@@ -1397,56 +1398,104 @@
                 }
             }
 
-            toggleFeed() {
-                if (!this.feedEnabled) return;
+            openFeed() {
+                if (!this.feedEnabled || this.feedOpen) return;
+                
+                const feed = document.getElementById('news-feed');
+                const mainContainer = document.getElementById('main-container');
+                
+                this.feedOpen = true;
+                
+                // Use requestAnimationFrame for smoother animations
+                requestAnimationFrame(() => {
+                    feed.classList.add('open');
+                    
+                    if (!this.isMobile) {
+                        mainContainer.classList.add('news-open');
+                        // Update toggle button icon on desktop
+                        const toggleIcon = document.querySelector('.news-toggle-icon');
+                        if (toggleIcon) {
+                            toggleIcon.textContent = '✕';
+                        }
+                    }
+                });
+            }
+
+            closeFeed() {
+                if (!this.feedEnabled || !this.feedOpen) return;
                 
                 const feed = document.getElementById('news-feed');
                 const mainContainer = document.getElementById('main-container');
                 const mobileFab = document.getElementById('mobile-news-fab');
                 
-                this.feedOpen = !this.feedOpen;
+                this.feedOpen = false;
                 
                 // Use requestAnimationFrame for smoother animations
                 requestAnimationFrame(() => {
-                    feed.classList.toggle('open');
+                    feed.classList.remove('open');
                     
                     if (!this.isMobile) {
-                        mainContainer.classList.toggle('news-open');
+                        mainContainer.classList.remove('news-open');
                         // Update toggle button icon on desktop
                         const toggleIcon = document.querySelector('.news-toggle-icon');
                         if (toggleIcon) {
-                            toggleIcon.textContent = this.feedOpen ? '✕' : '📰';
+                            toggleIcon.textContent = '📰';
                         }
                     }
                     
                     if (this.isMobile) {
                         // Toggle FAB state
                         if (mobileFab) {
-                            mobileFab.classList.toggle('open');
+                            mobileFab.classList.remove('open');
                         }
                         
-                        // Clear badge when opening
-                        if (this.feedOpen) {
-                            this.newArticleCount = 0;
-                            const badge = document.getElementById('news-badge');
-                            if (badge) badge.classList.remove('show');
-                            
-                            // Re-setup camera touch listener when opening
-                            setTimeout(() => {
-                                this.setupCameraTouchListener();
-                            }, 300);
-                        } else {
-                            // Remove camera listeners when closing
-                            this.removeCameraListeners();
-                        }
+                        // Remove camera listeners when closing
+                        this.removeCameraListeners();
                         
                         // Update FAB icon
                         const fabIcon = document.querySelector('.mobile-news-fab-icon');
                         if (fabIcon) {
-                            fabIcon.textContent = this.feedOpen ? '✕' : '📰';
+                            fabIcon.textContent = '📰';
                         }
                     }
                 });
+            }
+
+            toggleFeed() {
+                if (!this.feedEnabled) return;
+                
+                if (this.feedOpen) {
+                    this.closeFeed();
+                } else {
+                    this.openFeed();
+                }
+                
+                // Mobile-specific handling
+                if (this.isMobile) {
+                    const mobileFab = document.getElementById('mobile-news-fab');
+                    
+                    if (mobileFab) {
+                        mobileFab.classList.toggle('open', this.feedOpen);
+                    }
+                    
+                    // Clear badge when opening
+                    if (this.feedOpen) {
+                        this.newArticleCount = 0;
+                        const badge = document.getElementById('news-badge');
+                        if (badge) badge.classList.remove('show');
+                        
+                        // Re-setup camera touch listener when opening
+                        setTimeout(() => {
+                            this.setupCameraTouchListener();
+                        }, 300);
+                    }
+                    
+                    // Update FAB icon
+                    const fabIcon = document.querySelector('.mobile-news-fab-icon');
+                    if (fabIcon) {
+                        fabIcon.textContent = this.feedOpen ? '✕' : '📰';
+                    }
+                }
             }
 
             setupFilters() {
@@ -1637,15 +1686,19 @@
                     this.pollingInterval = null;
                 }
                 
+                // Close the feed if it's open
                 if (this.feedOpen) {
-                    this.toggleFeed();
+                    this.closeFeed();
                 }
                 
                 const feedContainer = document.getElementById('news-feed');
                 const mobileFab = document.getElementById('mobile-news-fab');
                 
-                feedContainer.classList.remove('enabled');
-                if (mobileFab) mobileFab.classList.remove('enabled');
+                // Remove enabled state after closing animation completes
+                setTimeout(() => {
+                    feedContainer.classList.remove('enabled');
+                    if (mobileFab) mobileFab.classList.remove('enabled');
+                }, 300);
                 
                 // Remove camera touch listeners if mobile
                 if (this.isMobile) {
