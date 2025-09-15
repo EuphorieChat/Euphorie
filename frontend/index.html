@@ -1626,11 +1626,20 @@
                 `;
 
                 card.onclick = () => {
-                    const url = article.url?.startsWith('http') 
-                        ? article.url 
-                        : `https://example.com${article.url}`;
-                    if (article.url !== '#') {
-                        window.open(url, '_blank');
+                    // For demo articles, prevent navigation
+                    if (article.url === '#') {
+                        // Show a brief notification instead of navigating
+                        const originalBg = card.style.background;
+                        card.style.background = 'rgba(0, 255, 136, 0.2)';
+                        setTimeout(() => {
+                            card.style.background = originalBg;
+                        }, 300);
+                        return;
+                    }
+                    
+                    // For real articles with valid URLs
+                    if (article.url && article.url.startsWith('http')) {
+                        window.open(article.url, '_blank');
                     }
                 };
                 
@@ -1658,11 +1667,20 @@
                 `;
 
                 item.onclick = () => {
-                    const url = article.url?.startsWith('http') 
-                        ? article.url 
-                        : `https://example.com${article.url}`;
-                    if (article.url !== '#') {
-                        window.open(url, '_blank');
+                    // For demo articles, prevent navigation
+                    if (article.url === '#') {
+                        // Show a brief highlight effect instead of navigating
+                        const originalBg = item.style.background;
+                        item.style.background = 'rgba(0, 255, 136, 0.15)';
+                        setTimeout(() => {
+                            item.style.background = originalBg;
+                        }, 300);
+                        return;
+                    }
+                    
+                    // For real articles with valid URLs
+                    if (article.url && article.url.startsWith('http')) {
+                        window.open(article.url, '_blank');
                     }
                 };
                 
