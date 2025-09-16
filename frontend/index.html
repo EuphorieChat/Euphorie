@@ -895,6 +895,48 @@
             from { opacity: 0; transform: scale(0.8); }
             to { opacity: 1; transform: scale(1); }
         }
+
+        /* AI suggestions panel */
+        .suggestions-panel {
+            position: absolute;
+            bottom: 10rem;
+            right: 1rem;
+            width: 250px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 153, 255, 0.3);
+            border-radius: 10px;
+            padding: 0.8rem;
+            display: none;
+        }
+
+        .suggestions-panel.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .suggestion-title {
+            font-size: 0.75rem;
+            color: #0099ff;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .suggestion-item {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.3rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -973,7 +1015,7 @@
             <!-- Vision status indicator -->
             <div id="vision-status" class="vision-status">
                 <span class="vision-dot"></span>
-                <span id="vision-status-text">AI Vision Active</span>
+                <span id="vision-status-text">AI Vision Monitoring</span>
             </div>
             
             <!-- Detected objects overlay -->
@@ -981,9 +1023,17 @@
                 <!-- Object tags will be inserted here -->
             </div>
             
-            <!-- Simplified controls overlay -->
+            <!-- Controls overlay - Simplified to just Stop button -->
             <div id="controls-overlay" class="controls-overlay">
                 <button class="control-btn" onclick="stopCamera()">❌ Stop</button>
+            </div>
+            
+            <!-- AI suggestions panel -->
+            <div id="suggestions-panel" class="suggestions-panel">
+                <div class="suggestion-title">💡 AI Suggestions</div>
+                <div id="suggestions-list">
+                    <!-- Suggestions will be inserted here -->
+                </div>
             </div>
             
             <!-- Chat overlay -->
@@ -1003,7 +1053,7 @@
             captureQuality: 0.8
         };
 
-        // Vision Analyzer Class - Continuous Monitoring
+        // Vision Analyzer Class - Continuous Monitoring Version
         class VisionAnalyzer {
             constructor() {
                 this.analyzing = false;
@@ -1022,8 +1072,10 @@
                     document.getElementById('vision-status-text').textContent = 'AI Vision Monitoring';
                 }
                 
-                // Start continuous analysis
+                // Initial analysis
                 this.captureAndAnalyze();
+                
+                // Set up periodic analysis
                 this.analysisInterval = setInterval(() => {
                     this.captureAndAnalyze();
                 }, CONFIG.visionAnalysisInterval);
@@ -1031,7 +1083,7 @@
 
             async captureAndAnalyze() {
                 const video = document.getElementById('camera-video');
-                if (!video || !video.srcObject || !this.analyzing) return;
+                if (!video || !video.srcObject) return;
                 
                 // Create canvas for frame capture
                 const canvas = document.createElement('canvas');
@@ -1061,22 +1113,27 @@
                     
                 } catch (error) {
                     console.error('Vision analysis error:', error);
-                    // Silently fail and retry on next interval
+                    // Silent fail - don't interrupt user with error messages
                 }
             }
 
             handleAnalysisResponse(data) {
-                // Only show insights if there's something meaningful
+                // Only show meaningful insights, not every response
                 if (data.insight && data.should_respond) {
                     this.showMessage(data.insight);
-                    
-                    // Display detected objects if any
-                    if (data.objects_detected && data.objects_detected.length > 0) {
-                        this.displayObjects(data.objects_detected);
-                    }
                 }
                 
-                // Update confidence indicator
+                // Display detected objects only if they're significant
+                if (data.objects_detected && data.objects_detected.length > 0 && data.confidence > 0.7) {
+                    this.displayObjects(data.objects_detected);
+                }
+                
+                // Show suggestions only if highly relevant
+                if (data.suggestions && data.suggestions.length > 0 && data.confidence > 0.8) {
+                    this.displaySuggestions(data.suggestions);
+                }
+                
+                // Update confidence indicator subtly
                 this.updateConfidence(data.confidence);
             }
 
@@ -1100,15 +1157,40 @@
                 }, 5000);
             }
 
+            displaySuggestions(suggestions) {
+                const panel = document.getElementById('suggestions-panel');
+                const list = document.getElementById('suggestions-list');
+                
+                if (!panel || !list) return;
+                
+                list.innerHTML = '';
+                suggestions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    item.textContent = suggestion;
+                    list.appendChild(item);
+                });
+                
+                panel.classList.add('show');
+                
+                // Hide after 8 seconds
+                setTimeout(() => {
+                    panel.classList.remove('show');
+                }, 8000);
+            }
+
             updateConfidence(confidence) {
                 const statusText = document.getElementById('vision-status-text');
-                if (statusText && this.analyzing) {
+                if (statusText && this.analyzing && confidence > 0) {
                     const percentage = Math.round(confidence * 100);
-                    if (percentage > 0) {
-                        statusText.textContent = `AI Vision Active (${percentage}%)`;
-                    } else {
-                        statusText.textContent = 'AI Vision Monitoring';
-                    }
+                    statusText.textContent = `AI Vision Monitoring (${percentage}%)`;
+                    
+                    // After 3 seconds, revert to simple text
+                    setTimeout(() => {
+                        if (this.analyzing) {
+                            statusText.textContent = 'AI Vision Monitoring';
+                        }
+                    }, 3000);
                 }
             }
 
@@ -1137,14 +1219,17 @@
                 
                 const visionStatus = document.getElementById('vision-status');
                 const objectsOverlay = document.getElementById('objects-overlay');
+                const suggestionsPanel = document.getElementById('suggestions-panel');
                 
                 if (visionStatus) {
                     visionStatus.classList.remove('analyzing', 'show');
                 }
                 if (objectsOverlay) objectsOverlay.classList.remove('show');
+                if (suggestionsPanel) suggestionsPanel.classList.remove('show');
             }
 
             getUserId() {
+                // Get or create a user ID
                 let userId = localStorage.getItem('euphorie_user_id');
                 if (!userId) {
                     userId = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -1154,6 +1239,7 @@
             }
 
             getContext() {
+                // Gather context about what the user might be doing
                 const time = new Date().getHours();
                 if (time < 12) return 'morning_work';
                 if (time < 17) return 'afternoon_work';
@@ -1288,6 +1374,7 @@
                 let currentY = 0;
                 let isDragging = false;
                 let startTime = 0;
+                let touchStartTransform = 0;
                 
                 const handleStart = (e) => {
                     isDragging = true;
@@ -1295,6 +1382,14 @@
                     startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     currentY = startY;
                     startTime = Date.now();
+                    
+                    const transform = window.getComputedStyle(feedContainer).transform;
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        touchStartTransform = matrix.m42;
+                    } else {
+                        touchStartTransform = 0;
+                    }
                     
                     feedContainer.style.transition = 'none';
                     
@@ -1352,6 +1447,47 @@
                 window.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
                 
+                let contentStartY = 0;
+                let contentScrollTop = 0;
+                let contentDragging = false;
+                
+                mobileContent.addEventListener('touchstart', (e) => {
+                    contentStartY = e.touches[0].clientY;
+                    contentScrollTop = mobileContent.scrollTop;
+                    contentDragging = false;
+                }, { passive: true });
+                
+                mobileContent.addEventListener('touchmove', (e) => {
+                    if (mobileContent.scrollTop === 0 && contentScrollTop === 0) {
+                        const deltaY = e.touches[0].clientY - contentStartY;
+                        if (deltaY > 5) {
+                            e.preventDefault();
+                            contentDragging = true;
+                            feedContainer.style.transition = 'none';
+                            feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
+                        }
+                    }
+                }, { passive: false });
+                
+                mobileContent.addEventListener('touchend', (e) => {
+                    if (!contentDragging) return;
+                    
+                    const transform = window.getComputedStyle(feedContainer).transform;
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        const translateY = matrix.m42;
+                        
+                        feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                        
+                        if (translateY > 30) {
+                            this.toggleFeed();
+                        } else {
+                            feedContainer.style.transform = 'translateY(0)';
+                        }
+                    }
+                    contentDragging = false;
+                }, { passive: true });
+                
                 this.setupMobileAutoScroll(mobileContent);
             }
             
@@ -1374,6 +1510,16 @@
                         userScrolling = false;
                         mobileContent.classList.remove('paused');
                     }, 3000);
+                }, { passive: true });
+                
+                mobileContent.addEventListener('scroll', () => {
+                    if (!userScrolling) {
+                        mobileContent.classList.add('paused');
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(() => {
+                            mobileContent.classList.remove('paused');
+                        }, 3000);
+                    }
                 }, { passive: true });
             }
 
@@ -1420,7 +1566,7 @@
                         id: '1',
                         title: 'AI Breakthrough: New Model Achieves Human-Level Reasoning',
                         category: 'AI',
-                        summary: 'Researchers announce a revolutionary AI system.',
+                        summary: 'Researchers announce a revolutionary AI system that demonstrates unprecedented reasoning capabilities across multiple domains, marking a significant milestone in artificial intelligence development.',
                         published: new Date().toISOString(),
                         is_breaking: true,
                         source_name: 'Tech News',
@@ -1430,9 +1576,36 @@
                         id: '2',
                         title: 'Global Markets React to Fed Interest Rate Decision',
                         category: 'Business',
-                        summary: 'Stock markets surge following the Federal Reserve announcement.',
+                        summary: 'Stock markets surge following the Federal Reserve\'s latest monetary policy announcement, with major indices reaching new highs.',
                         published: new Date(Date.now() - 3600000).toISOString(),
                         source_name: 'Financial Times',
+                        url: '#'
+                    },
+                    {
+                        id: '3',
+                        title: 'Revolutionary Battery Technology Promises 1000-Mile EV Range',
+                        category: 'Tech',
+                        summary: 'Scientists develop a new solid-state battery that could revolutionize electric vehicle adoption with unprecedented range and charging speeds.',
+                        published: new Date(Date.now() - 7200000).toISOString(),
+                        source_name: 'Science Daily',
+                        url: '#'
+                    },
+                    {
+                        id: '4',
+                        title: 'Climate Summit: Nations Agree on Historic Carbon Reduction Plan',
+                        category: 'World',
+                        summary: 'World leaders reach unprecedented agreement on aggressive carbon emission reduction targets for 2030.',
+                        published: new Date(Date.now() - 10800000).toISOString(),
+                        source_name: 'Reuters',
+                        url: '#'
+                    },
+                    {
+                        id: '5',
+                        title: 'New Study Links Exercise to Enhanced Cognitive Function',
+                        category: 'Health',
+                        summary: 'Research shows regular physical activity significantly improves memory and problem-solving abilities in all age groups.',
+                        published: new Date(Date.now() - 14400000).toISOString(),
+                        source_name: 'Health News',
                         url: '#'
                     }
                 ];
@@ -1682,6 +1855,13 @@
                 
                 ticker.innerHTML = '';
                 ticker.appendChild(fragment);
+                
+                if (mobileContent) {
+                    const ticker = document.getElementById('mobile-news-ticker');
+                    ticker.style.animation = 'none';
+                    ticker.offsetHeight;
+                    ticker.style.animation = '';
+                }
             }
 
             createMobileNewsCard(article) {
@@ -1710,6 +1890,44 @@
                         card.style.background = 'rgba(0, 255, 136, 0.2)';
                         setTimeout(() => {
                             card.style.background = originalBg;
+                        }, 300);
+                        return;
+                    }
+                    
+                    if (article.url && article.url.startsWith('http')) {
+                        window.open(article.url, '_blank');
+                    }
+                };
+                
+                return card;
+            }
+
+            createDesktopNewsItem(article) {
+                const item = document.createElement('div');
+                item.className = article.is_breaking ? 'news-item breaking' : 'news-item';
+                
+                const time = new Date(article.published).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+
+                item.innerHTML = `
+                    ${article.is_breaking ? '<div style="display: inline-block; padding: 0.2rem 0.5rem; background: rgba(255, 59, 48, 0.8); color: white; font-size: 0.65rem; font-weight: 700; border-radius: 5px; margin-bottom: 0.5rem;">BREAKING</div>' : ''}
+                    <div class="news-item-title">${article.title}</div>
+                    <div class="news-item-meta">
+                        <span class="news-item-category">${article.category || 'General'}</span>
+                        <span>${time}</span>
+                        <span>${article.source_name || 'News Source'}</span>
+                    </div>
+                    <div class="news-item-summary">${article.summary || ''}</div>
+                `;
+
+                item.onclick = () => {
+                    if (article.url === '#') {
+                        const originalBg = item.style.background;
+                        item.style.background = 'rgba(0, 255, 136, 0.15)';
+                        setTimeout(() => {
+                            item.style.background = originalBg;
                         }, 300);
                         return;
                     }
@@ -1824,17 +2042,17 @@
                     newsFeed.activate();
                 }
                 
-                // Start continuous vision monitoring
+                // Auto-start vision analysis after a short delay
                 setTimeout(() => {
                     if (visionAnalyzer && isActive) {
                         visionAnalyzer.startAnalysis();
                         
                         const messageEl = document.getElementById('ai-message');
                         if (messageEl) {
-                            messageEl.textContent = '👁️ AI Vision monitoring your workspace...';
+                            messageEl.textContent = 'AI Vision is monitoring your workspace...';
                             
                             setTimeout(() => {
-                                messageEl.textContent = 'Point camera at code, documents, or objects for automatic insights...';
+                                messageEl.textContent = 'Point camera at code, documents, or objects for AI insights...';
                             }, 4000);
                         }
                     }
@@ -1865,6 +2083,7 @@
             const mainContainer = document.getElementById('main-container');
             const visionStatus = document.getElementById('vision-status');
             const objectsOverlay = document.getElementById('objects-overlay');
+            const suggestionsPanel = document.getElementById('suggestions-panel');
             
             video.style.display = 'none';
             placeholder.style.display = 'flex';
@@ -1873,6 +2092,7 @@
             
             if (visionStatus) visionStatus.classList.remove('show');
             if (objectsOverlay) objectsOverlay.classList.remove('show');
+            if (suggestionsPanel) suggestionsPanel.classList.remove('show');
             
             mainContainer.classList.remove('news-open');
             
@@ -1883,6 +2103,7 @@
                 newsFeed.deactivate();
             }
         }
+
     </script>
 </body>
 </html>
