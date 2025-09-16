@@ -779,6 +779,12 @@
             background: rgba(0, 255, 136, 0.1);
         }
 
+        .control-btn.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.8);
+            color: #00ff88;
+        }
+
         @media (min-width: 769px) {
             .control-btn {
                 padding: 0.6rem 1rem;
@@ -803,6 +809,7 @@
             padding: 0.75rem;
             display: none;
             font-size: 0.85rem;
+            overflow-y: auto;
         }
 
         .chat-overlay.show {
@@ -819,6 +826,122 @@
                 padding: 1rem;
                 border-radius: 10px;
             }
+        }
+
+        /* Vision status indicator */
+        .vision-status {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .vision-status.show {
+            display: flex;
+        }
+
+        .vision-status.analyzing {
+            border-color: rgba(0, 255, 136, 0.8);
+            animation: visionPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes visionPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+        }
+
+        .vision-dot {
+            width: 8px;
+            height: 8px;
+            background: rgba(0, 255, 136, 0.8);
+            border-radius: 50%;
+            animation: visionDotPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes visionDotPulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Detected objects overlay */
+        .objects-overlay {
+            position: absolute;
+            top: 3.5rem;
+            left: 1rem;
+            right: 1rem;
+            display: none;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            max-width: 300px;
+        }
+
+        .objects-overlay.show {
+            display: flex;
+        }
+
+        .object-tag {
+            padding: 0.3rem 0.6rem;
+            background: rgba(0, 255, 136, 0.15);
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            border-radius: 12px;
+            font-size: 0.7rem;
+            color: #00ff88;
+            animation: tagFadeIn 0.3s ease;
+        }
+
+        @keyframes tagFadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* AI suggestions panel */
+        .suggestions-panel {
+            position: absolute;
+            bottom: 10rem;
+            right: 1rem;
+            width: 250px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 153, 255, 0.3);
+            border-radius: 10px;
+            padding: 0.8rem;
+            display: none;
+        }
+
+        .suggestions-panel.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .suggestion-title {
+            font-size: 0.75rem;
+            color: #0099ff;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .suggestion-item {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.3rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
         }
     </style>
 </head>
@@ -895,10 +1018,33 @@
             
             <video id="camera-video" class="camera-video" autoplay muted playsinline></video>
             
+            <!-- Vision status indicator -->
+            <div id="vision-status" class="vision-status">
+                <span class="vision-dot"></span>
+                <span id="vision-status-text">AI Vision Active</span>
+            </div>
+            
+            <!-- Detected objects overlay -->
+            <div id="objects-overlay" class="objects-overlay">
+                <!-- Object tags will be inserted here -->
+            </div>
+            
+            <!-- Controls overlay -->
             <div id="controls-overlay" class="controls-overlay">
+                <button id="vision-toggle" class="control-btn" onclick="toggleVision()">👁️ Vision</button>
+                <button class="control-btn" onclick="captureFrame()">📸 Capture</button>
                 <button class="control-btn" onclick="stopCamera()">❌ Stop</button>
             </div>
             
+            <!-- AI suggestions panel -->
+            <div id="suggestions-panel" class="suggestions-panel">
+                <div class="suggestion-title">💡 AI Suggestions</div>
+                <div id="suggestions-list">
+                    <!-- Suggestions will be inserted here -->
+                </div>
+            </div>
+            
+            <!-- Chat overlay -->
             <div id="chat-overlay" class="chat-overlay">
                 <div id="ai-message" class="ai-message">AI insights will appear here...</div>
             </div>
@@ -906,7 +1052,220 @@
     </div>
 
     <script>
-        // Enhanced News Feed Manager with better performance
+        // Configuration
+        const CONFIG = {
+            backendUrl: window.location.hostname === 'localhost' 
+                ? 'http://localhost:8001' 
+                : 'https://api.euphorie.com', // Update with your production backend URL
+            visionAnalysisInterval: 3000, // Analyze every 3 seconds
+            captureQuality: 0.8
+        };
+
+        // Vision Analyzer Class
+        class VisionAnalyzer {
+            constructor() {
+                this.analyzing = false;
+                this.analysisInterval = null;
+                this.lastAnalysisTime = 0;
+            }
+
+            startAnalysis() {
+                if (this.analyzing) return;
+                this.analyzing = true;
+                
+                const visionToggle = document.getElementById('vision-toggle');
+                const visionStatus = document.getElementById('vision-status');
+                
+                if (visionToggle) visionToggle.classList.add('active');
+                if (visionStatus) {
+                    visionStatus.classList.add('show', 'analyzing');
+                    document.getElementById('vision-status-text').textContent = 'AI Vision Analyzing...';
+                }
+                
+                // Initial analysis
+                this.captureAndAnalyze();
+                
+                // Set up periodic analysis
+                this.analysisInterval = setInterval(() => {
+                    this.captureAndAnalyze();
+                }, CONFIG.visionAnalysisInterval);
+            }
+
+            async captureAndAnalyze(showCapture = false) {
+                const video = document.getElementById('camera-video');
+                if (!video || !video.srcObject) return;
+                
+                // Create canvas for frame capture
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to base64
+                const imageData = canvas.toDataURL('image/jpeg', CONFIG.captureQuality);
+                
+                // Visual feedback for manual capture
+                if (showCapture) {
+                    const cameraInterface = document.getElementById('camera-interface');
+                    cameraInterface.style.borderColor = '#00ff88';
+                    setTimeout(() => {
+                        cameraInterface.style.borderColor = 'rgba(0, 255, 136, 0.5)';
+                    }, 200);
+                }
+                
+                try {
+                    const response = await fetch(`${CONFIG.backendUrl}/api/vision/analyze`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: this.getUserId(),
+                            image: imageData,
+                            context: this.getContext()
+                        })
+                    });
+                    
+                    if (!response.ok) throw new Error('Vision analysis failed');
+                    
+                    const data = await response.json();
+                    this.handleAnalysisResponse(data);
+                    
+                } catch (error) {
+                    console.error('Vision analysis error:', error);
+                    this.showMessage('Vision analysis temporarily unavailable', 3000);
+                }
+            }
+
+            handleAnalysisResponse(data) {
+                // Update AI message if there's an insight
+                if (data.insight) {
+                    this.showMessage(data.insight);
+                }
+                
+                // Display detected objects
+                if (data.objects_detected && data.objects_detected.length > 0) {
+                    this.displayObjects(data.objects_detected);
+                }
+                
+                // Show suggestions if available
+                if (data.suggestions && data.suggestions.length > 0) {
+                    this.displaySuggestions(data.suggestions);
+                }
+                
+                // Update confidence indicator
+                this.updateConfidence(data.confidence);
+            }
+
+            displayObjects(objects) {
+                const overlay = document.getElementById('objects-overlay');
+                if (!overlay) return;
+                
+                overlay.innerHTML = '';
+                objects.forEach(obj => {
+                    const tag = document.createElement('div');
+                    tag.className = 'object-tag';
+                    tag.textContent = obj;
+                    overlay.appendChild(tag);
+                });
+                
+                overlay.classList.add('show');
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    overlay.classList.remove('show');
+                }, 5000);
+            }
+
+            displaySuggestions(suggestions) {
+                const panel = document.getElementById('suggestions-panel');
+                const list = document.getElementById('suggestions-list');
+                
+                if (!panel || !list) return;
+                
+                list.innerHTML = '';
+                suggestions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    item.textContent = suggestion;
+                    list.appendChild(item);
+                });
+                
+                panel.classList.add('show');
+                
+                // Hide after 8 seconds
+                setTimeout(() => {
+                    panel.classList.remove('show');
+                }, 8000);
+            }
+
+            updateConfidence(confidence) {
+                const statusText = document.getElementById('vision-status-text');
+                if (statusText && this.analyzing) {
+                    const percentage = Math.round(confidence * 100);
+                    statusText.textContent = `AI Vision Active (${percentage}% confidence)`;
+                }
+            }
+
+            showMessage(text, duration = 5000) {
+                const messageEl = document.getElementById('ai-message');
+                if (messageEl) {
+                    messageEl.textContent = text;
+                    
+                    if (duration > 0) {
+                        setTimeout(() => {
+                            if (messageEl.textContent === text) {
+                                messageEl.textContent = 'AI insights will appear here...';
+                            }
+                        }, duration);
+                    }
+                }
+            }
+
+            stopAnalysis() {
+                this.analyzing = false;
+                
+                if (this.analysisInterval) {
+                    clearInterval(this.analysisInterval);
+                    this.analysisInterval = null;
+                }
+                
+                const visionToggle = document.getElementById('vision-toggle');
+                const visionStatus = document.getElementById('vision-status');
+                const objectsOverlay = document.getElementById('objects-overlay');
+                const suggestionsPanel = document.getElementById('suggestions-panel');
+                
+                if (visionToggle) visionToggle.classList.remove('active');
+                if (visionStatus) {
+                    visionStatus.classList.remove('analyzing');
+                    document.getElementById('vision-status-text').textContent = 'AI Vision Paused';
+                    setTimeout(() => {
+                        visionStatus.classList.remove('show');
+                    }, 2000);
+                }
+                if (objectsOverlay) objectsOverlay.classList.remove('show');
+                if (suggestionsPanel) suggestionsPanel.classList.remove('show');
+            }
+
+            getUserId() {
+                // Get or create a user ID
+                let userId = localStorage.getItem('euphorie_user_id');
+                if (!userId) {
+                    userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('euphorie_user_id', userId);
+                }
+                return userId;
+            }
+
+            getContext() {
+                // Gather context about what the user might be doing
+                const time = new Date().getHours();
+                if (time < 12) return 'morning_work';
+                if (time < 17) return 'afternoon_work';
+                return 'evening_work';
+            }
+        }
+
+        // Enhanced News Feed Manager (keeping existing code)
         class NewsFeedManager {
             constructor() {
                 this.ws = null;
@@ -914,7 +1273,7 @@
                 this.currentFilter = 'all';
                 this.feedOpen = false;
                 this.feedEnabled = false;
-                this.wasOpenBeforeStop = false; // Track if feed was open before camera stopped
+                this.wasOpenBeforeStop = false;
                 this.reconnectAttempts = 0;
                 this.maxReconnectAttempts = 5;
                 this.reconnectDelay = 1000;
@@ -923,8 +1282,8 @@
                 this.autoScrollEnabled = true;
                 this.touchStartY = 0;
                 this.currentTranslateY = 0;
-                this.scrollSpeed = 30; // Desktop scroll speed in seconds
-                this.duplicateCount = 2; // Number of times to duplicate content for smooth scrolling
+                this.scrollSpeed = 30;
+                this.duplicateCount = 2;
             }
 
             activate() {
@@ -940,7 +1299,6 @@
                     if (mobileFab) {
                         mobileFab.classList.add('enabled');
                         setTimeout(() => {
-                            // Pulse animation for attention
                             mobileFab.style.animation = 'badgePulse 0.5s ease 3';
                             setTimeout(() => {
                                 mobileFab.style.animation = '';
@@ -948,26 +1306,20 @@
                         }, 500);
                     }
                     
-                    // Setup mobile gestures
                     this.setupMobileGestures();
-                    // Add camera touch listener for mobile
                     this.setupCameraTouchListener();
                 } else {
-                    // Setup desktop auto-scroll
                     this.setupDesktopAutoScroll();
                 }
                 
                 this.init();
                 
-                // Check if this is the very first time ever showing the feed
                 const isFirstTimeEver = !localStorage.getItem('euphorie_feed_seen');
                 
-                // Only auto-show on desktop for absolute first-time users
                 if (!this.isMobile && isFirstTimeEver) {
                     setTimeout(() => {
                         this.toggleFeed();
                         localStorage.setItem('euphorie_feed_seen', 'true');
-                        // Auto-hide after 10 seconds
                         setTimeout(() => {
                             if (this.feedOpen) {
                                 this.toggleFeed();
@@ -975,14 +1327,11 @@
                         }, 10000);
                     }, 3000);
                 } else if (!this.isMobile && this.wasOpenBeforeStop) {
-                    // Restore the feed state if it was open before stopping
-                    // Use a slight delay to ensure everything is properly initialized
                     setTimeout(() => {
                         this.openFeed();
                     }, 100);
                 }
                 
-                // Reset the flag after use
                 this.wasOpenBeforeStop = false;
             }
 
@@ -993,34 +1342,28 @@
                 
                 if (!cameraVideo || !cameraInterface || !this.isMobile) return;
                 
-                // Remove existing listeners if any
                 if (this.cameraListeners) {
                     this.removeCameraListeners();
                 }
                 
-                // Listen for touches on the camera area
                 const handleCameraTouch = (e) => {
-                    // Check if the touch is on the camera video area or chat overlay
                     if (this.feedOpen && 
                         (e.target === cameraVideo || 
                          e.target === cameraInterface || 
                          e.target === chatOverlay ||
                          chatOverlay.contains(e.target))) {
-                        // Close the news feed
                         e.preventDefault();
                         e.stopPropagation();
                         this.toggleFeed();
                     }
                 };
                 
-                // Add listeners with capture phase for better event handling
                 cameraVideo.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
                 cameraInterface.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
                 if (chatOverlay) {
                     chatOverlay.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
                 }
                 
-                // Store references to remove listeners later
                 this.cameraListeners = { 
                     handleCameraTouch,
                     elements: [cameraVideo, cameraInterface, chatOverlay]
@@ -1058,18 +1401,16 @@
                     currentY = startY;
                     startTime = Date.now();
                     
-                    // Get current transform if any
                     const transform = window.getComputedStyle(feedContainer).transform;
                     if (transform && transform !== 'none') {
                         const matrix = new DOMMatrix(transform);
-                        touchStartTransform = matrix.m42; // translateY value
+                        touchStartTransform = matrix.m42;
                     } else {
                         touchStartTransform = 0;
                     }
                     
                     feedContainer.style.transition = 'none';
                     
-                    // Pause mobile auto-scroll
                     if (mobileContent) {
                         mobileContent.classList.add('paused');
                     }
@@ -1082,10 +1423,8 @@
                     currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     const deltaY = currentY - startY;
                     
-                    // More responsive dragging - immediate response
                     if (this.feedOpen) {
                         const translateY = deltaY;
-                        // Allow both up and down dragging for better responsiveness
                         feedContainer.style.transform = `translateY(${Math.max(0, Math.min(translateY, window.innerHeight * 0.7))}px)`;
                     }
                 };
@@ -1100,21 +1439,16 @@
                     const deltaTime = Date.now() - startTime;
                     const velocity = Math.abs(deltaY) / deltaTime;
                     
-                    // Faster, more responsive transition
                     feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
-                    // Lower threshold for more responsive closing - just 30px or quick swipe
                     const threshold = 30;
                     
                     if (deltaY > threshold || velocity > 0.15) {
-                        // Close the panel
                         this.toggleFeed();
                     } else {
-                        // Snap back to open position
                         feedContainer.style.transform = 'translateY(0)';
                     }
                     
-                    // Resume mobile auto-scroll
                     if (mobileContent && this.feedOpen) {
                         setTimeout(() => {
                             mobileContent.classList.remove('paused');
@@ -1122,18 +1456,15 @@
                     }
                 };
                 
-                // Touch events with better handling
                 dragHandle.addEventListener('touchstart', handleStart, { passive: false });
                 window.addEventListener('touchmove', handleMove, { passive: false });
                 window.addEventListener('touchend', handleEnd, { passive: true });
                 window.addEventListener('touchcancel', handleEnd, { passive: true });
                 
-                // Mouse events for testing
                 dragHandle.addEventListener('mousedown', handleStart);
                 window.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
                 
-                // Add more responsive swipe-down gesture on the content area
                 let contentStartY = 0;
                 let contentScrollTop = 0;
                 let contentDragging = false;
@@ -1145,10 +1476,9 @@
                 }, { passive: true });
                 
                 mobileContent.addEventListener('touchmove', (e) => {
-                    // If scrolled to top and swiping down, start closing gesture
                     if (mobileContent.scrollTop === 0 && contentScrollTop === 0) {
                         const deltaY = e.touches[0].clientY - contentStartY;
-                        if (deltaY > 5) { // Lower threshold for more responsiveness
+                        if (deltaY > 5) {
                             e.preventDefault();
                             contentDragging = true;
                             feedContainer.style.transition = 'none';
@@ -1167,31 +1497,26 @@
                         
                         feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                         
-                        if (translateY > 30) { // Lower threshold
-                            // Close if dragged down more than 30px
+                        if (translateY > 30) {
                             this.toggleFeed();
                         } else {
-                            // Snap back
                             feedContainer.style.transform = 'translateY(0)';
                         }
                     }
                     contentDragging = false;
                 }, { passive: true });
                 
-                // Setup mobile auto-scroll
                 this.setupMobileAutoScroll(mobileContent);
             }
             
             setupMobileAutoScroll(mobileContent) {
                 if (!mobileContent) return;
                 
-                // Enable auto-scroll class
                 mobileContent.classList.add('auto-scroll');
                 
                 let userScrolling = false;
                 let scrollTimeout;
                 
-                // Detect user scrolling
                 mobileContent.addEventListener('touchstart', () => {
                     userScrolling = true;
                     mobileContent.classList.add('paused');
@@ -1202,10 +1527,9 @@
                     scrollTimeout = setTimeout(() => {
                         userScrolling = false;
                         mobileContent.classList.remove('paused');
-                    }, 3000); // Resume auto-scroll after 3 seconds of inactivity
+                    }, 3000);
                 }, { passive: true });
                 
-                // Also pause on manual scroll
                 mobileContent.addEventListener('scroll', () => {
                     if (!userScrolling) {
                         mobileContent.classList.add('paused');
@@ -1228,7 +1552,6 @@
                 
                 if (!content || !ticker || this.isMobile) return;
                 
-                // Pause on hover for desktop
                 content.addEventListener('mouseenter', () => {
                     ticker.classList.add('paused');
                     this.autoScrollEnabled = false;
@@ -1239,7 +1562,6 @@
                     this.autoScrollEnabled = true;
                 });
                 
-                // Restart animation when needed
                 this.restartAutoScroll();
             }
 
@@ -1249,16 +1571,14 @@
                 const ticker = document.getElementById('news-ticker');
                 if (!ticker) return;
                 
-                // Force animation restart
                 ticker.style.animation = 'none';
-                ticker.offsetHeight; // Trigger reflow
+                ticker.offsetHeight;
                 ticker.style.animation = `smoothScroll ${this.scrollSpeed}s linear infinite`;
             }
 
             async loadInitialFeed() {
                 if (!this.feedEnabled) return;
                 
-                // Enhanced demo articles
                 const demoArticles = [
                     {
                         id: '1',
@@ -1305,24 +1625,6 @@
                         published: new Date(Date.now() - 14400000).toISOString(),
                         source_name: 'Health News',
                         url: '#'
-                    },
-                    {
-                        id: '6',
-                        title: 'Quantum Computing Milestone: 1000-Qubit Processor Unveiled',
-                        category: 'Tech',
-                        summary: 'Tech giant announces breakthrough quantum processor that could solve complex problems millions of times faster than classical computers.',
-                        published: new Date(Date.now() - 18000000).toISOString(),
-                        source_name: 'Quantum Weekly',
-                        url: '#'
-                    },
-                    {
-                        id: '7',
-                        title: 'Space Tourism Takes Off: First Commercial Flight Success',
-                        category: 'Tech',
-                        summary: 'Private space company successfully completes first commercial tourist flight to edge of space with civilian passengers.',
-                        published: new Date(Date.now() - 21600000).toISOString(),
-                        source_name: 'Space News',
-                        url: '#'
                     }
                 ];
                 
@@ -1332,15 +1634,13 @@
                 
                 this.renderFeed();
                 
-                // Try to fetch real news if backend is available
                 try {
-                    const response = await fetch('/api/news/feed?limit=30');
+                    const response = await fetch(`${CONFIG.backendUrl}/api/news/feed?limit=30`);
                     
                     if (response.ok) {
                         const data = await response.json();
                         
                         if (data.articles && Array.isArray(data.articles)) {
-                            // Clear demo articles and use real ones
                             this.articles.clear();
                             data.articles.forEach(article => {
                                 this.articles.set(article.id, article);
@@ -1353,17 +1653,15 @@
                     }
                 } catch (error) {
                     console.log('Using demo articles - backend not available');
-                    // Continue with demo articles
                 }
             }
 
             startPolling() {
-                // Poll for new articles every 30 seconds
                 this.pollingInterval = setInterval(async () => {
                     if (!this.feedEnabled) return;
                     
                     try {
-                        const response = await fetch('/api/news/feed?limit=5');
+                        const response = await fetch(`${CONFIG.backendUrl}/api/news/feed?limit=5`);
                         if (response.ok) {
                             const data = await response.json();
                             if (data.articles && Array.isArray(data.articles)) {
@@ -1406,13 +1704,11 @@
                 
                 this.feedOpen = true;
                 
-                // Use requestAnimationFrame for smoother animations
                 requestAnimationFrame(() => {
                     feed.classList.add('open');
                     
                     if (!this.isMobile) {
                         mainContainer.classList.add('news-open');
-                        // Update toggle button icon on desktop
                         const toggleIcon = document.querySelector('.news-toggle-icon');
                         if (toggleIcon) {
                             toggleIcon.textContent = '✕';
@@ -1430,13 +1726,11 @@
                 
                 this.feedOpen = false;
                 
-                // Use requestAnimationFrame for smoother animations
                 requestAnimationFrame(() => {
                     feed.classList.remove('open');
                     
                     if (!this.isMobile) {
                         mainContainer.classList.remove('news-open');
-                        // Update toggle button icon on desktop
                         const toggleIcon = document.querySelector('.news-toggle-icon');
                         if (toggleIcon) {
                             toggleIcon.textContent = '📰';
@@ -1444,15 +1738,12 @@
                     }
                     
                     if (this.isMobile) {
-                        // Toggle FAB state
                         if (mobileFab) {
                             mobileFab.classList.remove('open');
                         }
                         
-                        // Remove camera listeners when closing
                         this.removeCameraListeners();
                         
-                        // Update FAB icon
                         const fabIcon = document.querySelector('.mobile-news-fab-icon');
                         if (fabIcon) {
                             fabIcon.textContent = '📰';
@@ -1470,7 +1761,6 @@
                     this.openFeed();
                 }
                 
-                // Mobile-specific handling
                 if (this.isMobile) {
                     const mobileFab = document.getElementById('mobile-news-fab');
                     
@@ -1478,21 +1768,19 @@
                         mobileFab.classList.toggle('open', this.feedOpen);
                     }
                     
-                    // Clear badge when opening
                     if (this.feedOpen) {
                         this.newArticleCount = 0;
                         const badge = document.getElementById('news-badge');
                         if (badge) badge.classList.remove('show');
                         
-                        // Re-setup camera touch listener when opening
                         setTimeout(() => {
                             this.setupCameraTouchListener();
                         }, 300);
                     }
                     
-                    // Update FAB icon
                     const fabIcon = document.querySelector('.mobile-news-fab-icon');
-                    if (fabIcon) {
+                    if (fabIcon)
+                    {
                         fabIcon.textContent = this.feedOpen ? '✕' : '📰';
                     }
                 }
@@ -1501,7 +1789,6 @@
             setupFilters() {
                 document.querySelectorAll('.news-filter').forEach(filter => {
                     filter.addEventListener('click', (e) => {
-                        // Prevent double-tap zoom on mobile
                         e.preventDefault();
                         
                         document.querySelectorAll('.news-filter').forEach(f => 
@@ -1510,7 +1797,6 @@
                         this.currentFilter = e.target.dataset.category;
                         this.renderFeed();
                         
-                        // Scroll to top on mobile when filter changes
                         if (this.isMobile) {
                             const mobileContent = document.getElementById('mobile-news-content');
                             if (mobileContent) {
@@ -1548,10 +1834,8 @@
                     return;
                 }
 
-                // Create container for smooth scrolling
                 const fragment = document.createDocumentFragment();
                 
-                // Add articles multiple times for continuous scroll
                 for (let i = 0; i < this.duplicateCount; i++) {
                     sortedArticles.forEach(article => {
                         fragment.appendChild(this.createDesktopNewsItem(article));
@@ -1559,8 +1843,6 @@
                 }
                 
                 ticker.appendChild(fragment);
-                
-                // Restart animation for new content
                 this.restartAutoScroll();
             }
 
@@ -1569,7 +1851,6 @@
                 const mobileContent = document.getElementById('mobile-news-content');
                 if (!ticker) return;
                 
-                // Use document fragment for better performance
                 const fragment = document.createDocumentFragment();
 
                 const sortedArticles = Array.from(this.articles.values())
@@ -1585,7 +1866,6 @@
                     return;
                 }
 
-                // Add articles twice for continuous scroll effect
                 for (let i = 0; i < 2; i++) {
                     sortedArticles.forEach(article => {
                         fragment.appendChild(this.createMobileNewsCard(article));
@@ -1595,12 +1875,10 @@
                 ticker.innerHTML = '';
                 ticker.appendChild(fragment);
                 
-                // Restart animation for mobile auto-scroll
                 if (mobileContent) {
-                    // Force animation restart
                     const ticker = document.getElementById('mobile-news-ticker');
                     ticker.style.animation = 'none';
-                    ticker.offsetHeight; // Trigger reflow
+                    ticker.offsetHeight;
                     ticker.style.animation = '';
                 }
             }
@@ -1626,9 +1904,7 @@
                 `;
 
                 card.onclick = () => {
-                    // For demo articles, prevent navigation
                     if (article.url === '#') {
-                        // Show a brief notification instead of navigating
                         const originalBg = card.style.background;
                         card.style.background = 'rgba(0, 255, 136, 0.2)';
                         setTimeout(() => {
@@ -1637,7 +1913,6 @@
                         return;
                     }
                     
-                    // For real articles with valid URLs
                     if (article.url && article.url.startsWith('http')) {
                         window.open(article.url, '_blank');
                     }
@@ -1667,9 +1942,7 @@
                 `;
 
                 item.onclick = () => {
-                    // For demo articles, prevent navigation
                     if (article.url === '#') {
-                        // Show a brief highlight effect instead of navigating
                         const originalBg = item.style.background;
                         item.style.background = 'rgba(0, 255, 136, 0.15)';
                         setTimeout(() => {
@@ -1678,7 +1951,6 @@
                         return;
                     }
                     
-                    // For real articles with valid URLs
                     if (article.url && article.url.startsWith('http')) {
                         window.open(article.url, '_blank');
                     }
@@ -1688,9 +1960,7 @@
             }
 
             deactivate() {
-                // Store whether feed was open before deactivating
                 this.wasOpenBeforeStop = this.feedOpen;
-                
                 this.feedEnabled = false;
                 
                 if (this.ws) {
@@ -1698,13 +1968,11 @@
                     this.ws = null;
                 }
                 
-                // Clear polling interval
                 if (this.pollingInterval) {
                     clearInterval(this.pollingInterval);
                     this.pollingInterval = null;
                 }
                 
-                // Close the feed if it's open
                 if (this.feedOpen) {
                     this.closeFeed();
                 }
@@ -1712,13 +1980,11 @@
                 const feedContainer = document.getElementById('news-feed');
                 const mobileFab = document.getElementById('mobile-news-fab');
                 
-                // Remove enabled state after closing animation completes
                 setTimeout(() => {
                     feedContainer.classList.remove('enabled');
                     if (mobileFab) mobileFab.classList.remove('enabled');
                 }, 300);
                 
-                // Remove camera touch listeners if mobile
                 if (this.isMobile) {
                     this.removeCameraListeners();
                 }
@@ -1728,10 +1994,16 @@
             }
         }
 
-        // Initialize
+        // Initialize global instances
         let newsFeed = null;
+        let visionAnalyzer = null;
+        let cameraStream = null;
+        let isActive = false;
+        
+        // Initialize on DOM load
         document.addEventListener('DOMContentLoaded', () => {
             newsFeed = new NewsFeedManager();
+            visionAnalyzer = new VisionAnalyzer();
             
             // Handle resize events with debouncing
             let resizeTimeout;
@@ -1741,7 +2013,6 @@
                     const wasMobile = newsFeed.isMobile;
                     newsFeed.isMobile = window.innerWidth <= 768;
                     
-                    // Re-render if device type changed
                     if (wasMobile !== newsFeed.isMobile && newsFeed.feedEnabled) {
                         newsFeed.renderFeed();
                         if (!newsFeed.isMobile) {
@@ -1760,10 +2031,28 @@
             if (newsFeed) newsFeed.toggleFeed();
         }
 
-        // Camera functions
-        let cameraStream = null;
-        let isActive = false;
-        
+        function toggleVision() {
+            if (!visionAnalyzer) return;
+            
+            if (visionAnalyzer.analyzing) {
+                visionAnalyzer.stopAnalysis();
+            } else {
+                visionAnalyzer.startAnalysis();
+            }
+        }
+
+        function captureFrame() {
+            if (visionAnalyzer && cameraStream) {
+                visionAnalyzer.captureAndAnalyze(true);
+                
+                // Visual feedback
+                const messageEl = document.getElementById('ai-message');
+                if (messageEl) {
+                    messageEl.textContent = '📸 Frame captured! Analyzing...';
+                }
+            }
+        }
+
         async function startCamera() {
             try {
                 const constraints = {
@@ -1789,26 +2078,42 @@
                 
                 isActive = true;
                 
+                // Activate news feed
                 if (newsFeed) {
                     newsFeed.activate();
-                    
-                    const messageEl = document.getElementById('ai-message');
-                    messageEl.textContent = newsFeed.isMobile 
-                        ? 'AI Vision active! Tap 📰 for news.'
-                        : 'AI Vision active! Live news feed enabled.';
-                    
-                    setTimeout(() => {
-                        messageEl.textContent = 'AI insights will appear here...';
-                    }, 5000);
                 }
+                
+                // Auto-start vision analysis after a delay
+                setTimeout(() => {
+                    if (visionAnalyzer && isActive) {
+                        visionAnalyzer.startAnalysis();
+                        
+                        const messageEl = document.getElementById('ai-message');
+                        if (messageEl) {
+                            messageEl.textContent = newsFeed.isMobile 
+                                ? '👁️ AI Vision active! Tap 📰 for news.'
+                                : '👁️ AI Vision active! Live news feed enabled.';
+                            
+                            setTimeout(() => {
+                                messageEl.textContent = 'Point camera at code, documents, or objects for AI insights...';
+                            }, 5000);
+                        }
+                    }
+                }, 2000);
                 
             } catch (error) {
                 console.error('Camera failed:', error);
-                alert('Camera access denied or not available');
+                alert('Camera access denied or not available. Please check your browser settings.');
             }
         }
         
         function stopCamera() {
+            // Stop vision analysis
+            if (visionAnalyzer) {
+                visionAnalyzer.stopAnalysis();
+            }
+            
+            // Stop camera stream
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
                 cameraStream = null;
@@ -1819,22 +2124,28 @@
             const controls = document.getElementById('controls-overlay');
             const chat = document.getElementById('chat-overlay');
             const mainContainer = document.getElementById('main-container');
+            const visionStatus = document.getElementById('vision-status');
+            const objectsOverlay = document.getElementById('objects-overlay');
+            const suggestionsPanel = document.getElementById('suggestions-panel');
             
             video.style.display = 'none';
             placeholder.style.display = 'flex';
             controls.classList.remove('show');
             chat.classList.remove('show');
             
-            // Remove news-open class to recenter on desktop
+            if (visionStatus) visionStatus.classList.remove('show');
+            if (objectsOverlay) objectsOverlay.classList.remove('show');
+            if (suggestionsPanel) suggestionsPanel.classList.remove('show');
+            
             mainContainer.classList.remove('news-open');
             
             isActive = false;
             
+            // Deactivate news feed
             if (newsFeed) {
                 newsFeed.deactivate();
             }
         }
     </script>
-
 </body>
 </html>
