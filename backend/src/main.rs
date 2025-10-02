@@ -196,7 +196,7 @@ async fn vision_analyze(Json(request): Json<serde_json::Value>) -> impl IntoResp
                         let suggestions = generate_suggestions(&objects);
                         
                         return Json(VisionResponse {
-                            insight,
+                            insight: insight.flatten(),
                             scene_description: scene_desc,
                             objects_detected: objects,
                             should_respond: insight.is_some(),
