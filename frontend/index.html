@@ -223,39 +223,75 @@
             /* Improved drag handle - more responsive */
             .mobile-drag-handle {
                 width: 100%;
-                height: 40px;
+                height: 44px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: grab;
                 touch-action: none;
                 position: relative;
+                background: transparent;
+                transition: background 0.2s ease;
             }
 
             .mobile-drag-handle::before {
                 content: '';
                 position: absolute;
                 top: 0;
-                left: 20%;
-                right: 20%;
+                left: 0;
+                right: 0;
                 height: 100%;
                 background: transparent;
             }
+            
+            /* Larger touch target area */
+            .mobile-drag-handle::after {
+                content: '↓ Swipe down to close';
+                position: absolute;
+                bottom: -18px;
+                font-size: 0.65rem;
+                color: rgba(255, 255, 255, 0.4);
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+            }
+            
+            .mobile-drag-handle:active::after,
+            .mobile-drag-handle.dragging::after {
+                opacity: 1;
+            }
 
             .drag-indicator {
-                width: 50px;
-                height: 5px;
-                background: rgba(255, 255, 255, 0.5);
-                border-radius: 3px;
-                transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+                width: 40px;
+                height: 4px;
+                background: rgba(255, 255, 255, 0.4);
+                border-radius: 2px;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+            }
+            
+            /* Double line for better visibility */
+            .drag-indicator::after {
+                content: '';
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background: inherit;
+                border-radius: inherit;
+                top: 8px;
             }
 
             .mobile-drag-handle:active .drag-indicator,
             .mobile-drag-handle.dragging .drag-indicator {
-                background: rgba(0, 255, 136, 0.9);
-                width: 70px;
-                height: 6px;
-                box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+                background: #00ff88;
+                width: 60px;
+                height: 5px;
+                box-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+                transform: scaleX(1.2);
+            }
+            
+            .mobile-drag-handle.dragging {
+                background: rgba(0, 255, 136, 0.05);
             }
 
             /* Mobile title and filters container */
@@ -1396,26 +1432,24 @@
                 
                 if (!dragHandle || !feedContainer) return;
                 
+                // Remove any existing listeners first
+                if (this.gestureCleanup) {
+                    this.gestureCleanup();
+                }
+                
                 let startY = 0;
                 let currentY = 0;
                 let isDragging = false;
                 let startTime = 0;
-                let touchStartTransform = 0;
+                let hasMoved = false;
                 
                 const handleStart = (e) => {
                     isDragging = true;
+                    hasMoved = false;
                     dragHandle.classList.add('dragging');
                     startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     currentY = startY;
                     startTime = Date.now();
-                    
-                    const transform = window.getComputedStyle(feedContainer).transform;
-                    if (transform && transform !== 'none') {
-                        const matrix = new DOMMatrix(transform);
-                        touchStartTransform = matrix.m42;
-                    } else {
-                        touchStartTransform = 0;
-                    }
                     
                     feedContainer.style.transition = 'none';
                     
@@ -1431,9 +1465,15 @@
                     currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     const deltaY = currentY - startY;
                     
-                    if (this.feedOpen) {
-                        const translateY = deltaY;
-                        feedContainer.style.transform = `translateY(${Math.max(0, Math.min(translateY, window.innerHeight * 0.7))}px)`;
+                    // Only start visual feedback after minimum movement
+                    if (Math.abs(deltaY) > 2) {
+                        hasMoved = true;
+                    }
+                    
+                    if (this.feedOpen && hasMoved) {
+                        // Only allow downward drag to close
+                        const translateY = Math.max(0, deltaY);
+                        feedContainer.style.transform = `translateY(${Math.min(translateY, window.innerHeight * 0.7)}px)`;
                     }
                 };
                 
@@ -1445,17 +1485,21 @@
                     
                     const deltaY = currentY - startY;
                     const deltaTime = Date.now() - startTime;
-                    const velocity = Math.abs(deltaY) / deltaTime;
+                    const velocity = deltaTime > 0 ? Math.abs(deltaY) / deltaTime : 0;
                     
                     feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
-                    // More sensitive thresholds for better responsiveness
-                    const threshold = 15; // Reduced from 30
+                    // More reliable close detection:
+                    // - Close if dragged down more than 50px
+                    // - OR if quick flick downward (high velocity)
+                    // - OR if dragged more than 25% of the panel height
+                    const panelHeight = window.innerHeight * 0.7;
+                    const dragPercentage = deltaY / panelHeight;
                     
-                    // Close if pulled down more than threshold OR velocity is fast enough
-                    if (deltaY > threshold || velocity > 0.08) { // Reduced from 0.15
-                        this.toggleFeed();
+                    if (deltaY > 50 || (velocity > 0.5 && deltaY > 20) || dragPercentage > 0.25) {
+                        this.closeFeed();
                     } else {
+                        // Snap back to open position
                         feedContainer.style.transform = 'translateY(0)';
                     }
                     
@@ -1464,40 +1508,51 @@
                             mobileContent.classList.remove('paused');
                         }, 300);
                     }
+                    
+                    hasMoved = false;
                 };
                 
+                // Store references for cleanup
+                const boundHandleMove = handleMove;
+                const boundHandleEnd = handleEnd;
+                
                 dragHandle.addEventListener('touchstart', handleStart, { passive: false });
-                window.addEventListener('touchmove', handleMove, { passive: false });
-                window.addEventListener('touchend', handleEnd, { passive: true });
-                window.addEventListener('touchcancel', handleEnd, { passive: true });
+                window.addEventListener('touchmove', boundHandleMove, { passive: false });
+                window.addEventListener('touchend', boundHandleEnd, { passive: true });
+                window.addEventListener('touchcancel', boundHandleEnd, { passive: true });
                 
                 dragHandle.addEventListener('mousedown', handleStart);
-                window.addEventListener('mousemove', handleMove);
-                window.addEventListener('mouseup', handleEnd);
+                window.addEventListener('mousemove', boundHandleMove);
+                window.addEventListener('mouseup', boundHandleEnd);
                 
+                // Simplified content scrolling drag-to-close
                 let contentStartY = 0;
-                let contentScrollTop = 0;
                 let contentDragging = false;
                 
-                mobileContent.addEventListener('touchstart', (e) => {
+                const contentTouchStart = (e) => {
                     contentStartY = e.touches[0].clientY;
-                    contentScrollTop = mobileContent.scrollTop;
                     contentDragging = false;
-                }, { passive: true });
+                };
                 
-                mobileContent.addEventListener('touchmove', (e) => {
-                    if (mobileContent.scrollTop === 0 && contentScrollTop === 0) {
+                const contentTouchMove = (e) => {
+                    // Only enable drag-to-close when scrolled to top
+                    if (mobileContent.scrollTop === 0) {
                         const deltaY = e.touches[0].clientY - contentStartY;
-                        if (deltaY > 5) {
+                        // Require more deliberate downward drag (10px threshold)
+                        if (deltaY > 10 && !contentDragging) {
                             e.preventDefault();
                             contentDragging = true;
                             feedContainer.style.transition = 'none';
-                            feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
+                        }
+                        
+                        if (contentDragging) {
+                            e.preventDefault();
+                            feedContainer.style.transform = `translateY(${Math.min(deltaY - 10, window.innerHeight * 0.7)}px)`;
                         }
                     }
-                }, { passive: false });
+                };
                 
-                mobileContent.addEventListener('touchend', (e) => {
+                const contentTouchEnd = (e) => {
                     if (!contentDragging) return;
                     
                     const transform = window.getComputedStyle(feedContainer).transform;
@@ -1507,15 +1562,33 @@
                         
                         feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                         
-                        // More sensitive threshold for content dragging too
-                        if (translateY > 15) { // Reduced from 30
-                            this.toggleFeed();
+                        // Require more significant drag to close (80px)
+                        if (translateY > 80) {
+                            this.closeFeed();
                         } else {
                             feedContainer.style.transform = 'translateY(0)';
                         }
                     }
                     contentDragging = false;
-                }, { passive: true });
+                };
+                
+                mobileContent.addEventListener('touchstart', contentTouchStart, { passive: true });
+                mobileContent.addEventListener('touchmove', contentTouchMove, { passive: false });
+                mobileContent.addEventListener('touchend', contentTouchEnd, { passive: true });
+                
+                // Store cleanup function
+                this.gestureCleanup = () => {
+                    dragHandle.removeEventListener('touchstart', handleStart);
+                    window.removeEventListener('touchmove', boundHandleMove);
+                    window.removeEventListener('touchend', boundHandleEnd);
+                    window.removeEventListener('touchcancel', boundHandleEnd);
+                    dragHandle.removeEventListener('mousedown', handleStart);
+                    window.removeEventListener('mousemove', boundHandleMove);
+                    window.removeEventListener('mouseup', boundHandleEnd);
+                    mobileContent.removeEventListener('touchstart', contentTouchStart);
+                    mobileContent.removeEventListener('touchmove', contentTouchMove);
+                    mobileContent.removeEventListener('touchend', contentTouchEnd);
+                };
                 
                 this.setupMobileAutoScroll(mobileContent);
             }
