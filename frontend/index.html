@@ -1396,94 +1396,75 @@
                 
                 if (!dragHandle || !feedContainer) return;
                 
-                let isDragging = false;
                 let startY = 0;
+                let currentY = 0;
+                let isDragging = false;
+                let startTime = 0;
+                let touchStartTransform = 0;
                 
-                // Touch handler for immediate close on tap
-                const handleTouchStart = (e) => {
-                    if (e.target === dragHandle || dragHandle.contains(e.target)) {
-                        e.stopPropagation();
-                        startY = e.touches[0].clientY;
-                        isDragging = true;
-                        
-                        // Add visual feedback
-                        dragHandle.classList.add('dragging');
-                        
-                        // Set a timer for tap detection (if no move within 200ms, consider it a tap)
+                const handleStart = (e) => {
+                    isDragging = true;
+                    dragHandle.classList.add('dragging');
+                    startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    currentY = startY;
+                    startTime = Date.now();
+                    
+                    const transform = window.getComputedStyle(feedContainer).transform;
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        touchStartTransform = matrix.m42;
+                    } else {
+                        touchStartTransform = 0;
+                    }
+                    
+                    feedContainer.style.transition = 'none';
+                    
+                    if (mobileContent) {
+                        mobileContent.classList.add('paused');
+                    }
+                };
+                
+                const handleMove = (e) => {
+                    if (!isDragging) return;
+                    
+                    e.preventDefault();
+                    currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    const deltaY = currentY - startY;
+                    
+                    if (this.feedOpen) {
+                        const translateY = deltaY;
+                        feedContainer.style.transform = `translateY(${Math.max(0, Math.min(translateY, window.innerHeight * 0.7))}px)`;
+                    }
+                };
+                
+                const handleEnd = () => {
+                    if (!isDragging) return;
+                    
+                    isDragging = false;
+                    dragHandle.classList.remove('dragging');
+                    
+                    const deltaY = currentY - startY;
+                    const deltaTime = Date.now() - startTime;
+                    const velocity = Math.abs(deltaY) / deltaTime;
+                    
+                    feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    
+                    // More sensitive thresholds for better responsiveness
+                    const threshold = 15; // Reduced from 30
+                    
+                    // Close if pulled down more than threshold OR velocity is fast enough
+                    if (deltaY > threshold || velocity > 0.08) { // Reduced from 0.15
+                        this.toggleFeed();
+                    } else {
+                        feedContainer.style.transform = 'translateY(0)';
+                    }
+                    
+                    if (mobileContent && this.feedOpen) {
                         setTimeout(() => {
-                            if (isDragging && Math.abs(e.touches[0].clientY - startY) < 10) {
-                                // It's a tap, close immediately
-                                this.toggleFeed();
-                                isDragging = false;
-                                dragHandle.classList.remove('dragging');
-                            }
-                        }, 200);
+                            mobileContent.classList.remove('paused');
+                        }, 300);
                     }
                 };
-                
-                const handleTouchEnd = (e) => {
-                    if (isDragging) {
-                        isDragging = false;
-                        dragHandle.classList.remove('dragging');
-                    }
-                };
-                
-                // Add the touch listeners only to the drag handle
-                dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
-                dragHandle.addEventListener('touchend', handleTouchEnd, { passive: true });
-                
-                // Also handle click for non-touch devices
-                dragHandle.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.toggleFeed();
-                });
-                
-                // Keep the pull-down-to-close for content area
-                let contentStartY = 0;
-                let contentScrollTop = 0;
-                let contentDragging = false;
-                
-                if (mobileContent) {
-                    mobileContent.addEventListener('touchstart', (e) => {
-                        contentStartY = e.touches[0].clientY;
-                        contentScrollTop = mobileContent.scrollTop;
-                        contentDragging = false;
-                    }, { passive: true });
-                    
-                    mobileContent.addEventListener('touchmove', (e) => {
-                        if (mobileContent.scrollTop === 0 && contentScrollTop === 0) {
-                            const deltaY = e.touches[0].clientY - contentStartY;
-                            if (deltaY > 5) {
-                                e.preventDefault();
-                                contentDragging = true;
-                                feedContainer.style.transition = 'none';
-                                feedContainer.style.transform = `translateY(${Math.min(deltaY, window.innerHeight * 0.7)}px)`;
-                            }
-                        }
-                    }, { passive: false });
-                    
-                    mobileContent.addEventListener('touchend', (e) => {
-                        if (!contentDragging) return;
-                        
-                        const transform = window.getComputedStyle(feedContainer).transform;
-                        if (transform && transform !== 'none') {
-                            const matrix = new DOMMatrix(transform);
-                            const translateY = matrix.m42;
-                            
-                            feedContainer.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-                            
-                            if (translateY > 15) {
-                                this.toggleFeed();
-                            } else {
-                                feedContainer.style.transform = 'translateY(0)';
-                            }
-                        }
-                        contentDragging = false;
-                    }, { passive: true });
-                    
-                    this.setupMobileAutoScroll(mobileContent);
-                }
-            }
                 
                 dragHandle.addEventListener('touchstart', handleStart, { passive: false });
                 window.addEventListener('touchmove', handleMove, { passive: false });
