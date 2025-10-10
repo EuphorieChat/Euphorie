@@ -1063,10 +1063,10 @@
             <div id="camera-placeholder" class="camera-placeholder">
                 <div class="placeholder-title">Euphorie AI</div>
                 <div class="placeholder-subtitle">
-                    Requesting camera access...
+                    Show me anything. I'll help instantly.
                 </div>
                 <button class="start-button" onclick="startCamera()">
-                    Enable Camera
+                    Initialize System
                 </button>
             </div>
             
@@ -2119,21 +2119,6 @@
             newsFeed = new NewsFeedManager();
             visionAnalyzer = new VisionAnalyzer();
             
-            // Check if running as web app vs native app
-            const isNativeApp = window.navigator.standalone || 
-                               window.matchMedia('(display-mode: standalone)').matches ||
-                               window.cordova || window.Capacitor;
-            
-            // Only auto-start camera for web, not for apps
-            if (!isNativeApp) {
-                // Check if user has previously granted permission
-                if (localStorage.getItem('euphorie_camera_granted') === 'true') {
-                    setTimeout(() => {
-                        startCamera(true); // true = auto-start attempt
-                    }, 500);
-                }
-            }
-            
             // Handle resize events with debouncing
             let resizeTimeout;
             window.addEventListener('resize', () => {
@@ -2160,16 +2145,8 @@
             if (newsFeed) newsFeed.toggleFeed();
         }
 
-        async function startCamera(isAutoStart = false) {
+        async function startCamera() {
             try {
-                // Update subtitle during auto-start attempt
-                if (isAutoStart) {
-                    const subtitle = document.querySelector('.placeholder-subtitle');
-                    if (subtitle) {
-                        subtitle.textContent = 'Requesting camera access...';
-                    }
-                }
-                
                 const constraints = {
                     video: { 
                         facingMode: 'environment',
@@ -2216,21 +2193,7 @@
                 
             } catch (error) {
                 console.error('Camera failed:', error);
-                
-                // Update subtitle on failure
-                const subtitle = document.querySelector('.placeholder-subtitle');
-                if (subtitle) {
-                    subtitle.textContent = 'Show me anything. I'll help instantly.';
-                }
-                
-                // If this was an auto-start attempt, fail silently and show the button
-                // If manual, show an alert
-                if (!isAutoStart) {
-                    alert('Camera access denied or not available. Please check your browser settings.');
-                } else {
-                    // Auto-start failed silently - user can still click the button manually
-                    console.log('Auto-start camera failed. User can manually enable.');
-                }
+                alert('Camera access denied or not available. Please check your browser settings.');
             }
         }
         
