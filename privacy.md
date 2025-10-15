@@ -90,9 +90,9 @@ We may update this Privacy Policy from time to time. Changes will be posted on t
 
 If you have questions or concerns about this Privacy Policy, please contact us:
 
-- **Email:** contact@euphoriechat.com
-- **GitHub:** https://github.com/EuphorieChat/Euphorie
-- **Website:** https://euphoriechat.com
+- **Email:** euphorieinc@gmail.com
+- **GitHub:** https://github.com/EuphorieChat/Euphorie/blob/main/privacy.md
+- **Website:** https://euphorie.com
 
 ## Legal Compliance
 
