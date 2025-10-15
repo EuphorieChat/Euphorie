@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Euphorie AI</title>
     
     <!-- Favicon Support -->
@@ -1125,6 +1125,11 @@
     </div>
 
     <script>
+        // Detect if running in Capacitor native app
+        const isCapacitor = window.Capacitor !== undefined;
+        const isIOS = isCapacitor && window.Capacitor.getPlatform() === 'ios';
+        const isAndroid = isCapacitor && window.Capacitor.getPlatform() === 'android';
+
         // Configuration
         const CONFIG = {
             backendUrl: window.location.hostname === 'localhost' 
@@ -1328,7 +1333,7 @@
             }
         }
 
-        // Enhanced News Feed Manager (keeping existing code)
+        // Enhanced News Feed Manager
         class NewsFeedManager {
             constructor() {
                 this.ws = null;
@@ -1464,7 +1469,6 @@
                 let maxDragDistance = 0;
                 
                 const handleStart = (e) => {
-                    // Prevent multiple simultaneous drags
                     if (isDragging) return;
                     
                     isDragging = true;
@@ -1475,7 +1479,6 @@
                     dragDistance = 0;
                     maxDragDistance = 0;
                     
-                    // Completely stop any ongoing transitions
                     feedContainer.style.transition = 'none';
                     feedContainer.style.transform = 'translateY(0)';
                     
@@ -1490,12 +1493,10 @@
                     currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                     dragDistance = currentY - startY;
                     
-                    // Track maximum drag distance
                     if (dragDistance > maxDragDistance) {
                         maxDragDistance = dragDistance;
                     }
                     
-                    // Only move panel if dragging down with sufficient distance
                     if (this.feedOpen && dragDistance > 5) {
                         e.preventDefault();
                         const translateY = Math.min(dragDistance, window.innerHeight * 0.7);
@@ -1513,31 +1514,23 @@
                     const deltaTime = Date.now() - startTime;
                     const velocity = deltaTime > 0 ? finalDragDistance / deltaTime : 0;
                     
-                    // Add transition back
                     feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
-                    // Decision logic - require significant intentional drag
                     const panelHeight = window.innerHeight * 0.7;
                     const shouldClose = (
-                        // Strong downward drag
                         maxDragDistance > 100 ||
-                        // OR fast flick with decent distance
                         (velocity > 0.3 && finalDragDistance > 50) ||
-                        // OR dragged more than 40% of panel height
                         (finalDragDistance > panelHeight * 0.4)
                     );
                     
                     if (shouldClose && this.feedOpen) {
-                        // Complete the close animation
                         feedContainer.style.transform = `translateY(${panelHeight}px)`;
                         
-                        // Actually close after animation
                         setTimeout(() => {
                             this.closeFeed();
                             feedContainer.style.transform = '';
                         }, 300);
                     } else {
-                        // Snap back to fully open
                         feedContainer.style.transform = 'translateY(0)';
                         
                         if (mobileContent && this.feedOpen) {
@@ -1547,23 +1540,19 @@
                         }
                     }
                     
-                    // Reset values
                     dragDistance = 0;
                     maxDragDistance = 0;
                 };
                 
-                // Touch event listeners with proper options
                 dragHandle.addEventListener('touchstart', handleStart, { passive: true });
                 dragHandle.addEventListener('mousedown', handleStart);
                 
-                // Use document for move/end events to catch all movements
                 document.addEventListener('touchmove', handleMove, { passive: false });
                 document.addEventListener('touchend', handleEnd, { passive: true });
                 document.addEventListener('touchcancel', handleEnd, { passive: true });
                 document.addEventListener('mousemove', handleMove);
                 document.addEventListener('mouseup', handleEnd);
                 
-                // Handle content area drag-to-close separately
                 let contentTouchStartY = 0;
                 let contentIsDragging = false;
                 let contentScrollTop = 0;
@@ -1575,10 +1564,6 @@
                 };
                 
                 const handleContentMove = (e) => {
-                    // Only trigger drag-to-close if:
-                    // 1. At the top of the scroll
-                    // 2. Dragging down
-                    // 3. Sufficient distance
                     if (contentScrollTop <= 0 && mobileContent.scrollTop <= 0) {
                         const deltaY = e.touches[0].clientY - contentTouchStartY;
                         
@@ -1605,7 +1590,6 @@
                         
                         feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                         
-                        // Need significant drag to close from content area
                         if (translateY > 120) {
                             feedContainer.style.transform = `translateY(${window.innerHeight * 0.7}px)`;
                             setTimeout(() => {
@@ -1625,7 +1609,6 @@
                     mobileContent.addEventListener('touchend', handleContentEnd, { passive: true });
                 }
                 
-                // Store cleanup function
                 this.gestureCleanup = () => {
                     dragHandle.removeEventListener('touchstart', handleStart);
                     dragHandle.removeEventListener('mousedown', handleStart);
@@ -2140,6 +2123,11 @@
             newsFeed = new NewsFeedManager();
             visionAnalyzer = new VisionAnalyzer();
             
+            // Log platform info if Capacitor
+            if (isCapacitor) {
+                console.log('Running on Capacitor:', window.Capacitor.getPlatform());
+            }
+            
             // Handle resize events with debouncing
             let resizeTimeout;
             window.addEventListener('resize', () => {
@@ -2168,6 +2156,26 @@
 
         async function startCamera() {
             try {
+                // Request permissions explicitly for Capacitor apps
+                if (isCapacitor) {
+                    console.log('Requesting camera permissions for Capacitor app...');
+                    
+                    // Check current permission state
+                    try {
+                        const result = await navigator.permissions.query({ name: 'camera' });
+                        console.log('Camera permission state:', result.state);
+                        
+                        if (result.state === 'denied') {
+                            alert('Camera permission denied.\n\nPlease enable camera access:\n\n' +
+                                  (isIOS ? '1. Open iPhone Settings\n2. Scroll to Euphorie\n3. Enable Camera\n4. Restart the app' :
+                                   '1. Open Android Settings\n2. Go to Apps → Euphorie\n3. Permissions → Camera\n4. Allow\n5. Restart the app'));
+                            return;
+                        }
+                    } catch (permError) {
+                        console.log('Permission query not supported, continuing...', permError);
+                    }
+                }
+                
                 const constraints = {
                     video: { 
                         facingMode: 'environment',
@@ -2176,7 +2184,9 @@
                     }
                 };
                 
+                console.log('Requesting camera with constraints:', constraints);
                 cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('Camera stream obtained successfully!');
                 
                 const video = document.getElementById('camera-video');
                 const placeholder = document.getElementById('camera-placeholder');
@@ -2214,7 +2224,29 @@
                 
             } catch (error) {
                 console.error('Camera failed:', error);
-                alert('Camera access denied or not available. Please check your browser settings.');
+                
+                // Better error messages for mobile apps
+                if (isCapacitor) {
+                    let errorMessage = 'Camera access failed.\n\n';
+                    
+                    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                        errorMessage += 'Camera permission was denied.\n\n';
+                        if (isIOS) {
+                            errorMessage += 'To enable:\n1. Open iPhone Settings\n2. Scroll down to Euphorie\n3. Enable Camera\n4. Restart the app';
+                        } else if (isAndroid) {
+                            errorMessage += 'To enable:\n1. Open Android Settings\n2. Go to Apps → Euphorie\n3. Tap Permissions\n4. Enable Camera\n5. Restart the app';
+                        }
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage += 'No camera found on this device.';
+                    } else {
+                        errorMessage += 'Error: ' + error.message + '\n\nPlease check your device settings and try again.';
+                    }
+                    
+                    alert(errorMessage);
+                } else {
+                    // Browser error
+                    alert('Camera access denied or not available.\n\nPlease check your browser settings and ensure:\n• Camera permissions are granted\n• No other app is using the camera\n• You\'re using HTTPS');
+                }
             }
         }
         
