@@ -29,14 +29,7 @@
             width: 100vw;
             position: fixed;
             touch-action: none;
-        }
-
-        /* iOS Safe Area Support - Global */
-        @supports (padding: max(0px)) {
-            body {
-                padding-left: env(safe-area-inset-left);
-                padding-right: env(safe-area-inset-right);
-            }
+            padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
         }
 
         /* Desktop News Feed Styles */
@@ -672,9 +665,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            height: 100dvh;
-            padding: 0.5rem;
+            height: 100%;
+            width: 100%;
             position: relative;
             transition: margin-right 0.3s ease;
         }
@@ -684,10 +676,10 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.9);
             border: 2px solid rgba(139, 92, 246, 0.5);
-            border-radius: 15px;
+            border-radius: 0;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: none;
         }
 
         @media (min-width: 769px) {
@@ -701,6 +693,18 @@
                 border: 2px solid rgba(139, 92, 246, 0.5);
                 border-radius: 20px;
                 box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        /* Mobile specific - no border radius, full screen */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 0;
+            }
+            
+            .camera-interface {
+                border: none;
+                border-radius: 0;
             }
         }
 
@@ -821,17 +825,18 @@
             display: none;
             gap: 0.5rem;
             flex-wrap: wrap;
+            z-index: 100;
         }
 
         .controls-overlay.show {
             display: flex;
         }
 
-        /* iOS Safe Area Support for Controls */
-        @supports (padding: max(0px)) {
+        /* Mobile iOS Safe Area Support for Controls */
+        @media (max-width: 768px) {
             .controls-overlay {
-                top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem));
-                right: max(1rem, calc(env(safe-area-inset-right) + 0.5rem));
+                top: calc(1rem + env(safe-area-inset-top, 0px));
+                right: calc(1rem + env(safe-area-inset-right, 0px));
             }
         }
 
@@ -940,6 +945,7 @@
             border: 1px solid rgba(139, 92, 246, 0.3);
             border-radius: 20px;
             font-size: 0.8rem;
+            z-index: 100;
         }
 
         .vision-status.show {
@@ -951,11 +957,11 @@
             animation: visionPulse 1.5s ease-in-out infinite;
         }
 
-        /* iOS Safe Area Support for Vision Status */
-        @supports (padding: max(0px)) {
+        /* Mobile iOS Safe Area Support for Vision Status */
+        @media (max-width: 768px) {
             .vision-status {
-                top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem));
-                left: max(1rem, calc(env(safe-area-inset-left) + 0.5rem));
+                top: calc(1rem + env(safe-area-inset-top, 0px));
+                left: calc(1rem + env(safe-area-inset-left, 0px));
             }
         }
 
@@ -987,17 +993,18 @@
             flex-wrap: wrap;
             gap: 0.3rem;
             max-width: 300px;
+            z-index: 100;
         }
 
         .objects-overlay.show {
             display: flex;
         }
 
-        /* iOS Safe Area Support for Objects Overlay */
-        @supports (padding: max(0px)) {
+        /* Mobile iOS Safe Area Support for Objects Overlay */
+        @media (max-width: 768px) {
             .objects-overlay {
-                top: max(3.5rem, calc(env(safe-area-inset-top) + 3rem));
-                left: max(1rem, calc(env(safe-area-inset-left) + 0.5rem));
+                top: calc(3.5rem + env(safe-area-inset-top, 0px));
+                left: calc(1rem + env(safe-area-inset-left, 0px));
             }
         }
 
@@ -1028,6 +1035,7 @@
             border-radius: 10px;
             padding: 0.8rem;
             display: none;
+            z-index: 100;
         }
 
         .suggestions-panel.show {
@@ -1035,11 +1043,11 @@
             animation: slideUp 0.3s ease;
         }
 
-        /* Safe area support for suggestions panel */
-        @supports (padding: max(0px)) {
+        /* Mobile safe area support for suggestions panel */
+        @media (max-width: 768px) {
             .suggestions-panel {
-                bottom: max(10rem, calc(10rem + env(safe-area-inset-bottom)));
-                right: max(1rem, calc(env(safe-area-inset-right) + 0.5rem));
+                bottom: calc(10rem + env(safe-area-inset-bottom, 0px));
+                right: calc(1rem + env(safe-area-inset-right, 0px));
             }
         }
 
