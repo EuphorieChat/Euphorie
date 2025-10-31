@@ -68,15 +68,15 @@ fn get_timestamp() -> i64 {
 }
 
 // Helper function to analyze image data (placeholder for real ML integration)
-async fn analyze_image_content(image_data: &str) -> (String, Vec<String>, f64) {
+async fn analyze_image_content(_image_data: &str) -> (String, Vec<String>, f64) {
     // In a real implementation, this would:
     // 1. Send to OpenAI Vision API, or
     // 2. Use Google Cloud Vision API, or
     // 3. Use a local ONNX/TensorFlow model
     
     // For now, return context-aware mock responses
-    let mut rng = rand::thread_rng();
-    let confidence = 0.75 + rng.gen::<f64>() * 0.2;
+    let mut rng = rand::rng();
+    let confidence = 0.75 + rng.random::<f64>() * 0.2;
     
     let scenarios = vec![
         (
@@ -188,9 +188,12 @@ async fn vision_analyze(Json(request): Json<serde_json::Value>) -> impl IntoResp
                         let (scene_desc, objects, confidence) = analyze_image_content(image_str).await;
                         
                         // Generate contextual insights based on detected objects
-                        let mut rng = rand::thread_rng();
+                        let mut rng = rand::rng();
                         let insights = generate_insights(&objects, context);
                         let insight = insights.choose(&mut rng).cloned();
+                        
+                        // Check if we should respond before consuming insight
+                        let should_respond = insight.as_ref().and_then(|i| i.as_ref()).is_some();
                         
                         // Generate helpful suggestions
                         let suggestions = generate_suggestions(&objects);
@@ -199,7 +202,7 @@ async fn vision_analyze(Json(request): Json<serde_json::Value>) -> impl IntoResp
                             insight: insight.flatten(),
                             scene_description: scene_desc,
                             objects_detected: objects,
-                            should_respond: insight.is_some(),
+                            should_respond,
                             confidence,
                             timestamp: get_timestamp(),
                             suggestions: Some(suggestions),
@@ -224,14 +227,15 @@ async fn vision_analyze(Json(request): Json<serde_json::Value>) -> impl IntoResp
         None,
     ];
     
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let insight = periodic_insights.choose(&mut rng).unwrap().clone();
+    let should_respond = insight.is_some();
     
     Json(VisionResponse {
         insight,
         scene_description: "Waiting for visual input".to_string(),
         objects_detected: vec![],
-        should_respond: insight.is_some(),
+        should_respond,
         confidence: 0.0,
         timestamp: get_timestamp(),
         suggestions: None,
@@ -388,7 +392,9 @@ async fn main() {
             "https://localhost:5173".parse().unwrap(),
             "https://127.0.0.1:5173".parse().unwrap(),
             "http://localhost:5173".parse().unwrap(),
-            "http://localhost:3000".parse().unwrap(),  // Common dev port
+            "http://localhost:3000".parse().unwrap(),
+            "capacitor://localhost".parse().unwrap(),
+            "ionic://localhost".parse().unwrap(),
         ])
         .allow_methods(Any)
         .allow_headers(Any);
@@ -411,7 +417,7 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     
     info!("✅ Server successfully started!");
-    info!("🔧 CORS enabled for euphorie.com and localhost");
+    info!("🔧 CORS enabled for euphorie.com, localhost, and Capacitor");
     println!();
     
     axum::serve(listener, app).await.unwrap();
