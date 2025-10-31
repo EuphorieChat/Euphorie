@@ -2,8 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <title>Euphorie AI</title>
+    
+    <!-- Cache Control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- iOS Specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Euphorie AI">
     
     <!-- Favicon Support -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -19,6 +29,13 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        :root {
+            --sat: env(safe-area-inset-top);
+            --sar: env(safe-area-inset-right);
+            --sab: env(safe-area-inset-bottom);
+            --sal: env(safe-area-inset-left);
+        }
+
         html, body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #000;
@@ -29,7 +46,8 @@
             width: 100vw;
             position: fixed;
             touch-action: none;
-            padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+            /* Remove padding - we'll handle safe areas with individual element positioning */
+            padding: 0;
         }
 
         /* Desktop News Feed Styles */
@@ -699,12 +717,13 @@
         /* Mobile specific - no border radius, full screen */
         @media (max-width: 768px) {
             .main-container {
-                padding: 0;
+                padding: 0 !important;
             }
             
             .camera-interface {
-                border: none;
-                border-radius: 0;
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
             }
         }
 
@@ -1185,6 +1204,27 @@
         const isCapacitor = window.Capacitor !== undefined;
         const isIOS = isCapacitor && window.Capacitor.getPlatform() === 'ios';
         const isAndroid = isCapacitor && window.Capacitor.getPlatform() === 'android';
+
+        // Debug safe area insets on iOS
+        if (isIOS) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const root = document.documentElement;
+                const safeAreaTop = getComputedStyle(root).getPropertyValue('--sat') || 
+                                   getComputedStyle(document.body).paddingTop;
+                
+                console.log('Safe Area Insets:');
+                console.log('Top:', safeAreaTop);
+                console.log('Body padding:', getComputedStyle(document.body).padding);
+                
+                // Force iOS to recognize safe areas if they're not detected
+                if (safeAreaTop === '0px' || !safeAreaTop) {
+                    console.warn('Safe area insets not detected, applying fallback...');
+                    // Apply fallback values for iPhones with notches
+                    document.body.style.paddingTop = '44px'; // Status bar + notch
+                    document.body.style.paddingBottom = '34px'; // Home indicator
+                }
+            });
+        }
 
         // Configuration
         const CONFIG = {
