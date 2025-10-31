@@ -31,6 +31,14 @@
             touch-action: none;
         }
 
+        /* iOS Safe Area Support - Global */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+        }
+
         /* Desktop News Feed Styles */
         @media (min-width: 769px) {
             .news-feed-container {
@@ -200,6 +208,8 @@
                 visibility: hidden;
                 pointer-events: none;
                 will-change: transform;
+                /* Safe area padding for bottom */
+                padding-bottom: env(safe-area-inset-bottom);
             }
 
             .news-feed-container.enabled {
@@ -475,6 +485,9 @@
                 transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
                 user-select: none;
                 -webkit-user-select: none;
+                /* Safe area padding */
+                bottom: calc(20px + env(safe-area-inset-bottom));
+                right: calc(20px + env(safe-area-inset-right));
             }
 
             .mobile-news-fab.enabled {
@@ -814,6 +827,14 @@
             display: flex;
         }
 
+        /* iOS Safe Area Support for Controls */
+        @supports (padding: max(0px)) {
+            .controls-overlay {
+                top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem));
+                right: max(1rem, calc(env(safe-area-inset-right) + 0.5rem));
+            }
+        }
+
         .control-btn {
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(10px);
@@ -883,6 +904,9 @@
                 background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 20, 50, 0.9));
                 border: 1px solid rgba(139, 92, 246, 0.4);
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+                /* Safe area support */
+                bottom: calc(20px + env(safe-area-inset-bottom));
+                left: calc(20px + env(safe-area-inset-left));
             }
             
             .chat-overlay.show {
@@ -927,6 +951,14 @@
             animation: visionPulse 1.5s ease-in-out infinite;
         }
 
+        /* iOS Safe Area Support for Vision Status */
+        @supports (padding: max(0px)) {
+            .vision-status {
+                top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem));
+                left: max(1rem, calc(env(safe-area-inset-left) + 0.5rem));
+            }
+        }
+
         @keyframes visionPulse {
             0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
             50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
@@ -961,6 +993,14 @@
             display: flex;
         }
 
+        /* iOS Safe Area Support for Objects Overlay */
+        @supports (padding: max(0px)) {
+            .objects-overlay {
+                top: max(3.5rem, calc(env(safe-area-inset-top) + 3rem));
+                left: max(1rem, calc(env(safe-area-inset-left) + 0.5rem));
+            }
+        }
+
         .object-tag {
             padding: 0.3rem 0.6rem;
             background: rgba(139, 92, 246, 0.15);
@@ -993,6 +1033,14 @@
         .suggestions-panel.show {
             display: block;
             animation: slideUp 0.3s ease;
+        }
+
+        /* Safe area support for suggestions panel */
+        @supports (padding: max(0px)) {
+            .suggestions-panel {
+                bottom: max(10rem, calc(10rem + env(safe-area-inset-bottom)));
+                right: max(1rem, calc(env(safe-area-inset-right) + 0.5rem));
+            }
         }
 
         @keyframes slideUp {
