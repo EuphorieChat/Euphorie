@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>Euphorie AI - Ultimate Full Edition</title>
+    <title>Euphorie</title>
     
     <!-- Cache Control -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1342,10 +1342,10 @@
 
         @media (max-width: 768px) {
             .chat-overlay {
-                bottom: calc(120px + env(safe-area-inset-bottom));
-                left: 1rem;
+                bottom: calc(24px + env(safe-area-inset-bottom));
+                left: calc(24px + env(safe-area-inset-left));
                 right: auto;
-                max-width: calc(100vw - 2rem);
+                max-width: calc(100vw - 120px);
                 width: auto;
                 margin: 0;
                 padding: 0.8rem 1rem;
@@ -1521,13 +1521,13 @@
             <div id="camera-placeholder" class="camera-placeholder">
                 <div class="placeholder-title">
                     <img src="./logo.png" alt="Euphorie Logo" class="placeholder-logo" onerror="this.style.display='none'">
-                    <span class="placeholder-title-text">Euphorie AI Ultimate</span>
+                    <span class="placeholder-title-text">Euphorie</span>
                 </div>
                 <div class="placeholder-subtitle">
                     AR • Voice • 3D • Vision AI • Live News • Measurements
                 </div>
                 <button class="start-button" onclick="startSystem()">
-                    🚀 Initialize System
+                    Initialize
                 </button>
             </div>
             
@@ -2760,6 +2760,26 @@
             if (globalState.news.pollingInterval) {
                 clearInterval(globalState.news.pollingInterval);
             }
+            
+            // Clear AR canvas
+            const arCanvas = document.getElementById('ar-canvas');
+            if (arCanvas) {
+                const ctx = arCanvas.getContext('2d');
+                ctx.clearRect(0, 0, arCanvas.width, arCanvas.height);
+                console.log('🎨 AR canvas cleared');
+            }
+            
+            // Clear 3D objects
+            if (globalState.three.scene) {
+                globalState.three.objects.forEach(obj => {
+                    globalState.three.scene.remove(obj);
+                });
+                globalState.three.objects = [];
+                console.log('🎨 3D objects cleared');
+            }
+            
+            // Clear detections
+            globalState.detections = [];
             
             // Reset UI
             document.getElementById('camera-video').style.display = 'none';
