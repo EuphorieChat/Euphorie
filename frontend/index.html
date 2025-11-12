@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>Euphorie</title>
+    <title>Euphorie AI - Ultimate Full Edition</title>
     
     <!-- Cache Control -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -846,26 +846,35 @@
             right: calc(1rem + env(safe-area-inset-right));
             width: 56px;
             height: 56px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(139, 92, 246, 0.5);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(139, 92, 246, 0.6);
             border-radius: 50%;
             display: none;
             align-items: center;
             justify-content: center;
             z-index: 300;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
         }
 
         .hamburger-btn.show {
             display: flex;
+            animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes slideInBounce {
+            0% { transform: translateX(100px) rotate(90deg); opacity: 0; }
+            60% { transform: translateX(-10px) rotate(-5deg); opacity: 1; }
+            80% { transform: translateX(5px) rotate(2deg); }
+            100% { transform: translateX(0) rotate(0); }
         }
 
         .hamburger-btn:active {
-            transform: scale(0.95);
-            background: rgba(139, 92, 246, 0.3);
+            transform: scale(0.92);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.4));
+            box-shadow: 0 2px 12px rgba(139, 92, 246, 0.6);
         }
 
         .hamburger-icon {
@@ -875,43 +884,69 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: transform 0.3s ease;
         }
 
         .hamburger-icon span {
             width: 100%;
             height: 3px;
-            background: white;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa);
             border-radius: 2px;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(139, 92, 246, 0.5);
         }
 
         .hamburger-btn.active .hamburger-icon span:nth-child(1) {
             transform: translateY(8.5px) rotate(45deg);
+            background: linear-gradient(90deg, #a78bfa, #f472b6);
         }
 
         .hamburger-btn.active .hamburger-icon span:nth-child(2) {
             opacity: 0;
+            transform: scale(0);
         }
 
         .hamburger-btn.active .hamburger-icon span:nth-child(3) {
             transform: translateY(-8.5px) rotate(-45deg);
+            background: linear-gradient(90deg, #a78bfa, #f472b6);
         }
 
         .menu-panel {
             position: fixed;
             top: 0;
-            right: -100%;
-            width: 280px;
+            right: -320px;
+            width: 300px;
             height: 100vh;
-            background: linear-gradient(180deg, rgba(0, 0, 0, 0.98), rgba(20, 10, 40, 0.98));
-            backdrop-filter: blur(20px);
-            border-left: 2px solid rgba(139, 92, 246, 0.5);
-            padding: calc(80px + env(safe-area-inset-top)) 1.5rem 2rem;
+            background: linear-gradient(180deg, 
+                rgba(15, 0, 35, 0.98) 0%, 
+                rgba(30, 10, 50, 0.98) 50%,
+                rgba(20, 5, 40, 0.98) 100%);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-left: 2px solid rgba(139, 92, 246, 0.6);
+            padding-top: calc(80px + env(safe-area-inset-top));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
             z-index: 299;
             transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+            box-shadow: -20px 0 60px rgba(0, 0, 0, 0.8);
             overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .menu-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .menu-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .menu-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #8b5cf6, #3b82f6);
+            border-radius: 3px;
         }
 
         .menu-panel.open {
@@ -924,12 +959,13 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 298;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
         }
 
         .menu-overlay.show {
@@ -937,17 +973,70 @@
             visibility: visible;
         }
 
+        .menu-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .menu-header-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-header-subtitle {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+
         .menu-section {
             margin-bottom: 2rem;
+            animation: fadeInUp 0.5s ease backwards;
+        }
+
+        .menu-section:nth-child(1) { animation-delay: 0.1s; }
+        .menu-section:nth-child(2) { animation-delay: 0.2s; }
+        .menu-section:nth-child(3) { animation-delay: 0.3s; }
+        .menu-section:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .menu-section-title {
-            font-size: 0.7rem;
-            font-weight: 700;
+            font-size: 0.65rem;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 1.5px;
+            color: rgba(167, 139, 250, 0.8);
             margin-bottom: 0.8rem;
+            padding-left: 0.5rem;
+            position: relative;
+        }
+
+        .menu-section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 12px;
+            background: linear-gradient(180deg, #8b5cf6, #3b82f6);
+            border-radius: 2px;
         }
 
         .menu-item {
@@ -955,30 +1044,90 @@
             align-items: center;
             gap: 1rem;
             padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, 
+                rgba(139, 92, 246, 0.08), 
+                rgba(59, 130, 246, 0.08));
+            border: 1.5px solid rgba(139, 92, 246, 0.2);
+            border-radius: 14px;
+            margin-bottom: 0.6rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(139, 92, 246, 0.2), 
+                transparent);
+            transition: left 0.5s ease;
+        }
+
+        .menu-item:hover::before {
+            left: 100%;
         }
 
         .menu-item:active {
-            transform: scale(0.98);
-            background: rgba(139, 92, 246, 0.2);
-            border-color: rgba(139, 92, 246, 0.5);
+            transform: scale(0.97);
+            background: linear-gradient(135deg, 
+                rgba(139, 92, 246, 0.25), 
+                rgba(59, 130, 246, 0.25));
+            border-color: rgba(139, 92, 246, 0.6);
         }
 
         .menu-item.active {
-            background: rgba(139, 92, 246, 0.2);
-            border-color: rgba(139, 92, 246, 0.6);
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+            background: linear-gradient(135deg, 
+                rgba(139, 92, 246, 0.3), 
+                rgba(59, 130, 246, 0.3));
+            border-color: rgba(139, 92, 246, 0.8);
+            box-shadow: 
+                0 0 30px rgba(139, 92, 246, 0.4),
+                inset 0 1px 20px rgba(139, 92, 246, 0.2);
+        }
+
+        .menu-item.active::after {
+            content: '✓';
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #a78bfa;
+            animation: checkBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes checkBounce {
+            0% { transform: translateY(-50%) scale(0); }
+            50% { transform: translateY(-50%) scale(1.2); }
+            100% { transform: translateY(-50%) scale(1); }
         }
 
         .menu-item-icon {
-            font-size: 1.5rem;
-            width: 40px;
-            text-align: center;
+            font-size: 1.8rem;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, 
+                rgba(139, 92, 246, 0.2), 
+                rgba(59, 130, 246, 0.2));
+            border-radius: 12px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .menu-item:active .menu-item-icon {
+            transform: rotate(5deg) scale(1.1);
         }
 
         .menu-item-content {
@@ -987,13 +1136,35 @@
 
         .menu-item-label {
             font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 0.2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            color: white;
+            letter-spacing: 0.2px;
         }
 
         .menu-item-desc {
             font-size: 0.7rem;
             color: rgba(255, 255, 255, 0.6);
+            line-height: 1.3;
+        }
+
+        .menu-footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(139, 92, 246, 0.2);
+            text-align: center;
+        }
+
+        .menu-footer-text {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-footer-version {
+            font-size: 0.65rem;
+            color: rgba(167, 139, 250, 0.6);
+            font-weight: 600;
         }
 
         @media (min-width: 769px) {
@@ -1394,27 +1565,32 @@
 
     <!-- Menu Panel (Mobile Only) -->
     <div id="menu-panel" class="menu-panel">
+        <div class="menu-header">
+            <div class="menu-header-title">Euphorie AI</div>
+            <div class="menu-header-subtitle">Ultimate AR System</div>
+        </div>
+
         <div class="menu-section">
             <div class="menu-section-title">AR Modes</div>
             <div class="menu-item" onclick="toggleMode('detect'); closeMenu();" id="menu-detect">
                 <div class="menu-item-icon">🎯</div>
                 <div class="menu-item-content">
                     <div class="menu-item-label">Object Detection</div>
-                    <div class="menu-item-desc">Identify objects in real-time</div>
+                    <div class="menu-item-desc">Identify 80+ objects in real-time</div>
                 </div>
             </div>
             <div class="menu-item" onclick="toggleMode('measure'); closeMenu();" id="menu-measure">
                 <div class="menu-item-icon">📏</div>
                 <div class="menu-item-content">
                     <div class="menu-item-label">Measurement</div>
-                    <div class="menu-item-desc">Measure distances between points</div>
+                    <div class="menu-item-desc">Measure distances & dimensions</div>
                 </div>
             </div>
             <div class="menu-item" onclick="toggleMode('3d'); closeMenu();" id="menu-3d">
                 <div class="menu-item-icon">🎨</div>
                 <div class="menu-item-content">
                     <div class="menu-item-label">3D Objects</div>
-                    <div class="menu-item-desc">Place virtual 3D objects</div>
+                    <div class="menu-item-desc">Place virtual 3D objects in AR</div>
                 </div>
             </div>
         </div>
@@ -1432,7 +1608,14 @@
                 <div class="menu-item-icon">📸</div>
                 <div class="menu-item-content">
                     <div class="menu-item-label">Take Photo</div>
-                    <div class="menu-item-desc">Capture AR screenshot</div>
+                    <div class="menu-item-desc">Capture AR screenshot with overlays</div>
+                </div>
+            </div>
+            <div class="menu-item" onclick="describeScene(); closeMenu();">
+                <div class="menu-item-icon">👁️</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">Describe Scene</div>
+                    <div class="menu-item-desc">AI describes what it sees</div>
                 </div>
             </div>
         </div>
@@ -1442,17 +1625,22 @@
             <div class="menu-item" onclick="showHelp(); closeMenu();">
                 <div class="menu-item-icon">❓</div>
                 <div class="menu-item-content">
-                    <div class="menu-item-label">Help</div>
-                    <div class="menu-item-desc">View voice commands & info</div>
+                    <div class="menu-item-label">Help & Commands</div>
+                    <div class="menu-item-desc">View all voice commands & tips</div>
                 </div>
             </div>
             <div class="menu-item" onclick="stopSystem(); closeMenu();">
                 <div class="menu-item-icon">❌</div>
                 <div class="menu-item-content">
                     <div class="menu-item-label">Stop System</div>
-                    <div class="menu-item-desc">End AR session</div>
+                    <div class="menu-item-desc">End AR session & release camera</div>
                 </div>
             </div>
+        </div>
+
+        <div class="menu-footer">
+            <div class="menu-footer-text">Powered by TensorFlow.js & Three.js</div>
+            <div class="menu-footer-version">Version 2.0 Ultimate • 3900+ Lines</div>
         </div>
     </div>
 
@@ -1521,13 +1709,13 @@
             <div id="camera-placeholder" class="camera-placeholder">
                 <div class="placeholder-title">
                     <img src="./logo.png" alt="Euphorie Logo" class="placeholder-logo" onerror="this.style.display='none'">
-                    <span class="placeholder-title-text">Euphorie</span>
+                    <span class="placeholder-title-text">Euphorie AI Ultimate</span>
                 </div>
                 <div class="placeholder-subtitle">
                     AR • Voice • 3D • Vision AI • Live News • Measurements
                 </div>
                 <button class="start-button" onclick="startSystem()">
-                    Initialize
+                    🚀 Initialize System
                 </button>
             </div>
             
